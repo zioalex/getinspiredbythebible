@@ -167,6 +167,24 @@ export async function getVerse(
 }
 
 /**
+ * Get all verses in a chapter
+ */
+export async function getChapter(
+  book: string,
+  chapter: number
+): Promise<{ book: string; chapter: number; verses: Verse[] }> {
+  const response = await fetch(
+    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}`
+  )
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
  * Get verse with context
  */
 export async function getVerseContext(

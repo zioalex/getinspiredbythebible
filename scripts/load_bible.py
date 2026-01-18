@@ -168,6 +168,42 @@ async def load_bible_to_db(database_url: str, bible_data: list):
             )
         """))
         
+        await session.execute(text("""
+            CREATE TABLE IF NOT EXISTS passages (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(200) NOT NULL,
+                start_book_id INTEGER NOT NULL REFERENCES books(id),
+                start_chapter INTEGER NOT NULL,
+                start_verse INTEGER NOT NULL,
+                end_chapter INTEGER NOT NULL,
+                end_verse INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                topics VARCHAR(500),
+                embedding vector(768)
+            )
+        """))
+        
+        await session.execute(text("""
+            CREATE TABLE IF NOT EXISTS topics (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                parent_id INTEGER REFERENCES topics(id),
+                embedding vector(768)
+            )
+        """))
+        
+        # Create indexes for better performance
+        await session.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_verse_embedding 
+            ON verses USING ivfflat (embedding vector_cosine_ops)
+        """))
+        
+        await session.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_passage_embedding 
+            ON passages USING ivfflat (embedding vector_cosine_ops)
+        """))
+        
         await session.commit()
         
         # Clear existing data

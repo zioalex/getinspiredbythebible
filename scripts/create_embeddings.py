@@ -145,10 +145,10 @@ async def create_embeddings(database_url: str, ollama_host: str, model: str):
                     await session.execute(
                         text("""
                             UPDATE verses 
-                            SET embedding = :embedding::vector
-                            WHERE id = :id
+                            SET embedding = CAST(:embedding AS vector)
+                            WHERE id = :verse_id
                         """),
-                        {"id": verse_id, "embedding": embedding_str}
+                        {"verse_id": verse_id, "embedding": embedding_str}
                     )
                 
                 await session.commit()

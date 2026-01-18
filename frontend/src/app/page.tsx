@@ -1,26 +1,145 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Send, Book, Loader2, RefreshCw } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Send, Book, Loader2, RefreshCw, Filter } from 'lucide-react'
 import ChatMessage from '@/components/ChatMessage'
 import VerseCard from '@/components/VerseCard'
-import { sendMessage, Message, Verse } from '@/lib/api'
+import ChapterModal from '@/components/ChapterModal'
+import { sendMessage, Message, Verse, getChapter } from '@/lib/api'
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([])
+  const [showOnlyReferenced, setShowOnlyReferenced] = useState(true) // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const versesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalChapter, setModalChapter] = useState<{
+    book: string
+    chapter: number
+    verses: Verse[]
+    highlightVerse?: number
+  } | null>(null)
+  const [modalLoading, setModalLoading] = useState(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const scrollVersesToBottom = () => {
+    versesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    scrollVersesToBottom()
+  }, [relevantVerses])
+
+  // Extract verse references mentioned in chat messages
+  const referencedVerses = useMemo(() => {
+    const allText = messages
+      .filter(m => m.role === 'assistant')
+      .map(m => m.content)
+      .join(' ')
+    
+    // More comprehensive pattern to match verse references
+    // Matches: "John 3:16", "1 John 2:3", "Psalms 143:4", "Song of Solomon 1:1", etc.
+    const versePattern = /(\d?\s?[A-Z][a-z]+(?:\s+(?:of\s+)?[A-Z]?[a-z]+)*)\s+(\d+):(\d+)(?:-\d+)?/gi
+    const references = new Set<string>()
+    let match
+    
+    while ((match = versePattern.exec(allText)) !== null) {
+      const book = match[1].trim()
+      const chapter = match[2]
+      const verse = match[3]
+      // Store in a normalized format for matching
+      references.add(`${book.toLowerCase()} ${chapter}:${verse}`)
+    }
+    
+    return references
+  }, [messages])
+
+  // Filter verses based on the toggle
+  const displayedVerses = useMemo(() => {
+    if (!showOnlyReferenced) {
+      return relevantVerses
+    }
+    
+    return relevantVerses.filter(verse => {
+      // Normalize the verse reference for comparison
+      const normalizedRef = verse.reference.toLowerCase()
+      
+      // Check if this verse's reference is mentioned in the chat
+      if (referencedVerses.has(normalizedRef)) {
+        return true
+      }
+      
+      // Also check using book/chapter/verse fields for more accurate matching
+      const altRef = `${verse.book.toLowerCase()} ${verse.chapter}:${verse.verse}`
+      if (referencedVerses.has(altRef)) {
+        return true
+      }
+      
+      // Check if any referenced verse matches this one (partial match)
+      for (const ref of referencedVerses) {
+        // Check if references are similar (handles "Psalm" vs "Psalms", etc.)
+        const refParts = ref.match(/(.+)\s+(\d+):(\d+)/)
+        if (refParts) {
+          const refBook = refParts[1].toLowerCase()
+          const refChapter = refParts[2]
+          const refVerse = refParts[3]
+          
+          // Fuzzy book name matching
+          const verseBook = verse.book.toLowerCase()
+          const bookMatches = 
+            verseBook === refBook ||
+            verseBook.startsWith(refBook) ||
+            refBook.startsWith(verseBook) ||
+            verseBook.replace(/s$/, '') === refBook.replace(/s$/, '') // Handle Psalm/Psalms
+          
+          if (bookMatches && 
+              verse.chapter === parseInt(refChapter) && 
+              verse.verse === parseInt(refVerse)) {
+            return true
+          }
+        }
+      }
+      
+      return false
+    })
+  }, [relevantVerses, referencedVerses, showOnlyReferenced])
+
+  const handleVerseClick = async (book: string, chapter: number, verse: number) => {
+    setModalOpen(true)
+    setModalLoading(true)
+    setModalChapter({ book, chapter, verses: [], highlightVerse: verse })
+
+    try {
+      const chapterData = await getChapter(book, chapter)
+      setModalChapter({
+        book: chapterData.book,
+        chapter: chapterData.chapter,
+        verses: chapterData.verses,
+        highlightVerse: verse,
+      })
+    } catch (error) {
+      console.error('Failed to fetch chapter:', error)
+    } finally {
+      setModalLoading(false)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setModalChapter(null)
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
@@ -44,9 +163,9 @@ export default function Home() {
 
       setMessages((prev) => [...prev, assistantMessage])
 
-      // Update relevant verses if returned
+      // Append relevant verses if returned
       if (response.scripture_context?.verses) {
-        setRelevantVerses(response.scripture_context.verses)
+        setRelevantVerses((prev) => [...prev, ...response.scripture_context.verses])
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -74,7 +193,7 @@ export default function Home() {
   ]
 
   return (
-    <main className="flex min-h-screen">
+    <main className="flex h-screen">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col max-w-4xl mx-auto">
         {/* Header */}
@@ -131,7 +250,11 @@ export default function Home() {
           ) : (
             <div className="space-y-6">
               {messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
+                <ChatMessage 
+                  key={index} 
+                  message={message}
+                  onVerseClick={handleVerseClick}
+                />
               ))}
 
               {isLoading && (
@@ -174,18 +297,76 @@ export default function Home() {
 
       {/* Sidebar - Relevant Verses */}
       {relevantVerses.length > 0 && (
-        <aside className="hidden lg:block w-80 border-l border-gray-200 bg-white/50 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-700 mb-4">
-              Related Scripture
-            </h3>
-            <div className="space-y-3">
-              {relevantVerses.map((verse, index) => (
-                <VerseCard key={index} verse={verse} />
-              ))}
+        <aside className="hidden lg:flex lg:flex-col w-80 border-l border-gray-200 bg-white/50">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-gray-700">
+                Scripture References
+              </h3>
+              <span className="text-xs text-gray-400">
+                {displayedVerses.length} verse{displayedVerses.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {/* Filter Toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowOnlyReferenced(true)}
+                className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
+                  showOnlyReferenced
+                    ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                Referenced
+              </button>
+              <button
+                onClick={() => setShowOnlyReferenced(false)}
+                className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
+                  !showOnlyReferenced
+                    ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                All Related ({relevantVerses.length})
+              </button>
             </div>
           </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {displayedVerses.length > 0 ? (
+              <div className="space-y-3">
+                {displayedVerses.map((verse, index) => (
+                  <VerseCard 
+                    key={index} 
+                    verse={verse} 
+                    onClick={() => handleVerseClick(verse.book, verse.chapter, verse.verse)}
+                  />
+                ))}
+                <div ref={versesEndRef} />
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 text-sm py-8">
+                <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p>No verses referenced yet.</p>
+                <p className="text-xs mt-1">
+                  Verses will appear here when mentioned in the chat.
+                </p>
+              </div>
+            )}
+          </div>
         </aside>
+      )}
+
+      {/* Chapter Modal */}
+      {modalChapter && (
+        <ChapterModal
+          isOpen={modalOpen}
+          onClose={handleCloseModal}
+          book={modalChapter.book}
+          chapter={modalChapter.chapter}
+          verses={modalChapter.verses}
+          highlightVerse={modalChapter.highlightVerse}
+          isLoading={modalLoading}
+        />
       )}
     </main>
   )

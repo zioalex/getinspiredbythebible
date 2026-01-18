@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://bible:bible123@localhost:5432/bibledb"
     
     # Chat Settings
-    max_context_verses: int = 5  # Max verses to include in context
+    max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
     
     class Config:

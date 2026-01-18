@@ -7,7 +7,7 @@ services:
       context: ./api
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
     environment:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - LLM_MODEL=${LLM_MODEL:-llama3:8b}
@@ -27,9 +27,14 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+      - "0.0.0.0:11434:11434"
+    environment:
+      - LLM_MODEL=${LLM_MODEL:-llama3:8b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
     volumes:
       - ollama_data:/root/.ollama
+      - ./scripts/init-ollama.sh:/init-ollama.sh
+    entrypoint: ["/bin/bash", "/init-ollama.sh"]
     deploy:
       resources:
         reservations:
@@ -43,7 +48,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     ports:
-      - "5432:5432"
+      - "0.0.0.0:5432:5432"
     environment:
       - POSTGRES_USER=bible
       - POSTGRES_PASSWORD=bible123
@@ -63,9 +68,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://192.168.178.150:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules

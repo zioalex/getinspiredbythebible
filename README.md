@@ -14,13 +14,13 @@ A conversational AI that helps people find spiritual encouragement and relevant 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Frontend (Next.js)                      │
+│                      Frontend (Next.js)                     │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│                    Backend API (FastAPI)                     │
+│                    Backend API (FastAPI)                    │
 │  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐   │
-│  │ LLM Provider │  │ Scripture   │  │ Embedding          │   │
+│  │ LLM Provider│  │ Scripture   │  │ Embedding          │   │
 │  │ (Ollama/    │  │ Search      │  │ Provider           │   │
 │  │  Claude)    │  │ Service     │  │                    │   │
 │  └─────────────┘  └─────────────┘  └────────────────────┘   │
@@ -37,8 +37,7 @@ A conversational AI that helps people find spiritual encouragement and relevant 
 ### Prerequisites
 
 - Docker & Docker Compose
-- Ollama installed locally (for self-hosted LLM)
-- 8GB+ GPU (recommended) or CPU with 16GB+ RAM
+- 8GB+ GPU (recommended) or CPU with 16GB+ RAM for Ollama
 
 ### 1. Clone and Setup
 
@@ -47,17 +46,9 @@ cd bible-chat
 cp api/.env.example api/.env  # Create env file (optional)
 ```
 
-### 2. Pull Required Ollama Models
+### 2. Start Services
 
-```bash
-# Pull the LLM model
-ollama pull llama3:8b
-
-# Pull the embedding model
-ollama pull nomic-embed-text
-```
-
-### 3. Start Services
+> **Note**: On first startup, Ollama will automatically pull the required models (`llama3:8b` and `nomic-embed-text`). This may take 5-10 minutes depending on your internet connection.
 
 ```bash
 # Start all services
@@ -67,10 +58,14 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### 4. Load Bible Data
+### 3. Load Bible Data
 
 ```bash
-# Install Python dependencies locally for scripts
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install Python dependencies
 cd scripts
 pip install httpx asyncpg sqlalchemy
 
@@ -80,8 +75,9 @@ python load_bible.py
 # Generate embeddings (takes ~30-60 minutes)
 python create_embeddings.py
 ```
+```
 
-### 5. Access the App
+### 4. Access the App
 
 - **Web App**: http://localhost:3000
 - **API Docs**: http://localhost:8000/docs
@@ -210,11 +206,42 @@ pytest
 
 ## 📝 License
 
-This project is for educational and inspirational purposes. Bible text uses the KJV (public domain).
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This project is licensed under the MIT License, which means you're free to use, modify, and distribute this software. Bible text uses the KJV (public domain).
 
 ## 🙏 Contributing
 
 Contributions welcome! Please read our contributing guidelines first.
+
+### Getting Started
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Keep commits atomic and well-described
+- Follow the existing code style
+- Add tests for new features
+- Update documentation as needed
+- Files to exclude from commits are listed in `.gitignore`
+
+## 📋 What's Not Committed
+
+The following files and directories are excluded from version control (see `.gitignore`):
+
+- Environment variables (`.env` files)
+- Python virtual environments (`.venv`, `venv/`)
+- Node modules (`node_modules/`)
+- Build outputs (`dist/`, `build/`, `.next/`)
+- Database files (`*.db`, `*.sqlite`)
+- IDE settings (`.vscode/`, `.idea/`)
+- Logs and cache files
+- OS-specific files (`.DS_Store`, `Thumbs.db`)
 
 ---
 

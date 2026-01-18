@@ -71,3 +71,12 @@ body {
   color: #6b7280;
   font-weight: 500;
 }
+/* Bible verse styling in chat messages */
+.chat-message-content p {
+  line-height: 1.7;
+}
+
+/* Highlight verse references that start paragraphs (e.g., "Psalms 143:4:") */
+.chat-message-content p::first-line {
+  font-weight: 600;
+}
