@@ -35,6 +35,7 @@ services:
       - ollama_data:/root/.ollama
       - ./scripts/init-ollama.sh:/init-ollama.sh
     entrypoint: ["/bin/bash", "/init-ollama.sh"]
+    # For CPU-only, remove the deploy section below
     deploy:
       resources:
         reservations:
@@ -42,7 +43,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    # For CPU-only, remove the deploy section above
 
   # PostgreSQL with pgvector for semantic search
   postgres:
