@@ -89,7 +89,7 @@ export default function Home() {
       }
 
       // Check if any referenced verse matches this one (partial match)
-      for (const ref of referencedVerses) {
+      for (const ref of Array.from(referencedVerses)) {
         // Check if references are similar (handles "Psalm" vs "Psalms", etc.)
         const refParts = ref.match(/(.+)\s+(\d+):(\d+)/);
         if (refParts) {
@@ -174,7 +174,7 @@ export default function Home() {
       if (response.scripture_context?.verses) {
         setRelevantVerses((prev) => [
           ...prev,
-          ...response.scripture_context.verses,
+          ...(response.scripture_context?.verses || []),
         ]);
       }
     } catch (error) {
