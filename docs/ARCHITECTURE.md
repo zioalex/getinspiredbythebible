@@ -1,7 +1,7 @@
 # Bible Inspiration Chat - Architecture Design Document
 
-**Version:** 1.0.0  
-**Last Updated:** January 2026  
+**Version:** 1.0.0
+**Last Updated:** January 2026
 **Status:** Active Development
 
 ---
@@ -28,7 +28,9 @@
 
 ### 1.1 Purpose
 
-Bible Inspiration Chat is a conversational AI application that helps users find spiritual encouragement and relevant scripture based on their life situations. The system combines semantic search capabilities with large language model (LLM) generation to provide Bible-grounded responses.
+Bible Inspiration Chat is a conversational AI application that helps users find spiritual encouragement and relevant
+scripture based on their life situations. The system combines semantic search capabilities with large language model
+(LLM) generation to provide Bible-grounded responses.
 
 ### 1.2 Key Design Principles
 
@@ -58,7 +60,7 @@ Bible Inspiration Chat is a conversational AI application that helps users find 
 
 ### 2.1 High-Level Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              CLIENT LAYER                                   │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
@@ -132,7 +134,7 @@ Bible Inspiration Chat is a conversational AI application that helps users find 
 
 ### 2.2 Request Flow
 
-```
+```text
 User Message → Frontend → API Router → ChatService
                                            │
                     ┌──────────────────────┼──────────────────────┐
@@ -165,6 +167,7 @@ User Message → Frontend → API Router → ChatService
 #### 3.1.1 Application Entry Point (`main.py`)
 
 **Responsibilities:**
+
 - FastAPI application initialization
 - Middleware configuration (CORS)
 - Route registration
@@ -172,6 +175,7 @@ User Message → Frontend → API Router → ChatService
 - Health check endpoints
 
 **Key Features:**
+
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -190,11 +194,11 @@ class Settings(BaseSettings):
     # LLM Configuration
     llm_provider: Literal["ollama", "claude", "openai"]
     llm_model: str
-    
+
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai"]
     embedding_model: str
-    
+
     # Database
     database_url: str
 ```
@@ -214,12 +218,14 @@ class Settings(BaseSettings):
 #### 3.1.3 Chat Service (`chat/service.py`)
 
 **Responsibilities:**
+
 - Orchestrate scripture search and LLM generation
 - Manage conversation context
 - Build prompts with scripture grounding
 
 **Core Method Flow:**
-```
+
+```text
 chat(request) →
     1. search_scripture(user_message)
     2. build_context_prompt(search_results)
@@ -231,11 +237,13 @@ chat(request) →
 #### 3.1.4 Scripture Search Service (`scripture/search.py`)
 
 **Responsibilities:**
+
 - Combine embedding generation with database queries
 - Semantic similarity search
 - Result formatting
 
 **Search Algorithm:**
+
 1. Convert query text → embedding vector via `EmbeddingProvider`
 2. Execute cosine similarity search in pgvector
 3. Filter by similarity threshold (default: 0.4)
@@ -259,24 +267,26 @@ chat(request) →
 #### 3.2.1 Provider Interfaces (`providers/base.py`)
 
 **LLMProvider Interface:**
+
 ```python
 class LLMProvider(ABC):
     @abstractmethod
     async def chat(messages, temperature, max_tokens) -> LLMResponse
-    
+
     @abstractmethod
     async def chat_stream(messages, temperature, max_tokens) -> AsyncIterator[str]
-    
+
     @abstractmethod
     async def health_check() -> bool
 ```
 
 **EmbeddingProvider Interface:**
+
 ```python
 class EmbeddingProvider(ABC):
     @abstractmethod
     async def embed(text: str) -> EmbeddingResponse
-    
+
     @abstractmethod
     async def embed_batch(texts: list[str]) -> list[EmbeddingResponse]
 ```
@@ -294,6 +304,7 @@ def create_llm_provider(config: Settings) -> LLMProvider:
 ```
 
 **FastAPI Dependency Injection:**
+
 ```python
 # In routes
 async def chat(
@@ -305,7 +316,8 @@ async def chat(
 ### 3.3 Prompt Engineering (`chat/prompts.py`)
 
 **System Prompt Design:**
-```
+
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      SYSTEM PROMPT                              │
 │                                                                 │
@@ -371,10 +383,11 @@ async def chat(
 ### 4.2 SQLAlchemy Models
 
 **Verse Model with Vector:**
+
 ```python
 class Verse(Base):
     __tablename__ = "verses"
-    
+
     id = Column(Integer, primary_key=True)
     book_id = Column(Integer, ForeignKey("books.id"))
     chapter_number = Column(Integer)
@@ -386,15 +399,17 @@ class Verse(Base):
 ### 4.3 Vector Search
 
 **Similarity Calculation:**
+
 ```python
 # Cosine similarity using pgvector
 similarity = 1 - Verse.embedding.cosine_distance(query_embedding)
 ```
 
 **Index Configuration:**
+
 ```sql
-CREATE INDEX idx_verse_embedding_cosine 
-ON verses 
+CREATE INDEX idx_verse_embedding_cosine
+ON verses
 USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 ```
@@ -423,6 +438,7 @@ WITH (lists = 100);
 | GET | `/api/v1/chat/verse/{book}/{chapter}/{verse}` | Verse with context |
 
 **Chat Request:**
+
 ```json
 {
   "message": "I'm feeling anxious about my future",
@@ -435,6 +451,7 @@ WITH (lists = 100);
 ```
 
 **Chat Response:**
+
 ```json
 {
   "message": "I understand that feeling anxious...",
@@ -479,7 +496,8 @@ WITH (lists = 100);
 ### 5.2 Streaming Protocol
 
 **Server-Sent Events (SSE) Format:**
-```
+
+```text
 data: {"content": "I understand "}
 
 data: {"content": "that feeling "}
@@ -505,7 +523,7 @@ data: [DONE]
 
 ### 6.1 Class Hierarchy
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                     PROVIDER ABSTRACTION                         │
 ├──────────────────────────────────────────────────────────────────┤
@@ -533,24 +551,26 @@ data: [DONE]
 ### 6.2 Adding a New Provider
 
 **Step 1:** Create provider class implementing the interface:
+
 ```python
 # providers/newprovider.py
 class NewProvider(LLMProvider):
     @property
     def provider_name(self) -> str:
         return "newprovider"
-    
+
     async def chat(self, messages, temperature, max_tokens) -> LLMResponse:
         # Implementation
-        
+
     async def chat_stream(self, messages, ...) -> AsyncIterator[str]:
         # Implementation
-        
+
     async def health_check(self) -> bool:
         # Implementation
 ```
 
 **Step 2:** Register in factory:
+
 ```python
 # providers/factory.py
 def create_llm_provider(config: Settings) -> LLMProvider:
@@ -560,6 +580,7 @@ def create_llm_provider(config: Settings) -> LLMProvider:
 ```
 
 **Step 3:** Add configuration:
+
 ```python
 # config.py
 class Settings(BaseSettings):
@@ -584,7 +605,7 @@ class Settings(BaseSettings):
 
 ### 7.1 Component Structure
 
-```
+```text
 frontend/src/
 ├── app/
 │   ├── layout.tsx      # Root layout with metadata
@@ -600,6 +621,7 @@ frontend/src/
 ### 7.2 State Management
 
 **Local State (useState):**
+
 - `messages`: Conversation history
 - `input`: Current input text
 - `isLoading`: Loading state
@@ -619,6 +641,7 @@ frontend/src/
 ### 7.4 Styling
 
 **Tailwind Configuration:**
+
 - Custom `primary` color palette (spiritual blue theme)
 - Custom `scripture-text` class for verse styling
 - Responsive design breakpoints
@@ -630,7 +653,7 @@ frontend/src/
 
 ### 8.1 Chat Request Flow
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                      CHAT REQUEST FLOW                           │
 ├──────────────────────────────────────────────────────────────────┤
@@ -694,7 +717,7 @@ frontend/src/
 
 ### 8.2 Embedding Generation Flow
 
-```
+```text
 User Query: "anxiety about future"
         │
         ▼
@@ -737,7 +760,7 @@ services:
 
 ### 9.2 Container Network
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Docker Network (bible-chat)                  │
 │                                                                 │
@@ -767,11 +790,13 @@ services:
 ### 9.4 Resource Requirements
 
 **Minimum (CPU only):**
+
 - CPU: 4 cores
 - RAM: 16GB
 - Storage: 20GB
 
 **Recommended (GPU):**
+
 - CPU: 4+ cores
 - RAM: 16GB
 - GPU: NVIDIA 8GB+ VRAM
@@ -824,7 +849,7 @@ services:
 
 ### 11.2 Caching Strategy (Planned)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      CACHING LAYERS                             │
 │                                                                 │
@@ -849,7 +874,8 @@ services:
 ### 11.3 Scaling Strategy
 
 **Horizontal Scaling:**
-```
+
+```text
 Load Balancer
       │
       ├──▶ API Instance 1
@@ -886,7 +912,7 @@ Load Balancer
 
 ### 12.3 Adding New Features
 
-**Example: Daily Verse Feature**
+#### Example: Daily Verse Feature
 
 ```python
 # routes/daily.py
@@ -904,7 +930,7 @@ async def get_daily_verse(db: DbSession):
 
 ### 13.1 Code Organization
 
-```
+```text
 api/
 ├── main.py           # Entry point, routes registration
 ├── config.py         # Configuration singleton
@@ -934,7 +960,7 @@ api/
 
 ### 13.3 Testing Strategy
 
-```
+```text
 tests/
 ├── unit/
 │   ├── test_providers.py
@@ -950,12 +976,14 @@ tests/
 ### 13.4 Running Locally
 
 **With Docker:**
+
 ```bash
 docker-compose up -d
 docker-compose logs -f
 ```
 
 **Without Docker:**
+
 ```bash
 # Terminal 1: Database
 docker run -p 5432:5432 pgvector/pgvector:pg16
@@ -994,6 +1022,7 @@ python create_embeddings.py  # ~30-60 min
 ## Appendix A: API Response Schemas
 
 ### ChatResponse
+
 ```typescript
 interface ChatResponse {
   message: string;
@@ -1008,6 +1037,7 @@ interface ChatResponse {
 ```
 
 ### VerseResult
+
 ```typescript
 interface VerseResult {
   reference: string;  // "John 3:16"
@@ -1029,7 +1059,7 @@ CREATE INDEX idx_book_name ON books(name);
 CREATE INDEX idx_verse_reference ON verses(book_id, chapter_number, verse_number);
 
 -- Vector search (IVFFlat for approximate nearest neighbor)
-CREATE INDEX idx_verse_embedding_cosine 
+CREATE INDEX idx_verse_embedding_cosine
 ON verses USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 

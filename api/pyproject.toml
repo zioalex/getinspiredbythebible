@@ -1,0 +1,47 @@
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.pyc",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+# SQLAlchemy ORM models return Column types in static analysis
+# but actual runtime instances return proper Python types
+# TODO: Refactor to use Mapped[] types - see docs/TECHNICAL_DEBT.md
+# Suppress arg-type errors in scripture and routes modules
+[[tool.mypy.overrides]]
+module = "scripture.*"
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+module = "routes.*"
+disable_error_code = ["arg-type"]

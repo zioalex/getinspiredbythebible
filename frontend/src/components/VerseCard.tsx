@@ -1,26 +1,28 @@
-'use client'
+"use client";
 
-import { BookOpen, ExternalLink } from 'lucide-react'
-import { Verse } from '@/lib/api'
+import { BookOpen, ExternalLink } from "lucide-react";
+import { Verse } from "@/lib/api";
 
 interface VerseCardProps {
-  verse: Verse
-  onClick?: () => void
+  verse: Verse;
+  onClick?: () => void;
 }
 
 export default function VerseCard({ verse, onClick }: VerseCardProps) {
   // Calculate relevance indicator color based on similarity
   const getRelevanceColor = (similarity?: number) => {
-    if (!similarity) return 'bg-gray-200'
-    if (similarity > 0.7) return 'bg-green-400'
-    if (similarity > 0.5) return 'bg-yellow-400'
-    return 'bg-orange-400'
-  }
+    if (!similarity) return "bg-gray-200";
+    if (similarity > 0.7) return "bg-green-400";
+    if (similarity > 0.5) return "bg-yellow-400";
+    return "bg-orange-400";
+  };
 
   return (
     <div
       className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:border-primary-300 hover:bg-primary-50/30' : ''
+        onClick
+          ? "cursor-pointer hover:shadow-md hover:border-primary-300 hover:bg-primary-50/30"
+          : ""
       }`}
       onClick={onClick}
     >
@@ -35,9 +37,7 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
         {verse.similarity && (
           <div className="flex items-center gap-1">
             <div
-              className={`w-2 h-2 rounded-full ${getRelevanceColor(
-                verse.similarity
-              )}`}
+              className={`w-2 h-2 rounded-full ${getRelevanceColor(verse.similarity)}`}
             />
             <span className="text-xs text-gray-400">
               {Math.round(verse.similarity * 100)}%
@@ -59,5 +59,5 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -105,18 +105,18 @@ async def download_bible(output_path: Path) -> dict:
         print(f"📖 Loading Bible from {output_path}")
         with open(output_path) as f:
             return json.load(f)
-    
+
     print(f"📥 Downloading Bible from {WEB_BIBLE_URL}")
     async with httpx.AsyncClient() as client:
         response = await client.get(WEB_BIBLE_URL, follow_redirects=True)
         response.raise_for_status()
         data = response.json()
-    
+
     # Save for future use
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(data, f)
-    
+
     print(f"💾 Saved Bible to {output_path}")
     return data
 
@@ -126,14 +126,14 @@ async def load_bible_to_db(database_url: str, bible_data: list):
     # Convert to async URL
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    
+
     engine = create_async_engine(database_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
+
     async with engine.begin() as conn:
         # Create extension
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    
+
     async with async_session() as session:
         # Create tables using raw SQL for simplicity
         await session.execute(text("""
@@ -145,7 +145,7 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 position INTEGER NOT NULL
             )
         """))
-        
+
         await session.execute(text("""
             CREATE TABLE IF NOT EXISTS chapters (
                 id SERIAL PRIMARY KEY,
@@ -154,7 +154,7 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 UNIQUE(book_id, number)
             )
         """))
-        
+
         await session.execute(text("""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
@@ -167,7 +167,7 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 UNIQUE(book_id, chapter_number, verse_number)
             )
         """))
-        
+
         await session.execute(text("""
             CREATE TABLE IF NOT EXISTS passages (
                 id SERIAL PRIMARY KEY,
@@ -182,7 +182,7 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 embedding vector(768)
             )
         """))
-        
+
         await session.execute(text("""
             CREATE TABLE IF NOT EXISTS topics (
                 id SERIAL PRIMARY KEY,
@@ -192,28 +192,28 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 embedding vector(768)
             )
         """))
-        
+
         # Create indexes for better performance
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_verse_embedding 
+            CREATE INDEX IF NOT EXISTS idx_verse_embedding
             ON verses USING ivfflat (embedding vector_cosine_ops)
         """))
-        
+
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_passage_embedding 
+            CREATE INDEX IF NOT EXISTS idx_passage_embedding
             ON passages USING ivfflat (embedding vector_cosine_ops)
         """))
-        
+
         await session.commit()
-        
+
         # Clear existing data
         await session.execute(text("DELETE FROM verses"))
         await session.execute(text("DELETE FROM chapters"))
         await session.execute(text("DELETE FROM books"))
         await session.commit()
-        
+
         print("📚 Loading books...")
-        
+
         # Insert books
         book_ids = {}
         for book_meta in BIBLE_BOOKS:
@@ -231,25 +231,25 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 }
             )
             book_ids[book_meta["name"]] = result.scalar_one()
-        
+
         await session.commit()
         print(f"✅ Loaded {len(book_ids)} books")
-        
+
         # Process Bible data
         # The JSON format is: [{"abbrev": "gn", "chapters": [[verse1, verse2], [chapter2 verses], ...]}]
-        
+
         verse_count = 0
         chapter_count = 0
-        
+
         for book_idx, book_data in enumerate(bible_data):
             book_name = BIBLE_BOOKS[book_idx]["name"]
             book_id = book_ids[book_name]
-            
+
             print(f"  📖 Loading {book_name}...")
-            
+
             for chapter_idx, chapter_verses in enumerate(book_data.get("chapters", [])):
                 chapter_num = chapter_idx + 1
-                
+
                 # Insert chapter
                 result = await session.execute(
                     text("""
@@ -261,11 +261,11 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 )
                 chapter_id = result.scalar_one()
                 chapter_count += 1
-                
+
                 # Insert verses
                 for verse_idx, verse_text in enumerate(chapter_verses):
                     verse_num = verse_idx + 1
-                    
+
                     await session.execute(
                         text("""
                             INSERT INTO verses (book_id, chapter_id, chapter_number, verse_number, text)
@@ -280,32 +280,32 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                         }
                     )
                     verse_count += 1
-            
+
             await session.commit()
-        
+
         print(f"✅ Loaded {chapter_count} chapters and {verse_count} verses")
-    
+
     await engine.dispose()
 
 
 async def main():
     """Main entry point."""
     import os
-    
+
     # Get database URL from environment or use default
     database_url = os.getenv(
         "DATABASE_URL",
-        "postgresql://bible:bible123@localhost:5432/bibledb"
+        "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
     )
-    
+
     # Download Bible
     bible_path = Path(__file__).parent.parent / "data" / "bible" / "kjv.json"
     bible_data = await download_bible(bible_path)
-    
+
     # Load to database
     print(f"\n🗄️ Loading to database: {database_url}")
     await load_bible_to_db(database_url, bible_data)
-    
+
     print("\n🎉 Bible loaded successfully!")
     print("Next step: Run create_embeddings.py to generate semantic search vectors")
 

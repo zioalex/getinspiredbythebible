@@ -5,7 +5,6 @@ These prompts ensure the LLM stays grounded in scripture
 and provides spiritually meaningful guidance.
 """
 
-
 SYSTEM_PROMPT = """You are a compassionate spiritual companion who helps people find encouragement and guidance.
 
 ## CRITICAL RULE - READ THIS FIRST
@@ -44,33 +43,33 @@ Remember: Only use verses explicitly listed in the Scripture Context section. If
 def build_search_context_prompt(search_results: dict) -> str:
     """
     Build a context prompt from scripture search results.
-    
+
     Args:
         search_results: Dictionary with 'verses' and 'passages' lists
-        
+
     Returns:
         Formatted context string to prepend to the system prompt
     """
     context_parts = []
-    
+
     verses = search_results.get("verses", [])
     passages = search_results.get("passages", [])
-    
+
     if verses:
         context_parts.append("## Relevant Verses Found")
         for v in verses:
             context_parts.append(f"**{v['reference']}**: \"{v['text']}\"")
-    
+
     if passages:
         context_parts.append("\n## Relevant Passages Found")
         for p in passages:
             context_parts.append(f"**{p['title']}** ({p['reference']})")
             # Truncate long passages
-            text = p['text']
+            text = p["text"]
             if len(text) > 500:
                 text = text[:500] + "..."
-            context_parts.append(f"\"{text}\"")
-    
+            context_parts.append(f'"{text}"')
+
     if context_parts:
         context = "\n".join(context_parts)
         return f"""
@@ -96,19 +95,19 @@ If none of these verses fit the user's situation, provide supportive words WITHO
 def build_conversation_context(messages: list[dict]) -> str:
     """
     Summarize conversation history for context.
-    
+
     Args:
         messages: List of previous messages in the conversation
-        
+
     Returns:
         Summary context string
     """
     if not messages:
         return ""
-    
+
     # Keep last few exchanges for context
     recent = messages[-6:]  # Last 3 exchanges
-    
+
     summary_parts = ["## Conversation Context"]
     for msg in recent:
         role = "User" if msg["role"] == "user" else "Assistant"
@@ -117,7 +116,7 @@ def build_conversation_context(messages: list[dict]) -> str:
         if len(content) > 200:
             content = content[:200] + "..."
         summary_parts.append(f"**{role}**: {content}")
-    
+
     return "\n".join(summary_parts) + "\n\n---\n"
 
 
@@ -170,11 +169,11 @@ def detect_intent_prompt(user_message: str) -> str:
     Generate a prompt to help detect user intent.
     This can be used for routing or adjusting the response approach.
     """
-    return f"""Analyze this message and determine the user's primary intent. 
+    return f"""Analyze this message and determine the user's primary intent.
 Choose ONE of the following categories:
 
 1. COMFORT - seeking emotional support, going through hardship
-2. GUIDANCE - seeking wisdom for a decision or life situation  
+2. GUIDANCE - seeking wisdom for a decision or life situation
 3. CURIOSITY - asking a question about the Bible or faith
 4. VERSE_LOOKUP - asking about a specific verse or passage
 5. GENERAL - general conversation or unclear intent
