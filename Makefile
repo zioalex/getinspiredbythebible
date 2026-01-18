@@ -175,8 +175,35 @@ update-baseline: install-deps ## Update secrets baseline
 	@$(CURDIR)/$(VENV)/bin/detect-secrets scan --baseline .secrets.baseline --update
 	@echo "$(GREEN)✓ Baseline updated$(NC)"
 
+docker-up: ## Start services with Docker Compose (CPU mode)
+	@echo "$(BLUE)Starting services (CPU mode)...$(NC)"
+	@docker compose up -d
+	@echo "$(GREEN)✓ Services started$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
+	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+
+docker-up-gpu: ## Start services with Docker Compose (GPU mode)
+	@echo "$(BLUE)Starting services (GPU mode)...$(NC)"
+	@docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+	@echo "$(GREEN)✓ Services started$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
+	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+
+docker-down: ## Stop Docker Compose services
+	@echo "$(BLUE)Stopping services...$(NC)"
+	@docker compose down
+	@echo "$(GREEN)✓ Services stopped$(NC)"
+
+docker-logs: ## View Docker Compose logs
+	@docker compose logs -f
+
+docker-build: ## Build Docker images
+	@echo "$(BLUE)Building Docker images...$(NC)"
+	@docker compose build
+	@echo "$(GREEN)✓ Images built$(NC)"
+
 docker-test: ## Run tests in Docker
 	@echo "$(BLUE)Running tests in Docker...$(NC)"
-	@docker-compose build api frontend
-	@docker-compose run --rm api pytest -v
+	@docker compose build api frontend
+	@docker compose run --rm api pytest -v
 	@echo "$(GREEN)✓ Docker tests complete$(NC)"
