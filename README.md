@@ -1,6 +1,8 @@
 # Bible Inspiration Chat
 
-A conversational AI that helps people find spiritual encouragement and relevant scripture based on their life situations. Built with a modular architecture that supports multiple LLM backends.
+A conversational AI that helps people find spiritual encouragement and relevant scripture
+based on their life situations. Built with a modular architecture that supports multiple
+LLM backends.
 
 ## 🌟 Features
 
@@ -12,7 +14,7 @@ A conversational AI that helps people find spiritual encouragement and relevant 
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                      Frontend (Next.js)                     │
 └──────────────────────────┬──────────────────────────────────┘
@@ -48,7 +50,9 @@ cp api/.env.example api/.env  # Create env file (optional)
 
 ### 2. Start Services
 
-> **Note**: On first startup, Ollama will automatically pull the required models (`llama3:8b` and `nomic-embed-text`). This may take 5-10 minutes depending on your internet connection.
+> **Note**: On first startup, Ollama will automatically pull the required models
+> (`llama3:8b` and `nomic-embed-text`). This may take 5-10 minutes depending on your
+> internet connection.
 
 ```bash
 # Start all services
@@ -75,17 +79,16 @@ python load_bible.py
 # Generate embeddings (takes ~30-60 minutes)
 python create_embeddings.py
 ```
-```
 
 ### 4. Access the App
 
-- **Web App**: http://localhost:3000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **Web App**: <http://localhost:3000>
+- **API Docs**: <http://localhost:8000/docs>
+- **Health Check**: <http://localhost:8000/health>
 
 ## 📁 Project Structure
 
-```
+```text
 bible-chat/
 ├── docker-compose.yml      # Container orchestration
 ├── api/                    # FastAPI backend
@@ -145,6 +148,7 @@ ANTHROPIC_API_KEY=your-api-key-here
 ### Chat Endpoints
 
 #### POST `/api/v1/chat`
+
 Send a message and receive a Bible-grounded response.
 
 ```json
@@ -156,17 +160,21 @@ Send a message and receive a Bible-grounded response.
 ```
 
 #### POST `/api/v1/chat/stream`
+
 Stream a response in real-time (Server-Sent Events).
 
 ### Scripture Endpoints
 
 #### GET `/api/v1/scripture/search?q={query}`
+
 Semantic search for relevant verses.
 
 #### GET `/api/v1/scripture/verse/{book}/{chapter}/{verse}`
+
 Get a specific verse.
 
 #### GET `/api/v1/scripture/chapter/{book}/{chapter}`
+
 Get all verses in a chapter.
 
 ## 🧪 Development
@@ -197,6 +205,8 @@ pytest
 
 ## 🗺️ Roadmap
 
+### Features
+
 - [ ] Mobile app (React Native)
 - [ ] User accounts and saved conversations
 - [ ] Reading plans integration
@@ -204,11 +214,20 @@ pytest
 - [ ] Multiple Bible translations
 - [ ] Community features (shared verses)
 
+### Technical Improvements
+
+- [ ] Refactor SQLAlchemy models to use `Mapped[]` type annotations (see [docs/TECHNICAL_DEBT.md](docs/TECHNICAL_DEBT.md))
+- [ ] Add Jest/Vitest for frontend unit tests
+- [ ] Add Playwright/Cypress for E2E tests
+- [ ] Add code coverage reporting
+- [ ] Mock Ollama in tests for faster execution
+
 ## 📝 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-This project is licensed under the MIT License, which means you're free to use, modify, and distribute this software. Bible text uses the KJV (public domain).
+This project is licensed under the MIT License, which means you're free to use, modify,
+and distribute this software. Bible text uses the KJV (public domain).
 
 ## 🙏 Contributing
 

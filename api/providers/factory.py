@@ -6,47 +6,43 @@ This module provides dependency injection for FastAPI routes.
 
 from functools import lru_cache
 from typing import Annotated
+
+from config import Settings, settings
 from fastapi import Depends
 
-from config import settings, Settings
-from .base import LLMProvider, EmbeddingProvider
-from .ollama import OllamaProvider, OllamaEmbeddingProvider
+from .base import EmbeddingProvider, LLMProvider
 from .claude import ClaudeProvider
+from .ollama import OllamaEmbeddingProvider, OllamaProvider
 
 
 class ProviderError(Exception):
     """Raised when provider initialization fails."""
+
     pass
 
 
 def create_llm_provider(config: Settings) -> LLMProvider:
     """
     Create an LLM provider based on configuration.
-    
+
     Args:
         config: Application settings
-        
+
     Returns:
         Configured LLM provider instance
-        
+
     Raises:
         ProviderError: If provider type is unknown or misconfigured
     """
     match config.llm_provider:
         case "ollama":
-            return OllamaProvider(
-                host=config.ollama_host,
-                model=config.llm_model
-            )
+            return OllamaProvider(host=config.ollama_host, model=config.llm_model)
         case "claude":
             if not config.anthropic_api_key:
                 raise ProviderError(
                     "Claude provider requires ANTHROPIC_API_KEY environment variable"
                 )
-            return ClaudeProvider(
-                api_key=config.anthropic_api_key,
-                model=config.llm_model
-            )
+            return ClaudeProvider(api_key=config.anthropic_api_key, model=config.llm_model)
         case "openai":
             # Future implementation
             raise ProviderError("OpenAI provider not yet implemented")
@@ -57,10 +53,10 @@ def create_llm_provider(config: Settings) -> LLMProvider:
 def create_embedding_provider(config: Settings) -> EmbeddingProvider:
     """
     Create an embedding provider based on configuration.
-    
+
     Args:
         config: Application settings
-        
+
     Returns:
         Configured embedding provider instance
     """
@@ -69,15 +65,13 @@ def create_embedding_provider(config: Settings) -> EmbeddingProvider:
             return OllamaEmbeddingProvider(
                 host=config.ollama_host,
                 model=config.embedding_model,
-                dimensions=config.embedding_dimensions
+                dimensions=config.embedding_dimensions,
             )
         case "openai":
             # Future implementation
             raise ProviderError("OpenAI embedding provider not yet implemented")
         case _:
-            raise ProviderError(
-                f"Unknown embedding provider: {config.embedding_provider}"
-            )
+            raise ProviderError(f"Unknown embedding provider: {config.embedding_provider}")
 
 
 # Cached provider instances (singletons)
@@ -101,20 +95,17 @@ EmbeddingProviderDep = Annotated[EmbeddingProvider, Depends(get_embedding_provid
 async def check_providers_health() -> dict:
     """
     Check health of all configured providers.
-    
+
     Returns:
         Dictionary with health status for each provider
     """
     llm = get_llm_provider()
     embedding = get_embedding_provider()
-    
+
     return {
-        "llm": {
-            "provider": llm.provider_name,
-            "healthy": await llm.health_check()
-        },
+        "llm": {"provider": llm.provider_name, "healthy": await llm.health_check()},
         "embedding": {
             "provider": embedding.provider_name,
-            "healthy": await embedding.health_check()
-        }
+            "healthy": await embedding.health_check(),
+        },
     }

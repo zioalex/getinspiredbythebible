@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Cache
+.turbo/
+
+# Misc
+.DS_Store
+*.pem

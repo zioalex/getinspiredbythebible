@@ -2,20 +2,15 @@
 Scripture package - Bible data models, repository, and search.
 """
 
-from .models import Book, Chapter, Verse, Passage, Topic, Base
-from .database import get_db_session, DbSession, init_db, close_db
+from .database import DbSession, close_db, get_db_session, init_db
+from .models import Base, Book, Chapter, Passage, Topic, Verse
 from .repository import ScriptureRepository
-from .search import (
-    ScriptureSearchService,
-    VerseResult,
-    PassageResult,
-    SearchResults
-)
+from .search import PassageResult, ScriptureSearchService, SearchResults, VerseResult
 
 __all__ = [
     # Models
     "Book",
-    "Chapter", 
+    "Chapter",
     "Verse",
     "Passage",
     "Topic",
