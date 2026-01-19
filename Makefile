@@ -175,19 +175,54 @@ update-baseline: install-deps ## Update secrets baseline
 	@$(CURDIR)/$(VENV)/bin/detect-secrets scan --baseline .secrets.baseline --update
 	@echo "$(GREEN)✓ Baseline updated$(NC)"
 
-docker-up: ## Start services with Docker Compose (CPU mode)
-	@echo "$(BLUE)Starting services (CPU mode)...$(NC)"
-	@docker compose up -d
-	@echo "$(GREEN)✓ Services started$(NC)"
-	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
-	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+# ==================== Docker Commands ====================
 
-docker-up-gpu: ## Start services with Docker Compose (GPU mode)
-	@echo "$(BLUE)Starting services (GPU mode)...$(NC)"
-	@docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+docker-up: ## Start services (local development, CPU mode)
+	@echo "$(BLUE)Starting services in local development mode (CPU)...$(NC)"
+	@docker compose --env-file .env.local up -d
 	@echo "$(GREEN)✓ Services started$(NC)"
-	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
 	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
+	@echo "$(YELLOW)API Docs: http://localhost:8000/docs$(NC)"
+
+docker-up-gpu: ## Start services (local development, GPU mode)
+	@echo "$(BLUE)Starting services in local development mode (GPU)...$(NC)"
+	@docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.gpu.yml up -d
+	@echo "$(GREEN)✓ Services started$(NC)"
+	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
+	@echo "$(YELLOW)API Docs: http://localhost:8000/docs$(NC)"
+
+docker-up-prod: ## Start services (production mode, CPU)
+	@echo "$(BLUE)Starting services in production mode (CPU)...$(NC)"
+	@docker compose --env-file .env.production up -d --build
+	@echo "$(GREEN)✓ Services started in production mode$(NC)"
+	@echo "$(YELLOW)Frontend: https://getinspiredbythebible.ai4you.sh$(NC)"
+	@echo "$(YELLOW)API: https://getinspiredbythebible.ai4you.sh/api$(NC)"
+	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
+
+docker-up-prod-gpu: ## Start services (production mode, GPU)
+	@echo "$(BLUE)Starting services in production mode (GPU)...$(NC)"
+	@docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+	@echo "$(GREEN)✓ Services started in production mode$(NC)"
+	@echo "$(YELLOW)Frontend: https://getinspiredbythebible.ai4you.sh$(NC)"
+	@echo "$(YELLOW)API: https://getinspiredbythebible.ai4you.sh/api$(NC)"
+	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
+
+docker-restart: ## Restart all services
+	@echo "$(BLUE)Restarting services...$(NC)"
+	@docker compose restart
+	@echo "$(GREEN)✓ Services restarted$(NC)"
+
+docker-restart-frontend: ## Restart frontend only
+	@echo "$(BLUE)Restarting frontend...$(NC)"
+	@docker compose restart frontend
+	@echo "$(GREEN)✓ Frontend restarted$(NC)"
+
+docker-restart-api: ## Restart API only
+	@echo "$(BLUE)Restarting API...$(NC)"
+	@docker compose restart api
+	@echo "$(GREEN)✓ API restarted$(NC)"
 
 docker-down: ## Stop Docker Compose services
 	@echo "$(BLUE)Stopping services...$(NC)"
