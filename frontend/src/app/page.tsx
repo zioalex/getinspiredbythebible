@@ -54,9 +54,8 @@ export default function Home() {
     const versePattern =
       /(\d?\s?[A-Z][a-z]+(?:\s+(?:of\s+)?[A-Z]?[a-z]+)*)\s+(\d+):(\d+)(?:-\d+)?/gi;
     const references = new Set<string>();
-    let match;
 
-    while ((match = versePattern.exec(allText)) !== null) {
+    for (const match of allText.matchAll(versePattern)) {
       const book = match[1].trim();
       const chapter = match[2];
       const verse = match[3];
