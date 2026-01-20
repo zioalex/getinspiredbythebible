@@ -8,7 +8,7 @@ services:
       - "0.0.0.0:8000:8000"
     environment:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - LLM_MODEL=${LLM_MODEL:-llama3:8b}
+      - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - OLLAMA_HOST=http://ollama:11434
       - DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
@@ -27,7 +27,7 @@ services:
     ports:
       - "0.0.0.0:11434:11434"
     environment:
-      - LLM_MODEL=${LLM_MODEL:-llama3:8b}
+      - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
     volumes:
       - ollama_data:/root/.ollama
