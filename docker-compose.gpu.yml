@@ -1,7 +1,5 @@
 # Docker Compose override for GPU support
 # Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
-version: '3.8'
-
 services:
   ollama:
     deploy:
