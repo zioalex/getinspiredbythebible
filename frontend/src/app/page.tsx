@@ -55,7 +55,9 @@ export default function Home() {
       /(\d?\s?[A-Z][a-z]+(?:\s+(?:of\s+)?[A-Z]?[a-z]+)*)\s+(\d+):(\d+)(?:-\d+)?/gi;
     const references = new Set<string>();
 
-    for (const match of allText.matchAll(versePattern)) {
+    // Convert iterator to array for compatibility with older TypeScript targets
+    const matches = Array.from(allText.matchAll(versePattern));
+    for (const match of matches) {
       const book = match[1].trim();
       const chapter = match[2];
       const verse = match[3];
