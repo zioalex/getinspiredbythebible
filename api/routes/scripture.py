@@ -3,8 +3,9 @@ Scripture API routes - Bible data and search endpoints.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from providers import EmbeddingProviderDep
 from pydantic import BaseModel
+
+from providers import EmbeddingProviderDep
 from scripture import (
     DbSession,
     ScriptureRepository,

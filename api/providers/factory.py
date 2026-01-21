@@ -7,8 +7,9 @@ This module provides dependency injection for FastAPI routes.
 from functools import lru_cache
 from typing import Annotated
 
-from config import Settings, settings
 from fastapi import Depends
+
+from config import Settings, settings
 
 from .base import EmbeddingProvider, LLMProvider
 from .claude import ClaudeProvider

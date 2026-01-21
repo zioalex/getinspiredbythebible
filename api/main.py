@@ -6,10 +6,11 @@ Main FastAPI application entry point.
 
 from contextlib import asynccontextmanager
 
-from config import settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from config import settings
 from providers import ProviderError, check_providers_health
 from routes import chat_router, scripture_router
 from scripture import close_db, init_db
