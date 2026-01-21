@@ -3,9 +3,10 @@ OpenRouter LLM Provider implementation.
 OpenRouter provides access to various LLMs including free models via an OpenAI-compatible API.
 """
 
-from typing import AsyncIterator
+from typing import AsyncIterator, cast
 
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionChunk
 
 from .base import ChatMessage, LLMProvider, LLMResponse
 
@@ -94,12 +95,15 @@ class OpenRouterProvider(LLMProvider):
         """Stream chat completion from OpenRouter."""
         converted_messages = self._convert_messages(messages)
 
-        stream = await self._client.chat.completions.create(
-            model=self.model,
-            messages=converted_messages,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
+        stream = cast(
+            AsyncIterator[ChatCompletionChunk],
+            await self._client.chat.completions.create(
+                model=self.model,
+                messages=converted_messages,  # type: ignore[arg-type]
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            ),
         )
 
         async for chunk in stream:
