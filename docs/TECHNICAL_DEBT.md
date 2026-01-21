@@ -113,6 +113,47 @@ Benefits:
 
 ## Medium Priority
 
+### Migrate to ESLint 9 and Flat Config
+
+**Status:** Planned
+**Priority:** Medium
+**Effort:** 2-4 hours
+**Impact:** Removes deprecation warnings, enables latest lint rules
+
+#### Current State
+
+The project uses ESLint 8.x which is now deprecated. ESLint 9.x is the current
+supported version and uses a new "flat config" format.
+
+Current setup:
+
+- `eslint`: `~8.56.0` (deprecated)
+- `eslint-config-next`: `14.x` (requires ESLint 8.x)
+
+#### Why We Can't Just Upgrade
+
+ESLint 9.x introduced breaking changes:
+
+1. New flat config format (`eslint.config.js` instead of `.eslintrc.json`)
+2. `eslint-config-next` 16.x requires ESLint 9.x
+3. Many ESLint plugins need updates for flat config compatibility
+
+#### Upgrade Path
+
+1. Upgrade `eslint` to `^9.0.0`
+2. Upgrade `eslint-config-next` to `16.x`
+3. Convert `.eslintrc.json` to `eslint.config.js` (flat config)
+4. Update any custom ESLint rules for flat config compatibility
+5. Test thoroughly - new rules may flag new issues
+
+#### Useful Links
+
+- [ESLint 9.0.0 Migration Guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0)
+- [ESLint Flat Config](https://eslint.org/docs/latest/use/configure/configuration-files-new)
+- [Next.js ESLint Config](https://nextjs.org/docs/app/building-your-application/configuring/eslint)
+
+---
+
 ### Claude API Type Hints
 
 **Status:** Documented
@@ -203,10 +244,36 @@ Decision: Keep current approach. Type ignores are acceptable for SDK compatibili
 
 ## Resolved
 
-None yet.
+### Dependency Management and CI Reliability (January 2026)
+
+**PRs:** #7, #8, #9, #10
+
+#### Problems Addressed
+
+1. **Dependabot proposed breaking updates** - PR #3 attempted to upgrade
+   `eslint-config-next` from 14.x to 16.x, which requires ESLint 9.x (not compatible)
+2. **Version mismatch** - `next` was 14.2.35 but `eslint-config-next` was 14.1.0
+3. **CI masked failures** - `continue-on-error: true` on lint/test steps hid real issues
+4. **Loose version ranges** - Caret (`^`) ranges allowed potentially breaking minor updates
+
+#### Solutions Implemented
+
+| PR | Change | Impact |
+|----|--------|--------|
+| #7 | Added `.github/dependabot.yml` | Prevents major version bumps, groups related deps |
+| #8 | Synced `eslint-config-next` to 14.2.35 | Matches `next` version |
+| #9 | Removed `continue-on-error` from CI | Failures now properly fail the build |
+| #9 | Added `needs` to integration-tests | Skips integration tests if unit tests fail |
+| #10 | Changed eslint/typescript to tilde (`~`) | Only patch updates allowed |
+
+#### Configuration Files Added/Modified
+
+- `.github/dependabot.yml` (new) - Controls automatic dependency updates
+- `.github/workflows/test_update.yml` - Improved reliability
+- `frontend/package.json` - Stricter version pinning
 
 ---
 
 ## Document Metadata
 
-**Last Updated:** January 18, 2026
+**Last Updated:** January 21, 2026
