@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # LLM Configuration
-    llm_provider: Literal["ollama", "claude", "openai"] = "ollama"
+    llm_provider: Literal["ollama", "claude", "openai", "openrouter"] = "ollama"
     llm_model: str = "llama3:8b"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1024
@@ -26,14 +26,20 @@ class Settings(BaseSettings):
     # Ollama Settings
     ollama_host: str = "http://localhost:11434"
 
-    # Claude Settings (for future use)
+    # Claude Settings
     anthropic_api_key: str | None = None
 
-    # OpenAI Settings (for future use)
+    # OpenAI Settings
     openai_api_key: str | None = None
 
+    # OpenRouter Settings (OpenAI-compatible API with free models)
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    # Free models: google/gemma-2-9b-it:free, meta-llama/llama-3.1-8b-instruct:free
+    openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
+
     # Embedding Configuration
-    embedding_provider: Literal["ollama", "openai"] = "ollama"
+    embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"
     embedding_model: str = "nomic-embed-text"
     embedding_dimensions: int = 768  # nomic-embed-text dimension
 

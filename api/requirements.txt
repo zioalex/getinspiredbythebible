@@ -17,6 +17,9 @@ aiohttp==3.13.3
 # Anthropic (for Claude provider - optional)
 anthropic==0.76.0
 
+# OpenAI (for OpenRouter provider - optional)
+openai==1.59.7
+
 # Utilities
 python-dotenv==1.2.1
 numpy==1.26.4
