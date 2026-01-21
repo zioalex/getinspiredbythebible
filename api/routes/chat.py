@@ -4,9 +4,10 @@ Chat API routes.
 
 import json
 
-from chat import ChatRequest, ChatResponse, ChatService
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+
+from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
 

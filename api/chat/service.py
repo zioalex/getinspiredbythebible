@@ -7,11 +7,12 @@ conversation management to create meaningful spiritual dialogues.
 
 from typing import AsyncIterator
 
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
-from pydantic import BaseModel
 from scripture import ScriptureSearchService, SearchResults
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .prompts import SYSTEM_PROMPT, build_search_context_prompt
 
