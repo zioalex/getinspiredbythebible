@@ -99,7 +99,7 @@ class ClaudeProvider(LLMProvider):
         async with self._client.messages.stream(
             model=self.model,
             max_tokens=max_tokens,
-            messages=converted_messages,
+            messages=converted_messages,  # type: ignore[arg-type]
             temperature=temperature,
             system=system_prompt if system_prompt else None,
         ) as stream:
