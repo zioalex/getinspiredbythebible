@@ -11,11 +11,11 @@ psycopg2-binary==2.9.9
 pgvector==0.4.2
 
 # HTTP Client (for LLM providers)
-httpx==0.26.0
+httpx==0.28.1
 aiohttp==3.13.3
 
 # Anthropic (for Claude provider - optional)
-anthropic==0.18.1
+anthropic==0.76.0
 
 # Utilities
 python-dotenv==1.2.1
