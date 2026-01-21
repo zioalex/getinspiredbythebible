@@ -6,10 +6,11 @@ Defines the schema for storing Bible verses with vector embeddings.
 
 from typing import Any
 
-from config import settings
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
+
+from config import settings
 
 Base: Any = declarative_base()
 

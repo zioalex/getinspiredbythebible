@@ -4,10 +4,11 @@ Database connection and session management.
 
 from typing import Annotated, AsyncGenerator
 
-from config import settings
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+
+from config import settings
 
 
 def get_async_database_url() -> str:

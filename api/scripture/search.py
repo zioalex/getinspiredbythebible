@@ -2,9 +2,10 @@
 Scripture Search Service - Combines semantic search with scripture data.
 """
 
-from providers import EmbeddingProvider
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from providers import EmbeddingProvider
 
 from .repository import ScriptureRepository
 
