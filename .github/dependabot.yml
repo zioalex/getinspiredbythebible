@@ -1,0 +1,135 @@
+# Dependabot Configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/
+#       dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# This configuration prevents automatic major version bumps which can introduce
+# breaking changes (e.g., eslint-config-next 14.x -> 16.x requires ESLint 9.x).
+
+version: 2
+updates:
+  # Frontend (npm) dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    # Prevent major version bumps - these require manual review
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Group related dependencies to reduce PR noise
+    groups:
+      # Keep Next.js and its ESLint config in sync
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      # Group all ESLint-related packages
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+        exclude-patterns:
+          - "eslint-config-next"  # Handled in nextjs group
+      # Group React ecosystem
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Group TypeScript tooling
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/node"
+      # Group styling tools
+      styling:
+        patterns:
+          - "tailwindcss"
+          - "postcss"
+          - "autoprefixer"
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "build(deps-frontend)"
+
+  # Backend (pip) dependencies
+  - package-ecosystem: "pip"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    # Prevent major version bumps
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group FastAPI ecosystem
+      fastapi:
+        patterns:
+          - "fastapi"
+          - "uvicorn"
+          - "starlette"
+      # Group database dependencies
+      database:
+        patterns:
+          - "sqlalchemy"
+          - "asyncpg"
+          - "pgvector"
+      # Group Pydantic ecosystem
+      pydantic:
+        patterns:
+          - "pydantic"
+          - "pydantic-settings"
+      # Group LLM providers
+      llm-providers:
+        patterns:
+          - "anthropic"
+          - "httpx"
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "build(deps-backend)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci(deps)"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/api"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(deps-docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(deps-docker)"
