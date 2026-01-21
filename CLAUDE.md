@@ -137,7 +137,8 @@ api/
 │   ├── base.py         # Abstract interfaces (LLMProvider, EmbeddingProvider)
 │   ├── factory.py      # Provider factory, dependency injection
 │   ├── ollama.py       # Ollama implementation (default, local)
-│   └── claude.py       # Anthropic Claude implementation
+│   ├── claude.py       # Anthropic Claude implementation
+│   └── openrouter.py   # OpenRouter implementation (free models)
 ├── scripture/           # Bible Data Layer
 │   ├── models.py       # SQLAlchemy models (Book, Chapter, Verse, Passage)
 │   ├── database.py     # AsyncPG connection management
@@ -204,22 +205,33 @@ All embeddings use the `embedding_dimensions` setting (default 768 for nomic-emb
 
 Configure via `api/.env` file (copy from `api/.env.example`):
 
-- `LLM_PROVIDER`: `ollama` (default), `claude`, or `openai` (not implemented)
-- `LLM_MODEL`: Model name (e.g., `llama3:8b`, `claude-sonnet-4-20250514`)
+- `LLM_PROVIDER`: `ollama` (default), `claude`, `openrouter`, or `openai` (not implemented)
+- `LLM_MODEL`: Model name (e.g., `llama3:8b`, `claude-sonnet-4-20250514`, `meta-llama/llama-3.1-8b-instruct:free`)
 - `OLLAMA_HOST`: Ollama server URL (default: `http://localhost:11434`)
 - `ANTHROPIC_API_KEY`: Required for Claude provider
-- `EMBEDDING_PROVIDER`: `ollama` (default) or `openai` (not implemented)
+- `OPENROUTER_API_KEY`: Required for OpenRouter provider (get at openrouter.ai/keys)
+- `OPENROUTER_BASE_URL`: OpenRouter API base URL (default: `https://openrouter.ai/api/v1`)
+- `OPENROUTER_MODEL`: OpenRouter model name (default: `meta-llama/llama-3.1-8b-instruct:free`)
+- `EMBEDDING_PROVIDER`: `ollama` (default), `openrouter` (not supported), or `openai` (not implemented)
 - `EMBEDDING_MODEL`: Embedding model (default: `nomic-embed-text`)
 - `DATABASE_URL`: PostgreSQL connection string
 
 ### Switching LLM Providers
 
-To switch from Ollama to Claude:
+**To switch from Ollama to Claude:**
 
 1. Set `LLM_PROVIDER=claude` in `api/.env`
 2. Set `ANTHROPIC_API_KEY=your-key`
 3. Set `LLM_MODEL=claude-sonnet-4-20250514` (or desired model)
 4. Restart API service
+
+**To switch from Ollama to OpenRouter (free models available):**
+
+1. Set `LLM_PROVIDER=openrouter` in `api/.env`
+2. Set `OPENROUTER_API_KEY=your-key` (get at openrouter.ai/keys)
+3. Set `OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free` (or `google/gemma-2-9b-it:free`)
+4. Keep `EMBEDDING_PROVIDER=ollama` (OpenRouter doesn't support embeddings)
+5. Restart API service
 
 The provider factory (`providers/factory.py`) handles instantiation based on config.
 

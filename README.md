@@ -8,7 +8,7 @@ LLM backends.
 
 - **AI-Powered Conversations**: Natural dialogue grounded in Biblical text
 - **Semantic Scripture Search**: Find relevant verses based on meaning, not just keywords
-- **Configurable LLM Backend**: Start with Ollama (local), switch to Claude or OpenAI later
+- **Configurable LLM Backend**: Start with Ollama (local), switch to Claude, OpenRouter, or OpenAI later
 - **REST API**: Ready for mobile app development
 - **Modern Web Interface**: Clean, responsive chat UI
 
@@ -24,7 +24,8 @@ LLM backends.
 │  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐   │
 │  │ LLM Provider│  │ Scripture   │  │ Embedding          │   │
 │  │ (Ollama/    │  │ Search      │  │ Provider           │   │
-│  │  Claude)    │  │ Service     │  │                    │   │
+│  │  Claude/    │  │ Service     │  │                    │   │
+│  │  OpenRouter)│  │             │  │                    │   │
 │  └─────────────┘  └─────────────┘  └────────────────────┘   │
 └───────┬─────────────────┬─────────────────┬─────────────────┘
         │                 │                 │
@@ -98,6 +99,7 @@ bible-chat/
 │   │   ├── base.py       # Provider interface
 │   │   ├── ollama.py     # Ollama implementation
 │   │   ├── claude.py     # Claude implementation
+│   │   ├── openrouter.py # OpenRouter implementation
 │   │   └── factory.py    # Provider factory
 │   ├── scripture/         # Bible data layer
 │   │   ├── models.py     # Database models
@@ -125,16 +127,17 @@ bible-chat/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_PROVIDER` | `ollama` | LLM backend: `ollama`, `claude`, `openai` |
+| `LLM_PROVIDER` | `ollama` | LLM backend: `ollama`, `claude`, `openrouter`, `openai` |
 | `LLM_MODEL` | `llama3:8b` | Model name |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `EMBEDDING_MODEL` | `nomic-embed-text` | Embedding model |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |
 | `ANTHROPIC_API_KEY` | - | For Claude provider |
+| `OPENROUTER_API_KEY` | - | For OpenRouter provider |
 
 ### Switching LLM Providers
 
-To use Claude instead of Ollama:
+#### Using Claude
 
 ```bash
 # In docker-compose.yml or .env
@@ -142,6 +145,20 @@ LLM_PROVIDER=claude
 LLM_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_API_KEY=your-api-key-here
 ```
+
+#### Using OpenRouter (Free Models Available)
+
+OpenRouter provides access to various LLMs including free models. Get your API key at [openrouter.ai/keys](https://openrouter.ai/keys).
+
+```bash
+# In docker-compose.yml or .env
+LLM_PROVIDER=openrouter
+LLM_MODEL=meta-llama/llama-3.1-8b-instruct:free  # or google/gemma-2-9b-it:free
+OPENROUTER_API_KEY=sk-or-v1-...
+EMBEDDING_PROVIDER=ollama  # OpenRouter doesn't support embeddings
+```
+
+**Note**: OpenRouter doesn't support embedding generation, so keep `EMBEDDING_PROVIDER=ollama` for semantic search to work.
 
 ## 🔌 API Reference
 

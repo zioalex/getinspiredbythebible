@@ -16,6 +16,7 @@ from .factory import (
     get_llm_provider,
 )
 from .ollama import OllamaEmbeddingProvider, OllamaProvider
+from .openrouter import OpenRouterProvider
 
 __all__ = [
     # Base classes
@@ -28,6 +29,7 @@ __all__ = [
     "OllamaProvider",
     "OllamaEmbeddingProvider",
     "ClaudeProvider",
+    "OpenRouterProvider",
     # Factory
     "get_llm_provider",
     "get_embedding_provider",

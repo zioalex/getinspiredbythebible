@@ -14,6 +14,7 @@ from config import Settings, settings
 from .base import EmbeddingProvider, LLMProvider
 from .claude import ClaudeProvider
 from .ollama import OllamaEmbeddingProvider, OllamaProvider
+from .openrouter import OpenRouterProvider
 
 
 class ProviderError(Exception):
@@ -44,6 +45,16 @@ def create_llm_provider(config: Settings) -> LLMProvider:
                     "Claude provider requires ANTHROPIC_API_KEY environment variable"
                 )
             return ClaudeProvider(api_key=config.anthropic_api_key, model=config.llm_model)
+        case "openrouter":
+            if not config.openrouter_api_key:
+                raise ProviderError(
+                    "OpenRouter provider requires OPENROUTER_API_KEY environment variable"
+                )
+            return OpenRouterProvider(
+                api_key=config.openrouter_api_key,
+                model=config.openrouter_model,
+                base_url=config.openrouter_base_url,
+            )
         case "openai":
             # Future implementation
             raise ProviderError("OpenAI provider not yet implemented")
@@ -68,6 +79,10 @@ def create_embedding_provider(config: Settings) -> EmbeddingProvider:
                 model=config.embedding_model,
                 dimensions=config.embedding_dimensions,
             )
+        case "openrouter":
+            # OpenRouter embeddings currently use Ollama as fallback
+            # Most OpenRouter models don't support embeddings API
+            raise ProviderError("OpenRouter doesn't support embeddings. Use ollama for embeddings.")
         case "openai":
             # Future implementation
             raise ProviderError("OpenAI embedding provider not yet implemented")
