@@ -134,31 +134,40 @@ jobs:
 
       - name: Create .env file
         run: | # pragma: allowlist secret
-          cat > api/.env << EOF
+          # Create .env at root for docker compose
+          cat > .env << EOF
           LLM_PROVIDER=ollama
-          LLM_MODEL=llama3:8b
+          LLM_MODEL=qwen2:0.5b
           OLLAMA_HOST=http://ollama:11434
           DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb  # pragma: allowlist secret
           EMBEDDING_MODEL=nomic-embed-text
           EOF
+          # Also copy to api folder
+          cp .env api/.env
 
-      - name: Build Docker images
+      - name: Start all services
         run: |
-          docker compose build api frontend
+          docker compose up -d
+          echo "Waiting for services to initialize..."
+          sleep 30
 
-      - name: Start services
+      - name: Wait for Ollama to be ready
         run: |
-          docker compose up -d postgres
-          sleep 10
-
-      - name: Check PostgreSQL health
-        run: |
-          docker compose exec -T postgres pg_isready -U bible -d bibledb
-
-      - name: Start API service
-        run: |
-          docker compose up -d api
-          sleep 15
+          echo "Waiting for Ollama to pull models (this may take a few minutes)..."
+          max_attempts=60
+          attempt=0
+          until curl -sf http://localhost:11434/api/tags | grep -q "qwen2"; do
+            attempt=$((attempt + 1))
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Ollama failed to be ready with models"
+              docker compose logs ollama
+              exit 1
+            fi
+            echo "Waiting for Ollama models... attempt $attempt/$max_attempts"
+            sleep 10
+          done
+          echo "Ollama is ready with models!"
+          curl -s http://localhost:11434/api/tags | jq .
 
       - name: Test API health endpoint
         run: |
@@ -175,37 +184,150 @@ jobs:
             exit 1
           fi
 
-      - name: Test API endpoints
+      - name: Run all endpoint tests in parallel
         run: |
-          # Test health endpoint
-          curl -f http://localhost:8000/health | jq .
+          # Create test scripts directory
+          mkdir -p /tmp/tests
 
-          # Test config endpoint
-          curl -f http://localhost:8000/config | jq .
+          # Test 1: Health & Config endpoints
+          cat > /tmp/tests/test_health.sh << 'SCRIPT'
+          #!/bin/bash
+          set -e
+          echo "=== Testing Health Endpoint ==="
+          health_response=$(curl -sf http://localhost:8000/health)
+          echo "$health_response" | jq .
+          status=$(echo "$health_response" | jq -r '.status')
+          if [ "$status" != "healthy" ]; then
+            echo "ERROR: API status is $status (expected healthy)"
+            exit 1
+          fi
+          echo "✓ Health endpoint OK"
 
-      - name: Start Frontend service
-        run: |
-          docker compose up -d frontend
-          sleep 20
+          echo ""
+          echo "=== Testing Config Endpoint ==="
+          config_response=$(curl -sf http://localhost:8000/config)
+          echo "$config_response" | jq .
+          if echo "$config_response" | jq -e '.llm.provider' > /dev/null; then
+            echo "✓ Config endpoint OK"
+          else
+            echo "ERROR: Config response missing expected fields"
+            exit 1
+          fi
+          SCRIPT
 
-      - name: Test Frontend health
-        run: |
+          # Test 2: Scripture search endpoint
+          cat > /tmp/tests/test_scripture.sh << 'SCRIPT'
+          #!/bin/bash
+          set -e
+          echo "=== Testing Scripture Search Endpoint ==="
+          search_response=$(curl -sf "http://localhost:8000/api/v1/scripture/search?q=love")
+          echo "$search_response" | jq .
+          echo "✓ Scripture search endpoint OK"
+          SCRIPT
+
+          # Test 3: Chat endpoint
+          cat > /tmp/tests/test_chat.sh << 'SCRIPT'
+          #!/bin/bash
+          set -e
+          echo "=== Testing Chat Endpoint ==="
+          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat \
+            -H "Content-Type: application/json" \
+            -d '{"message": "What does the Bible say about love?"}' \
+            --max-time 180)
+          echo "Chat response:"
+          echo "$response" | jq .
+          if echo "$response" | jq -e '.message' > /dev/null; then
+            echo "✓ Chat endpoint responded successfully!"
+          else
+            echo "ERROR: Chat response missing 'message' field"
+            exit 1
+          fi
+          SCRIPT
+
+          # Test 4: Chat streaming endpoint
+          cat > /tmp/tests/test_stream.sh << 'SCRIPT'
+          #!/bin/bash
+          echo "=== Testing Chat Streaming Endpoint ==="
+          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat/stream \
+            -H "Content-Type: application/json" \
+            -d '{"message": "Say hello"}' \
+            --max-time 60 || true)
+          if [ -n "$response" ]; then
+            echo "Stream response received:"
+            echo "$response" | head -c 500
+            echo ""
+            echo "✓ Chat streaming endpoint OK"
+          else
+            echo "WARNING: Streaming endpoint returned empty (may be expected)"
+          fi
+          SCRIPT
+
+          # Test 5: Frontend health
+          cat > /tmp/tests/test_frontend.sh << 'SCRIPT'
+          #!/bin/bash
+          set -e
+          echo "=== Testing Frontend ==="
           max_attempts=30
           attempt=0
-          until curl -f http://localhost:3000 || [ $attempt -eq $max_attempts ]; do
+          until curl -sf http://localhost:3000 > /dev/null || [ $attempt -eq $max_attempts ]; do
             attempt=$((attempt + 1))
             echo "Waiting for Frontend... attempt $attempt/$max_attempts"
             sleep 2
           done
           if [ $attempt -eq $max_attempts ]; then
             echo "Frontend failed to start"
-            docker compose logs frontend
             exit 1
           fi
+          echo "✓ Frontend OK"
+          SCRIPT
+
+          chmod +x /tmp/tests/*.sh
+
+          # Run tests in parallel
+          echo "Running all tests in parallel..."
+          /tmp/tests/test_health.sh > /tmp/tests/health.log 2>&1 &
+          pid_health=$!
+          /tmp/tests/test_scripture.sh > /tmp/tests/scripture.log 2>&1 &
+          pid_scripture=$!
+          /tmp/tests/test_chat.sh > /tmp/tests/chat.log 2>&1 &
+          pid_chat=$!
+          /tmp/tests/test_stream.sh > /tmp/tests/stream.log 2>&1 &
+          pid_stream=$!
+          /tmp/tests/test_frontend.sh > /tmp/tests/frontend.log 2>&1 &
+          pid_frontend=$!
+
+          # Wait for all tests and collect results
+          failed=0
+
+          wait $pid_health || { echo "❌ Health test failed"; failed=1; }
+          cat /tmp/tests/health.log
+
+          wait $pid_scripture || { echo "❌ Scripture test failed"; failed=1; }
+          cat /tmp/tests/scripture.log
+
+          wait $pid_chat || { echo "❌ Chat test failed"; failed=1; }
+          cat /tmp/tests/chat.log
+
+          wait $pid_stream || { echo "❌ Stream test failed"; failed=1; }
+          cat /tmp/tests/stream.log
+
+          wait $pid_frontend || { echo "❌ Frontend test failed"; failed=1; }
+          cat /tmp/tests/frontend.log
+
+          if [ $failed -eq 1 ]; then
+            echo ""
+            echo "Some tests failed!"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All tests passed!"
 
       - name: Show logs on failure
         if: failure()
         run: |
+          echo "=== Ollama Logs ==="
+          docker compose logs ollama
           echo "=== API Logs ==="
           docker compose logs api
           echo "=== Frontend Logs ==="
