@@ -236,10 +236,10 @@ jobs:
             --max-time 180)
           echo "Chat response:"
           echo "$response" | jq .
-          if echo "$response" | jq -e '.response' > /dev/null; then
+          if echo "$response" | jq -e '.message' > /dev/null; then
             echo "✓ Chat endpoint responded successfully!"
           else
-            echo "ERROR: Chat response missing 'response' field"
+            echo "ERROR: Chat response missing 'message' field"
             exit 1
           fi
           SCRIPT
