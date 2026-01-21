@@ -5,10 +5,10 @@ pydantic==2.6.1
 pydantic-settings==2.1.0
 
 # Database
-sqlalchemy==2.0.25
-asyncpg==0.29.0
+sqlalchemy==2.0.45
+asyncpg==0.31.0
 psycopg2-binary==2.9.9
-pgvector==0.2.4
+pgvector==0.4.2
 
 # HTTP Client (for LLM providers)
 httpx==0.26.0
