@@ -235,6 +235,23 @@ Configure via `api/.env` file (copy from `api/.env.example`):
 
 The provider factory (`providers/factory.py`) handles instantiation based on config.
 
+### Important: Embedding Dependency
+
+**Critical Constraint**: OpenRouter (and Claude) only provide LLM inference - **not embeddings**.
+The semantic search feature requires embeddings for all Bible verses, which currently only Ollama
+can generate in this project.
+
+**Implications for Deployment**:
+
+- Even when using OpenRouter for chat, you still need Ollama running somewhere for embeddings
+- This limits "free" deployment options (free hosting typically can't run Ollama)
+- See README.md "Deployment Options" section for three strategies: (A) Hybrid OpenRouter+Ollama,
+  (B) Pre-generated embeddings, (C) Full Ollama stack
+- OpenAI embeddings provider not yet implemented (tracked in technical debt)
+
+When working on deployment-related code, keep in mind that `EMBEDDING_PROVIDER` must currently be
+`ollama` for the application to function correctly.
+
 ## Code Style and Quality
 
 ### Python (Backend)

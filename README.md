@@ -160,6 +160,116 @@ EMBEDDING_PROVIDER=ollama  # OpenRouter doesn't support embeddings
 
 **Note**: OpenRouter doesn't support embedding generation, so keep `EMBEDDING_PROVIDER=ollama` for semantic search to work.
 
+## 🚢 Deployment Options
+
+### Important: Embedding Requirement
+
+The semantic search feature requires **embeddings** to be generated for all Bible verses. Currently,
+only Ollama supports embedding generation in this project. This means:
+
+- **OpenRouter requires Ollama** - Even when using OpenRouter for chat, you still need Ollama
+  running somewhere for embeddings
+- **Not fully serverless** - Free hosting services (Railway free tier, Render free tier) typically
+  lack resources to run Ollama
+- **OpenAI embeddings** - Not yet implemented (would enable fully serverless deployment but costs money)
+
+### Deployment Option A: OpenRouter + Hosted Ollama (Hybrid)
+
+**Best for**: Production deployment with moderate budget
+
+**Requirements**:
+
+- Paid hosting service with GPU or 16GB+ RAM (Railway Pro, Render standard, AWS EC2, etc.)
+- Separate Ollama instance running 24/7 for embeddings
+
+**Setup**:
+
+```bash
+# Deploy API to serverless platform (Railway, Render, etc.)
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-v1-...
+EMBEDDING_PROVIDER=ollama
+OLLAMA_HOST=https://your-ollama-instance.com  # Hosted Ollama endpoint
+
+# Separate Ollama deployment (Railway Pro, EC2, etc.)
+# Must run: nomic-embed-text model
+```
+
+**Pros**: Free LLM calls, fast response times
+**Cons**: Still requires hosting Ollama (~$10-20/month minimum)
+
+### Deployment Option B: Pre-Generated Embeddings (Advanced)
+
+**Best for**: Fully static deployment, lowest ongoing cost
+
+**Requirements**:
+
+- One-time embedding generation (run locally or on temporary cloud instance)
+- Database with pre-generated embeddings
+- OpenRouter for LLM only
+
+**Setup**:
+
+1. Generate embeddings locally using Ollama:
+
+   ```bash
+   # Run once locally or on temp cloud instance
+   docker compose up -d
+   python scripts/load_bible.py
+   python scripts/create_embeddings.py  # Takes 30-60 minutes
+   ```
+
+2. Export database with embeddings:
+
+   ```bash
+   pg_dump bibledb > bible_with_embeddings.sql
+   ```
+
+3. Deploy to cloud database (Neon, Supabase, etc.) and API platform:
+
+   ```bash
+   # Import embeddings to cloud database
+   psql $DATABASE_URL < bible_with_embeddings.sql
+
+   # Deploy API with OpenRouter
+   LLM_PROVIDER=openrouter
+   OPENROUTER_API_KEY=sk-or-v1-...
+   EMBEDDING_PROVIDER=ollama  # Keep this for code compatibility
+   OLLAMA_HOST=http://localhost:11434  # Won't be used for new embeddings
+   ```
+
+**Pros**: No ongoing Ollama hosting costs, fully serverless API
+**Cons**: Complex setup, can't generate new embeddings without Ollama, requires re-deployment for Bible data updates
+
+### Deployment Option C: Full Ollama Stack (Local/Self-Hosted)
+
+**Best for**: Local development, self-hosting, privacy-focused deployments
+
+**Requirements**:
+
+- Server/computer with GPU or 16GB+ RAM
+- Docker support
+
+**Setup**:
+
+```bash
+# Use docker-compose.yml as-is
+docker compose up -d
+
+# All services run locally
+LLM_PROVIDER=ollama  # or openrouter if you prefer
+EMBEDDING_PROVIDER=ollama
+```
+
+**Pros**: Full control, privacy, no API costs, can regenerate embeddings anytime
+**Cons**: Requires adequate hardware, higher resource usage
+
+### Recommended Approach
+
+- **Development**: Option C (full local Ollama)
+- **Production (budget)**: Option B (pre-generated embeddings + OpenRouter)
+- **Production (best UX)**: Option A (hosted Ollama + OpenRouter) or full Ollama on adequate hardware
+
 ## 🔌 API Reference
 
 ### Chat Endpoints
