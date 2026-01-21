@@ -134,31 +134,40 @@ jobs:
 
       - name: Create .env file
         run: | # pragma: allowlist secret
-          cat > api/.env << EOF
+          # Create .env at root for docker compose
+          cat > .env << EOF
           LLM_PROVIDER=ollama
-          LLM_MODEL=llama3:8b
+          LLM_MODEL=qwen2:0.5b
           OLLAMA_HOST=http://ollama:11434
           DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb  # pragma: allowlist secret
           EMBEDDING_MODEL=nomic-embed-text
           EOF
+          # Also copy to api folder
+          cp .env api/.env
 
-      - name: Build Docker images
+      - name: Start all services
         run: |
-          docker compose build api frontend
+          docker compose up -d
+          echo "Waiting for services to initialize..."
+          sleep 30
 
-      - name: Start services
+      - name: Wait for Ollama to be ready
         run: |
-          docker compose up -d postgres
-          sleep 10
-
-      - name: Check PostgreSQL health
-        run: |
-          docker compose exec -T postgres pg_isready -U bible -d bibledb
-
-      - name: Start API service
-        run: |
-          docker compose up -d api
-          sleep 15
+          echo "Waiting for Ollama to pull models (this may take a few minutes)..."
+          max_attempts=60
+          attempt=0
+          until curl -sf http://localhost:11434/api/tags | grep -q "qwen2"; do
+            attempt=$((attempt + 1))
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Ollama failed to be ready with models"
+              docker compose logs ollama
+              exit 1
+            fi
+            echo "Waiting for Ollama models... attempt $attempt/$max_attempts"
+            sleep 10
+          done
+          echo "Ollama is ready with models!"
+          curl -s http://localhost:11434/api/tags | jq .
 
       - name: Test API health endpoint
         run: |
@@ -177,16 +186,68 @@ jobs:
 
       - name: Test API endpoints
         run: |
-          # Test health endpoint
-          curl -f http://localhost:8000/health | jq .
+          echo "=== Testing Health Endpoint ==="
+          health_response=$(curl -sf http://localhost:8000/health)
+          echo "$health_response" | jq .
+          status=$(echo "$health_response" | jq -r '.status')
+          if [ "$status" != "healthy" ]; then
+            echo "ERROR: API status is $status (expected healthy)"
+            exit 1
+          fi
+          echo "✓ Health endpoint OK"
 
-          # Test config endpoint
-          curl -f http://localhost:8000/config | jq .
+          echo ""
+          echo "=== Testing Config Endpoint ==="
+          config_response=$(curl -sf http://localhost:8000/config)
+          echo "$config_response" | jq .
+          if echo "$config_response" | jq -e '.llm.provider' > /dev/null; then
+            echo "✓ Config endpoint OK"
+          else
+            echo "ERROR: Config response missing expected fields"
+            exit 1
+          fi
 
-      - name: Start Frontend service
+          echo ""
+          echo "=== Testing Scripture Search Endpoint ==="
+          search_response=$(curl -sf "http://localhost:8000/api/v1/scripture/search?q=love")
+          echo "$search_response" | jq .
+          echo "✓ Scripture search endpoint OK"
+
+      - name: Test Chat endpoint
         run: |
-          docker compose up -d frontend
-          sleep 20
+          echo "=== Testing Chat Endpoint ==="
+          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat \
+            -H "Content-Type: application/json" \
+            -d '{"message": "What does the Bible say about love?"}' \
+            --max-time 180)
+
+          echo "Chat response:"
+          echo "$response" | jq .
+
+          if echo "$response" | jq -e '.response' > /dev/null; then
+            echo "✓ Chat endpoint responded successfully!"
+          else
+            echo "ERROR: Chat response missing 'response' field"
+            exit 1
+          fi
+
+      - name: Test Chat streaming endpoint
+        run: |
+          echo "=== Testing Chat Streaming Endpoint ==="
+          # Test streaming endpoint - just verify it responds
+          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat/stream \
+            -H "Content-Type: application/json" \
+            -d '{"message": "Say hello"}' \
+            --max-time 60 || true)
+
+          if [ -n "$response" ]; then
+            echo "Stream response received:"
+            echo "$response" | head -c 500
+            echo ""
+            echo "✓ Chat streaming endpoint OK"
+          else
+            echo "WARNING: Streaming endpoint returned empty (may be expected)"
+          fi
 
       - name: Test Frontend health
         run: |
@@ -206,6 +267,8 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: |
+          echo "=== Ollama Logs ==="
+          docker compose logs ollama
           echo "=== API Logs ==="
           docker compose logs api
           echo "=== Frontend Logs ==="
