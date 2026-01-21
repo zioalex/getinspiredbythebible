@@ -96,17 +96,13 @@ class ClaudeProvider(LLMProvider):
         """Stream chat completion from Claude."""
         system_prompt, converted_messages = self._convert_messages(messages)
 
-        request_params = {
-            "model": self.model,
-            "max_tokens": max_tokens,
-            "messages": converted_messages,
-            "temperature": temperature,
-        }
-
-        if system_prompt:
-            request_params["system"] = system_prompt
-
-        async with self._client.messages.stream(**request_params) as stream:  # type: ignore[call-overload]
+        async with self._client.messages.stream(
+            model=self.model,
+            max_tokens=max_tokens,
+            messages=converted_messages,  # type: ignore[arg-type]
+            temperature=temperature,
+            system=system_prompt if system_prompt else None,
+        ) as stream:
             async for text in stream.text_stream:
                 yield text
 
