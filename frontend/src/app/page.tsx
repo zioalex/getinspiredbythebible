@@ -51,8 +51,9 @@ export default function Home() {
 
     // More comprehensive pattern to match verse references
     // Matches: "John 3:16", "1 John 2:3", "Psalms 143:4", "Song of Solomon 1:1", etc.
+    // Limited to max 2 additional words to prevent catastrophic backtracking
     const versePattern =
-      /(\d?\s?[A-Z][a-z]+(?:\s+(?:of\s+)?[A-Z]?[a-z]+)*)\s+(\d+):(\d+)(?:-\d+)?/gi;
+      /(\d?\s*[A-Z][a-z]+(?:\s+(?:of\s+)?[A-Z][a-z]+){0,2})\s+(\d+):(\d+)(?:-\d+)?/gi;
     const references = new Set<string>();
 
     // Convert iterator to array for compatibility with older TypeScript targets
