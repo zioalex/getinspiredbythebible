@@ -153,7 +153,7 @@ OpenRouter provides access to various LLMs including free models. Get your API k
 ```bash
 # In docker-compose.yml or .env
 LLM_PROVIDER=openrouter
-LLM_MODEL=meta-llama/llama-3.1-8b-instruct:free  # or google/gemma-2-9b-it:free
+LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free  # or google/gemma-2-9b-it:free
 OPENROUTER_API_KEY=sk-or-v1-...
 EMBEDDING_PROVIDER=ollama  # OpenRouter doesn't support embeddings
 ```

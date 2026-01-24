@@ -206,12 +206,12 @@ All embeddings use the `embedding_dimensions` setting (default 768 for nomic-emb
 Configure via `api/.env` file (copy from `api/.env.example`):
 
 - `LLM_PROVIDER`: `ollama` (default), `claude`, `openrouter`, or `openai` (not implemented)
-- `LLM_MODEL`: Model name (e.g., `llama3:8b`, `claude-sonnet-4-20250514`, `meta-llama/llama-3.1-8b-instruct:free`)
+- `LLM_MODEL`: Model name (e.g., `llama3:8b`, `claude-sonnet-4-20250514`, `meta-llama/llama-3.3-70b-instruct:free`)
 - `OLLAMA_HOST`: Ollama server URL (default: `http://localhost:11434`)
 - `ANTHROPIC_API_KEY`: Required for Claude provider
 - `OPENROUTER_API_KEY`: Required for OpenRouter provider (get at openrouter.ai/keys)
 - `OPENROUTER_BASE_URL`: OpenRouter API base URL (default: `https://openrouter.ai/api/v1`)
-- `OPENROUTER_MODEL`: OpenRouter model name (default: `meta-llama/llama-3.1-8b-instruct:free`)
+- `OPENROUTER_MODEL`: OpenRouter model name (default: `meta-llama/llama-3.3-70b-instruct:free`)
 - `EMBEDDING_PROVIDER`: `ollama` (default), `openrouter` (not supported), or `openai` (not implemented)
 - `EMBEDDING_MODEL`: Embedding model (default: `nomic-embed-text`)
 - `DATABASE_URL`: PostgreSQL connection string
@@ -229,7 +229,7 @@ Configure via `api/.env` file (copy from `api/.env.example`):
 
 1. Set `LLM_PROVIDER=openrouter` in `api/.env`
 2. Set `OPENROUTER_API_KEY=your-key` (get at openrouter.ai/keys)
-3. Set `OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free` (or `google/gemma-2-9b-it:free`)
+3. Set `OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free` (or `google/gemma-2-9b-it:free`)
 4. Keep `EMBEDDING_PROVIDER=ollama` (OpenRouter doesn't support embeddings)
 5. Restart API service
 
