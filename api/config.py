@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     # OpenRouter Settings (OpenAI-compatible API with free models)
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    # Free models: google/gemma-2-9b-it:free, meta-llama/llama-3.1-8b-instruct:free
-    openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
+    # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
 
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"

@@ -16,7 +16,7 @@ class OpenRouterProvider(LLMProvider):
     LLM Provider for OpenRouter.
 
     OpenRouter provides access to various LLMs including free models like:
-    - meta-llama/llama-3.1-8b-instruct:free
+    - meta-llama/llama-3.3-70b-instruct:free
     - google/gemma-2-9b-it:free
 
     Uses OpenAI-compatible API for easy integration.
@@ -25,7 +25,7 @@ class OpenRouterProvider(LLMProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "meta-llama/llama-3.1-8b-instruct:free",
+        model: str = "meta-llama/llama-3.3-70b-instruct:free",
         base_url: str = "https://openrouter.ai/api/v1",
     ):
         """
@@ -33,7 +33,7 @@ class OpenRouterProvider(LLMProvider):
 
         Args:
             api_key: OpenRouter API key
-            model: Model name (default: meta-llama/llama-3.1-8b-instruct:free)
+            model: Model name (default: meta-llama/llama-3.3-70b-instruct:free)
             base_url: OpenRouter API base URL (default: https://openrouter.ai/api/v1)
         """
         self.model = model

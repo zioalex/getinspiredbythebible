@@ -209,6 +209,49 @@ docker-up-prod-gpu: ## Start services (production mode, GPU)
 	@echo "$(YELLOW)API: https://getinspiredbythebible.ai4you.sh/api$(NC)"
 	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
 
+docker-up-dev: ## Start services (dev mode, safe alongside prod)
+	@echo "$(BLUE)Starting services in dev mode...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d
+	@echo "$(GREEN)✓ Dev services started$(NC)"
+	@echo "$(YELLOW)Frontend: http://localhost:3001$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8001$(NC)"
+	@echo "$(YELLOW)API Docs: http://localhost:8001/docs$(NC)"
+	@echo "$(YELLOW)Postgres: localhost:5433$(NC)"
+	@echo "$(YELLOW)Ollama: localhost:11435$(NC)"
+
+docker-down-dev: ## Stop dev services
+	@echo "$(BLUE)Stopping dev services...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml down
+	@echo "$(GREEN)✓ Dev services stopped$(NC)"
+
+docker-logs-dev: ## View dev services logs
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml logs -f
+
+docker-restart-dev: ## Restart all dev services
+	@echo "$(BLUE)Restarting dev services...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml restart
+	@echo "$(GREEN)✓ Dev services restarted$(NC)"
+
+docker-restart-dev-api: ## Restart dev API only
+	@echo "$(BLUE)Restarting dev API...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml restart api
+	@echo "$(GREEN)✓ Dev API restarted$(NC)"
+
+docker-restart-dev-frontend: ## Restart dev frontend only
+	@echo "$(BLUE)Restarting dev frontend...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml restart frontend
+	@echo "$(GREEN)✓ Dev frontend restarted$(NC)"
+
+docker-reinit-dev-db: ## Reinitialize dev database (recreate db-init)
+	@echo "$(BLUE)Reinitializing dev database...$(NC)"
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml rm -sf db-init
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d db-init
+	@echo "$(GREEN)✓ Database initialization started$(NC)"
+	@echo "$(YELLOW)Check logs: make docker-logs-dev-init$(NC)"
+
+docker-logs-dev-init: ## View dev db-init logs
+	@docker logs -f getinspired-dev-db-init-1
+
 docker-restart: ## Restart all services
 	@echo "$(BLUE)Restarting services...$(NC)"
 	@docker compose restart

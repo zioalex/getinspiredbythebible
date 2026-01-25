@@ -1,0 +1,123 @@
+# Standalone dev stack meant to run SIDE-BY-SIDE with an existing prod stack.
+#
+# Why standalone?
+# - When you pass multiple compose files, list fields like `ports:` are merged/added.
+#   That can cause the same containers to expose BOTH prod and dev ports and can
+#   accidentally change prod container env.
+#
+# Usage (safe alongside prod):
+#   docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d
+#
+# Teardown:
+#   docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml down
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-mistral:7b}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      - OLLAMA_HOST=http://ollama:11434
+      - DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./api:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "127.0.0.1:11435:11434"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      # IMPORTANT: Do not pass the API's LLM_MODEL through to Ollama.
+      # When using OpenRouter, LLM_MODEL is an OpenRouter slug, not an Ollama model tag.
+      - LLM_MODEL=${OLLAMA_LLM_MODEL:-mistral:7b}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+    volumes:
+      # Share models with prod to avoid re-downloading
+      - ollama_data:/root/.ollama
+      - ./scripts/init-ollama.sh:/init-ollama.sh
+    entrypoint: ["/bin/bash", "/init-ollama.sh"]
+    # GPU support (requires NVIDIA Container Toolkit + compatible Docker setup)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      - POSTGRES_USER=bible
+      - POSTGRES_PASSWORD=bible123
+      - POSTGRES_DB=bibledb
+    volumes:
+      # MUST be isolated from prod (embeddings are stored here)
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bible -d bibledb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-init:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://bible:bible123@postgres:5432/bibledb
+      - OLLAMA_HOST=http://ollama:11434
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./scripts:/scripts
+      - ./data:/data
+    working_dir: /scripts
+    entrypoint: ["/bin/bash", "/scripts/init-db.sh"]
+    restart: "no"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:8001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  # Shared with prod (safe)
+  ollama_data:
+    external: true
+    name: ollama_data
+  # Dev-only (must be separate)
+  postgres_data_dev:

@@ -44,7 +44,7 @@ def test_openrouter_provider_creation():
     """Test that OpenRouter provider can be created from factory"""
     settings = Settings(
         llm_provider="openrouter",
-        llm_model="meta-llama/llama-3.1-8b-instruct:free",
+        llm_model="meta-llama/llama-3.3-70b-instruct:free",
         openrouter_api_key="sk-or-v1-test-key",  # pragma: allowlist secret
     )
 
@@ -72,7 +72,7 @@ def test_openrouter_provider_requires_api_key():
     """Test that OpenRouter provider requires API key"""
     settings = Settings(
         llm_provider="openrouter",
-        llm_model="meta-llama/llama-3.1-8b-instruct:free",
+        llm_model="meta-llama/llama-3.3-70b-instruct:free",
         openrouter_api_key=None,
     )
 
@@ -84,7 +84,7 @@ def test_openrouter_provider_has_required_methods():
     """Test that OpenRouter provider has required interface methods"""
     settings = Settings(
         llm_provider="openrouter",
-        llm_model="meta-llama/llama-3.1-8b-instruct:free",
+        llm_model="meta-llama/llama-3.3-70b-instruct:free",
         openrouter_api_key="sk-or-v1-test-key",  # pragma: allowlist secret
     )
 

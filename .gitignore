@@ -36,6 +36,8 @@ dmypy.json
 .env
 .env.local
 .env.*.local
+.env.dev
+.env.*
 **/.env
 **/.env.local
 
