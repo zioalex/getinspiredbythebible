@@ -57,7 +57,11 @@ ollama pull mxbai-embed-large
 ollama list | grep mxbai
 ```
 
-### Step 2: Run the Database Migration (if DB exists)
+### Step 2: Run the Database Migration
+
+**⚠️ WARNING: This migration will TRUNCATE verses, passages, and topics tables!**
+
+All Bible data will need to be reloaded with the new multilingual model.
 
 ```bash
 cd scripts
@@ -66,26 +70,51 @@ python run_migration.py 001_add_translations.sql
 
 **This will:**
 
-- Create `translations` table
+- Create `translations` table with metadata
 - Add `translation` column to `verses`
 - Update constraints and indexes
-- Upgrade vector dimensions to 1024
+- **Clear all existing verses, passages, and topics** (ready for fresh reload)
 
-### Step 3: Test Loading Italian Bible
+### Step 3: Load All Bible Translations
 
 ```bash
 cd scripts
-python load_bible.py --list  # See available translations
-python load_bible.py --translation ita1927
+
+# List available translations
+python load_bible.py --list
+
+# Load each translation
+python load_bible.py --translation kjv      # English - King James Version
+python load_bible.py --translation ita1927  # Italian - Riveduta 1927
+python load_bible.py --translation deu1912  # German - Lutherbibel 1912
+python load_bible.py --translation web      # English - World English Bible
+
+# Or load all at once
+python load_bible.py --all
 ```
 
-**Expected output:**
+**Expected output for each:**
 
-- Downloads Italian Bible JSON (~5-10 seconds)
-- Loads ~31,102 verses
-- Maps Italian book names (Genesi → Genesis, etc.)
+- Downloads Bible JSON from source (~5-10 seconds)
+- Loads ~31,102 verses per translation
+- Maps book names for non-English translations
 
-### Step 4: Verify Database
+### Step 4: Generate Multilingual Embeddings
+
+```bash
+cd scripts
+python create_embeddings.py --translation kjv
+python create_embeddings.py --translation ita1927
+python create_embeddings.py --translation deu1912
+python create_embeddings.py --translation web
+
+# Or generate for all translations
+python create_embeddings.py --all
+```
+
+**Note**: You'll need to update `create_embeddings.py` first (see Phase 9 below)
+
+### Step 5: Verify Database
 
 ```bash
 # Check translations table
@@ -93,12 +122,24 @@ psql -U bible -d bibledb -c "SELECT * FROM translations;"
 
 # Check verse counts by translation
 psql -U bible -d bibledb -c "SELECT translation, COUNT(*) FROM verses GROUP BY translation;"
+
+# Check embedding coverage
+psql -U bible -d bibledb -c "
+SELECT translation,
+       COUNT(*) as total_verses,
+       COUNT(embedding) as verses_with_embeddings
+FROM verses
+GROUP BY translation
+ORDER BY translation;
+"
 ```
 
 **Expected:**
 
-- `kjv`: ~31,102 verses (if you had it before)
-- `ita1927`: ~31,102 verses (newly loaded)
+- `kjv`: ~31,102 verses
+- `ita1927`: ~31,102 verses
+- `deu1912`: ~31,102 verses
+- `web`: ~31,102 verses
 
 ---
 
