@@ -184,7 +184,7 @@ TRANSLATIONS = {
         "language_code": "it",
         "description": "Italian Luzzi translation from 1927",
         "source": "getbible",
-        "url": "https://api.getbible.net/v2/ita1927.json",
+        "url": "https://api.getbible.net/v2/riveduta.json",
         "book_names": ITALIAN_BOOK_NAMES,
         "license": "Public Domain",
         "is_default": False,
