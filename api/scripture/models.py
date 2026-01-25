@@ -4,15 +4,52 @@ Scripture database models using SQLAlchemy.
 Defines the schema for storing Bible verses with vector embeddings.
 """
 
+from datetime import datetime
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import declarative_base, relationship
 
 from config import settings
 
 Base: Any = declarative_base()
+
+
+class Translation(Base):
+    """
+    Bible translation metadata.
+
+    Stores information about available Bible translations (KJV, Italian, German, etc.)
+    """
+
+    __tablename__ = "translations"
+
+    code = Column(String(20), primary_key=True)  # e.g., 'kjv', 'ita1927', 'deu1912'
+    name = Column(String(100), nullable=False)  # e.g., 'King James Version'
+    language = Column(String(50), nullable=False)  # e.g., 'English', 'Italian'
+    language_code = Column(String(10), nullable=False)  # ISO 639-1: 'en', 'it', 'de'
+    description = Column(Text, nullable=True)
+    source_url = Column(Text, nullable=True)
+    license = Column(String(100), default="Public Domain")
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    verses = relationship("Verse", back_populates="translation_rel")
+
+    def __repr__(self):
+        return f"<Translation(code='{self.code}', name='{self.name}', language='{self.language}')>"
 
 
 class Book(Base):
@@ -60,6 +97,8 @@ class Chapter(Base):
 class Verse(Base):
     """
     Individual Bible verse with embedding for semantic search.
+
+    Supports multiple translations (KJV, Italian, German, etc.)
     """
 
     __tablename__ = "verses"
@@ -70,6 +109,12 @@ class Verse(Base):
     chapter_number = Column(Integer, nullable=False)
     verse_number = Column(Integer, nullable=False)
     text = Column(Text, nullable=False)
+    translation = Column(
+        String(20),
+        ForeignKey("translations.code", ondelete="CASCADE"),
+        nullable=False,
+        default="kjv",
+    )
 
     # Vector embedding for semantic search
     embedding = Column(Vector(settings.embedding_dimensions), nullable=True)
@@ -77,10 +122,18 @@ class Verse(Base):
     # Relationships
     book = relationship("Book", back_populates="verses")
     chapter = relationship("Chapter", back_populates="verses")
+    translation_rel = relationship("Translation", back_populates="verses")
 
     __table_args__ = (
-        UniqueConstraint("book_id", "chapter_number", "verse_number", name="unique_verse"),
+        UniqueConstraint(
+            "book_id",
+            "chapter_number",
+            "verse_number",
+            "translation",
+            name="unique_verse_translation",
+        ),
         Index("idx_verse_embedding", "embedding", postgresql_using="ivfflat"),
+        Index("idx_verses_translation", "translation"),
     )
 
     @property
@@ -89,7 +142,7 @@ class Verse(Base):
         return f"{self.book.name} {self.chapter_number}:{self.verse_number}"
 
     def __repr__(self):
-        return f"<Verse(reference='{self.reference}')>"
+        return f"<Verse(reference='{self.reference}', translation='{self.translation}')>"
 
 
 class Passage(Base):

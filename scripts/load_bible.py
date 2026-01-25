@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Load Bible data into the database.
+Load Bible data into the database - Multilingual version.
 
-This script downloads a public domain Bible translation (World English Bible)
-and loads it into the PostgreSQL database.
+This script downloads and loads Bible translations (KJV, Italian, German, etc.)
+into the PostgreSQL database.
 
 Usage:
-    python load_bible.py
+    python load_bible.py                    # Load KJV (default)
+    python load_bible.py --translation kjv  # Load specific translation
+    python load_bible.py --list             # List available translations
+    python load_bible.py --all              # Load all translations
 """
 
+import argparse
 import asyncio
 import json
 import httpx
@@ -22,7 +26,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
-# Bible books metadata
+# Import translation configurations
+from translations import TRANSLATIONS, map_book_name, list_available_translations
+
+# Bible books metadata (standard English names)
 BIBLE_BOOKS = [
     # Old Testament
     {"name": "Genesis", "abbr": "Gen", "testament": "old", "position": 1},
@@ -94,67 +101,111 @@ BIBLE_BOOKS = [
     {"name": "Revelation", "abbr": "Rev", "testament": "new", "position": 66},
 ]
 
-# URL for World English Bible JSON
-# This is a public domain modern English translation
-WEB_BIBLE_URL = "https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_kjv.json"
 
+async def download_translation(translation_code: str, output_path: Path) -> dict:
+    """Download Bible translation JSON."""
+    config = TRANSLATIONS[translation_code]
 
-async def download_bible(output_path: Path) -> dict:
-    """Download Bible JSON if not already present."""
     if output_path.exists():
-        print(f"📖 Loading Bible from {output_path}")
-        with open(output_path) as f:
+        print(f"📖 Loading {config['name']} from cache: {output_path}")
+        with open(output_path, encoding="utf-8") as f:
             return json.load(f)
 
-    print(f"📥 Downloading Bible from {WEB_BIBLE_URL}")
-    async with httpx.AsyncClient() as client:
-        response = await client.get(WEB_BIBLE_URL, follow_redirects=True)
+    print(f"📥 Downloading {config['name']} ({config['language']}) from {config['source']}")
+    print(f"    URL: {config['url']}")
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.get(config["url"], follow_redirects=True)
         response.raise_for_status()
         data = response.json()
 
     # Save for future use
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(data, f)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print(f"💾 Saved Bible to {output_path}")
+    print(f"💾 Saved to: {output_path}")
     return data
 
 
-async def load_bible_to_db(database_url: str, bible_data: list):
-    """Load Bible data into PostgreSQL."""
-    # Convert to async URL
-    if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+def normalize_bible_data(data: dict|list, source: str) -> list:
+    """
+    Normalize different JSON formats to common structure.
 
-    engine = create_async_engine(database_url)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    Returns: List of books with chapters containing verses
+    Format: [{"name": "...", "chapters": [[v1, v2], [ch2...]]}, ...]
+    """
+    if source == "thiagobodruk":
+        # Already in correct format: [{"abbrev": "gn", "chapters": [[v1, v2], ...]}]
+        return data
 
-    async with engine.begin() as conn:
-        # Create extension
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    elif source == "getbible":
+        # Format: {"books": [{"name": "...", "chapters": [{"verses": [{text, verse}, ...]}]}]}
+        if isinstance(data, dict) and "books" in data:
+            normalized = []
+            for book in data.get("books", []):
+                book_data = {
+                    "name": book.get("name", ""),
+                    "chapters": []
+                }
+                for chapter in book.get("chapters", []):
+                    # Extract verse texts in order
+                    verses = [v.get("text", "") for v in chapter.get("verses", [])]
+                    book_data["chapters"].append(verses)
+                normalized.append(book_data)
+            return normalized
 
-    async with async_session() as session:
-        # Create tables using raw SQL for simplicity
-        await session.execute(text("""
-            CREATE TABLE IF NOT EXISTS books (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(50) NOT NULL UNIQUE,
-                abbreviation VARCHAR(10) NOT NULL,
-                testament VARCHAR(20) NOT NULL,
-                position INTEGER NOT NULL
-            )
-        """))
+    # Fallback: return as-is
+    return data if isinstance(data, list) else []
 
-        await session.execute(text("""
-            CREATE TABLE IF NOT EXISTS chapters (
-                id SERIAL PRIMARY KEY,
-                book_id INTEGER REFERENCES books(id),
-                number INTEGER NOT NULL,
-                UNIQUE(book_id, number)
-            )
-        """))
 
+async def ensure_schema(session):
+    """Ensure database schema exists with translation support."""
+
+    # Create translations table first
+    await session.execute(text("""
+        CREATE TABLE IF NOT EXISTS translations (
+            code VARCHAR(20) PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            language VARCHAR(50) NOT NULL,
+            language_code VARCHAR(10) NOT NULL,
+            description TEXT,
+            source_url TEXT,
+            license VARCHAR(100) DEFAULT 'Public Domain',
+            is_default BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """))
+
+    # Create books, chapters, verses tables
+    await session.execute(text("""
+        CREATE TABLE IF NOT EXISTS books (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(50) NOT NULL UNIQUE,
+            abbreviation VARCHAR(10) NOT NULL,
+            testament VARCHAR(20) NOT NULL,
+            position INTEGER NOT NULL
+        )
+    """))
+
+    await session.execute(text("""
+        CREATE TABLE IF NOT EXISTS chapters (
+            id SERIAL PRIMARY KEY,
+            book_id INTEGER REFERENCES books(id),
+            number INTEGER NOT NULL,
+            UNIQUE(book_id, number)
+        )
+    """))
+
+    # Check if verses table needs translation column
+    result = await session.execute(text("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'verses' AND column_name = 'translation'
+    """))
+    has_translation_column = result.fetchone() is not None
+
+    if not has_translation_column:
+        # Create new verses table with translation column
         await session.execute(text("""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
@@ -163,127 +214,283 @@ async def load_bible_to_db(database_url: str, bible_data: list):
                 chapter_number INTEGER NOT NULL,
                 verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
-                embedding vector(768),
-                UNIQUE(book_id, chapter_number, verse_number)
+                translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
+                embedding vector(1024),
+                UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
-
+    else:
+        # Table exists with translation column - just ensure it exists
         await session.execute(text("""
-            CREATE TABLE IF NOT EXISTS passages (
+            CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
-                title VARCHAR(200) NOT NULL,
-                start_book_id INTEGER NOT NULL REFERENCES books(id),
-                start_chapter INTEGER NOT NULL,
-                start_verse INTEGER NOT NULL,
-                end_chapter INTEGER NOT NULL,
-                end_verse INTEGER NOT NULL,
+                book_id INTEGER REFERENCES books(id),
+                chapter_id INTEGER REFERENCES chapters(id),
+                chapter_number INTEGER NOT NULL,
+                verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
-                topics VARCHAR(500),
-                embedding vector(768)
+                translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
+                embedding vector(1024),
+                UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
 
-        await session.execute(text("""
-            CREATE TABLE IF NOT EXISTS topics (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL UNIQUE,
-                description TEXT,
-                parent_id INTEGER REFERENCES topics(id),
-                embedding vector(768)
-            )
-        """))
+    # Create other tables
+    await session.execute(text("""
+        CREATE TABLE IF NOT EXISTS passages (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(200) NOT NULL,
+            start_book_id INTEGER NOT NULL REFERENCES books(id),
+            start_chapter INTEGER NOT NULL,
+            start_verse INTEGER NOT NULL,
+            end_chapter INTEGER NOT NULL,
+            end_verse INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            topics VARCHAR(500),
+            embedding vector(1024)
+        )
+    """))
 
-        # Create indexes for better performance
-        await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_verse_embedding
-            ON verses USING ivfflat (embedding vector_cosine_ops)
-        """))
+    await session.execute(text("""
+        CREATE TABLE IF NOT EXISTS topics (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            parent_id INTEGER REFERENCES topics(id),
+            embedding vector(1024)
+        )
+    """))
 
-        await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_passage_embedding
-            ON passages USING ivfflat (embedding vector_cosine_ops)
-        """))
+    # Create indexes
+    await session.execute(text("""
+        CREATE INDEX IF NOT EXISTS idx_verse_embedding
+        ON verses USING ivfflat (embedding vector_cosine_ops)
+    """))
 
-        await session.commit()
+    await session.execute(text("""
+        CREATE INDEX IF NOT EXISTS idx_verses_translation
+        ON verses(translation)
+    """))
 
-        # Clear existing data
-        await session.execute(text("DELETE FROM verses"))
-        await session.execute(text("DELETE FROM chapters"))
-        await session.execute(text("DELETE FROM books"))
-        await session.commit()
+    await session.execute(text("""
+        CREATE INDEX IF NOT EXISTS idx_passage_embedding
+        ON passages USING ivfflat (embedding vector_cosine_ops)
+    """))
 
-        print("📚 Loading books...")
+    await session.commit()
 
-        # Insert books
-        book_ids = {}
-        for book_meta in BIBLE_BOOKS:
-            result = await session.execute(
+
+async def load_translation_metadata(session, translation_code: str):
+    """Insert translation metadata into translations table."""
+    config = TRANSLATIONS[translation_code]
+
+    await session.execute(
+        text("""
+            INSERT INTO translations (code, name, language, language_code, description, is_default)
+            VALUES (:code, :name, :language, :lang_code, :description, :is_default)
+            ON CONFLICT (code) DO UPDATE
+            SET name = :name, language = :language, description = :description
+        """),
+        {
+            "code": config["code"],
+            "name": config["name"],
+            "language": config["language"],
+            "lang_code": config["language_code"],
+            "description": config.get("description"),
+            "is_default": config.get("is_default", False),
+        }
+    )
+    await session.commit()
+    print(f"✅ Loaded translation metadata: {config['name']} ({config['code']})")
+
+
+async def ensure_books_and_chapters(session) -> dict:
+    """Ensure books and chapters exist in database. Returns book_ids mapping."""
+
+    # Check if books already loaded
+    result = await session.execute(text("SELECT COUNT(*) FROM books"))
+    book_count = result.scalar()
+
+    if book_count == 66:
+        # Books already exist, fetch IDs
+        result = await session.execute(text("SELECT id, name FROM books"))
+        book_ids = {row[1]: row[0] for row in result.fetchall()}
+        return book_ids
+
+    print("📚 Loading books and chapters (one-time setup)...")
+
+    # Insert books
+    book_ids = {}
+    for book_meta in BIBLE_BOOKS:
+        result = await session.execute(
+            text("""
+                INSERT INTO books (name, abbreviation, testament, position)
+                VALUES (:name, :abbr, :testament, :position)
+                ON CONFLICT (name) DO UPDATE SET name = :name
+                RETURNING id
+            """),
+            {
+                "name": book_meta["name"],
+                "abbr": book_meta["abbr"],
+                "testament": book_meta["testament"],
+                "position": book_meta["position"]
+            }
+        )
+        book_ids[book_meta["name"]] = result.scalar_one()
+
+    await session.commit()
+
+    # Insert chapters for each book (Bible structure is constant)
+    # We know chapter counts from standard Bible structure
+    chapter_counts = {
+        "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
+        "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
+        "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36, "Ezra": 10,
+        "Nehemiah": 13, "Esther": 10, "Job": 42, "Psalms": 150, "Proverbs": 31,
+        "Ecclesiastes": 12, "Song of Solomon": 8, "Isaiah": 66, "Jeremiah": 52, "Lamentations": 5,
+        "Ezekiel": 48, "Daniel": 12, "Hosea": 14, "Joel": 3, "Amos": 9,
+        "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3, "Habakkuk": 3,
+        "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 4,
+        "Matthew": 28, "Mark": 16, "Luke": 24, "John": 21, "Acts": 28,
+        "Romans": 16, "1 Corinthians": 16, "2 Corinthians": 13, "Galatians": 6, "Ephesians": 6,
+        "Philippians": 4, "Colossians": 4, "1 Thessalonians": 5, "2 Thessalonians": 3, "1 Timothy": 6,
+        "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13, "James": 5,
+        "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1, "3 John": 1,
+        "Jude": 1, "Revelation": 22
+    }
+
+    for book_name, book_id in book_ids.items():
+        num_chapters = chapter_counts.get(book_name, 1)
+        for chapter_num in range(1, num_chapters + 1):
+            await session.execute(
                 text("""
-                    INSERT INTO books (name, abbreviation, testament, position)
-                    VALUES (:name, :abbr, :testament, :position)
-                    RETURNING id
+                    INSERT INTO chapters (book_id, number)
+                    VALUES (:book_id, :number)
+                    ON CONFLICT (book_id, number) DO NOTHING
                 """),
-                {
-                    "name": book_meta["name"],
-                    "abbr": book_meta["abbr"],
-                    "testament": book_meta["testament"],
-                    "position": book_meta["position"]
-                }
+                {"book_id": book_id, "number": chapter_num}
             )
-            book_ids[book_meta["name"]] = result.scalar_one()
+
+    await session.commit()
+    print(f"✅ Loaded {len(book_ids)} books with chapters")
+
+    return book_ids
+
+
+async def load_verses(session, translation_code: str, bible_data: list):
+    """Load verses for a specific translation."""
+
+    config = TRANSLATIONS[translation_code]
+    book_name_map = config.get("book_names")
+
+    # Get book IDs
+    result = await session.execute(text("SELECT id, name FROM books ORDER BY position"))
+    book_ids = {row[1]: row[0] for row in result.fetchall()}
+
+    # Normalize data format
+    normalized_data = normalize_bible_data(bible_data, config["source"])
+
+    verse_count = 0
+
+    for book_idx, book_data in enumerate(normalized_data):
+        # Get book name - handle both dict and list formats
+        if isinstance(book_data, dict) and "name" in book_data:
+            local_name = book_data["name"]
+            chapters = book_data.get("chapters", [])
+        else:
+            # thiagobodruk format uses index
+            local_name = BIBLE_BOOKS[book_idx]["name"]
+            chapters = book_data.get("chapters", []) if isinstance(book_data, dict) else []
+
+        # Map localized name to standard English name
+        if book_name_map:
+            standard_name = map_book_name(local_name, translation_code)
+        else:
+            standard_name = local_name
+
+        book_id = book_ids.get(standard_name)
+        if not book_id:
+            print(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
+            continue
+
+        print(f"  📖 Loading {standard_name} ({translation_code})...")
+
+        # Get chapter IDs for this book
+        chapter_result = await session.execute(
+            text("SELECT id, number FROM chapters WHERE book_id = :book_id"),
+            {"book_id": book_id}
+        )
+        chapter_ids = {row[1]: row[0] for row in chapter_result.fetchall()}
+
+        for chapter_idx, chapter_verses in enumerate(chapters):
+            chapter_num = chapter_idx + 1
+            chapter_id = chapter_ids.get(chapter_num)
+
+            if not chapter_id:
+                continue
+
+            for verse_idx, verse_text in enumerate(chapter_verses):
+                verse_num = verse_idx + 1
+
+                # Insert or update verse
+                await session.execute(
+                    text("""
+                        INSERT INTO verses
+                            (book_id, chapter_id, chapter_number, verse_number, text, translation)
+                        VALUES
+                            (:book_id, :chapter_id, :chapter_num, :verse_num, :text, :translation)
+                        ON CONFLICT (book_id, chapter_number, verse_number, translation)
+                        DO UPDATE SET text = :text
+                    """),
+                    {
+                        "book_id": book_id,
+                        "chapter_id": chapter_id,
+                        "chapter_num": chapter_num,
+                        "verse_num": verse_num,
+                        "text": verse_text,
+                        "translation": translation_code,
+                    }
+                )
+                verse_count += 1
 
         await session.commit()
-        print(f"✅ Loaded {len(book_ids)} books")
 
-        # Process Bible data
-        # The JSON format is: [{"abbrev": "gn", "chapters": [[verse1, verse2], [chapter2 verses], ...]}]
+    return verse_count
 
-        verse_count = 0
-        chapter_count = 0
 
-        for book_idx, book_data in enumerate(bible_data):
-            book_name = BIBLE_BOOKS[book_idx]["name"]
-            book_id = book_ids[book_name]
+async def load_translation_to_db(database_url: str, translation_code: str):
+    """Load a specific Bible translation into the database."""
 
-            print(f"  📖 Loading {book_name}...")
+    # Convert to async URL
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-            for chapter_idx, chapter_verses in enumerate(book_data.get("chapters", [])):
-                chapter_num = chapter_idx + 1
+    engine = create_async_engine(database_url)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-                # Insert chapter
-                result = await session.execute(
-                    text("""
-                        INSERT INTO chapters (book_id, number)
-                        VALUES (:book_id, :number)
-                        RETURNING id
-                    """),
-                    {"book_id": book_id, "number": chapter_num}
-                )
-                chapter_id = result.scalar_one()
-                chapter_count += 1
+    async with engine.begin() as conn:
+        # Create vector extension
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-                # Insert verses
-                for verse_idx, verse_text in enumerate(chapter_verses):
-                    verse_num = verse_idx + 1
+    async with async_session() as session:
+        # Ensure schema exists
+        await ensure_schema(session)
 
-                    await session.execute(
-                        text("""
-                            INSERT INTO verses (book_id, chapter_id, chapter_number, verse_number, text)
-                            VALUES (:book_id, :chapter_id, :chapter_num, :verse_num, :text)
-                        """),
-                        {
-                            "book_id": book_id,
-                            "chapter_id": chapter_id,
-                            "chapter_num": chapter_num,
-                            "verse_num": verse_num,
-                            "text": verse_text
-                        }
-                    )
-                    verse_count += 1
+        # Load translation metadata
+        await load_translation_metadata(session, translation_code)
 
-            await session.commit()
+        # Ensure books and chapters exist
+        book_ids = await ensure_books_and_chapters(session)
 
-        print(f"✅ Loaded {chapter_count} chapters and {verse_count} verses")
+        # Download translation data
+        bible_path = Path(__file__).parent.parent / "data" / "bible" / "translations" / f"{translation_code}.json"
+        bible_data = await download_translation(translation_code, bible_path)
+
+        # Load verses
+        print(f"\n📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
+        verse_count = await load_verses(session, translation_code, bible_data)
+
+        print(f"✅ Loaded {verse_count:,} verses for {translation_code}")
 
     await engine.dispose()
 
@@ -292,22 +499,65 @@ async def main():
     """Main entry point."""
     import os
 
-    # Get database URL from environment or use default
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Load Bible translations into database")
+    parser.add_argument(
+        "--translation", "-t",
+        type=str,
+        help="Translation code to load (kjv, ita1927, deu1912, web)"
+    )
+    parser.add_argument(
+        "--list", "-l",
+        action="store_true",
+        help="List available translations"
+    )
+    parser.add_argument(
+        "--all", "-a",
+        action="store_true",
+        help="Load all translations"
+    )
+
+    args = parser.parse_args()
+
+    # List translations and exit
+    if args.list:
+        print("\n📚 Available translations:")
+        for trans in list_available_translations():
+            print(f"  - {trans['code']:<12} {trans['name']:<30} ({trans['language']})")
+        return
+
+    # Get database URL
     database_url = os.getenv(
         "DATABASE_URL",
         "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
-    # Download Bible
-    bible_path = Path(__file__).parent.parent / "data" / "bible" / "kjv.json"
-    bible_data = await download_bible(bible_path)
+    # Determine which translations to load
+    if args.all:
+        translations_to_load = list(TRANSLATIONS.keys())
+    elif args.translation:
+        if args.translation not in TRANSLATIONS:
+            print(f"❌ Unknown translation: {args.translation}")
+            print(f"   Available: {', '.join(TRANSLATIONS.keys())}")
+            return
+        translations_to_load = [args.translation]
+    else:
+        # Default: load KJV
+        translations_to_load = ["kjv"]
 
-    # Load to database
-    print(f"\n🗄️ Loading to database: {database_url}")
-    await load_bible_to_db(database_url, bible_data)
+    # Load each translation
+    print(f"\n🗄️  Database: {database_url}")
+    print(f"📖 Translations to load: {', '.join(translations_to_load)}\n")
 
-    print("\n🎉 Bible loaded successfully!")
-    print("Next step: Run create_embeddings.py to generate semantic search vectors")
+    for trans_code in translations_to_load:
+        print(f"\n{'='*60}")
+        print(f"Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
+        print(f"{'='*60}")
+        await load_translation_to_db(database_url, trans_code)
+
+    print("\n🎉 All translations loaded successfully!")
+    print("\nNext step: Run create_embeddings.py to generate semantic search vectors")
+    print("Example: python create_embeddings.py --translation ita1927")
 
 
 if __name__ == "__main__":
