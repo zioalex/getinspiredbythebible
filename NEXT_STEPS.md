@@ -38,7 +38,24 @@ I've completed the core infrastructure for multilingual Bible support:
 
 ## 📋 What You Need to Do Next
 
-### Step 1: Pull the Multilingual Embedding Model ⭐ **CRITICAL**
+### Step 1: Update Environment Variables
+
+The multilingual embedding model is now configured automatically!
+
+**If using Docker**:
+
+- The model will be pulled automatically when you run `docker-compose up`
+- No manual action needed - `init-ollama.sh` will download `mxbai-embed-large`
+
+**If running locally**:
+
+```bash
+# Update your .env file (or copy from .env.example)
+EMBEDDING_MODEL=mxbai-embed-large
+EMBEDDING_DIMENSIONS=1024
+```
+
+Then pull the model:
 
 ```bash
 ollama pull mxbai-embed-large
@@ -50,12 +67,6 @@ ollama pull mxbai-embed-large
 - 1024 dimensions (vs 768 for nomic)
 - Size: ~670MB (fits in your 8GB GPU)
 - Excellent for cross-lingual search
-
-**Verify it worked:**
-
-```bash
-ollama list | grep mxbai
-```
 
 ### Step 2: Run the Database Migration
 
