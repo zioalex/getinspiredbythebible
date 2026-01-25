@@ -6,6 +6,33 @@
 
 ---
 
+## ⚠️ IMPORTANT: Database Schema Update Required
+
+**If you have an existing database**, you MUST update the schema before using this version.
+
+**Quick fix for existing users**:
+
+```bash
+# Stop services
+docker-compose down
+
+# Remove old database volume (WARNING: This deletes all data!)
+docker volume rm getinspiredbythebible_postgres_data
+
+# Start fresh with new schema
+docker-compose up -d
+```
+
+The new schema includes:
+
+- `translations` table for multilingual support
+- `translation` column in `verses` table
+- Updated to 1024-dimension embeddings (mxbai-embed-large)
+
+**See Step 2 below for alternative migration options.**
+
+---
+
 ## ✅ What's Been Done (Autonomous Implementation)
 
 I've completed the core infrastructure for multilingual Bible support:

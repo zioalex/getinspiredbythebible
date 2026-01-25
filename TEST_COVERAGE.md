@@ -1,13 +1,13 @@
 # Test Coverage - Multilingual Bible Support
 
-**Total Tests**: 41 (all passing ✅)
-**Test Files**: 3
+**Total Tests**: 48 (all passing ✅)
+**Test Files**: 4
 **Last Updated**: 2026-01-25
 
 ## Test Summary
 
 ```text
-✅ 41 tests passing
+✅ 48 tests passing
 ⚠️  3 warnings (Pydantic deprecation - non-critical)
 ❌ 0 failures
 ```
@@ -231,3 +231,24 @@ test:
 
 **Status**: All core tests passing ✅
 **Next**: Add integration tests for Bible loader and API endpoints (Phases 7-12)
+
+---
+
+### 4. Database Schema Tests (`test_database_schema.py`) - 7 tests
+
+Tests that verify database schema is correctly configured:
+
+- ✅ `test_translation_table_exists` - Translation model has all required fields
+- ✅ `test_verse_has_translation_column` - Verse has translation column
+- ✅ `test_verse_table_constraints` - Unique constraint includes translation
+- ✅ `test_verse_default_translation` - Translation defaults to 'kjv'
+- ✅ `test_book_table_exists` - Book model structure
+- ✅ `test_chapter_table_exists` - Chapter model structure
+- ✅ `test_verse_relationships` - All relationships defined
+
+**Coverage:**
+
+- Schema validation (catches missing translation column errors)
+- Default values verification
+- Foreign key relationships
+- Unique constraints with translation field
