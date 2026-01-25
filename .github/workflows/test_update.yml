@@ -141,10 +141,11 @@ jobs:
         run: | # pragma: allowlist secret
           # Create .env at root for docker compose
           # Matches production: OpenRouter for LLM, Ollama for embeddings
+          # Using free Google Gemma model for cost-effective CI testing
           cat > .env << EOF
           LLM_PROVIDER=openrouter
           OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct
+          OPENROUTER_MODEL=google/gemma-2-27b-it:free
           OLLAMA_HOST=http://ollama:11434
           EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large
