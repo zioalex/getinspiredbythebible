@@ -31,12 +31,21 @@ def test_italian_book_names_complete():
 
 
 def test_german_book_names_complete():
-    """Test that all 66 Bible books have German mappings"""
-    assert len(GERMAN_BOOK_NAMES) == 66
+    """Test that all 66 Bible books have German mappings (plus alternate spellings)"""
+    # 66 books + 4 alternate spellings (Rut, Ester, Hohes Lied, Zefanja)
+    assert len(GERMAN_BOOK_NAMES) == 70
+    # Verify all 66 unique English book names are covered
+    unique_english_names = set(GERMAN_BOOK_NAMES.values())
+    assert len(unique_english_names) == 66
     # Check a few key books
     assert GERMAN_BOOK_NAMES["1. Mose"] == "Genesis"
     assert GERMAN_BOOK_NAMES["Matthäus"] == "Matthew"
     assert GERMAN_BOOK_NAMES["Offenbarung"] == "Revelation"
+    # Check alternate spellings
+    assert GERMAN_BOOK_NAMES["Rut"] == "Ruth"
+    assert GERMAN_BOOK_NAMES["Ester"] == "Esther"
+    assert GERMAN_BOOK_NAMES["Hohes Lied"] == "Song of Solomon"
+    assert GERMAN_BOOK_NAMES["Zefanja"] == "Zephaniah"
 
 
 def test_italian_old_testament_books():
@@ -199,9 +208,11 @@ def test_all_italian_books_unique():
 
 
 def test_all_german_books_unique():
-    """Test that all German book names map to unique English names"""
+    """Test that all German book names map to the 66 unique English book names"""
     english_names = list(GERMAN_BOOK_NAMES.values())
-    assert len(english_names) == len(set(english_names))
+    unique_english_names = set(english_names)
+    # Should have 66 unique English names (some German names are alternates)
+    assert len(unique_english_names) == 66
 
 
 def test_translation_urls_valid():

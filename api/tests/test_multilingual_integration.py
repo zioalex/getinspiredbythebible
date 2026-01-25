@@ -122,7 +122,10 @@ def test_italian_and_german_have_book_name_mappings():
     assert TRANSLATIONS["ita1927"]["book_names"] is not None
     assert TRANSLATIONS["schlachter"]["book_names"] is not None
     assert len(TRANSLATIONS["ita1927"]["book_names"]) == 66
-    assert len(TRANSLATIONS["schlachter"]["book_names"]) == 66
+    # German has 70 entries (66 books + 4 alternate spellings)
+    assert len(TRANSLATIONS["schlachter"]["book_names"]) == 70
+    # But should map to exactly 66 unique English book names
+    assert len(set(TRANSLATIONS["schlachter"]["book_names"].values())) == 66
 
 
 def test_english_translations_no_book_name_mappings():
