@@ -162,7 +162,7 @@ Run all multilingual tests:
 ### ⏳ Not Yet Tested (Future)
 
 1. **Database Operations**: Actual DB inserts/updates with translations
-2. **Migration Script**: Running the SQL migration
+2. **Database Schema**: Manual schema updates or SQLAlchemy migrations
 3. **Bible Loader**: load_bible.py functionality
 4. **Embedding Generation**: create_embeddings.py with multilingual
 5. **API Endpoints**: Translation filtering in scripture routes

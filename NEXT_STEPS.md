@@ -3,7 +3,6 @@
 **Date**: 2026-01-25
 **Status**: Phase 1-6 Complete (40% done) ✅
 **Branch**: `multiple_bible`
-**Commit**: `cc064eb`
 
 ---
 
@@ -13,18 +12,19 @@ I've completed the core infrastructure for multilingual Bible support:
 
 ### Completed
 
-1. ✅ Database migration scripts
-2. ✅ SQLAlchemy models with Translation support
-3. ✅ Configuration updated for multilingual model
-4. ✅ Translation configurations (Italian/German book mappings)
-5. ✅ Complete rewrite of `load_bible.py` with CLI support
+1. ✅ SQLAlchemy models with Translation support
+2. ✅ Configuration updated for multilingual model (mxbai-embed-large)
+3. ✅ Translation configurations (Italian/German book mappings)
+4. ✅ Complete rewrite of `load_bible.py` with CLI support
+5. ✅ Comprehensive tests (41 passing)
 6. ✅ All changes committed to `multiple_bible` branch
 
 ### Files Created
 
-- `scripts/migrations/001_add_translations.sql` - Database migration
-- `scripts/run_migration.py` - Migration runner
 - `scripts/translations.py` - Translation configs & book name mappings
+- `api/tests/test_translations.py` - Translation configuration tests
+- `api/tests/test_multilingual_integration.py` - Integration tests
+- `TEST_COVERAGE.md` - Test documentation
 - `MULTILINGUAL_PROGRESS.md` - Detailed progress tracking
 - `NEXT_STEPS.md` - This file!
 
@@ -33,6 +33,8 @@ I've completed the core infrastructure for multilingual Bible support:
 - `api/config.py` - Switched to mxbai-embed-large (1024 dim)
 - `api/scripture/models.py` - Added Translation model
 - `scripts/load_bible.py` - Complete rewrite for multilingual
+- `.env.example` - Updated embedding model defaults
+- `docker-compose.yml` - Updated to mxbai-embed-large
 
 ---
 
@@ -68,23 +70,52 @@ ollama pull mxbai-embed-large
 - Size: ~670MB (fits in your 8GB GPU)
 - Excellent for cross-lingual search
 
-### Step 2: Run the Database Migration
+### Step 2: Prepare Database Schema
 
-**⚠️ WARNING: This migration will TRUNCATE verses, passages, and topics tables!**
+The new Translation model requires schema updates. Use SQLAlchemy to create the tables:
 
-All Bible data will need to be reloaded with the new multilingual model.
+**Option A: Drop and recreate database (recommended for development)**:
 
 ```bash
-cd scripts
-python run_migration.py 001_add_translations.sql
+# Stop services
+docker-compose down
+
+# Remove database volume
+docker volume rm getinspiredbythebible_postgres_data
+
+# Start fresh
+docker-compose up -d
 ```
 
-**This will:**
+**Option B: Manual schema update via SQL**:
 
-- Create `translations` table with metadata
-- Add `translation` column to `verses`
-- Update constraints and indexes
-- **Clear all existing verses, passages, and topics** (ready for fresh reload)
+```sql
+-- Create translations table
+CREATE TABLE IF NOT EXISTS translations (
+    code VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    language VARCHAR(50) NOT NULL,
+    language_code VARCHAR(10) NOT NULL,
+    description TEXT,
+    source_url TEXT,
+    license VARCHAR(100) DEFAULT 'Public Domain',
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add translation column to verses
+ALTER TABLE verses ADD COLUMN IF NOT EXISTS translation VARCHAR(20) DEFAULT 'kjv';
+ALTER TABLE verses ADD CONSTRAINT fk_verses_translation
+    FOREIGN KEY (translation) REFERENCES translations(code) ON DELETE CASCADE;
+
+-- Update unique constraint
+ALTER TABLE verses DROP CONSTRAINT IF EXISTS unique_verse;
+ALTER TABLE verses ADD CONSTRAINT unique_verse_translation
+    UNIQUE(book_id, chapter_number, verse_number, translation);
+
+-- Add index
+CREATE INDEX IF NOT EXISTS idx_verses_translation ON verses(translation);
+```
 
 ### Step 3: Load All Bible Translations
 
@@ -109,6 +140,7 @@ python load_bible.py --all
 - Downloads Bible JSON from source (~5-10 seconds)
 - Loads ~31,102 verses per translation
 - Maps book names for non-English translations
+- Creates translation metadata automatically
 
 ### Step 4: Generate Multilingual Embeddings
 
@@ -230,7 +262,7 @@ ollama serve  # In a separate terminal
 docker ps | grep postgres
 
 # Or start with Docker Compose
-docker-compose up -d db
+docker-compose up -d postgres
 ```
 
 ### Problem: "Translation already exists"
@@ -243,11 +275,15 @@ Just re-run and it will update the verses.
 Check `scripts/translations.py` - all Italian/German book names are mapped.
 If you see "Unknown book", it means the JSON format changed.
 
+### Problem: "relation translations does not exist"
+
+You need to create the database schema first (see Step 2 above).
+
 ---
 
 ## 🎯 Quick Test Plan
 
-Once you've done Steps 1-4 above, test:
+Once you've done Steps 1-5 above, test:
 
 1. **List translations:**
 
@@ -270,7 +306,7 @@ Once you've done Steps 1-4 above, test:
    WHERE v.book_id = 1 AND v.chapter_number = 1 AND v.verse_number = 1;
    ```
 
-   Should show Genesis 1:1 in both KJV and Italian!
+   Should show Genesis 1:1 in multiple translations!
 
 ---
 
@@ -288,5 +324,4 @@ Just say "continue" and I'll pick up where I left off!
 ---
 
 **Progress**: 6/15 phases complete (40%)
-**Commit**: `cc064eb - WIP: Multilingual Bible support - Phase 1-6 complete`
 **See**: `MULTILINGUAL_PROGRESS.md` for detailed status

@@ -13,8 +13,6 @@ English (WEB) Bible translations with multilingual semantic search capabilities.
 
 ### Phase 1: Database Schema ✅
 
-- Created migration script: `scripts/migrations/001_add_translations.sql`
-- Created migration runner: `scripts/run_migration.py`
 - Schema changes:
   - New `translations` table for translation metadata
   - Updated `verses` table with `translation` column (FK to translations)
@@ -23,9 +21,6 @@ English (WEB) Bible translations with multilingual semantic search capabilities.
   - Upgraded vector dimensions: 768 → 1024 (for multilingual model)
 
 **Files Modified:**
-
-- `scripts/migrations/001_add_translations.sql` (new)
-- `scripts/run_migration.py` (new)
 
 ---
 
@@ -222,9 +217,7 @@ python load_bible.py --all
 
 ```text
 scripts/
-├── migrations/
-│   └── 001_add_translations.sql       # Database migration
-├── run_migration.py                    # Migration runner
+# Removed migration files
 └── translations.py                     # Translation configs & mappings
 
 MULTILINGUAL_PROGRESS.md                # This file
@@ -246,7 +239,6 @@ scripts/
 
 ## 🧪 Testing Checklist
 
-- [ ] Migration runs successfully
 - [ ] Translation metadata loads
 - [ ] Italian Bible downloads
 - [ ] Book name mapping works (Genesi → Genesis)
@@ -272,7 +264,6 @@ When you return:
 
    ```bash
    cd scripts
-   python run_migration.py 001_add_translations.sql
    ```
 
 3. **Test Italian download**:
