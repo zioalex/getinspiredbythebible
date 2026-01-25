@@ -145,7 +145,7 @@ jobs:
           LLM_MODEL=qwen2:0.5b
           OLLAMA_HOST=http://ollama:11434
           DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb  # pragma: allowlist secret
-          EMBEDDING_MODEL=nomic-embed-text
+          EMBEDDING_MODEL=mxbai-embed-large
           EOF
           # Also copy to api folder
           cp .env api/.env
@@ -161,7 +161,8 @@ jobs:
           echo "Waiting for Ollama to pull models (this may take a few minutes)..."
           max_attempts=60
           attempt=0
-          until curl -sf http://localhost:11434/api/tags | grep -q "qwen2"; do
+          until curl -sf http://localhost:11434/api/tags | grep -q "qwen2" && \
+                curl -sf http://localhost:11434/api/tags | grep -q "mxbai-embed-large"; do
             attempt=$((attempt + 1))
             if [ $attempt -eq $max_attempts ]; then
               echo "Ollama failed to be ready with models"
@@ -171,7 +172,7 @@ jobs:
             echo "Waiting for Ollama models... attempt $attempt/$max_attempts"
             sleep 10
           done
-          echo "Ollama is ready with models!"
+          echo "Ollama is ready with both LLM and embedding models!"
           curl -s http://localhost:11434/api/tags | jq .
 
       - name: Test API health endpoint
