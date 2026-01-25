@@ -21,8 +21,8 @@ else
 fi
 
 if [ "${EMBEDDING_PROVIDER:-ollama}" = "ollama" ]; then
-	echo "Pulling embedding model: ${EMBEDDING_MODEL:-nomic-embed-text}..."
-	ollama pull "${EMBEDDING_MODEL:-nomic-embed-text}"
+	echo "Pulling embedding model: ${EMBEDDING_MODEL:-mxbai-embed-large}..."
+	ollama pull "${EMBEDDING_MODEL:-mxbai-embed-large}"
 else
 	echo "Skipping embedding model pull (EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER})"
 fi

@@ -9,7 +9,7 @@ Usage:
     python create_embeddings.py
 
 Requirements:
-    - Ollama running with nomic-embed-text model
+    - Ollama running with mxbai-embed-large model (multilingual, 1024 dimensions)
     - Bible data already loaded (run load_bible.py first)
 """
 
@@ -186,7 +186,7 @@ async def main():
     )
 
     ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+    embedding_model = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
     print("🔍 Bible Embedding Generator")
     print(f"   Database: {database_url}")

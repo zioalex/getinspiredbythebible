@@ -187,7 +187,7 @@ frontend/src/
 - **Passage**: Multi-verse passages (e.g., "The Lord's Prayer") with embeddings
 - **Topic**: Categorization system (hierarchical, with embeddings)
 
-All embeddings use the `embedding_dimensions` setting (default 768 for nomic-embed-text).
+All embeddings use the `embedding_dimensions` setting (default 1024 for mxbai-embed-large).
 
 ### Semantic Search Flow
 
@@ -213,7 +213,7 @@ Configure via `api/.env` file (copy from `api/.env.example`):
 - `OPENROUTER_BASE_URL`: OpenRouter API base URL (default: `https://openrouter.ai/api/v1`)
 - `OPENROUTER_MODEL`: OpenRouter model name (default: `meta-llama/llama-3.3-70b-instruct:free`)
 - `EMBEDDING_PROVIDER`: `ollama` (default), `openrouter` (not supported), or `openai` (not implemented)
-- `EMBEDDING_MODEL`: Embedding model (default: `nomic-embed-text`)
+- `EMBEDDING_MODEL`: Embedding model (default: `mxbai-embed-large`, multilingual)
 - `DATABASE_URL`: PostgreSQL connection string
 
 ### Switching LLM Providers
