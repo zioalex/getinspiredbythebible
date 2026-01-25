@@ -144,7 +144,7 @@ jobs:
           cat > .env << EOF
           LLM_PROVIDER=openrouter
           OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+          OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct
           OLLAMA_HOST=http://ollama:11434
           EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large
