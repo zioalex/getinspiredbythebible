@@ -15,6 +15,7 @@ export interface Verse {
   book: string;
   chapter: number;
   verse: number;
+  translation?: string;
   similarity?: number;
 }
 
