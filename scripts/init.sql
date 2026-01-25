@@ -24,11 +24,12 @@ CREATE TABLE IF NOT EXISTS translations (
 );
 
 -- Insert default translations
+-- Keep in sync with scripts/translations.py - run: python -c "from translations import generate_translations_sql; print(generate_translations_sql())"
 INSERT INTO translations (code, name, language, language_code, is_default, description) VALUES
     ('kjv', 'King James Version', 'English', 'en', TRUE, 'Classic English translation from 1611'),
     ('web', 'World English Bible', 'English', 'en', FALSE, 'Modern English, public domain'),
     ('ita1927', 'Riveduta 1927', 'Italian', 'it', FALSE, 'Italian Luzzi translation from 1927'),
-    ('deu1912', 'Lutherbibel 1912', 'German', 'de', FALSE, 'Classic German Luther translation')
+    ('schlachter', 'Schlachter 1951', 'German', 'de', FALSE, 'German Schlachter translation from 1951')
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================================

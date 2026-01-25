@@ -35,7 +35,7 @@ def test_verse_supports_multiple_translations():
     verses = []
 
     # Create same verse in different translations
-    for trans_code in ["kjv", "ita1927", "deu1912"]:
+    for trans_code in ["kjv", "ita1927", "schlachter"]:
         verse = Verse(
             book_id=1,
             chapter_id=1,
@@ -106,7 +106,7 @@ def test_translation_language_codes_valid():
             assert lang_code == "en"
         elif code == "ita1927":
             assert lang_code == "it"
-        elif code == "deu1912":
+        elif code == "schlachter":
             assert lang_code == "de"
 
 
@@ -120,9 +120,9 @@ def test_only_one_default_translation():
 def test_italian_and_german_have_book_name_mappings():
     """Test that non-English translations have book name mappings"""
     assert TRANSLATIONS["ita1927"]["book_names"] is not None
-    assert TRANSLATIONS["deu1912"]["book_names"] is not None
+    assert TRANSLATIONS["schlachter"]["book_names"] is not None
     assert len(TRANSLATIONS["ita1927"]["book_names"]) == 66
-    assert len(TRANSLATIONS["deu1912"]["book_names"]) == 66
+    assert len(TRANSLATIONS["schlachter"]["book_names"]) == 66
 
 
 def test_english_translations_no_book_name_mappings():

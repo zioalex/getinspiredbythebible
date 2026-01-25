@@ -79,7 +79,7 @@ ITALIAN_BOOK_NAMES = {
     "Apocalisse": "Revelation",
 }
 
-# German book names (Luther 1912) → Standard English names
+# German book names (Luther 1912 / Schlachter) → Standard English names
 GERMAN_BOOK_NAMES = {
     # Old Testament
     "1. Mose": "Genesis",
@@ -90,6 +90,7 @@ GERMAN_BOOK_NAMES = {
     "Josua": "Joshua",
     "Richter": "Judges",
     "Ruth": "Ruth",
+    "Rut": "Ruth",  # Alternate spelling (Schlachter)
     "1. Samuel": "1 Samuel",
     "2. Samuel": "2 Samuel",
     "1. Könige": "1 Kings",
@@ -99,11 +100,13 @@ GERMAN_BOOK_NAMES = {
     "Esra": "Ezra",
     "Nehemia": "Nehemiah",
     "Esther": "Esther",
+    "Ester": "Esther",  # Alternate spelling (Schlachter)
     "Hiob": "Job",
     "Psalmen": "Psalms",
     "Sprüche": "Proverbs",
     "Prediger": "Ecclesiastes",
     "Hohelied": "Song of Solomon",
+    "Hohes Lied": "Song of Solomon",  # Alternate spelling (Schlachter)
     "Jesaja": "Isaiah",
     "Jeremia": "Jeremiah",
     "Klagelieder": "Lamentations",
@@ -118,6 +121,7 @@ GERMAN_BOOK_NAMES = {
     "Nahum": "Nahum",
     "Habakuk": "Habakkuk",
     "Zephanja": "Zephaniah",
+    "Zefanja": "Zephaniah",  # Alternate spelling (Schlachter)
     "Haggai": "Haggai",
     "Sacharja": "Zechariah",
     "Maleachi": "Malachi",
@@ -189,12 +193,12 @@ TRANSLATIONS = {
         "license": "Public Domain",
         "is_default": False,
     },
-    "deu1912": {
-        "code": "deu1912",
-        "name": "Lutherbibel 1912",
+    "schlachter": {
+        "code": "schlachter",
+        "name": "Schlachter 1951",
         "language": "German",
         "language_code": "de",
-        "description": "Classic German Luther translation from 1912",
+        "description": "German Schlachter translation from 1951",
         "source": "getbible",
         "url": "https://api.getbible.net/v2/schlachter.json",
         "book_names": GERMAN_BOOK_NAMES,
@@ -202,6 +206,35 @@ TRANSLATIONS = {
         "is_default": False,
     },
 }
+
+
+def generate_translations_sql() -> str:
+    """
+    Generate SQL INSERT statements for the translations table.
+
+    This ensures init.sql stays in sync with TRANSLATIONS config.
+    Usage: python -c "from translations import generate_translations_sql; print(generate_translations_sql())"
+    """
+    lines = [
+        "-- Auto-generated from scripts/translations.py",
+        "-- Run: python -c \"from translations import generate_translations_sql; print(generate_translations_sql())\"",
+        "INSERT INTO translations (code, name, language, language_code, is_default, description) VALUES"
+    ]
+
+    values = []
+    for code, config in TRANSLATIONS.items():
+        is_default = "TRUE" if config.get("is_default", False) else "FALSE"
+        # Escape single quotes in description
+        description = config.get("description", "").replace("'", "''")
+        values.append(
+            f"    ('{code}', '{config['name']}', '{config['language']}', "
+            f"'{config['language_code']}', {is_default}, '{description}')"
+        )
+
+    lines.append(",\n".join(values))
+    lines.append("ON CONFLICT (code) DO NOTHING;")
+
+    return "\n".join(lines)
 
 
 def get_translation_config(code: str) -> dict:

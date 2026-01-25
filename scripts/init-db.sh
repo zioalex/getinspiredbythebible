@@ -40,7 +40,7 @@ if [ "$VERSE_COUNT" -eq 0 ]; then
     echo "  - KJV (King James Version) - loaded"
     echo "  - WEB (World English Bible) - run: python load_bible.py --translation web"
     echo "  - Italian (Riveduta 1927) - run: python load_bible.py --translation ita1927"
-    echo "  - German (Luther 1912) - run: python load_bible.py --translation deu1912"
+    echo "  - German (Schlachter 1951) - run: python load_bible.py --translation schlachter"
 else
     echo "Database already initialized, skipping."
 fi

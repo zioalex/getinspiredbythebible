@@ -99,11 +99,11 @@ def test_translation_model_italian():
 def test_translation_model_german():
     """Test Translation model with German translation"""
     translation = Translation(
-        code="deu1912",
-        name="Lutherbibel 1912",
+        code="schlachter",
+        name="Schlachter 1951",
         language="German",
         language_code="de",
     )
-    assert translation.code == "deu1912"
+    assert translation.code == "schlachter"
     assert translation.language == "German"
     assert translation.language_code == "de"

@@ -100,7 +100,7 @@ def test_translations_config_exists():
     assert "kjv" in TRANSLATIONS
     assert "web" in TRANSLATIONS
     assert "ita1927" in TRANSLATIONS
-    assert "deu1912" in TRANSLATIONS
+    assert "schlachter" in TRANSLATIONS
 
 
 def test_kjv_translation_config():
@@ -127,9 +127,9 @@ def test_italian_translation_config():
 
 def test_german_translation_config():
     """Test German translation configuration"""
-    deu = TRANSLATIONS["deu1912"]
-    assert deu["code"] == "deu1912"
-    assert deu["name"] == "Lutherbibel 1912"
+    deu = TRANSLATIONS["schlachter"]
+    assert deu["code"] == "schlachter"
+    assert deu["name"] == "Schlachter 1951"
     assert deu["language"] == "German"
     assert deu["language_code"] == "de"
     assert deu["is_default"] is False
@@ -155,7 +155,7 @@ def test_get_translation_config_invalid():
 def test_list_available_translations():
     """Test list_available_translations function"""
     translations = list_available_translations()
-    assert len(translations) == 4  # kjv, web, ita1927, deu1912
+    assert len(translations) == 4  # kjv, web, ita1927, schlachter
 
     # Check structure
     assert all("code" in t for t in translations)
@@ -173,9 +173,9 @@ def test_map_book_name_italian():
 
 def test_map_book_name_german():
     """Test book name mapping for German"""
-    assert map_book_name("1. Mose", "deu1912") == "Genesis"
-    assert map_book_name("Matthäus", "deu1912") == "Matthew"
-    assert map_book_name("Offenbarung", "deu1912") == "Revelation"
+    assert map_book_name("1. Mose", "schlachter") == "Genesis"
+    assert map_book_name("Matthäus", "schlachter") == "Matthew"
+    assert map_book_name("Offenbarung", "schlachter") == "Revelation"
 
 
 def test_map_book_name_english():
@@ -284,3 +284,58 @@ def test_translation_urls_return_valid_json():
                 first_book = data[0]
                 assert "name" in first_book, f"{code}: Missing 'name' field"
                 assert "chapters" in first_book, f"{code}: Missing 'chapters' field"
+
+
+def test_init_sql_matches_translations_config():
+    """
+    Test that scripts/init.sql translation inserts match translations.py config.
+
+    This test ensures the database initialization stays in sync with the
+    source of truth (translations.py).
+    """
+    import re
+
+    # Read init.sql
+    init_sql_path = Path(__file__).parent.parent.parent / "scripts" / "init.sql"
+    with open(init_sql_path) as f:
+        init_sql = f.read()
+
+    # Extract translation codes from init.sql INSERT statement
+    # Pattern matches: ('code', 'name', ...
+    pattern = r"\('([a-z0-9]+)',\s*'([^']+)',\s*'([^']+)',\s*'([a-z]+)'"
+    sql_translations = {}
+    for match in re.finditer(pattern, init_sql):
+        code, name, language, lang_code = match.groups()
+        sql_translations[code] = {
+            "name": name,
+            "language": language,
+            "language_code": lang_code,
+        }
+
+    # Verify all translations from config are in init.sql
+    for code, config in TRANSLATIONS.items():
+        assert code in sql_translations, (
+            f"Translation '{code}' from translations.py missing in init.sql. "
+            f'Run: python -c "from translations import generate_translations_sql; '
+            f'print(generate_translations_sql())"'
+        )
+
+        # Verify metadata matches
+        sql_trans = sql_translations[code]
+        assert sql_trans["name"] == config["name"], (
+            f"Translation '{code}' name mismatch: "
+            f"init.sql='{sql_trans['name']}', translations.py='{config['name']}'"
+        )
+        assert sql_trans["language"] == config["language"], (
+            f"Translation '{code}' language mismatch: "
+            f"init.sql='{sql_trans['language']}', translations.py='{config['language']}'"
+        )
+        assert sql_trans["language_code"] == config["language_code"], (
+            f"Translation '{code}' language_code mismatch: "
+            f"init.sql='{sql_trans['language_code']}', "
+            f"translations.py='{config['language_code']}'"
+        )
+
+    # Verify no extra translations in init.sql
+    for code in sql_translations:
+        assert code in TRANSLATIONS, f"Translation '{code}' in init.sql but not in translations.py"

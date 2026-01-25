@@ -6,9 +6,20 @@ set -e
 echo "Starting Ollama service..."
 ollama serve &
 
-# Wait for Ollama to be ready
+# Wait for Ollama to be ready (poll until it responds)
 echo "Waiting for Ollama to start..."
-sleep 5
+max_attempts=30
+attempt=0
+until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
+    attempt=$((attempt + 1))
+    if [ $attempt -ge $max_attempts ]; then
+        echo "ERROR: Ollama failed to start after ${max_attempts} attempts"
+        exit 1
+    fi
+    echo "  Waiting for Ollama... (attempt $attempt/$max_attempts)"
+    sleep 2
+done
+echo "Ollama is ready!"
 
 # Pull required models
 # Note: In some stacks we use OpenRouter (remote) for chat but still use Ollama for embeddings.
