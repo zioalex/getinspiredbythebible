@@ -196,7 +196,7 @@ TRANSLATIONS = {
         "language_code": "de",
         "description": "Classic German Luther translation from 1912",
         "source": "getbible",
-        "url": "https://api.getbible.net/v2/deu1912.json",
+        "url": "https://api.getbible.net/v2/schlachter.json",
         "book_names": GERMAN_BOOK_NAMES,
         "license": "Public Domain",
         "is_default": False,

@@ -5,6 +5,9 @@ Tests for translation configurations and book name mappings
 import sys
 from pathlib import Path
 
+import httpx
+import pytest
+
 # Add scripts directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
 
@@ -216,3 +219,68 @@ def test_translation_sources():
     for code, config in TRANSLATIONS.items():
         assert "source" in config
         assert config["source"] in valid_sources
+
+
+@pytest.mark.network
+def test_translation_urls_accessible():
+    """
+    Test that all Bible translation URLs are accessible.
+
+    This test makes actual HTTP requests to verify the URLs are valid.
+    Run with: pytest -m network
+    Skip with: pytest -m "not network"
+    """
+    failed_urls = []
+
+    for code, config in TRANSLATIONS.items():
+        url = config["url"]
+        try:
+            # Use HEAD request first (lightweight), fall back to GET if HEAD not supported
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+                response = client.head(url)
+                # Some servers don't support HEAD, try GET if we get 405
+                if response.status_code == 405:
+                    response = client.get(url)
+
+                if response.status_code != 200:
+                    failed_urls.append(f"{code}: {url} returned status {response.status_code}")
+        except httpx.RequestError as e:
+            failed_urls.append(f"{code}: {url} failed with error: {e}")
+
+    if failed_urls:
+        pytest.fail(
+            "The following Bible translation URLs are not accessible:\n"
+            + "\n".join(f"  - {url}" for url in failed_urls)
+        )
+
+
+@pytest.mark.network
+def test_translation_urls_return_valid_json():
+    """
+    Test that all Bible translation URLs return valid JSON with expected structure.
+
+    This test downloads a small portion of each Bible to verify the format.
+    Run with: pytest -m network
+    """
+    for code, config in TRANSLATIONS.items():
+        url = config["url"]
+        with httpx.Client(timeout=60.0, follow_redirects=True) as client:
+            response = client.get(url)
+            assert response.status_code == 200, f"{code}: Failed to fetch {url}"
+
+            data = response.json()
+
+            # Check for expected structure based on source
+            if config["source"] == "getbible":
+                # getbible.net format has books as keys
+                assert isinstance(data, dict), f"{code}: Expected dict from getbible"
+                # Should have book data
+                assert len(data) > 0, f"{code}: Empty response from {url}"
+            elif config["source"] == "thiagobodruk":
+                # thiagobodruk format is a list of books
+                assert isinstance(data, list), f"{code}: Expected list from thiagobodruk"
+                assert len(data) == 66, f"{code}: Expected 66 books, got {len(data)}"
+                # Check first book has expected fields
+                first_book = data[0]
+                assert "name" in first_book, f"{code}: Missing 'name' field"
+                assert "chapters" in first_book, f"{code}: Missing 'chapters' field"
