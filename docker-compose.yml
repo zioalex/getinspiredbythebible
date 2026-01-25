@@ -10,7 +10,7 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
       - OLLAMA_HOST=http://ollama:11434
       - DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
@@ -24,7 +24,7 @@ services:
       - ./api:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Ollama - Self-hosted LLM
+  # Ollama - Self-hosted LLM and Embeddings
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -33,7 +33,7 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
     volumes:
       - ollama_data:/root/.ollama
       - ./scripts/init-ollama.sh:/init-ollama.sh

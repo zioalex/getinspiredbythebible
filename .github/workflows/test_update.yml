@@ -140,12 +140,15 @@ jobs:
       - name: Create .env file
         run: | # pragma: allowlist secret
           # Create .env at root for docker compose
+          # Matches production: OpenRouter for LLM, Ollama for embeddings
           cat > .env << EOF
-          LLM_PROVIDER=ollama
-          LLM_MODEL=qwen2:0.5b
+          LLM_PROVIDER=openrouter
+          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
           OLLAMA_HOST=http://ollama:11434
-          DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb  # pragma: allowlist secret
+          EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large
+          DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb  # pragma: allowlist secret
           EOF
           # Also copy to api folder
           cp .env api/.env
@@ -158,21 +161,21 @@ jobs:
 
       - name: Wait for Ollama to be ready
         run: |
-          echo "Waiting for Ollama to pull models (this may take a few minutes)..."
+          echo "Waiting for Ollama to pull embedding model (this may take a few minutes)..."
           max_attempts=60
           attempt=0
-          until curl -sf http://localhost:11434/api/tags | grep -q "qwen2" && \
-                curl -sf http://localhost:11434/api/tags | grep -q "mxbai-embed-large"; do
+          until curl -sf http://localhost:11434/api/tags | grep -q "mxbai-embed-large"; do
             attempt=$((attempt + 1))
             if [ $attempt -eq $max_attempts ]; then
-              echo "Ollama failed to be ready with models"
+              echo "Ollama failed to be ready with embedding model"
               docker compose logs ollama
               exit 1
             fi
-            echo "Waiting for Ollama models... attempt $attempt/$max_attempts"
+            echo "Waiting for Ollama embedding model... attempt $attempt/$max_attempts"
             sleep 10
           done
-          echo "Ollama is ready with both LLM and embedding models!"
+          echo "Ollama is ready with mxbai-embed-large embedding model!"
+          echo "Note: Using OpenRouter for LLM (matches production config)"
           curl -s http://localhost:11434/api/tags | jq .
 
       - name: Test API health endpoint
