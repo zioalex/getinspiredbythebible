@@ -102,6 +102,32 @@ describe("sendMessage", () => {
 
     await expect(sendMessage("Test")).rejects.toThrow("API error: 500");
   });
+
+  it("should include preferred translation when provided", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+        detected_translation: "ita1927",
+      }),
+    });
+
+    await sendMessage("Dimmi dell'amore", [], "ita1927");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({
+          message: "Dimmi dell'amore",
+          conversation_history: [],
+          include_search: true,
+          preferred_translation: "ita1927",
+        }),
+      }),
+    );
+  });
 });
 
 describe("searchScripture", () => {
