@@ -153,8 +153,18 @@ TRANSLATION_BOOK_NAMES = {
     "web": None,
 }
 
+# Reverse mappings (localized -> English)
+ITALIAN_TO_ENGLISH = {v: k for k, v in ENGLISH_TO_ITALIAN.items()}
+GERMAN_TO_ENGLISH = {v: k for k, v in ENGLISH_TO_GERMAN.items()}
 
-def get_localized_book_name(english_name: str, translation_code: str) -> str:
+# Combined reverse mapping for all languages
+LOCALIZED_TO_ENGLISH = {
+    **ITALIAN_TO_ENGLISH,
+    **GERMAN_TO_ENGLISH,
+}
+
+
+def get_localized_book_name(english_name: str, translation_code: str | None) -> str:
     """
     Get the localized book name for a given English book name.
 
@@ -165,6 +175,9 @@ def get_localized_book_name(english_name: str, translation_code: str) -> str:
     Returns:
         Localized book name (e.g., "Genesi", "Psalmen") or English name if no mapping
     """
+    if translation_code is None:
+        return english_name
+
     book_names = TRANSLATION_BOOK_NAMES.get(translation_code)
 
     if book_names is None:
@@ -172,3 +185,23 @@ def get_localized_book_name(english_name: str, translation_code: str) -> str:
         return english_name
 
     return book_names.get(english_name, english_name)
+
+
+def normalize_book_name(book_name: str) -> str:
+    """
+    Convert a localized book name to standard English.
+
+    Handles book names in any supported language (Italian, German, English).
+
+    Args:
+        book_name: Book name in any language (e.g., "Giovanni", "Johannes", "John")
+
+    Returns:
+        Standard English book name (e.g., "John")
+    """
+    # First check if it's already English (exists as a key in any mapping)
+    if book_name in ENGLISH_TO_ITALIAN:
+        return book_name
+
+    # Try to find in reverse mappings
+    return LOCALIZED_TO_ENGLISH.get(book_name, book_name)

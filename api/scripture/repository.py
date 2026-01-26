@@ -8,6 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from utils.book_names import normalize_book_name
+
 from .models import Book, Passage, Topic, Verse
 
 
@@ -29,9 +31,11 @@ class ScriptureRepository:
         return result.scalars().all()
 
     async def get_book_by_name(self, name: str) -> Book | None:
-        """Get a book by its name (case-insensitive)."""
+        """Get a book by its name (case-insensitive, supports localized names)."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(name)
         result = await self.session.execute(
-            select(Book).where(func.lower(Book.name) == name.lower())
+            select(Book).where(func.lower(Book.name) == english_name.lower())
         )
         return result.scalar_one_or_none()
 
@@ -46,11 +50,13 @@ class ScriptureRepository:
         self, book_name: str, chapter: int, verse: int, translation: str | None = None
     ) -> Verse | None:
         """Get a specific verse by reference, optionally filtered by translation."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
         query = (
             select(Verse)
             .join(Book)
             .where(
-                func.lower(Book.name) == book_name.lower(),
+                func.lower(Book.name) == english_name.lower(),
                 Verse.chapter_number == chapter,
                 Verse.verse_number == verse,
             )
@@ -67,11 +73,13 @@ class ScriptureRepository:
         self, book_name: str, chapter: int, start_verse: int, end_verse: int
     ) -> Sequence[Verse]:
         """Get verses in a range (e.g., John 3:16-21)."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
         result = await self.session.execute(
             select(Verse)
             .join(Book)
             .where(
-                func.lower(Book.name) == book_name.lower(),
+                func.lower(Book.name) == english_name.lower(),
                 Verse.chapter_number == chapter,
                 Verse.verse_number >= start_verse,
                 Verse.verse_number <= end_verse,
@@ -85,10 +93,12 @@ class ScriptureRepository:
         self, book_name: str, chapter: int, translation: str | None = None
     ) -> Sequence[Verse]:
         """Get all verses in a chapter, optionally filtered by translation."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
         query = (
             select(Verse)
             .join(Book)
-            .where(func.lower(Book.name) == book_name.lower(), Verse.chapter_number == chapter)
+            .where(func.lower(Book.name) == english_name.lower(), Verse.chapter_number == chapter)
         )
 
         if translation:
