@@ -27,7 +27,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +47,7 @@ services:
       # When using OpenRouter, LLM_MODEL is an OpenRouter slug, not an Ollama model tag.
       - LLM_MODEL=${OLLAMA_LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
     volumes:
       # Share models with prod to avoid re-downloading
       - ollama_data:/root/.ollama
@@ -87,7 +87,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://bible:bible123@postgres:5432/bibledb
       - OLLAMA_HOST=http://ollama:11434
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
     depends_on:
       postgres:
         condition: service_healthy

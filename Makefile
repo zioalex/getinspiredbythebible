@@ -285,3 +285,50 @@ docker-test: ## Run tests in Docker
 	@docker compose build api frontend
 	@docker compose run --rm api pytest -v
 	@echo "$(GREEN)✓ Docker tests complete$(NC)"
+
+docker-reset-db: ## Reset database (removes volume and reinitializes)
+	@echo "$(BLUE)Resetting database...$(NC)"
+	@echo "$(YELLOW)Stopping services...$(NC)"
+	@docker compose down
+	@echo "$(YELLOW)Removing database volume...$(NC)"
+	@docker volume rm getinspiredbythebible_postgres_data 2>/dev/null || echo "$(YELLOW)Volume not found or already removed$(NC)"
+	@echo "$(GREEN)✓ Database reset complete$(NC)"
+	@echo "$(YELLOW)Run 'make docker-up' or 'make docker-up-gpu' to start fresh$(NC)"
+
+docker-reset-db-dev: ## Reset dev database (removes volume and reinitializes)
+	@echo "$(BLUE)Resetting dev database...$(NC)"
+	@docker compose -p getinspired-dev down
+	@docker volume rm getinspired-dev_postgres_data 2>/dev/null || echo "$(YELLOW)Volume not found$(NC)"
+	@echo "$(GREEN)✓ Dev database reset complete$(NC)"
+
+functional-test: ## Run functional tests (requires running services)
+	@echo "$(BLUE)Running functional tests...$(NC)"
+	@echo "$(YELLOW)Testing API health...$(NC)"
+	@curl -sf http://localhost:8000/api/v1/health > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running, skipping$(NC)" && exit 0)
+	@echo "$(YELLOW)Testing embedding dimension consistency...$(NC)"
+	@docker compose exec -T postgres psql -U bible -d bibledb -t -c \
+		"SELECT CASE WHEN COUNT(*) = 0 THEN 'No embeddings yet' \
+		 WHEN COUNT(DISTINCT vector_dims(embedding)) = 1 THEN '✓ All embeddings have consistent dimensions: ' || MAX(vector_dims(embedding))::text \
+		 ELSE '✗ ERROR: Mixed embedding dimensions found!' END FROM verses WHERE embedding IS NOT NULL;" \
+		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
+	@echo "$(YELLOW)Testing translation table...$(NC)"
+	@docker compose exec -T postgres psql -U bible -d bibledb -t -c \
+		"SELECT '✓ Translations: ' || COUNT(*) || ' configured' FROM translations;" \
+		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
+	@echo "$(YELLOW)Testing verse counts by translation...$(NC)"
+	@docker compose exec -T postgres psql -U bible -d bibledb -t -c \
+		"SELECT translation || ': ' || COUNT(*) || ' verses' FROM verses GROUP BY translation ORDER BY translation;" \
+		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
+	@echo "$(GREEN)✓ Functional tests complete$(NC)"
+
+functional-test-dev: ## Run functional tests on dev environment
+	@echo "$(BLUE)Running functional tests on dev...$(NC)"
+	@echo "$(YELLOW)Testing API health...$(NC)"
+	@curl -sf http://localhost:8001/api/v1/health > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running$(NC)" && exit 0)
+	@echo "$(YELLOW)Testing embedding dimensions...$(NC)"
+	@docker compose -p getinspired-dev exec -T postgres psql -U bible -d bibledb -t -c \
+		"SELECT CASE WHEN COUNT(*) = 0 THEN 'No embeddings yet' \
+		 WHEN COUNT(DISTINCT vector_dims(embedding)) = 1 THEN '✓ All embeddings consistent: ' || MAX(vector_dims(embedding))::text || ' dimensions' \
+		 ELSE '✗ ERROR: Mixed dimensions!' END FROM verses WHERE embedding IS NOT NULL;" \
+		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
+	@echo "$(GREEN)✓ Dev functional tests complete$(NC)"

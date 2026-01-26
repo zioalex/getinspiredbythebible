@@ -52,7 +52,7 @@ cp api/.env.example api/.env  # Create env file (optional)
 ### 2. Start Services
 
 > **Note**: On first startup, Ollama will automatically pull the required models
-> (`llama3:8b` and `nomic-embed-text`). This may take 5-10 minutes depending on your
+> (`llama3:8b` and `mxbai-embed-large`). This may take 5-10 minutes depending on your
 > internet connection.
 
 ```bash
@@ -130,7 +130,7 @@ bible-chat/
 | `LLM_PROVIDER` | `ollama` | LLM backend: `ollama`, `claude`, `openrouter`, `openai` |
 | `LLM_MODEL` | `llama3:8b` | Model name |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `EMBEDDING_MODEL` | `nomic-embed-text` | Embedding model |
+| `EMBEDDING_MODEL` | `mxbai-embed-large` | Embedding model (multilingual, 1024 dims) |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |
 | `ANTHROPIC_API_KEY` | - | For Claude provider |
 | `OPENROUTER_API_KEY` | - | For OpenRouter provider |
@@ -192,7 +192,7 @@ EMBEDDING_PROVIDER=ollama
 OLLAMA_HOST=https://your-ollama-instance.com  # Hosted Ollama endpoint
 
 # Separate Ollama deployment (Railway Pro, EC2, etc.)
-# Must run: nomic-embed-text model
+# Must run: mxbai-embed-large model (multilingual, 1024 dimensions)
 ```
 
 **Pros**: Free LLM calls, fast response times

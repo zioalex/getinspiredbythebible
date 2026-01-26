@@ -33,6 +33,11 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
           <span className="font-bold text-primary-700 text-sm">
             {verse.reference}
           </span>
+          {verse.translation && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+              {verse.translation.toUpperCase()}
+            </span>
+          )}
         </div>
         {verse.similarity && (
           <div className="flex items-center gap-1">

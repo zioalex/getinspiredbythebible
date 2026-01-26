@@ -18,6 +18,7 @@ class VerseResult(BaseModel):
     book: str
     chapter: int
     verse: int
+    translation: str | None = None
     similarity: float | None = None
 
     class Config:
@@ -94,6 +95,7 @@ class ScriptureSearchService:
                 book=verse.book.name,
                 chapter=verse.chapter_number,
                 verse=verse.verse_number,
+                translation=verse.translation,
                 similarity=round(similarity, 3),
             )
             for verse, similarity in verse_results

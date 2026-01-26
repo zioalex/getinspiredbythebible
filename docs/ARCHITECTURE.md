@@ -51,7 +51,7 @@ scripture based on their life situations. The system combines semantic search ca
 | **Backend API** | FastAPI, Python 3.12, Pydantic | REST API server |
 | **Database** | PostgreSQL 16 + pgvector | Data storage & vector search |
 | **LLM (Default)** | Ollama (llama3:8b) | Local language model |
-| **Embeddings** | Ollama (nomic-embed-text) | Text-to-vector conversion |
+| **Embeddings** | Ollama (mxbai-embed-large) | Text-to-vector conversion (multilingual) |
 | **Orchestration** | Docker Compose | Container management |
 
 ---
@@ -210,8 +210,8 @@ class Settings(BaseSettings):
 | `LLM_PROVIDER` | `ollama` | Backend for chat generation |
 | `LLM_MODEL` | `llama3:8b` | Model identifier |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `EMBEDDING_MODEL` | `nomic-embed-text` | Model for vector generation |
-| `EMBEDDING_DIMENSIONS` | `768` | Vector size (must match model) |
+| `EMBEDDING_MODEL` | `mxbai-embed-large` | Model for vector generation (multilingual) |
+| `EMBEDDING_DIMENSIONS` | `1024` | Vector size (must match model) |
 | `DATABASE_URL` | PostgreSQL connection string | Database connection |
 | `ANTHROPIC_API_KEY` | None | For Claude provider |
 
@@ -393,7 +393,7 @@ class Verse(Base):
     chapter_number = Column(Integer)
     verse_number = Column(Integer)
     text = Column(Text)
-    embedding = Column(Vector(768))  # pgvector type
+    embedding = Column(Vector(1024))  # pgvector type (mxbai-embed-large)
 ```
 
 ### 4.3 Vector Search
@@ -421,7 +421,7 @@ WITH (lists = 100);
 | Books | 66 | Old Testament (39) + New Testament (27) |
 | Chapters | ~1,189 | Varies by book |
 | Verses | ~31,102 | KJV translation |
-| Embedding Dimensions | 768 | nomic-embed-text model |
+| Embedding Dimensions | 1024 | mxbai-embed-large model (multilingual) |
 
 ---
 
@@ -680,7 +680,7 @@ frontend/src/
 │  ┌─────────────────────────────────────────────────────────┐     │
 │  │ 3. CHAT SERVICE (service.py)                            │     │
 │  │    a. Scripture Search                                  │     │
-│  │       - Query → Embedding Provider → 768-dim vector     │     │
+│  │       - Query → Embedding Provider → 1024-dim vector    │     │
 │  │       - Vector → pgvector cosine search                 │     │
 │  │       - Return top 10 verses with similarity > 0.35     │     │
 │  │                                                         │     │
@@ -724,11 +724,11 @@ User Query: "anxiety about future"
 ┌───────────────────────────┐
 │ OllamaEmbeddingProvider   │
 │ POST /api/embeddings      │
-│ model: nomic-embed-text   │
+│ model: mxbai-embed-large  │
 └───────────────────────────┘
         │
         ▼
-768-dimensional vector
+1024-dimensional vector
 [0.234, -0.521, 0.089, ...]
         │
         ▼

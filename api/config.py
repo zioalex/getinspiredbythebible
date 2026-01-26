@@ -40,8 +40,8 @@ class Settings(BaseSettings):
 
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"
-    embedding_model: str = "nomic-embed-text"
-    embedding_dimensions: int = 768  # nomic-embed-text dimension
+    embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
+    embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
     # Database
     database_url: str = (
