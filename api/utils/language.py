@@ -68,7 +68,8 @@ def detect_language(text: str) -> str:
         return "en"
 
     try:
-        return detect(text)
+        result: str = detect(text)
+        return result
     except LangDetectException:
         return "en"
 
