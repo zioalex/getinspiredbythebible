@@ -31,6 +31,7 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalChapter, setModalChapter] = useState<{
     book: string;
+    localized_book?: string;
     chapter: number;
     verses: Verse[];
     highlightVerse?: number;
@@ -132,6 +133,7 @@ export default function Home() {
       const chapterData = await getChapter(book, chapter, useTranslation);
       setModalChapter({
         book: chapterData.book,
+        localized_book: chapterData.localized_book,
         chapter: chapterData.chapter,
         verses: chapterData.verses,
         highlightVerse: verse,

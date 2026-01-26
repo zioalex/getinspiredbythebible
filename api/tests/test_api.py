@@ -15,6 +15,38 @@ from main import app
 client = TestClient(app)
 
 
+def test_verse_endpoint_localized_book():
+    """Test that /verse endpoint returns localized_book for Italian and German translations"""
+    # Italian
+    response = client.get("/api/v1/scripture/verse/Genesis/1/1?translation=ita1927")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] == "Genesi"
+    # German
+    response = client.get("/api/v1/scripture/verse/Genesis/1/1?translation=schlachter")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] in ["1. Mose", "Genesis"]  # Accept alternate spellings
+
+
+def test_chapter_endpoint_localized_book():
+    """Test that /chapter endpoint returns localized_book for Italian and German translations"""
+    # Italian
+    response = client.get("/api/v1/scripture/chapter/Genesis/1?translation=ita1927")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] == "Genesi"
+    # German
+    response = client.get("/api/v1/scripture/chapter/Genesis/1?translation=schlachter")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] in ["1. Mose", "Genesis"]
+
+
 def test_health_endpoint():
     """Test that health endpoint returns 200 and valid status"""
     response = client.get("/health")
