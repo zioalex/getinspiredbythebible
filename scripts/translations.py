@@ -277,3 +277,31 @@ def map_book_name(book_name: str, translation_code: str) -> str:
 
     # Look up in mapping
     return book_names.get(book_name, book_name)
+
+
+def get_localized_book_name(english_name: str, translation_code: str) -> str:
+    """
+    Get the localized book name for a given English book name.
+
+    Args:
+        english_name: Standard English book name (e.g., "Genesis", "Psalms")
+        translation_code: Translation code (e.g., "ita1927", "schlachter")
+
+    Returns:
+        Localized book name (e.g., "Genesi", "Psalmen") or English name if no mapping
+    """
+    config = get_translation_config(translation_code)
+    book_names = config.get("book_names")
+
+    if book_names is None:
+        # English translations use standard names
+        return english_name
+
+    # Create reverse mapping (English -> Local)
+    # Use first match only (ignore alternate spellings)
+    reverse_map = {}
+    for local_name, eng_name in book_names.items():
+        if eng_name not in reverse_map:
+            reverse_map[eng_name] = local_name
+
+    return reverse_map.get(english_name, english_name)
