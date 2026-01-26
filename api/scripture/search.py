@@ -2,19 +2,13 @@
 Scripture Search Service - Combines semantic search with scripture data.
 """
 
-import sys
-from pathlib import Path
-
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from providers import EmbeddingProvider
+from utils.book_names import get_localized_book_name
 
 from .repository import ScriptureRepository
-
-# Add scripts directory to path for translations module
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
-from translations import get_localized_book_name
 
 
 class VerseResult(BaseModel):
