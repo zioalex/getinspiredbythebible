@@ -7,12 +7,17 @@ from utils.language import (
     ENGLISH_TO_GERMAN_BOOKS,
     ENGLISH_TO_ITALIAN_BOOKS,
     LANGUAGE_TO_TRANSLATION,
+    LANGUAGE_TRANSLATIONS,
     TRANSLATION_INFO,
     detect_language,
     detect_translation,
+    get_all_translations,
     get_localized_book_name,
     get_translation_for_language,
     get_translation_info,
+    get_translations_for_language,
+    is_valid_translation,
+    resolve_translation,
 )
 
 
@@ -64,8 +69,8 @@ class TestTranslationMapping:
     """Tests for translation mapping."""
 
     def test_get_translation_for_english(self):
-        """Test English maps to KJV."""
-        assert get_translation_for_language("en") == "kjv"
+        """Test English maps to WEB (default)."""
+        assert get_translation_for_language("en") == "web"
 
     def test_get_translation_for_italian(self):
         """Test Italian maps to Riveduta 1927."""
@@ -83,7 +88,7 @@ class TestTranslationMapping:
 
     def test_detect_translation_english(self):
         """Test full detection pipeline for English."""
-        assert detect_translation("I need encouragement today") == "kjv"
+        assert detect_translation("I need encouragement today") == "web"
 
     def test_detect_translation_italian(self):
         """Test full detection pipeline for Italian."""
@@ -125,9 +130,9 @@ class TestTranslationInfo:
         assert info["language_code"] == "de"
 
     def test_get_unknown_translation_returns_default(self):
-        """Test unknown translation returns default (KJV)."""
+        """Test unknown translation returns default (WEB)."""
         info = get_translation_info("unknown")
-        assert info["code"] == "kjv"
+        assert info["code"] == "web"
 
     def test_all_translations_have_required_fields(self):
         """Test all translations have required fields."""
@@ -229,3 +234,101 @@ class TestLanguageToTranslationMapping:
         """Test all mapped translations exist in TRANSLATION_INFO."""
         for translation in LANGUAGE_TO_TRANSLATION.values():
             assert translation in TRANSLATION_INFO
+
+    def test_english_has_multiple_translations(self):
+        """Test English has multiple translation options."""
+        assert len(LANGUAGE_TRANSLATIONS["en"]) >= 2
+        assert "web" in LANGUAGE_TRANSLATIONS["en"]
+        assert "kjv" in LANGUAGE_TRANSLATIONS["en"]
+
+
+class TestGetAllTranslations:
+    """Tests for get_all_translations."""
+
+    def test_returns_list(self):
+        """Test returns a list."""
+        result = get_all_translations()
+        assert isinstance(result, list)
+
+    def test_returns_all_translations(self):
+        """Test returns all configured translations."""
+        result = get_all_translations()
+        assert len(result) == len(TRANSLATION_INFO)
+
+    def test_each_translation_has_required_fields(self):
+        """Test each translation has required fields."""
+        required = ["code", "name", "short_name", "language", "language_code"]
+        for trans in get_all_translations():
+            for field in required:
+                assert field in trans
+
+
+class TestGetTranslationsForLanguage:
+    """Tests for get_translations_for_language."""
+
+    def test_english_returns_multiple(self):
+        """Test English has multiple translations."""
+        result = get_translations_for_language("en")
+        assert len(result) >= 2
+
+    def test_italian_returns_one(self):
+        """Test Italian has one translation."""
+        result = get_translations_for_language("it")
+        assert len(result) == 1
+        assert result[0]["code"] == "ita1927"
+
+    def test_german_returns_one(self):
+        """Test German has one translation."""
+        result = get_translations_for_language("de")
+        assert len(result) == 1
+        assert result[0]["code"] == "schlachter"
+
+    def test_unknown_language_returns_empty(self):
+        """Test unknown language returns empty list."""
+        result = get_translations_for_language("fr")
+        assert result == []
+
+
+class TestIsValidTranslation:
+    """Tests for is_valid_translation."""
+
+    def test_valid_translations(self):
+        """Test valid translation codes."""
+        assert is_valid_translation("kjv") is True
+        assert is_valid_translation("web") is True
+        assert is_valid_translation("ita1927") is True
+        assert is_valid_translation("schlachter") is True
+
+    def test_invalid_translations(self):
+        """Test invalid translation codes."""
+        assert is_valid_translation("invalid") is False
+        assert is_valid_translation("") is False
+        assert is_valid_translation("KJV") is False  # Case sensitive
+
+
+class TestResolveTranslation:
+    """Tests for resolve_translation."""
+
+    def test_preferred_translation_used(self):
+        """Test user preference is used when valid."""
+        assert resolve_translation("kjv", "en") == "kjv"
+        assert resolve_translation("ita1927", "en") == "ita1927"
+
+    def test_invalid_preference_falls_back_to_language(self):
+        """Test invalid preference falls back to language default."""
+        assert resolve_translation("invalid", "it") == "ita1927"
+        assert resolve_translation("invalid", "de") == "schlachter"
+
+    def test_no_preference_uses_language(self):
+        """Test no preference uses language-based default."""
+        assert resolve_translation(None, "en") == "web"
+        assert resolve_translation(None, "it") == "ita1927"
+        assert resolve_translation(None, "de") == "schlachter"
+
+    def test_no_preference_no_language_uses_default(self):
+        """Test no preference and no language uses global default."""
+        assert resolve_translation(None, None) == DEFAULT_TRANSLATION
+
+    def test_empty_string_preference_falls_back(self):
+        """Test empty string preference falls back."""
+        assert resolve_translation("", "it") == "ita1927"

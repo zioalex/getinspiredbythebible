@@ -10,6 +10,7 @@ import {
   Message,
   Verse,
   getChapter,
+  getTranslations,
   TranslationInfo,
 } from "@/lib/api";
 import {
@@ -42,6 +43,39 @@ export default function Home() {
   const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
     null,
   );
+
+  // Translation preference
+  const [translations, setTranslations] = useState<TranslationInfo[]>([]);
+  const [selectedTranslation, setSelectedTranslation] = useState<string>("");
+
+  // Load translations and saved preference on mount
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const availableTranslations = await getTranslations();
+        setTranslations(availableTranslations);
+
+        // Load saved preference from localStorage
+        const saved = localStorage.getItem("preferredTranslation");
+        if (saved && availableTranslations.some((t) => t.code === saved)) {
+          setSelectedTranslation(saved);
+        }
+      } catch (error) {
+        console.error("Failed to load translations:", error);
+      }
+    };
+    loadTranslations();
+  }, []);
+
+  // Save preference to localStorage when changed
+  const handleTranslationChange = (code: string) => {
+    setSelectedTranslation(code);
+    if (code) {
+      localStorage.setItem("preferredTranslation", code);
+    } else {
+      localStorage.removeItem("preferredTranslation");
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,8 +120,9 @@ export default function Home() {
     verse: number,
     translation?: string,
   ) => {
-    // Use provided translation, detected translation, or default to undefined
-    const useTranslation = translation || detectedTranslation || undefined;
+    // Priority: provided > user preference > detected > auto
+    const useTranslation =
+      translation || selectedTranslation || detectedTranslation || undefined;
 
     setModalOpen(true);
     setModalLoading(true);
@@ -128,7 +163,11 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(userMessage.content, messages);
+      const response = await sendMessage(
+        userMessage.content,
+        messages,
+        selectedTranslation || undefined,
+      );
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -193,13 +232,30 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleNewChat}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              New Chat
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Translation Selector */}
+              {translations.length > 0 && (
+                <select
+                  value={selectedTranslation}
+                  onChange={(e) => handleTranslationChange(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Auto-detect</option>
+                  {translations.map((t) => (
+                    <option key={t.code} value={t.code}>
+                      {t.short_name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                New Chat
+              </button>
+            </div>
           </div>
         </header>
 

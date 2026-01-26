@@ -13,7 +13,7 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
-from utils.language import get_translation_info
+from utils.language import get_all_translations, get_translation_info
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
 
@@ -32,6 +32,15 @@ class ChapterResponse(BaseModel):
     verses: list[VerseResult]
     translation: str | None = None
     translation_name: str | None = None
+
+
+# ==================== Translations ====================
+
+
+@router.get("/translations")
+async def get_translations():
+    """Get all available Bible translations."""
+    return {"translations": get_all_translations()}
 
 
 # ==================== Books ====================

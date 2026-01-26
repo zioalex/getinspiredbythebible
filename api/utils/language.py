@@ -4,11 +4,17 @@ Language detection and translation mapping utilities.
 
 from langdetect import LangDetectException, detect
 
-# Map ISO 639-1 language codes to translation codes
+# Map ISO 639-1 language codes to default translation codes
+# First translation in each list is the default
+LANGUAGE_TRANSLATIONS = {
+    "en": ["web", "kjv"],  # English: WEB (default), KJV
+    "it": ["ita1927"],  # Italian: Riveduta 1927
+    "de": ["schlachter"],  # German: Schlachter 1951
+}
+
+# Legacy mapping for backwards compatibility (uses first/default translation)
 LANGUAGE_TO_TRANSLATION = {
-    "en": "kjv",  # English -> King James Version
-    "it": "ita1927",  # Italian -> Riveduta 1927
-    "de": "schlachter",  # German -> Schlachter 1951
+    lang: translations[0] for lang, translations in LANGUAGE_TRANSLATIONS.items()
 }
 
 # Translation metadata for display
@@ -43,8 +49,8 @@ TRANSLATION_INFO = {
     },
 }
 
-# Default translation when language detection fails
-DEFAULT_TRANSLATION = "kjv"
+# Default translation when language detection fails (WEB is more modern/readable)
+DEFAULT_TRANSLATION = "web"
 
 
 def detect_language(text: str) -> str:
@@ -105,6 +111,72 @@ def get_translation_info(translation_code: str) -> dict:
         Dictionary with translation info (name, short_name, language)
     """
     return TRANSLATION_INFO.get(translation_code, TRANSLATION_INFO[DEFAULT_TRANSLATION])
+
+
+def get_all_translations() -> list[dict]:
+    """
+    Get all available translations.
+
+    Returns:
+        List of translation info dictionaries
+    """
+    return list(TRANSLATION_INFO.values())
+
+
+def get_translations_for_language(language_code: str) -> list[dict]:
+    """
+    Get available translations for a specific language.
+
+    Args:
+        language_code: ISO 639-1 language code (e.g., 'en', 'it', 'de')
+
+    Returns:
+        List of translation info dictionaries for that language
+    """
+    translations = LANGUAGE_TRANSLATIONS.get(language_code, [])
+    return [TRANSLATION_INFO[code] for code in translations if code in TRANSLATION_INFO]
+
+
+def is_valid_translation(translation_code: str) -> bool:
+    """
+    Check if a translation code is valid.
+
+    Args:
+        translation_code: Translation code to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    return translation_code in TRANSLATION_INFO
+
+
+def resolve_translation(
+    preferred_translation: str | None, detected_language: str | None = None
+) -> str:
+    """
+    Resolve which translation to use based on preference and language.
+
+    Priority:
+    1. User's preferred translation (if valid)
+    2. Default translation for detected language
+    3. Global default translation
+
+    Args:
+        preferred_translation: User's preferred translation code (optional)
+        detected_language: Detected language code (optional)
+
+    Returns:
+        Translation code to use
+    """
+    # If user has a valid preference, use it
+    if preferred_translation and is_valid_translation(preferred_translation):
+        return preferred_translation
+
+    # Otherwise use language-based default
+    if detected_language:
+        return get_translation_for_language(detected_language)
+
+    return DEFAULT_TRANSLATION
 
 
 # Reverse book name mappings (English -> localized)
