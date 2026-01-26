@@ -5,6 +5,8 @@ import { Send, Book, Loader2, RefreshCw, Filter } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
+import ChurchFinderBanner from "@/components/ChurchFinderBanner";
+import ChurchFinderModal from "@/components/ChurchFinderModal";
 import {
   sendMessage,
   Message,
@@ -44,6 +46,15 @@ export default function Home() {
   const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
     null,
   );
+
+  // Church finder state
+  const [interactionCount, setInteractionCount] = useState(0);
+  const [churchFinderDismissed, setChurchFinderDismissed] = useState(false);
+  const [churchFinderModalOpen, setChurchFinderModalOpen] = useState(false);
+
+  // Show church finder banner after 3+ messages and not dismissed
+  const showChurchFinderBanner =
+    interactionCount >= 3 && !churchFinderDismissed && messages.length > 0;
 
   // Translation preference
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
@@ -190,6 +201,9 @@ export default function Home() {
           ...(response.scripture_context?.verses || []),
         ]);
       }
+
+      // Increment interaction count for church finder
+      setInteractionCount((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to send message:", error);
       const errorMessage: Message = {
@@ -207,6 +221,8 @@ export default function Home() {
     setMessages([]);
     setRelevantVerses([]);
     setDetectedTranslation(null);
+    setInteractionCount(0);
+    setChurchFinderDismissed(false);
   };
 
   const suggestedPrompts = [
@@ -336,6 +352,14 @@ export default function Home() {
             Responses are AI-generated. For serious concerns, please seek
             pastoral or professional guidance.
           </p>
+
+          {/* Church Finder Banner */}
+          {showChurchFinderBanner && (
+            <ChurchFinderBanner
+              onFindChurch={() => setChurchFinderModalOpen(true)}
+              onDismiss={() => setChurchFinderDismissed(true)}
+            />
+          )}
         </div>
       </div>
 
@@ -422,6 +446,12 @@ export default function Home() {
           localized_book={modalChapter.localized_book}
         />
       )}
+
+      {/* Church Finder Modal */}
+      <ChurchFinderModal
+        isOpen={churchFinderModalOpen}
+        onClose={() => setChurchFinderModalOpen(false)}
+      />
     </main>
   );
 }
