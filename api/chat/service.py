@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
+from utils.language import detect_translation, get_translation_info
 
 from .prompts import SYSTEM_PROMPT, build_search_context_prompt
 
@@ -39,6 +40,8 @@ class ChatResponse(BaseModel):
     scripture_context: SearchResults | None = None
     provider: str
     model: str
+    detected_translation: str | None = None
+    translation_info: dict | None = None
 
 
 class ChatService:
@@ -72,6 +75,10 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
+        # Detect language from user message and get appropriate translation
+        detected_translation = detect_translation(request.message)
+        translation_info = get_translation_info(detected_translation)
+
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context = None
         search_context_prompt = ""
@@ -82,6 +89,7 @@ class ChatService:
                 max_verses=settings.max_context_verses,
                 max_passages=2,
                 similarity_threshold=0.35,
+                translation=detected_translation,
             )
 
             # Build context prompt from search results
@@ -112,6 +120,8 @@ class ChatService:
             scripture_context=scripture_context,
             provider=response.provider,
             model=response.model,
+            detected_translation=detected_translation,
+            translation_info=translation_info,
         )
 
     async def chat_stream(self, request: ChatRequest) -> AsyncIterator[str]:
@@ -121,6 +131,9 @@ class ChatService:
         Yields:
             Chunks of the response as they're generated
         """
+        # Detect language from user message
+        detected_translation = detect_translation(request.message)
+
         # Step 1: Search for relevant scripture
         search_context_prompt = ""
 
@@ -130,6 +143,7 @@ class ChatService:
                 max_verses=settings.max_context_verses,
                 max_passages=2,
                 similarity_threshold=0.35,
+                translation=detected_translation,
             )
 
             if scripture_context.verses or scripture_context.passages:

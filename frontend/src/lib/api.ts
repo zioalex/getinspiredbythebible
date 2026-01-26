@@ -33,11 +33,21 @@ export interface ScriptureContext {
   passages: Passage[];
 }
 
+export interface TranslationInfo {
+  code: string;
+  name: string;
+  short_name: string;
+  language: string;
+  language_code: string;
+}
+
 export interface ChatResponse {
   message: string;
   scripture_context?: ScriptureContext;
   provider: string;
   model: string;
+  detected_translation?: string;
+  translation_info?: TranslationInfo;
 }
 
 export interface HealthStatus {
@@ -173,9 +183,19 @@ export async function getVerse(
 export async function getChapter(
   book: string,
   chapter: number,
-): Promise<{ book: string; chapter: number; verses: Verse[] }> {
+  translation?: string,
+): Promise<{
+  book: string;
+  chapter: number;
+  verses: Verse[];
+  translation?: string;
+  translation_name?: string;
+}> {
+  const params = translation
+    ? `?translation=${encodeURIComponent(translation)}`
+    : "";
   const response = await fetch(
-    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}`,
+    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
   );
 
   if (!response.ok) {

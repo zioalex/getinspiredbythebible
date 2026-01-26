@@ -5,7 +5,13 @@ import { Send, Book, Loader2, RefreshCw, Filter } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
-import { sendMessage, Message, Verse, getChapter } from "@/lib/api";
+import {
+  sendMessage,
+  Message,
+  Verse,
+  getChapter,
+  TranslationInfo,
+} from "@/lib/api";
 import {
   extractVerseReferences,
   isVerseReferenced,
@@ -27,8 +33,15 @@ export default function Home() {
     chapter: number;
     verses: Verse[];
     highlightVerse?: number;
+    translation?: string;
+    translationName?: string;
   } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Track detected translation from chat
+  const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
+    null,
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,18 +84,24 @@ export default function Home() {
     book: string,
     chapter: number,
     verse: number,
+    translation?: string,
   ) => {
+    // Use provided translation, detected translation, or default to undefined
+    const useTranslation = translation || detectedTranslation || undefined;
+
     setModalOpen(true);
     setModalLoading(true);
     setModalChapter({ book, chapter, verses: [], highlightVerse: verse });
 
     try {
-      const chapterData = await getChapter(book, chapter);
+      const chapterData = await getChapter(book, chapter, useTranslation);
       setModalChapter({
         book: chapterData.book,
         chapter: chapterData.chapter,
         verses: chapterData.verses,
         highlightVerse: verse,
+        translation: chapterData.translation,
+        translationName: chapterData.translation_name,
       });
     } catch (error) {
       console.error("Failed to fetch chapter:", error);
@@ -118,6 +137,11 @@ export default function Home() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
+      // Update detected translation from response
+      if (response.detected_translation) {
+        setDetectedTranslation(response.detected_translation);
+      }
+
       // Append relevant verses if returned
       if (response.scripture_context?.verses) {
         setRelevantVerses((prev) => [
@@ -141,6 +165,7 @@ export default function Home() {
   const handleNewChat = () => {
     setMessages([]);
     setRelevantVerses([]);
+    setDetectedTranslation(null);
   };
 
   const suggestedPrompts = [
@@ -298,7 +323,12 @@ export default function Home() {
                     key={index}
                     verse={verse}
                     onClick={() =>
-                      handleVerseClick(verse.book, verse.chapter, verse.verse)
+                      handleVerseClick(
+                        verse.book,
+                        verse.chapter,
+                        verse.verse,
+                        verse.translation,
+                      )
                     }
                   />
                 ))}
@@ -327,6 +357,7 @@ export default function Home() {
           verses={modalChapter.verses}
           highlightVerse={modalChapter.highlightVerse}
           isLoading={modalLoading}
+          translationName={modalChapter.translationName}
         />
       )}
     </main>

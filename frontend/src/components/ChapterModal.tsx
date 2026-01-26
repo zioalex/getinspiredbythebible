@@ -12,6 +12,7 @@ interface ChapterModalProps {
   verses: Verse[];
   highlightVerse?: number;
   isLoading?: boolean;
+  translationName?: string;
 }
 
 export default function ChapterModal({
@@ -22,6 +23,7 @@ export default function ChapterModal({
   verses,
   highlightVerse,
   isLoading = false,
+  translationName,
 }: ChapterModalProps) {
   // Close on Escape key
   useEffect(() => {
@@ -131,7 +133,7 @@ export default function ChapterModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            King James Version (KJV)
+            {translationName || "King James Version"}
           </p>
         </div>
       </div>

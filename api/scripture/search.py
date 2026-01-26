@@ -64,6 +64,7 @@ class ScriptureSearchService:
         max_verses: int = 5,
         max_passages: int = 2,
         similarity_threshold: float = 0.4,
+        translation: str | None = None,
     ) -> SearchResults:
         """
         Search for relevant scripture based on a natural language query.
@@ -73,6 +74,7 @@ class ScriptureSearchService:
             max_verses: Maximum number of verses to return
             max_passages: Maximum number of passages to return
             similarity_threshold: Minimum similarity score (0-1)
+            translation: Optional translation code to filter by (e.g., 'kjv', 'ita1927')
 
         Returns:
             SearchResults with matching verses and passages
@@ -86,6 +88,7 @@ class ScriptureSearchService:
             query_embedding=query_embedding,
             limit=max_verses,
             similarity_threshold=similarity_threshold,
+            translation=translation,
         )
 
         verses = [
