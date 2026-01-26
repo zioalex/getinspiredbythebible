@@ -53,9 +53,9 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(
+            response = await client.post(
                 "https://disciplestoday.org/wp-json/cfc/v1/search",
-                params={"s": request.location.strip()},
+                json={"location": request.location.strip()},
             )
             response.raise_for_status()
             data = response.json()
@@ -86,26 +86,29 @@ def _normalize_churches(data: Any) -> list[Church]:
     """
     Normalize church data from disciplestoday.org API response.
 
-    The API returns a list of church objects with various fields.
+    The API returns {"success": bool, "results": [...], "count": int}.
     """
-    if not isinstance(data, list):
+    if not isinstance(data, dict):
+        return []
+
+    results = data.get("results", [])
+    if not isinstance(results, list):
         return []
 
     churches = []
-    for item in data:
+    for item in results:
         if not isinstance(item, dict):
             continue
 
-        # Extract fields with fallbacks
+        # Extract fields from disciplestoday.org API format
         church = Church(
-            name=item.get("name", item.get("title", "Unknown Church")),
-            address=item.get("street") or item.get("address"),
+            name=item.get("name", "Unknown Church"),
             city=item.get("city"),
-            state=item.get("state") or item.get("province"),
+            state=item.get("state") or None,
             country=item.get("country"),
-            website=item.get("website") or item.get("url"),
-            phone=item.get("phone") or item.get("telephone"),
-            email=item.get("email"),
+            website=item.get("website"),
+            phone=item.get("contact_phone") or None,
+            email=item.get("contact_email"),
         )
         churches.append(church)
 
