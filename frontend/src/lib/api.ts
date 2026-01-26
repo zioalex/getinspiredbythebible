@@ -13,6 +13,7 @@ export interface Verse {
   reference: string;
   text: string;
   book: string;
+  localized_book?: string;
   chapter: number;
   verse: number;
   translation?: string;
@@ -33,11 +34,21 @@ export interface ScriptureContext {
   passages: Passage[];
 }
 
+export interface TranslationInfo {
+  code: string;
+  name: string;
+  short_name: string;
+  language: string;
+  language_code: string;
+}
+
 export interface ChatResponse {
   message: string;
   scripture_context?: ScriptureContext;
   provider: string;
   model: string;
+  detected_translation?: string;
+  translation_info?: TranslationInfo;
 }
 
 export interface HealthStatus {
@@ -54,6 +65,7 @@ export interface HealthStatus {
 export async function sendMessage(
   message: string,
   history: Message[] = [],
+  preferredTranslation?: string,
 ): Promise<ChatResponse> {
   const response = await fetch(`${API_URL}/api/v1/chat`, {
     method: "POST",
@@ -64,6 +76,7 @@ export async function sendMessage(
       message,
       conversation_history: history,
       include_search: true,
+      preferred_translation: preferredTranslation,
     }),
   });
 
@@ -173,9 +186,20 @@ export async function getVerse(
 export async function getChapter(
   book: string,
   chapter: number,
-): Promise<{ book: string; chapter: number; verses: Verse[] }> {
+  translation?: string,
+): Promise<{
+  book: string;
+  localized_book?: string;
+  chapter: number;
+  verses: Verse[];
+  translation?: string;
+  translation_name?: string;
+}> {
+  const params = translation
+    ? `?translation=${encodeURIComponent(translation)}`
+    : "";
   const response = await fetch(
-    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}`,
+    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
   );
 
   if (!response.ok) {
@@ -215,4 +239,18 @@ export async function checkHealth(): Promise<HealthStatus> {
   }
 
   return response.json();
+}
+
+/**
+ * Get available translations
+ */
+export async function getTranslations(): Promise<TranslationInfo[]> {
+  const response = await fetch(`${API_URL}/api/v1/scripture/translations`);
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.translations;
 }

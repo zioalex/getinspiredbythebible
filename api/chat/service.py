@@ -13,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
+from utils.language import detect_language, get_translation_info, resolve_translation
 
-from .prompts import SYSTEM_PROMPT, build_search_context_prompt
+from .prompts import build_search_context_prompt, get_system_prompt
 
 
 class ConversationMessage(BaseModel):
@@ -30,6 +31,7 @@ class ChatRequest(BaseModel):
     message: str
     conversation_history: list[ConversationMessage] = []
     include_search: bool = True  # Whether to search scripture first
+    preferred_translation: str | None = None  # User's preferred translation code
 
 
 class ChatResponse(BaseModel):
@@ -39,6 +41,8 @@ class ChatResponse(BaseModel):
     scripture_context: SearchResults | None = None
     provider: str
     model: str
+    detected_translation: str | None = None
+    translation_info: dict | None = None
 
 
 class ChatService:
@@ -72,6 +76,11 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
+        # Resolve translation: user preference > language detection > default
+        detected_language = detect_language(request.message)
+        translation = resolve_translation(request.preferred_translation, detected_language)
+        translation_info = get_translation_info(translation)
+
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context = None
         search_context_prompt = ""
@@ -82,6 +91,7 @@ class ChatService:
                 max_verses=settings.max_context_verses,
                 max_passages=2,
                 similarity_threshold=0.35,
+                translation=translation,
             )
 
             # Build context prompt from search results
@@ -98,6 +108,7 @@ class ChatService:
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
         )
 
         # Step 3: Generate response
@@ -112,6 +123,8 @@ class ChatService:
             scripture_context=scripture_context,
             provider=response.provider,
             model=response.model,
+            detected_translation=translation,
+            translation_info=translation_info,
         )
 
     async def chat_stream(self, request: ChatRequest) -> AsyncIterator[str]:
@@ -121,6 +134,10 @@ class ChatService:
         Yields:
             Chunks of the response as they're generated
         """
+        # Resolve translation: user preference > language detection > default
+        detected_language = detect_language(request.message)
+        translation = resolve_translation(request.preferred_translation, detected_language)
+
         # Step 1: Search for relevant scripture
         search_context_prompt = ""
 
@@ -130,6 +147,7 @@ class ChatService:
                 max_verses=settings.max_context_verses,
                 max_passages=2,
                 similarity_threshold=0.35,
+                translation=translation,
             )
 
             if scripture_context.verses or scripture_context.passages:
@@ -145,6 +163,7 @@ class ChatService:
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
         )
 
         # Step 3: Stream response
@@ -156,7 +175,11 @@ class ChatService:
             yield chunk
 
     def _build_messages(
-        self, user_message: str, history: list[ConversationMessage], search_context: str = ""
+        self,
+        user_message: str,
+        history: list[ConversationMessage],
+        search_context: str = "",
+        language_code: str = "en",
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -165,16 +188,18 @@ class ChatService:
             user_message: Current user message
             history: Previous conversation messages
             search_context: Optional scripture context from search
+            language_code: Detected language code for response language
 
         Returns:
             List of ChatMessage objects for the LLM
         """
         messages = []
 
-        # System prompt with optional search context
-        system_content = SYSTEM_PROMPT
+        # System prompt with language instruction and optional search context
+        system_prompt = get_system_prompt(language_code)
+        system_content = system_prompt
         if search_context:
-            system_content = search_context + "\n" + SYSTEM_PROMPT
+            system_content = search_context + "\n" + system_prompt
 
         messages.append(ChatMessage(role="system", content=system_content))
 

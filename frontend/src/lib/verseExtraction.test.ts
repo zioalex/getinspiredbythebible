@@ -84,6 +84,48 @@ describe("extractVerseReferences", () => {
     expect(refs.has("matthew 5:5")).toBe(true);
   });
 
+  it("should extract Italian book names", () => {
+    const text = "Leggi Giovanni 3:16 per incoraggiamento";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("giovanni 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract Italian book names with accents", () => {
+    const text = "Considera Giosuè 1:9";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("giosuè 1:9")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract German book names", () => {
+    const text = "Lies Johannes 3:16 für Ermutigung";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("johannes 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract German book names with umlauts", () => {
+    const text = "Betrachte Römer 8:28";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("römer 8:28")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract German numbered books with period", () => {
+    const text = "Am Anfang steht 1. Mose 1:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("1. mose 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract German book with umlauts and number", () => {
+    const text = "Lese 2. Könige 5:14";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("2. könige 5:14")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
   it("should not cause recursion error on large text", () => {
     // This is a regression test for the catastrophic backtracking bug
     const largeText = "John 3:16 and Romans 8:28 ".repeat(1000);

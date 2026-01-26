@@ -16,15 +16,16 @@ export default function ChatMessage({
 }: ChatMessageProps) {
   const isUser = message.role === "user";
 
-  // Parse verse references like "John 3:16" or "Genesis 1:1"
+  // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
   const handleTextClick = (e: React.MouseEvent) => {
     if (!onVerseClick) return;
 
     const target = e.target as HTMLElement;
     const text = target.textContent || "";
 
-    // Match patterns like "John 3:16", "1 John 2:3", "Psalms 143:4"
-    const versePattern = /(\d?\s?[A-Za-z]+)\s+(\d+):(\d+)/;
+    // Match patterns like "John 3:16", "1 John 2:3", "Giovanni 3:16", "1. Mose 1:1"
+    // Supports Unicode letters for localized book names (Italian, German, etc.)
+    const versePattern = /(\d+\.?\s?[\p{L}]+|[\p{L}]+)\s+(\d+):(\d+)/u;
     const match = text.match(versePattern);
 
     if (match) {
@@ -37,9 +38,9 @@ export default function ChatMessage({
 
   // Helper function to highlight verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
-    // Pattern to match verse references like "Psalms 143:4:" at the start of text
-    const verseRefPattern =
-      /^(\d?\s?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+\d+:\d+):/;
+    // Pattern to match verse references like "Psalms 143:4:" or "Giovanni 3:16:" at the start of text
+    // Supports Unicode letters for localized book names and German format "1. Mose"
+    const verseRefPattern = /^(\d+\.?\s?[\p{L}]+(?:\s+[\p{L}]+)*\s+\d+:\d+):/u;
     const match = text.match(verseRefPattern);
 
     if (match) {

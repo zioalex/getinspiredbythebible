@@ -5,7 +5,14 @@ import { Send, Book, Loader2, RefreshCw, Filter } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
-import { sendMessage, Message, Verse, getChapter } from "@/lib/api";
+import {
+  sendMessage,
+  Message,
+  Verse,
+  getChapter,
+  getTranslations,
+  TranslationInfo,
+} from "@/lib/api";
 import {
   extractVerseReferences,
   isVerseReferenced,
@@ -24,11 +31,52 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalChapter, setModalChapter] = useState<{
     book: string;
+    localized_book?: string;
     chapter: number;
     verses: Verse[];
     highlightVerse?: number;
+    translation?: string;
+    translationName?: string;
   } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Track detected translation from chat
+  const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
+    null,
+  );
+
+  // Translation preference
+  const [translations, setTranslations] = useState<TranslationInfo[]>([]);
+  const [selectedTranslation, setSelectedTranslation] = useState<string>("");
+
+  // Load translations and saved preference on mount
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const availableTranslations = await getTranslations();
+        setTranslations(availableTranslations);
+
+        // Load saved preference from localStorage
+        const saved = localStorage.getItem("preferredTranslation");
+        if (saved && availableTranslations.some((t) => t.code === saved)) {
+          setSelectedTranslation(saved);
+        }
+      } catch (error) {
+        console.error("Failed to load translations:", error);
+      }
+    };
+    loadTranslations();
+  }, []);
+
+  // Save preference to localStorage when changed
+  const handleTranslationChange = (code: string) => {
+    setSelectedTranslation(code);
+    if (code) {
+      localStorage.setItem("preferredTranslation", code);
+    } else {
+      localStorage.removeItem("preferredTranslation");
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,18 +119,26 @@ export default function Home() {
     book: string,
     chapter: number,
     verse: number,
+    translation?: string,
   ) => {
+    // Priority: provided > user preference > detected > auto
+    const useTranslation =
+      translation || selectedTranslation || detectedTranslation || undefined;
+
     setModalOpen(true);
     setModalLoading(true);
     setModalChapter({ book, chapter, verses: [], highlightVerse: verse });
 
     try {
-      const chapterData = await getChapter(book, chapter);
+      const chapterData = await getChapter(book, chapter, useTranslation);
       setModalChapter({
         book: chapterData.book,
+        localized_book: chapterData.localized_book,
         chapter: chapterData.chapter,
         verses: chapterData.verses,
         highlightVerse: verse,
+        translation: chapterData.translation,
+        translationName: chapterData.translation_name,
       });
     } catch (error) {
       console.error("Failed to fetch chapter:", error);
@@ -109,7 +165,11 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(userMessage.content, messages);
+      const response = await sendMessage(
+        userMessage.content,
+        messages,
+        selectedTranslation || undefined,
+      );
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -117,6 +177,11 @@ export default function Home() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Update detected translation from response
+      if (response.detected_translation) {
+        setDetectedTranslation(response.detected_translation);
+      }
 
       // Append relevant verses if returned
       if (response.scripture_context?.verses) {
@@ -141,6 +206,7 @@ export default function Home() {
   const handleNewChat = () => {
     setMessages([]);
     setRelevantVerses([]);
+    setDetectedTranslation(null);
   };
 
   const suggestedPrompts = [
@@ -168,13 +234,33 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleNewChat}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              New Chat
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Translation Selector */}
+              {translations.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Bible version:</span>
+                  <select
+                    value={selectedTranslation}
+                    onChange={(e) => handleTranslationChange(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Auto-detect</option>
+                    {translations.map((t) => (
+                      <option key={t.code} value={t.code}>
+                        {t.language} - {t.short_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                New Chat
+              </button>
+            </div>
           </div>
         </header>
 
@@ -298,7 +384,12 @@ export default function Home() {
                     key={index}
                     verse={verse}
                     onClick={() =>
-                      handleVerseClick(verse.book, verse.chapter, verse.verse)
+                      handleVerseClick(
+                        verse.book,
+                        verse.chapter,
+                        verse.verse,
+                        verse.translation,
+                      )
                     }
                   />
                 ))}
@@ -327,6 +418,8 @@ export default function Home() {
           verses={modalChapter.verses}
           highlightVerse={modalChapter.highlightVerse}
           isLoading={modalLoading}
+          translationName={modalChapter.translationName}
+          localized_book={modalChapter.localized_book}
         />
       )}
     </main>

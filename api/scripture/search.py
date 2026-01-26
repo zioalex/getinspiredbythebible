@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from providers import EmbeddingProvider
+from utils.book_names import get_localized_book_name
 
 from .repository import ScriptureRepository
 
@@ -58,12 +59,18 @@ class ScriptureSearchService:
         self.repo = ScriptureRepository(session)
         self.embedding_provider = embedding_provider
 
+    def _get_localized_reference(self, verse) -> str:
+        """Get verse reference with localized book name based on translation."""
+        localized_book = get_localized_book_name(verse.book.name, verse.translation)
+        return f"{localized_book} {verse.chapter_number}:{verse.verse_number}"
+
     async def search(
         self,
         query: str,
         max_verses: int = 5,
         max_passages: int = 2,
         similarity_threshold: float = 0.4,
+        translation: str | None = None,
     ) -> SearchResults:
         """
         Search for relevant scripture based on a natural language query.
@@ -73,6 +80,7 @@ class ScriptureSearchService:
             max_verses: Maximum number of verses to return
             max_passages: Maximum number of passages to return
             similarity_threshold: Minimum similarity score (0-1)
+            translation: Optional translation code to filter by (e.g., 'kjv', 'ita1927')
 
         Returns:
             SearchResults with matching verses and passages
@@ -86,11 +94,12 @@ class ScriptureSearchService:
             query_embedding=query_embedding,
             limit=max_verses,
             similarity_threshold=similarity_threshold,
+            translation=translation,
         )
 
         verses = [
             VerseResult(
-                reference=verse.reference,
+                reference=self._get_localized_reference(verse),
                 text=verse.text,
                 book=verse.book.name,
                 chapter=verse.chapter_number,

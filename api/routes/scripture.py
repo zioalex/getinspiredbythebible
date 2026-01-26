@@ -13,6 +13,8 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
+from utils.book_names import get_localized_book_name
+from utils.language import get_all_translations, get_translation_info
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
 
@@ -27,8 +29,20 @@ class ChapterResponse(BaseModel):
     """Verses in a chapter."""
 
     book: str
+    localized_book: str
     chapter: int
-    verses: list[VerseResult]
+    verses: list[dict]
+    translation: str | None = None
+    translation_name: str | None = None
+
+
+# ==================== Translations ====================
+
+
+@router.get("/translations")
+async def get_translations():
+    """Get all available Bible translations."""
+    return {"translations": get_all_translations()}
 
 
 # ==================== Books ====================
@@ -59,40 +73,70 @@ async def get_books(db: DbSession):
 
 @router.get("/verse/{book}/{chapter}/{verse}", response_model=VerseResult)
 async def get_verse(
-    book: str, chapter: int, verse: int, db: DbSession, embedding: EmbeddingProviderDep
+    book: str,
+    chapter: int,
+    verse: int,
+    db: DbSession,
+    embedding: EmbeddingProviderDep,
+    translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
 ):
-    """Get a specific verse by reference."""
-    service = ScriptureSearchService(db, embedding)
-    result = await service.get_verse(book, chapter, verse)
+    """Get a specific verse by reference, optionally filtered by translation."""
+    repo = ScriptureRepository(db)
+    result = await repo.get_verse(book, chapter, verse, translation=translation)
 
     if not result:
         raise HTTPException(status_code=404, detail=f"Verse not found: {book} {chapter}:{verse}")
 
-    return result
+    localized_book = get_localized_book_name(result.book.name, result.translation)
+    return {
+        "reference": result.reference,
+        "text": result.text,
+        "book": result.book.name,
+        "localized_book": localized_book,
+        "chapter": result.chapter_number,
+        "verse": result.verse_number,
+        "translation": result.translation,
+    }
 
 
 @router.get("/chapter/{book}/{chapter}", response_model=ChapterResponse)
-async def get_chapter(book: str, chapter: int, db: DbSession):
-    """Get all verses in a chapter."""
+async def get_chapter(
+    book: str,
+    chapter: int,
+    db: DbSession,
+    translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
+):
+    """Get all verses in a chapter, optionally filtered by translation."""
     repo = ScriptureRepository(db)
-    verses = await repo.get_chapter_verses(book, chapter)
+    verses = await repo.get_chapter_verses(book, chapter, translation=translation)
 
     if not verses:
         raise HTTPException(status_code=404, detail=f"Chapter not found: {book} {chapter}")
 
+    # Get the translation from the first verse if not specified
+    actual_translation = translation or (verses[0].translation if verses else None)
+    trans_info = get_translation_info(actual_translation) if actual_translation else None
+
+    # Localize book name for chapter response
+    localized_book = get_localized_book_name(book, actual_translation)
     return ChapterResponse(
         book=book,
+        localized_book=localized_book,
         chapter=chapter,
         verses=[
-            VerseResult(
-                reference=v.reference,
-                text=v.text,
-                book=v.book.name,
-                chapter=v.chapter_number,
-                verse=v.verse_number,
-            )
+            {
+                "reference": v.reference,
+                "text": v.text,
+                "book": v.book.name,
+                "localized_book": get_localized_book_name(v.book.name, v.translation),
+                "chapter": v.chapter_number,
+                "verse": v.verse_number,
+                "translation": v.translation,
+            }
             for v in verses
         ],
+        translation=actual_translation,
+        translation_name=trans_info["name"] if trans_info else None,
     )
 
 
@@ -125,6 +169,7 @@ async def search_scripture(
     q: str = Query(..., min_length=2, description="Search query"),
     max_verses: int = Query(5, ge=1, le=20),
     max_passages: int = Query(2, ge=0, le=5),
+    translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
     db: DbSession = None,
     embedding: EmbeddingProviderDep = None,
 ):
@@ -135,10 +180,14 @@ async def search_scripture(
     - "I'm feeling anxious about my future"
     - "verses about forgiveness"
     - "comfort for grief"
+
+    Optionally filter by translation code.
     """
     service = ScriptureSearchService(db, embedding)
 
-    results = await service.search(query=q, max_verses=max_verses, max_passages=max_passages)
+    results = await service.search(
+        query=q, max_verses=max_verses, max_passages=max_passages, translation=translation
+    )
 
     return results
 

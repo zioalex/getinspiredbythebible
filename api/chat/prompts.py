@@ -5,7 +5,11 @@ These prompts ensure the LLM stays grounded in scripture
 and provides spiritually meaningful guidance.
 """
 
-SYSTEM_PROMPT = """You are a compassionate spiritual companion who helps people find encouragement and guidance.
+SYSTEM_PROMPT_TEMPLATE = """You are a compassionate spiritual companion who helps people find encouragement and guidance.
+
+## LANGUAGE RULE - VERY IMPORTANT
+**ALWAYS respond in the same language the user is writing in.**
+{language_instruction}
 
 ## CRITICAL RULE - READ THIS FIRST
 You will be given a list of Bible verses in the "Scripture Context" section below.
@@ -38,6 +42,44 @@ If no verses are provided, or the provided verses don't fit well, offer general 
 - Don't dismiss problems with "just pray about it"
 
 Remember: Only use verses explicitly listed in the Scripture Context section. If a verse reference is not listed there, DO NOT mention it."""
+
+# Language names for prompt instructions
+LANGUAGE_NAMES = {
+    "en": "English",
+    "it": "Italian (Italiano)",
+    "de": "German (Deutsch)",
+    "es": "Spanish (Español)",
+    "fr": "French (Français)",
+    "pt": "Portuguese (Português)",
+}
+
+
+def get_system_prompt(language_code: str = "en") -> str:
+    """
+    Get the system prompt with language-specific instructions.
+
+    Args:
+        language_code: ISO 639-1 language code (e.g., 'en', 'it', 'de')
+
+    Returns:
+        System prompt with appropriate language instruction
+    """
+    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
+
+    if language_code == "en":
+        language_instruction = "The user is writing in English. Respond in English."
+    else:
+        language_instruction = (
+            f"The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name}. "
+            f"Do not switch to English unless the user does."
+        )
+
+    return SYSTEM_PROMPT_TEMPLATE.format(language_instruction=language_instruction)
+
+
+# Keep SYSTEM_PROMPT for backwards compatibility (defaults to English)
+SYSTEM_PROMPT = get_system_prompt("en")
 
 
 def build_search_context_prompt(search_results: dict) -> str:

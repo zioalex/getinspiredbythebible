@@ -8,20 +8,24 @@ interface ChapterModalProps {
   isOpen: boolean;
   onClose: () => void;
   book: string;
+  localized_book?: string;
   chapter: number;
   verses: Verse[];
   highlightVerse?: number;
   isLoading?: boolean;
+  translationName?: string;
 }
 
 export default function ChapterModal({
   isOpen,
   onClose,
   book,
+  localized_book,
   chapter,
   verses,
   highlightVerse,
   isLoading = false,
+  translationName,
 }: ChapterModalProps) {
   // Close on Escape key
   useEffect(() => {
@@ -68,7 +72,7 @@ export default function ChapterModal({
             <BookOpen className="w-7 h-7 text-primary-600" />
             <div>
               <h2 className="text-2xl font-serif font-bold text-gray-800">
-                {book} {chapter}
+                {localized_book ? localized_book : book} {chapter}
               </h2>
               <p className="text-sm text-gray-500">
                 {verses.length} verse{verses.length !== 1 ? "s" : ""}
@@ -131,7 +135,7 @@ export default function ChapterModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            King James Version (KJV)
+            {translationName || "King James Version"}
           </p>
         </div>
       </div>

@@ -23,6 +23,7 @@ openai==1.59.7
 # Utilities
 python-dotenv==1.2.1
 numpy==1.26.4
+langdetect==1.0.9
 
 # Testing
 pytest==7.4.4

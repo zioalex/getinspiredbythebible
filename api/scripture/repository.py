@@ -8,6 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from utils.book_names import normalize_book_name
+
 from .models import Book, Passage, Topic, Verse
 
 
@@ -29,9 +31,11 @@ class ScriptureRepository:
         return result.scalars().all()
 
     async def get_book_by_name(self, name: str) -> Book | None:
-        """Get a book by its name (case-insensitive)."""
+        """Get a book by its name (case-insensitive, supports localized names)."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(name)
         result = await self.session.execute(
-            select(Book).where(func.lower(Book.name) == name.lower())
+            select(Book).where(func.lower(Book.name) == english_name.lower())
         )
         return result.scalar_one_or_none()
 
@@ -42,29 +46,40 @@ class ScriptureRepository:
 
     # ==================== Verses ====================
 
-    async def get_verse(self, book_name: str, chapter: int, verse: int) -> Verse | None:
-        """Get a specific verse by reference."""
-        result = await self.session.execute(
+    async def get_verse(
+        self, book_name: str, chapter: int, verse: int, translation: str | None = None
+    ) -> Verse | None:
+        """Get a specific verse by reference, optionally filtered by translation."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
+        query = (
             select(Verse)
             .join(Book)
             .where(
-                func.lower(Book.name) == book_name.lower(),
+                func.lower(Book.name) == english_name.lower(),
                 Verse.chapter_number == chapter,
                 Verse.verse_number == verse,
             )
-            .options(selectinload(Verse.book))
         )
+
+        if translation:
+            query = query.where(Verse.translation == translation)
+
+        query = query.options(selectinload(Verse.book))
+        result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
     async def get_verses_in_range(
         self, book_name: str, chapter: int, start_verse: int, end_verse: int
     ) -> Sequence[Verse]:
         """Get verses in a range (e.g., John 3:16-21)."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
         result = await self.session.execute(
             select(Verse)
             .join(Book)
             .where(
-                func.lower(Book.name) == book_name.lower(),
+                func.lower(Book.name) == english_name.lower(),
                 Verse.chapter_number == chapter,
                 Verse.verse_number >= start_verse,
                 Verse.verse_number <= end_verse,
@@ -74,15 +89,24 @@ class ScriptureRepository:
         )
         return result.scalars().all()
 
-    async def get_chapter_verses(self, book_name: str, chapter: int) -> Sequence[Verse]:
-        """Get all verses in a chapter."""
-        result = await self.session.execute(
+    async def get_chapter_verses(
+        self, book_name: str, chapter: int, translation: str | None = None
+    ) -> Sequence[Verse]:
+        """Get all verses in a chapter, optionally filtered by translation."""
+        # Normalize localized book names to English
+        english_name = normalize_book_name(book_name)
+        query = (
             select(Verse)
             .join(Book)
-            .where(func.lower(Book.name) == book_name.lower(), Verse.chapter_number == chapter)
-            .order_by(Verse.verse_number)
-            .options(selectinload(Verse.book))
+            .where(func.lower(Book.name) == english_name.lower(), Verse.chapter_number == chapter)
         )
+
+        if translation:
+            query = query.where(Verse.translation == translation)
+
+        query = query.order_by(Verse.verse_number).options(selectinload(Verse.book))
+
+        result = await self.session.execute(query)
         return result.scalars().all()
 
     async def search_verses_text(self, query: str, limit: int = 20) -> Sequence[Verse]:
@@ -96,7 +120,11 @@ class ScriptureRepository:
         return result.scalars().all()
 
     async def search_verses_semantic(
-        self, query_embedding: list[float], limit: int = 5, similarity_threshold: float = 0.5
+        self,
+        query_embedding: list[float],
+        limit: int = 5,
+        similarity_threshold: float = 0.5,
+        translation: str | None = None,
     ) -> list[tuple[Verse, float]]:
         """
         Semantic search using vector similarity.
@@ -105,22 +133,31 @@ class ScriptureRepository:
             query_embedding: The embedding vector of the search query
             limit: Maximum results to return
             similarity_threshold: Minimum similarity score (0-1)
+            translation: Optional translation code to filter by (e.g., 'kjv', 'ita1927')
 
         Returns:
             List of (verse, similarity_score) tuples
         """
         # Using pgvector's cosine distance (1 - cosine_similarity)
         # So we convert to similarity: 1 - distance
-        result = await self.session.execute(
+        query = (
             select(
                 Verse, (1 - Verse.embedding.cosine_distance(query_embedding)).label("similarity")
             )
             .where(Verse.embedding.isnot(None))
             .where((1 - Verse.embedding.cosine_distance(query_embedding)) >= similarity_threshold)
-            .order_by(Verse.embedding.cosine_distance(query_embedding))
+        )
+
+        if translation:
+            query = query.where(Verse.translation == translation)
+
+        query = (
+            query.order_by(Verse.embedding.cosine_distance(query_embedding))
             .limit(limit)
             .options(selectinload(Verse.book))
         )
+
+        result = await self.session.execute(query)
         return [(row.Verse, row.similarity) for row in result.all()]
 
     # ==================== Passages ====================

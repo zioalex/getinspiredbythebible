@@ -10,7 +10,9 @@ ollama serve &
 echo "Waiting for Ollama to start..."
 max_attempts=30
 attempt=0
-until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
+
+# Use ollama list as health check (guaranteed to be available in Ollama container)
+until ollama list > /dev/null 2>&1; do
     attempt=$((attempt + 1))
     if [ $attempt -ge $max_attempts ]; then
         echo "ERROR: Ollama failed to start after ${max_attempts} attempts"
