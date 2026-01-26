@@ -15,7 +15,7 @@ from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
 from utils.language import detect_language, get_translation_info, resolve_translation
 
-from .prompts import SYSTEM_PROMPT, build_search_context_prompt
+from .prompts import build_search_context_prompt, get_system_prompt
 
 
 class ConversationMessage(BaseModel):
@@ -108,6 +108,7 @@ class ChatService:
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
         )
 
         # Step 3: Generate response
@@ -162,6 +163,7 @@ class ChatService:
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
         )
 
         # Step 3: Stream response
@@ -173,7 +175,11 @@ class ChatService:
             yield chunk
 
     def _build_messages(
-        self, user_message: str, history: list[ConversationMessage], search_context: str = ""
+        self,
+        user_message: str,
+        history: list[ConversationMessage],
+        search_context: str = "",
+        language_code: str = "en",
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -182,16 +188,18 @@ class ChatService:
             user_message: Current user message
             history: Previous conversation messages
             search_context: Optional scripture context from search
+            language_code: Detected language code for response language
 
         Returns:
             List of ChatMessage objects for the LLM
         """
         messages = []
 
-        # System prompt with optional search context
-        system_content = SYSTEM_PROMPT
+        # System prompt with language instruction and optional search context
+        system_prompt = get_system_prompt(language_code)
+        system_content = system_prompt
         if search_context:
-            system_content = search_context + "\n" + SYSTEM_PROMPT
+            system_content = search_context + "\n" + system_prompt
 
         messages.append(ChatMessage(role="system", content=system_content))
 
