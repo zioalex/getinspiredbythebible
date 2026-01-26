@@ -8,6 +8,7 @@ interface ChapterModalProps {
   isOpen: boolean;
   onClose: () => void;
   book: string;
+  localized_book?: string;
   chapter: number;
   verses: Verse[];
   highlightVerse?: number;
@@ -19,6 +20,7 @@ export default function ChapterModal({
   isOpen,
   onClose,
   book,
+  localized_book,
   chapter,
   verses,
   highlightVerse,
@@ -70,7 +72,7 @@ export default function ChapterModal({
             <BookOpen className="w-7 h-7 text-primary-600" />
             <div>
               <h2 className="text-2xl font-serif font-bold text-gray-800">
-                {book} {chapter}
+                {localized_book ? localized_book : book} {chapter}
               </h2>
               <p className="text-sm text-gray-500">
                 {verses.length} verse{verses.length !== 1 ? "s" : ""}

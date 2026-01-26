@@ -13,6 +13,7 @@ export interface Verse {
   reference: string;
   text: string;
   book: string;
+  localized_book?: string;
   chapter: number;
   verse: number;
   translation?: string;
@@ -188,6 +189,7 @@ export async function getChapter(
   translation?: string,
 ): Promise<{
   book: string;
+  localized_book?: string;
   chapter: number;
   verses: Verse[];
   translation?: string;

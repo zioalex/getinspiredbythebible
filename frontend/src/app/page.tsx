@@ -414,6 +414,7 @@ export default function Home() {
           highlightVerse={modalChapter.highlightVerse}
           isLoading={modalLoading}
           translationName={modalChapter.translationName}
+          localized_book={modalChapter.localized_book}
         />
       )}
     </main>

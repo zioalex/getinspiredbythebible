@@ -31,7 +31,10 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-primary-500" />
           <span className="font-bold text-primary-700 text-sm">
-            {verse.reference}
+            {/* Show localized book name if available in the reference */}
+            {verse.localized_book
+              ? verse.reference.replace(verse.book, verse.localized_book)
+              : verse.reference}
           </span>
           {verse.translation && (
             <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">

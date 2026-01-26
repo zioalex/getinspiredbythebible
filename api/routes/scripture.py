@@ -13,6 +13,7 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
+from utils.book_names import get_localized_book_name
 from utils.language import get_all_translations, get_translation_info
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
@@ -28,8 +29,9 @@ class ChapterResponse(BaseModel):
     """Verses in a chapter."""
 
     book: str
+    localized_book: str
     chapter: int
-    verses: list[VerseResult]
+    verses: list[dict]
     translation: str | None = None
     translation_name: str | None = None
 
@@ -85,14 +87,16 @@ async def get_verse(
     if not result:
         raise HTTPException(status_code=404, detail=f"Verse not found: {book} {chapter}:{verse}")
 
-    return VerseResult(
-        reference=result.reference,
-        text=result.text,
-        book=result.book.name,
-        chapter=result.chapter_number,
-        verse=result.verse_number,
-        translation=result.translation,
-    )
+    localized_book = get_localized_book_name(result.book.name, result.translation)
+    return {
+        "reference": result.reference,
+        "text": result.text,
+        "book": result.book.name,
+        "localized_book": localized_book,
+        "chapter": result.chapter_number,
+        "verse": result.verse_number,
+        "translation": result.translation,
+    }
 
 
 @router.get("/chapter/{book}/{chapter}", response_model=ChapterResponse)
@@ -113,18 +117,22 @@ async def get_chapter(
     actual_translation = translation or (verses[0].translation if verses else None)
     trans_info = get_translation_info(actual_translation) if actual_translation else None
 
+    # Localize book name for chapter response
+    localized_book = get_localized_book_name(book, actual_translation)
     return ChapterResponse(
         book=book,
+        localized_book=localized_book,
         chapter=chapter,
         verses=[
-            VerseResult(
-                reference=v.reference,
-                text=v.text,
-                book=v.book.name,
-                chapter=v.chapter_number,
-                verse=v.verse_number,
-                translation=v.translation,
-            )
+            {
+                "reference": v.reference,
+                "text": v.text,
+                "book": v.book.name,
+                "localized_book": get_localized_book_name(v.book.name, v.translation),
+                "chapter": v.chapter_number,
+                "verse": v.verse_number,
+                "translation": v.translation,
+            }
             for v in verses
         ],
         translation=actual_translation,
