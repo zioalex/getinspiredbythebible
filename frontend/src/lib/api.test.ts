@@ -6,10 +6,12 @@ import {
   getChapter,
   getVerseContext,
   checkHealth,
+  searchChurches,
   type ChatResponse,
   type ScriptureContext,
   type Verse,
   type HealthStatus,
+  type ChurchSearchResponse,
 } from "./api";
 
 // Mock fetch globally
@@ -377,5 +379,88 @@ describe("checkHealth", () => {
     });
 
     await expect(checkHealth()).rejects.toThrow("API error: 503");
+  });
+});
+
+describe("searchChurches", () => {
+  it("should search for churches by location", async () => {
+    const mockResponse: ChurchSearchResponse = {
+      churches: [
+        {
+          name: "Zurich Church of Christ",
+          address: null,
+          city: "Zurich",
+          state: null,
+          country: "Switzerland",
+          website: "http://www.church.ch",
+          phone: "+41 78 123 4567",
+          email: "info@church.ch",
+        },
+      ],
+      total: 1,
+      location: "Switzerland",
+    };
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const result = await searchChurches("Switzerland");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/api/v1/church/search",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ location: "Switzerland" }),
+      },
+    );
+
+    expect(result).toEqual(mockResponse);
+    expect(result.churches).toHaveLength(1);
+    expect(result.churches[0].name).toBe("Zurich Church of Christ");
+  });
+
+  it("should handle empty results", async () => {
+    const mockResponse: ChurchSearchResponse = {
+      churches: [],
+      total: 0,
+      location: "Nonexistent Place",
+    };
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const result = await searchChurches("Nonexistent Place");
+
+    expect(result.churches).toHaveLength(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("should throw error on API failure", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+    });
+
+    await expect(searchChurches("Switzerland")).rejects.toThrow(
+      "API error: 502",
+    );
+  });
+
+  it("should throw error on timeout (504)", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 504,
+    });
+
+    await expect(searchChurches("Switzerland")).rejects.toThrow(
+      "API error: 504",
+    );
   });
 });
