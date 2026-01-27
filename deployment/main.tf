@@ -446,8 +446,8 @@ resource "azurerm_cognitive_deployment" "embedding" {
     version = var.embedding_model_version
   }
 
-  sku {
-    name     = "Standard"
+  scale {
+    type     = "Standard"
     capacity = var.embedding_capacity # Tokens per minute (in thousands)
   }
 }
