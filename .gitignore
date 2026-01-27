@@ -94,3 +94,5 @@ build/
 
 # Ollama data (if running locally outside Docker)
 ollama_data/
+rules.md
+task.md
