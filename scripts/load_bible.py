@@ -10,11 +10,16 @@ Usage:
     python load_bible.py --translation kjv  # Load specific translation
     python load_bible.py --list             # List available translations
     python load_bible.py --all              # Load all translations
+
+Environment Variables:
+    DATABASE_URL          - PostgreSQL connection string
+    EMBEDDING_DIMENSIONS  - Vector dimensions (default: 1024 for Ollama, use 1536 for Azure OpenAI)
 """
 
 import argparse
 import asyncio
 import json
+import os
 import httpx
 from pathlib import Path
 import sys
@@ -159,8 +164,13 @@ def normalize_bible_data(data: dict|list, source: str) -> list:
     return data if isinstance(data, list) else []
 
 
-async def ensure_schema(session):
-    """Ensure database schema exists with translation support."""
+async def ensure_schema(session, embedding_dimensions: int = 1024):
+    """Ensure database schema exists with translation support.
+
+    Args:
+        session: Database session
+        embedding_dimensions: Vector dimensions (1024 for Ollama, 1536 for Azure OpenAI)
+    """
 
     # Create translations table first
     await session.execute(text("""
@@ -206,7 +216,7 @@ async def ensure_schema(session):
 
     if not has_translation_column:
         # Create new verses table with translation column
-        await session.execute(text("""
+        await session.execute(text(f"""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
                 book_id INTEGER REFERENCES books(id),
@@ -215,13 +225,13 @@ async def ensure_schema(session):
                 verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
                 translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
-                embedding vector(1024),
+                embedding vector({embedding_dimensions}),
                 UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
     else:
         # Table exists with translation column - just ensure it exists
-        await session.execute(text("""
+        await session.execute(text(f"""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
                 book_id INTEGER REFERENCES books(id),
@@ -230,13 +240,13 @@ async def ensure_schema(session):
                 verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
                 translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
-                embedding vector(1024),
+                embedding vector({embedding_dimensions}),
                 UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
 
     # Create other tables
-    await session.execute(text("""
+    await session.execute(text(f"""
         CREATE TABLE IF NOT EXISTS passages (
             id SERIAL PRIMARY KEY,
             title VARCHAR(200) NOT NULL,
@@ -247,17 +257,17 @@ async def ensure_schema(session):
             end_verse INTEGER NOT NULL,
             text TEXT NOT NULL,
             topics VARCHAR(500),
-            embedding vector(1024)
+            embedding vector({embedding_dimensions})
         )
     """))
 
-    await session.execute(text("""
+    await session.execute(text(f"""
         CREATE TABLE IF NOT EXISTS topics (
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL UNIQUE,
             description TEXT,
             parent_id INTEGER REFERENCES topics(id),
-            embedding vector(1024)
+            embedding vector({embedding_dimensions})
         )
     """))
 
@@ -474,8 +484,16 @@ def convert_db_url_for_asyncpg(database_url: str) -> str:
     return database_url
 
 
-async def load_translation_to_db(database_url: str, translation_code: str):
-    """Load a specific Bible translation into the database."""
+async def load_translation_to_db(
+    database_url: str, translation_code: str, embedding_dimensions: int = 1024
+):
+    """Load a specific Bible translation into the database.
+
+    Args:
+        database_url: PostgreSQL connection string
+        translation_code: Translation code (e.g., 'kjv', 'ita1927')
+        embedding_dimensions: Vector dimensions (1024 for Ollama, 1536 for Azure OpenAI)
+    """
 
     database_url = convert_db_url_for_asyncpg(database_url)
 
@@ -487,8 +505,8 @@ async def load_translation_to_db(database_url: str, translation_code: str):
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
     async with async_session() as session:
-        # Ensure schema exists
-        await ensure_schema(session)
+        # Ensure schema exists with correct embedding dimensions
+        await ensure_schema(session, embedding_dimensions)
 
         # Load translation metadata
         await load_translation_metadata(session, translation_code)
@@ -511,7 +529,6 @@ async def load_translation_to_db(database_url: str, translation_code: str):
 
 async def main():
     """Main entry point."""
-    import os
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Load Bible translations into database")
@@ -530,6 +547,11 @@ async def main():
         action="store_true",
         help="Load all translations"
     )
+    parser.add_argument(
+        "--dimensions", "-d",
+        type=int,
+        help="Embedding dimensions (1024 for Ollama, 1536 for Azure OpenAI)"
+    )
 
     args = parser.parse_args()
 
@@ -546,6 +568,9 @@ async def main():
         "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
+    # Get embedding dimensions (CLI arg > env var > default)
+    embedding_dimensions = args.dimensions or int(os.getenv("EMBEDDING_DIMENSIONS", "1024"))
+
     # Determine which translations to load
     if args.all:
         translations_to_load = list(TRANSLATIONS.keys())
@@ -561,17 +586,20 @@ async def main():
 
     # Load each translation
     print(f"\n🗄️  Database: {database_url}")
+    print(f"📐 Embedding dimensions: {embedding_dimensions}")
     print(f"📖 Translations to load: {', '.join(translations_to_load)}\n")
 
     for trans_code in translations_to_load:
         print(f"\n{'='*60}")
         print(f"Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
         print(f"{'='*60}")
-        await load_translation_to_db(database_url, trans_code)
+        await load_translation_to_db(database_url, trans_code, embedding_dimensions)
 
     print("\n🎉 All translations loaded successfully!")
     print("\nNext step: Run create_embeddings.py to generate semantic search vectors")
     print("Example: python create_embeddings.py --translation ita1927")
+    if embedding_dimensions == 1536:
+        print("   (or create_azure_embeddings.py for Azure OpenAI)")
 
 
 if __name__ == "__main__":
