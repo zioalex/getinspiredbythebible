@@ -3,6 +3,7 @@ Chat API routes.
 """
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -10,6 +11,8 @@ from fastapi.responses import StreamingResponse
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -30,6 +33,7 @@ async def chat(
         response = await service.chat(request)
         return response
     except Exception as e:
+        logger.exception("Chat request failed: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -51,6 +55,7 @@ async def chat_stream(
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
+            logger.exception("Chat stream failed: %s", str(e))
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(
@@ -82,4 +87,5 @@ async def get_verse_context(
     try:
         return await service.get_verse_context(book, chapter, verse)
     except Exception as e:
+        logger.exception("Get verse context failed: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))

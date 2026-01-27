@@ -5,6 +5,8 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import logging
+import time
 from typing import AsyncIterator
 
 from pydantic import BaseModel
@@ -16,6 +18,8 @@ from scripture import ScriptureSearchService, SearchResults
 from utils.language import detect_language, get_translation_info, resolve_translation
 
 from .prompts import build_search_context_prompt, get_system_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationMessage(BaseModel):
@@ -76,22 +80,35 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
+        total_start = time.time()
+        logger.info("Chat request started: %s", request.message[:100])
+
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
+        logger.debug("Language detected: %s, translation: %s", detected_language, translation)
 
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context = None
         search_context_prompt = ""
 
         if request.include_search:
+            search_start = time.time()
+            logger.info("Starting scripture search...")
             scripture_context = await self.search_service.search(
                 query=request.message,
                 max_verses=settings.max_context_verses,
                 max_passages=2,
                 similarity_threshold=0.35,
                 translation=translation,
+            )
+            search_duration = time.time() - search_start
+            logger.info(
+                "Scripture search completed in %.2fs: %d verses, %d passages found",
+                search_duration,
+                len(scripture_context.verses),
+                len(scripture_context.passages),
             )
 
             # Build context prompt from search results
@@ -112,11 +129,22 @@ class ChatService:
         )
 
         # Step 3: Generate response
+        llm_start = time.time()
+        logger.info("Starting LLM generation with %s...", self.llm.provider_name)
         response = await self.llm.chat(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
         )
+        llm_duration = time.time() - llm_start
+        logger.info(
+            "LLM generation completed in %.2fs (tokens: %s)",
+            llm_duration,
+            response.tokens_used,
+        )
+
+        total_duration = time.time() - total_start
+        logger.info("Chat request completed in %.2fs", total_duration)
 
         return ChatResponse(
             message=response.content,
