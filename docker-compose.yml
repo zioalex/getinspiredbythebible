@@ -71,6 +71,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: deps  # Use deps stage for development
     ports:
       - "0.0.0.0:3000:3000"
     environment:
@@ -81,6 +82,7 @@ services:
       - /app/node_modules
     depends_on:
       - api
+    command: npm run dev  # Override for development mode
 
 volumes:
   ollama_data:
