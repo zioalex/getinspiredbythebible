@@ -59,6 +59,23 @@ export interface HealthStatus {
   };
 }
 
+export interface Church {
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface ChurchSearchResponse {
+  churches: Church[];
+  total: number;
+  location: string;
+}
+
 /**
  * Send a chat message and get a response
  */
@@ -253,4 +270,25 @@ export async function getTranslations(): Promise<TranslationInfo[]> {
 
   const data = await response.json();
   return data.translations;
+}
+
+/**
+ * Search for churches near a location
+ */
+export async function searchChurches(
+  location: string,
+): Promise<ChurchSearchResponse> {
+  const response = await fetch(`${API_URL}/api/v1/church/search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ location }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
 }
