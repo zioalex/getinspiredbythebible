@@ -205,9 +205,30 @@ resource "azurerm_container_app" "backend" {
         value = var.llm_provider
       }
 
-      env {
-        name        = "CLAUDE_API_KEY"
-        secret_name = "claude-api-key"  # pragma: allowlist secret
+      # Claude API Key (if using Claude provider)
+      dynamic "env" {
+        for_each = var.llm_provider == "claude" ? [1] : []
+        content {
+          name        = "ANTHROPIC_API_KEY"
+          secret_name = "claude-api-key"  # pragma: allowlist secret
+        }
+      }
+
+      # OpenRouter configuration (if using OpenRouter provider)
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name        = "OPENROUTER_API_KEY"
+          secret_name = "openrouter-api-key"  # pragma: allowlist secret
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_MODEL"
+          value = var.openrouter_model
+        }
       }
 
       env {
@@ -216,6 +237,22 @@ resource "azurerm_container_app" "backend" {
       }
 
       # Azure OpenAI Embeddings (if enabled)
+      dynamic "env" {
+        for_each = var.enable_azure_openai ? [1] : []
+        content {
+          name  = "EMBEDDING_PROVIDER"
+          value = "azure_openai"
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.enable_azure_openai ? [1] : []
+        content {
+          name  = "EMBEDDING_DIMENSIONS"
+          value = "1536"
+        }
+      }
+
       dynamic "env" {
         for_each = var.enable_azure_openai ? [1] : []
         content {
@@ -276,11 +313,25 @@ resource "azurerm_container_app" "backend" {
     }
   }
 
-  secret {
-    name  = "claude-api-key"
-    value = var.claude_api_key
+  # Claude API Key secret (if using Claude provider)
+  dynamic "secret" {
+    for_each = var.llm_provider == "claude" ? [1] : []
+    content {
+      name  = "claude-api-key"
+      value = var.claude_api_key
+    }
   }
 
+  # OpenRouter API Key secret (if using OpenRouter provider)
+  dynamic "secret" {
+    for_each = var.llm_provider == "openrouter" ? [1] : []
+    content {
+      name  = "openrouter-api-key"
+      value = var.openrouter_api_key
+    }
+  }
+
+  # Azure OpenAI Key secret (if using Azure OpenAI for embeddings)
   dynamic "secret" {
     for_each = var.enable_azure_openai ? [1] : []
     content {

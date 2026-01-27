@@ -150,21 +150,34 @@ variable "frontend_max_replicas" {
 # -----------------------------------------------------------------------------
 
 variable "llm_provider" {
-  description = "LLM provider to use (claude or ollama)"
+  description = "LLM provider to use (claude, openrouter, or ollama)"
   type        = string
-  default     = "claude"
+  default     = "openrouter"
 
   validation {
-    condition     = contains(["claude", "ollama"], var.llm_provider)
-    error_message = "LLM provider must be 'claude' or 'ollama'."
+    condition     = contains(["claude", "openrouter", "ollama"], var.llm_provider)
+    error_message = "LLM provider must be 'claude', 'openrouter', or 'ollama'."
   }
 }
 
 variable "claude_api_key" {
-  description = "Anthropic Claude API key"
+  description = "Anthropic Claude API key (required if llm_provider=claude)"
   type        = string
   default     = ""
   sensitive   = true
+}
+
+variable "openrouter_api_key" {
+  description = "OpenRouter API key (required if llm_provider=openrouter)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "openrouter_model" {
+  description = "OpenRouter model name (e.g., google/gemma-3-27b-it:free)"
+  type        = string
+  default     = "google/gemma-3-27b-it:free"
 }
 
 # -----------------------------------------------------------------------------

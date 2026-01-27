@@ -73,11 +73,20 @@ frontend_max_replicas = 2
 # LLM Configuration
 # -----------------------------------------------------------------------------
 
-# LLM provider: "claude" or "ollama"
-llm_provider = "claude"
+# LLM provider: "openrouter" (recommended - has free models), "claude", or "ollama"
+llm_provider = "openrouter"
 
-# Your Claude API key (get from https://console.anthropic.com/)
-claude_api_key = "sk-ant-api03-..."  # pragma: allowlist secret
+# OpenRouter API key (get FREE at https://openrouter.ai/keys)
+# OpenRouter offers free models like google/gemma-3-27b-it:free
+openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
+
+# OpenRouter model (free models available!)
+# Free options: google/gemma-3-27b-it:free, meta-llama/llama-3.3-70b-instruct:free
+openrouter_model = "google/gemma-3-27b-it:free"
+
+# --- OR use Claude (paid) ---
+# llm_provider = "claude"
+# claude_api_key = "sk-ant-api03-..."  # pragma: allowlist secret
 
 # -----------------------------------------------------------------------------
 # Azure OpenAI for Embeddings (RECOMMENDED - very cheap!)
