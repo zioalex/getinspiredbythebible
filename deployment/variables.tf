@@ -14,7 +14,13 @@ variable "subscription_id" {
 variable "location" {
   description = "Azure region for resources"
   type        = string
-  default     = "westeurope" # Change to your preferred region
+  default     = "northeurope" # Changed from westeurope due to availability
+}
+
+variable "db_location" {
+  description = "Azure region for PostgreSQL (may differ due to availability restrictions)"
+  type        = string
+  default     = "" # Empty means use same as 'location'
 }
 
 variable "project_name" {

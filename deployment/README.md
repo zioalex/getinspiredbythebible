@@ -63,11 +63,30 @@ az account set --subscription "Your Subscription Name"
 az account show
 ```
 
-### 2. Clone and Configure
+### 2. Register Required Azure Resource Providers
+
+Azure requires resource providers to be registered before use. Run these commands:
 
 ```bash
-# Navigate to terraform directory
-cd terraform-azure
+# Register Container Apps provider
+az provider register --namespace Microsoft.App --wait
+
+# Register other required providers
+az provider register --namespace Microsoft.ContainerService --wait
+az provider register --namespace Microsoft.OperationalInsights --wait
+az provider register --namespace Microsoft.CognitiveServices --wait
+
+# Verify registration (should show "Registered")
+az provider show --namespace Microsoft.App --query "registrationState" -o tsv
+```
+
+**Note:** Registration can take a few minutes. The `--wait` flag will block until complete.
+
+### 3. Clone and Configure
+
+```bash
+# Navigate to deployment directory
+cd deployment
 
 # Copy example variables
 cp terraform.tfvars.example terraform.tfvars
@@ -76,19 +95,31 @@ cp terraform.tfvars.example terraform.tfvars
 vim terraform.tfvars
 ```
 
-### 3. Required Variables
+### 4. Required Variables
 
 ```hcl
 # terraform.tfvars
 
 subscription_id   = "your-subscription-id"
-location          = "westeurope"
+location          = "northeurope"  # or eastus, westus2
 db_admin_password = "YourSecurePassword123!"  # pragma: allowlist secret
-claude_api_key    = "sk-ant-api03-..."  # pragma: allowlist secret
+
+# LLM Provider - OpenRouter recommended (has free models)
+llm_provider       = "openrouter"
+openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
+openrouter_model   = "google/gemma-3-27b-it:free"
+
+# Budget alerts
 budget_alert_emails = ["your-email@example.com"]
 ```
 
-### 4. Deploy Infrastructure
+**Region Notes:**
+
+- Some Azure regions have restrictions for certain services
+- `northeurope` is recommended for European users
+- If PostgreSQL fails in your region, set `db_location` to a different region
+
+### 5. Deploy Infrastructure
 
 ```bash
 # Initialize Terraform
@@ -101,7 +132,7 @@ terraform plan
 terraform apply
 ```
 
-### 5. Build and Push Images
+### 6. Build and Push Images
 
 ```bash
 # Login to your new ACR
@@ -118,7 +149,7 @@ docker build --platform linux/amd64 -t $(terraform output -raw acr_login_server)
 docker push $(terraform output -raw acr_login_server)/bible-frontend:latest
 ```
 
-### 6. Update Container Apps
+### 7. Update Container Apps
 
 ```bash
 # Update terraform.tfvars with your images
@@ -129,7 +160,7 @@ frontend_image = "bibleappacr123abc.azurecr.io/bible-frontend:latest"
 terraform apply
 ```
 
-### 7. Initialize Database
+### 8. Initialize Database
 
 ```bash
 # Get connection details

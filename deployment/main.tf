@@ -52,6 +52,9 @@ locals {
   resource_suffix = random_string.suffix.result
   name_prefix     = var.project_name
 
+  # Use db_location if specified, otherwise use main location
+  db_location = var.db_location != "" ? var.db_location : var.location
+
   tags = merge(var.tags, {
     "project"    = "getinspiredbythebible"
     "managed_by" = "terraform"
@@ -117,7 +120,7 @@ resource "azurerm_container_registry" "main" {
 resource "azurerm_postgresql_flexible_server" "main" {
   name                   = "${local.name_prefix}-db-${local.resource_suffix}"
   resource_group_name    = azurerm_resource_group.main.name
-  location               = azurerm_resource_group.main.location
+  location               = local.db_location  # Can differ from main location
   version                = "16"
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password

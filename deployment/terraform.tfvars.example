@@ -14,8 +14,13 @@
 subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # Azure region - choose one close to your users
-# Options: westeurope, northeurope, eastus, westus2, etc.
-location = "westeurope"
+# Options: northeurope, eastus, westus2, etc.
+# Note: Some regions have restrictions. northeurope is recommended for Europe.
+location = "northeurope"
+
+# Database location (optional - use if PostgreSQL isn't available in main region)
+# Leave empty to use the same as 'location'
+db_location = ""  # e.g., "eastus" if northeurope has restrictions
 
 # Project name (used for all resource names)
 project_name = "bible-app"
