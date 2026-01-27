@@ -160,20 +160,76 @@ frontend_image = "bibleappacr123abc.azurecr.io/bible-frontend:latest"
 terraform apply
 ```
 
-### 8. Initialize Database
+### 8. Load Bible Data and Generate Embeddings
+
+The database needs to be populated with Bible text and vector embeddings for semantic search.
+
+#### Option A: Load from Local Machine (Recommended for First Setup)
 
 ```bash
-# Get connection details
-terraform output postgresql_fqdn
+# Navigate to project root
+cd /path/to/getinspiredbythebible
 
-# Connect with psql (use your password)
-psql "host=$(terraform output -raw postgresql_fqdn) dbname=bibleapp user=bibleadmin sslmode=require"
+# Get Azure database connection details
+cd deployment
+DB_HOST=$(terraform output -raw postgresql_fqdn)
+DB_PASSWORD="your-db-password"  # pragma: allowlist secret
 
-# Enable pgvector (already configured, but verify)
-CREATE EXTENSION IF NOT EXISTS vector;
+# Set environment variables for scripts
+export DATABASE_URL="postgresql://bibleadmin:${DB_PASSWORD}@${DB_HOST}:5432/bibleapp?sslmode=require"
 
-# Run your migrations
-# (depends on your app setup)
+# For Azure OpenAI embeddings (get from Azure Portal)
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
+export AZURE_OPENAI_API_KEY="your-azure-openai-key"  # pragma: allowlist secret
+export AZURE_EMBEDDING_DEPLOYMENT="text-embedding-3-small"
+
+# Install dependencies (if not already)
+cd ../scripts
+pip install httpx asyncpg sqlalchemy openai
+
+# Step 1: Load Bible translations
+python load_bible.py --all  # Loads KJV, Italian, German, etc.
+
+# Step 2: Generate embeddings (takes ~10-15 minutes, costs ~$0.20)
+python create_azure_embeddings.py
+
+# Verify data loaded
+psql "${DATABASE_URL}" -c "SELECT COUNT(*) FROM verses;"
+# Expected: ~100,000+ verses (31K per translation)
+```
+
+#### Option B: Test Locally First, Then Push to Azure
+
+```bash
+# 1. Test with local Docker setup
+make docker-up
+cd scripts
+DATABASE_URL="postgresql://bible:bible123@localhost:5432/bibledb" python load_bible.py --all  # pragma: allowlist secret
+
+# 2. Once verified, run against Azure DB (replace PASSWORD with your actual password)
+export DATABASE_URL="postgresql://bibleadmin:PASSWORD@your-db.postgres.database.azure.com:5432/bibleapp?sslmode=require"  # pragma: allowlist secret
+python load_bible.py --all
+python create_azure_embeddings.py
+```
+
+#### Available Translations
+
+| Code | Language | Name |
+|------|----------|------|
+| `kjv` | English | King James Version |
+| `web` | English | World English Bible |
+| `ita1927` | Italian | Riveduta 1927 |
+| `deu1912` | German | Luther 1912 |
+
+```bash
+# Load specific translation
+python load_bible.py --translation kjv
+
+# Load all translations
+python load_bible.py --all
+
+# List available translations
+python load_bible.py --list
 ```
 
 ## 🌐 Access Your Application
@@ -204,7 +260,7 @@ terraform-azure/
 ```hcl
 # Containers scale to 0 when not in use
 backend_min_replicas  = 0  # Scale to zero
-backend_max_replicas  = 2  # Handle traffic spikes
+backend_max_replicas  = 2  # Handle traffic spikesged
 
 frontend_min_replicas = 0
 frontend_max_replicas = 2
