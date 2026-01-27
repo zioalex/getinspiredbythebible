@@ -24,6 +24,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Create public folder if it doesn't exist (required for Next.js standalone)
+RUN mkdir -p public
+
 # Build arguments for API URL (can be overridden at build time)
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
@@ -43,13 +46,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
-# Use conditional copy for public folder (may not exist)
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-
-# Copy public folder only if it exists (using shell trick)
-RUN --mount=from=builder,source=/app,target=/builder \
-    if [ -d "/builder/public" ]; then cp -r /builder/public ./public; fi
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
