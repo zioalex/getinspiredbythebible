@@ -209,7 +209,7 @@ export default function Home() {
       const errorMessage: Message = {
         role: "assistant",
         content:
-          "I'm sorry, it's taking longer than expected to respond. This can happen when the system is warming up. Please try sending your message again in a moment.",
+          "I'm sorry, it's taking longer than expected to respond. Please try sending your message again in a moment.",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
