@@ -38,7 +38,8 @@ class OllamaProvider(LLMProvider):
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=120.0)
+            # 5 minute timeout to handle cold starts and complex queries
+            self._client = httpx.AsyncClient(timeout=300.0)
         return self._client
 
     async def chat(
