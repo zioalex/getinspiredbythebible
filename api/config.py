@@ -39,9 +39,14 @@ class Settings(BaseSettings):
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
 
     # Embedding Configuration
-    embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"
+    embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
+
+    # Azure OpenAI Settings (optional - for Azure deployment)
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_embedding_deployment: str = "text-embedding-3-small"
 
     # Database
     database_url: str = (

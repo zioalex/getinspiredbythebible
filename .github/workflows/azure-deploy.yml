@@ -1,0 +1,218 @@
+# =============================================================================
+# GitHub Actions CI/CD Pipeline for Azure Container Apps
+# =============================================================================
+# This workflow builds and deploys the Bible Chat Application to Azure
+#
+# Required secrets:
+#   AZURE_CREDENTIALS     - Azure service principal JSON
+#   ACR_LOGIN_SERVER      - e.g., bibleappacr123.azurecr.io
+#   RESOURCE_GROUP        - e.g., bible-app-rg
+#   CONTAINER_APP_DOMAIN  - e.g., happysky-abc123.westeurope.azurecontainerapps.io
+#
+# To create AZURE_CREDENTIALS:
+#   az ad sp create-for-rbac --name "bible-app-github" \
+#     --role contributor \
+#     --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} \
+#     --sdk-auth
+# =============================================================================
+
+name: Build and Deploy to Azure
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'frontend/**'
+      - '.github/workflows/azure-deploy.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'frontend/**'
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect Changes
+  # ---------------------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'api/**'
+            frontend:
+              - 'frontend/**'
+
+  # ---------------------------------------------------------------------------
+  # Build and Push Backend
+  # ---------------------------------------------------------------------------
+  build-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/bible-backend
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Build and Push Frontend
+  # ---------------------------------------------------------------------------
+  build-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://${{ env.BACKEND_APP_NAME }}.${{ secrets.CONTAINER_APP_DOMAIN }}
+
+  # ---------------------------------------------------------------------------
+  # Deploy to Azure Container Apps
+  # ---------------------------------------------------------------------------
+  deploy:
+    needs: [build-backend, build-frontend]
+    if: >-
+      github.event_name != 'pull_request' &&
+      (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Backend
+        if: needs.build-backend.result == 'success'
+        run: |
+          az containerapp update \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_LOGIN_SERVER }}/bible-backend:${{ github.sha }}
+
+      - name: Deploy Frontend
+        if: needs.build-frontend.result == 'success'
+        run: |
+          az containerapp update \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }}
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+
+          # Check backend health
+          BACKEND_URL=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          echo "Backend URL: https://$BACKEND_URL"
+          curl -sf "https://$BACKEND_URL/health" || echo "Backend health check pending..."
+
+          # Get frontend URL
+          FRONTEND_URL=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          echo "Frontend URL: https://$FRONTEND_URL"
+
+      - name: Post Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | Deployed | \`bible-backend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | Deployed | \`bible-frontend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
