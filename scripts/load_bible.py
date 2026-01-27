@@ -458,12 +458,26 @@ async def load_verses(session, translation_code: str, bible_data: list):
     return verse_count
 
 
-async def load_translation_to_db(database_url: str, translation_code: str):
-    """Load a specific Bible translation into the database."""
+def convert_db_url_for_asyncpg(database_url: str) -> str:
+    """Convert database URL for asyncpg compatibility.
 
+    asyncpg uses 'ssl' parameter instead of 'sslmode', so we need to convert.
+    """
     # Convert to async URL
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    # asyncpg uses 'ssl' instead of 'sslmode'
+    # sslmode=require -> ssl=require
+    database_url = database_url.replace("sslmode=", "ssl=")
+
+    return database_url
+
+
+async def load_translation_to_db(database_url: str, translation_code: str):
+    """Load a specific Bible translation into the database."""
+
+    database_url = convert_db_url_for_asyncpg(database_url)
 
     engine = create_async_engine(database_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
