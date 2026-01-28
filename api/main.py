@@ -57,8 +57,8 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Email configuration",
         extra={
-            "enabled": settings.smtp_enabled,
-            "host": settings.smtp_host if settings.smtp_enabled else "N/A",
+            "enabled": settings.smtp2go_enabled,
+            "api_configured": bool(settings.smtp2go_api_key),
         },
     )
 

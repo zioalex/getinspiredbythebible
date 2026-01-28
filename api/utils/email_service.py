@@ -1,38 +1,28 @@
 """
-Email service for sending notifications via SMTP2GO.
+Email service for sending notifications via SMTP2GO HTTP API.
 
-Handles contact form notifications and feedback alerts.
+Uses SMTP2GO's REST API with API key authentication.
 """
 
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+import httpx
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
+SMTP2GO_API_URL = "https://api.smtp2go.com/v3/email/send"
+
 
 class EmailService:
-    """Service for sending email notifications."""
+    """Service for sending email notifications via SMTP2GO API."""
 
     def __init__(self):
-        self.enabled = settings.smtp_enabled
-        self.host = settings.smtp_host
-        self.port = settings.smtp_port
-        self.username = settings.smtp_username
-        self.password = settings.smtp_password
-        self.from_email = settings.smtp_from_email
-        self.from_name = settings.smtp_from_name
-
-    def _create_smtp_connection(self) -> smtplib.SMTP:
-        """Create and authenticate SMTP connection."""
-        smtp = smtplib.SMTP(self.host, self.port, timeout=10)
-        smtp.starttls()
-        if self.username and self.password:
-            smtp.login(self.username, self.password)
-        return smtp
+        self.enabled = settings.smtp2go_enabled
+        self.api_key = settings.smtp2go_api_key
+        self.sender_email = settings.smtp2go_sender_email
+        self.sender_name = settings.smtp2go_sender_name
 
     def send_email(
         self,
@@ -40,15 +30,17 @@ class EmailService:
         subject: str,
         body_text: str,
         body_html: str | None = None,
+        reply_to: str | None = None,
     ) -> bool:
         """
-        Send an email.
+        Send an email via SMTP2GO HTTP API.
 
         Args:
             to_email: Recipient email address
             subject: Email subject
             body_text: Plain text body
             body_html: Optional HTML body
+            reply_to: Optional reply-to email address
 
         Returns:
             True if sent successfully, False otherwise
@@ -57,44 +49,68 @@ class EmailService:
             logger.debug("Email disabled, skipping send", extra={"to": to_email})
             return False
 
-        if not self.username or not self.password:
+        if not self.api_key:
             logger.warning(
-                "SMTP credentials not configured",
-                extra={"host": self.host, "to": to_email},
+                "SMTP2GO API key not configured",
+                extra={"to": to_email},
             )
             return False
 
         try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{self.from_name} <{self.from_email}>"
-            msg["To"] = to_email
+            payload = {
+                "api_key": self.api_key,
+                "to": [to_email],
+                "sender": f"{self.sender_name} <{self.sender_email}>",
+                "subject": subject,
+                "text_body": body_text,
+            }
 
-            # Add plain text part
-            msg.attach(MIMEText(body_text, "plain"))
-
-            # Add HTML part if provided
             if body_html:
-                msg.attach(MIMEText(body_html, "html"))
+                payload["html_body"] = body_html
 
-            with self._create_smtp_connection() as smtp:
-                smtp.sendmail(self.from_email, [to_email], msg.as_string())
+            if reply_to:
+                payload["custom_headers"] = [{"header": "Reply-To", "value": reply_to}]
 
-            logger.info(
-                "Email sent successfully",
-                extra={"to": to_email, "subject": subject},
-            )
-            return True
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(SMTP2GO_API_URL, json=payload)
 
-        except smtplib.SMTPAuthenticationError as e:
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("data", {}).get("succeeded", 0) > 0:
+                    logger.info(
+                        "Email sent successfully",
+                        extra={"to": to_email, "subject": subject},
+                    )
+                    return True
+                else:
+                    logger.error(
+                        "SMTP2GO API returned failure",
+                        extra={
+                            "to": to_email,
+                            "response": result,
+                        },
+                    )
+                    return False
+            else:
+                logger.error(
+                    "SMTP2GO API request failed",
+                    extra={
+                        "status_code": response.status_code,
+                        "to": to_email,
+                        "response": response.text[:500],
+                    },
+                )
+                return False
+
+        except httpx.TimeoutException as e:
             logger.error(
-                "SMTP authentication failed",
-                extra={"error": str(e), "host": self.host, "username": self.username},
+                "SMTP2GO API timeout",
+                extra={"error": str(e), "to": to_email},
             )
             return False
-        except smtplib.SMTPException as e:
+        except httpx.HTTPError as e:
             logger.error(
-                "SMTP error sending email",
+                "HTTP error sending email",
                 extra={"error": str(e), "to": to_email, "subject": subject},
             )
             return False
@@ -170,7 +186,7 @@ User Agent: {user_agent or 'Not provided'}
 </html>
         """.strip()
 
-        return self.send_email(to_email, subject, body_text, body_html)
+        return self.send_email(to_email, subject, body_text, body_html, reply_to=reply_email)
 
     def send_feedback_notification(
         self,
