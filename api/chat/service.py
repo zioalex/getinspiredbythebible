@@ -133,8 +133,8 @@ class ChatService:
                 )
             except Exception as e:
                 logger.error(
-                    "Scripture search failed",
-                    extra={"error": str(e), "error_type": type(e).__name__},
+                    f"Scripture search failed: {type(e).__name__}: {e}",
+                    exc_info=True,
                 )
                 # Continue without scripture context
 
