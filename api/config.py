@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+    # Health Checks
+    health_check_timeout: int = 5  # Timeout for dependency checks in seconds
+    memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

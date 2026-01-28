@@ -7,14 +7,21 @@ Main FastAPI application entry point.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import settings
-from providers import ProviderError, check_providers_health
-from routes import chat_router, church_router, feedback_router, scripture_router
+from providers import ProviderError
+from routes import (
+    chat_router,
+    church_router,
+    feedback_router,
+    health_router,
+    scripture_router,
+)
 from scripture import close_db, init_db
+from utils.local_only import require_local_access
 from utils.logging_config import setup_logging
 
 # Configure logging before anything else
@@ -123,6 +130,7 @@ app.add_middleware(
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(church_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
+app.include_router(health_router)  # Health endpoints at root level
 app.include_router(scripture_router, prefix="/api/v1")
 
 
@@ -138,32 +146,6 @@ async def root():
         "docs": "/docs",
         "health": "/health",
     }
-
-
-@app.get("/health", tags=["health"])
-async def health_check():
-    """
-    Check API and provider health.
-
-    Returns status of all system components.
-    """
-    try:
-        provider_health = await check_providers_health()
-
-        all_healthy = all(p["healthy"] for p in provider_health.values())
-
-        return {
-            "status": "healthy" if all_healthy else "degraded",
-            "providers": provider_health,
-            "config": {
-                "llm_provider": settings.llm_provider,
-                "llm_model": settings.llm_model,
-                "embedding_provider": settings.embedding_provider,
-                "embedding_model": settings.embedding_model,
-            },
-        }
-    except ProviderError as e:
-        return JSONResponse(status_code=503, content={"status": "unhealthy", "error": str(e)})
 
 
 @app.get("/config", tags=["info"])
@@ -192,10 +174,12 @@ async def get_config():
     }
 
 
-@app.get("/debug/embeddings", tags=["debug"])
+@app.get("/debug/embeddings", tags=["debug"], dependencies=[Depends(require_local_access)])
 async def debug_embeddings():
     """
     Debug endpoint to check embedding dimensions.
+
+    **Access restricted to local/internal networks only.**
 
     Compares configured dimensions vs actual database dimensions.
     Useful for diagnosing dimension mismatch errors.
@@ -232,8 +216,7 @@ async def debug_embeddings():
     try:
         async with async_session_factory() as session:
             # Check if verses table has embeddings and their dimensions
-            query = text(
-                """
+            query = text("""
                 SELECT
                     COUNT(*) as total_verses,
                     COUNT(embedding) as verses_with_embeddings,
@@ -243,8 +226,7 @@ async def debug_embeddings():
                     END as embedding_dimensions
                 FROM verses
                 LIMIT 1
-            """
-            )
+            """)
             db_result = await session.execute(query)
             row = db_result.fetchone()
 
