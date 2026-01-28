@@ -192,6 +192,99 @@ async def get_config():
     }
 
 
+@app.get("/debug/embeddings", tags=["debug"])
+async def debug_embeddings():
+    """
+    Debug endpoint to check embedding dimensions.
+
+    Compares configured dimensions vs actual database dimensions.
+    Useful for diagnosing dimension mismatch errors.
+    """
+    from sqlalchemy import text
+
+    from providers import get_embedding_provider
+    from scripture.database import async_session_factory
+
+    result = {
+        "config": {
+            "embedding_provider": settings.embedding_provider,
+            "embedding_model": settings.embedding_model,
+            "configured_dimensions": settings.embedding_dimensions,
+        },
+        "provider": {},
+        "database": {},
+        "match": False,
+    }
+
+    # Check provider dimensions
+    try:
+        provider = get_embedding_provider()
+        test_embedding = await provider.embed("test")
+        result["provider"] = {
+            "name": provider.provider_name,
+            "actual_dimensions": len(test_embedding.embedding),
+            "healthy": True,
+        }
+    except Exception as e:
+        result["provider"] = {"error": str(e), "healthy": False}
+
+    # Check database embedding dimensions
+    try:
+        async with async_session_factory() as session:
+            # Check if verses table has embeddings and their dimensions
+            query = text(
+                """
+                SELECT
+                    COUNT(*) as total_verses,
+                    COUNT(embedding) as verses_with_embeddings,
+                    CASE WHEN COUNT(embedding) > 0
+                        THEN array_length(embedding::real[], 1)
+                        ELSE NULL
+                    END as embedding_dimensions
+                FROM verses
+                LIMIT 1
+            """
+            )
+            db_result = await session.execute(query)
+            row = db_result.fetchone()
+
+            result["database"] = {
+                "total_verses": row[0],
+                "verses_with_embeddings": row[1],
+                "embedding_dimensions": row[2],
+                "connected": True,
+            }
+    except Exception as e:
+        result["database"] = {"error": str(e), "connected": False}
+
+    # Check if dimensions match
+    provider_dims = result["provider"].get("actual_dimensions")
+    db_dims = result["database"].get("embedding_dimensions")
+    config_dims = settings.embedding_dimensions
+
+    result["match"] = (
+        provider_dims == db_dims == config_dims if all([provider_dims, db_dims]) else False
+    )
+    result["diagnosis"] = []
+
+    if provider_dims and provider_dims != config_dims:
+        result["diagnosis"].append(
+            f"Provider returns {provider_dims} dims but config says {config_dims}"
+        )
+    if db_dims and db_dims != config_dims:
+        result["diagnosis"].append(f"Database has {db_dims} dims but config says {config_dims}")
+    if provider_dims and db_dims and provider_dims != db_dims:
+        result["diagnosis"].append(
+            f"MISMATCH: Provider={provider_dims} dims, Database={db_dims} dims. "
+            "You need to regenerate embeddings with the current provider."
+        )
+
+    if not result["diagnosis"]:
+        result["diagnosis"].append("All dimensions match correctly")
+
+    return result
+
+
 # ==================== Error Handlers ====================
 
 

@@ -11,10 +11,13 @@ services:
       - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-}
       - OLLAMA_HOST=http://ollama:11434
-      - DATABASE_URL=postgresql://bible:bible123@postgres:5432/bibledb
+      - DATABASE_URL=${DATABASE_URL:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
