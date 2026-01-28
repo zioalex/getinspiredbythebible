@@ -47,7 +47,7 @@ jobs:
           cd api
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff black mypy
+          pip install ruff black==26.1.0 mypy
 
       - name: Lint with Ruff
         run: |
