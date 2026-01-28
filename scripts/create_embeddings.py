@@ -88,9 +88,11 @@ async def create_embeddings(database_url: str, ollama_host: str, model: str):
     if not await check_ollama(ollama_host, model):
         return
 
-    # Convert to async URL
+    # Convert to async URL for asyncpg
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # asyncpg uses 'ssl' instead of 'sslmode'
+    database_url = database_url.replace("sslmode=", "ssl=")
 
     engine = create_async_engine(database_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

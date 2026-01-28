@@ -11,6 +11,7 @@ from fastapi import Depends
 
 from config import Settings, settings
 
+from .azure_openai import AzureOpenAIEmbeddingProvider
 from .base import EmbeddingProvider, LLMProvider
 from .claude import ClaudeProvider
 from .ollama import OllamaEmbeddingProvider, OllamaProvider
@@ -77,6 +78,21 @@ def create_embedding_provider(config: Settings) -> EmbeddingProvider:
             return OllamaEmbeddingProvider(
                 host=config.ollama_host,
                 model=config.embedding_model,
+                dimensions=config.embedding_dimensions,
+            )
+        case "azure_openai":
+            if not config.azure_openai_endpoint:
+                raise ProviderError(
+                    "Azure OpenAI provider requires AZURE_OPENAI_ENDPOINT environment variable"
+                )
+            if not config.azure_openai_api_key:
+                raise ProviderError(
+                    "Azure OpenAI provider requires AZURE_OPENAI_API_KEY environment variable"
+                )
+            return AzureOpenAIEmbeddingProvider(
+                endpoint=config.azure_openai_endpoint,
+                api_key=config.azure_openai_api_key,
+                deployment_name=config.azure_embedding_deployment,
                 dimensions=config.embedding_dimensions,
             )
         case "openrouter":

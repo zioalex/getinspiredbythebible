@@ -38,7 +38,7 @@ repos:
     hooks:
       - id: ruff
         files: ^api/
-        args: [--fix, --exit-non-zero-on-fix]
+        args: ['--select', 'E,F,W,C90,I,N', '--ignore', 'E501', '--fix', '--exit-non-zero-on-fix']
 
   # Python - MyPy (type checking)
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -58,13 +58,6 @@ repos:
         files: ^api/
         args: ['-ll', '-i', '--skip', 'B101,B601']
 
-  # Python - Import sorting
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        files: ^api/
-        args: ['--profile', 'black', '--line-length', '100']
 
   # Docker - Dockerfile linting
   - repo: https://github.com/hadolint/hadolint

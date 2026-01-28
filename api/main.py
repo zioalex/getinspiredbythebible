@@ -4,6 +4,7 @@ Bible Inspiration Chat API
 Main FastAPI application entry point.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,8 +13,13 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from providers import ProviderError, check_providers_health
-from routes import chat_router, church_router, scripture_router
+from routes import chat_router, church_router, feedback_router, scripture_router
 from scripture import close_db, init_db
+from utils.logging_config import setup_logging
+
+# Configure logging before anything else
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -24,21 +30,49 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown tasks.
     """
     # Startup
-    print(f"🚀 Starting {settings.app_name} v{settings.app_version}")
-    print(f"📖 LLM Provider: {settings.llm_provider} ({settings.llm_model})")
-    print(f"🔍 Embedding Provider: {settings.embedding_provider} ({settings.embedding_model})")
+    logger.info(
+        "Starting application",
+        extra={
+            "app": settings.app_name,
+            "version": settings.app_version,
+            "debug": settings.debug,
+        },
+    )
+    logger.info(
+        "LLM configuration",
+        extra={
+            "provider": settings.llm_provider,
+            "model": settings.llm_model,
+            "temperature": settings.llm_temperature,
+        },
+    )
+    logger.info(
+        "Embedding configuration",
+        extra={
+            "provider": settings.embedding_provider,
+            "model": settings.embedding_model,
+            "dimensions": settings.embedding_dimensions,
+        },
+    )
+    logger.info(
+        "Email configuration",
+        extra={
+            "enabled": settings.smtp2go_enabled,
+            "api_configured": bool(settings.smtp2go_api_key),
+        },
+    )
 
     # Initialize database
     try:
         await init_db()
-        print("✅ Database initialized")
+        logger.info("Database initialized successfully")
     except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
+        logger.error("Database initialization failed", extra={"error": str(e)})
 
     yield
 
     # Shutdown
-    print("👋 Shutting down...")
+    logger.info("Shutting down application")
     await close_db()
 
 
@@ -88,6 +122,7 @@ app.add_middleware(
 
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(church_router, prefix="/api/v1")
+app.include_router(feedback_router, prefix="/api/v1")
 app.include_router(scripture_router, prefix="/api/v1")
 
 

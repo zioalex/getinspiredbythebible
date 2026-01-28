@@ -39,9 +39,14 @@ class Settings(BaseSettings):
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
 
     # Embedding Configuration
-    embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"
+    embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
+
+    # Azure OpenAI Settings (optional - for Azure deployment)
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_embedding_deployment: str = "text-embedding-3-small"
 
     # Database
     database_url: str = (
@@ -51,6 +56,16 @@ class Settings(BaseSettings):
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+
+    # Email Settings (SMTP2GO HTTP API)
+    smtp2go_enabled: bool = False  # Set to True to enable email notifications
+    smtp2go_api_key: str | None = None  # SMTP2GO API key
+    smtp2go_sender_email: str = "noreply@ai4you.sh"
+    smtp2go_sender_name: str = "Bible Inspiration"
+    contact_notification_email: str = "getinspiredbythebible@ai4you.sh"
+
+    # Logging
+    log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     class Config:
         env_file = ".env"

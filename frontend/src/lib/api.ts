@@ -4,6 +4,13 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/**
+ * Generate a unique session ID for tracking user interactions
+ */
+export function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
@@ -43,12 +50,46 @@ export interface TranslationInfo {
 }
 
 export interface ChatResponse {
+  message_id: string;
   message: string;
   scripture_context?: ScriptureContext;
   provider: string;
   model: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+}
+
+export interface FeedbackRequest {
+  message_id: string;
+  rating: "positive" | "negative";
+  comment?: string;
+  user_message: string;
+  assistant_response: string;
+  verses_cited?: string[];
+  model_used?: string;
+  response_time_ms?: number;
+  session_id?: string;
+}
+
+export interface FeedbackResponse {
+  id: number;
+  message_id: string;
+  rating: string;
+  created_at: string;
+}
+
+export interface ContactRequest {
+  email?: string;
+  subject: "bug" | "feature" | "feedback" | "other";
+  message: string;
+  session_id?: string;
+  user_agent?: string;
+}
+
+export interface ContactResponse {
+  id: number;
+  subject: string;
+  created_at: string;
 }
 
 export interface HealthStatus {
@@ -83,6 +124,7 @@ export async function sendMessage(
   message: string,
   history: Message[] = [],
   preferredTranslation?: string,
+  sessionId?: string,
 ): Promise<ChatResponse> {
   const response = await fetch(`${API_URL}/api/v1/chat`, {
     method: "POST",
@@ -94,6 +136,7 @@ export async function sendMessage(
       conversation_history: history,
       include_search: true,
       preferred_translation: preferredTranslation,
+      session_id: sessionId,
     }),
   });
 
@@ -284,6 +327,48 @@ export async function searchChurches(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ location }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Submit feedback for a chat message (thumbs up/down)
+ */
+export async function submitFeedback(
+  feedback: FeedbackRequest,
+): Promise<FeedbackResponse> {
+  const response = await fetch(`${API_URL}/api/v1/feedback`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(feedback),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Submit a contact form message
+ */
+export async function submitContactForm(
+  contact: ContactRequest,
+): Promise<ContactResponse> {
+  const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(contact),
   });
 
   if (!response.ok) {

@@ -1,0 +1,123 @@
+# =============================================================================
+# Example Terraform Variables for Azure Deployment
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to git (it contains secrets)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Azure Configuration (Required)
+# -----------------------------------------------------------------------------
+
+# Your Azure Subscription ID
+# Find it: az account show --query id -o tsv
+subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Azure region - choose one close to your users
+# Options: northeurope, eastus, westus2, etc.
+# Note: Some regions have restrictions. northeurope is recommended for Europe.
+location = "northeurope"
+
+# Database location (optional - use if PostgreSQL isn't available in main region)
+# Leave empty to use the same as 'location'
+db_location = ""  # e.g., "eastus" if northeurope has restrictions
+
+# Project name (used for all resource names)
+project_name = "bible-app"
+
+# Additional tags
+tags = {
+  "environment" = "production"
+  "owner"       = "your-name"
+}
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration (Required)
+# -----------------------------------------------------------------------------
+
+# Database admin credentials
+# Username restrictions: can't be admin, administrator, root, etc.
+db_admin_username = "bibleadmin"
+
+# Password requirements: min 8 chars, uppercase, lowercase, number
+db_admin_password = "YourSecurePassword123!"  # pragma: allowlist secret
+
+# Database name
+db_name = "bibleapp"
+
+# Your IP for direct database access (optional)
+# Find your IP: curl ifconfig.me
+client_ip = ""  # e.g., "203.0.113.50"
+
+# -----------------------------------------------------------------------------
+# Container Images
+# -----------------------------------------------------------------------------
+# Leave empty initially - Terraform will deploy placeholder containers
+# After first deploy, build your images, push to ACR, and update these
+
+backend_image  = ""  # e.g., "bibleappacr123abc.azurecr.io/bible-backend:latest"
+frontend_image = ""  # e.g., "bibleappacr123abc.azurecr.io/bible-frontend:latest"
+
+# -----------------------------------------------------------------------------
+# Container Resources (Optimized for $50 budget)
+# -----------------------------------------------------------------------------
+
+# Backend (FastAPI)
+backend_cpu          = 0.5    # 0.25, 0.5, 0.75, 1.0, etc.
+backend_memory       = "1Gi"  # Memory for embeddings + API
+backend_min_replicas = 0      # 0 = scale-to-zero (saves money)
+backend_max_replicas = 2      # Scale up under load
+
+# Frontend (Next.js)
+frontend_cpu          = 0.25
+frontend_memory       = "0.5Gi"
+frontend_min_replicas = 0
+frontend_max_replicas = 2
+
+# -----------------------------------------------------------------------------
+# LLM Configuration
+# -----------------------------------------------------------------------------
+
+# LLM provider: "openrouter" (recommended - has free models), "claude", or "ollama"
+llm_provider = "openrouter"
+
+# OpenRouter API key (get FREE at https://openrouter.ai/keys)
+# OpenRouter offers free models like google/gemma-3-27b-it:free
+openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
+
+# OpenRouter model (free models available!)
+# Free options: google/gemma-3-27b-it:free, meta-llama/llama-3.3-70b-instruct:free
+openrouter_model = "google/gemma-3-27b-it:free"
+
+# --- OR use Claude (paid) ---
+# llm_provider = "claude"
+# claude_api_key = "sk-ant-api03-..."  # pragma: allowlist secret
+
+# -----------------------------------------------------------------------------
+# Azure OpenAI for Embeddings (RECOMMENDED - very cheap!)
+# -----------------------------------------------------------------------------
+
+# Enable Azure OpenAI embeddings
+# Cost: ~$0.20 one-time to embed entire Bible, ~$0.05/month for queries
+enable_azure_openai = true
+
+# Region for OpenAI (limited availability - eastus, westus, etc.)
+openai_location = "eastus"
+
+# Embedding model (text-embedding-3-small is best value)
+embedding_model_name    = "text-embedding-3-small"
+embedding_model_version = "1"
+embedding_capacity      = 120  # Tokens per minute (thousands)
+
+# -----------------------------------------------------------------------------
+# Budget Alerts
+# -----------------------------------------------------------------------------
+
+# Enable budget monitoring
+create_budget_alert = true
+
+# Monthly budget limit in USD
+monthly_budget = 50
+
+# Email addresses for alerts (when reaching 80% or forecasted 100%)
+budget_alert_emails = ["your-email@example.com"]

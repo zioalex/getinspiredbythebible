@@ -240,13 +240,23 @@ jobs:
           #!/bin/bash
           set -e
           echo "=== Testing Chat Endpoint ==="
-          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat \
+          # Use -w to capture HTTP status code separately
+          http_code=$(curl -s -o /tmp/chat_response.json -w "%{http_code}" \
+            -X POST http://localhost:8000/api/v1/chat \
             -H "Content-Type: application/json" \
             -d '{"message": "What does the Bible say about love?"}' \
             --max-time 180)
+
+          echo "HTTP Status Code: $http_code"
           echo "Chat response:"
-          echo "$response" | jq .
-          if echo "$response" | jq -e '.message' > /dev/null; then
+          cat /tmp/chat_response.json | jq . 2>/dev/null || cat /tmp/chat_response.json
+
+          if [ "$http_code" != "200" ]; then
+            echo "ERROR: Chat endpoint returned HTTP $http_code"
+            exit 1
+          fi
+
+          if cat /tmp/chat_response.json | jq -e '.message' > /dev/null 2>&1; then
             echo "✓ Chat endpoint responded successfully!"
           else
             echo "ERROR: Chat response missing 'message' field"
@@ -258,13 +268,16 @@ jobs:
           cat > /tmp/tests/test_stream.sh << 'SCRIPT'
           #!/bin/bash
           echo "=== Testing Chat Streaming Endpoint ==="
-          response=$(curl -sf -X POST http://localhost:8000/api/v1/chat/stream \
+          http_code=$(curl -s -o /tmp/stream_response.txt -w "%{http_code}" \
+            -X POST http://localhost:8000/api/v1/chat/stream \
             -H "Content-Type: application/json" \
             -d '{"message": "Say hello"}' \
-            --max-time 60 || true)
-          if [ -n "$response" ]; then
+            --max-time 60 || echo "000")
+
+          echo "HTTP Status Code: $http_code"
+          if [ -s /tmp/stream_response.txt ]; then
             echo "Stream response received:"
-            echo "$response" | head -c 500
+            head -c 500 /tmp/stream_response.txt
             echo ""
             echo "✓ Chat streaming endpoint OK"
           else

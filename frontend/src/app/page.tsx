@@ -7,6 +7,8 @@ import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
+import FeedbackModal from "@/components/FeedbackModal";
+import ContactForm from "@/components/ContactForm";
 import {
   sendMessage,
   Message,
@@ -14,20 +16,47 @@ import {
   getChapter,
   getTranslations,
   TranslationInfo,
+  submitFeedback,
+  FeedbackRequest,
+  generateSessionId,
 } from "@/lib/api";
+
+// Extended message type with message_id for feedback tracking
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  messageId?: string; // Only present for assistant messages
+  userMessage?: string; // User message that prompted this response
+  versesCited?: string[];
+  model?: string;
+}
 import {
   extractVerseReferences,
   isVerseReferenced,
 } from "@/lib/verseExtraction";
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
   const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
+
+  // Feedback state
+  const [feedbackGiven, setFeedbackGiven] = useState<
+    Record<string, "positive" | "negative">
+  >({});
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackModalRating, setFeedbackModalRating] = useState<
+    "positive" | "negative"
+  >("positive");
+  const [feedbackModalMessageId, setFeedbackModalMessageId] = useState<
+    string | null
+  >(null);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +80,9 @@ export default function Home() {
   const [interactionCount, setInteractionCount] = useState(0);
   const [churchFinderDismissed, setChurchFinderDismissed] = useState(false);
   const [churchFinderModalOpen, setChurchFinderModalOpen] = useState(false);
+
+  // Session tracking - generate unique ID per chat session
+  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
 
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
@@ -166,9 +198,10 @@ export default function Home() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
+    const userMessageContent = input.trim();
+    const userMessage: ChatMessage = {
       role: "user",
-      content: input.trim(),
+      content: userMessageContent,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -176,15 +209,30 @@ export default function Home() {
     setIsLoading(true);
 
     try {
+      // Convert messages to the API format (without extra fields)
+      const apiMessages: Message[] = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
       const response = await sendMessage(
-        userMessage.content,
-        messages,
+        userMessageContent,
+        apiMessages,
         selectedTranslation || undefined,
+        sessionId,
       );
 
-      const assistantMessage: Message = {
+      // Extract verse references from scripture context
+      const versesCited =
+        response.scripture_context?.verses?.map((v) => v.reference) || [];
+
+      const assistantMessage: ChatMessage = {
         role: "assistant",
         content: response.message,
+        messageId: response.message_id,
+        userMessage: userMessageContent,
+        versesCited,
+        model: response.model,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -206,10 +254,10 @@ export default function Home() {
       setInteractionCount((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to send message:", error);
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         role: "assistant",
         content:
-          "I'm sorry, it's taking longer than expected to respond. Please try sending your message again in a moment.",
+          "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -223,6 +271,67 @@ export default function Home() {
     setDetectedTranslation(null);
     setInteractionCount(0);
     setChurchFinderDismissed(false);
+    setFeedbackGiven({});
+    setFeedbackError(null);
+    setSessionId(generateSessionId()); // Generate new session ID for new chat
+  };
+
+  // Handle feedback button click
+  const handleFeedbackClick = (
+    messageId: string,
+    rating: "positive" | "negative",
+  ) => {
+    setFeedbackModalMessageId(messageId);
+    setFeedbackModalRating(rating);
+    setFeedbackModalOpen(true);
+  };
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = async (comment: string) => {
+    if (!feedbackModalMessageId) return;
+
+    const message = messages.find(
+      (m) => m.messageId === feedbackModalMessageId,
+    );
+    if (!message || message.role !== "assistant") return;
+
+    setFeedbackSubmitting(true);
+
+    try {
+      const feedbackRequest: FeedbackRequest = {
+        message_id: feedbackModalMessageId,
+        rating: feedbackModalRating,
+        comment: comment || undefined,
+        user_message: message.userMessage || "",
+        assistant_response: message.content,
+        verses_cited: message.versesCited,
+        model_used: message.model,
+      };
+
+      await submitFeedback(feedbackRequest);
+
+      // Mark feedback as given for this message
+      setFeedbackGiven((prev) => ({
+        ...prev,
+        [feedbackModalMessageId]: feedbackModalRating,
+      }));
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      // Show error but still mark as given to prevent duplicate attempts
+      setFeedbackError(
+        "Couldn't save your feedback right now, but thank you for trying!",
+      );
+      setFeedbackGiven((prev) => ({
+        ...prev,
+        [feedbackModalMessageId]: feedbackModalRating,
+      }));
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => setFeedbackError(null), 5000);
+    } finally {
+      setFeedbackSubmitting(false);
+      setFeedbackModalOpen(false);
+      setFeedbackModalMessageId(null);
+    }
   };
 
   const suggestedPrompts = [
@@ -312,8 +421,20 @@ export default function Home() {
               {messages.map((message, index) => (
                 <ChatMessage
                   key={index}
-                  message={message}
+                  message={{ role: message.role, content: message.content }}
+                  messageId={message.messageId}
                   onVerseClick={handleVerseClick}
+                  onFeedback={
+                    message.messageId
+                      ? (rating) =>
+                          handleFeedbackClick(message.messageId!, rating)
+                      : undefined
+                  }
+                  feedbackGiven={
+                    message.messageId
+                      ? feedbackGiven[message.messageId] || null
+                      : null
+                  }
                 />
               ))}
 
@@ -360,6 +481,9 @@ export default function Home() {
               onDismiss={() => setChurchFinderDismissed(true)}
             />
           )}
+
+          {/* Contact Form */}
+          <ContactForm />
         </div>
       </div>
 
@@ -452,6 +576,33 @@ export default function Home() {
         isOpen={churchFinderModalOpen}
         onClose={() => setChurchFinderModalOpen(false)}
       />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => {
+          setFeedbackModalOpen(false);
+          setFeedbackModalMessageId(null);
+        }}
+        onSubmit={handleFeedbackSubmit}
+        rating={feedbackModalRating}
+        isSubmitting={feedbackSubmitting}
+      />
+
+      {/* Toast notification for errors */}
+      {feedbackError && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-2">
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <span className="text-sm">{feedbackError}</span>
+            <button
+              onClick={() => setFeedbackError(null)}
+              className="text-amber-600 hover:text-amber-800"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
