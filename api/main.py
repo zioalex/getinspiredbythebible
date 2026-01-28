@@ -12,8 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import settings
-from providers import ProviderError, check_providers_health
-from routes import chat_router, church_router, feedback_router, scripture_router
+from providers import ProviderError
+from routes import (
+    chat_router,
+    church_router,
+    feedback_router,
+    health_router,
+    scripture_router,
+)
 from scripture import close_db, init_db
 from utils.logging_config import setup_logging
 
@@ -123,6 +129,7 @@ app.add_middleware(
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(church_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
+app.include_router(health_router)  # Health endpoints at root level
 app.include_router(scripture_router, prefix="/api/v1")
 
 
@@ -138,32 +145,6 @@ async def root():
         "docs": "/docs",
         "health": "/health",
     }
-
-
-@app.get("/health", tags=["health"])
-async def health_check():
-    """
-    Check API and provider health.
-
-    Returns status of all system components.
-    """
-    try:
-        provider_health = await check_providers_health()
-
-        all_healthy = all(p["healthy"] for p in provider_health.values())
-
-        return {
-            "status": "healthy" if all_healthy else "degraded",
-            "providers": provider_health,
-            "config": {
-                "llm_provider": settings.llm_provider,
-                "llm_model": settings.llm_model,
-                "embedding_provider": settings.embedding_provider,
-                "embedding_model": settings.embedding_model,
-            },
-        }
-    except ProviderError as e:
-        return JSONResponse(status_code=503, content={"status": "unhealthy", "error": str(e)})
 
 
 @app.get("/config", tags=["info"])

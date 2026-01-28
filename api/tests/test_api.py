@@ -57,12 +57,31 @@ def test_chapter_endpoint_localized_book():
 
 
 def test_health_endpoint():
-    """Test that health endpoint returns 200 and valid status"""
+    """Test that health endpoint returns valid status"""
     response = client.get("/health")
+    # 200 for healthy/degraded, 503 for unhealthy (e.g., no DB in CI)
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert data["status"] in ["healthy", "degraded", "unhealthy"]
+    assert "components" in data
+    assert "memory" in data
+
+
+def test_health_live_endpoint():
+    """Test that liveness probe always returns 200"""
+    response = client.get("/health/live")
     assert response.status_code == 200
     data = response.json()
-    # Status can be "healthy" or "degraded" (when Ollama is unavailable in CI)
-    assert data["status"] in ["healthy", "degraded"]
+    assert data["status"] == "alive"
+
+
+def test_health_ready_endpoint():
+    """Test that readiness probe returns valid status"""
+    response = client.get("/health/ready")
+    # 200 if ready, 503 if not ready (e.g., no DB in CI)
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert "status" in data
 
 
 def test_config_endpoint():
