@@ -55,6 +55,7 @@ export default function Home() {
     string | null
   >(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -251,7 +252,7 @@ export default function Home() {
       const errorMessage: ChatMessage = {
         role: "assistant",
         content:
-          "I'm sorry, I encountered an error. Please make sure the API server is running and try again.",
+          "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -266,6 +267,7 @@ export default function Home() {
     setInteractionCount(0);
     setChurchFinderDismissed(false);
     setFeedbackGiven({});
+    setFeedbackError(null);
   };
 
   // Handle feedback button click
@@ -309,11 +311,16 @@ export default function Home() {
       }));
     } catch (error) {
       console.error("Failed to submit feedback:", error);
-      // Still mark as given to prevent duplicate attempts
+      // Show error but still mark as given to prevent duplicate attempts
+      setFeedbackError(
+        "Couldn't save your feedback right now, but thank you for trying!",
+      );
       setFeedbackGiven((prev) => ({
         ...prev,
         [feedbackModalMessageId]: feedbackModalRating,
       }));
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => setFeedbackError(null), 5000);
     } finally {
       setFeedbackSubmitting(false);
       setFeedbackModalOpen(false);
@@ -575,6 +582,21 @@ export default function Home() {
         rating={feedbackModalRating}
         isSubmitting={feedbackSubmitting}
       />
+
+      {/* Toast notification for errors */}
+      {feedbackError && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-2">
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <span className="text-sm">{feedbackError}</span>
+            <button
+              onClick={() => setFeedbackError(null)}
+              className="text-amber-600 hover:text-amber-800"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
