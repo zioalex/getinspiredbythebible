@@ -38,7 +38,7 @@ repos:
     hooks:
       - id: ruff
         files: ^api/
-        args: [--fix, --exit-non-zero-on-fix]
+        args: ['--select', 'E,F,W,C90,I,N', '--ignore', 'E501', '--fix', '--exit-non-zero-on-fix']
 
   # Python - MyPy (type checking)
   - repo: https://github.com/pre-commit/mirrors-mypy
