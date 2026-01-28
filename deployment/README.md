@@ -374,6 +374,81 @@ az consumption usage list \
      --secrets claude-api-key=NEW_KEY
    ```
 
+## 📧 Email Notifications (SMTP2GO)
+
+The application can send email notifications for contact form submissions and negative feedback.
+This uses [SMTP2GO](https://www.smtp2go.com/)'s HTTP API.
+
+### Setup Steps
+
+1. **Create SMTP2GO Account**
+   - Sign up at [smtp2go.com](https://www.smtp2go.com/) (free tier: 1,000 emails/month)
+   - Verify your sender domain or email address
+
+2. **Get API Key**
+   - Go to Settings → API Keys in SMTP2GO dashboard
+   - Create a new API key with "Email sending" permission
+   - Copy the key (starts with `api-`)
+
+3. **Configure Environment Variables**
+
+   Add to your `terraform.tfvars`:
+
+   ```hcl
+   # Email notifications
+   smtp2go_enabled      = true
+   smtp2go_api_key      = "api-xxxxxxxxxxxxxxxx"  # pragma: allowlist secret
+   smtp2go_sender_email = "noreply@yourdomain.com"
+   smtp2go_sender_name  = "Bible Inspiration"
+   contact_notification_email = "your-email@example.com"
+   ```
+
+   Or set as Container App secrets:
+
+   ```bash
+   az containerapp secret set \
+     --name bible-app-backend \
+     --resource-group bible-app-rg \
+     --secrets smtp2go-api-key=api-xxxxxxxxxxxxxxxx
+
+   az containerapp update \
+     --name bible-app-backend \
+     --resource-group bible-app-rg \
+     --set-env-vars \
+       SMTP2GO_ENABLED=true \
+       SMTP2GO_API_KEY=secretref:smtp2go-api-key \
+       SMTP2GO_SENDER_EMAIL=noreply@yourdomain.com \
+       CONTACT_NOTIFICATION_EMAIL=your-email@example.com
+   ```
+
+### What Gets Notified
+
+| Event | Email Sent To | Content |
+|-------|---------------|---------|
+| Contact form submission | `CONTACT_NOTIFICATION_EMAIL` | Subject type, message, user's reply email |
+| Negative feedback (thumbs down) | `CONTACT_NOTIFICATION_EMAIL` | User comment, original question, AI response |
+
+### Verifying Setup
+
+1. Submit a test contact form on the website
+2. Check your notification email inbox
+3. Check SMTP2GO dashboard for delivery status
+
+### Troubleshooting Email Issues
+
+```bash
+# Check backend logs for email errors
+az containerapp logs show \
+  --name bible-app-backend \
+  --resource-group bible-app-rg \
+  --filter "email"
+
+# Common issues:
+# - "SMTP2GO API key not configured" → Set SMTP2GO_API_KEY
+# - "Email disabled" → Set SMTP2GO_ENABLED=true
+# - API returns failure → Check SMTP2GO dashboard for errors
+```
+
 ## 🐛 Troubleshooting
 
 ### Container Won't Start
