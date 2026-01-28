@@ -106,3 +106,43 @@ CREATE TABLE IF NOT EXISTS topics (
     parent_id INTEGER REFERENCES topics(id) ON DELETE SET NULL,
     embedding vector(1024)
 );
+
+-- ============================================================================
+-- Create feedback table (user ratings on AI responses)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS feedback (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    message_id UUID NOT NULL,
+    session_id VARCHAR(255),
+    rating VARCHAR(10) NOT NULL CHECK (rating IN ('positive', 'negative')),
+    comment TEXT,
+    user_message TEXT,
+    assistant_response TEXT,
+    verses_cited JSONB,
+    model_used VARCHAR(100),
+    response_time_ms INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at);
+CREATE INDEX IF NOT EXISTS idx_feedback_rating ON feedback(rating);
+CREATE INDEX IF NOT EXISTS idx_feedback_message_id ON feedback(message_id);
+
+-- ============================================================================
+-- Create contact_submissions table (general contact form)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS contact_submissions (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    email VARCHAR(255),
+    subject VARCHAR(50) NOT NULL CHECK (subject IN ('bug', 'feature', 'feedback', 'other')),
+    message TEXT NOT NULL,
+    session_id VARCHAR(255),
+    user_agent TEXT,
+    status VARCHAR(20) DEFAULT 'new' CHECK (status IN ('new', 'read', 'replied', 'resolved'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_created_at ON contact_submissions(created_at);
+CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions(status);

@@ -5,6 +5,7 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import uuid
 from typing import AsyncIterator
 
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Response from the chat endpoint."""
 
+    message_id: str  # Unique ID for feedback tracking
     message: str
     scripture_context: SearchResults | None = None
     provider: str
@@ -118,7 +120,11 @@ class ChatService:
             max_tokens=settings.llm_max_tokens,
         )
 
+        # Generate unique message ID for feedback tracking
+        message_id = str(uuid.uuid4())
+
         return ChatResponse(
+            message_id=message_id,
             message=response.content,
             scripture_context=scripture_context,
             provider=response.provider,

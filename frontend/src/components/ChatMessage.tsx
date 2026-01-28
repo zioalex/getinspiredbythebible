@@ -1,18 +1,26 @@
 "use client";
 
 import React from "react";
-import { User, BookOpen } from "lucide-react";
+import { User, BookOpen, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Message } from "@/lib/api";
 
 interface ChatMessageProps {
   message: Message;
+  messageId?: string;
   onVerseClick?: (book: string, chapter: number, verse: number) => void;
+  onFeedback?: (rating: "positive" | "negative") => void;
+  feedbackGiven?: "positive" | "negative" | null;
+  feedbackDisabled?: boolean;
 }
 
 export default function ChatMessage({
   message,
+  messageId,
   onVerseClick,
+  onFeedback,
+  feedbackGiven,
+  feedbackDisabled = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
 
@@ -120,60 +128,112 @@ export default function ChatMessage({
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2">
-            <ReactMarkdown
-              components={{
-                // Custom paragraph renderer to highlight verse references
-                p: ({ children }) => {
-                  const processedChildren = React.Children.map(
-                    children,
-                    (child, idx) => {
-                      if (typeof child === "string") {
-                        return highlightText(child, idx);
-                      }
-                      return child;
-                    },
-                  );
-                  return (
-                    <p className="my-2 leading-relaxed">{processedChildren}</p>
-                  );
-                },
-                // Style bold text (often verse references) - make them clickable
-                strong: ({ children }) => (
-                  <strong
-                    className="text-amber-800 font-bold cursor-pointer hover:underline transition-colors"
-                    onClick={handleTextClick}
-                  >
-                    {children}
-                  </strong>
-                ),
-                // Style blockquotes as scripture
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-amber-500 pl-4 pr-3 py-3 my-3 bg-amber-50 rounded-r-lg italic font-serif text-amber-900">
-                    {children}
-                  </blockquote>
-                ),
-                // Style inline code as verse references - make them clickable
-                code: ({ children }) => (
-                  <code
-                    className="px-2 py-1 bg-amber-100 text-amber-900 rounded font-semibold not-italic cursor-pointer hover:bg-amber-200 transition-colors"
-                    onClick={handleTextClick}
-                  >
-                    {children}
-                  </code>
-                ),
-                // Ensure lists look good
-                ul: ({ children }) => (
-                  <ul className="list-disc pl-5 space-y-1">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal pl-5 space-y-1">{children}</ol>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
+          <>
+            <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2">
+              <ReactMarkdown
+                components={{
+                  // Custom paragraph renderer to highlight verse references
+                  p: ({ children }) => {
+                    const processedChildren = React.Children.map(
+                      children,
+                      (child, idx) => {
+                        if (typeof child === "string") {
+                          return highlightText(child, idx);
+                        }
+                        return child;
+                      },
+                    );
+                    return (
+                      <p className="my-2 leading-relaxed">
+                        {processedChildren}
+                      </p>
+                    );
+                  },
+                  // Style bold text (often verse references) - make them clickable
+                  strong: ({ children }) => (
+                    <strong
+                      className="text-amber-800 font-bold cursor-pointer hover:underline transition-colors"
+                      onClick={handleTextClick}
+                    >
+                      {children}
+                    </strong>
+                  ),
+                  // Style blockquotes as scripture
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-amber-500 pl-4 pr-3 py-3 my-3 bg-amber-50 rounded-r-lg italic font-serif text-amber-900">
+                      {children}
+                    </blockquote>
+                  ),
+                  // Style inline code as verse references - make them clickable
+                  code: ({ children }) => (
+                    <code
+                      className="px-2 py-1 bg-amber-100 text-amber-900 rounded font-semibold not-italic cursor-pointer hover:bg-amber-200 transition-colors"
+                      onClick={handleTextClick}
+                    >
+                      {children}
+                    </code>
+                  ),
+                  // Ensure lists look good
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-5 space-y-1">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-5 space-y-1">{children}</ol>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+
+            {/* Feedback buttons for assistant messages */}
+            {messageId && onFeedback && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-400 mr-1">
+                  Was this helpful?
+                </span>
+                <button
+                  onClick={() => onFeedback("positive")}
+                  disabled={feedbackDisabled || feedbackGiven !== null}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    feedbackGiven === "positive"
+                      ? "bg-green-100 text-green-600"
+                      : feedbackGiven !== null
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                  }`}
+                  aria-label="Thumbs up"
+                  title="This was helpful"
+                >
+                  <ThumbsUp
+                    className={`w-4 h-4 ${feedbackGiven === "positive" ? "fill-current" : ""}`}
+                  />
+                </button>
+                <button
+                  onClick={() => onFeedback("negative")}
+                  disabled={feedbackDisabled || feedbackGiven !== null}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    feedbackGiven === "negative"
+                      ? "bg-red-100 text-red-600"
+                      : feedbackGiven !== null
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                  }`}
+                  aria-label="Thumbs down"
+                  title="This could be improved"
+                >
+                  <ThumbsDown
+                    className={`w-4 h-4 ${feedbackGiven === "negative" ? "fill-current" : ""}`}
+                  />
+                </button>
+                {feedbackGiven && (
+                  <span className="text-xs text-gray-400 ml-1">
+                    Thanks for your feedback!
+                  </span>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

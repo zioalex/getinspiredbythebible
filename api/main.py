@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from providers import ProviderError, check_providers_health
-from routes import chat_router, church_router, scripture_router
+from routes import chat_router, church_router, feedback_router, scripture_router
 from scripture import close_db, init_db
 
 
@@ -88,6 +88,7 @@ app.add_middleware(
 
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(church_router, prefix="/api/v1")
+app.include_router(feedback_router, prefix="/api/v1")
 app.include_router(scripture_router, prefix="/api/v1")
 
 
