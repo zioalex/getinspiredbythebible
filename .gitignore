@@ -96,3 +96,5 @@ build/
 ollama_data/
 rules.md
 task.md
+data/bible/translations/*
+deployment/tfplan.*
