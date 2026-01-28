@@ -216,8 +216,7 @@ async def debug_embeddings():
     try:
         async with async_session_factory() as session:
             # Check if verses table has embeddings and their dimensions
-            query = text(
-                """
+            query = text("""
                 SELECT
                     COUNT(*) as total_verses,
                     COUNT(embedding) as verses_with_embeddings,
@@ -227,8 +226,7 @@ async def debug_embeddings():
                     END as embedding_dimensions
                 FROM verses
                 LIMIT 1
-            """
-            )
+            """)
             db_result = await session.execute(query)
             row = db_result.fetchone()
 
