@@ -7,7 +7,7 @@ Main FastAPI application entry point.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -21,6 +21,7 @@ from routes import (
     scripture_router,
 )
 from scripture import close_db, init_db
+from utils.local_only import require_local_access
 from utils.logging_config import setup_logging
 
 # Configure logging before anything else
@@ -173,10 +174,12 @@ async def get_config():
     }
 
 
-@app.get("/debug/embeddings", tags=["debug"])
+@app.get("/debug/embeddings", tags=["debug"], dependencies=[Depends(require_local_access)])
 async def debug_embeddings():
     """
     Debug endpoint to check embedding dimensions.
+
+    **Access restricted to local/internal networks only.**
 
     Compares configured dimensions vs actual database dimensions.
     Useful for diagnosing dimension mismatch errors.

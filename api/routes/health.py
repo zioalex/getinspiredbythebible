@@ -13,7 +13,7 @@ import resource
 import time
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -21,6 +21,7 @@ from sqlalchemy import text
 from config import settings
 from providers import ProviderError, get_embedding_provider, get_llm_provider
 from scripture.database import async_session_factory
+from utils.local_only import require_local_access
 
 logger = logging.getLogger(__name__)
 
@@ -178,10 +179,12 @@ def get_memory_info() -> dict[str, Any]:
         return {"error": str(e)}
 
 
-@router.get("", response_model=HealthResponse)
+@router.get("", response_model=HealthResponse, dependencies=[Depends(require_local_access)])
 async def health_check():
     """
     Comprehensive health check with component-level status.
+
+    **Access restricted to local/internal networks only.**
 
     Checks:
     - Database connectivity and latency
