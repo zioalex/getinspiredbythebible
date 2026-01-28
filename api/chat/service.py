@@ -6,6 +6,7 @@ conversation management to create meaningful spiritual dialogues.
 """
 
 import logging
+import time
 import uuid
 from typing import AsyncIterator
 
@@ -81,6 +82,7 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
+        total_start = time.time()
         logger.info(
             "Processing chat request",
             extra={
@@ -104,6 +106,7 @@ class ChatService:
         search_context_prompt = ""
 
         if request.include_search:
+            search_start = time.time()
             try:
                 scripture_context = await self.search_service.search(
                     query=request.message,
@@ -112,9 +115,11 @@ class ChatService:
                     similarity_threshold=0.35,
                     translation=translation,
                 )
-                logger.debug(
+                search_duration = time.time() - search_start
+                logger.info(
                     "Scripture search completed",
                     extra={
+                        "duration_seconds": f"{search_duration:.2f}",
                         "verses_found": len(scripture_context.verses) if scripture_context else 0,
                         "passages_found": (
                             len(scripture_context.passages) if scripture_context else 0
@@ -146,6 +151,7 @@ class ChatService:
         )
 
         # Step 3: Generate response
+        llm_start = time.time()
         try:
             logger.debug("Sending request to LLM provider")
             response = await self.llm.chat(
@@ -153,12 +159,14 @@ class ChatService:
                 temperature=settings.llm_temperature,
                 max_tokens=settings.llm_max_tokens,
             )
+            llm_duration = time.time() - llm_start
             logger.info(
                 "LLM response received",
                 extra={
                     "provider": response.provider,
                     "model": response.model,
                     "response_length": len(response.content),
+                    "duration_seconds": f"{llm_duration:.2f}",
                 },
             )
         except Exception as e:
@@ -175,6 +183,12 @@ class ChatService:
 
         # Generate unique message ID for feedback tracking
         message_id = str(uuid.uuid4())
+
+        total_duration = time.time() - total_start
+        logger.info(
+            "Chat request completed",
+            extra={"total_duration_seconds": f"{total_duration:.2f}"},
+        )
 
         return ChatResponse(
             message_id=message_id,
