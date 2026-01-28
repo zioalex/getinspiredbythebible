@@ -311,6 +311,11 @@ def test_init_sql_matches_translations_config():
     with open(init_sql_path) as f:
         init_sql = f.read()
 
+    # Only parse up to the marker comment to avoid matching other INSERT statements
+    marker = "-- END_TRANSLATIONS_INSERT"
+    if marker in init_sql:
+        init_sql = init_sql[: init_sql.index(marker)]
+
     # Extract translation codes from init.sql INSERT statement
     # Pattern matches: ('code', 'name', ...
     pattern = r"\('([a-z0-9]+)',\s*'([^']+)',\s*'([^']+)',\s*'([a-z]+)'"

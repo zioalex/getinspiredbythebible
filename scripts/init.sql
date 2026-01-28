@@ -31,6 +31,7 @@ INSERT INTO translations (code, name, language, language_code, is_default, descr
     ('ita1927', 'Riveduta 1927', 'Italian', 'it', FALSE, 'Italian Luzzi translation from 1927'),
     ('schlachter', 'Schlachter 1951', 'German', 'de', FALSE, 'German Schlachter translation from 1951')
 ON CONFLICT (code) DO NOTHING;
+-- END_TRANSLATIONS_INSERT (marker for test parsing)
 
 -- ============================================================================
 -- Create books table

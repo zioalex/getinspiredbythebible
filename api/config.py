@@ -57,6 +57,19 @@ class Settings(BaseSettings):
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
 
+    # Email Settings (SMTP2GO)
+    smtp_enabled: bool = False  # Set to True to enable email notifications
+    smtp_host: str = "mail.smtp2go.com"
+    smtp_port: int = 2525  # SMTP2GO recommended port
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str = "noreply@ai4you.sh"
+    smtp_from_name: str = "Bible Inspiration"
+    contact_notification_email: str = "getinspiredbythebible@ai4you.sh"
+
+    # Logging
+    log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

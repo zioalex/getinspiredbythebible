@@ -5,6 +5,7 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import logging
 import uuid
 from typing import AsyncIterator
 
@@ -17,6 +18,8 @@ from scripture import ScriptureSearchService, SearchResults
 from utils.language import detect_language, get_translation_info, resolve_translation
 
 from .prompts import build_search_context_prompt, get_system_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationMessage(BaseModel):
@@ -78,26 +81,55 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
+        logger.info(
+            "Processing chat request",
+            extra={
+                "message_length": len(request.message),
+                "history_count": len(request.conversation_history),
+                "include_search": request.include_search,
+            },
+        )
+
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
+        logger.debug(
+            "Language detection",
+            extra={"detected": detected_language, "translation": translation},
+        )
 
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context = None
         search_context_prompt = ""
 
         if request.include_search:
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-                translation=translation,
-            )
+            try:
+                scripture_context = await self.search_service.search(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                )
+                logger.debug(
+                    "Scripture search completed",
+                    extra={
+                        "verses_found": len(scripture_context.verses) if scripture_context else 0,
+                        "passages_found": (
+                            len(scripture_context.passages) if scripture_context else 0
+                        ),
+                    },
+                )
+            except Exception as e:
+                logger.error(
+                    "Scripture search failed",
+                    extra={"error": str(e), "error_type": type(e).__name__},
+                )
+                # Continue without scripture context
 
             # Build context prompt from search results
-            if scripture_context.verses or scripture_context.passages:
+            if scripture_context and (scripture_context.verses or scripture_context.passages):
                 search_context_prompt = build_search_context_prompt(
                     {
                         "verses": [v.model_dump() for v in scripture_context.verses],
@@ -114,11 +146,32 @@ class ChatService:
         )
 
         # Step 3: Generate response
-        response = await self.llm.chat(
-            messages=messages,
-            temperature=settings.llm_temperature,
-            max_tokens=settings.llm_max_tokens,
-        )
+        try:
+            logger.debug("Sending request to LLM provider")
+            response = await self.llm.chat(
+                messages=messages,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+            )
+            logger.info(
+                "LLM response received",
+                extra={
+                    "provider": response.provider,
+                    "model": response.model,
+                    "response_length": len(response.content),
+                },
+            )
+        except Exception as e:
+            logger.error(
+                "LLM provider error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "provider": settings.llm_provider,
+                    "model": settings.llm_model,
+                },
+            )
+            raise
 
         # Generate unique message ID for feedback tracking
         message_id = str(uuid.uuid4())
