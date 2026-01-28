@@ -37,6 +37,7 @@ class ChatRequest(BaseModel):
     conversation_history: list[ConversationMessage] = []
     include_search: bool = True  # Whether to search scripture first
     preferred_translation: str | None = None  # User's preferred translation code
+    session_id: str | None = None  # Optional session identifier for tracking
 
 
 class ChatResponse(BaseModel):
@@ -83,9 +84,13 @@ class ChatService:
             ChatResponse with generated message and context
         """
         total_start = time.time()
+        # Track session interactions (history_count + 1 = total messages in session)
+        session_message_count = len(request.conversation_history) + 1
         logger.info(
             "Processing chat request",
             extra={
+                "session_id": request.session_id,
+                "session_message_count": session_message_count,
                 "message_length": len(request.message),
                 "history_count": len(request.conversation_history),
                 "include_search": request.include_search,

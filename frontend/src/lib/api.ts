@@ -4,6 +4,13 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/**
+ * Generate a unique session ID for tracking user interactions
+ */
+export function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
@@ -117,6 +124,7 @@ export async function sendMessage(
   message: string,
   history: Message[] = [],
   preferredTranslation?: string,
+  sessionId?: string,
 ): Promise<ChatResponse> {
   const response = await fetch(`${API_URL}/api/v1/chat`, {
     method: "POST",
@@ -128,6 +136,7 @@ export async function sendMessage(
       conversation_history: history,
       include_search: true,
       preferred_translation: preferredTranslation,
+      session_id: sessionId,
     }),
   });
 

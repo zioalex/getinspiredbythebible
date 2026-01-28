@@ -18,6 +18,7 @@ import {
   TranslationInfo,
   submitFeedback,
   FeedbackRequest,
+  generateSessionId,
 } from "@/lib/api";
 
 // Extended message type with message_id for feedback tracking
@@ -79,6 +80,9 @@ export default function Home() {
   const [interactionCount, setInteractionCount] = useState(0);
   const [churchFinderDismissed, setChurchFinderDismissed] = useState(false);
   const [churchFinderModalOpen, setChurchFinderModalOpen] = useState(false);
+
+  // Session tracking - generate unique ID per chat session
+  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
 
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
@@ -215,6 +219,7 @@ export default function Home() {
         userMessageContent,
         apiMessages,
         selectedTranslation || undefined,
+        sessionId,
       );
 
       // Extract verse references from scripture context
@@ -268,6 +273,7 @@ export default function Home() {
     setChurchFinderDismissed(false);
     setFeedbackGiven({});
     setFeedbackError(null);
+    setSessionId(generateSessionId()); // Generate new session ID for new chat
   };
 
   // Handle feedback button click
