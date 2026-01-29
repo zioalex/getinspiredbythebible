@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # Fallback models (comma-separated) - used when primary model is unavailable
+    openrouter_fallback_models: str = ""
+    # Allow automatic fallback to other providers/models
+    openrouter_allow_fallbacks: bool = True
 
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"
