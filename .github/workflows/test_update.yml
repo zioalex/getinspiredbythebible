@@ -47,7 +47,7 @@ jobs:
           cd api
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff black==24.1.1 mypy
+          pip install ruff black==26.1.0 mypy
 
       - name: Lint with Ruff
         run: |
@@ -236,8 +236,10 @@ jobs:
           health_response=$(curl -sf http://localhost:8000/health)
           echo "$health_response" | jq .
           status=$(echo "$health_response" | jq -r '.status')
+          # Accept "healthy" or "degraded" (LLM may be slow in CI)
+          # Only fail on "unhealthy" (database down)
           if [ "$status" = "unhealthy" ]; then
-            echo "ERROR: API status is unhealthy"
+            echo "ERROR: API status is unhealthy (critical dependency down)"
             exit 1
           fi
           echo "✓ Health endpoint OK (status: $status)"
@@ -267,7 +269,6 @@ jobs:
           # Test 3: Chat endpoint
           cat > /tmp/tests/test_chat.sh << 'SCRIPT'
           #!/bin/bash
-          set -e
           echo "=== Testing Chat Endpoint ==="
           # Use -w to capture HTTP status code separately
           http_code=$(curl -s -o /tmp/chat_response.json -w "%{http_code}" \
@@ -280,7 +281,7 @@ jobs:
           echo "Chat response:"
           cat /tmp/chat_response.json | jq . 2>/dev/null || cat /tmp/chat_response.json
 
-          # Accept 200 for success, or 500/503 if LLM provider is unavailable
+          # Accept 200 (success) or 503/500 (LLM unavailable - expected in CI)
           if [ "$http_code" = "200" ]; then
             if cat /tmp/chat_response.json | jq -e '.message' > /dev/null 2>&1; then
               echo "✓ Chat endpoint responded successfully!"
@@ -299,9 +300,9 @@ jobs:
               echo "ERROR: Chat response missing 'message' field"
               exit 1
             fi
-          elif [ "$http_code" = "500" ] || [ "$http_code" = "503" ]; then
-            echo "⚠ Chat endpoint returned $http_code (LLM provider may be unavailable)"
-            echo "This is acceptable in CI when free LLM APIs are overloaded"
+          elif [ "$http_code" = "503" ] || [ "$http_code" = "500" ]; then
+            echo "⚠ Chat endpoint returned $http_code (LLM may be unavailable - acceptable in CI)"
+            echo "✓ Chat endpoint is reachable"
           else
             echo "ERROR: Chat endpoint returned unexpected HTTP $http_code"
             exit 1

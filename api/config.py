@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+    # Health Checks
+    health_check_timeout: int = (
+        15  # Timeout for dependency checks in seconds (longer for free APIs)
+    )
+    memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
+
     # Security Settings
     max_message_length: int = 200  # Max characters per chat message
     rate_limit_enabled: bool = True

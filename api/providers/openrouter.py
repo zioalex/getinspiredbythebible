@@ -23,6 +23,7 @@ class OpenRouterProvider(LLMProvider):
     - google/gemma-2-9b-it:free
 
     Uses OpenAI-compatible API for easy integration.
+    Supports automatic fallback to paid models via auto-router plugin.
     """
 
     def __init__(
@@ -86,6 +87,7 @@ class OpenRouterProvider(LLMProvider):
         # Use auto-router with allowed models for automatic failover
         # Primary model listed first, then fallbacks
         allowed_models = [self.model] + self.fallback_models
+        logger.info(f"Using auto-router with allowed models: {allowed_models}")
 
         extra_body = {
             "plugins": [
@@ -190,6 +192,7 @@ class OpenRouterProvider(LLMProvider):
 
         # Use actual model from response (may differ if auto-router selected different model)
         actual_model = response.model if response.model else self.model
+        logger.info(f"OpenRouter response from model: {actual_model}")
 
         return LLMResponse(
             content=content,
@@ -234,6 +237,8 @@ class OpenRouterProvider(LLMProvider):
         """Stream chat completion from OpenRouter with explicit 429 fallback."""
         converted_messages = self._convert_messages(messages)
         model_to_use, extra_body = self._get_model_and_extra_body()
+
+        logger.info(f"OpenRouter streaming request - model: {model_to_use}")
 
         current_model = model_to_use
         fallback_index = 0
@@ -296,7 +301,6 @@ class OpenRouterProvider(LLMProvider):
         """
         try:
             model_to_use, extra_body = self._get_model_and_extra_body()
-            # Make a minimal request to check connectivity
             response = await self._client.chat.completions.create(
                 model=model_to_use,
                 messages=[{"role": "user", "content": "Hi"}],
