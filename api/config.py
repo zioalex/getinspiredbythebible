@@ -68,7 +68,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     # Health Checks
-    health_check_timeout: int = 5  # Timeout for dependency checks in seconds
+    health_check_timeout: int = (
+        15  # Timeout for dependency checks in seconds (longer for free APIs)
+    )
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     class Config:
