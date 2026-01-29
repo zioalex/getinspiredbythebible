@@ -6,13 +6,15 @@ This script creates vector embeddings for all verses to enable
 semantic search functionality.
 
 Usage:
-    python create_embeddings.py
+    python create_embeddings.py           # Generate embeddings for all verses
+    python create_embeddings.py --ci      # CI mode: only 1 Corinthians (for testing)
 
 Requirements:
     - Ollama running with mxbai-embed-large model (multilingual, 1024 dimensions)
     - Bible data already loaded (run load_bible.py first)
 """
 
+import argparse
 import asyncio
 import os
 import sys
@@ -25,6 +27,10 @@ import httpx
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+
+# Books to process in CI mode (minimal set for testing semantic search)
+# 1 Corinthians contains the famous "love chapter" (chapter 13)
+CI_MODE_BOOKS = ["1 Corinthians"]
 
 
 class OllamaEmbedder:
@@ -81,8 +87,17 @@ async def check_ollama(host: str, model: str) -> bool:
         return False
 
 
-async def create_embeddings(database_url: str, ollama_host: str, model: str):
-    """Generate embeddings for all verses."""
+async def create_embeddings(
+    database_url: str, ollama_host: str, model: str, books_filter: list = None
+):
+    """Generate embeddings for verses.
+
+    Args:
+        database_url: PostgreSQL connection string
+        ollama_host: Ollama server URL
+        model: Embedding model name
+        books_filter: Optional list of book names to process (None = all books)
+    """
 
     # Check Ollama
     if not await check_ollama(ollama_host, model):
@@ -101,16 +116,29 @@ async def create_embeddings(database_url: str, ollama_host: str, model: str):
 
     try:
         async with async_session() as session:
-            # Get verses without embeddings
-            result = await session.execute(
-                text("""
+            # Build query - optionally filter by book
+            if books_filter:
+                # Create placeholders for book names
+                placeholders = ", ".join(f":book_{i}" for i in range(len(books_filter)))
+                query = f"""
                     SELECT v.id, v.text, b.name, v.chapter_number, v.verse_number
                     FROM verses v
                     JOIN books b ON v.book_id = b.id
-                    WHERE v.embedding IS NULL
+                    WHERE v.embedding IS NULL AND b.name IN ({placeholders})
                     ORDER BY b.position, v.chapter_number, v.verse_number
-                """)
-            )
+                """
+                params = {f"book_{i}": name for i, name in enumerate(books_filter)}
+                result = await session.execute(text(query), params)
+            else:
+                result = await session.execute(
+                    text("""
+                        SELECT v.id, v.text, b.name, v.chapter_number, v.verse_number
+                        FROM verses v
+                        JOIN books b ON v.book_id = b.id
+                        WHERE v.embedding IS NULL
+                        ORDER BY b.position, v.chapter_number, v.verse_number
+                    """)
+                )
             verses = result.fetchall()
 
             if not verses:
@@ -182,20 +210,34 @@ async def create_embeddings(database_url: str, ollama_host: str, model: str):
 
 async def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Generate embeddings for Bible verses")
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI mode: process only 1 Corinthians (minimal data for testing semantic search)",
+    )
+    args = parser.parse_args()
+
     database_url = os.getenv(
         "DATABASE_URL",
-        "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
+        "postgresql://bible:bible123@localhost:5432/bibledb",  # pragma: allowlist secret
     )
 
     ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     embedding_model = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
+    # Determine books filter (CI mode processes only specific books)
+    books_filter = CI_MODE_BOOKS if args.ci else None
+
     print("🔍 Bible Embedding Generator")
     print(f"   Database: {database_url}")
     print(f"   Ollama: {ollama_host}")
-    print(f"   Model: {embedding_model}\n")
+    print(f"   Model: {embedding_model}")
+    if books_filter:
+        print(f"   CI mode: processing only {', '.join(books_filter)}")
+    print()
 
-    await create_embeddings(database_url, ollama_host, embedding_model)
+    await create_embeddings(database_url, ollama_host, embedding_model, books_filter)
 
     print("\n🎉 Done! Your Bible is now searchable with semantic search.")
 

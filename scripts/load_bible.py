@@ -10,6 +10,7 @@ Usage:
     python load_bible.py --translation kjv  # Load specific translation
     python load_bible.py --list             # List available translations
     python load_bible.py --all              # Load all translations
+    python load_bible.py --ci               # Load only 1 Corinthians (for CI testing)
 
 Environment Variables:
     DATABASE_URL          - PostgreSQL connection string
@@ -105,6 +106,10 @@ BIBLE_BOOKS = [
     {"name": "Jude", "abbr": "Jude", "testament": "new", "position": 65},
     {"name": "Revelation", "abbr": "Rev", "testament": "new", "position": 66},
 ]
+
+# Books to load in CI mode (minimal set for testing semantic search)
+# 1 Corinthians contains the famous "love chapter" (chapter 13)
+CI_MODE_BOOKS = ["1 Corinthians"]
 
 
 async def download_translation(translation_code: str, output_path: Path) -> dict:
@@ -387,8 +392,15 @@ async def ensure_books_and_chapters(session) -> dict:
     return book_ids
 
 
-async def load_verses(session, translation_code: str, bible_data: list):
-    """Load verses for a specific translation."""
+async def load_verses(session, translation_code: str, bible_data: list, books_filter: list = None):
+    """Load verses for a specific translation.
+
+    Args:
+        session: Database session
+        translation_code: Translation code (e.g., 'kjv')
+        bible_data: Bible data from JSON
+        books_filter: Optional list of book names to load (None = all books)
+    """
 
     config = TRANSLATIONS[translation_code]
     book_name_map = config.get("book_names")
@@ -421,6 +433,10 @@ async def load_verses(session, translation_code: str, bible_data: list):
         book_id = book_ids.get(standard_name)
         if not book_id:
             print(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
+            continue
+
+        # Skip if not in filter (when filter is specified)
+        if books_filter and standard_name not in books_filter:
             continue
 
         print(f"  📖 Loading {standard_name} ({translation_code})...")
@@ -485,7 +501,10 @@ def convert_db_url_for_asyncpg(database_url: str) -> str:
 
 
 async def load_translation_to_db(
-    database_url: str, translation_code: str, embedding_dimensions: int = 1024
+    database_url: str,
+    translation_code: str,
+    embedding_dimensions: int = 1024,
+    books_filter: list = None,
 ):
     """Load a specific Bible translation into the database.
 
@@ -493,6 +512,7 @@ async def load_translation_to_db(
         database_url: PostgreSQL connection string
         translation_code: Translation code (e.g., 'kjv', 'ita1927')
         embedding_dimensions: Vector dimensions (1024 for Ollama, 1536 for Azure OpenAI)
+        books_filter: Optional list of book names to load (None = all books)
     """
 
     database_url = convert_db_url_for_asyncpg(database_url)
@@ -519,8 +539,11 @@ async def load_translation_to_db(
         bible_data = await download_translation(translation_code, bible_path)
 
         # Load verses
-        print(f"\n📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
-        verse_count = await load_verses(session, translation_code, bible_data)
+        if books_filter:
+            print(f"\n📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})...")
+        else:
+            print(f"\n📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
+        verse_count = await load_verses(session, translation_code, bible_data, books_filter)
 
         print(f"✅ Loaded {verse_count:,} verses for {translation_code}")
 
@@ -551,6 +574,11 @@ async def main():
         "--dimensions", "-d",
         type=int,
         help="Embedding dimensions (1024 for Ollama, 1536 for Azure OpenAI)"
+    )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI mode: load only 1 Corinthians (minimal data for testing semantic search)"
     )
 
     args = parser.parse_args()
@@ -584,16 +612,23 @@ async def main():
         # Default: load KJV
         translations_to_load = ["kjv"]
 
+    # Determine books filter (CI mode loads only specific books)
+    books_filter = CI_MODE_BOOKS if args.ci else None
+
     # Load each translation
     print(f"\n🗄️  Database: {database_url}")
     print(f"📐 Embedding dimensions: {embedding_dimensions}")
-    print(f"📖 Translations to load: {', '.join(translations_to_load)}\n")
+    print(f"📖 Translations to load: {', '.join(translations_to_load)}")
+    if books_filter:
+        print(f"📚 CI mode: loading only {', '.join(books_filter)}\n")
+    else:
+        print()
 
     for trans_code in translations_to_load:
         print(f"\n{'='*60}")
         print(f"Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
         print(f"{'='*60}")
-        await load_translation_to_db(database_url, trans_code, embedding_dimensions)
+        await load_translation_to_db(database_url, trans_code, embedding_dimensions, books_filter)
 
     print("\n🎉 All translations loaded successfully!")
     print("\nNext step: Run create_embeddings.py to generate semantic search vectors")
