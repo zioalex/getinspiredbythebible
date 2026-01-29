@@ -209,6 +209,18 @@ jobs:
             exit 1
           fi
 
+      - name: Debug - Check API configuration
+        run: |
+          echo "=== API Configuration ==="
+          curl -sf http://localhost:8000/config | jq .
+          echo ""
+          echo "=== Health Check Details ==="
+          curl -sf http://localhost:8000/health | jq .
+          echo ""
+          echo "=== Environment Variables in API container ==="
+          docker compose exec -T api env | grep -E "(LLM|OPENROUTER|EMBEDDING)" | \
+            sed 's/API_KEY=.*/API_KEY=***REDACTED***/'
+
       - name: Run all endpoint tests in parallel
         run: |
           # Create test scripts directory
@@ -366,6 +378,11 @@ jobs:
 
           wait $pid_frontend || { echo "❌ Frontend test failed"; failed=1; }
           cat /tmp/tests/frontend.log
+
+          # Always show API logs for debugging
+          echo ""
+          echo "=== API Backend Logs ==="
+          docker compose logs api --tail=100
 
           if [ $failed -eq 1 ]; then
             echo ""
