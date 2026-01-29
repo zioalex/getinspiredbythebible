@@ -186,8 +186,8 @@ jobs:
           echo "Loading 1 Corinthians with embeddings for semantic search testing..."
           cd scripts
           pip install httpx asyncpg sqlalchemy
-          # Load only 1 Corinthians (CI mode)
-          python load_bible.py --ci
+          # Load WEB translation (app default) - only 1 Corinthians (CI mode)
+          python load_bible.py --ci --translation web
           # Generate embeddings for the loaded verses
           python create_embeddings.py --ci
         env:
