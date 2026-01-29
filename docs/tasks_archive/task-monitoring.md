@@ -1,6 +1,7 @@
-nnn# Task: Add Production Monitoring to Backend
+# Task: Add Production Monitoring to Backend
 
-Implement comprehensive monitoring and observability for the backend API to enable proactive issue detection, faster debugging, and better understanding of application health in production.
+Implement comprehensive monitoring and observability for the backend API to enable proactive issue
+detection, faster debugging, and better understanding of application health in production.
 
 ## Goal
 
@@ -206,7 +207,7 @@ Create `api/tests/test_monitoring.py`:
 
 ## File Structure
 
-```
+```text
 api/
 ├── middleware/
 │   ├── __init__.py
@@ -248,7 +249,9 @@ api/
 
 - [ ] Structured error logging with context
 - [ ] Preparation for error tracking integration
-- [ ] Instead of reporting the message straight away add an automatic retry mechanism (max 3 times with low delay) and post to the a message like "...hold on. I had some trouble,,," after 3 retries show the messages as you outlined.
+- [ ] Instead of reporting the message straight away add an automatic retry mechanism (max 3 times
+  with low delay) and post to a message like "...hold on. I had some trouble..." after 3 retries
+  show the messages as you outlined.
 
 ### Phase 5 (Business)
 
@@ -259,7 +262,7 @@ api/
 
 Add to `api/requirements.txt`:
 
-```
+```text
 prometheus-client>=0.17.0
 python-json-logger>=2.0.0
 ```
