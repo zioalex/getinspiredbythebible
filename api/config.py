@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # Fallback models (comma-separated) - used when primary model is unavailable
+    openrouter_fallback_models: str = ""
+    # Allow automatic fallback to other providers/models
+    openrouter_allow_fallbacks: bool = True
 
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"
@@ -66,6 +70,12 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+    # Health Checks
+    health_check_timeout: int = (
+        15  # Timeout for dependency checks in seconds (longer for free APIs)
+    )
+    memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     class Config:
         env_file = ".env"

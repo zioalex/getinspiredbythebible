@@ -95,3 +95,99 @@ def test_openrouter_provider_has_required_methods():
     assert callable(provider.chat)
     assert callable(provider.chat_stream)
     assert callable(provider.health_check)
+
+
+# Tests for OpenRouter empty response handling (API overload scenarios)
+
+
+@pytest.mark.asyncio
+async def test_openrouter_handles_none_choices():
+    """Test that OpenRouter raises ValueError when API returns None choices.
+
+    This can happen when OpenRouter's free API is overloaded.
+    """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from providers.base import ChatMessage
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="test-model",
+    )
+
+    # Mock response with None choices (happens when API is overloaded)
+    mock_response = MagicMock()
+    mock_response.choices = None
+
+    with patch.object(
+        provider._client.chat.completions,
+        "create",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ):
+        with pytest.raises(ValueError, match="OpenRouter returned empty response"):
+            await provider.chat([ChatMessage(role="user", content="test")])
+
+
+@pytest.mark.asyncio
+async def test_openrouter_handles_empty_choices():
+    """Test that OpenRouter raises ValueError when API returns empty choices array."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from providers.base import ChatMessage
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="test-model",
+    )
+
+    # Mock response with empty choices array
+    mock_response = MagicMock()
+    mock_response.choices = []
+
+    with patch.object(
+        provider._client.chat.completions,
+        "create",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ):
+        with pytest.raises(ValueError, match="OpenRouter returned empty response"):
+            await provider.chat([ChatMessage(role="user", content="test")])
+
+
+@pytest.mark.asyncio
+async def test_openrouter_streaming_handles_empty_chunks():
+    """Test that streaming skips chunks with empty/None choices."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from providers.base import ChatMessage
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="test-model",
+    )
+
+    # Create chunks - some with empty choices, some with content
+    chunk_empty = MagicMock()
+    chunk_empty.choices = []
+
+    chunk_none = MagicMock()
+    chunk_none.choices = None
+
+    chunk_valid = MagicMock()
+    chunk_valid.choices = [MagicMock()]
+    chunk_valid.choices[0].delta.content = "Hello!"
+
+    async def mock_stream():
+        yield chunk_empty  # Should be skipped
+        yield chunk_none  # Should be skipped
+        yield chunk_valid  # Should yield "Hello!"
+
+    mock_create = AsyncMock(return_value=mock_stream())
+
+    with patch.object(provider._client.chat.completions, "create", mock_create):
+        chunks = []
+        async for chunk in provider.chat_stream([ChatMessage(role="user", content="test")]):
+            chunks.append(chunk)
+
+        assert chunks == ["Hello!"]

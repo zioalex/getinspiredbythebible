@@ -51,10 +51,18 @@ def create_llm_provider(config: Settings) -> LLMProvider:
                 raise ProviderError(
                     "OpenRouter provider requires OPENROUTER_API_KEY environment variable"
                 )
+            # Parse comma-separated fallback models
+            fallback_models = None
+            if config.openrouter_fallback_models:
+                fallback_models = [
+                    m.strip() for m in config.openrouter_fallback_models.split(",") if m.strip()
+                ]
             return OpenRouterProvider(
                 api_key=config.openrouter_api_key,
                 model=config.openrouter_model,
                 base_url=config.openrouter_base_url,
+                fallback_models=fallback_models,
+                allow_fallbacks=config.openrouter_allow_fallbacks,
             )
         case "openai":
             # Future implementation
