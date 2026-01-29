@@ -14,7 +14,11 @@ services:
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
       - OLLAMA_HOST=http://ollama:11434
       - DATABASE_URL=${DATABASE_URL:-}
+      # OpenRouter settings
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      # Other provider settings
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
       - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
