@@ -161,12 +161,18 @@ async def health_check():
 
         all_healthy = all(p["healthy"] for p in provider_health.values())
 
+        # Get the actual model being used based on provider
+        if settings.llm_provider == "openrouter":
+            llm_model = settings.openrouter_model
+        else:
+            llm_model = settings.llm_model
+
         return {
             "status": "healthy" if all_healthy else "degraded",
             "providers": provider_health,
             "config": {
                 "llm_provider": settings.llm_provider,
-                "llm_model": settings.llm_model,
+                "llm_model": llm_model,
                 "embedding_provider": settings.embedding_provider,
                 "embedding_model": settings.embedding_model,
             },
@@ -182,10 +188,16 @@ async def get_config():
 
     Useful for debugging and frontend configuration.
     """
+    # Get the actual model being used based on provider
+    if settings.llm_provider == "openrouter":
+        llm_model = settings.openrouter_model
+    else:
+        llm_model = settings.llm_model
+
     return {
         "llm": {
             "provider": settings.llm_provider,
-            "model": settings.llm_model,
+            "model": llm_model,
             "temperature": settings.llm_temperature,
             "max_tokens": settings.llm_max_tokens,
         },
