@@ -6,7 +6,7 @@ OpenRouter provides access to various LLMs including free models via an OpenAI-c
 import logging
 from typing import AsyncIterator, cast
 
-from openai import AsyncOpenAI
+from openai import APIStatusError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
 from .base import ChatMessage, LLMProvider, LLMResponse
@@ -47,9 +47,15 @@ class OpenRouterProvider(LLMProvider):
         self.model = model
         self.fallback_models = fallback_models or []
         self.allow_fallbacks = allow_fallbacks
+        # Disable SDK auto-retry for rate limits - we handle fallbacks ourselves
         self._client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
+            max_retries=0,
+        )
+        logger.info(
+            f"OpenRouterProvider initialized: model={model}, "
+            f"fallbacks={self.fallback_models}, allow_fallbacks={allow_fallbacks}"
         )
 
     @property
@@ -93,6 +99,16 @@ class OpenRouterProvider(LLMProvider):
 
         return "openrouter/auto", extra_body
 
+    def _is_rate_limit_error(self, e: Exception) -> bool:
+        """Check if an exception is a rate limit error and log it."""
+        if isinstance(e, RateLimitError):
+            logger.warning(f"RateLimitError from OpenRouter: {e}")
+            return True
+        if isinstance(e, APIStatusError) and e.status_code == 429:
+            logger.warning(f"APIStatusError 429 from OpenRouter: {e}")
+            return True
+        return False
+
     async def chat(
         self,
         messages: list[ChatMessage],
@@ -104,15 +120,67 @@ class OpenRouterProvider(LLMProvider):
         converted_messages = self._convert_messages(messages)
         model_to_use, extra_body = self._get_model_and_extra_body()
 
-        logger.info(f"OpenRouter chat request - model: {model_to_use}")
+        try:
+            response = await self._client.chat.completions.create(
+                model=model_to_use,
+                messages=converted_messages,  # type: ignore[arg-type]
+                temperature=temperature,
+                max_tokens=max_tokens,
+                extra_body=extra_body,
+            )
+        except (RateLimitError, APIStatusError) as e:
+            is_rate_limit = self._is_rate_limit_error(e)
 
-        response = await self._client.chat.completions.create(
-            model=model_to_use,
-            messages=converted_messages,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            extra_body=extra_body,
-        )
+            if is_rate_limit and self.fallback_models and self.allow_fallbacks:
+                logger.warning(
+                    f"Rate limit hit for model={model_to_use} (primary={self.model}), "
+                    f"attempting fallback to: {self.fallback_models}"
+                )
+                for fallback_model in self.fallback_models:
+                    try:
+                        logger.info(f"Trying fallback model: {fallback_model}")
+                        response = await self._client.chat.completions.create(
+                            model=fallback_model,
+                            messages=converted_messages,  # type: ignore[arg-type]
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                        )
+                        logger.info(f"Fallback to {fallback_model} succeeded")
+                        # Return response with the fallback model name
+                        content = response.choices[0].message.content or ""
+                        return LLMResponse(
+                            content=content,
+                            model=fallback_model,
+                            provider=self.provider_name,
+                            tokens_used=(
+                                (response.usage.prompt_tokens if response.usage else 0)
+                                + (response.usage.completion_tokens if response.usage else 0)
+                            ),
+                            finish_reason=response.choices[0].finish_reason,
+                        )
+                    except (RateLimitError, APIStatusError) as fallback_e:
+                        if self._is_rate_limit_error(fallback_e):
+                            logger.warning(f"Fallback model {fallback_model} also rate limited")
+                        else:
+                            logger.error(f"Fallback model {fallback_model} failed: {fallback_e}")
+                        continue
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback model {fallback_model} failed: {fallback_error}")
+                        continue
+                # All fallbacks exhausted
+                raise RuntimeError(
+                    "All models rate limited. "
+                    f"Primary: {self.model}, "
+                    f"Fallbacks: {self.fallback_models}"
+                ) from e
+            else:
+                # No fallbacks configured or not a rate limit, re-raise the original error
+                if is_rate_limit:
+                    logger.error(
+                        f"Rate limit hit but no fallbacks available: "
+                        f"fallback_models={self.fallback_models}, allow_fallbacks={self.allow_fallbacks}"
+                    )
+                raise
 
         # Handle cases where response might be malformed
         if not response or not response.choices:
