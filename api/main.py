@@ -74,6 +74,15 @@ async def lifespan(app: FastAPI):
             "api_configured": bool(settings.smtp2go_api_key),
         },
     )
+    logger.info(
+        "Security configuration",
+        extra={
+            "rate_limit_enabled": settings.rate_limit_enabled,
+            "rate_limit_per_minute": settings.rate_limit_requests_per_minute,
+            "content_filter_enabled": settings.content_filter_enabled,
+            "max_message_length": settings.max_message_length,
+        },
+    )
 
     # Initialize database
     try:

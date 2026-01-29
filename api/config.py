@@ -37,8 +37,9 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
-    # Fallback models (comma-separated) - used when primary model is unavailable
-    openrouter_fallback_models: str = ""
+    # Fallback models (comma-separated) - used when primary model is rate limited
+    # Default: paid version of llama-3.3-70b for when free tier hits limits
+    openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
     # Allow automatic fallback to other providers/models
     openrouter_allow_fallbacks: bool = True
 
@@ -76,6 +77,19 @@ class Settings(BaseSettings):
         15  # Timeout for dependency checks in seconds (longer for free APIs)
     )
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
+
+    # Security Settings
+    max_message_length: int = 200  # Max characters per chat message
+    rate_limit_enabled: bool = True
+    rate_limit_requests_per_minute: int = 20  # Per IP address
+    rate_limit_requests_per_session_minute: int = 10  # Per session per minute
+    rate_limit_session_max_requests: int = 100  # Lifetime max per session
+    content_filter_enabled: bool = True
+    content_filter_block_profanity: bool = True
+    content_filter_block_spam: bool = True
+    content_filter_max_repeated_chars: int = 5  # Block excessive repeated chars
+    content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
+    security_log_violations: bool = True  # Log security violations
 
     class Config:
         env_file = ".env"
