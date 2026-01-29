@@ -3,12 +3,15 @@ OpenRouter LLM Provider implementation.
 OpenRouter provides access to various LLMs including free models via an OpenAI-compatible API.
 """
 
+import logging
 from typing import AsyncIterator, cast
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
 from .base import ChatMessage, LLMProvider, LLMResponse
+
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterProvider(LLMProvider):
@@ -20,6 +23,7 @@ class OpenRouterProvider(LLMProvider):
     - google/gemma-2-9b-it:free
 
     Uses OpenAI-compatible API for easy integration.
+    Supports automatic fallback to paid models when free models are rate-limited.
     """
 
     def __init__(
@@ -37,7 +41,7 @@ class OpenRouterProvider(LLMProvider):
             api_key: OpenRouter API key
             model: Model name (default: meta-llama/llama-3.3-70b-instruct:free)
             base_url: OpenRouter API base URL (default: https://openrouter.ai/api/v1)
-            fallback_models: List of fallback models to try if primary fails
+            fallback_models: List of fallback models to try if primary fails (rate limit)
             allow_fallbacks: Whether to allow automatic fallback (default: True)
         """
         self.model = model
@@ -46,6 +50,7 @@ class OpenRouterProvider(LLMProvider):
         self._client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
+            max_retries=0,  # Disable auto-retry so we can handle fallback ourselves
         )
 
     @property
@@ -60,34 +65,30 @@ class OpenRouterProvider(LLMProvider):
         """
         return [{"role": msg.role, "content": msg.content} for msg in messages]
 
-    def _get_model_and_extra_body(self) -> tuple[str, dict | None]:
+    def _get_models_to_try(self) -> list[str]:
         """
-        Get model name and extra_body for OpenRouter request.
+        Get list of models to try in order.
 
-        When fallback models are configured, uses openrouter/auto with the
-        auto-router plugin to enable automatic model selection and failover.
-
-        Returns:
-            Tuple of (model_name, extra_body) where extra_body may be None
+        Returns primary model first, followed by fallback models if configured.
         """
         if not self.fallback_models or not self.allow_fallbacks:
-            # No fallback configured, use direct model
-            return self.model, None
+            return [self.model]
+        return [self.model] + self.fallback_models
 
-        # Use auto-router with allowed models for automatic failover
-        # Primary model listed first, then fallbacks
-        allowed_models = [self.model] + self.fallback_models
-
-        extra_body = {
-            "plugins": [
-                {
-                    "id": "auto-router",
-                    "allowed_models": allowed_models,
-                }
-            ]
-        }
-
-        return "openrouter/auto", extra_body
+    async def _try_chat_completion(
+        self,
+        model: str,
+        messages: list[dict],
+        temperature: float,
+        max_tokens: int,
+    ):
+        """Make a single chat completion request to a specific model."""
+        return await self._client.chat.completions.create(
+            model=model,
+            messages=messages,  # type: ignore[arg-type]
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
     async def chat(
         self,
@@ -96,38 +97,54 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1024,
         **kwargs,
     ) -> LLMResponse:
-        """Send a chat completion request to OpenRouter."""
+        """Send a chat completion request to OpenRouter with fallback support."""
         converted_messages = self._convert_messages(messages)
-        model_to_use, extra_body = self._get_model_and_extra_body()
+        models_to_try = self._get_models_to_try()
 
-        response = await self._client.chat.completions.create(
-            model=model_to_use,
-            messages=converted_messages,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            extra_body=extra_body,
-        )
+        last_error = None
+        for model in models_to_try:
+            try:
+                logger.info(f"Trying OpenRouter model: {model}")
+                response = await self._try_chat_completion(
+                    model=model,
+                    messages=converted_messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
 
-        # Handle cases where response might be malformed
-        if not response or not response.choices:
-            raise ValueError("OpenRouter returned empty response - API may be overloaded")
+                # Handle cases where response might be malformed
+                if not response or not response.choices:
+                    raise ValueError("OpenRouter returned empty response")
 
-        # Extract response content
-        content = response.choices[0].message.content or ""
+                # Extract response content
+                content = response.choices[0].message.content or ""
 
-        # Use actual model from response (may differ if auto-router selected different model)
-        actual_model = response.model if response.model else self.model
+                # Use actual model from response
+                actual_model = response.model if response.model else model
+                logger.info(f"OpenRouter request successful with model: {actual_model}")
 
-        return LLMResponse(
-            content=content,
-            model=actual_model,
-            provider=self.provider_name,
-            tokens_used=(
-                (response.usage.prompt_tokens if response.usage else 0)
-                + (response.usage.completion_tokens if response.usage else 0)
-            ),
-            finish_reason=response.choices[0].finish_reason,
-        )
+                return LLMResponse(
+                    content=content,
+                    model=actual_model,
+                    provider=self.provider_name,
+                    tokens_used=(
+                        (response.usage.prompt_tokens if response.usage else 0)
+                        + (response.usage.completion_tokens if response.usage else 0)
+                    ),
+                    finish_reason=response.choices[0].finish_reason,
+                )
+
+            except RateLimitError as e:
+                last_error = e
+                logger.warning(f"Rate limit hit for model {model}: {e}")
+                # Continue to next model in fallback list
+                continue
+            except Exception:
+                # For other errors, don't try fallback - re-raise immediately
+                raise
+
+        # All models failed with rate limit
+        raise last_error or ValueError("All OpenRouter models failed")
 
     async def chat_stream(  # type: ignore[override]
         self,
@@ -136,42 +153,64 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1024,
         **kwargs,
     ) -> AsyncIterator[str]:
-        """Stream chat completion from OpenRouter."""
+        """Stream chat completion from OpenRouter with fallback support."""
         converted_messages = self._convert_messages(messages)
-        model_to_use, extra_body = self._get_model_and_extra_body()
+        models_to_try = self._get_models_to_try()
 
-        stream = cast(
-            AsyncIterator[ChatCompletionChunk],
-            await self._client.chat.completions.create(
-                model=model_to_use,
-                messages=converted_messages,  # type: ignore[arg-type]
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True,
-                extra_body=extra_body,
-            ),
-        )
+        last_error = None
+        for model in models_to_try:
+            try:
+                logger.info(f"Trying OpenRouter streaming with model: {model}")
+                stream = cast(
+                    AsyncIterator[ChatCompletionChunk],
+                    await self._client.chat.completions.create(
+                        model=model,
+                        messages=converted_messages,  # type: ignore[arg-type]
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True,
+                    ),
+                )
 
-        async for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+                async for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+
+                # If we get here, streaming succeeded
+                return
+
+            except RateLimitError as e:
+                last_error = e
+                logger.warning(f"Rate limit hit for streaming model {model}: {e}")
+                continue
+            except Exception:
+                raise
+
+        # All models failed
+        if last_error:
+            raise last_error
 
     async def health_check(self) -> bool:
         """
         Check if OpenRouter API is accessible.
 
         Note: This makes a minimal API call to verify connectivity.
-        Uses auto-router with fallback models if configured.
+        Tries fallback models if primary is rate-limited.
         """
-        try:
-            model_to_use, extra_body = self._get_model_and_extra_body()
-            # Make a minimal request to check connectivity
-            response = await self._client.chat.completions.create(
-                model=model_to_use,
-                messages=[{"role": "user", "content": "Hi"}],
-                max_tokens=10,
-                extra_body=extra_body,
-            )
-            return response is not None
-        except Exception:
-            return False
+        models_to_try = self._get_models_to_try()
+
+        for model in models_to_try:
+            try:
+                response = await self._client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": "Hi"}],
+                    max_tokens=10,
+                )
+                return response is not None
+            except RateLimitError:
+                logger.warning(f"Health check rate limited for model {model}, trying fallback")
+                continue
+            except Exception:
+                return False
+
+        return False
