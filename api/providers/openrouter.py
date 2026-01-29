@@ -60,25 +60,34 @@ class OpenRouterProvider(LLMProvider):
         """
         return [{"role": msg.role, "content": msg.content} for msg in messages]
 
-    def _build_extra_body(self) -> dict | None:
+    def _get_model_and_extra_body(self) -> tuple[str, dict | None]:
         """
-        Build extra_body for OpenRouter-specific features like model fallback.
+        Get model name and extra_body for OpenRouter request.
 
-        Returns None if no fallback is configured, otherwise returns the
-        routing configuration for OpenRouter.
+        When fallback models are configured, uses openrouter/auto with the
+        auto-router plugin to enable automatic model selection and failover.
+
+        Returns:
+            Tuple of (model_name, extra_body) where extra_body may be None
         """
-        if not self.fallback_models:
-            return None
+        if not self.fallback_models or not self.allow_fallbacks:
+            # No fallback configured, use direct model
+            return self.model, None
 
-        # Build models list: primary model first, then fallbacks
-        models = [self.model] + self.fallback_models
+        # Use auto-router with allowed models for automatic failover
+        # Primary model listed first, then fallbacks
+        allowed_models = [self.model] + self.fallback_models
 
-        return {
-            "models": models,
-            "provider": {
-                "allow_fallbacks": self.allow_fallbacks,
-            },
+        extra_body = {
+            "plugins": [
+                {
+                    "id": "auto-router",
+                    "allowed_models": allowed_models,
+                }
+            ]
         }
+
+        return "openrouter/auto", extra_body
 
     async def chat(
         self,
@@ -89,10 +98,10 @@ class OpenRouterProvider(LLMProvider):
     ) -> LLMResponse:
         """Send a chat completion request to OpenRouter."""
         converted_messages = self._convert_messages(messages)
-        extra_body = self._build_extra_body()
+        model_to_use, extra_body = self._get_model_and_extra_body()
 
         response = await self._client.chat.completions.create(
-            model=self.model,
+            model=model_to_use,
             messages=converted_messages,  # type: ignore[arg-type]
             temperature=temperature,
             max_tokens=max_tokens,
@@ -106,7 +115,7 @@ class OpenRouterProvider(LLMProvider):
         # Extract response content
         content = response.choices[0].message.content or ""
 
-        # Use actual model from response (may differ if fallback was used)
+        # Use actual model from response (may differ if auto-router selected different model)
         actual_model = response.model if response.model else self.model
 
         return LLMResponse(
@@ -129,12 +138,12 @@ class OpenRouterProvider(LLMProvider):
     ) -> AsyncIterator[str]:
         """Stream chat completion from OpenRouter."""
         converted_messages = self._convert_messages(messages)
-        extra_body = self._build_extra_body()
+        model_to_use, extra_body = self._get_model_and_extra_body()
 
         stream = cast(
             AsyncIterator[ChatCompletionChunk],
             await self._client.chat.completions.create(
-                model=self.model,
+                model=model_to_use,
                 messages=converted_messages,  # type: ignore[arg-type]
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -152,13 +161,13 @@ class OpenRouterProvider(LLMProvider):
         Check if OpenRouter API is accessible.
 
         Note: This makes a minimal API call to verify connectivity.
-        Uses fallback models if configured.
+        Uses auto-router with fallback models if configured.
         """
         try:
-            extra_body = self._build_extra_body()
+            model_to_use, extra_body = self._get_model_and_extra_body()
             # Make a minimal request to check connectivity
             response = await self._client.chat.completions.create(
-                model=self.model,
+                model=model_to_use,
                 messages=[{"role": "user", "content": "Hi"}],
                 max_tokens=10,
                 extra_body=extra_body,
