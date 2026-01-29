@@ -6,7 +6,7 @@ OpenRouter provides access to various LLMs including free models via an OpenAI-c
 import logging
 from typing import AsyncIterator, cast
 
-from openai import AsyncOpenAI, RateLimitError
+from openai import APIStatusError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
 from .base import ChatMessage, LLMProvider, LLMResponse
@@ -111,9 +111,15 @@ class OpenRouterProvider(LLMProvider):
                 max_tokens=max_tokens,
                 extra_body=extra_body,
             )
-        except RateLimitError as e:
-            # If we get a 429 and have fallback models, try them directly
-            if self.fallback_models and self.allow_fallbacks:
+        except (RateLimitError, APIStatusError) as e:
+            # Check if this is a rate limit error (429 status code)
+            is_rate_limit = False
+            if isinstance(e, RateLimitError):
+                is_rate_limit = True
+            elif isinstance(e, APIStatusError) and e.status_code == 429:
+                is_rate_limit = True
+
+            if is_rate_limit and self.fallback_models and self.allow_fallbacks:
                 logger.warning(
                     f"Rate limit hit for {self.model}, trying fallback models: {self.fallback_models}"
                 )
@@ -139,8 +145,15 @@ class OpenRouterProvider(LLMProvider):
                             ),
                             finish_reason=response.choices[0].finish_reason,
                         )
-                    except RateLimitError:
-                        logger.warning(f"Fallback model {fallback_model} also rate limited")
+                    except (RateLimitError, APIStatusError) as fallback_e:
+                        # Check if fallback is also rate limited
+                        fallback_is_rate_limit = isinstance(fallback_e, RateLimitError) or (
+                            isinstance(fallback_e, APIStatusError) and fallback_e.status_code == 429
+                        )
+                        if fallback_is_rate_limit:
+                            logger.warning(f"Fallback model {fallback_model} also rate limited")
+                        else:
+                            logger.error(f"Fallback model {fallback_model} failed: {fallback_e}")
                         continue
                     except Exception as fallback_error:
                         logger.error(f"Fallback model {fallback_model} failed: {fallback_error}")
@@ -152,7 +165,7 @@ class OpenRouterProvider(LLMProvider):
                     f"Fallbacks: {self.fallback_models}"
                 ) from e
             else:
-                # No fallbacks configured, re-raise the original error
+                # No fallbacks configured or not a rate limit, re-raise the original error
                 raise
 
         # Handle cases where response might be malformed
@@ -231,7 +244,16 @@ class OpenRouterProvider(LLMProvider):
                         yield chunk.choices[0].delta.content
                 return  # Success, exit the generator
 
-            except RateLimitError as e:
+            except (RateLimitError, APIStatusError) as e:
+                # Check if this is a rate limit error (429 status code)
+                is_rate_limit = isinstance(e, RateLimitError) or (
+                    isinstance(e, APIStatusError) and e.status_code == 429
+                )
+
+                if not is_rate_limit:
+                    # Not a rate limit error, re-raise
+                    raise
+
                 logger.warning(f"Rate limit hit for {current_model} in streaming")
 
                 # Try next fallback model
@@ -251,9 +273,6 @@ class OpenRouterProvider(LLMProvider):
                         "All models rate limited in streaming. "
                         f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}"
                     ) from e
-            except Exception:
-                # Other errors, re-raise
-                raise
 
     async def health_check(self) -> bool:
         """
