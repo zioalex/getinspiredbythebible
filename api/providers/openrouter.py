@@ -71,6 +71,10 @@ class OpenRouterProvider(LLMProvider):
             max_tokens=max_tokens,
         )
 
+        # Handle cases where response might be malformed
+        if not response or not response.choices:
+            raise ValueError("OpenRouter returned empty response - API may be overloaded")
+
         # Extract response content
         content = response.choices[0].message.content or ""
 
@@ -107,7 +111,7 @@ class OpenRouterProvider(LLMProvider):
         )
 
         async for chunk in stream:
-            if chunk.choices[0].delta.content:
+            if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
     async def health_check(self) -> bool:
