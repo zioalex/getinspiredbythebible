@@ -37,8 +37,9 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
-    # Fallback models (comma-separated) - used when primary model is unavailable
-    openrouter_fallback_models: str = ""
+    # Fallback models (comma-separated) - used when primary model is rate limited
+    # Default: paid version of llama-3.3-70b for when free tier hits limits
+    openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
     # Allow automatic fallback to other providers/models
     openrouter_allow_fallbacks: bool = True
 
