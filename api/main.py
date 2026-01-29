@@ -45,11 +45,17 @@ async def lifespan(app: FastAPI):
             "debug": settings.debug,
         },
     )
+    # Get the actual model being used based on provider
+    if settings.llm_provider == "openrouter":
+        llm_model = settings.openrouter_model
+    else:
+        llm_model = settings.llm_model
+
     logger.info(
         "LLM configuration",
         extra={
             "provider": settings.llm_provider,
-            "model": settings.llm_model,
+            "model": llm_model,
             "temperature": settings.llm_temperature,
         },
     )
@@ -155,10 +161,16 @@ async def get_config():
 
     Useful for debugging and frontend configuration.
     """
+    # Get the actual model being used based on provider
+    if settings.llm_provider == "openrouter":
+        llm_model = settings.openrouter_model
+    else:
+        llm_model = settings.llm_model
+
     return {
         "llm": {
             "provider": settings.llm_provider,
-            "model": settings.llm_model,
+            "model": llm_model,
             "temperature": settings.llm_temperature,
             "max_tokens": settings.llm_max_tokens,
         },
