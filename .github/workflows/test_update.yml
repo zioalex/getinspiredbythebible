@@ -179,6 +179,21 @@ jobs:
           echo "Note: Using OpenRouter for LLM (matches production config)"
           curl -s http://localhost:11434/api/tags | jq .
 
+      - name: Load CI test data (1 Corinthians with embeddings)
+        run: |
+          echo "Loading 1 Corinthians with embeddings for semantic search testing..."
+          cd scripts
+          pip install httpx asyncpg sqlalchemy
+          # Load only 1 Corinthians (CI mode)
+          python load_bible.py --ci
+          # Generate embeddings for the loaded verses
+          python create_embeddings.py --ci
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb  # pragma: allowlist secret
+          OLLAMA_HOST: http://localhost:11434
+          EMBEDDING_MODEL: mxbai-embed-large
+          EMBEDDING_DIMENSIONS: 1024
+
       - name: Test API health endpoint
         run: |
           max_attempts=30
@@ -256,6 +271,17 @@ jobs:
           if [ "$http_code" = "200" ]; then
             if cat /tmp/chat_response.json | jq -e '.message' > /dev/null 2>&1; then
               echo "✓ Chat endpoint responded successfully!"
+              # Verify semantic search returned verses (not empty)
+              verse_count=$(cat /tmp/chat_response.json | jq '.scripture_context.verses | length')
+              echo "Scripture verses found: $verse_count"
+              if [ "$verse_count" -gt 0 ]; then
+                echo "✓ Semantic search working - found $verse_count verses!"
+                # Show first verse for verification
+                cat /tmp/chat_response.json | jq '.scripture_context.verses[0]'
+              else
+                echo "⚠ WARNING: No verses returned - semantic search may not be working"
+                echo "This could indicate embedding issues"
+              fi
             else
               echo "ERROR: Chat response missing 'message' field"
               exit 1
