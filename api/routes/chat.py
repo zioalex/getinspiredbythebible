@@ -5,19 +5,24 @@ Chat API routes.
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+from utils.security import check_content_filter, require_rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("", response_model=ChatResponse)
+@router.post(
+    "",
+    response_model=ChatResponse,
+    dependencies=[Depends(require_rate_limit), Depends(check_content_filter)],
+)
 async def chat(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
 ):
@@ -37,7 +42,10 @@ async def chat(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/stream")
+@router.post(
+    "/stream",
+    dependencies=[Depends(require_rate_limit), Depends(check_content_filter)],
+)
 async def chat_stream(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
 ):

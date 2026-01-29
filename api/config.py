@@ -67,6 +67,19 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+    # Security Settings
+    max_message_length: int = 200  # Max characters per chat message
+    rate_limit_enabled: bool = True
+    rate_limit_requests_per_minute: int = 20  # Per IP address
+    rate_limit_requests_per_session_minute: int = 10  # Per session per minute
+    rate_limit_session_max_requests: int = 100  # Lifetime max per session
+    content_filter_enabled: bool = True
+    content_filter_block_profanity: bool = True
+    content_filter_block_spam: bool = True
+    content_filter_max_repeated_chars: int = 5  # Block excessive repeated chars
+    content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
+    security_log_violations: bool = True  # Log security violations
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -10,7 +10,7 @@ import time
 import uuid
 from typing import AsyncIterator
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -33,11 +33,22 @@ class ConversationMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Request to the chat endpoint."""
 
-    message: str
+    message: str = Field(..., min_length=1, max_length=settings.max_message_length)
     conversation_history: list[ConversationMessage] = []
     include_search: bool = True  # Whether to search scripture first
     preferred_translation: str | None = None  # User's preferred translation code
-    session_id: str | None = None  # Optional session identifier for tracking
+    session_id: str | None = Field(
+        default=None, max_length=64, pattern=r"^[a-zA-Z0-9\-_]+$"
+    )  # Optional session identifier for tracking
+
+    @field_validator("message")
+    @classmethod
+    def validate_message_content(cls, v: str) -> str:
+        """Strip whitespace and validate message is not empty."""
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Message cannot be empty or whitespace only")
+        return stripped
 
 
 class ChatResponse(BaseModel):
