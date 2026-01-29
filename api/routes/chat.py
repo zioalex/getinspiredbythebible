@@ -7,6 +7,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
@@ -37,6 +38,17 @@ async def chat(
     try:
         response = await service.chat(request)
         return response
+    except RuntimeError as e:
+        # Handle "all models rate limited" from OpenRouter fallback
+        if "All models rate limited" in str(e):
+            logger.warning("All LLM models rate limited: %s", str(e))
+            raise HTTPException(
+                status_code=HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Our AI service is temporarily busy. Please try again in a moment.",
+            ) from e
+        # Other runtime errors
+        logger.exception("Chat runtime error: %s", str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred") from e
     except Exception as e:
         logger.exception("Chat request failed: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -62,6 +74,14 @@ async def chat_stream(
                 # SSE format
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
             yield "data: [DONE]\n\n"
+        except RuntimeError as e:
+            # Handle "all models rate limited" from OpenRouter fallback
+            if "All models rate limited" in str(e):
+                logger.warning("Streaming: All LLM models rate limited: %s", str(e))
+                yield f"data: {json.dumps({'error': 'Our AI service is temporarily busy. Please try again in a moment.'})}\n\n"
+            else:
+                logger.exception("Chat stream runtime error: %s", str(e))
+                yield f"data: {json.dumps({'error': 'An unexpected error occurred'})}\n\n"
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
