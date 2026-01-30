@@ -86,12 +86,34 @@ llm_provider = "openrouter"
 openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
 
 # OpenRouter model (free models available!)
-# Free options: google/gemma-3-27b-it:free, meta-llama/llama-3.3-70b-instruct:free
-openrouter_model = "google/gemma-3-27b-it:free"
+# Free options: meta-llama/llama-3.3-70b-instruct:free, google/gemma-3-27b-it:free
+openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
+
+# OpenRouter fallback configuration (when free model is rate limited)
+openrouter_fallback_models = "meta-llama/llama-3.3-70b-instruct"  # Paid fallback
+openrouter_allow_fallbacks = true
 
 # --- OR use Claude (paid) ---
 # llm_provider = "claude"
 # claude_api_key = "sk-ant-api03-..."  # pragma: allowlist secret
+
+# -----------------------------------------------------------------------------
+# Security & Rate Limiting (defaults are recommended for production)
+# -----------------------------------------------------------------------------
+
+# Debug mode (MUST be false in production)
+debug_mode = false
+
+# Log level (INFO recommended for production, DEBUG for troubleshooting)
+log_level = "INFO"
+
+# Rate limiting (protects against abuse)
+rate_limit_enabled            = true
+rate_limit_requests_per_minute = 10
+
+# Content filtering (blocks profanity, spam, URLs)
+content_filter_enabled = true
+max_message_length     = 200
 
 # -----------------------------------------------------------------------------
 # Azure OpenAI for Embeddings (RECOMMENDED - very cheap!)

@@ -280,10 +280,50 @@ resource "azurerm_container_app" "backend" {
         }
       }
 
-      # Liveness probe
+      # OpenRouter fallback configuration
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_ALLOW_FALLBACKS"
+          value = tostring(var.openrouter_allow_fallbacks)
+        }
+      }
+
+      # Security & Application Settings
+      env {
+        name  = "DEBUG"
+        value = tostring(var.debug_mode)
+      }
+
+      env {
+        name  = "LOG_LEVEL"
+        value = var.log_level
+      }
+
+      env {
+        name  = "RATE_LIMIT_ENABLED"
+        value = tostring(var.rate_limit_enabled)
+      }
+
+      env {
+        name  = "RATE_LIMIT_REQUESTS_PER_MINUTE"
+        value = tostring(var.rate_limit_requests_per_minute)
+      }
+
+      env {
+        name  = "CONTENT_FILTER_ENABLED"
+        value = tostring(var.content_filter_enabled)
+      }
+
+      env {
+        name  = "MAX_MESSAGE_LENGTH"
+        value = tostring(var.max_message_length)
+      }
+
+      # Liveness probe - checks if container is alive
       liveness_probe {
         transport = "HTTP"
-        path      = "/health"
+        path      = "/health/live"
         port      = 8000
 
         initial_delay    = 10
@@ -292,10 +332,10 @@ resource "azurerm_container_app" "backend" {
         failure_count_threshold = 3
       }
 
-      # Readiness probe
+      # Readiness probe - checks if container can serve traffic
       readiness_probe {
         transport = "HTTP"
-        path      = "/health"
+        path      = "/health/ready"
         port      = 8000
 
         interval_seconds = 10

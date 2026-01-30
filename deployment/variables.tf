@@ -181,9 +181,9 @@ variable "openrouter_api_key" {
 }
 
 variable "openrouter_model" {
-  description = "OpenRouter model name (e.g., google/gemma-3-27b-it:free)"
+  description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct:free)"
   type        = string
-  default     = "google/gemma-3-27b-it:free"
+  default     = "meta-llama/llama-3.3-70b-instruct:free"
 }
 
 # -----------------------------------------------------------------------------
@@ -218,6 +218,67 @@ variable "embedding_capacity" {
   description = "Embedding model capacity (tokens per minute in thousands)"
   type        = number
   default     = 120
+}
+
+# -----------------------------------------------------------------------------
+# Security & Rate Limiting Configuration
+# -----------------------------------------------------------------------------
+
+variable "debug_mode" {
+  description = "Enable debug mode (should be false for production)"
+  type        = bool
+  default     = false
+}
+
+variable "log_level" {
+  description = "Application log level"
+  type        = string
+  default     = "INFO"
+
+  validation {
+    condition     = contains(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], var.log_level)
+    error_message = "Log level must be DEBUG, INFO, WARNING, ERROR, or CRITICAL."
+  }
+}
+
+variable "rate_limit_enabled" {
+  description = "Enable rate limiting for API endpoints"
+  type        = bool
+  default     = true
+}
+
+variable "rate_limit_requests_per_minute" {
+  description = "Maximum requests per IP per minute"
+  type        = number
+  default     = 20
+}
+
+variable "content_filter_enabled" {
+  description = "Enable content filtering for chat messages"
+  type        = bool
+  default     = true
+}
+
+variable "max_message_length" {
+  description = "Maximum length of chat messages"
+  type        = number
+  default     = 200
+}
+
+# -----------------------------------------------------------------------------
+# OpenRouter Fallback Configuration
+# -----------------------------------------------------------------------------
+
+variable "openrouter_fallback_models" {
+  description = "Comma-separated list of fallback models for OpenRouter"
+  type        = string
+  default     = "meta-llama/llama-3.3-70b-instruct"
+}
+
+variable "openrouter_allow_fallbacks" {
+  description = "Allow automatic fallback to paid models when free models are rate limited"
+  type        = bool
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
