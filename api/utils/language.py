@@ -1,8 +1,16 @@
 """
 Language detection and translation mapping utilities.
+
+This module provides a pluggable language detection system that supports
+multiple backends (lingua-py, langdetect, etc.) through a common interface.
 """
 
-from langdetect import LangDetectException, detect
+from abc import ABC, abstractmethod
+from typing import Literal
+
+# Supported languages for this application
+SUPPORTED_LANGUAGES = ["en", "it", "de"]
+DEFAULT_LANGUAGE = "en"
 
 # Map ISO 639-1 language codes to default translation codes
 # First translation in each list is the default
@@ -53,25 +61,198 @@ TRANSLATION_INFO = {
 DEFAULT_TRANSLATION = "web"
 
 
+# =============================================================================
+# Language Detector Interface and Implementations
+# =============================================================================
+
+
+class LanguageDetector(ABC):
+    """
+    Abstract base class for language detection.
+
+    Implementations should detect the language of text and return an ISO 639-1
+    language code. If detection fails or confidence is low, return DEFAULT_LANGUAGE.
+    """
+
+    @abstractmethod
+    def detect(self, text: str) -> str:
+        """
+        Detect the language of the given text.
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            ISO 639-1 language code (e.g., 'en', 'it', 'de')
+            Returns DEFAULT_LANGUAGE if detection fails or confidence is low
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of this detector implementation."""
+        pass
+
+
+class LinguaLanguageDetector(LanguageDetector):
+    """
+    Language detector using lingua-py library.
+
+    lingua-py is accurate for short text and uses n-grams of sizes 1-5.
+    It's deterministic and doesn't require GPU or external APIs.
+    """
+
+    def __init__(
+        self,
+        supported_languages: list[str] | None = None,
+        min_text_length: int = 10,
+        confidence_threshold: float = 0.6,
+    ):
+        """
+        Initialize the lingua detector.
+
+        Args:
+            supported_languages: List of ISO 639-1 codes to detect (default: SUPPORTED_LANGUAGES)
+            min_text_length: Minimum text length for detection (shorter defaults to English)
+            confidence_threshold: Minimum confidence for non-English languages (0.0-1.0)
+        """
+        from lingua import Language, LanguageDetectorBuilder
+
+        self._min_text_length = min_text_length
+        self._confidence_threshold = confidence_threshold
+        self._supported_languages = supported_languages or SUPPORTED_LANGUAGES
+
+        # Map ISO codes to lingua Language enums
+        lang_map = {
+            "en": Language.ENGLISH,
+            "it": Language.ITALIAN,
+            "de": Language.GERMAN,
+        }
+        languages = [lang_map[code] for code in self._supported_languages if code in lang_map]
+
+        self._detector = (
+            LanguageDetectorBuilder.from_languages(*languages)
+            .with_preloaded_language_models()
+            .build()
+        )
+
+    @property
+    def name(self) -> str:
+        return "lingua"
+
+    def detect(self, text: str) -> str:
+        """Detect language using lingua-py with confidence scoring."""
+        # Very short text - default to English
+        if not text or len(text.strip()) < self._min_text_length:
+            return DEFAULT_LANGUAGE
+
+        try:
+            confidence_values = self._detector.compute_language_confidence_values(text)
+            if not confidence_values:
+                return DEFAULT_LANGUAGE
+
+            top = confidence_values[0]
+            top_lang = top.language.iso_code_639_1.name.lower()
+            top_conf = top.value
+
+            # If English is the top detected language, return it
+            if top_lang == "en":
+                return "en"
+
+            # For non-English, require reasonable confidence
+            if top_conf >= self._confidence_threshold:
+                return top_lang
+            else:
+                return DEFAULT_LANGUAGE
+        except Exception:
+            return DEFAULT_LANGUAGE
+
+
+# =============================================================================
+# Detector Factory and Global Instance
+# =============================================================================
+
+# Type alias for supported detector providers
+DetectorProvider = Literal["lingua"]
+
+# Global detector instance (lazy initialization)
+_detector: LanguageDetector | None = None
+_detector_provider: DetectorProvider = "lingua"
+
+
+def create_language_detector(
+    provider: DetectorProvider = "lingua",
+    **kwargs,
+) -> LanguageDetector:
+    """
+    Factory function to create a language detector.
+
+    Args:
+        provider: The detection library to use ('lingua')
+        **kwargs: Additional arguments passed to the detector constructor
+
+    Returns:
+        A LanguageDetector instance
+
+    Raises:
+        ValueError: If provider is not supported
+    """
+    if provider == "lingua":
+        return LinguaLanguageDetector(**kwargs)
+    else:
+        raise ValueError(f"Unsupported language detector provider: {provider}")
+
+
+def get_detector() -> LanguageDetector:
+    """Get the global language detector instance (creates it if needed)."""
+    global _detector
+    if _detector is None:
+        _detector = create_language_detector(_detector_provider)
+    return _detector
+
+
+def set_detector(detector: LanguageDetector) -> None:
+    """
+    Set the global language detector instance.
+
+    Useful for testing or switching implementations at runtime.
+    """
+    global _detector
+    _detector = detector
+
+
+def set_detector_provider(provider: DetectorProvider) -> None:
+    """
+    Set the detector provider and reset the global instance.
+
+    The new detector will be created on the next call to get_detector().
+    """
+    global _detector, _detector_provider
+    _detector_provider = provider
+    _detector = None
+
+
+# =============================================================================
+# Public API Functions
+# =============================================================================
+
+
 def detect_language(text: str) -> str:
     """
     Detect the language of the given text.
+
+    This is the main entry point for language detection. It uses the
+    configured detector backend (default: lingua-py).
 
     Args:
         text: Text to analyze
 
     Returns:
         ISO 639-1 language code (e.g., 'en', 'it', 'de')
-        Returns 'en' if detection fails or text is too short
+        Returns 'en' if detection fails, text is too short, or confidence is low
     """
-    if not text or len(text.strip()) < 10:
-        return "en"
-
-    try:
-        result: str = detect(text)
-        return result
-    except LangDetectException:
-        return "en"
+    return get_detector().detect(text)
 
 
 def get_translation_for_language(language_code: str) -> str:
@@ -179,6 +360,10 @@ def resolve_translation(
 
     return DEFAULT_TRANSLATION
 
+
+# =============================================================================
+# Book Name Localization
+# =============================================================================
 
 # Reverse book name mappings (English -> localized)
 ENGLISH_TO_ITALIAN_BOOKS = {

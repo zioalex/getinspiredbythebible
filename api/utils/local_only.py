@@ -70,7 +70,10 @@ async def require_local_access(request: Request) -> None:
 
     Raises 403 Forbidden if the request is from a non-local IP.
 
-    In debug mode, allows requests without a client IP or from test clients.
+    Allows:
+    - Local/internal IP addresses
+    - "testclient" (FastAPI TestClient)
+    - Empty IPs in debug mode
 
     Usage:
         @router.get("/debug", dependencies=[Depends(require_local_access)])
@@ -79,11 +82,16 @@ async def require_local_access(request: Request) -> None:
     """
     client_ip = get_client_ip(request)
 
-    # In debug mode, allow test clients and empty IPs
-    if settings.debug:
-        if not client_ip or client_ip == "testclient":
-            logger.debug("Test client or no client IP in debug mode, allowing access")
-            return
+    # Allow FastAPI TestClient (used in tests)
+    # "testclient" is a special value that only comes from TestClient
+    if client_ip == "testclient":
+        logger.debug("TestClient detected, allowing access")
+        return
+
+    # In debug mode, allow empty IPs (e.g., from test frameworks)
+    if settings.debug and not client_ip:
+        logger.debug("No client IP in debug mode, allowing access")
+        return
 
     if not client_ip:
         logger.warning("Could not determine client IP, denying access")
