@@ -51,7 +51,9 @@ async def chat(
         raise HTTPException(status_code=500, detail="An unexpected error occurred") from e
     except Exception as e:
         logger.exception("Chat request failed: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail="An error occurred processing your request"
+        ) from e
 
 
 @router.post(
@@ -84,7 +86,7 @@ async def chat_stream(
                 yield f"data: {json.dumps({'error': 'An unexpected error occurred'})}\n\n"
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'error': 'An error occurred processing your request'})}\n\n"
 
     return StreamingResponse(
         generate(),
@@ -116,4 +118,6 @@ async def get_verse_context(
         return await service.get_verse_context(book, chapter, verse)
     except Exception as e:
         logger.exception("Get verse context failed: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail="An error occurred retrieving verse context"
+        ) from e

@@ -84,7 +84,9 @@ async def submit_feedback(
                 "message_id": request.message_id,
             },
         )
-        raise HTTPException(status_code=500, detail=f"Failed to save feedback: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Failed to save feedback. Please try again."
+        ) from e
 
 
 @router.post("/contact", response_model=ContactResponse)
@@ -144,4 +146,6 @@ async def submit_contact(
                 "subject": request.subject,
             },
         )
-        raise HTTPException(status_code=500, detail=f"Failed to save contact: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Failed to save contact. Please try again."
+        ) from e
