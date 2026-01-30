@@ -70,12 +70,17 @@ class ScriptureRepository:
         return result.scalar_one_or_none()
 
     async def get_verses_in_range(
-        self, book_name: str, chapter: int, start_verse: int, end_verse: int
+        self,
+        book_name: str,
+        chapter: int,
+        start_verse: int,
+        end_verse: int,
+        translation: str | None = None,
     ) -> Sequence[Verse]:
-        """Get verses in a range (e.g., John 3:16-21)."""
+        """Get verses in a range (e.g., John 3:16-21), optionally filtered by translation."""
         # Normalize localized book names to English
         english_name = normalize_book_name(book_name)
-        result = await self.session.execute(
+        query = (
             select(Verse)
             .join(Book)
             .where(
@@ -84,9 +89,13 @@ class ScriptureRepository:
                 Verse.verse_number >= start_verse,
                 Verse.verse_number <= end_verse,
             )
-            .order_by(Verse.verse_number)
-            .options(selectinload(Verse.book))
         )
+
+        if translation:
+            query = query.where(Verse.translation == translation)
+
+        query = query.order_by(Verse.verse_number).options(selectinload(Verse.book))
+        result = await self.session.execute(query)
         return result.scalars().all()
 
     async def get_chapter_verses(

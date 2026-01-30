@@ -224,7 +224,7 @@ class ChatService:
 
         try:
             # Direct verse lookups for specific references
-            direct_verses = await self._lookup_direct_verses(verse_refs)
+            direct_verses = await self._lookup_direct_verses(verse_refs, translation)
 
             # Semantic search for additional context
             scripture_context = await self.search_service.search(
@@ -263,8 +263,8 @@ class ChatService:
 
         return scripture_context, search_context_prompt
 
-    async def _lookup_direct_verses(self, verse_refs: list) -> list:
-        """Look up specific verses from references."""
+    async def _lookup_direct_verses(self, verse_refs: list, translation: str | None = None) -> list:
+        """Look up specific verses from references, filtered by translation."""
         direct_verses = []
         for ref in verse_refs:
             if ref.verse_end:
@@ -273,11 +273,15 @@ class ChatService:
                     chapter=ref.chapter,
                     start_verse=ref.verse_start,
                     end_verse=ref.verse_end,
+                    translation=translation,
                 )
                 direct_verses.extend(range_verses)
             else:
                 verse = await self.search_service.get_verse(
-                    book=ref.book, chapter=ref.chapter, verse=ref.verse_start
+                    book=ref.book,
+                    chapter=ref.chapter,
+                    verse=ref.verse_start,
+                    translation=translation,
                 )
                 if verse:
                     direct_verses.append(verse)

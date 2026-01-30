@@ -130,9 +130,11 @@ class ScriptureSearchService:
 
         return SearchResults(query=query, verses=verses, passages=passages)
 
-    async def get_verse(self, book: str, chapter: int, verse: int) -> VerseResult | None:
-        """Get a specific verse by reference."""
-        result = await self.repo.get_verse(book, chapter, verse)
+    async def get_verse(
+        self, book: str, chapter: int, verse: int, translation: str | None = None
+    ) -> VerseResult | None:
+        """Get a specific verse by reference, optionally filtered by translation."""
+        result = await self.repo.get_verse(book, chapter, verse, translation)
         if not result:
             return None
 
@@ -142,13 +144,21 @@ class ScriptureSearchService:
             book=result.book.name,
             chapter=result.chapter_number,
             verse=result.verse_number,
+            translation=result.translation,
         )
 
     async def get_verse_range(
-        self, book: str, chapter: int, start_verse: int, end_verse: int
+        self,
+        book: str,
+        chapter: int,
+        start_verse: int,
+        end_verse: int,
+        translation: str | None = None,
     ) -> list[VerseResult]:
-        """Get a range of verses."""
-        results = await self.repo.get_verses_in_range(book, chapter, start_verse, end_verse)
+        """Get a range of verses, optionally filtered by translation."""
+        results = await self.repo.get_verses_in_range(
+            book, chapter, start_verse, end_verse, translation
+        )
 
         return [
             VerseResult(
@@ -157,6 +167,7 @@ class ScriptureSearchService:
                 book=v.book.name,
                 chapter=v.chapter_number,
                 verse=v.verse_number,
+                translation=v.translation,
             )
             for v in results
         ]
