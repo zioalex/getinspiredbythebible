@@ -352,6 +352,31 @@ az consumption usage list \
 
 ## 🔐 Security Best Practices
 
+### Built-in Security Features (Enabled by Default)
+
+The application includes several security features that are enabled by default in production:
+
+| Feature | Variable | Default | Description |
+|---------|----------|---------|-------------|
+| Rate Limiting | `rate_limit_enabled` | `true` | Limits requests per IP/session |
+| Content Filtering | `content_filter_enabled` | `true` | Blocks profanity, spam, URLs |
+| Debug Mode | `debug_mode` | `false` | Prevents verbose error messages |
+| Message Length | `max_message_length` | `200` | Prevents oversized messages |
+
+### Configuration in Terraform
+
+```hcl
+# Security settings (in terraform.tfvars)
+debug_mode                     = false  # MUST be false in production
+log_level                      = "INFO"
+rate_limit_enabled             = true
+rate_limit_requests_per_minute = 20
+content_filter_enabled         = true
+max_message_length             = 200
+```
+
+### Additional Best Practices
+
 1. **Restrict Database Access**
 
    ```hcl
@@ -373,6 +398,10 @@ az consumption usage list \
      --resource-group bible-app-rg \
      --secrets claude-api-key=NEW_KEY
    ```
+
+5. **Monitor Security Violations**
+   - Check logs for rate limit and content filter violations
+   - Review Azure Log Analytics for suspicious patterns
 
 ## 📧 Email Notifications (SMTP2GO)
 
