@@ -1,8 +1,18 @@
 """
 Language detection and translation mapping utilities.
+
+Uses lingua-py for accurate language detection, especially for short text.
 """
 
-from langdetect import LangDetectException, detect
+from lingua import Language, LanguageDetectorBuilder
+
+# Build detector once at module load (singleton pattern)
+# Only load the languages we support for better performance and accuracy
+_detector = (
+    LanguageDetectorBuilder.from_languages(Language.ENGLISH, Language.ITALIAN, Language.GERMAN)
+    .with_preloaded_language_models()
+    .build()
+)
 
 # Map ISO 639-1 language codes to default translation codes
 # First translation in each list is the default
@@ -55,28 +65,40 @@ DEFAULT_TRANSLATION = "web"
 
 def detect_language(text: str) -> str:
     """
-    Detect the language of the given text.
+    Detect the language of the given text using lingua-py.
 
     Args:
         text: Text to analyze
 
     Returns:
         ISO 639-1 language code (e.g., 'en', 'it', 'de')
-        Returns 'en' if detection fails, text is too short, or language is unsupported
+        Returns 'en' if detection fails, text is too short, or confidence is low
     """
-    # Require minimum text length for reliable detection
-    if not text or len(text.strip()) < 20:
+    # Very short text - default to English
+    if not text or len(text.strip()) < 10:
         return "en"
 
     try:
-        result: str = detect(text)
-        # Only return supported languages, otherwise default to English
-        # This prevents langdetect misdetections (e.g., English -> German) from
-        # causing the LLM to respond in the wrong language
-        if result in LANGUAGE_TRANSLATIONS:
-            return result
-        return "en"
-    except LangDetectException:
+        # Get confidence values for all supported languages
+        confidence_values = _detector.compute_language_confidence_values(text)
+        if not confidence_values:
+            return "en"
+
+        top = confidence_values[0]
+        top_lang = top.language.iso_code_639_1.name.lower()
+        top_conf = top.value
+
+        # If English is the top detected language, return it
+        if top_lang == "en":
+            return "en"
+
+        # For non-English, require reasonable confidence (> 0.6)
+        # Otherwise default to English (most common use case for this app)
+        if top_conf >= 0.6:
+            return top_lang
+        else:
+            return "en"
+    except Exception:
         return "en"
 
 
