@@ -152,6 +152,42 @@ class TestFindPrayerReference:
         assert result is not None
         assert result.name == "Lord's Prayer"
 
+    def test_hail_mary_not_biblical(self):
+        """Test that Hail Mary is correctly marked as non-biblical."""
+        result = find_prayer_reference("Tell me about the Hail Mary")
+        assert result is not None
+        assert result.name == "Hail Mary"
+        assert result.is_biblical is False
+        assert result.reference == ""
+
+    def test_ave_maria_not_biblical(self):
+        """Test that Ave Maria is correctly marked as non-biblical."""
+        result = find_prayer_reference("What is the Ave Maria?")
+        assert result is not None
+        assert result.name == "Hail Mary"
+        assert result.is_biblical is False
+
+    def test_serenity_prayer_not_biblical(self):
+        """Test that Serenity Prayer is correctly marked as non-biblical."""
+        result = find_prayer_reference("Recite the serenity prayer")
+        assert result is not None
+        assert result.name == "Serenity Prayer"
+        assert result.is_biblical is False
+
+    def test_lords_prayer_is_biblical(self):
+        """Test that Lord's Prayer is correctly marked as biblical."""
+        result = find_prayer_reference("Tell me about the Lord's Prayer")
+        assert result is not None
+        assert result.is_biblical is True
+        assert result.reference == "Matthew 6:9-13"
+
+    def test_psalm_23_is_biblical(self):
+        """Test that Psalm 23 is correctly marked as biblical."""
+        result = find_prayer_reference("What is Psalm 23?")
+        assert result is not None
+        assert result.is_biblical is True
+        assert result.reference == "Psalms 23:1-6"
+
 
 class TestExtractReferences:
     """Tests for extract_references function."""

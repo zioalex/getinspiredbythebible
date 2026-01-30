@@ -95,86 +95,189 @@ class PrayerReference:
     """Parsed prayer/passage reference."""
 
     name: str  # Canonical name (e.g., "Lord's Prayer")
-    reference: str  # Bible reference (e.g., "Matthew 6:9-13")
+    reference: str  # Bible reference (e.g., "Matthew 6:9-13") - empty if not biblical
     keywords: list[str]  # Keywords for semantic search fallback
+    is_biblical: bool = True  # Whether this prayer/passage is directly from the Bible
+    note: str = ""  # Additional note about the prayer's origin
 
 
 # Famous prayers and their Bible references
+# Note: is_biblical=False indicates the prayer is NOT directly from the Bible
 FAMOUS_PRAYERS = {
+    # === BIBLICAL PRAYERS AND PASSAGES ===
     "lord's prayer": PrayerReference(
         name="Lord's Prayer",
         reference="Matthew 6:9-13",
         keywords=["Our Father", "hallowed be thy name", "thy kingdom come"],
+        is_biblical=True,
     ),
     "our father": PrayerReference(
         name="Lord's Prayer",
         reference="Matthew 6:9-13",
         keywords=["Our Father", "hallowed be thy name", "thy kingdom come"],
+        is_biblical=True,
     ),
     "padre nostro": PrayerReference(  # Italian
         name="Lord's Prayer",
         reference="Matthew 6:9-13",
         keywords=["Padre nostro", "sia santificato il tuo nome"],
+        is_biblical=True,
     ),
     "vater unser": PrayerReference(  # German
         name="Lord's Prayer",
         reference="Matthew 6:9-13",
         keywords=["Vater unser", "geheiligt werde dein Name"],
+        is_biblical=True,
     ),
     "prayer of jabez": PrayerReference(
         name="Prayer of Jabez",
         reference="1 Chronicles 4:10",
         keywords=["bless me indeed", "enlarge my territory"],
+        is_biblical=True,
     ),
+    # === NON-BIBLICAL PRAYERS ===
     "serenity prayer": PrayerReference(
         name="Serenity Prayer",
-        reference="",  # Not directly in Bible, but related verses
+        reference="",
         keywords=["accept", "courage", "wisdom", "serenity"],
+        is_biblical=False,
+        note="Written by Reinhold Niebuhr in the 20th century, not from the Bible.",
     ),
+    "hail mary": PrayerReference(
+        name="Hail Mary",
+        reference="",
+        keywords=["Hail Mary", "full of grace", "blessed art thou"],
+        is_biblical=False,
+        note="Catholic prayer. Contains phrases from Luke 1:28,42 but the full prayer is not in the Bible.",
+    ),
+    "ave maria": PrayerReference(
+        name="Hail Mary",
+        reference="",
+        keywords=["Ave Maria", "gratia plena", "benedicta tu"],
+        is_biblical=False,
+        note="Catholic prayer (Latin). Contains phrases from Luke 1:28,42 but the full prayer is not in the Bible.",
+    ),
+    "prayer of st. francis": PrayerReference(
+        name="Prayer of St. Francis",
+        reference="",
+        keywords=["instrument of peace", "where there is hatred", "sow love"],
+        is_biblical=False,
+        note="20th-century prayer, not actually written by St. Francis, not from the Bible.",
+    ),
+    "prayer of saint francis": PrayerReference(
+        name="Prayer of St. Francis",
+        reference="",
+        keywords=["instrument of peace", "where there is hatred", "sow love"],
+        is_biblical=False,
+        note="20th-century prayer, not actually written by St. Francis, not from the Bible.",
+    ),
+    "glory be": PrayerReference(
+        name="Glory Be (Gloria Patri)",
+        reference="",
+        keywords=["Glory be to the Father", "as it was in the beginning"],
+        is_biblical=False,
+        note="Early Christian doxology (4th century), not from the Bible.",
+    ),
+    "gloria patri": PrayerReference(
+        name="Glory Be (Gloria Patri)",
+        reference="",
+        keywords=["Gloria Patri", "Filio", "Spiritui Sancto"],
+        is_biblical=False,
+        note="Early Christian doxology (4th century), not from the Bible.",
+    ),
+    "act of contrition": PrayerReference(
+        name="Act of Contrition",
+        reference="",
+        keywords=["O my God", "I am heartily sorry", "offended Thee"],
+        is_biblical=False,
+        note="Traditional Catholic prayer, not from the Bible.",
+    ),
+    "apostles' creed": PrayerReference(
+        name="Apostles' Creed",
+        reference="",
+        keywords=["I believe in God", "almighty", "creator of heaven"],
+        is_biblical=False,
+        note="Early Christian creed (2nd-4th century), summarizes beliefs but is not from the Bible.",
+    ),
+    "nicene creed": PrayerReference(
+        name="Nicene Creed",
+        reference="",
+        keywords=["We believe in one God", "begotten not made", "consubstantial"],
+        is_biblical=False,
+        note="Formulated at the Council of Nicaea (325 AD), not from the Bible.",
+    ),
+    # === MORE BIBLICAL PASSAGES ===
     "23rd psalm": PrayerReference(
         name="Psalm 23",
         reference="Psalms 23:1-6",
         keywords=["The Lord is my shepherd", "green pastures", "still waters"],
+        is_biblical=True,
     ),
     "psalm 23": PrayerReference(
         name="Psalm 23",
         reference="Psalms 23:1-6",
         keywords=["The Lord is my shepherd", "green pastures", "still waters"],
+        is_biblical=True,
     ),
     "salmo 23": PrayerReference(  # Italian
         name="Psalm 23",
         reference="Psalms 23:1-6",
         keywords=["L'Eterno è il mio pastore", "verdi paschi"],
+        is_biblical=True,
     ),
     "ten commandments": PrayerReference(
         name="Ten Commandments",
         reference="Exodus 20:1-17",
         keywords=["thou shalt not", "commandments", "no other gods"],
+        is_biblical=True,
     ),
     "beatitudes": PrayerReference(
         name="Beatitudes",
         reference="Matthew 5:3-12",
         keywords=["blessed are", "meek", "peacemakers"],
+        is_biblical=True,
     ),
     "love chapter": PrayerReference(
         name="Love Chapter",
         reference="1 Corinthians 13:1-13",
         keywords=["love is patient", "love is kind", "greatest of these is love"],
+        is_biblical=True,
     ),
     "armor of god": PrayerReference(
         name="Armor of God",
         reference="Ephesians 6:10-18",
         keywords=["armor", "belt of truth", "shield of faith", "sword of the Spirit"],
+        is_biblical=True,
     ),
     "fruit of the spirit": PrayerReference(
         name="Fruit of the Spirit",
         reference="Galatians 5:22-23",
         keywords=["love", "joy", "peace", "patience", "kindness"],
+        is_biblical=True,
     ),
     "great commission": PrayerReference(
         name="Great Commission",
         reference="Matthew 28:18-20",
         keywords=["go and make disciples", "baptizing", "teaching"],
+        is_biblical=True,
+    ),
+    "magnificat": PrayerReference(
+        name="Magnificat (Mary's Song)",
+        reference="Luke 1:46-55",
+        keywords=["My soul magnifies the Lord", "mighty has done great things"],
+        is_biblical=True,
+    ),
+    "benedictus": PrayerReference(
+        name="Benedictus (Zechariah's Song)",
+        reference="Luke 1:68-79",
+        keywords=["Blessed be the Lord God of Israel", "horn of salvation"],
+        is_biblical=True,
+    ),
+    "nunc dimittis": PrayerReference(
+        name="Nunc Dimittis (Simeon's Song)",
+        reference="Luke 2:29-32",
+        keywords=["Lord, now lettest thou", "thy servant depart in peace"],
+        is_biblical=True,
     ),
 }
 
