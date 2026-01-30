@@ -21,10 +21,10 @@
 | Secrets Management | ✅ COMPLETE | 1 Medium |
 | Rate Limiting | ✅ COMPLETE | 0 (fixed by anti-abuse merge) |
 | CORS Configuration | ✅ COMPLETE | 1 Low |
-| Error Handling | ⚠️ NEEDS FIX | 1 Medium |
+| Error Handling | ✅ COMPLETE | 0 (fixed) |
 | Logging Security | ✅ COMPLETE | 1 Low (PII in logs) |
 | Docker Security | ✅ COMPLETE | 0 (good) |
-| Dependency Vulnerabilities | ⚠️ ACTION NEEDED | 2 High, 1 Critical (dev-only) |
+| Dependency Vulnerabilities | ⚠️ ACTION NEEDED | 1 High (Next.js), 1 Critical (dev-only) |
 
 **Legend:** ⬜ PENDING | 🔄 IN PROGRESS | ✅ COMPLETE | ⚠️ ISSUES FOUND
 
@@ -53,16 +53,15 @@
 **Status:** ✅ FIXED by `feature/anti-abuse-security` merge
 **Solution:** `api/utils/rate_limiter.py` implements per-IP and per-session rate limiting
 
-#### [DEP-HIGH-001] python-multipart Arbitrary File Write
+#### ~~[DEP-HIGH-001] python-multipart Arbitrary File Write~~ ✅ FIXED
 
 **Package:** python-multipart
 **Severity:** HIGH
 **Alert:** #69
 **Description:** Arbitrary file write via non-default configuration
 **Impact:** Could allow file system writes if multipart parsing is misconfigured
-**Recommendation:** Update python-multipart to fixed version
-**Action:** Run `pip install --upgrade python-multipart` and update requirements.txt
-**Status:** ⚠️ OPEN - Production risk
+**Solution:** Updated python-multipart 0.0.18 -> 0.0.22 in requirements.txt
+**Status:** ✅ FIXED
 
 #### [DEP-HIGH-002] Next.js DoS via Server Components
 
@@ -89,25 +88,14 @@
 
 ### Medium
 
-#### [MED-001] Exception Details Exposed to Users
+#### ~~[MED-001] Exception Details Exposed to Users~~ ✅ FIXED
 
-**File:** `api/routes/chat.py:37,59,91`
+**File:** `api/routes/chat.py`, `api/routes/feedback.py`
 **Category:** A05:2021 - Security Misconfiguration
-**Description:** Exception messages are directly returned to users via `detail=str(e)`,
+**Description:** Exception messages were directly returned to users via `detail=str(e)`,
 potentially exposing internal implementation details.
-**Impact:** Information disclosure - stack traces, internal paths, or configuration details may leak
-**Recommendation:** Return generic error messages to users, log detailed errors server-side
-
-```python
-# Current (vulnerable)
-raise HTTPException(status_code=500, detail=str(e))
-
-# Recommended
-logger.exception("Chat request failed")
-raise HTTPException(status_code=500, detail="An error occurred processing your request")
-```
-
-**Status:** ⚠️ OPEN
+**Solution:** Replaced with generic error messages. Detailed errors are now logged server-side only.
+**Status:** ✅ FIXED
 
 #### [MED-002] Debug Mode Enabled by Default
 
@@ -304,19 +292,19 @@ allow_origins=[
 
 ## Open Dependabot Alerts Summary
 
-| Alert | Package | Severity | Production Impact |
-|-------|---------|----------|-------------------|
-| #67 | vitest | CRITICAL | ❌ Dev-only |
-| #69 | python-multipart | HIGH | ✅ **Production** |
-| #71 | next | HIGH | ✅ **Production** |
-| #64 | glob | HIGH | ❌ Build-only |
-| #70 | next | MEDIUM | ✅ **Production** |
-| #68 | esbuild | MEDIUM | ❌ Dev-only |
+| Alert | Package | Severity | Production Impact | Status |
+|-------|---------|----------|-------------------|--------|
+| #67 | vitest | CRITICAL | ❌ Dev-only | Open |
+| #69 | python-multipart | HIGH | ✅ **Production** | ✅ FIXED |
+| #71 | next | HIGH | ✅ **Production** | Open (14.2.35 is latest 14.x) |
+| #64 | glob | HIGH | ❌ Build-only | Open |
+| #70 | next | MEDIUM | ✅ **Production** | Open (14.2.35 is latest 14.x) |
+| #68 | esbuild | MEDIUM | ❌ Dev-only | Open |
 
-**Immediate Action Required:**
+**Remaining Action:**
 
-1. Update `python-multipart` in `api/requirements.txt`
-2. Update `next` in `frontend/package.json`
+1. ~~Update `python-multipart`~~ ✅ Done
+2. Next.js 14.2.35 is already latest patched version in 14.2.x line. Consider upgrade to 15.x for additional fixes.
 
 ---
 
@@ -348,9 +336,9 @@ allow_origins=[
 
 ### Immediate (Production Risk)
 
-1. **DEP-HIGH-001** - Update python-multipart
-2. **DEP-HIGH-002** - Update Next.js
-3. **MED-001** - Fix exception detail exposure
+1. ~~**DEP-HIGH-001** - Update python-multipart~~ ✅ FIXED
+2. **DEP-HIGH-002** - Next.js (14.2.35 is latest 14.x; consider 15.x upgrade)
+3. ~~**MED-001** - Fix exception detail exposure~~ ✅ FIXED
 
 ### Short-term
 
@@ -372,9 +360,14 @@ allow_origins=[
 All code sections have been reviewed. The audit identified:
 
 - **0 Critical** production vulnerabilities in code
-- **2 High** priority code fixes (MED-001, plus dependency updates)
-- **3 Medium** priority code fixes
-- **3 Low** priority code fixes
-- **6 Dependabot alerts** (3 affecting production)
+- **2 High** priority fixes - ✅ BOTH FIXED (MED-001, DEP-HIGH-001)
+- **2 Medium** priority fixes remaining (MED-002, MED-004)
+- **3 Low** priority fixes remaining
+- **5 Dependabot alerts** remaining (1 production: Next.js)
 
-The `feature/anti-abuse-security` merge resolved the most critical issue (rate limiting).
+### Fixed in This Audit
+
+1. ✅ **HIGH-001** - Rate limiting (merged from anti-abuse branch)
+2. ✅ **MED-001** - Exception detail exposure (generic error messages)
+3. ✅ **MED-003** - Input validation (merged from anti-abuse branch)
+4. ✅ **DEP-HIGH-001** - python-multipart updated to 0.0.22
