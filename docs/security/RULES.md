@@ -80,13 +80,15 @@
 
 Before marking any security issue as FIXED:
 
-1. **CI Workflow Must Pass**: The `CI/CD - Test Application` workflow must complete
-   successfully on the target branch before merging any fix.
-2. **Create Separate PRs**: Each security fix should be in its own PR for clear tracking
+1. **Never Push Directly to Main**: All changes must go through a Pull Request.
+   Create a feature branch, push changes, and open a PR for review.
+2. **CI Workflow Must Pass**: The `CI/CD - Test Application` workflow must complete
+   successfully on the PR branch before merging.
+3. **Create Separate PRs**: Each security fix should be in its own PR for clear tracking
    and easy rollback if needed.
-3. **Merge Order**: Document any dependencies between fixes. If fix B depends on fix A,
+4. **Merge Order**: Document any dependencies between fixes. If fix B depends on fix A,
    merge A first.
-4. **Verification**: After merge, verify the fix is working in the deployed environment
+5. **Verification**: After merge, verify the fix is working in the deployed environment
    if applicable.
 
 ## Reporting Format
