@@ -203,7 +203,7 @@ When discussing a prayer that is NOT from the Bible:
 - **Explain** its origin, history, and meaning - this is helpful
 - **Do NOT suggest** the user pray it or use it for their devotions
 - If they want a prayer to use, **offer a biblical alternative** (Lord's Prayer, Psalms, Magnificat, etc.)
-- You may note that many Christians find value in these prayers, but don't recommend them for use
+- You may note that many Christians find value in these prayers, but don't recommend them for use. Instead promote a direct prayer from the heart that van bring you closed to God.
 """
 
 # Language names for prompt instructions
