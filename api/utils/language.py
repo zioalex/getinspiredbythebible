@@ -62,14 +62,20 @@ def detect_language(text: str) -> str:
 
     Returns:
         ISO 639-1 language code (e.g., 'en', 'it', 'de')
-        Returns 'en' if detection fails or text is too short
+        Returns 'en' if detection fails, text is too short, or language is unsupported
     """
-    if not text or len(text.strip()) < 10:
+    # Require minimum text length for reliable detection
+    if not text or len(text.strip()) < 20:
         return "en"
 
     try:
         result: str = detect(text)
-        return result
+        # Only return supported languages, otherwise default to English
+        # This prevents langdetect misdetections (e.g., English -> German) from
+        # causing the LLM to respond in the wrong language
+        if result in LANGUAGE_TRANSLATIONS:
+            return result
+        return "en"
     except LangDetectException:
         return "en"
 
