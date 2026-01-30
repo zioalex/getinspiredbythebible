@@ -76,6 +76,19 @@
 3. **npm audit** - Node.js vulnerabilities
 4. **Manual code review** - Logic flaws, design issues
 
+## Preconditions for Closing Issues
+
+Before marking any security issue as FIXED:
+
+1. **CI Workflow Must Pass**: The `CI/CD - Test Application` workflow must complete
+   successfully on the target branch before merging any fix.
+2. **Create Separate PRs**: Each security fix should be in its own PR for clear tracking
+   and easy rollback if needed.
+3. **Merge Order**: Document any dependencies between fixes. If fix B depends on fix A,
+   merge A first.
+4. **Verification**: After merge, verify the fix is working in the deployed environment
+   if applicable.
+
 ## Reporting Format
 
 For each finding:
