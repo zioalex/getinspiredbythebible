@@ -1,0 +1,418 @@
+"""
+Verse reference and prayer pattern parser.
+
+Detects Bible verse references and famous prayer names in user messages
+to enable direct lookup instead of relying solely on semantic search.
+"""
+
+import re
+from dataclasses import dataclass
+
+from utils.book_names import ENGLISH_TO_GERMAN, ENGLISH_TO_ITALIAN, normalize_book_name
+
+# All book names in all languages (for pattern matching)
+ALL_BOOK_NAMES: set[str] = set()
+ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.keys())  # English
+ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.values())  # Italian
+ALL_BOOK_NAMES.update(ENGLISH_TO_GERMAN.values())  # German
+
+# Common abbreviations for book names
+BOOK_ABBREVIATIONS = {
+    # English abbreviations
+    "gen": "Genesis",
+    "ex": "Exodus",
+    "exod": "Exodus",
+    "lev": "Leviticus",
+    "num": "Numbers",
+    "deut": "Deuteronomy",
+    "josh": "Joshua",
+    "judg": "Judges",
+    "ps": "Psalms",
+    "psa": "Psalms",
+    "psalm": "Psalms",
+    "prov": "Proverbs",
+    "eccl": "Ecclesiastes",
+    "isa": "Isaiah",
+    "jer": "Jeremiah",
+    "lam": "Lamentations",
+    "ezek": "Ezekiel",
+    "dan": "Daniel",
+    "hos": "Hosea",
+    "mic": "Micah",
+    "nah": "Nahum",
+    "hab": "Habakkuk",
+    "zeph": "Zephaniah",
+    "hag": "Haggai",
+    "zech": "Zechariah",
+    "mal": "Malachi",
+    "matt": "Matthew",
+    "mt": "Matthew",
+    "mk": "Mark",
+    "lk": "Luke",
+    "jn": "John",
+    "joh": "John",
+    "acts": "Acts",
+    "rom": "Romans",
+    "cor": "Corinthians",  # Needs number prefix handling
+    "gal": "Galatians",
+    "eph": "Ephesians",
+    "phil": "Philippians",
+    "col": "Colossians",
+    "thess": "Thessalonians",  # Needs number prefix handling
+    "tim": "Timothy",  # Needs number prefix handling
+    "pet": "Peter",  # Needs number prefix handling
+    "heb": "Hebrews",
+    "jas": "James",
+    "jude": "Jude",
+    "rev": "Revelation",
+    # Italian abbreviations (only those not already defined)
+    "gv": "John",  # Giovanni
+    "sal": "Psalms",  # Salmi
+    "lc": "Luke",  # Luca
+    "mc": "Mark",  # Marco
+    "ap": "Revelation",  # Apocalisse
+    "at": "Acts",  # Atti
+}
+
+
+@dataclass
+class VerseReference:
+    """Parsed verse reference."""
+
+    book: str  # Normalized English book name
+    chapter: int
+    verse_start: int
+    verse_end: int | None = None  # For ranges like "3:16-21"
+
+    def __str__(self) -> str:
+        if self.verse_end:
+            return f"{self.book} {self.chapter}:{self.verse_start}-{self.verse_end}"
+        return f"{self.book} {self.chapter}:{self.verse_start}"
+
+
+@dataclass
+class PrayerReference:
+    """Parsed prayer/passage reference."""
+
+    name: str  # Canonical name (e.g., "Lord's Prayer")
+    reference: str  # Bible reference (e.g., "Matthew 6:9-13")
+    keywords: list[str]  # Keywords for semantic search fallback
+
+
+# Famous prayers and their Bible references
+FAMOUS_PRAYERS = {
+    "lord's prayer": PrayerReference(
+        name="Lord's Prayer",
+        reference="Matthew 6:9-13",
+        keywords=["Our Father", "hallowed be thy name", "thy kingdom come"],
+    ),
+    "our father": PrayerReference(
+        name="Lord's Prayer",
+        reference="Matthew 6:9-13",
+        keywords=["Our Father", "hallowed be thy name", "thy kingdom come"],
+    ),
+    "padre nostro": PrayerReference(  # Italian
+        name="Lord's Prayer",
+        reference="Matthew 6:9-13",
+        keywords=["Padre nostro", "sia santificato il tuo nome"],
+    ),
+    "vater unser": PrayerReference(  # German
+        name="Lord's Prayer",
+        reference="Matthew 6:9-13",
+        keywords=["Vater unser", "geheiligt werde dein Name"],
+    ),
+    "prayer of jabez": PrayerReference(
+        name="Prayer of Jabez",
+        reference="1 Chronicles 4:10",
+        keywords=["bless me indeed", "enlarge my territory"],
+    ),
+    "serenity prayer": PrayerReference(
+        name="Serenity Prayer",
+        reference="",  # Not directly in Bible, but related verses
+        keywords=["accept", "courage", "wisdom", "serenity"],
+    ),
+    "23rd psalm": PrayerReference(
+        name="Psalm 23",
+        reference="Psalms 23:1-6",
+        keywords=["The Lord is my shepherd", "green pastures", "still waters"],
+    ),
+    "psalm 23": PrayerReference(
+        name="Psalm 23",
+        reference="Psalms 23:1-6",
+        keywords=["The Lord is my shepherd", "green pastures", "still waters"],
+    ),
+    "salmo 23": PrayerReference(  # Italian
+        name="Psalm 23",
+        reference="Psalms 23:1-6",
+        keywords=["L'Eterno è il mio pastore", "verdi paschi"],
+    ),
+    "ten commandments": PrayerReference(
+        name="Ten Commandments",
+        reference="Exodus 20:1-17",
+        keywords=["thou shalt not", "commandments", "no other gods"],
+    ),
+    "beatitudes": PrayerReference(
+        name="Beatitudes",
+        reference="Matthew 5:3-12",
+        keywords=["blessed are", "meek", "peacemakers"],
+    ),
+    "love chapter": PrayerReference(
+        name="Love Chapter",
+        reference="1 Corinthians 13:1-13",
+        keywords=["love is patient", "love is kind", "greatest of these is love"],
+    ),
+    "armor of god": PrayerReference(
+        name="Armor of God",
+        reference="Ephesians 6:10-18",
+        keywords=["armor", "belt of truth", "shield of faith", "sword of the Spirit"],
+    ),
+    "fruit of the spirit": PrayerReference(
+        name="Fruit of the Spirit",
+        reference="Galatians 5:22-23",
+        keywords=["love", "joy", "peace", "patience", "kindness"],
+    ),
+    "great commission": PrayerReference(
+        name="Great Commission",
+        reference="Matthew 28:18-20",
+        keywords=["go and make disciples", "baptizing", "teaching"],
+    ),
+}
+
+
+def parse_verse_reference(text: str) -> VerseReference | None:
+    """
+    Parse a verse reference from text.
+
+    Supports formats:
+    - "John 3:16"
+    - "John 3:16-21" (range)
+    - "1 Corinthians 13:4"
+    - "1Cor 13:4" (abbreviated)
+    - "Giovanni 3:16" (Italian)
+    - "Johannes 3,16" (German with comma)
+
+    Args:
+        text: Text that may contain a verse reference
+
+    Returns:
+        VerseReference if found, None otherwise
+    """
+    # Build pattern from known book names and abbreviations
+    all_names: set[str] = set()
+    all_names.update(ALL_BOOK_NAMES)
+    # Add abbreviations (both as-is and capitalized versions)
+    for abbr in BOOK_ABBREVIATIONS.keys():
+        all_names.add(abbr)
+        all_names.add(abbr.capitalize())
+        all_names.add(abbr.upper())
+
+    # Sort by length descending to match longer names first
+    sorted_names = sorted(all_names, key=len, reverse=True)
+
+    # Escape special regex characters and join
+    book_alternatives = "|".join(re.escape(name) for name in sorted_names)
+
+    # Chapter:verse pattern (supports both : and , as separator)
+    cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
+
+    # Combined pattern - match book name followed by chapter:verse
+    # The book can already include number prefix (e.g., "1 Corinthians")
+    # Use word boundary before but not after (to allow "John3:16")
+    full_pattern = rf"(?:^|(?<=\s))({book_alternatives})\s*{cv_pattern}"
+
+    match = re.search(full_pattern, text, re.IGNORECASE)
+    if not match:
+        return None
+
+    book_raw = match.group(1).strip()
+    chapter = int(match.group(2))
+    verse_start = int(match.group(3))
+    verse_end = int(match.group(4)) if match.group(4) else None
+
+    # Normalize the book name
+    book = _normalize_book(book_raw)
+    if not book:
+        return None
+
+    return VerseReference(
+        book=book,
+        chapter=chapter,
+        verse_start=verse_start,
+        verse_end=verse_end,
+    )
+
+
+def _check_direct_match(book_raw_lower: str) -> str | None:
+    """Check if book name matches a known book directly."""
+    for known_book in ALL_BOOK_NAMES:
+        if known_book.lower() == book_raw_lower:
+            return normalize_book_name(known_book)
+    return None
+
+
+def _extract_number_prefix(book_raw: str) -> tuple[str, str]:
+    """Extract number prefix from book name like '1 John' or 'I John'."""
+    num_match = re.match(r"^([1-3I])\s*", book_raw)
+    if num_match:
+        prefix = num_match.group(1)
+        number = "1" if prefix in ("1", "I") else "2" if prefix == "2" else "3"
+        return number, book_raw[num_match.end() :].strip()
+    return "", book_raw
+
+
+def _expand_abbreviation(book_lower: str, number_prefix: str) -> str | None:
+    """Expand a book abbreviation to full name."""
+    if book_lower not in BOOK_ABBREVIATIONS:
+        return None
+
+    expanded = BOOK_ABBREVIATIONS[book_lower]
+    # Books that ONLY exist with number prefix
+    books_requiring_prefix = ("Corinthians", "Thessalonians", "Timothy", "Peter")
+
+    if expanded in books_requiring_prefix and not number_prefix:
+        return None  # Need number prefix for these books
+
+    return f"{number_prefix} {expanded}" if number_prefix else expanded
+
+
+def _find_book_match(book_lower: str, number_prefix: str) -> str | None:
+    """Find a book by direct or partial match."""
+    # Try direct match
+    for known_book in ALL_BOOK_NAMES:
+        if known_book.lower() == book_lower:
+            english_name = normalize_book_name(known_book)
+            return f"{number_prefix} {english_name}" if number_prefix else english_name
+
+    # Try partial match for abbreviated forms
+    if len(book_lower) >= 3:
+        for known_book in ALL_BOOK_NAMES:
+            if known_book.lower().startswith(book_lower):
+                english_name = normalize_book_name(known_book)
+                return f"{number_prefix} {english_name}" if number_prefix else english_name
+
+    return None
+
+
+def _normalize_book(book_raw: str) -> str | None:
+    """
+    Normalize a book name to standard English.
+
+    Handles abbreviations, numbered books, and localized names.
+    """
+    book_raw = book_raw.strip()
+
+    # First, check if the FULL book name (including number) matches directly
+    result = _check_direct_match(book_raw.lower())
+    if result:
+        return result
+
+    # Extract number prefix (e.g., "1" from "1 John")
+    number_prefix, book_name = _extract_number_prefix(book_raw)
+    book_lower = book_name.lower()
+
+    # Check abbreviations
+    result = _expand_abbreviation(book_lower, number_prefix)
+    if result:
+        return result
+
+    # Try direct/partial match
+    return _find_book_match(book_lower, number_prefix)
+
+
+def find_prayer_reference(text: str) -> PrayerReference | None:
+    """
+    Find a reference to a famous prayer or passage in text.
+
+    Args:
+        text: User message to search
+
+    Returns:
+        PrayerReference if found, None otherwise
+    """
+    text_lower = text.lower()
+
+    for pattern, prayer in FAMOUS_PRAYERS.items():
+        if pattern in text_lower:
+            return prayer
+
+    return None
+
+
+def extract_references(text: str) -> tuple[list[VerseReference], PrayerReference | None]:
+    """
+    Extract all verse references and prayer references from text.
+
+    Args:
+        text: User message to parse
+
+    Returns:
+        Tuple of (list of verse references, optional prayer reference)
+    """
+    verses: list[VerseReference] = []
+
+    # Find all verse references
+    verse_ref = parse_verse_reference(text)
+    if verse_ref:
+        verses.append(verse_ref)
+
+    # Find prayer reference
+    prayer = find_prayer_reference(text)
+
+    # If prayer has a reference, parse it as a verse reference too
+    if prayer and prayer.reference:
+        prayer_verse = parse_verse_reference(prayer.reference)
+        if prayer_verse and prayer_verse not in verses:
+            verses.append(prayer_verse)
+
+    return verses, prayer
+
+
+def is_verse_lookup_request(text: str) -> bool:
+    """
+    Determine if the user is asking about a specific verse or prayer.
+
+    Looks for patterns like:
+    - "What does John 3:16 say?"
+    - "Explain Romans 8:28"
+    - "Tell me about the Lord's Prayer"
+    - "What is the meaning of Psalm 23?"
+
+    Args:
+        text: User message
+
+    Returns:
+        True if this appears to be a verse/prayer lookup request
+    """
+    verses, prayer = extract_references(text)
+
+    if verses or prayer:
+        # Check for lookup-indicating words
+        lookup_patterns = [
+            r"\bwhat\s+(?:does|is|did|do)\b",
+            r"\bexplain\b",
+            r"\btell\s+me\s+about\b",
+            r"\bmeaning\s+of\b",
+            r"\bunderstand\b",
+            r"\binterpret\b",
+            r"\bwhat\s+.*\s+mean\b",
+            r"\bhelp\s+.*\s+understand\b",
+            r"\bread\s+me\b",
+            r"\brecite\b",
+            r"\bshow\s+me\b",
+            r"\bfind\b",
+            r"\blook\s+up\b",
+            r"\bcosa\s+dice\b",  # Italian: "what does ... say"
+            r"\bspiegami\b",  # Italian: "explain to me"
+            r"\bwas\s+sagt\b",  # German: "what does ... say"
+            r"\berkläre\b",  # German: "explain"
+        ]
+
+        text_lower = text.lower()
+        for pattern in lookup_patterns:
+            if re.search(pattern, text_lower):
+                return True
+
+        # Even without lookup words, if they just mention a specific verse, likely a lookup
+        return len(verses) > 0
+
+    return False

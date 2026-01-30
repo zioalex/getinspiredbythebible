@@ -17,8 +17,14 @@ from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
 from utils.language import detect_language, get_translation_info, resolve_translation
+from utils.verse_parser import extract_references, is_verse_lookup_request
 
-from .prompts import build_search_context_prompt, get_system_prompt
+from .prompts import (
+    build_search_context_prompt,
+    get_prayer_lookup_prompt,
+    get_system_prompt,
+    get_verse_lookup_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -117,53 +123,33 @@ class ChatService:
             extra={"detected": detected_language, "translation": translation},
         )
 
+        # Check if this is a verse/prayer lookup request
+        is_verse_lookup = is_verse_lookup_request(request.message)
+        verse_refs, prayer_ref = extract_references(request.message)
+
+        if is_verse_lookup:
+            logger.info(
+                "Detected verse lookup request",
+                extra={
+                    "verse_refs": [str(v) for v in verse_refs],
+                    "prayer_ref": prayer_ref.name if prayer_ref else None,
+                },
+            )
+
         # Step 1: Search for relevant scripture (if enabled)
-        scripture_context = None
-        search_context_prompt = ""
-
-        if request.include_search:
-            search_start = time.time()
-            try:
-                scripture_context = await self.search_service.search(
-                    query=request.message,
-                    max_verses=settings.max_context_verses,
-                    max_passages=2,
-                    similarity_threshold=0.35,
-                    translation=translation,
-                )
-                search_duration = time.time() - search_start
-                logger.info(
-                    "Scripture search completed",
-                    extra={
-                        "duration_seconds": f"{search_duration:.2f}",
-                        "verses_found": len(scripture_context.verses) if scripture_context else 0,
-                        "passages_found": (
-                            len(scripture_context.passages) if scripture_context else 0
-                        ),
-                    },
-                )
-            except Exception as e:
-                logger.error(
-                    f"Scripture search failed: {type(e).__name__}: {e}",
-                    exc_info=True,
-                )
-                # Continue without scripture context
-
-            # Build context prompt from search results
-            if scripture_context and (scripture_context.verses or scripture_context.passages):
-                search_context_prompt = build_search_context_prompt(
-                    {
-                        "verses": [v.model_dump() for v in scripture_context.verses],
-                        "passages": [p.model_dump() for p in scripture_context.passages],
-                    }
-                )
+        scripture_context, search_context_prompt = await self._search_scripture(
+            request, translation, verse_refs, is_verse_lookup
+        )
 
         # Step 2: Build the message list
+        prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
+
         messages = self._build_messages(
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
             language_code=detected_language,
+            prompt_type=prompt_type,
         )
 
         # Step 3: Generate response
@@ -216,6 +202,101 @@ class ChatService:
             translation_info=translation_info,
         )
 
+    async def _search_scripture(
+        self,
+        request: ChatRequest,
+        translation: str,
+        verse_refs: list,
+        is_verse_lookup: bool,
+    ) -> tuple[SearchResults | None, str]:
+        """
+        Search for relevant scripture, including direct lookups for specific verse references.
+
+        Returns:
+            Tuple of (scripture_context, search_context_prompt)
+        """
+        if not request.include_search:
+            return None, ""
+
+        search_start = time.time()
+        scripture_context = None
+        search_context_prompt = ""
+
+        try:
+            # Direct verse lookups for specific references
+            direct_verses = await self._lookup_direct_verses(verse_refs)
+
+            # Semantic search for additional context
+            scripture_context = await self.search_service.search(
+                query=request.message,
+                max_verses=settings.max_context_verses,
+                max_passages=2,
+                similarity_threshold=0.35,
+                translation=translation,
+            )
+
+            # Merge direct lookup results with semantic search
+            self._merge_direct_verses(scripture_context, direct_verses)
+
+            search_duration = time.time() - search_start
+            logger.info(
+                "Scripture search completed",
+                extra={
+                    "duration_seconds": f"{search_duration:.2f}",
+                    "verses_found": len(scripture_context.verses) if scripture_context else 0,
+                    "passages_found": (len(scripture_context.passages) if scripture_context else 0),
+                    "is_verse_lookup": is_verse_lookup,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
+            return None, ""
+
+        # Build context prompt from search results
+        if scripture_context and (scripture_context.verses or scripture_context.passages):
+            search_context_prompt = build_search_context_prompt(
+                {
+                    "verses": [v.model_dump() for v in scripture_context.verses],
+                    "passages": [p.model_dump() for p in scripture_context.passages],
+                }
+            )
+
+        return scripture_context, search_context_prompt
+
+    async def _lookup_direct_verses(self, verse_refs: list) -> list:
+        """Look up specific verses from references."""
+        direct_verses = []
+        for ref in verse_refs:
+            if ref.verse_end:
+                range_verses = await self.search_service.get_verse_range(
+                    book=ref.book,
+                    chapter=ref.chapter,
+                    start_verse=ref.verse_start,
+                    end_verse=ref.verse_end,
+                )
+                direct_verses.extend(range_verses)
+            else:
+                verse = await self.search_service.get_verse(
+                    book=ref.book, chapter=ref.chapter, verse=ref.verse_start
+                )
+                if verse:
+                    direct_verses.append(verse)
+
+        if direct_verses:
+            logger.info("Direct verse lookup completed", extra={"verses_found": len(direct_verses)})
+        return direct_verses
+
+    def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
+        """Merge direct lookup verses into scripture context (at beginning)."""
+        if not direct_verses or not scripture_context:
+            return
+
+        existing_refs = {(v.book, v.chapter, v.verse) for v in scripture_context.verses}
+        for dv in direct_verses:
+            if (dv.book, dv.chapter, dv.verse) not in existing_refs:
+                scripture_context.verses.insert(0, dv)
+                existing_refs.add((dv.book, dv.chapter, dv.verse))
+
     async def chat_stream(self, request: ChatRequest) -> AsyncIterator[str]:
         """
         Stream a chat response for real-time display.
@@ -227,32 +308,24 @@ class ChatService:
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
 
+        # Check if this is a verse/prayer lookup request
+        is_verse_lookup = is_verse_lookup_request(request.message)
+        verse_refs, prayer_ref = extract_references(request.message)
+
         # Step 1: Search for relevant scripture
-        search_context_prompt = ""
+        _, search_context_prompt = await self._search_scripture(
+            request, translation, verse_refs, is_verse_lookup
+        )
 
-        if request.include_search:
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-                translation=translation,
-            )
+        # Step 2: Build messages with appropriate prompt type
+        prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
 
-            if scripture_context.verses or scripture_context.passages:
-                search_context_prompt = build_search_context_prompt(
-                    {
-                        "verses": [v.model_dump() for v in scripture_context.verses],
-                        "passages": [p.model_dump() for p in scripture_context.passages],
-                    }
-                )
-
-        # Step 2: Build messages
         messages = self._build_messages(
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
             language_code=detected_language,
+            prompt_type=prompt_type,
         )
 
         # Step 3: Stream response
@@ -263,12 +336,21 @@ class ChatService:
         ):
             yield chunk
 
+    def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
+        """Determine the appropriate prompt type based on request characteristics."""
+        if is_verse_lookup and prayer_ref:
+            return "prayer_lookup"
+        elif is_verse_lookup:
+            return "verse_lookup"
+        return "default"
+
     def _build_messages(
         self,
         user_message: str,
         history: list[ConversationMessage],
         search_context: str = "",
         language_code: str = "en",
+        prompt_type: str = "default",
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -278,14 +360,21 @@ class ChatService:
             history: Previous conversation messages
             search_context: Optional scripture context from search
             language_code: Detected language code for response language
+            prompt_type: Type of prompt to use ("default", "verse_lookup", "prayer_lookup")
 
         Returns:
             List of ChatMessage objects for the LLM
         """
         messages = []
 
-        # System prompt with language instruction and optional search context
-        system_prompt = get_system_prompt(language_code)
+        # Select appropriate system prompt based on request type
+        if prompt_type == "verse_lookup":
+            system_prompt = get_verse_lookup_prompt(language_code)
+        elif prompt_type == "prayer_lookup":
+            system_prompt = get_prayer_lookup_prompt(language_code)
+        else:
+            system_prompt = get_system_prompt(language_code)
+
         system_content = system_prompt
         if search_context:
             system_content = search_context + "\n" + system_prompt

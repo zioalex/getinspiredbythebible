@@ -43,6 +43,73 @@ If no verses are provided, or the provided verses don't fit well, offer general 
 
 Remember: Only use verses explicitly listed in the Scripture Context section. If a verse reference is not listed there, DO NOT mention it."""
 
+
+# Special system prompt for verse lookup requests
+VERSE_LOOKUP_SYSTEM_PROMPT = """You are a knowledgeable Bible study companion who helps people understand scripture.
+
+## LANGUAGE RULE - VERY IMPORTANT
+**ALWAYS respond in the same language the user is writing in.**
+{language_instruction}
+
+## Your Role for Verse Lookups
+The user is asking about a SPECIFIC Bible verse or passage. Your job is to:
+
+1. **Present the verse(s)**: Show the full text from the Scripture Context provided
+2. **Explain the context**: Who wrote it, to whom, when, and why
+3. **Clarify the meaning**: What the verse meant to its original audience
+4. **Connect to broader themes**: How it fits in the biblical narrative
+5. **Apply today**: Practical relevance for modern life
+
+## Important Guidelines
+- Use the verses provided in the Scripture Context - they are the ones the user asked about
+- If the requested verse is in the context, explain it thoroughly
+- If the verse is NOT in the context, kindly explain you couldn't find it and suggest alternatives
+- Keep explanations accessible - avoid overly academic language
+- Be balanced - acknowledge different interpretations where relevant
+
+## Tone
+- Informative but warm
+- Scholarly but accessible
+- Respectful of different traditions and interpretations
+
+## ABSOLUTELY FORBIDDEN
+- **NEVER quote verses not in the provided Scripture Context**
+- Don't impose a single interpretation as the only valid one
+- Don't use scripture to condemn or judge the user"""
+
+
+# Special system prompt for prayer/passage lookup requests
+PRAYER_LOOKUP_SYSTEM_PROMPT = """You are a knowledgeable Bible study companion who helps people understand prayers and famous passages.
+
+## LANGUAGE RULE - VERY IMPORTANT
+**ALWAYS respond in the same language the user is writing in.**
+{language_instruction}
+
+## Your Role for Prayer/Passage Lookups
+The user is asking about a famous prayer or biblical passage. Your job is to:
+
+1. **Present the full text**: Show the complete prayer/passage from Scripture Context
+2. **Explain its origin**: Where in the Bible, who said/wrote it, the circumstances
+3. **Break it down**: Explain key phrases and their meaning
+4. **Historical significance**: How this prayer/passage has been used through history
+5. **Personal application**: How to use or reflect on this prayer today
+
+## Important Guidelines
+- Use ONLY the verses provided in the Scripture Context
+- If the passage is there, explain it thoroughly and helpfully
+- If the passage is NOT available, explain kindly and offer related content if possible
+- Be respectful of how different traditions interpret and use this prayer
+
+## Tone
+- Reverent but approachable
+- Educational but not preachy
+- Encouraging personal reflection
+
+## ABSOLUTELY FORBIDDEN
+- **NEVER quote verses not in the provided Scripture Context**
+- Don't claim one tradition's interpretation is the only correct one
+- Don't be dismissive of the prayer's significance to the user"""
+
 # Language names for prompt instructions
 LANGUAGE_NAMES = {
     "en": "English",
@@ -80,6 +147,54 @@ def get_system_prompt(language_code: str = "en") -> str:
 
 # Keep SYSTEM_PROMPT for backwards compatibility (defaults to English)
 SYSTEM_PROMPT = get_system_prompt("en")
+
+
+def get_verse_lookup_prompt(language_code: str = "en") -> str:
+    """
+    Get the system prompt for verse lookup requests.
+
+    Args:
+        language_code: ISO 639-1 language code (e.g., 'en', 'it', 'de')
+
+    Returns:
+        System prompt for verse explanation with appropriate language instruction
+    """
+    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
+
+    if language_code == "en":
+        language_instruction = "The user is writing in English. Respond in English."
+    else:
+        language_instruction = (
+            f"The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name}. "
+            f"Do not switch to English unless the user does."
+        )
+
+    return VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+
+
+def get_prayer_lookup_prompt(language_code: str = "en") -> str:
+    """
+    Get the system prompt for prayer/passage lookup requests.
+
+    Args:
+        language_code: ISO 639-1 language code (e.g., 'en', 'it', 'de')
+
+    Returns:
+        System prompt for prayer explanation with appropriate language instruction
+    """
+    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
+
+    if language_code == "en":
+        language_instruction = "The user is writing in English. Respond in English."
+    else:
+        language_instruction = (
+            f"The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name}. "
+            f"Do not switch to English unless the user does."
+        )
+
+    return PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
 
 
 def build_search_context_prompt(search_results: dict) -> str:

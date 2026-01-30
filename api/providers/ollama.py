@@ -8,7 +8,13 @@ from typing import AsyncIterator
 
 import httpx
 
-from .base import ChatMessage, EmbeddingProvider, EmbeddingResponse, LLMProvider, LLMResponse
+from .base import (
+    ChatMessage,
+    EmbeddingProvider,
+    EmbeddingResponse,
+    LLMProvider,
+    LLMResponse,
+)
 
 
 class OllamaProvider(LLMProvider):

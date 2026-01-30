@@ -8,7 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from feedback import FeedbackRepository
-from feedback.models import ContactRequest, ContactResponse, FeedbackRequest, FeedbackResponse
+from feedback.models import (
+    ContactRequest,
+    ContactResponse,
+    FeedbackRequest,
+    FeedbackResponse,
+)
 from scripture import get_db_session
 from utils.email_service import email_service
 
