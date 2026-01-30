@@ -52,7 +52,9 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     Proxies to disciplestoday.org's church finder API.
     """
     location = request.location.strip()
-    logger.info(f"Church search request for location: '{location}'")
+    logger.info("Church search request received")
+    # Log location at debug level only to avoid PII in production logs
+    logger.debug(f"Church search location: '{location}'")
 
     if not location:
         logger.warning("Church search rejected: empty location")
@@ -63,7 +65,8 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            logger.info(f"Sending POST to {api_url} with body: {request_body}")
+            # Log at debug level only to avoid PII in production logs
+            logger.debug(f"Sending POST to {api_url} with body: {request_body}")
             response = await client.post(api_url, json=request_body)
 
             logger.info(
