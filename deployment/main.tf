@@ -284,14 +284,6 @@ resource "azurerm_container_app" "backend" {
       dynamic "env" {
         for_each = var.llm_provider == "openrouter" ? [1] : []
         content {
-          name  = "OPENROUTER_FALLBACK_MODELS"
-          value = var.openrouter_fallback_models
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
           name  = "OPENROUTER_ALLOW_FALLBACKS"
           value = tostring(var.openrouter_allow_fallbacks)
         }
