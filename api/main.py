@@ -126,13 +126,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Local development (HTTP is fine for localhost)
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
+        # Production (HTTPS only - no HTTP to prevent MitM attacks)
         "https://getinspiredbythebible.ai4you.sh",
-        "http://getinspiredbythebible.ai4you.sh",
-        # Add production domains here
     ],
     allow_credentials=True,
     allow_methods=["*"],
