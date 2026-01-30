@@ -53,9 +53,10 @@ class Settings(BaseSettings):
     azure_openai_api_key: str | None = None
     azure_embedding_deployment: str = "text-embedding-3-small"
 
-    # Database
+    # Database - MUST be configured via DATABASE_URL environment variable
+    # Default is a non-functional placeholder to prevent accidental use of hardcoded credentials
     database_url: str = (
-        "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
+        "postgresql://CONFIGURE_ME:CONFIGURE_ME@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
     # Chat Settings
