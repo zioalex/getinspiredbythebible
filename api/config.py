@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Bible Inspiration Chat"
     app_version: str = "0.1.0"
-    debug: bool = True
+    debug: bool = False  # Set DEBUG=true in .env for development
 
     # LLM Configuration
     llm_provider: Literal["ollama", "claude", "openai", "openrouter"] = "ollama"
