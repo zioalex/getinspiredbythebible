@@ -399,8 +399,9 @@ export default function Home() {
               </h2>
               <p className="text-gray-500 max-w-md mb-8">
                 Share what's on your heart, ask questions about Scripture, or
-                simply seek encouragement. I'm here to help you find wisdom and
-                comfort in God's Word.
+                simply seek encouragement. While I can help explore theological
+                topics, I'm not a substitute for trained theologians or pastoral
+                guidance.
               </p>
 
               {/* Suggested Prompts */}
