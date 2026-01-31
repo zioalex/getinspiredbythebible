@@ -69,8 +69,8 @@ fi
 CURRENT_SUB=$(az account show --query '{name:name, id:id}' -o tsv)
 log_info "Using subscription: $CURRENT_SUB"
 
-# Generate unique storage account name
-RANDOM_SUFFIX=$(tr -dc 'a-z0-9' < /dev/urandom | fold -w 8 | head -n 1)
+# Generate unique storage account name (read limited bytes to avoid SIGPIPE)
+RANDOM_SUFFIX=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)
 STORAGE_ACCOUNT_NAME="${STORAGE_ACCOUNT_PREFIX}${RANDOM_SUFFIX}"
 
 log_info "Creating Terraform backend resources..."
