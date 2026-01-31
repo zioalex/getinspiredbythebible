@@ -171,27 +171,40 @@ terraform apply
 
 ### 6. Build and Push Images
 
+Use the production Docker Compose file to build and push images:
+
 ```bash
-# Login to your new ACR
-az acr login --name $(terraform output -raw acr_login_server | cut -d'.' -f1)
+# From the project root (not deployment/)
+cd /path/to/getinspiredbythebible
 
-# Build backend (from your repo root)
-cd backend
-docker build --platform linux/amd64 -t $(terraform output -raw acr_login_server)/bible-backend:latest .
-docker push $(terraform output -raw acr_login_server)/bible-backend:latest
+# Set your ACR name (get from terraform output)
+export ACR_NAME=$(cd deployment && terraform output -raw acr_login_server | cut -d'.' -f1)
+# Or set manually: export ACR_NAME=bibleappacrmb0172
 
-# Build frontend
-cd ../frontend
-docker build --platform linux/amd64 -t $(terraform output -raw acr_login_server)/bible-frontend:latest .
-docker push $(terraform output -raw acr_login_server)/bible-frontend:latest
+# Login to ACR
+az acr login --name $ACR_NAME
+
+# Build and push both images
+docker compose -f docker-compose.prod.yml build --push
+
+# Or build and push separately
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml push
+```
+
+To use a specific tag (e.g., git commit SHA):
+
+```bash
+export TAG=$(git rev-parse --short HEAD)
+docker compose -f docker-compose.prod.yml build --push
 ```
 
 ### 7. Update Container Apps
 
 ```bash
 # Update terraform.tfvars with your images
-backend_image  = "bibleappacr123abc.azurecr.io/bible-backend:latest"
-frontend_image = "bibleappacr123abc.azurecr.io/bible-frontend:latest"
+backend_image  = "bibleappacrmb0172.azurecr.io/bible-backend:latest"
+frontend_image = "bibleappacrmb0172.azurecr.io/bible-frontend:latest"
 
 # Re-apply
 terraform apply

@@ -1,0 +1,43 @@
+# =============================================================================
+# Production Docker Compose - Azure Container Registry
+# =============================================================================
+#
+# Use this file to build and push images to Azure Container Registry.
+#
+# Usage:
+#   # Set your ACR name
+#   export ACR_NAME=bibleappacrmb0172
+#
+#   # Login to ACR
+#   az acr login --name $ACR_NAME
+#
+#   # Build images for linux/amd64
+#   docker compose -f docker-compose.prod.yml build
+#
+#   # Push images to ACR
+#   docker compose -f docker-compose.prod.yml push
+#
+#   # Or build and push in one command
+#   docker compose -f docker-compose.prod.yml build --push
+#
+# =============================================================================
+
+services:
+  api:
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-backend:${TAG:-latest}
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+    platform: linux/amd64
+
+  frontend:
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-frontend:${TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner  # Use production stage
+      platforms:
+        - linux/amd64
+    platform: linux/amd64
