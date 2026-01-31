@@ -289,7 +289,8 @@ deployment/
 ├── terraform.tfvars.example   # Example configuration
 ├── backend.hcl.example        # Example backend config
 ├── scripts/
-│   └── setup-tf-backend.sh    # Setup Azure storage for state
+│   ├── setup-tf-backend.sh    # Setup Azure storage for state
+│   └── setup-github-spn.sh    # Setup Service Principal for CI/CD
 ├── .gitignore                 # Ignore secrets
 └── README.md                  # This file
 ```
@@ -351,20 +352,39 @@ The repository includes a GitHub Actions workflow (`.github/workflows/terraform.
 
 **Create a Service Principal for GitHub Actions:**
 
-```bash
-# Create service principal with Contributor role
-az ad sp create-for-rbac \
-  --name "github-actions-bible-app" \
-  --role Contributor \
-  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
-  --json-auth
+Use the automated setup script to create the SPN for your environment:
 
-# The output JSON contains all ARM_* values needed for secrets
+```bash
+cd deployment/scripts
+
+# For development environment
+./setup-github-spn.sh -e dev
+
+# For non-production/staging
+./setup-github-spn.sh -e np
+
+# For production (recommended: also set secrets automatically)
+./setup-github-spn.sh -e prod -r your-org/your-repo -g
+
+# With specific subscription
+./setup-github-spn.sh -e prod -s "12345678-1234-1234-1234-123456789012"
 ```
+
+The script will:
+
+- Create a service principal named `github-actions-bible-app-{env}`
+- Assign the Contributor role to your subscription
+- Output the secrets you need to add to GitHub
+- Optionally set GitHub secrets directly (requires `gh` CLI)
 
 **Environment Protection:**
 
-Create a GitHub environment named `production` with required reviewers for apply/destroy operations.
+Create a GitHub environment named `production` with required reviewers for apply/destroy operations:
+
+1. Go to your repo → Settings → Environments
+2. Create environment: `production`
+3. Add required reviewers (people who must approve deployments)
+4. Optionally restrict deployments to the `main` branch only
 
 ### Application Deployment Pipeline
 
