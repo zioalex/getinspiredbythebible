@@ -45,6 +45,43 @@ Deploy the **Get Inspired by the Bible** application on Azure using Container Ap
 
 ## 🚀 Quick Start
 
+### 0. Set Up Terraform Remote State (Recommended)
+
+For team collaboration and CI/CD pipelines, use Azure Blob Storage for Terraform state:
+
+```bash
+cd deployment
+
+# Run the setup script (creates storage account, resource group, container)
+./scripts/setup-tf-backend.sh [subscription_id] [location]
+
+# Example:
+./scripts/setup-tf-backend.sh "12345678-1234-1234-1234-123456789012" "northeurope"
+```
+
+The script will:
+
+- Create resource group `bible-app-tfstate-rg`
+- Create a storage account with versioning enabled
+- Create a blob container `tfstate`
+- Output the storage account name for use in `terraform init`
+
+**Initialize with remote state:**
+
+```bash
+# Option 1: Pass storage account name directly
+terraform init -backend-config="storage_account_name=bibleapptfstateXXXXXX"
+
+# Option 2: Use a backend config file (recommended)
+cp backend.hcl.example backend.hcl
+# Edit backend.hcl with your storage account name
+terraform init -backend-config=backend.hcl
+```
+
+> **Note:** `backend.hcl` is git-ignored to prevent committing sensitive infrastructure details.
+
+For CI/CD setup, see the [GitHub Actions Workflow](#-cicd-with-github-actions) section.
+
 ### 1. Azure CLI Setup
 
 ```bash
@@ -244,11 +281,15 @@ terraform output backend_url
 ## 📁 Project Structure
 
 ```
-terraform-azure/
+deployment/
 ├── main.tf                    # Main infrastructure
+├── backend.tf                 # Remote state configuration
 ├── variables.tf               # Input variables
 ├── outputs.tf                 # Output values
 ├── terraform.tfvars.example   # Example configuration
+├── backend.hcl.example        # Example backend config
+├── scripts/
+│   └── setup-tf-backend.sh    # Setup Azure storage for state
 ├── .gitignore                 # Ignore secrets
 └── README.md                  # This file
 ```
@@ -286,7 +327,48 @@ backend_memory = "2Gi"  # More memory for vector operations
 
 ## 🔄 CI/CD with GitHub Actions
 
-Create `.github/workflows/deploy.yml`:
+### Terraform Infrastructure Pipeline
+
+The repository includes a GitHub Actions workflow (`.github/workflows/terraform.yml`) that automates infrastructure management:
+
+| Trigger | Action |
+|---------|--------|
+| Pull Request | Plan only (shows what would change) |
+| Push to main | Plan + Apply (with approval) |
+| Manual dispatch | Plan, Apply, or Destroy |
+
+**Required GitHub Secrets:**
+
+| Secret | Description |
+|--------|-------------|
+| `ARM_CLIENT_ID` | Azure Service Principal Client ID |
+| `ARM_CLIENT_SECRET` | Azure Service Principal Client Secret |
+| `ARM_SUBSCRIPTION_ID` | Azure Subscription ID |
+| `ARM_TENANT_ID` | Azure Tenant ID |
+| `TF_STORAGE_ACCOUNT` | Storage account name for Terraform state |
+| `TF_VAR_DB_ADMIN_PASSWORD` | Database admin password |
+| `TF_VAR_OPENROUTER_API_KEY` | OpenRouter API key |
+
+**Create a Service Principal for GitHub Actions:**
+
+```bash
+# Create service principal with Contributor role
+az ad sp create-for-rbac \
+  --name "github-actions-bible-app" \
+  --role Contributor \
+  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
+  --json-auth
+
+# The output JSON contains all ARM_* values needed for secrets
+```
+
+**Environment Protection:**
+
+Create a GitHub environment named `production` with required reviewers for apply/destroy operations.
+
+### Application Deployment Pipeline
+
+Create `.github/workflows/deploy.yml` for container deployments:
 
 ```yaml
 name: Deploy to Azure
