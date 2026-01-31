@@ -37,7 +37,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: runner  # Use production stage
+      target: production
       platforms:
         - linux/amd64
     platform: linux/amd64
