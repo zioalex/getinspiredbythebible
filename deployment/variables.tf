@@ -184,6 +184,25 @@ variable "custom_domain_backend" {
   default     = ""
 }
 
+variable "cloudflare_origin_cert_frontend" {
+  description = "Path to Cloudflare Origin Certificate PFX file for frontend custom domain. Leave empty to skip SSL binding."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_origin_cert_backend" {
+  description = "Path to Cloudflare Origin Certificate PFX file for backend custom domain. Leave empty to skip SSL binding."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_origin_cert_password" {
+  description = "Password for Cloudflare Origin Certificate PFX files (use empty string if no password)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------

@@ -23,3 +23,10 @@ override.tf.json
 # Backend configuration (contains storage account name)
 backend.hcl
 !backend.hcl.example
+
+# SSL Certificates and Private Keys (NEVER commit these!)
+*.pfx
+*.pem
+*.key
+*.crt
+*.p12

@@ -14,6 +14,8 @@
 #   TF_VAR_db_admin_password    - Database admin password
 #   TF_VAR_openrouter_api_key   - OpenRouter API key
 #   TF_VAR_claude_api_key       - Claude API key (if using Claude)
+#   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate PFX
+#   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Password for certificate (empty if none)
 #
 # Workflow:
 #   - On PR: Plan only (shows what would change)
@@ -124,10 +126,20 @@ jobs:
       # Container images (set via secrets or use defaults from tfvars.example)
       TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
       TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
+      # Cloudflare Origin Certificate
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -225,10 +237,19 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
       TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -279,10 +300,19 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
       TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
