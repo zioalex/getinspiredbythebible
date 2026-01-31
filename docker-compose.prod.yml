@@ -40,4 +40,6 @@ services:
       target: production
       platforms:
         - linux/amd64
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     platform: linux/amd64

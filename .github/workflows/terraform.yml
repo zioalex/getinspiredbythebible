@@ -121,6 +121,9 @@ jobs:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      # Container images (set via secrets or use defaults from tfvars.example)
+      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
+      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
 
     steps:
       - name: Checkout
@@ -220,6 +223,8 @@ jobs:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
+      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
 
     steps:
       - name: Checkout
@@ -272,6 +277,8 @@ jobs:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
+      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
 
     steps:
       - name: Checkout
