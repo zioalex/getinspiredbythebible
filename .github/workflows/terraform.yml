@@ -60,11 +60,52 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Validate Required Secrets
+  # ---------------------------------------------------------------------------
+  check-secrets:
+    name: Check Required Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets are set
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          TF_STORAGE_ACCOUNT: ${{ secrets.TF_STORAGE_ACCOUNT }}
+        run: |
+          missing=""
+          [ -z "$ARM_CLIENT_ID" ] && missing="$missing ARM_CLIENT_ID"
+          [ -z "$ARM_CLIENT_SECRET" ] && missing="$missing ARM_CLIENT_SECRET"
+          [ -z "$ARM_SUBSCRIPTION_ID" ] && missing="$missing ARM_SUBSCRIPTION_ID"
+          [ -z "$ARM_TENANT_ID" ] && missing="$missing ARM_TENANT_ID"
+          [ -z "$TF_STORAGE_ACCOUNT" ] && missing="$missing TF_STORAGE_ACCOUNT"
+
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required secrets:$missing"
+            echo ""
+            echo "Please configure the following GitHub secrets:"
+            echo "  Repository → Settings → Secrets and variables → Actions"
+            echo ""
+            echo "Required secrets:"
+            echo "  ARM_CLIENT_ID        - Azure Service Principal Client ID"
+            echo "  ARM_CLIENT_SECRET    - Azure Service Principal Client Secret"
+            echo "  ARM_SUBSCRIPTION_ID  - Azure Subscription ID"
+            echo "  ARM_TENANT_ID        - Azure Tenant ID"
+            echo "  TF_STORAGE_ACCOUNT   - Storage account name for Terraform state"
+            echo ""
+            echo "See deployment/README.md for setup instructions."
+            exit 1
+          fi
+          echo "✓ All required secrets are configured"
+
+  # ---------------------------------------------------------------------------
   # Terraform Format Check
   # ---------------------------------------------------------------------------
   format:
     name: Format Check
     runs-on: ubuntu-latest
+    needs: check-secrets
     steps:
       - name: Checkout
         uses: actions/checkout@v4
