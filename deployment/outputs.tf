@@ -120,10 +120,12 @@ output "dns_configuration" {
 output "domain_verification_id" {
   description = "Domain verification ID for TXT record (if domain verification fails)"
   value       = azurerm_container_app.frontend.custom_domain_verification_id
+  sensitive   = true
 }
 
 output "custom_domain_dns_setup" {
   description = "DNS records to add in Cloudflare before terraform apply"
+  sensitive   = true
   value       = <<-EOT
 
     ============================================================
