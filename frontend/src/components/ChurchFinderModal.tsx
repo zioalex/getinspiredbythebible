@@ -114,7 +114,7 @@ export default function ChurchFinderModal({
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Enter city or country (e.g., Zurich, Switzerland)"
+              placeholder="City in English (e.g., Rome, Munich, Zurich)"
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               disabled={isLoading}
               autoFocus
@@ -173,7 +173,7 @@ export default function ChurchFinderModal({
               <MapPin className="w-12 h-12 text-gray-300 mb-3" />
               <p className="text-gray-600">Enter a location to search</p>
               <p className="text-sm text-gray-500 mt-1">
-                Search by city, region, or country
+                Use English city names (e.g., Rome, Munich, Vienna)
               </p>
             </div>
           )}
