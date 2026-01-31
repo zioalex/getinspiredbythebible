@@ -484,63 +484,22 @@ resource "azurerm_container_app" "frontend" {
 # -----------------------------------------------------------------------------
 # Custom Domain Configuration (Optional - for Cloudflare or other DNS)
 # -----------------------------------------------------------------------------
+# Note: When using Cloudflare proxy, Cloudflare handles SSL termination.
+# Azure Container Apps will receive traffic over HTTP from Cloudflare.
+# The custom domain is added via Azure CLI after terraform apply:
+#
+#   az containerapp hostname add \
+#     --name bible-app-frontend \
+#     --resource-group bible-app-rg \
+#     --hostname getinspiredbythebible.ai4you.sh
+#
+# For now, we just ensure CORS includes the custom domain (done above).
+# Full Terraform support for custom domains requires the azapi provider.
 
-# Frontend custom domain
-resource "azurerm_container_app_custom_domain" "frontend" {
-  count = var.custom_domain_frontend != "" ? 1 : 0
-
-  name                                     = var.custom_domain_frontend
-  container_app_id                         = azurerm_container_app.frontend.id
-  container_app_environment_managed_certificate_id = var.enable_managed_certificate ? azurerm_container_app_environment_certificate.frontend[0].id : null
-  certificate_binding_type                 = var.enable_managed_certificate ? "SniEnabled" : "Disabled"
-
-  lifecycle {
-    # Prevent destruction if domain is still in use
-    prevent_destroy = false
-  }
-}
-
-# Managed certificate for frontend (optional - not needed if using Cloudflare SSL)
-resource "azurerm_container_app_environment_certificate" "frontend" {
-  count = var.custom_domain_frontend != "" && var.enable_managed_certificate ? 1 : 0
-
-  name                         = "cert-frontend"
-  container_app_environment_id = azurerm_container_app_environment.main.id
-  certificate_blob_base64      = "" # Empty for managed certificate
-  certificate_password         = "" # Empty for managed certificate
-
-  lifecycle {
-    ignore_changes = [
-      certificate_blob_base64,
-      certificate_password,
-    ]
-  }
-}
-
-# Backend custom domain (optional - for api.yourdomain.com)
-resource "azurerm_container_app_custom_domain" "backend" {
-  count = var.custom_domain_backend != "" ? 1 : 0
-
-  name                                     = var.custom_domain_backend
-  container_app_id                         = azurerm_container_app.backend.id
-  container_app_environment_managed_certificate_id = var.enable_managed_certificate ? azurerm_container_app_environment_certificate.backend[0].id : null
-  certificate_binding_type                 = var.enable_managed_certificate ? "SniEnabled" : "Disabled"
-}
-
-resource "azurerm_container_app_environment_certificate" "backend" {
-  count = var.custom_domain_backend != "" && var.enable_managed_certificate ? 1 : 0
-
-  name                         = "cert-backend"
-  container_app_environment_id = azurerm_container_app_environment.main.id
-  certificate_blob_base64      = ""
-  certificate_password         = ""
-
-  lifecycle {
-    ignore_changes = [
-      certificate_blob_base64,
-      certificate_password,
-    ]
-  }
+# Output the commands needed to add custom domains
+locals {
+  frontend_custom_domain_command = var.custom_domain_frontend != "" ? "az containerapp hostname add --name ${azurerm_container_app.frontend.name} --resource-group ${azurerm_resource_group.main.name} --hostname ${var.custom_domain_frontend}" : ""
+  backend_custom_domain_command  = var.custom_domain_backend != "" ? "az containerapp hostname add --name ${azurerm_container_app.backend.name} --resource-group ${azurerm_resource_group.main.name} --hostname ${var.custom_domain_backend}" : ""
 }
 
 # -----------------------------------------------------------------------------

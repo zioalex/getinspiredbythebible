@@ -117,6 +117,24 @@ output "dns_configuration" {
   EOT
 }
 
+output "custom_domain_setup_commands" {
+  description = "Azure CLI commands to add custom domains (run after DNS is configured)"
+  value       = <<-EOT
+
+    ============================================================
+    CUSTOM DOMAIN SETUP COMMANDS
+    ============================================================
+
+    After configuring DNS in Cloudflare, run these commands:
+
+    ${var.custom_domain_frontend != "" ? "# Add frontend custom domain\naz containerapp hostname add \\\n  --name ${azurerm_container_app.frontend.name} \\\n  --resource-group ${azurerm_resource_group.main.name} \\\n  --hostname ${var.custom_domain_frontend}\n" : "# Frontend custom domain not configured"}
+
+    ${var.custom_domain_backend != "" ? "# Add backend custom domain\naz containerapp hostname add \\\n  --name ${azurerm_container_app.backend.name} \\\n  --resource-group ${azurerm_resource_group.main.name} \\\n  --hostname ${var.custom_domain_backend}\n" : "# Backend custom domain not configured"}
+
+    ============================================================
+  EOT
+}
+
 # -----------------------------------------------------------------------------
 # Azure OpenAI (Embeddings)
 # -----------------------------------------------------------------------------

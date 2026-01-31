@@ -85,13 +85,12 @@ custom_domain_frontend = ""  # e.g., "getinspiredbythebible.ai4you.sh"
 # Custom domain for backend API (leave empty to skip)
 custom_domain_backend = ""  # e.g., "api.getinspiredbythebible.ai4you.sh"
 
-# Enable Azure managed SSL certificate
-# Set to false if using Cloudflare SSL (Cloudflare handles SSL termination)
-enable_managed_certificate = false
-
 # Additional CORS origins (comma-separated)
 # Custom domain is automatically added, use this for additional origins
 cors_origins = ""  # e.g., "https://other-frontend.example.com"
+
+# Note: When using Cloudflare, SSL is handled by Cloudflare (Full Strict mode).
+# After terraform apply, run the commands from 'terraform output custom_domain_setup_commands'
 
 # -----------------------------------------------------------------------------
 # LLM Configuration

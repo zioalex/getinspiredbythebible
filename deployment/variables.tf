@@ -184,12 +184,6 @@ variable "custom_domain_backend" {
   default     = ""
 }
 
-variable "enable_managed_certificate" {
-  description = "Enable Azure managed certificate for custom domains (set to false if using Cloudflare SSL)"
-  type        = bool
-  default     = false
-}
-
 # -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------
