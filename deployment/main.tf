@@ -484,22 +484,61 @@ resource "azurerm_container_app" "frontend" {
 # -----------------------------------------------------------------------------
 # Custom Domain Configuration (Optional - for Cloudflare or other DNS)
 # -----------------------------------------------------------------------------
-# Note: When using Cloudflare proxy, Cloudflare handles SSL termination.
-# Azure Container Apps will receive traffic over HTTP from Cloudflare.
-# The custom domain is added via Azure CLI after terraform apply:
+# When using Cloudflare proxy, Cloudflare handles SSL termination.
+# We use null_resource with local-exec to add the custom domain via Azure CLI.
 #
-#   az containerapp hostname add \
-#     --name bible-app-frontend \
-#     --resource-group bible-app-rg \
-#     --hostname getinspiredbythebible.ai4you.sh
+# IMPORTANT: Before running terraform apply with custom domains:
+# 1. Add CNAME record in Cloudflare pointing to the frontend/backend FQDN
+# 2. Add TXT record for domain verification (see output for verification ID)
 #
-# For now, we just ensure CORS includes the custom domain (done above).
-# Full Terraform support for custom domains requires the azapi provider.
+# See: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_app_custom_domain
 
-# Output the commands needed to add custom domains
-locals {
-  frontend_custom_domain_command = var.custom_domain_frontend != "" ? "az containerapp hostname add --name ${azurerm_container_app.frontend.name} --resource-group ${azurerm_resource_group.main.name} --hostname ${var.custom_domain_frontend}" : ""
-  backend_custom_domain_command  = var.custom_domain_backend != "" ? "az containerapp hostname add --name ${azurerm_container_app.backend.name} --resource-group ${azurerm_resource_group.main.name} --hostname ${var.custom_domain_backend}" : ""
+# Add frontend custom domain via Azure CLI
+resource "null_resource" "frontend_custom_domain" {
+  count = var.custom_domain_frontend != "" ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_frontend
+    container_app  = azurerm_container_app.frontend.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Adding custom domain ${var.custom_domain_frontend} to ${azurerm_container_app.frontend.name}..."
+      az containerapp hostname add \
+        --name ${azurerm_container_app.frontend.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --hostname ${var.custom_domain_frontend} \
+        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.frontend.ingress[0].fqdn}"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app.frontend]
+}
+
+# Add backend custom domain via Azure CLI (optional)
+resource "null_resource" "backend_custom_domain" {
+  count = var.custom_domain_backend != "" ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_backend
+    container_app  = azurerm_container_app.backend.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Adding custom domain ${var.custom_domain_backend} to ${azurerm_container_app.backend.name}..."
+      az containerapp hostname add \
+        --name ${azurerm_container_app.backend.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --hostname ${var.custom_domain_backend} \
+        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.backend.ingress[0].fqdn}"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app.backend]
 }
 
 # -----------------------------------------------------------------------------
