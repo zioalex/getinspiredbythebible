@@ -40,6 +40,17 @@ variable "tags" {
   default     = {}
 }
 
+variable "resource_suffix" {
+  description = "Override the random resource suffix (useful when importing existing resources)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.resource_suffix == "" || can(regex("^[a-z0-9]{6}$", var.resource_suffix))
+    error_message = "Resource suffix must be exactly 6 lowercase alphanumeric characters."
+  }
+}
+
 # -----------------------------------------------------------------------------
 # PostgreSQL Configuration
 # -----------------------------------------------------------------------------

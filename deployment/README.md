@@ -364,10 +364,10 @@ cd deployment/scripts
 ./setup-github-spn.sh -e np
 
 # For production (recommended: also set secrets automatically)
-./setup-github-spn.sh -e prod -r your-org/your-repo -g
+./setup-github-spn.sh -e prod -r ${GITHUB_REPO} -g
 
 # With specific subscription
-./setup-github-spn.sh -e prod -s "12345678-1234-1234-1234-123456789012"
+./setup-github-spn.sh -e prod -s "${ARM_SUBSCRIPTION_ID}" -r ${GITHUB_REPO}
 ```
 
 The script will:

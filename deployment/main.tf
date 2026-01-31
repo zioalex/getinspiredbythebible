@@ -49,7 +49,8 @@ resource "random_string" "suffix" {
 }
 
 locals {
-  resource_suffix = random_string.suffix.result
+  # Use override suffix if provided, otherwise use random (for importing existing resources)
+  resource_suffix = var.resource_suffix != "" ? var.resource_suffix : random_string.suffix.result
   name_prefix     = var.project_name
 
   # Use db_location if specified, otherwise use main location
