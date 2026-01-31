@@ -63,11 +63,20 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     api_url = "https://disciplestoday.org/wp-json/cfc/v1/search"
     request_body = {"location": location}
 
+    # Headers to appear as a legitimate browser request
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://disciplestoday.org",
+        "Referer": "https://disciplestoday.org/",
+    }
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Log at debug level only to avoid PII in production logs
             logger.debug(f"Sending POST to {api_url} with body: {request_body}")
-            response = await client.post(api_url, json=request_body)
+            response = await client.post(api_url, json=request_body, headers=headers)
 
             logger.info(
                 f"Response from disciplestoday.org: status={response.status_code}, "

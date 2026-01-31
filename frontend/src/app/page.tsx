@@ -470,8 +470,8 @@ export default function Home() {
             </button>
           </form>
           <p className="text-xs text-gray-400 mt-2 text-center">
-            Responses are AI-generated. For serious concerns, please seek
-            pastoral or professional guidance.
+            AI-generated responses may contain errors. Not a substitute for
+            theology or pastoral counsel.
           </p>
 
           {/* Church Finder Banner */}
