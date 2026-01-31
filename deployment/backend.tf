@@ -28,9 +28,9 @@ terraform {
     # 2. Environment variables (ARM_*)
     # 3. backend.hcl file
 
-    resource_group_name  = "bible-app-tfstate-rg"
-    container_name       = "tfstate"
-    key                  = "bible-app.tfstate"
+    resource_group_name = "bible-app-tfstate-rg"
+    container_name      = "tfstate"
+    key                 = "bible-app.tfstate"
 
     # storage_account_name is provided via:
     # - terraform init -backend-config="storage_account_name=xxx"
