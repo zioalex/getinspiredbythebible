@@ -151,6 +151,13 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          BACKEND_URL="https://${{ env.BACKEND_APP_NAME }}.${{ secrets.CONTAINER_APP_DOMAIN }}"
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
+
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
@@ -163,7 +170,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=https://${{ env.BACKEND_APP_NAME }}.${{ secrets.CONTAINER_APP_DOMAIN }}
+            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
+
+      - name: Verify API URL in image
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Verifying NEXT_PUBLIC_API_URL is correctly baked into the image..."
+          docker pull ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }}
+
+          # Check that localhost:8000 is NOT in the image
+          if docker run --rm ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }} \
+            sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null" | head -1; then
+            echo "::error::ERROR: localhost:8000 found in image - build arg not applied correctly!"
+            exit 1
+          fi
+
+          # Check that the correct URL IS in the image
+          if docker run --rm ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }} \
+            sh -c "grep -r '${{ steps.backend-url.outputs.url }}' .next/ 2>/dev/null" | head -1; then
+            echo "✅ Correct API URL found in image: ${{ steps.backend-url.outputs.url }}"
+          else
+            echo "::warning::Could not verify API URL in image (may be minified)"
+          fi
 
   # ---------------------------------------------------------------------------
   # Deploy to Azure Container Apps

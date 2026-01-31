@@ -40,6 +40,17 @@ variable "tags" {
   default     = {}
 }
 
+variable "resource_suffix" {
+  description = "Override the random resource suffix (useful when importing existing resources)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.resource_suffix == "" || can(regex("^[a-z0-9]{6}$", var.resource_suffix))
+    error_message = "Resource suffix must be exactly 6 lowercase alphanumeric characters."
+  }
+}
+
 # -----------------------------------------------------------------------------
 # PostgreSQL Configuration
 # -----------------------------------------------------------------------------
@@ -117,6 +128,12 @@ variable "backend_max_replicas" {
   default     = 2
 }
 
+variable "cors_origins" {
+  description = "Additional CORS origins (comma-separated), e.g., 'https://example.com,https://app.example.com'"
+  type        = string
+  default     = ""
+}
+
 # -----------------------------------------------------------------------------
 # Container Apps - Frontend Configuration
 # -----------------------------------------------------------------------------
@@ -149,6 +166,41 @@ variable "frontend_max_replicas" {
   description = "Maximum replicas for frontend"
   type        = number
   default     = 2
+}
+
+# -----------------------------------------------------------------------------
+# Custom Domain Configuration
+# -----------------------------------------------------------------------------
+
+variable "custom_domain_frontend" {
+  description = "Custom domain for frontend (e.g., 'getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "custom_domain_backend" {
+  description = "Custom domain for backend API (e.g., 'api.getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_origin_cert_frontend" {
+  description = "Path to Cloudflare Origin Certificate PFX file for frontend custom domain. Leave empty to skip SSL binding."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_origin_cert_backend" {
+  description = "Path to Cloudflare Origin Certificate PFX file for backend custom domain. Leave empty to skip SSL binding."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_origin_cert_password" {
+  description = "Password for Cloudflare Origin Certificate PFX files (use empty string if no password)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 # -----------------------------------------------------------------------------

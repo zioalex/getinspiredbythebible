@@ -110,6 +110,25 @@ class OpenRouterProvider(LLMProvider):
             return True
         return False
 
+    def _is_model_unavailable_error(self, e: Exception) -> bool:
+        """Check if an exception indicates model is unavailable (404 or similar)."""
+        if isinstance(e, APIStatusError):
+            # 404: Model not found / No models match
+            # 503: Service temporarily unavailable
+            if e.status_code in (404, 503):
+                logger.warning(f"Model unavailable (status {e.status_code}): {e}")
+                return True
+            # Check error message for model-related issues
+            error_msg = str(e).lower()
+            if "no model" in error_msg or "model not found" in error_msg:
+                logger.warning(f"Model unavailable error: {e}")
+                return True
+        return False
+
+    def _should_try_fallback(self, e: Exception) -> bool:
+        """Check if we should try fallback models for this error."""
+        return self._is_rate_limit_error(e) or self._is_model_unavailable_error(e)
+
     async def chat(
         self,
         messages: list[ChatMessage],
@@ -130,11 +149,11 @@ class OpenRouterProvider(LLMProvider):
                 extra_body=extra_body,
             )
         except (RateLimitError, APIStatusError) as e:
-            is_rate_limit = self._is_rate_limit_error(e)
+            should_fallback = self._should_try_fallback(e)
 
-            if is_rate_limit and self.fallback_models and self.allow_fallbacks:
+            if should_fallback and self.fallback_models and self.allow_fallbacks:
                 logger.warning(
-                    f"Rate limit hit for model={model_to_use} (primary={self.model}), "
+                    f"Primary model failed (model={model_to_use}, primary={self.model}), "
                     f"attempting fallback to: {self.fallback_models}"
                 )
                 for fallback_model in self.fallback_models:
@@ -160,8 +179,10 @@ class OpenRouterProvider(LLMProvider):
                             finish_reason=response.choices[0].finish_reason,
                         )
                     except (RateLimitError, APIStatusError) as fallback_e:
-                        if self._is_rate_limit_error(fallback_e):
-                            logger.warning(f"Fallback model {fallback_model} also rate limited")
+                        if self._should_try_fallback(fallback_e):
+                            logger.warning(
+                                f"Fallback model {fallback_model} also failed: {fallback_e}"
+                            )
                         else:
                             logger.error(f"Fallback model {fallback_model} failed: {fallback_e}")
                         continue
@@ -170,15 +191,16 @@ class OpenRouterProvider(LLMProvider):
                         continue
                 # All fallbacks exhausted
                 raise RuntimeError(
-                    "All models rate limited. "
+                    "All models unavailable or rate limited. "
                     f"Primary: {self.model}, "
-                    f"Fallbacks: {self.fallback_models}"
+                    f"Fallbacks: {self.fallback_models}. "
+                    "Check model names at https://openrouter.ai/models"
                 ) from e
             else:
-                # No fallbacks configured or not a rate limit, re-raise the original error
-                if is_rate_limit:
+                # No fallbacks configured or not a recoverable error
+                if should_fallback:
                     logger.error(
-                        f"Rate limit hit but no fallbacks available: "
+                        f"Model failed but no fallbacks available: "
                         f"fallback_models={self.fallback_models}, allow_fallbacks={self.allow_fallbacks}"
                     )
                 raise
@@ -263,16 +285,14 @@ class OpenRouterProvider(LLMProvider):
                 return  # Success, exit the generator
 
             except (RateLimitError, APIStatusError) as e:
-                # Check if this is a rate limit error (429 status code)
-                is_rate_limit = isinstance(e, RateLimitError) or (
-                    isinstance(e, APIStatusError) and e.status_code == 429
-                )
+                # Check if this error should trigger fallback
+                should_fallback = self._should_try_fallback(e)
 
-                if not is_rate_limit:
-                    # Not a rate limit error, re-raise
+                if not should_fallback:
+                    # Not a recoverable error, re-raise
                     raise
 
-                logger.warning(f"Rate limit hit for {current_model} in streaming")
+                logger.warning(f"Model {current_model} failed in streaming: {e}")
 
                 # Try next fallback model
                 if (
@@ -288,9 +308,60 @@ class OpenRouterProvider(LLMProvider):
                 else:
                     # No more fallbacks
                     raise RuntimeError(
-                        "All models rate limited in streaming. "
-                        f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}"
+                        "All models unavailable in streaming. "
+                        f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
+                        "Check model names at https://openrouter.ai/models"
                     ) from e
+
+    async def verify_model_available(self, model: str) -> tuple[bool, str]:
+        """
+        Verify that a specific model is available on OpenRouter.
+
+        Args:
+            model: Model name to check
+
+        Returns:
+            Tuple of (is_available, error_message)
+        """
+        try:
+            response = await self._client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": "Hi"}],
+                max_tokens=5,
+            )
+            if response and response.choices:
+                return True, ""
+            return False, "Empty response from model"
+        except APIStatusError as e:
+            if e.status_code == 404:
+                return False, f"Model '{model}' not found on OpenRouter"
+            elif e.status_code == 429:
+                # Rate limited means model exists but is busy
+                return True, "Model exists but rate limited"
+            else:
+                return False, f"API error {e.status_code}: {e.message}"
+        except Exception as e:
+            return False, f"Error checking model: {str(e)}"
+
+    async def verify_all_models(self) -> dict[str, tuple[bool, str]]:
+        """
+        Verify that all configured models (primary + fallbacks) are available.
+
+        Returns:
+            Dict mapping model name to (is_available, error_message)
+        """
+        results = {}
+        all_models = [self.model] + self.fallback_models
+
+        for model in all_models:
+            is_available, error = await self.verify_model_available(model)
+            results[model] = (is_available, error)
+            if is_available:
+                logger.info(f"Model '{model}' is available")
+            else:
+                logger.warning(f"Model '{model}' unavailable: {error}")
+
+        return results
 
     async def health_check(self) -> bool:
         """

@@ -45,6 +45,43 @@ Deploy the **Get Inspired by the Bible** application on Azure using Container Ap
 
 ## 🚀 Quick Start
 
+### 0. Set Up Terraform Remote State (Recommended)
+
+For team collaboration and CI/CD pipelines, use Azure Blob Storage for Terraform state:
+
+```bash
+cd deployment
+
+# Run the setup script (creates storage account, resource group, container)
+./scripts/setup-tf-backend.sh [subscription_id] [location]
+
+# Example:
+./scripts/setup-tf-backend.sh "12345678-1234-1234-1234-123456789012" "northeurope"
+```
+
+The script will:
+
+- Create resource group `bible-app-tfstate-rg`
+- Create a storage account with versioning enabled
+- Create a blob container `tfstate`
+- Output the storage account name for use in `terraform init`
+
+**Initialize with remote state:**
+
+```bash
+# Option 1: Pass storage account name directly
+terraform init -backend-config="storage_account_name=bibleapptfstateXXXXXX"
+
+# Option 2: Use a backend config file (recommended)
+cp backend.hcl.example backend.hcl
+# Edit backend.hcl with your storage account name
+terraform init -backend-config=backend.hcl
+```
+
+> **Note:** `backend.hcl` is git-ignored to prevent committing sensitive infrastructure details.
+
+For CI/CD setup, see the [GitHub Actions Workflow](#-cicd-with-github-actions) section.
+
 ### 1. Azure CLI Setup
 
 ```bash
@@ -134,30 +171,119 @@ terraform apply
 
 ### 6. Build and Push Images
 
+#### Option A: Using Docker Compose with .env.production (Recommended)
+
+The `.env.production` file contains all required variables including `ACR_NAME` and `NEXT_PUBLIC_API_URL`.
+
 ```bash
-# Login to your new ACR
-az acr login --name $(terraform output -raw acr_login_server | cut -d'.' -f1)
+# From the project root (not deployment/)
+cd /path/to/getinspiredbythebible
 
-# Build backend (from your repo root)
-cd backend
-docker build --platform linux/amd64 -t $(terraform output -raw acr_login_server)/bible-backend:latest .
-docker push $(terraform output -raw acr_login_server)/bible-backend:latest
+# Login to ACR (source variables from .env.production)
+source .env.production
+az acr login --name $ACR_NAME
 
-# Build frontend
-cd ../frontend
-docker build --platform linux/amd64 -t $(terraform output -raw acr_login_server)/bible-frontend:latest .
-docker push $(terraform output -raw acr_login_server)/bible-frontend:latest
+# Build and push using --env-file flag (IMPORTANT: required for build args)
+docker compose --env-file .env.production -f docker-compose.prod.yml build --push
+
+# Or build only (without push)
+docker compose --env-file .env.production -f docker-compose.prod.yml build
+
+# Push separately
+docker compose --env-file .env.production -f docker-compose.prod.yml push
+```
+
+**Important:** The `--env-file .env.production` flag is required for docker compose to read
+the `NEXT_PUBLIC_API_URL` build argument correctly.
+
+#### Option B: Using Make (Simplified)
+
+```bash
+# Build and push all images
+make docker-build-prod
+
+# Or build only frontend/backend
+make docker-build-prod-frontend
+make docker-build-prod-backend
+```
+
+#### Option C: Manual Docker Build
+
+```bash
+# Source variables
+source .env.production
+
+# Login to ACR
+az acr login --name $ACR_NAME
+
+# Build backend image
+docker build -t ${ACR_NAME}.azurecr.io/bible-backend:latest ./api
+
+# Build frontend image with API URL
+docker build -t ${ACR_NAME}.azurecr.io/bible-frontend:latest \
+  --target production \
+  --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+  ./frontend
+
+# Push images to ACR
+docker push ${ACR_NAME}.azurecr.io/bible-backend:latest
+docker push ${ACR_NAME}.azurecr.io/bible-frontend:latest
+```
+
+#### Verify Image Configuration
+
+After building, verify the correct API URL is baked into the frontend image:
+
+```bash
+# Should return NO output (localhost:8000 should NOT be in the image)
+docker run --rm ${ACR_NAME}.azurecr.io/bible-frontend:latest \
+  sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null | head -3"
+
+# Should return output showing the correct URL
+docker run --rm ${ACR_NAME}.azurecr.io/bible-frontend:latest \
+  sh -c "grep -r '${NEXT_PUBLIC_API_URL}' .next/ 2>/dev/null | head -3"
+```
+
+#### Expected Image Tags
+
+After building, your images should be tagged as:
+
+```
+bibleappacrmb0172.azurecr.io/bible-backend:latest
+bibleappacrmb0172.azurecr.io/bible-frontend:latest
+```
+
+Verify images in ACR:
+
+```bash
+az acr repository list --name $ACR_NAME -o table
+az acr repository show-tags --name $ACR_NAME --repository bible-backend -o table
+az acr repository show-tags --name $ACR_NAME --repository bible-frontend -o table
 ```
 
 ### 7. Update Container Apps
 
 ```bash
 # Update terraform.tfvars with your images
-backend_image  = "bibleappacr123abc.azurecr.io/bible-backend:latest"
-frontend_image = "bibleappacr123abc.azurecr.io/bible-frontend:latest"
+backend_image  = "bibleappacrmb0172.azurecr.io/bible-backend:latest"
+frontend_image = "bibleappacrmb0172.azurecr.io/bible-frontend:latest"
 
 # Re-apply
 terraform apply
+```
+
+Or update directly via Azure CLI (faster for iterations):
+
+```bash
+az containerapp update \
+  --name bible-app-backend \
+  --resource-group bible-app-rg \
+  --image bibleappacrmb0172.azurecr.io/bible-backend:latest
+
+az containerapp update \
+  --name bible-app-frontend \
+  --resource-group bible-app-rg \
+  --image bibleappacrmb0172.azurecr.io/bible-frontend:latest
 ```
 
 ### 8. Load Bible Data and Generate Embeddings
@@ -241,14 +367,151 @@ terraform output frontend_url
 terraform output backend_url
 ```
 
+## 🔒 Custom Domain with Cloudflare SSL (Optional)
+
+When using Cloudflare as a reverse proxy, you need to configure SSL properly to avoid 525 errors.
+
+### Understanding the SSL Flow
+
+```
+User Browser → Cloudflare Edge → Azure Container App
+     |              |                    |
+     |   HTTPS      |      HTTPS         |
+     |   Cloudflare |      Cloudflare    |
+     |   SSL Cert   |      Origin Cert   |
+```
+
+Azure's default certificate is for `*.azurecontainerapps.io`, not your custom domain.
+Cloudflare Origin Certificates solve this by providing a certificate trusted by Cloudflare.
+
+### Step 1: Create Cloudflare Origin Certificate
+
+1. Go to **Cloudflare Dashboard** → Your domain → **SSL/TLS** → **Origin Server**
+2. Click **Create Certificate**
+3. Select:
+   - Private key type: **RSA (2048)**
+   - Hostnames: `yourdomain.com`, `*.yourdomain.com`
+   - Certificate validity: **15 years** (recommended)
+4. Click **Create**
+5. Save both files:
+   - Certificate → `origin-cert.pem`
+   - Private Key → `origin-key.pem`
+
+### Step 2: Convert to PFX Format
+
+Azure Container Apps requires PFX format:
+
+```bash
+# Without password (simpler)
+openssl pkcs12 -export -out cloudflare-origin.pfx \
+  -inkey origin-key.pem \
+  -in origin-cert.pem \
+  -passout pass:
+
+# Or with password
+openssl pkcs12 -export -out cloudflare-origin.pfx \
+  -inkey origin-key.pem \
+  -in origin-cert.pem \
+  -passout pass:yourpassword
+```
+
+### Step 3: Configure Terraform
+
+Add to your `terraform.tfvars`:
+
+```hcl
+# Custom domain configuration
+custom_domain_frontend = "getinspiredbythebible.ai4you.sh"
+
+# Cloudflare Origin Certificate (path to PFX file)
+cloudflare_origin_cert_frontend = "./cloudflare-origin.pfx"
+cloudflare_origin_cert_password = ""  # Empty if no password
+```
+
+Then apply:
+
+```bash
+terraform apply
+```
+
+### Step 4: Set Cloudflare SSL Mode
+
+In **Cloudflare Dashboard** → **SSL/TLS** → **Overview**:
+
+- Select **Full (strict)**
+
+This ensures encrypted traffic between Cloudflare and your origin with certificate validation.
+
+### Manual Setup (Without Terraform)
+
+If you prefer to set up manually or need to troubleshoot:
+
+```bash
+# 1. Upload certificate to Container App Environment
+az containerapp env certificate upload \
+  --name bible-app-env \
+  --resource-group bible-app-rg \
+  --certificate-file cloudflare-origin.pfx \
+  --password ""
+
+# 2. List certificates to get the ID
+az containerapp env certificate list \
+  --name bible-app-env \
+  --resource-group bible-app-rg \
+  --query "[].{name:name, id:id}" -o table
+
+# 3. Add hostname (if not already added)
+az containerapp hostname add \
+  --name bible-app-frontend \
+  --resource-group bible-app-rg \
+  --hostname getinspiredbythebible.ai4you.sh
+
+# 4. Bind certificate to hostname
+az containerapp hostname bind \
+  --name bible-app-frontend \
+  --resource-group bible-app-rg \
+  --hostname getinspiredbythebible.ai4you.sh \
+  --certificate <certificate-name-or-id> \
+  --environment bible-app-env
+
+# 5. Verify
+curl -I https://getinspiredbythebible.ai4you.sh
+```
+
+### Troubleshooting SSL Issues
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| 525 SSL Handshake Failed | Certificate mismatch | Install Cloudflare Origin Certificate |
+| 526 Invalid SSL Certificate | Origin cert not trusted | Use "Full" mode (not strict) or fix cert |
+| 521 Web Server Down | Container not running | Check container app status |
+
+```bash
+# Check if certificate is bound
+az containerapp hostname list \
+  --name bible-app-frontend \
+  --resource-group bible-app-rg
+
+# Check container logs
+az containerapp logs show \
+  --name bible-app-frontend \
+  --resource-group bible-app-rg \
+  --follow
+```
+
 ## 📁 Project Structure
 
 ```
-terraform-azure/
+deployment/
 ├── main.tf                    # Main infrastructure
+├── backend.tf                 # Remote state configuration
 ├── variables.tf               # Input variables
 ├── outputs.tf                 # Output values
 ├── terraform.tfvars.example   # Example configuration
+├── backend.hcl.example        # Example backend config
+├── scripts/
+│   ├── setup-tf-backend.sh    # Setup Azure storage for state
+│   └── setup-github-spn.sh    # Setup Service Principal for CI/CD
 ├── .gitignore                 # Ignore secrets
 └── README.md                  # This file
 ```
@@ -286,7 +549,67 @@ backend_memory = "2Gi"  # More memory for vector operations
 
 ## 🔄 CI/CD with GitHub Actions
 
-Create `.github/workflows/deploy.yml`:
+### Terraform Infrastructure Pipeline
+
+The repository includes a GitHub Actions workflow (`.github/workflows/terraform.yml`) that automates infrastructure management:
+
+| Trigger | Action |
+|---------|--------|
+| Pull Request | Plan only (shows what would change) |
+| Push to main | Plan + Apply (with approval) |
+| Manual dispatch | Plan, Apply, or Destroy |
+
+**Required GitHub Secrets:**
+
+| Secret | Description |
+|--------|-------------|
+| `ARM_CLIENT_ID` | Azure Service Principal Client ID |
+| `ARM_CLIENT_SECRET` | Azure Service Principal Client Secret |
+| `ARM_SUBSCRIPTION_ID` | Azure Subscription ID |
+| `ARM_TENANT_ID` | Azure Tenant ID |
+| `TF_STORAGE_ACCOUNT` | Storage account name for Terraform state |
+| `TF_VAR_DB_ADMIN_PASSWORD` | Database admin password |
+| `TF_VAR_OPENROUTER_API_KEY` | OpenRouter API key |
+
+**Create a Service Principal for GitHub Actions:**
+
+Use the automated setup script to create the SPN for your environment:
+
+```bash
+cd deployment/scripts
+
+# For development environment
+./setup-github-spn.sh -e dev
+
+# For non-production/staging
+./setup-github-spn.sh -e np
+
+# For production (recommended: also set secrets automatically)
+./setup-github-spn.sh -e prod -r ${GITHUB_REPO} -g
+
+# With specific subscription
+./setup-github-spn.sh -e prod -s "${ARM_SUBSCRIPTION_ID}" -r ${GITHUB_REPO}
+```
+
+The script will:
+
+- Create a service principal named `github-actions-bible-app-{env}`
+- Assign the Contributor role to your subscription
+- Output the secrets you need to add to GitHub
+- Optionally set GitHub secrets directly (requires `gh` CLI)
+
+**Environment Protection:**
+
+Create a GitHub environment named `production` with required reviewers for apply/destroy operations:
+
+1. Go to your repo → Settings → Environments
+2. Create environment: `production`
+3. Add required reviewers (people who must approve deployments)
+4. Optionally restrict deployments to the `main` branch only
+
+### Application Deployment Pipeline
+
+Create `.github/workflows/deploy.yml` for container deployments:
 
 ```yaml
 name: Deploy to Azure

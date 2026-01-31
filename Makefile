@@ -332,3 +332,74 @@ functional-test-dev: ## Run functional tests on dev environment
 		 ELSE '✗ ERROR: Mixed dimensions!' END FROM verses WHERE embedding IS NOT NULL;" \
 		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
 	@echo "$(GREEN)✓ Dev functional tests complete$(NC)"
+
+# ==================== Azure Production Build Commands ====================
+
+docker-build-prod: docker-build-prod-backend docker-build-prod-frontend ## Build and push all images to ACR
+	@echo "$(GREEN)✓ All production images built and pushed$(NC)"
+
+docker-build-prod-backend: ## Build and push backend image to ACR
+	@echo "$(BLUE)Building and pushing backend to ACR...$(NC)"
+	@if [ ! -f .env.production ]; then \
+		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
+		exit 1; \
+	fi
+	@source .env.production && az acr login --name $$ACR_NAME
+	@docker compose --env-file .env.production -f docker-compose.prod.yml build --no-cache api
+	@docker compose --env-file .env.production -f docker-compose.prod.yml push api
+	@echo "$(GREEN)✓ Backend image pushed to ACR$(NC)"
+
+docker-build-prod-frontend: ## Build and push frontend image to ACR
+	@echo "$(BLUE)Building and pushing frontend to ACR...$(NC)"
+	@if [ ! -f .env.production ]; then \
+		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
+		exit 1; \
+	fi
+	@source .env.production && az acr login --name $$ACR_NAME
+	@docker compose --env-file .env.production -f docker-compose.prod.yml build --no-cache frontend
+	@$(MAKE) docker-verify-frontend
+	@docker compose --env-file .env.production -f docker-compose.prod.yml push frontend
+	@echo "$(GREEN)✓ Frontend image pushed to ACR$(NC)"
+
+docker-verify-frontend: ## Verify frontend image has correct API URL baked in
+	@echo "$(BLUE)Verifying frontend image configuration...$(NC)"
+	@source .env.production && \
+	IMAGE="$$ACR_NAME.azurecr.io/bible-frontend:latest" && \
+	echo "$(YELLOW)Checking image: $$IMAGE$(NC)" && \
+	if docker run --rm $$IMAGE sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null" | head -1 | grep -q .; then \
+		echo "$(YELLOW)ERROR: localhost:8000 found in image - NEXT_PUBLIC_API_URL not applied!$(NC)"; \
+		exit 1; \
+	else \
+		echo "$(GREEN)✓ No localhost:8000 found in image$(NC)"; \
+	fi && \
+	if docker run --rm $$IMAGE sh -c "grep -r '$$NEXT_PUBLIC_API_URL' .next/ 2>/dev/null" | head -1 | grep -q .; then \
+		echo "$(GREEN)✓ Correct API URL found: $$NEXT_PUBLIC_API_URL$(NC)"; \
+	else \
+		echo "$(YELLOW)Warning: Could not verify API URL (may be minified)$(NC)"; \
+	fi
+
+docker-deploy-prod: ## Deploy images to Azure Container Apps
+	@echo "$(BLUE)Deploying to Azure Container Apps...$(NC)"
+	@source .env.production && \
+	az containerapp update \
+		--name bible-app-backend \
+		--resource-group bible-app-rg \
+		--image $$ACR_NAME.azurecr.io/bible-backend:latest && \
+	az containerapp update \
+		--name bible-app-frontend \
+		--resource-group bible-app-rg \
+		--image $$ACR_NAME.azurecr.io/bible-frontend:latest
+	@echo "$(GREEN)✓ Deployment complete$(NC)"
+
+docker-build-deploy-prod: docker-build-prod docker-deploy-prod ## Build, push, and deploy all images
+	@echo "$(GREEN)✓ Full production deployment complete$(NC)"
+
+docker-get-backend-url: ## Get the backend URL from Azure
+	@az containerapp show \
+		--name bible-app-backend \
+		--resource-group bible-app-rg \
+		--query "properties.configuration.ingress.fqdn" -o tsv | \
+		xargs -I {} echo "https://{}"
+
+update-env-backend-url: ## Update .env.production with current Azure backend URL
+	@./scripts/update-env-backend-url.sh

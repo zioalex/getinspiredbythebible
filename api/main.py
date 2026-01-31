@@ -122,18 +122,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware for frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        # Local development (HTTP is fine for localhost)
+
+def _get_cors_origins() -> list[str]:
+    """Build list of allowed CORS origins from settings."""
+    # Always allow localhost for development
+    origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
-        # Production (HTTPS only - no HTTP to prevent MitM attacks)
+        # Production domain
         "https://getinspiredbythebible.ai4you.sh",
-    ],
+    ]
+    # Add custom origins from environment variable (comma-separated)
+    if settings.cors_origins:
+        custom_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+        origins.extend(custom_origins)
+    return origins
+
+
+# CORS middleware for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

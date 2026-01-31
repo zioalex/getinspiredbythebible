@@ -49,7 +49,8 @@ resource "random_string" "suffix" {
 }
 
 locals {
-  resource_suffix = random_string.suffix.result
+  # Use override suffix if provided, otherwise use random (for importing existing resources)
+  resource_suffix = var.resource_suffix != "" ? var.resource_suffix : random_string.suffix.result
   name_prefix     = var.project_name
 
   # Use db_location if specified, otherwise use main location
@@ -239,6 +240,17 @@ resource "azurerm_container_app" "backend" {
         value = "production"
       }
 
+      # CORS allowed origins - include frontend URL, custom domain, and any additional origins
+      # Use predictable URL pattern: {app-name}.{env-default-domain}
+      env {
+        name  = "CORS_ORIGINS"
+        value = join(",", compact([
+          "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}",
+          var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "",
+          var.cors_origins
+        ]))
+      }
+
       # Azure OpenAI Embeddings (if enabled)
       dynamic "env" {
         for_each = var.enable_azure_openai ? [1] : []
@@ -286,6 +298,14 @@ resource "azurerm_container_app" "backend" {
         content {
           name  = "OPENROUTER_ALLOW_FALLBACKS"
           value = tostring(var.openrouter_allow_fallbacks)
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_FALLBACK_MODELS"
+          value = var.openrouter_fallback_models
         }
       }
 
@@ -459,6 +479,217 @@ resource "azurerm_container_app" "frontend" {
   tags = local.tags
 
   depends_on = [azurerm_container_app.backend]
+}
+
+# -----------------------------------------------------------------------------
+# Custom Domain Configuration (Optional - for Cloudflare or other DNS)
+# -----------------------------------------------------------------------------
+# When using Cloudflare proxy, Cloudflare handles SSL termination.
+# We use null_resource with local-exec to add the custom domain via Azure CLI.
+#
+# IMPORTANT: Before running terraform apply with custom domains:
+# 1. Add CNAME record in Cloudflare pointing to the frontend/backend FQDN
+# 2. Add TXT record for domain verification (see output for verification ID)
+#
+# See: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_app_custom_domain
+
+# Add frontend custom domain via Azure CLI
+resource "null_resource" "frontend_custom_domain" {
+  count = var.custom_domain_frontend != "" ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_frontend
+    container_app  = azurerm_container_app.frontend.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Adding custom domain ${var.custom_domain_frontend} to ${azurerm_container_app.frontend.name}..."
+      az containerapp hostname add \
+        --name ${azurerm_container_app.frontend.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --hostname ${var.custom_domain_frontend} \
+        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.frontend.ingress[0].fqdn}"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app.frontend]
+}
+
+# Add backend custom domain via Azure CLI (optional)
+resource "null_resource" "backend_custom_domain" {
+  count = var.custom_domain_backend != "" ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_backend
+    container_app  = azurerm_container_app.backend.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Adding custom domain ${var.custom_domain_backend} to ${azurerm_container_app.backend.name}..."
+      az containerapp hostname add \
+        --name ${azurerm_container_app.backend.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --hostname ${var.custom_domain_backend} \
+        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.backend.ingress[0].fqdn}"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app.backend]
+}
+
+# -----------------------------------------------------------------------------
+# Cloudflare Origin Certificate Configuration (Optional)
+# -----------------------------------------------------------------------------
+# When using Cloudflare proxy with Full (Strict) SSL mode, you need to install
+# a Cloudflare Origin Certificate on your Azure Container App.
+#
+# Prerequisites:
+# 1. Create Cloudflare Origin Certificate in Cloudflare Dashboard:
+#    SSL/TLS → Origin Server → Create Certificate
+# 2. Save the certificate (.pem) and private key (.key)
+# 3. Convert to PFX format:
+#    openssl pkcs12 -export -out cert.pfx -inkey origin-key.pem -in origin-cert.pem -passout pass:
+# 4. Set cloudflare_origin_cert_frontend or cloudflare_origin_cert_backend to the PFX path
+
+# Upload frontend Cloudflare Origin Certificate
+resource "null_resource" "frontend_ssl_cert_upload" {
+  count = var.cloudflare_origin_cert_frontend != "" ? 1 : 0
+
+  triggers = {
+    cert_file      = var.cloudflare_origin_cert_frontend
+    environment    = azurerm_container_app_environment.main.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Uploading Cloudflare Origin Certificate for frontend..."
+      az containerapp env certificate upload \
+        --name ${azurerm_container_app_environment.main.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --certificate-file ${var.cloudflare_origin_cert_frontend} \
+        --password "${var.cloudflare_origin_cert_password}" \
+        || echo "Warning: Certificate may already exist or upload failed"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app_environment.main]
+}
+
+# Bind frontend certificate to custom domain
+resource "null_resource" "frontend_ssl_cert_bind" {
+  count = var.custom_domain_frontend != "" && var.cloudflare_origin_cert_frontend != "" ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_frontend
+    cert_file      = var.cloudflare_origin_cert_frontend
+    container_app  = azurerm_container_app.frontend.name
+    resource_group = azurerm_resource_group.main.name
+    environment    = azurerm_container_app_environment.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Binding SSL certificate to ${var.custom_domain_frontend}..."
+
+      # Get the certificate ID (most recently uploaded cert for this environment)
+      CERT_ID=$(az containerapp env certificate list \
+        --name ${azurerm_container_app_environment.main.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --query "[-1].id" -o tsv)
+
+      if [ -n "$CERT_ID" ]; then
+        az containerapp hostname bind \
+          --name ${azurerm_container_app.frontend.name} \
+          --resource-group ${azurerm_resource_group.main.name} \
+          --hostname ${var.custom_domain_frontend} \
+          --certificate "$CERT_ID" \
+          --environment ${azurerm_container_app_environment.main.name} \
+          || echo "Warning: Failed to bind certificate. Hostname may not be configured."
+      else
+        echo "Error: No certificate found in environment"
+        exit 1
+      fi
+    EOT
+  }
+
+  depends_on = [
+    null_resource.frontend_custom_domain,
+    null_resource.frontend_ssl_cert_upload
+  ]
+}
+
+# Upload backend Cloudflare Origin Certificate (if different from frontend)
+resource "null_resource" "backend_ssl_cert_upload" {
+  count = var.cloudflare_origin_cert_backend != "" && var.cloudflare_origin_cert_backend != var.cloudflare_origin_cert_frontend ? 1 : 0
+
+  triggers = {
+    cert_file      = var.cloudflare_origin_cert_backend
+    environment    = azurerm_container_app_environment.main.name
+    resource_group = azurerm_resource_group.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Uploading Cloudflare Origin Certificate for backend..."
+      az containerapp env certificate upload \
+        --name ${azurerm_container_app_environment.main.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --certificate-file ${var.cloudflare_origin_cert_backend} \
+        --password "${var.cloudflare_origin_cert_password}" \
+        || echo "Warning: Certificate may already exist or upload failed"
+    EOT
+  }
+
+  depends_on = [azurerm_container_app_environment.main]
+}
+
+# Bind backend certificate to custom domain
+resource "null_resource" "backend_ssl_cert_bind" {
+  count = var.custom_domain_backend != "" && (var.cloudflare_origin_cert_backend != "" || var.cloudflare_origin_cert_frontend != "") ? 1 : 0
+
+  triggers = {
+    hostname       = var.custom_domain_backend
+    cert_file      = var.cloudflare_origin_cert_backend != "" ? var.cloudflare_origin_cert_backend : var.cloudflare_origin_cert_frontend
+    container_app  = azurerm_container_app.backend.name
+    resource_group = azurerm_resource_group.main.name
+    environment    = azurerm_container_app_environment.main.name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Binding SSL certificate to ${var.custom_domain_backend}..."
+
+      # Get the certificate ID (most recently uploaded cert for this environment)
+      CERT_ID=$(az containerapp env certificate list \
+        --name ${azurerm_container_app_environment.main.name} \
+        --resource-group ${azurerm_resource_group.main.name} \
+        --query "[-1].id" -o tsv)
+
+      if [ -n "$CERT_ID" ]; then
+        az containerapp hostname bind \
+          --name ${azurerm_container_app.backend.name} \
+          --resource-group ${azurerm_resource_group.main.name} \
+          --hostname ${var.custom_domain_backend} \
+          --certificate "$CERT_ID" \
+          --environment ${azurerm_container_app_environment.main.name} \
+          || echo "Warning: Failed to bind certificate. Hostname may not be configured."
+      else
+        echo "Error: No certificate found in environment"
+        exit 1
+      fi
+    EOT
+  }
+
+  depends_on = [
+    null_resource.backend_custom_domain,
+    null_resource.frontend_ssl_cert_upload,
+    null_resource.backend_ssl_cert_upload
+  ]
 }
 
 # -----------------------------------------------------------------------------

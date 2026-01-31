@@ -75,6 +75,43 @@ frontend_min_replicas = 0
 frontend_max_replicas = 2
 
 # -----------------------------------------------------------------------------
+# Custom Domain Configuration (Optional - for Cloudflare or other DNS)
+# -----------------------------------------------------------------------------
+
+# Custom domain for frontend (leave empty to skip)
+# After setting, add CNAME in your DNS provider pointing to frontend_fqdn
+custom_domain_frontend = ""  # e.g., "getinspiredbythebible.ai4you.sh"
+
+# Custom domain for backend API (leave empty to skip)
+custom_domain_backend = ""  # e.g., "api.getinspiredbythebible.ai4you.sh"
+
+# Additional CORS origins (comma-separated)
+# Custom domain is automatically added, use this for additional origins
+cors_origins = ""  # e.g., "https://other-frontend.example.com"
+
+# -----------------------------------------------------------------------------
+# Cloudflare Origin Certificate (Required for Cloudflare Full Strict SSL)
+# -----------------------------------------------------------------------------
+# When using Cloudflare as a proxy, you need to install a Cloudflare Origin
+# Certificate on Azure to enable Full (Strict) SSL mode and avoid 525 errors.
+#
+# Steps to create:
+# 1. Cloudflare Dashboard → SSL/TLS → Origin Server → Create Certificate
+# 2. Save certificate (.pem) and private key (.key)
+# 3. Convert to PFX: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:
+# 4. Set the path below
+
+# Path to Cloudflare Origin Certificate PFX file for frontend
+cloudflare_origin_cert_frontend = ""  # e.g., "./cloudflare-origin.pfx"
+
+# Path to Cloudflare Origin Certificate PFX file for backend (optional)
+# Leave empty to use the same certificate as frontend
+cloudflare_origin_cert_backend = ""
+
+# Password for PFX files (empty string if no password)
+cloudflare_origin_cert_password = ""
+
+# -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------
 

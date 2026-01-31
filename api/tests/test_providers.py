@@ -191,3 +191,181 @@ async def test_openrouter_streaming_handles_empty_chunks():
             chunks.append(chunk)
 
         assert chunks == ["Hello!"]
+
+
+# Tests for OpenRouter model unavailability and fallback
+
+
+@pytest.mark.asyncio
+async def test_openrouter_fallback_on_404_model_not_found():
+    """Test that OpenRouter falls back to other models when primary returns 404."""
+    from unittest.mock import MagicMock, patch
+
+    from openai import APIStatusError
+
+    from providers.base import ChatMessage
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="non-existent-model:free",
+        fallback_models=["fallback-model"],
+        allow_fallbacks=True,
+    )
+
+    # Mock 404 error for primary model
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_response_404.headers = {}
+    error_404 = APIStatusError(
+        message="No models match your request",
+        response=mock_response_404,
+        body={"error": {"message": "No models match", "code": 404}},
+    )
+
+    # Mock successful response for fallback
+    mock_success = MagicMock()
+    mock_success.choices = [MagicMock()]
+    mock_success.choices[0].message.content = "Fallback response"
+    mock_success.choices[0].finish_reason = "stop"
+    mock_success.model = "fallback-model"
+    mock_success.usage = MagicMock()
+    mock_success.usage.prompt_tokens = 10
+    mock_success.usage.completion_tokens = 5
+
+    call_count = 0
+
+    async def mock_create(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:  # First call (primary or auto-router)
+            raise error_404
+        return mock_success  # Fallback succeeds
+
+    with patch.object(provider._client.chat.completions, "create", side_effect=mock_create):
+        response = await provider.chat([ChatMessage(role="user", content="test")])
+        assert response.content == "Fallback response"
+        assert response.model == "fallback-model"
+
+
+@pytest.mark.asyncio
+async def test_openrouter_no_fallback_when_disabled():
+    """Test that OpenRouter doesn't fallback when allow_fallbacks=False."""
+    from unittest.mock import MagicMock, patch
+
+    from openai import APIStatusError
+
+    from providers.base import ChatMessage
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="non-existent-model:free",
+        fallback_models=["fallback-model"],
+        allow_fallbacks=False,  # Disabled!
+    )
+
+    # Mock 404 error
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_response_404.headers = {}
+    error_404 = APIStatusError(
+        message="No models match your request",
+        response=mock_response_404,
+        body={"error": {"message": "No models match", "code": 404}},
+    )
+
+    async def mock_create(*args, **kwargs):
+        raise error_404
+
+    with patch.object(provider._client.chat.completions, "create", side_effect=mock_create):
+        with pytest.raises(APIStatusError):
+            await provider.chat([ChatMessage(role="user", content="test")])
+
+
+def test_openrouter_is_model_unavailable_error():
+    """Test the _is_model_unavailable_error helper method."""
+    from unittest.mock import MagicMock
+
+    from openai import APIStatusError
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="test-model",
+    )
+
+    # 404 should be detected as model unavailable
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_response_404.headers = {}
+    error_404 = APIStatusError(
+        message="Model not found",
+        response=mock_response_404,
+        body={},
+    )
+    assert provider._is_model_unavailable_error(error_404) is True
+
+    # 503 should be detected as model unavailable
+    mock_response_503 = MagicMock()
+    mock_response_503.status_code = 503
+    mock_response_503.headers = {}
+    error_503 = APIStatusError(
+        message="Service unavailable",
+        response=mock_response_503,
+        body={},
+    )
+    assert provider._is_model_unavailable_error(error_503) is True
+
+    # 400 should NOT be detected as model unavailable
+    mock_response_400 = MagicMock()
+    mock_response_400.status_code = 400
+    mock_response_400.headers = {}
+    error_400 = APIStatusError(
+        message="Bad request",
+        response=mock_response_400,
+        body={},
+    )
+    assert provider._is_model_unavailable_error(error_400) is False
+
+
+def test_openrouter_should_try_fallback():
+    """Test the _should_try_fallback helper combines rate limit and model unavailable."""
+    from unittest.mock import MagicMock
+
+    from openai import APIStatusError, RateLimitError
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="test-model",
+    )
+
+    # Rate limit error should trigger fallback
+    mock_response_429 = MagicMock()
+    mock_response_429.status_code = 429
+    mock_response_429.headers = {}
+    error_429 = APIStatusError(
+        message="Rate limited",
+        response=mock_response_429,
+        body={},
+    )
+    assert provider._should_try_fallback(error_429) is True
+
+    # 404 should trigger fallback
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_response_404.headers = {}
+    error_404 = APIStatusError(
+        message="Not found",
+        response=mock_response_404,
+        body={},
+    )
+    assert provider._should_try_fallback(error_404) is True
+
+    # RateLimitError should trigger fallback
+    mock_response_rate = MagicMock()
+    mock_response_rate.status_code = 429
+    mock_response_rate.headers = {}
+    rate_error = RateLimitError(
+        message="Rate limited",
+        response=mock_response_rate,
+        body={},
+    )
+    assert provider._should_try_fallback(rate_error) is True

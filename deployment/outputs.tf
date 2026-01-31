@@ -80,6 +80,86 @@ output "frontend_fqdn" {
 }
 
 # -----------------------------------------------------------------------------
+# Custom Domains
+# -----------------------------------------------------------------------------
+
+output "custom_domain_frontend" {
+  description = "Custom domain for frontend (if configured)"
+  value       = var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "Not configured"
+}
+
+output "custom_domain_backend" {
+  description = "Custom domain for backend API (if configured)"
+  value       = var.custom_domain_backend != "" ? "https://${var.custom_domain_backend}" : "Not configured"
+}
+
+output "dns_configuration" {
+  description = "DNS configuration for Cloudflare or other DNS providers"
+  value       = <<-EOT
+
+    ============================================================
+    DNS CONFIGURATION (for Cloudflare)
+    ============================================================
+
+    FRONTEND CNAME:
+      Name:   ${var.custom_domain_frontend != "" ? var.custom_domain_frontend : "your-domain.com"}
+      Target: ${azurerm_container_app.frontend.ingress[0].fqdn}
+      Proxy:  Enabled (orange cloud)
+
+    ${var.custom_domain_backend != "" ? "BACKEND API CNAME:\n      Name:   ${var.custom_domain_backend}\n      Target: ${azurerm_container_app.backend.ingress[0].fqdn}\n      Proxy:  Enabled (orange cloud)" : ""}
+
+    CLOUDFLARE SSL SETTINGS:
+      SSL/TLS Mode: Full (Strict)
+      Always Use HTTPS: On
+      Minimum TLS Version: 1.2
+
+    ============================================================
+  EOT
+}
+
+output "domain_verification_id" {
+  description = "Domain verification ID for TXT record (if domain verification fails)"
+  value       = azurerm_container_app.frontend.custom_domain_verification_id
+  sensitive   = true
+}
+
+output "custom_domain_dns_setup" {
+  description = "DNS records to add in Cloudflare before terraform apply"
+  sensitive   = true
+  value       = <<-EOT
+
+    ============================================================
+    DNS SETUP FOR CUSTOM DOMAINS (Cloudflare)
+    ============================================================
+
+    ${var.custom_domain_frontend != "" ? "FRONTEND (${var.custom_domain_frontend}):" : ""}
+    ${var.custom_domain_frontend != "" ? "  1. CNAME Record:" : ""}
+    ${var.custom_domain_frontend != "" ? "     Name:   @ (or subdomain)" : ""}
+    ${var.custom_domain_frontend != "" ? "     Target: ${azurerm_container_app.frontend.ingress[0].fqdn}" : ""}
+    ${var.custom_domain_frontend != "" ? "     Proxy:  Enabled (orange cloud)" : ""}
+    ${var.custom_domain_frontend != "" ? "" : ""}
+    ${var.custom_domain_frontend != "" ? "  2. TXT Record (for verification, if needed):" : ""}
+    ${var.custom_domain_frontend != "" ? "     Name:   asuid.${var.custom_domain_frontend}" : ""}
+    ${var.custom_domain_frontend != "" ? "     Value:  ${azurerm_container_app.frontend.custom_domain_verification_id}" : ""}
+
+    ${var.custom_domain_backend != "" ? "BACKEND API (${var.custom_domain_backend}):" : ""}
+    ${var.custom_domain_backend != "" ? "  1. CNAME Record:" : ""}
+    ${var.custom_domain_backend != "" ? "     Name:   api (or subdomain)" : ""}
+    ${var.custom_domain_backend != "" ? "     Target: ${azurerm_container_app.backend.ingress[0].fqdn}" : ""}
+    ${var.custom_domain_backend != "" ? "     Proxy:  Enabled (orange cloud)" : ""}
+
+    CLOUDFLARE SSL SETTINGS:
+      SSL/TLS Mode: Full (Strict)
+      Always Use HTTPS: On
+
+    ============================================================
+    NOTE: Add DNS records BEFORE running terraform apply with
+    custom domains, or the hostname binding will fail.
+    ============================================================
+  EOT
+}
+
+# -----------------------------------------------------------------------------
 # Azure OpenAI (Embeddings)
 # -----------------------------------------------------------------------------
 
