@@ -169,6 +169,28 @@ variable "frontend_max_replicas" {
 }
 
 # -----------------------------------------------------------------------------
+# Custom Domain Configuration
+# -----------------------------------------------------------------------------
+
+variable "custom_domain_frontend" {
+  description = "Custom domain for frontend (e.g., 'getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "custom_domain_backend" {
+  description = "Custom domain for backend API (e.g., 'api.getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "enable_managed_certificate" {
+  description = "Enable Azure managed certificate for custom domains (set to false if using Cloudflare SSL)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------
 

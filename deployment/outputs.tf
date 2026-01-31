@@ -80,6 +80,44 @@ output "frontend_fqdn" {
 }
 
 # -----------------------------------------------------------------------------
+# Custom Domains
+# -----------------------------------------------------------------------------
+
+output "custom_domain_frontend" {
+  description = "Custom domain for frontend (if configured)"
+  value       = var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "Not configured"
+}
+
+output "custom_domain_backend" {
+  description = "Custom domain for backend API (if configured)"
+  value       = var.custom_domain_backend != "" ? "https://${var.custom_domain_backend}" : "Not configured"
+}
+
+output "dns_configuration" {
+  description = "DNS configuration for Cloudflare or other DNS providers"
+  value       = <<-EOT
+
+    ============================================================
+    DNS CONFIGURATION (for Cloudflare)
+    ============================================================
+
+    FRONTEND CNAME:
+      Name:   ${var.custom_domain_frontend != "" ? var.custom_domain_frontend : "your-domain.com"}
+      Target: ${azurerm_container_app.frontend.ingress[0].fqdn}
+      Proxy:  Enabled (orange cloud)
+
+    ${var.custom_domain_backend != "" ? "BACKEND API CNAME:\n      Name:   ${var.custom_domain_backend}\n      Target: ${azurerm_container_app.backend.ingress[0].fqdn}\n      Proxy:  Enabled (orange cloud)" : ""}
+
+    CLOUDFLARE SSL SETTINGS:
+      SSL/TLS Mode: Full (Strict)
+      Always Use HTTPS: On
+      Minimum TLS Version: 1.2
+
+    ============================================================
+  EOT
+}
+
+# -----------------------------------------------------------------------------
 # Azure OpenAI (Embeddings)
 # -----------------------------------------------------------------------------
 

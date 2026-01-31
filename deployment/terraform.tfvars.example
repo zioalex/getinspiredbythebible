@@ -75,6 +75,25 @@ frontend_min_replicas = 0
 frontend_max_replicas = 2
 
 # -----------------------------------------------------------------------------
+# Custom Domain Configuration (Optional - for Cloudflare or other DNS)
+# -----------------------------------------------------------------------------
+
+# Custom domain for frontend (leave empty to skip)
+# After setting, add CNAME in your DNS provider pointing to frontend_fqdn
+custom_domain_frontend = ""  # e.g., "getinspiredbythebible.ai4you.sh"
+
+# Custom domain for backend API (leave empty to skip)
+custom_domain_backend = ""  # e.g., "api.getinspiredbythebible.ai4you.sh"
+
+# Enable Azure managed SSL certificate
+# Set to false if using Cloudflare SSL (Cloudflare handles SSL termination)
+enable_managed_certificate = false
+
+# Additional CORS origins (comma-separated)
+# Custom domain is automatically added, use this for additional origins
+cors_origins = ""  # e.g., "https://other-frontend.example.com"
+
+# -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------
 

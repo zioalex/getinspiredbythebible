@@ -240,11 +240,15 @@ resource "azurerm_container_app" "backend" {
         value = "production"
       }
 
-      # CORS allowed origins - include frontend URL and any additional origins
+      # CORS allowed origins - include frontend URL, custom domain, and any additional origins
       # Use predictable URL pattern: {app-name}.{env-default-domain}
       env {
         name  = "CORS_ORIGINS"
-        value = var.cors_origins != "" ? "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain},${var.cors_origins}" : "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}"
+        value = join(",", compact([
+          "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}",
+          var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "",
+          var.cors_origins
+        ]))
       }
 
       # Azure OpenAI Embeddings (if enabled)
@@ -475,6 +479,68 @@ resource "azurerm_container_app" "frontend" {
   tags = local.tags
 
   depends_on = [azurerm_container_app.backend]
+}
+
+# -----------------------------------------------------------------------------
+# Custom Domain Configuration (Optional - for Cloudflare or other DNS)
+# -----------------------------------------------------------------------------
+
+# Frontend custom domain
+resource "azurerm_container_app_custom_domain" "frontend" {
+  count = var.custom_domain_frontend != "" ? 1 : 0
+
+  name                                     = var.custom_domain_frontend
+  container_app_id                         = azurerm_container_app.frontend.id
+  container_app_environment_managed_certificate_id = var.enable_managed_certificate ? azurerm_container_app_environment_certificate.frontend[0].id : null
+  certificate_binding_type                 = var.enable_managed_certificate ? "SniEnabled" : "Disabled"
+
+  lifecycle {
+    # Prevent destruction if domain is still in use
+    prevent_destroy = false
+  }
+}
+
+# Managed certificate for frontend (optional - not needed if using Cloudflare SSL)
+resource "azurerm_container_app_environment_certificate" "frontend" {
+  count = var.custom_domain_frontend != "" && var.enable_managed_certificate ? 1 : 0
+
+  name                         = "cert-frontend"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  certificate_blob_base64      = "" # Empty for managed certificate
+  certificate_password         = "" # Empty for managed certificate
+
+  lifecycle {
+    ignore_changes = [
+      certificate_blob_base64,
+      certificate_password,
+    ]
+  }
+}
+
+# Backend custom domain (optional - for api.yourdomain.com)
+resource "azurerm_container_app_custom_domain" "backend" {
+  count = var.custom_domain_backend != "" ? 1 : 0
+
+  name                                     = var.custom_domain_backend
+  container_app_id                         = azurerm_container_app.backend.id
+  container_app_environment_managed_certificate_id = var.enable_managed_certificate ? azurerm_container_app_environment_certificate.backend[0].id : null
+  certificate_binding_type                 = var.enable_managed_certificate ? "SniEnabled" : "Disabled"
+}
+
+resource "azurerm_container_app_environment_certificate" "backend" {
+  count = var.custom_domain_backend != "" && var.enable_managed_certificate ? 1 : 0
+
+  name                         = "cert-backend"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  certificate_blob_base64      = ""
+  certificate_password         = ""
+
+  lifecycle {
+    ignore_changes = [
+      certificate_blob_base64,
+      certificate_password,
+    ]
+  }
 }
 
 # -----------------------------------------------------------------------------
