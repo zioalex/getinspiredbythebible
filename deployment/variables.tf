@@ -128,6 +128,12 @@ variable "backend_max_replicas" {
   default     = 2
 }
 
+variable "cors_origins" {
+  description = "Additional CORS origins (comma-separated), e.g., 'https://example.com,https://app.example.com'"
+  type        = string
+  default     = ""
+}
+
 # -----------------------------------------------------------------------------
 # Container Apps - Frontend Configuration
 # -----------------------------------------------------------------------------

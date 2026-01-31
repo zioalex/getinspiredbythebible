@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     smtp2go_sender_name: str = "Bible Inspiration"
     contact_notification_email: str = "getinspiredbythebible@ai4you.sh"
 
+    # CORS Settings
+    # Comma-separated list of allowed origins (in addition to localhost)
+    # Example: "https://myapp.azurecontainerapps.io,https://example.com"
+    cors_origins: str = ""
+
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 

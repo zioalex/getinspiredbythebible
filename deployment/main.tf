@@ -240,6 +240,13 @@ resource "azurerm_container_app" "backend" {
         value = "production"
       }
 
+      # CORS allowed origins - include frontend URL and any additional origins
+      # Use predictable URL pattern: {app-name}.{env-default-domain}
+      env {
+        name  = "CORS_ORIGINS"
+        value = var.cors_origins != "" ? "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain},${var.cors_origins}" : "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}"
+      }
+
       # Azure OpenAI Embeddings (if enabled)
       dynamic "env" {
         for_each = var.enable_azure_openai ? [1] : []
