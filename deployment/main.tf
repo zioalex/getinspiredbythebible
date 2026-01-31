@@ -289,6 +289,14 @@ resource "azurerm_container_app" "backend" {
         }
       }
 
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_FALLBACK_MODELS"
+          value = var.openrouter_fallback_models
+        }
+      }
+
       # Security & Application Settings
       env {
         name  = "DEBUG"
