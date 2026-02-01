@@ -1,4 +1,5 @@
-.PHONY: help venv install-hooks setup-dev lint test format check-all clean
+.PHONY: help venv install-hooks setup-dev lint test format check-all clean \
+	tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -403,3 +404,79 @@ docker-get-backend-url: ## Get the backend URL from Azure
 
 update-env-backend-url: ## Update .env.production with current Azure backend URL
 	@./scripts/update-env-backend-url.sh
+
+# ==================== Terraform Commands ====================
+
+TF_DIR := deployment
+TF_VARS := -var-file="terraform.tfvars"
+TF_SECRETS := -var-file="terraform.tfvars.secrets"
+
+tf-init: ## Initialize Terraform
+	@echo "$(BLUE)Initializing Terraform...$(NC)"
+	@cd $(TF_DIR) && terraform init
+	@echo "$(GREEN)✓ Terraform initialized$(NC)"
+
+tf-plan: ## Run Terraform plan (preview changes)
+	@echo "$(BLUE)Running Terraform plan...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Warning: terraform.tfvars.secrets not found$(NC)"; \
+		echo "$(YELLOW)Copy terraform.tfvars.secrets.example and fill in your secrets$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform plan $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform plan complete$(NC)"
+
+tf-apply: ## Apply Terraform changes
+	@echo "$(BLUE)Applying Terraform changes...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform apply $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform apply complete$(NC)"
+
+tf-apply-auto: ## Apply Terraform changes (auto-approve)
+	@echo "$(BLUE)Applying Terraform changes (auto-approve)...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform apply $(TF_VARS) $(TF_SECRETS) -auto-approve
+	@echo "$(GREEN)✓ Terraform apply complete$(NC)"
+
+tf-destroy: ## Destroy Terraform infrastructure
+	@echo "$(YELLOW)WARNING: This will destroy all infrastructure!$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform destroy $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform destroy complete$(NC)"
+
+tf-fmt: ## Format Terraform files
+	@echo "$(BLUE)Formatting Terraform files...$(NC)"
+	@cd $(TF_DIR) && terraform fmt -recursive
+	@echo "$(GREEN)✓ Terraform files formatted$(NC)"
+
+tf-validate: ## Validate Terraform configuration
+	@echo "$(BLUE)Validating Terraform configuration...$(NC)"
+	@cd $(TF_DIR) && terraform init -backend=false -upgrade > /dev/null 2>&1
+	@cd $(TF_DIR) && terraform validate
+	@echo "$(GREEN)✓ Terraform configuration valid$(NC)"
+
+tf-output: ## Show Terraform outputs
+	@echo "$(BLUE)Terraform outputs:$(NC)"
+	@cd $(TF_DIR) && terraform output
+
+tf-refresh: ## Refresh Terraform state
+	@echo "$(BLUE)Refreshing Terraform state...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform refresh $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform state refreshed$(NC)"
+
+tf-state-list: ## List resources in Terraform state
+	@echo "$(BLUE)Resources in Terraform state:$(NC)"
+	@cd $(TF_DIR) && terraform state list
