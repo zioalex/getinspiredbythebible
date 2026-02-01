@@ -3,24 +3,20 @@
 # =============================================================================
 # This workflow builds and deploys the Bible Chat Application to Azure
 #
-# Required secrets:
-#   AZURE_CREDENTIALS      - Azure service principal JSON
-#   ACR_LOGIN_SERVER       - e.g., bibleappacr123.azurecr.io
-#   RESOURCE_GROUP         - e.g., bible-app-rg
-#   CONTAINER_APP_DOMAIN   - e.g., happysky-abc123.northeurope.azurecontainerapps.io
+# Uses the same ARM_* secrets as the Terraform workflow for consistency.
+#
+# Required secrets (same as Terraform workflow):
+#   ARM_CLIENT_ID          - Azure Service Principal Client ID
+#   ARM_CLIENT_SECRET      - Azure Service Principal Client Secret
+#   ARM_SUBSCRIPTION_ID    - Azure Subscription ID
+#   ARM_TENANT_ID          - Azure Tenant ID
 #
 # For database seeding (optional, only if scripts/ changes):
-#   DB_ADMIN_USERNAME      - e.g., bibleadmin
-#   DB_ADMIN_PASSWORD      - Database password
-#   DB_NAME                - e.g., bibleapp
-#   AZURE_OPENAI_ENDPOINT  - e.g., https://your-resource.openai.azure.com/
-#   AZURE_OPENAI_API_KEY   - Azure OpenAI API key
-#
-# To create AZURE_CREDENTIALS:
-#   az ad sp create-for-rbac --name "bible-app-github" \
-#     --role contributor \
-#     --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} \
-#     --sdk-auth
+#   TF_VAR_DB_ADMIN_USERNAME - e.g., bibleadmin
+#   TF_VAR_DB_ADMIN_PASSWORD - Database password
+#   TF_VAR_DB_NAME           - e.g., bibleapp
+#   AZURE_OPENAI_ENDPOINT    - e.g., https://your-resource.openai.azure.com/
+#   AZURE_OPENAI_API_KEY     - Azure OpenAI API key
 # =============================================================================
 
 name: Build and Deploy to Azure
@@ -45,6 +41,8 @@ on:
 env:
   BACKEND_APP_NAME: bible-app-backend
   FRONTEND_APP_NAME: bible-app-frontend
+  ACR_NAME: bibleappacrmb0172
+  RESOURCE_GROUP: bible-app-rg-mb0172
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -87,18 +85,21 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
 
       - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/bible-backend
+          images: ${{ env.ACR_NAME }}.azurecr.io/bible-backend
           tags: |
             type=sha,prefix=
             type=ref,event=branch
@@ -134,18 +135,21 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
 
       - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend
+          images: ${{ env.ACR_NAME }}.azurecr.io/bible-frontend
           tags: |
             type=sha,prefix=
             type=ref,event=branch
@@ -154,7 +158,19 @@ jobs:
       - name: Get Backend URL
         id: backend-url
         run: |
-          BACKEND_URL="https://${{ env.BACKEND_APP_NAME }}.${{ secrets.CONTAINER_APP_DOMAIN }}"
+          # Get the backend URL from Azure Container Apps
+          BACKEND_FQDN=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$BACKEND_FQDN" ]; then
+            BACKEND_URL="https://$BACKEND_FQDN"
+          else
+            # Fallback to custom domain if container app not found
+            BACKEND_URL="https://getinspiredbythebible.ai4you.sh"
+          fi
+
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
           echo "Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
 
@@ -176,17 +192,17 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           echo "Verifying NEXT_PUBLIC_API_URL is correctly baked into the image..."
-          docker pull ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }}
+          docker pull ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}
 
           # Check that localhost:8000 is NOT in the image
-          if docker run --rm ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }} \
+          if docker run --rm ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }} \
             sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null" | head -1; then
             echo "::error::ERROR: localhost:8000 found in image - build arg not applied correctly!"
             exit 1
           fi
 
           # Check that the correct URL IS in the image
-          if docker run --rm ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }} \
+          if docker run --rm ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }} \
             sh -c "grep -r '${{ steps.backend-url.outputs.url }}' .next/ 2>/dev/null" | head -1; then
             echo "✅ Correct API URL found in image: ${{ steps.backend-url.outputs.url }}"
           else
@@ -206,25 +222,28 @@ jobs:
 
     steps:
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
 
       - name: Deploy Backend
         if: needs.build-backend.result == 'success'
         run: |
           az containerapp update \
             --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ secrets.RESOURCE_GROUP }} \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/bible-backend:${{ github.sha }}
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}
 
       - name: Deploy Frontend
         if: needs.build-frontend.result == 'success'
         run: |
           az containerapp update \
             --name ${{ env.FRONTEND_APP_NAME }} \
-            --resource-group ${{ secrets.RESOURCE_GROUP }} \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/bible-frontend:${{ github.sha }}
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}
 
       - name: Verify Deployment
         run: |
@@ -234,7 +253,7 @@ jobs:
           # Check backend health
           BACKEND_URL=$(az containerapp show \
             --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" -o tsv)
 
           echo "Backend URL: https://$BACKEND_URL"
@@ -243,7 +262,7 @@ jobs:
           # Get frontend URL
           FRONTEND_URL=$(az containerapp show \
             --name ${{ env.FRONTEND_APP_NAME }} \
-            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" -o tsv)
 
           echo "Frontend URL: https://$FRONTEND_URL"
@@ -284,25 +303,28 @@ jobs:
           pip install httpx asyncpg sqlalchemy openai
 
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
 
       - name: Get Database Connection String
         id: db
         run: |
           # Get PostgreSQL FQDN from Azure
           DB_HOST=$(az postgres flexible-server list \
-            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "[0].fullyQualifiedDomainName" -o tsv)
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
 
       - name: Load Bible Data
         env:
-          DB_USER: ${{ secrets.DB_ADMIN_USERNAME }}
-          DB_PASS: ${{ secrets.DB_ADMIN_PASSWORD }}
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
           DB_HOST: ${{ steps.db.outputs.db_host }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
@@ -311,10 +333,10 @@ jobs:
 
       - name: Generate Embeddings
         env:
-          DB_USER: ${{ secrets.DB_ADMIN_USERNAME }}
-          DB_PASS: ${{ secrets.DB_ADMIN_PASSWORD }}
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
           DB_HOST: ${{ steps.db.outputs.db_host }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
           AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: "text-embedding-3-small"
@@ -326,10 +348,10 @@ jobs:
 
       - name: Verify Database
         env:
-          DB_USER: ${{ secrets.DB_ADMIN_USERNAME }}
-          DB_PASS: ${{ secrets.DB_ADMIN_PASSWORD }}
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
           DB_HOST: ${{ steps.db.outputs.db_host }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           pip install psycopg2-binary
