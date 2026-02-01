@@ -233,6 +233,12 @@ async def get_config():
             "max_context_verses": settings.max_context_verses,
             "max_conversation_history": settings.max_conversation_history,
         },
+        "security": {
+            "turnstile_enabled": settings.turnstile_enabled,
+            "turnstile_site_key": (
+                settings.turnstile_site_key if settings.turnstile_enabled else None
+            ),
+        },
     }
 
 

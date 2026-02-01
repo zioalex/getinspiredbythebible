@@ -9,8 +9,10 @@ import logging
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from utils.turnstile import require_turnstile
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,9 @@ class ChurchSearchResponse(BaseModel):
     location: str
 
 
-@router.post("/search", response_model=ChurchSearchResponse)
+@router.post(
+    "/search", response_model=ChurchSearchResponse, dependencies=[Depends(require_turnstile)]
+)
 async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     """
     Search for churches near a given location.

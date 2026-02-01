@@ -45,6 +45,29 @@ export async function checkBackendReady(): Promise<boolean> {
   }
 }
 
+// Turnstile token for bot protection
+let turnstileToken: string | null = null;
+
+/**
+ * Set the Turnstile token for API requests
+ */
+export function setTurnstileToken(token: string | null): void {
+  turnstileToken = token;
+}
+
+/**
+ * Get headers with optional Turnstile token
+ */
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (turnstileToken) {
+    headers["X-Turnstile-Token"] = turnstileToken;
+  }
+  return headers;
+}
+
 /**
  * Generate a unique session ID for tracking user interactions
  */
@@ -204,9 +227,7 @@ export async function sendMessage(
 
     const response = await fetch(`${API_URL}/api/v1/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders(),
       body: JSON.stringify({
         message,
         conversation_history: history,
@@ -252,9 +273,7 @@ export async function* streamMessage(
 ): AsyncGenerator<string> {
   const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(),
     body: JSON.stringify({
       message,
       conversation_history: history,
@@ -419,9 +438,7 @@ export async function searchChurches(
 ): Promise<ChurchSearchResponse> {
   const response = await fetch(`${API_URL}/api/v1/church/search`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(),
     body: JSON.stringify({ location }),
   });
 
@@ -440,9 +457,7 @@ export async function submitFeedback(
 ): Promise<FeedbackResponse> {
   const response = await fetch(`${API_URL}/api/v1/feedback`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(),
     body: JSON.stringify(feedback),
   });
 
@@ -461,9 +476,7 @@ export async function submitContactForm(
 ): Promise<ContactResponse> {
   const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(),
     body: JSON.stringify(contact),
   });
 
