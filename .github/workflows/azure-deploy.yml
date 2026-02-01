@@ -212,6 +212,9 @@ jobs:
   # ---------------------------------------------------------------------------
   # Deploy to Azure Container Apps
   # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Deploy via Terraform
+  # ---------------------------------------------------------------------------
   deploy:
     needs: [build-backend, build-frontend]
     if: >-
@@ -219,31 +222,63 @@ jobs:
       (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
     runs-on: ubuntu-latest
     environment: production
+    env:
+      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+      TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
-      - name: Login to Azure
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Git SHA (short)
+        id: git
+        run: echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=deployment/cloudflare-origin.pfx" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+
+      - name: Terraform Init
+        working-directory: deployment
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
+            -backend-config="resource_group_name=bible-app-tfstate-rg" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=bible-app.tfstate"
+
+      - name: Terraform Apply
+        working-directory: deployment
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          terraform apply \
+            -var-file="terraform.tfvars" \
+            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}" \
+            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
+            -auto-approve
+
+      - name: Login to Azure (for verification)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.ARM_CLIENT_ID }}
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
-
-      - name: Deploy Backend
-        if: needs.build-backend.result == 'success'
-        run: |
-          az containerapp update \
-            --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}
-
-      - name: Deploy Frontend
-        if: needs.build-frontend.result == 'success'
-        run: |
-          az containerapp update \
-            --name ${{ env.FRONTEND_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}
 
       - name: Verify Deployment
         run: |
@@ -254,27 +289,33 @@ jobs:
           BACKEND_URL=$(az containerapp show \
             --name ${{ env.BACKEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "properties.configuration.ingress.fqdn" -o tsv)
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
 
-          echo "Backend URL: https://$BACKEND_URL"
-          curl -sf "https://$BACKEND_URL/health" || echo "Backend health check pending..."
+          if [ -n "$BACKEND_URL" ]; then
+            echo "Backend URL: https://$BACKEND_URL"
+            curl -sf "https://$BACKEND_URL/health" || echo "Backend health check pending..."
+          fi
 
           # Get frontend URL
           FRONTEND_URL=$(az containerapp show \
             --name ${{ env.FRONTEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "properties.configuration.ingress.fqdn" -o tsv)
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
 
-          echo "Frontend URL: https://$FRONTEND_URL"
+          if [ -n "$FRONTEND_URL" ]; then
+            echo "Frontend URL: https://$FRONTEND_URL"
+          fi
 
       - name: Post Deployment Summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status | Image |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend | Deployed | \`bible-backend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | Deployed | \`bible-frontend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed via Terraform**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered)
