@@ -63,6 +63,7 @@ permissions:
 env:
   TF_VERSION: '1.6.0'
   TF_WORKING_DIR: './deployment'
+  ACR_NAME: 'bibleappacrmb0172'
   # Azure authentication via service principal
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -194,6 +195,10 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Get Git SHA
+        id: git
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Terraform Init
         run: |
           terraform init \
@@ -208,6 +213,8 @@ jobs:
         run: |
           terraform plan \
             -var-file="terraform.tfvars" \
+            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ steps.git.outputs.sha }}" \
+            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ steps.git.outputs.sha }}" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -227,6 +234,8 @@ jobs:
         run: |
           echo "## Terraform Plan Output" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** \`${{ steps.git.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{ env.TF_WORKING_DIR }}/plan_output.txt | tail -50 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -237,6 +246,7 @@ jobs:
         with:
           script: |
             const exitCode = '${{ steps.plan.outputs.exitcode }}';
+            const gitSha = '${{ steps.git.outputs.sha }}';
             let status = '✅ No changes';
             if (exitCode === '2') {
               status = '📝 Changes detected';
@@ -247,6 +257,7 @@ jobs:
             const body = `## Terraform Plan Results
 
             **Status:** ${status}
+            **Image Tag:** \`${gitSha}\`
 
             <details>
             <summary>Plan Details</summary>
@@ -321,11 +332,17 @@ jobs:
         run: terraform apply -auto-approve tfplan
         working-directory: ${{ env.TF_WORKING_DIR }}
 
+      - name: Get Git SHA
+        id: git
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Post Apply Summary
         run: |
           echo "## Terraform Apply Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Infrastructure has been updated successfully." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed Image Tag:** \`${{ steps.git.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Outputs" >> $GITHUB_STEP_SUMMARY
           cd ${{ env.TF_WORKING_DIR }}
@@ -373,10 +390,16 @@ jobs:
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
 
+      - name: Get Git SHA
+        id: git
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Terraform Destroy
         run: |
           terraform destroy \
             -var-file="terraform.tfvars" \
+            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ steps.git.outputs.sha }}" \
+            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ steps.git.outputs.sha }}" \
             -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
 
