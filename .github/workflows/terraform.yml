@@ -3,19 +3,24 @@
 # =============================================================================
 # This workflow manages Azure infrastructure using Terraform with remote state.
 #
-# Required secrets:
+# Configuration is split between:
+#   - deployment/terraform.tfvars          - Non-sensitive config (committed)
+#   - deployment/terraform.tfvars.secrets  - Secrets (local, gitignored)
+#   - GitHub Secrets                       - For CI/CD (secrets only)
+#
+# Required GitHub secrets:
 #   ARM_CLIENT_ID        - Azure Service Principal Client ID
 #   ARM_CLIENT_SECRET    - Azure Service Principal Client Secret
 #   ARM_SUBSCRIPTION_ID  - Azure Subscription ID
 #   ARM_TENANT_ID        - Azure Tenant ID
 #   TF_STORAGE_ACCOUNT   - Storage account name for Terraform state
 #
-# Optional secrets (for deployment):
-#   TF_VAR_db_admin_password    - Database admin password
-#   TF_VAR_openrouter_api_key   - OpenRouter API key
-#   TF_VAR_claude_api_key       - Claude API key (if using Claude)
-#   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate PFX
-#   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Password for certificate (empty if none)
+# Optional GitHub secrets (for deployment):
+#   TF_VAR_DB_ADMIN_PASSWORD    - Database admin password
+#   TF_VAR_OPENROUTER_API_KEY   - OpenRouter API key
+#   TF_VAR_CLAUDE_API_KEY       - Claude API key (if using Claude)
+#   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate
+#   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Certificate password (if any)
 #
 # Workflow:
 #   - On PR: Plan only (shows what would change)
@@ -63,7 +68,6 @@ env:
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-  TF_VAR_resource_suffix: ${{ secrets.TF_VAR_RESOURCE_SUFFIX }}
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -167,14 +171,10 @@ jobs:
     outputs:
       plan_exit_code: ${{ steps.plan.outputs.exitcode }}
     env:
-      # Pass sensitive variables via environment
+      # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
-      # Container images (set via secrets or use defaults from tfvars.example)
-      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
-      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
-      # Cloudflare Origin Certificate
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
@@ -207,8 +207,7 @@ jobs:
         id: plan
         run: |
           terraform plan \
-            -var-file="terraform.tfvars.example" \
-            -var="subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" \
+            -var-file="terraform.tfvars" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -280,11 +279,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
     environment: production  # Requires approval
     env:
+      # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
-      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
-      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
@@ -343,11 +341,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
     environment: production  # Requires approval
     env:
+      # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
-      TF_VAR_backend_image: ${{ secrets.TF_VAR_BACKEND_IMAGE }}
-      TF_VAR_frontend_image: ${{ secrets.TF_VAR_FRONTEND_IMAGE }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
 
     steps:
@@ -379,8 +376,7 @@ jobs:
       - name: Terraform Destroy
         run: |
           terraform destroy \
-            -var-file="terraform.tfvars.example" \
-            -var="subscription_id=${{ secrets.ARM_SUBSCRIPTION_ID }}" \
+            -var-file="terraform.tfvars" \
             -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
 
