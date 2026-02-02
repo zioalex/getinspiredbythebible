@@ -8,6 +8,39 @@ Bible Inspiration Chat - A conversational AI that helps people find spiritual en
 and relevant scripture based on their life situations. Built with FastAPI backend, Next.js
 frontend, and PostgreSQL with pgvector for semantic search.
 
+## Workflow Rules (MUST FOLLOW)
+
+### 1. Always Use Makefile Targets
+
+- **NEVER run raw commands** when a Makefile target exists (e.g., use `make test` not `pytest`)
+- Check available targets with `make help` before running any command
+- If a commonly needed command doesn't have a target, **add it to the Makefile first**
+
+### 2. Keep Makefile Up-to-Date
+
+When adding new functionality that requires commands:
+
+- Add a new Makefile target with a descriptive name and help comment
+- Follow the existing pattern: `target-name: ## Help description`
+- Group related targets together (Docker, Terraform, Testing, etc.)
+
+### 3. Always Create Feature Branches and PRs
+
+- **NEVER commit directly to main** - always create a feature branch
+- Branch naming: `fix/description`, `feat/description`, `refactor/description`
+- Create a PR for every change, no matter how small
+- Each PR should be focused on a single concern
+
+### 4. Keep PRs Human-Digestible
+
+- **Small, focused changes** - one feature or fix per PR
+- If a task is large, split it into multiple PRs
+- PR title should clearly describe what changed
+- PR description should include:
+  - Summary of changes (bullet points)
+  - Test plan (how to verify)
+- Aim for PRs that can be reviewed in under 15 minutes
+
 ## Development Commands
 
 ### Environment Setup
