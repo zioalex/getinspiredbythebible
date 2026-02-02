@@ -60,6 +60,113 @@ locals {
     "project"    = "getinspiredbythebible"
     "managed_by" = "terraform"
   })
+
+  # ---------------------------------------------------------------------------
+  # Backend Environment Variables (sorted alphabetically for consistent ordering)
+  # ---------------------------------------------------------------------------
+  # Using a map ensures Terraform always processes env vars in the same order,
+  # preventing false "changes detected" on every plan due to API response ordering.
+
+  # CORS origins computed value (needed before backend_env_vars)
+  cors_origins_value = join(",", compact([
+    "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}",
+    var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "",
+    var.cors_origins
+  ]))
+
+  backend_env_vars = merge(
+    # Core configuration
+    {
+      "CONTENT_FILTER_ENABLED" = {
+        value = tostring(var.content_filter_enabled)
+      }
+      "CORS_ORIGINS" = {
+        value = local.cors_origins_value
+      }
+      "DATABASE_URL" = {
+        value = "postgresql://${var.db_admin_username}:${var.db_admin_password}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
+      }
+      "DEBUG" = {
+        value = tostring(var.debug_mode)
+      }
+      "ENVIRONMENT" = {
+        value = "production"
+      }
+      "LLM_PROVIDER" = {
+        value = var.llm_provider
+      }
+      "LOG_LEVEL" = {
+        value = var.log_level
+      }
+      "MAX_MESSAGE_LENGTH" = {
+        value = tostring(var.max_message_length)
+      }
+      "RATE_LIMIT_ENABLED" = {
+        value = tostring(var.rate_limit_enabled)
+      }
+      "RATE_LIMIT_REQUESTS_PER_MINUTE" = {
+        value = tostring(var.rate_limit_requests_per_minute)
+      }
+    },
+
+    # Claude provider configuration
+    var.llm_provider == "claude" ? {
+      "ANTHROPIC_API_KEY" = {
+        secret_name = "claude-api-key" # pragma: allowlist secret
+      }
+    } : {},
+
+    # OpenRouter provider configuration
+    var.llm_provider == "openrouter" ? {
+      "OPENROUTER_ALLOW_FALLBACKS" = {
+        value = tostring(var.openrouter_allow_fallbacks)
+      }
+      "OPENROUTER_API_KEY" = {
+        secret_name = "openrouter-api-key" # pragma: allowlist secret
+      }
+      "OPENROUTER_BASE_URL" = {
+        value = var.openrouter_base_url
+      }
+      "OPENROUTER_FALLBACK_MODELS" = {
+        value = var.openrouter_fallback_models
+      }
+      "OPENROUTER_MODEL" = {
+        value = var.openrouter_model
+      }
+    } : {},
+
+    # Azure OpenAI embeddings configuration
+    var.enable_azure_openai ? {
+      "AZURE_EMBEDDING_DEPLOYMENT" = {
+        value = var.embedding_model_name
+      }
+      "AZURE_OPENAI_API_KEY" = {
+        secret_name = "azure-openai-key" # pragma: allowlist secret
+      }
+      "AZURE_OPENAI_ENDPOINT" = {
+        value = azurerm_cognitive_account.openai[0].endpoint
+      }
+      "EMBEDDING_DIMENSIONS" = {
+        value = "1536"
+      }
+      "EMBEDDING_PROVIDER" = {
+        value = "azure_openai"
+      }
+    } : {}
+  )
+
+  # ---------------------------------------------------------------------------
+  # Frontend Environment Variables
+  # ---------------------------------------------------------------------------
+
+  frontend_env_vars = {
+    "NEXT_PUBLIC_API_URL" = {
+      value = "https://${azurerm_container_app.backend.ingress[0].fqdn}"
+    }
+    "NODE_ENV" = {
+      value = "production"
+    }
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -199,153 +306,14 @@ resource "azurerm_container_app" "backend" {
       cpu    = var.backend_cpu
       memory = var.backend_memory
 
-      env {
-        name  = "DATABASE_URL"
-        value = "postgresql://${var.db_admin_username}:${var.db_admin_password}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
-      }
-
-      env {
-        name  = "LLM_PROVIDER"
-        value = var.llm_provider
-      }
-
-      # Claude API Key (if using Claude provider)
+      # Environment variables from sorted map (prevents false changes due to API ordering)
       dynamic "env" {
-        for_each = var.llm_provider == "claude" ? [1] : []
+        for_each = { for k, v in local.backend_env_vars : k => v }
         content {
-          name        = "ANTHROPIC_API_KEY"
-          secret_name = "claude-api-key" # pragma: allowlist secret
+          name        = env.key
+          value       = lookup(env.value, "value", null)
+          secret_name = lookup(env.value, "secret_name", null)
         }
-      }
-
-      # OpenRouter configuration (if using OpenRouter provider)
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
-          name        = "OPENROUTER_API_KEY"
-          secret_name = "openrouter-api-key" # pragma: allowlist secret
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
-          name  = "OPENROUTER_MODEL"
-          value = var.openrouter_model
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
-          name  = "OPENROUTER_BASE_URL"
-          value = var.openrouter_base_url
-        }
-      }
-
-      env {
-        name  = "ENVIRONMENT"
-        value = "production"
-      }
-
-      # CORS allowed origins - include frontend URL, custom domain, and any additional origins
-      # Use predictable URL pattern: {app-name}.{env-default-domain}
-      env {
-        name = "CORS_ORIGINS"
-        value = join(",", compact([
-          "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}",
-          var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "",
-          var.cors_origins
-        ]))
-      }
-
-      # Azure OpenAI Embeddings (if enabled)
-      dynamic "env" {
-        for_each = var.enable_azure_openai ? [1] : []
-        content {
-          name  = "EMBEDDING_PROVIDER"
-          value = "azure_openai"
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.enable_azure_openai ? [1] : []
-        content {
-          name  = "EMBEDDING_DIMENSIONS"
-          value = "1536"
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.enable_azure_openai ? [1] : []
-        content {
-          name  = "AZURE_OPENAI_ENDPOINT"
-          value = azurerm_cognitive_account.openai[0].endpoint
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.enable_azure_openai ? [1] : []
-        content {
-          name        = "AZURE_OPENAI_API_KEY"
-          secret_name = "azure-openai-key" # pragma: allowlist secret
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.enable_azure_openai ? [1] : []
-        content {
-          name  = "AZURE_EMBEDDING_DEPLOYMENT"
-          value = var.embedding_model_name
-        }
-      }
-
-      # OpenRouter fallback configuration
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
-          name  = "OPENROUTER_ALLOW_FALLBACKS"
-          value = tostring(var.openrouter_allow_fallbacks)
-        }
-      }
-
-      dynamic "env" {
-        for_each = var.llm_provider == "openrouter" ? [1] : []
-        content {
-          name  = "OPENROUTER_FALLBACK_MODELS"
-          value = var.openrouter_fallback_models
-        }
-      }
-
-      # Security & Application Settings
-      env {
-        name  = "DEBUG"
-        value = tostring(var.debug_mode)
-      }
-
-      env {
-        name  = "LOG_LEVEL"
-        value = var.log_level
-      }
-
-      env {
-        name  = "RATE_LIMIT_ENABLED"
-        value = tostring(var.rate_limit_enabled)
-      }
-
-      env {
-        name  = "RATE_LIMIT_REQUESTS_PER_MINUTE"
-        value = tostring(var.rate_limit_requests_per_minute)
-      }
-
-      env {
-        name  = "CONTENT_FILTER_ENABLED"
-        value = tostring(var.content_filter_enabled)
-      }
-
-      env {
-        name  = "MAX_MESSAGE_LENGTH"
-        value = tostring(var.max_message_length)
       }
 
       # Liveness probe - checks if container is alive
@@ -450,14 +418,14 @@ resource "azurerm_container_app" "frontend" {
       cpu    = var.frontend_cpu
       memory = var.frontend_memory
 
-      env {
-        name  = "NEXT_PUBLIC_API_URL"
-        value = "https://${azurerm_container_app.backend.ingress[0].fqdn}"
-      }
-
-      env {
-        name  = "NODE_ENV"
-        value = "production"
+      # Environment variables from sorted map (prevents false changes due to API ordering)
+      dynamic "env" {
+        for_each = { for k, v in local.frontend_env_vars : k => v }
+        content {
+          name        = env.key
+          value       = lookup(env.value, "value", null)
+          secret_name = lookup(env.value, "secret_name", null)
+        }
       }
     }
   }
