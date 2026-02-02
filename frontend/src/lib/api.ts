@@ -5,6 +5,34 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /**
+ * Error thrown when the backend is warming up (cold start)
+ */
+export class ColdStartError extends Error {
+  constructor(message: string = "Backend is warming up") {
+    super(message);
+    this.name = "ColdStartError";
+  }
+}
+
+/**
+ * Check if the backend is ready
+ */
+export async function checkBackendReady(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(`${API_URL}/health/ready`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate a unique session ID for tracking user interactions
  */
 export function generateSessionId(): string {
@@ -126,25 +154,50 @@ export async function sendMessage(
   preferredTranslation?: string,
   sessionId?: string,
 ): Promise<ChatResponse> {
-  const response = await fetch(`${API_URL}/api/v1/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message,
-      conversation_history: history,
-      include_search: true,
-      preferred_translation: preferredTranslation,
-      session_id: sessionId,
-    }),
-  });
+  try {
+    // Set a timeout for cold start detection (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const response = await fetch(`${API_URL}/api/v1/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message,
+        conversation_history: history,
+        include_search: true,
+        preferred_translation: preferredTranslation,
+        session_id: sessionId,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // 503 Service Unavailable often indicates cold start
+      if (response.status === 503 || response.status === 502) {
+        throw new ColdStartError("Backend is starting up");
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Network errors or timeouts during cold start
+    if (error instanceof ColdStartError) {
+      throw error;
+    }
+    if (
+      error instanceof TypeError ||
+      (error instanceof DOMException && error.name === "AbortError")
+    ) {
+      throw new ColdStartError("Backend is warming up, please wait...");
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
