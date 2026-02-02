@@ -95,13 +95,16 @@ DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 async def init_db():
     """Initialize database tables."""
-    from .models import Base
+    from feedback.models import Base as FeedbackBase
+
+    from .models import Base as ScriptureBase
 
     async with engine.begin() as conn:
         # Create pgvector extension
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        # Create all tables
-        await conn.run_sync(Base.metadata.create_all)
+        # Create all tables from both models
+        await conn.run_sync(ScriptureBase.metadata.create_all)
+        await conn.run_sync(FeedbackBase.metadata.create_all)
 
 
 async def close_db():
