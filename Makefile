@@ -448,7 +448,7 @@ PG_RG := bible-app-rg
 
 az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
 	@echo "$(BLUE)Adding your IP to PostgreSQL firewall...$(NC)"
-	@MY_IP=$$(curl -s ifconfig.me) && \
+	@MY_IP=$$(curl -4 -s ifconfig.me) && \
 	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
 		--resource-group $(PG_RG) \
