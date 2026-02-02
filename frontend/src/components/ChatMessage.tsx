@@ -44,31 +44,52 @@ export default function ChatMessage({
     }
   };
 
-  // Helper function to highlight verse references and quoted text in a string
+  // Helper function to highlight ALL verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
-    // Pattern to match verse references like "Psalms 143:4:" or "Giovanni 3:16:" at the start of text
-    // Supports Unicode letters for localized book names and German format "1. Mose"
-    const verseRefPattern = /^(\d+\.?\s?[\p{L}]+(?:\s+[\p{L}]+)*\s+\d+:\d+):/u;
-    const match = text.match(verseRefPattern);
+    // Pattern to match verse references anywhere in text
+    // Examples: "John 3:16", "1 John 2:3", "Giovanni 3:16", "1. Mose 1:1", "Psalms 23:1-6"
+    // Supports Unicode letters for localized book names
+    const verseRefPattern =
+      /(\d+\.?\s?[\p{L}]+(?:\s+[\p{L}]+)*|\p{L}+(?:\s+[\p{L}]+)*)\s+(\d+):(\d+)(?:-\d+)?/gu;
 
-    if (match) {
-      const verseRef = match[1];
-      const afterRef = text.slice(match[0].length);
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let partKey = 0;
 
-      return (
-        <React.Fragment key={key}>
-          <span
-            className="text-amber-800 font-bold cursor-pointer hover:underline"
-            onClick={handleTextClick}
-          >
-            {verseRef}:
-          </span>
-          {highlightQuotes(afterRef, key + 1000)}
-        </React.Fragment>
+    while ((match = verseRefPattern.exec(text)) !== null) {
+      // Add text before the verse reference
+      if (match.index > lastIndex) {
+        const beforeText = text.slice(lastIndex, match.index);
+        parts.push(highlightQuotes(beforeText, key + partKey++));
+      }
+
+      // Add the clickable verse reference
+      const fullMatch = match[0];
+      parts.push(
+        <span
+          key={`${key}-verse-${partKey++}`}
+          className="text-amber-800 font-semibold cursor-pointer hover:underline"
+          onClick={handleTextClick}
+        >
+          {fullMatch}
+        </span>,
       );
+
+      lastIndex = match.index + fullMatch.length;
     }
 
-    return highlightQuotes(text, key);
+    // Add remaining text after the last match
+    if (lastIndex < text.length) {
+      parts.push(highlightQuotes(text.slice(lastIndex), key + partKey++));
+    }
+
+    // If no matches found, just process quotes
+    if (parts.length === 0) {
+      return highlightQuotes(text, key);
+    }
+
+    return <React.Fragment key={key}>{parts}</React.Fragment>;
   };
 
   // Helper function to highlight quoted scripture text

@@ -121,33 +121,47 @@ az provider show --namespace Microsoft.App --query "registrationState" -o tsv
 
 ### 3. Clone and Configure
 
+The configuration is split between two files:
+
+- **`terraform.tfvars`** - Non-sensitive configuration (committed to git)
+- **`terraform.tfvars.secrets`** - Sensitive credentials (gitignored, local only)
+
 ```bash
 # Navigate to deployment directory
 cd deployment
 
-# Copy example variables
-cp terraform.tfvars.example terraform.tfvars
-
-# Edit with your values
+# The terraform.tfvars file is already committed with default values
+# Review and update non-sensitive values as needed
 vim terraform.tfvars
+
+# Copy secrets template and fill in your credentials
+cp terraform.tfvars.secrets.example terraform.tfvars.secrets
+vim terraform.tfvars.secrets
 ```
 
-### 4. Required Variables
+### 4. Configuration Files
+
+**`terraform.tfvars`** (committed - non-sensitive values):
 
 ```hcl
-# terraform.tfvars
-
 subscription_id   = "your-subscription-id"
 location          = "northeurope"  # or eastus, westus2
-db_admin_password = "YourSecurePassword123!"  # pragma: allowlist secret
+resource_suffix   = "mb0172"
 
 # LLM Provider - OpenRouter recommended (has free models)
-llm_provider       = "openrouter"
-openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
-openrouter_model   = "google/gemma-3-27b-it:free"
+llm_provider     = "openrouter"
+openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
 
 # Budget alerts
 budget_alert_emails = ["your-email@example.com"]
+```
+
+**`terraform.tfvars.secrets`** (gitignored - sensitive values):
+
+```hcl
+db_admin_password  = "YourSecurePassword123!"  # pragma: allowlist secret
+openrouter_api_key = "sk-or-v1-..."            # pragma: allowlist secret
+# claude_api_key   = "sk-ant-..."              # pragma: allowlist secret (if using Claude)
 ```
 
 **Region Notes:**
@@ -162,12 +176,14 @@ budget_alert_emails = ["your-email@example.com"]
 # Initialize Terraform
 terraform init
 
-# Preview changes
-terraform plan
+# Preview changes (uses both tfvars files)
+terraform plan -var-file="terraform.tfvars" -var-file="terraform.tfvars.secrets"
 
 # Deploy (takes ~5-10 minutes)
-terraform apply
+terraform apply -var-file="terraform.tfvars" -var-file="terraform.tfvars.secrets"
 ```
+
+> **Note:** Both var-files must be specified. The secrets file overrides/supplements the main config.
 
 ### 6. Build and Push Images
 
@@ -503,18 +519,29 @@ az containerapp logs show \
 
 ```
 deployment/
-├── main.tf                    # Main infrastructure
-├── backend.tf                 # Remote state configuration
-├── variables.tf               # Input variables
-├── outputs.tf                 # Output values
-├── terraform.tfvars.example   # Example configuration
-├── backend.hcl.example        # Example backend config
+├── main.tf                        # Main infrastructure
+├── backend.tf                     # Remote state configuration
+├── variables.tf                   # Input variables
+├── outputs.tf                     # Output values
+├── terraform.tfvars               # Non-sensitive config (COMMITTED)
+├── terraform.tfvars.secrets       # Secrets (GITIGNORED, local only)
+├── terraform.tfvars.secrets.example # Template for secrets
+├── terraform.tfvars.example       # Full example for reference
+├── backend.hcl.example            # Example backend config
 ├── scripts/
-│   ├── setup-tf-backend.sh    # Setup Azure storage for state
-│   └── setup-github-spn.sh    # Setup Service Principal for CI/CD
-├── .gitignore                 # Ignore secrets
-└── README.md                  # This file
+│   ├── setup-tf-backend.sh        # Setup Azure storage for state
+│   └── setup-github-spn.sh        # Setup Service Principal for CI/CD
+├── .gitignore                     # Ignore secrets
+└── README.md                      # This file
 ```
+
+**Configuration Split:**
+
+| File | Contains | Git Status |
+|------|----------|------------|
+| `terraform.tfvars` | Non-sensitive config (regions, sizes, models) | Committed |
+| `terraform.tfvars.secrets` | Passwords, API keys | Gitignored |
+| GitHub Secrets | CI/CD secrets only | N/A |
 
 ## 🔧 Configuration Options
 
@@ -559,6 +586,13 @@ The repository includes a GitHub Actions workflow (`.github/workflows/terraform.
 | Push to main | Plan + Apply (with approval) |
 | Manual dispatch | Plan, Apply, or Destroy |
 
+**Configuration in CI/CD:**
+
+The workflow uses a split configuration approach:
+
+- **`terraform.tfvars`** (committed) - Non-sensitive config is read from the repo
+- **GitHub Secrets** - Only actual secrets are stored as repository secrets
+
 **Required GitHub Secrets:**
 
 | Secret | Description |
@@ -570,6 +604,9 @@ The repository includes a GitHub Actions workflow (`.github/workflows/terraform.
 | `TF_STORAGE_ACCOUNT` | Storage account name for Terraform state |
 | `TF_VAR_DB_ADMIN_PASSWORD` | Database admin password |
 | `TF_VAR_OPENROUTER_API_KEY` | OpenRouter API key |
+| `TF_VAR_CLAUDE_API_KEY` | Claude API key (optional, if using Claude) |
+| `CLOUDFLARE_ORIGIN_CERT_B64` | Base64-encoded Cloudflare Origin Certificate (optional) |
+| `TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD` | Certificate password (optional) |
 
 **Create a Service Principal for GitHub Actions:**
 

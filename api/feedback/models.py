@@ -46,7 +46,7 @@ class ContactRequest(BaseModel):
     """Request model for contact form submission."""
 
     email: str | None = Field(None, description="Optional reply email address")
-    subject: Literal["bug", "feature", "feedback", "other"] = Field(
+    subject: Literal["spiritual", "bug", "feature", "feedback", "other"] = Field(
         ..., description="Subject category"
     )
     message: str = Field(..., min_length=1, description="The user's message")
@@ -98,7 +98,9 @@ class ContactSubmission(Base):
     id = Column(Integer, primary_key=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     email = Column(String(255), nullable=True)
-    subject = Column(String(50), nullable=False)  # 'bug', 'feature', 'feedback', 'other'
+    subject = Column(
+        String(50), nullable=False
+    )  # 'spiritual', 'bug', 'feature', 'feedback', 'other'
     message = Column(Text, nullable=False)
     session_id = Column(String(255), nullable=True)
     user_agent = Column(Text, nullable=True)

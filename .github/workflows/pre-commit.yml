@@ -37,3 +37,9 @@ jobs:
 
       - name: Run pre-commit on all files
         run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Install PyYAML for env validation
+        run: pip install pyyaml
+
+      - name: Validate environment variables
+        run: python scripts/validate-env.py --verbose

@@ -14,9 +14,14 @@ import { submitContactForm, ContactRequest } from "@/lib/api";
 
 const CONTACT_EMAIL = "getinspiredbythebible@ai4you.sh";
 
-type Subject = "bug" | "feature" | "feedback" | "other";
+type Subject = "spiritual" | "bug" | "feature" | "feedback" | "other";
 
 const subjectOptions: { value: Subject; label: string }[] = [
+  {
+    value: "spiritual",
+    label:
+      "Do you want to talk deeper about any spiritual or biblical question?",
+  },
   { value: "feedback", label: "General Feedback" },
   { value: "bug", label: "Bug Report" },
   { value: "feature", label: "Feature Request" },
@@ -26,7 +31,7 @@ const subjectOptions: { value: Subject; label: string }[] = [
 export default function ContactForm() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState<Subject>("feedback");
+  const [subject, setSubject] = useState<Subject>("spiritual");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -52,7 +57,7 @@ export default function ContactForm() {
       setSubmitted(true);
       setEmail("");
       setMessage("");
-      setSubject("feedback");
+      setSubject("spiritual");
     } catch (err) {
       setError(
         "Failed to send message. Please try again or email us directly.",

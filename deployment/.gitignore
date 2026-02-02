@@ -17,8 +17,13 @@ override.tf.json
 *_override.tf.json
 
 # Sensitive variable definitions
-*.tfvars
+# terraform.tfvars is committed (contains non-sensitive config)
+# terraform.tfvars.secrets is gitignored (contains secrets)
+terraform.tfvars.secrets
+*.auto.tfvars
+!terraform.tfvars
 !terraform.tfvars.example
+!terraform.tfvars.secrets.example
 
 # Backend configuration (contains storage account name)
 backend.hcl

@@ -6,6 +6,7 @@ import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
+import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import ContactForm from "@/components/ContactForm";
@@ -80,6 +81,12 @@ export default function Home() {
   const [interactionCount, setInteractionCount] = useState(0);
   const [churchFinderDismissed, setChurchFinderDismissed] = useState(false);
   const [churchFinderModalOpen, setChurchFinderModalOpen] = useState(false);
+  const [inlinePromptShown, setInlinePromptShown] = useState(false);
+  const [inlinePromptDismissed, setInlinePromptDismissed] = useState(false);
+  // Track at which message index the inline prompt should appear (randomly decided)
+  const [inlinePromptIndex, setInlinePromptIndex] = useState<number | null>(
+    null,
+  );
 
   // Session tracking - generate unique ID per chat session
   const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
@@ -251,7 +258,27 @@ export default function Home() {
       }
 
       // Increment interaction count for church finder
-      setInteractionCount((prev) => prev + 1);
+      setInteractionCount((prev) => {
+        const newCount = prev + 1;
+        // After 3-5 exchanges, randomly decide to show inline prompt
+        // Only trigger once and only if not already shown/dismissed
+        if (
+          !inlinePromptShown &&
+          !inlinePromptDismissed &&
+          newCount >= 3 &&
+          inlinePromptIndex === null
+        ) {
+          // Random chance increases with each message: 40% at 3, 60% at 4, 80% at 5+
+          const chance = Math.min(0.4 + (newCount - 3) * 0.2, 0.8);
+          if (Math.random() < chance) {
+            // Set the inline prompt to appear after the current message
+            // messages.length will be the index after the new assistant message is added
+            setInlinePromptIndex(messages.length + 1);
+            setInlinePromptShown(true);
+          }
+        }
+        return newCount;
+      });
     } catch (error) {
       console.error("Failed to send message:", error);
       const errorMessage: ChatMessage = {
@@ -271,6 +298,9 @@ export default function Home() {
     setDetectedTranslation(null);
     setInteractionCount(0);
     setChurchFinderDismissed(false);
+    setInlinePromptShown(false);
+    setInlinePromptDismissed(false);
+    setInlinePromptIndex(null);
     setFeedbackGiven({});
     setFeedbackError(null);
     setSessionId(generateSessionId()); // Generate new session ID for new chat
@@ -333,6 +363,22 @@ export default function Home() {
       setFeedbackModalMessageId(null);
     }
   };
+
+  // Handle inline church finder prompt actions
+  const handleInlinePromptClick = () => {
+    setChurchFinderModalOpen(true);
+    setInlinePromptDismissed(true);
+  };
+
+  const handleInlinePromptDismiss = () => {
+    setInlinePromptDismissed(true);
+  };
+
+  // Determine if inline prompt should be visible
+  const showInlinePrompt =
+    inlinePromptIndex !== null &&
+    !inlinePromptDismissed &&
+    messages.length >= inlinePromptIndex;
 
   const suggestedPrompts = [
     "I'm feeling anxious about the future",
@@ -399,8 +445,9 @@ export default function Home() {
               </h2>
               <p className="text-gray-500 max-w-md mb-8">
                 Share what's on your heart, ask questions about Scripture, or
-                simply seek encouragement. I'm here to help you find wisdom and
-                comfort in God's Word.
+                simply seek encouragement. While I can help explore theological
+                topics, I'm not a substitute for trained theologians or pastoral
+                guidance.
               </p>
 
               {/* Suggested Prompts */}
@@ -419,23 +466,31 @@ export default function Home() {
           ) : (
             <div className="space-y-6">
               {messages.map((message, index) => (
-                <ChatMessage
-                  key={index}
-                  message={{ role: message.role, content: message.content }}
-                  messageId={message.messageId}
-                  onVerseClick={handleVerseClick}
-                  onFeedback={
-                    message.messageId
-                      ? (rating) =>
-                          handleFeedbackClick(message.messageId!, rating)
-                      : undefined
-                  }
-                  feedbackGiven={
-                    message.messageId
-                      ? feedbackGiven[message.messageId] || null
-                      : null
-                  }
-                />
+                <div key={index}>
+                  <ChatMessage
+                    message={{ role: message.role, content: message.content }}
+                    messageId={message.messageId}
+                    onVerseClick={handleVerseClick}
+                    onFeedback={
+                      message.messageId
+                        ? (rating) =>
+                            handleFeedbackClick(message.messageId!, rating)
+                        : undefined
+                    }
+                    feedbackGiven={
+                      message.messageId
+                        ? feedbackGiven[message.messageId] || null
+                        : null
+                    }
+                  />
+                  {/* Show inline church finder prompt after the designated message */}
+                  {showInlinePrompt && index + 1 === inlinePromptIndex && (
+                    <ChurchFinderInlinePrompt
+                      onFindChurch={handleInlinePromptClick}
+                      onDismiss={handleInlinePromptDismiss}
+                    />
+                  )}
+                </div>
               ))}
 
               {isLoading && (
@@ -470,8 +525,8 @@ export default function Home() {
             </button>
           </form>
           <p className="text-xs text-gray-400 mt-2 text-center">
-            Responses are AI-generated. For serious concerns, please seek
-            pastoral or professional guidance.
+            AI-generated responses may contain errors. Not a substitute for
+            theology or pastoral counsel.
           </p>
 
           {/* Church Finder Banner */}

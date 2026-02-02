@@ -80,7 +80,7 @@ export interface FeedbackResponse {
 
 export interface ContactRequest {
   email?: string;
-  subject: "bug" | "feature" | "feedback" | "other";
+  subject: "spiritual" | "bug" | "feature" | "feedback" | "other";
   message: string;
   session_id?: string;
   user_agent?: string;

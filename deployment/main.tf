@@ -121,7 +121,7 @@ resource "azurerm_container_registry" "main" {
 resource "azurerm_postgresql_flexible_server" "main" {
   name                   = "${local.name_prefix}-db-${local.resource_suffix}"
   resource_group_name    = azurerm_resource_group.main.name
-  location               = local.db_location  # Can differ from main location
+  location               = local.db_location # Can differ from main location
   version                = "16"
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
@@ -214,7 +214,7 @@ resource "azurerm_container_app" "backend" {
         for_each = var.llm_provider == "claude" ? [1] : []
         content {
           name        = "ANTHROPIC_API_KEY"
-          secret_name = "claude-api-key"  # pragma: allowlist secret
+          secret_name = "claude-api-key" # pragma: allowlist secret
         }
       }
 
@@ -223,7 +223,7 @@ resource "azurerm_container_app" "backend" {
         for_each = var.llm_provider == "openrouter" ? [1] : []
         content {
           name        = "OPENROUTER_API_KEY"
-          secret_name = "openrouter-api-key"  # pragma: allowlist secret
+          secret_name = "openrouter-api-key" # pragma: allowlist secret
         }
       }
 
@@ -235,6 +235,14 @@ resource "azurerm_container_app" "backend" {
         }
       }
 
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_BASE_URL"
+          value = var.openrouter_base_url
+        }
+      }
+
       env {
         name  = "ENVIRONMENT"
         value = "production"
@@ -243,7 +251,7 @@ resource "azurerm_container_app" "backend" {
       # CORS allowed origins - include frontend URL, custom domain, and any additional origins
       # Use predictable URL pattern: {app-name}.{env-default-domain}
       env {
-        name  = "CORS_ORIGINS"
+        name = "CORS_ORIGINS"
         value = join(",", compact([
           "https://${local.name_prefix}-frontend.${azurerm_container_app_environment.main.default_domain}",
           var.custom_domain_frontend != "" ? "https://${var.custom_domain_frontend}" : "",
@@ -280,7 +288,7 @@ resource "azurerm_container_app" "backend" {
         for_each = var.enable_azure_openai ? [1] : []
         content {
           name        = "AZURE_OPENAI_API_KEY"
-          secret_name = "azure-openai-key"  # pragma: allowlist secret
+          secret_name = "azure-openai-key" # pragma: allowlist secret
         }
       }
 
@@ -346,9 +354,9 @@ resource "azurerm_container_app" "backend" {
         path      = "/health/live"
         port      = 8000
 
-        initial_delay    = 10
-        interval_seconds = 30
-        timeout          = 5
+        initial_delay           = 10
+        interval_seconds        = 30
+        timeout                 = 5
         failure_count_threshold = 3
       }
 
@@ -358,8 +366,8 @@ resource "azurerm_container_app" "backend" {
         path      = "/health/ready"
         port      = 8000
 
-        interval_seconds = 10
-        timeout          = 5
+        interval_seconds        = 10
+        timeout                 = 5
         failure_count_threshold = 3
       }
     }
@@ -406,7 +414,7 @@ resource "azurerm_container_app" "backend" {
   registry {
     server               = azurerm_container_registry.main.login_server
     username             = azurerm_container_registry.main.admin_username
-    password_secret_name = "acr-password"  # pragma: allowlist secret
+    password_secret_name = "acr-password" # pragma: allowlist secret
   }
 
   secret {
@@ -468,7 +476,7 @@ resource "azurerm_container_app" "frontend" {
   registry {
     server               = azurerm_container_registry.main.login_server
     username             = azurerm_container_registry.main.admin_username
-    password_secret_name = "acr-password"  # pragma: allowlist secret
+    password_secret_name = "acr-password" # pragma: allowlist secret
   }
 
   secret {
