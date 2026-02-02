@@ -238,6 +238,12 @@ variable "openrouter_model" {
   default     = "meta-llama/llama-3.3-70b-instruct:free"
 }
 
+variable "openrouter_base_url" {
+  description = "OpenRouter API base URL"
+  type        = string
+  default     = "https://openrouter.ai/api/v1"
+}
+
 # -----------------------------------------------------------------------------
 # Azure OpenAI Configuration (for Embeddings)
 # -----------------------------------------------------------------------------

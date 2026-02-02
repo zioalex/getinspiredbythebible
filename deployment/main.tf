@@ -235,6 +235,14 @@ resource "azurerm_container_app" "backend" {
         }
       }
 
+      dynamic "env" {
+        for_each = var.llm_provider == "openrouter" ? [1] : []
+        content {
+          name  = "OPENROUTER_BASE_URL"
+          value = var.openrouter_base_url
+        }
+      }
+
       env {
         name  = "ENVIRONMENT"
         value = "production"

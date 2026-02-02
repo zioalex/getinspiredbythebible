@@ -1,5 +1,6 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
-	tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh
+	tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
+	validate-env validate-env-strict
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -135,13 +136,23 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
-check-all: lint type-check security test ## Run all checks (pre-push validation)
+check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
 pre-commit: install-deps ## Run pre-commit on all files
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
+
+validate-env: install-deps ## Validate env vars between docker-compose and Terraform
+	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
+	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
+	@echo "$(GREEN)✓ Environment validation complete$(NC)"
+
+validate-env-strict: install-deps ## Validate env vars (strict mode - warnings are errors)
+	@echo "$(BLUE)Validating environment variables (strict mode)...$(NC)"
+	@$(CURDIR)/$(PYTHON) scripts/validate-env.py --strict
+	@echo "$(GREEN)✓ Environment validation complete$(NC)"
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
@@ -362,7 +373,7 @@ docker-build-prod-frontend: ## Build and push frontend image to ACR (tagged with
 		exit 1; \
 	fi
 	@source .env.production && az acr login --name $$ACR_NAME && \
-	docker build -t $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) \
+	docker build --no-cache -t $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) \
 		-t $$ACR_NAME.azurecr.io/bible-frontend:latest \
 		--target production \
 		--build-arg NEXT_PUBLIC_API_URL=$$NEXT_PUBLIC_API_URL ./frontend && \
@@ -427,6 +438,85 @@ docker-get-backend-url: ## Get the backend URL from Azure
 
 update-env-backend-url: ## Update .env.production with current Azure backend URL
 	@./scripts/update-env-backend-url.sh
+
+# ==================== Azure PostgreSQL Commands ====================
+
+# PostgreSQL server name suffix (from terraform.tfvars)
+PG_SUFFIX := mb0172
+PG_SERVER := bible-app-db-$(PG_SUFFIX)
+PG_RG := bible-app-rg
+
+az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
+	@echo "$(BLUE)Adding your IP to PostgreSQL firewall...$(NC)"
+	@MY_IP=$$(curl -s ifconfig.me) && \
+	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
+	az postgres flexible-server firewall-rule create \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--rule-name "allow-my-ip-$$(date +%Y%m%d%H%M%S)" \
+		--start-ip-address $$MY_IP \
+		--end-ip-address $$MY_IP && \
+	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP$(NC)"
+
+az-pg-list-rules: ## List PostgreSQL firewall rules
+	@echo "$(BLUE)Listing PostgreSQL firewall rules...$(NC)"
+	@az postgres flexible-server firewall-rule list \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--output table
+
+az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name)
+	@if [ -z "$(RULE)" ]; then \
+		echo "$(YELLOW)Usage: make az-pg-remove-ip RULE=rule-name$(NC)"; \
+		echo "$(YELLOW)Run 'make az-pg-list-rules' to see existing rules$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Removing firewall rule: $(RULE)...$(NC)"
+	@az postgres flexible-server firewall-rule delete \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--rule-name $(RULE) \
+		--yes && \
+	echo "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
+
+# ==================== Azure Container Apps Logs ====================
+
+# Container Apps names
+CA_BACKEND := bible-app-backend
+CA_FRONTEND := bible-app-frontend
+CA_RG := bible-app-rg
+
+az-logs-backend: ## Tail backend container app logs
+	@echo "$(BLUE)Streaming backend logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--type console \
+		--follow
+
+az-logs-frontend: ## Tail frontend container app logs
+	@echo "$(BLUE)Streaming frontend logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--type console \
+		--follow
+
+az-logs-backend-system: ## Tail backend system logs (startup, scaling events)
+	@echo "$(BLUE)Streaming backend system logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--type system \
+		--follow
+
+az-logs-frontend-system: ## Tail frontend system logs (startup, scaling events)
+	@echo "$(BLUE)Streaming frontend system logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--type system \
+		--follow
 
 # ==================== Terraform Commands ====================
 
