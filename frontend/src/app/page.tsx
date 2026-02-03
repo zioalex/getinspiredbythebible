@@ -20,6 +20,8 @@ import {
   submitFeedback,
   FeedbackRequest,
   generateSessionId,
+  ColdStartError,
+  checkBackendReady,
 } from "@/lib/api";
 
 // Extended message type with message_id for feedback tracking
@@ -40,6 +42,7 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
   const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -214,82 +217,124 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setIsWarmingUp(false);
 
-    try {
-      // Convert messages to the API format (without extra fields)
-      const apiMessages: Message[] = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+    // Retry logic for cold start scenarios
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-      const response = await sendMessage(
-        userMessageContent,
-        apiMessages,
-        selectedTranslation || undefined,
-        sessionId,
-      );
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Convert messages to the API format (without extra fields)
+        const apiMessages: Message[] = messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
-      // Extract verse references from scripture context
-      const versesCited =
-        response.scripture_context?.verses?.map((v) => v.reference) || [];
+        const response = await sendMessage(
+          userMessageContent,
+          apiMessages,
+          selectedTranslation || undefined,
+          sessionId,
+        );
 
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: response.message,
-        messageId: response.message_id,
-        userMessage: userMessageContent,
-        versesCited,
-        model: response.model,
-      };
+        // Success - clear warming up state
+        setIsWarmingUp(false);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+        // Extract verse references from scripture context
+        const versesCited =
+          response.scripture_context?.verses?.map((v) => v.reference) || [];
 
-      // Update detected translation from response
-      if (response.detected_translation) {
-        setDetectedTranslation(response.detected_translation);
-      }
+        const assistantMessage: ChatMessage = {
+          role: "assistant",
+          content: response.message,
+          messageId: response.message_id,
+          userMessage: userMessageContent,
+          versesCited,
+          model: response.model,
+        };
 
-      // Append relevant verses if returned
-      if (response.scripture_context?.verses) {
-        setRelevantVerses((prev) => [
-          ...prev,
-          ...(response.scripture_context?.verses || []),
-        ]);
-      }
+        setMessages((prev) => [...prev, assistantMessage]);
 
-      // Increment interaction count for church finder
-      setInteractionCount((prev) => {
-        const newCount = prev + 1;
-        // After 3-5 exchanges, randomly decide to show inline prompt
-        // Only trigger once and only if not already shown/dismissed
-        if (
-          !inlinePromptShown &&
-          !inlinePromptDismissed &&
-          newCount >= 3 &&
-          inlinePromptIndex === null
-        ) {
-          // Random chance increases with each message: 40% at 3, 60% at 4, 80% at 5+
-          const chance = Math.min(0.4 + (newCount - 3) * 0.2, 0.8);
-          if (Math.random() < chance) {
-            // Set the inline prompt to appear after the current message
-            // messages.length will be the index after the new assistant message is added
-            setInlinePromptIndex(messages.length + 1);
-            setInlinePromptShown(true);
-          }
+        // Update detected translation from response
+        if (response.detected_translation) {
+          setDetectedTranslation(response.detected_translation);
         }
-        return newCount;
-      });
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content:
-          "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+
+        // Append relevant verses if returned
+        if (response.scripture_context?.verses) {
+          setRelevantVerses((prev) => [
+            ...prev,
+            ...(response.scripture_context?.verses || []),
+          ]);
+        }
+
+        // Increment interaction count for church finder
+        setInteractionCount((prev) => {
+          const newCount = prev + 1;
+          // After 3-5 exchanges, randomly decide to show inline prompt
+          // Only trigger once and only if not already shown/dismissed
+          if (
+            !inlinePromptShown &&
+            !inlinePromptDismissed &&
+            newCount >= 3 &&
+            inlinePromptIndex === null
+          ) {
+            // Random chance increases with each message: 40% at 3, 60% at 4, 80% at 5+
+            const chance = Math.min(0.4 + (newCount - 3) * 0.2, 0.8);
+            if (Math.random() < chance) {
+              // Set the inline prompt to appear after the current message
+              // messages.length will be the index after the new assistant message is added
+              setInlinePromptIndex(messages.length + 1);
+              setInlinePromptShown(true);
+            }
+          }
+          return newCount;
+        });
+        setIsLoading(false);
+        return; // Success, exit the function
+      } catch (error) {
+        lastError = error as Error;
+
+        // Check if this is a cold start error
+        if (error instanceof ColdStartError) {
+          console.log(
+            `Backend warming up, attempt ${attempt + 1}/${maxRetries}`,
+          );
+          setIsWarmingUp(true);
+
+          // Wait before retrying (exponential backoff: 3s, 6s, 12s)
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 3000 * Math.pow(2, attempt)),
+            );
+
+            // Check if backend is ready before retrying
+            const ready = await checkBackendReady();
+            if (!ready) {
+              continue; // Backend still not ready, try again
+            }
+          }
+        } else {
+          // Non-cold-start error, don't retry
+          break;
+        }
+      }
     }
+
+    // All retries failed or non-retryable error
+    console.error("Failed to send message:", lastError);
+    setIsWarmingUp(false);
+
+    const errorMessage: ChatMessage = {
+      role: "assistant",
+      content:
+        lastError instanceof ColdStartError
+          ? "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!"
+          : "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh",
+    };
+    setMessages((prev) => [...prev, errorMessage]);
+    setIsLoading(false);
   };
 
   const handleNewChat = () => {
@@ -496,7 +541,11 @@ export default function Home() {
               {isLoading && (
                 <div className="flex items-center gap-3 text-gray-500">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Searching Scripture and reflecting...</span>
+                  <span>
+                    {isWarmingUp
+                      ? "I'm warming up. Be patient a moment..."
+                      : "Searching Scripture and reflecting..."}
+                  </span>
                 </div>
               )}
 

@@ -51,7 +51,7 @@ describe("sendMessage", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/chat",
-      {
+      expect.objectContaining({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +61,8 @@ describe("sendMessage", () => {
           conversation_history: [],
           include_search: true,
         }),
-      },
+        signal: expect.any(AbortSignal),
+      }),
     );
 
     expect(result).toEqual(mockResponse);
