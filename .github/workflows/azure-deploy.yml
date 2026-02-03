@@ -104,7 +104,7 @@ jobs:
         with:
           images: ${{ env.ACR_NAME }}.azurecr.io/bible-backend
           tags: |
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -157,7 +157,7 @@ jobs:
         with:
           images: ${{ env.ACR_NAME }}.azurecr.io/bible-frontend
           tags: |
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -238,10 +238,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Get Git SHA (short)
-        id: git
-        run: echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: Decode Cloudflare Origin Certificate
         env:

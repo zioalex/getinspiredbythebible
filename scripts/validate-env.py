@@ -45,34 +45,69 @@ def parse_docker_compose_env_vars(compose_file: Path) -> dict[str, set[str]]:
 
 
 def parse_terraform_env_vars(tf_file: Path) -> dict[str, set[str]]:
-    """Extract environment variables from Terraform main.tf."""
+    """Extract environment variables from Terraform main.tf.
+
+    Handles two formats:
+    1. Old format: individual env { name = "VAR" ... } blocks
+    2. New format: locals map with "VAR" = { value = ... } entries
+    """
     with open(tf_file) as f:
         content = f.read()
 
     env_vars: dict[str, set[str]] = {}
 
-    # Find container app resources
+    # Parse locals block for env var maps (new format)
+    # Look for backend_env_vars and frontend_env_vars in locals
+    backend_vars_from_locals: set[str] = set()
+    frontend_vars_from_locals: set[str] = set()
+
+    # Find backend_env_vars map in locals
+    backend_map_match = re.search(
+        r'backend_env_vars\s*=\s*merge\s*\((.*?)\n  \)',
+        content,
+        re.DOTALL
+    )
+    if backend_map_match:
+        map_content = backend_map_match.group(1)
+        # Find all "VAR_NAME" = { entries
+        var_pattern = r'"([A-Z][A-Z0-9_]*)"\s*=\s*\{'
+        backend_vars_from_locals = set(re.findall(var_pattern, map_content))
+
+    # Find frontend_env_vars map in locals
+    frontend_map_match = re.search(
+        r'frontend_env_vars\s*=\s*\{(.*?)\n  \}',
+        content,
+        re.DOTALL
+    )
+    if frontend_map_match:
+        map_content = frontend_map_match.group(1)
+        var_pattern = r'"([A-Z][A-Z0-9_]*)"\s*=\s*\{'
+        frontend_vars_from_locals = set(re.findall(var_pattern, map_content))
+
+    # Fall back to old format: find container app resources
     container_pattern = r'resource\s+"azurerm_container_app"\s+"(\w+)"\s*\{(.*?)^\}'
     matches = re.findall(container_pattern, content, re.MULTILINE | re.DOTALL)
 
     for resource_name, resource_body in matches:
         env_vars[resource_name] = set()
 
-        # Find all env blocks with name = "VAR_NAME"
-        # Matches: env { name = "VAR_NAME" ... }
-        env_pattern = r'name\s*=\s*"([A-Z][A-Z0-9_]*)"'
+        # Check if using dynamic block with locals (new format)
+        if "local.backend_env_vars" in resource_body:
+            env_vars[resource_name] = backend_vars_from_locals
+        elif "local.frontend_env_vars" in resource_body:
+            env_vars[resource_name] = frontend_vars_from_locals
+        else:
+            # Old format: Find all env blocks with name = "VAR_NAME"
+            env_pattern = r'name\s*=\s*"([A-Z][A-Z0-9_]*)"'
+            env_block_pattern = r'(?:env|content)\s*\{([^}]+)\}'
+            env_blocks = re.findall(env_block_pattern, resource_body)
 
-        # Look for env blocks (both static and inside dynamic blocks)
-        env_block_pattern = r'(?:env|content)\s*\{([^}]+)\}'
-        env_blocks = re.findall(env_block_pattern, resource_body)
-
-        for block in env_blocks:
-            name_match = re.search(env_pattern, block)
-            if name_match:
-                var_name = name_match.group(1)
-                # Filter out non-env-var names (like secret_name references)
-                if not var_name.startswith("acr"):
-                    env_vars[resource_name].add(var_name)
+            for block in env_blocks:
+                name_match = re.search(env_pattern, block)
+                if name_match:
+                    var_name = name_match.group(1)
+                    if not var_name.startswith("acr"):
+                        env_vars[resource_name].add(var_name)
 
     return env_vars
 
