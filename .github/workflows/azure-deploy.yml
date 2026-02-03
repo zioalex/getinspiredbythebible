@@ -26,17 +26,17 @@ on:
   push:
     branches: [main]
     paths:
-      - 'api/**'
-      - 'frontend/**'
-      - 'scripts/**'
-      - '.github/workflows/azure-deploy.yml'
+      - "api/**"
+      - "frontend/**"
+      - "scripts/**"
+      - ".github/workflows/azure-deploy.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'api/**'
-      - 'frontend/**'
-      - 'scripts/**'
-  workflow_dispatch:  # Allow manual triggers
+      - "api/**"
+      - "frontend/**"
+      - "scripts/**"
+  workflow_dispatch: # Allow manual triggers
 
 env:
   BACKEND_APP_NAME: bible-app-backend
@@ -199,21 +199,34 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           echo "Verifying NEXT_PUBLIC_API_URL is correctly baked into the image..."
-          docker pull ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}
+          IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}"
+          EXPECTED_URL="${{ steps.backend-url.outputs.url }}"
 
-          # Check that localhost:8000 is NOT in the image
-          if docker run --rm ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }} \
-            sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null" | head -1; then
-            echo "::error::ERROR: localhost:8000 found in image - build arg not applied correctly!"
+          docker pull "$IMAGE"
+
+          # Primary check: verify the CORRECT URL is present in the compiled JS
+          # This is more reliable than checking for absence of localhost
+          echo "Checking for expected API URL: $EXPECTED_URL"
+          if docker run --rm "$IMAGE" sh -c "grep -r '$EXPECTED_URL' .next/ 2>/dev/null | head -3"; then
+            echo "✅ Correct API URL found in image: $EXPECTED_URL"
+          else
+            echo "::error::ERROR: Expected API URL not found in image. Build arg may not have been applied."
+            echo "::error::Expected: $EXPECTED_URL"
+            # Show what URLs are in the image for debugging
+            echo "URLs found in .next/ directory:"
+            docker run --rm "$IMAGE" sh -c \
+              "grep -roh 'http[s]*://[^\"'\'']*' .next/ 2>/dev/null | sort -u | head -20" || true
             exit 1
           fi
 
-          # Check that the correct URL IS in the image
-          if docker run --rm ${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }} \
-            sh -c "grep -r '${{ steps.backend-url.outputs.url }}' .next/ 2>/dev/null" | head -1; then
-            echo "✅ Correct API URL found in image: ${{ steps.backend-url.outputs.url }}"
+          # Secondary check: warn if localhost:8000 is found in main JS files (not source maps)
+          # This is a warning, not a failure, since dead code paths may contain the fallback
+          if docker run --rm "$IMAGE" sh -c \
+            "grep -r 'localhost:8000' .next/server/ .next/static/ 2>/dev/null --include='*.js' | grep -v '.map'" \
+            | head -1; then
+            echo "::warning::localhost:8000 found in compiled JS. This may be dead code or fallback string."
           else
-            echo "::warning::Could not verify API URL in image (may be minified)"
+            echo "✅ No localhost:8000 found in compiled JavaScript"
           fi
 
   # ---------------------------------------------------------------------------
@@ -225,8 +238,8 @@ jobs:
   deploy:
     needs: [build-backend, build-frontend]
     if: >-
-      github.event_name != 'pull_request' &&
-      (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
+      github.event_name != 'pull_request' && (needs.build-backend.result == 'success' || needs.build-frontend.result ==
+      'success')
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -250,7 +263,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.6.0'
+          terraform_version: "1.6.0"
 
       - name: Terraform Init
         working-directory: deployment
@@ -329,8 +342,8 @@ jobs:
   seed-database:
     needs: [changes, deploy]
     if: >-
-      github.event_name != 'pull_request' &&
-      (needs.changes.outputs.scripts == 'true' || github.event_name == 'workflow_dispatch')
+      github.event_name != 'pull_request' && (needs.changes.outputs.scripts == 'true' || github.event_name ==
+      'workflow_dispatch')
     runs-on: ubuntu-latest
     environment: production
 
@@ -341,9 +354,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'api/requirements.txt'
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "api/requirements.txt"
 
       - name: Install dependencies
         run: |
