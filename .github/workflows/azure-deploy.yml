@@ -238,8 +238,8 @@ jobs:
   deploy:
     needs: [build-backend, build-frontend]
     if: >-
-      github.event_name != 'pull_request' && (needs.build-backend.result == 'success' || needs.build-frontend.result ==
-      'success')
+      always() && github.event_name != 'pull_request' && (needs.build-backend.result == 'success' ||
+      needs.build-frontend.result == 'success')
     runs-on: ubuntu-latest
     environment: production
     env:
