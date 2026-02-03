@@ -18,7 +18,7 @@ variables:
   DATABASE_URL:
     required_in: both
     description: PostgreSQL connection string
-    default: null  # Must be explicitly set
+    default: null # Must be explicitly set
 
   # ---------------------------------------------------------------------------
   # LLM Provider Configuration

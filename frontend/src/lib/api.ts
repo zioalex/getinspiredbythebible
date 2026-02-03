@@ -2,7 +2,20 @@
  * API client for Bible Chat backend
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// In production builds, NEXT_PUBLIC_API_URL must be set at build time.
+// The fallback is only for local development.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+// Validate API URL in production (this check is tree-shaken in dev builds)
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL === "http://localhost:8000")
+) {
+  console.error(
+    "WARNING: NEXT_PUBLIC_API_URL is not set or is set to localhost in production build",
+  );
+}
 
 /**
  * Error thrown when the backend is warming up (cold start)

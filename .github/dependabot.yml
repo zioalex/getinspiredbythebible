@@ -33,7 +33,7 @@ updates:
           - "eslint-*"
           - "@typescript-eslint/*"
         exclude-patterns:
-          - "eslint-config-next"  # Handled in nextjs group
+          - "eslint-config-next" # Handled in nextjs group
       # Group React ecosystem
       react:
         patterns:

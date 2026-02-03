@@ -35,19 +35,19 @@ on:
   push:
     branches: [main]
     paths:
-      - 'deployment/**'
-      - '.github/workflows/terraform.yml'
+      - "deployment/**"
+      - ".github/workflows/terraform.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'deployment/**'
-      - '.github/workflows/terraform.yml'
+      - "deployment/**"
+      - ".github/workflows/terraform.yml"
   workflow_dispatch:
     inputs:
       action:
-        description: 'Terraform action to perform'
+        description: "Terraform action to perform"
         required: true
-        default: 'plan'
+        default: "plan"
         type: choice
         options:
           - plan
@@ -61,9 +61,9 @@ permissions:
   issues: write
 
 env:
-  TF_VERSION: '1.6.0'
-  TF_WORKING_DIR: './deployment'
-  ACR_NAME: 'bibleappacrmb0172'
+  TF_VERSION: "1.6.0"
+  TF_WORKING_DIR: "./deployment"
+  ACR_NAME: "bibleappacrmb0172"
   # Azure authentication via service principal
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -331,7 +331,7 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-    environment: production  # Requires approval in GitHub repo settings
+    environment: production # Requires approval in GitHub repo settings
     env:
       # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
@@ -399,7 +399,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-    environment: production  # Requires approval
+    environment: production # Requires approval
     env:
       # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
