@@ -195,9 +195,44 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Get Git SHA
-        id: git
-        run: echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Get Current Deployed Images
+        id: images
+        run: |
+          # Get currently deployed image tags from Azure Container Apps
+          # This ensures we don't change images when only infrastructure changes
+          BACKEND_IMAGE=$(az containerapp show \
+            --name bible-app-backend \
+            --resource-group bible-app-rg \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+
+          FRONTEND_IMAGE=$(az containerapp show \
+            --name bible-app-frontend \
+            --resource-group bible-app-rg \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+
+          # Fall back to latest tag if container apps don't exist yet
+          if [ -z "$BACKEND_IMAGE" ]; then
+            BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:latest"
+          fi
+          if [ -z "$FRONTEND_IMAGE" ]; then
+            FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:latest"
+          fi
+
+          echo "backend_image=$BACKEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "Using backend image: $BACKEND_IMAGE"
+          echo "Using frontend image: $FRONTEND_IMAGE"
 
       - name: Terraform Init
         run: |
@@ -211,10 +246,11 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
+          # Use current deployed images - no image changes for infra-only updates
           terraform plan \
             -var-file="terraform.tfvars" \
-            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}" \
-            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
+            -var="backend_image=${{ steps.images.outputs.backend_image }}" \
+            -var="frontend_image=${{ steps.images.outputs.frontend_image }}" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -234,7 +270,9 @@ jobs:
         run: |
           echo "## Terraform Plan Output" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tag:** \`${{ steps.git.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Infrastructure-only changes. Images unchanged." >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: \`${{ steps.images.outputs.backend_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: \`${{ steps.images.outputs.frontend_image }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{ env.TF_WORKING_DIR }}/plan_output.txt | tail -50 >> $GITHUB_STEP_SUMMARY
@@ -281,6 +319,11 @@ jobs:
   # ---------------------------------------------------------------------------
   # Terraform Apply
   # ---------------------------------------------------------------------------
+  # Auto-applies infrastructure changes on push to main.
+  # Uses currently deployed images (fetched from Azure) - no image changes.
+  # For new image deployments, use azure-deploy.yml instead.
+  #
+  # Requires approval via GitHub environment protection rules.
   apply:
     name: Apply
     runs-on: ubuntu-latest
@@ -288,7 +331,7 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-    environment: production  # Requires approval
+    environment: production  # Requires approval in GitHub repo settings
     env:
       # Only secrets are passed via environment (non-secrets are in terraform.tfvars)
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
