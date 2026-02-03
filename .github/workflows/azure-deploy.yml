@@ -237,9 +237,11 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     needs: [build-backend, build-frontend]
+    # Deploy if: at least one build succeeded AND neither failed (skipped is OK)
     if: >-
       always() && github.event_name != 'pull_request' && (needs.build-backend.result == 'success' ||
-      needs.build-frontend.result == 'success')
+      needs.build-frontend.result == 'success') && needs.build-backend.result != 'failure' &&
+      needs.build-frontend.result != 'failure'
     runs-on: ubuntu-latest
     environment: production
     env:
