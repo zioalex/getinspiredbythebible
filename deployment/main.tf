@@ -152,6 +152,25 @@ locals {
       "EMBEDDING_PROVIDER" = {
         value = "azure_openai"
       }
+    } : {},
+
+    # SMTP2GO email notification configuration
+    var.smtp2go_enabled ? {
+      "CONTACT_NOTIFICATION_EMAIL" = {
+        value = var.contact_notification_email
+      }
+      "SMTP2GO_API_KEY" = {
+        secret_name = "smtp2go-api-key" # pragma: allowlist secret
+      }
+      "SMTP2GO_ENABLED" = {
+        value = "true"
+      }
+      "SMTP2GO_SENDER_EMAIL" = {
+        value = var.smtp2go_sender_email
+      }
+      "SMTP2GO_SENDER_NAME" = {
+        value = var.smtp2go_sender_name
+      }
     } : {}
   )
 
@@ -376,6 +395,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "azure-openai-key"
       value = azurerm_cognitive_account.openai[0].primary_access_key
+    }
+  }
+
+  # SMTP2GO API Key secret (if email notifications enabled)
+  dynamic "secret" {
+    for_each = var.smtp2go_enabled ? [1] : []
+    content {
+      name  = "smtp2go-api-key"
+      value = var.smtp2go_api_key
     }
   }
 

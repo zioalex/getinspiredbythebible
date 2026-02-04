@@ -113,3 +113,9 @@ budget_alert_emails = ["zioalex@gmail.com"]
 # -----------------------------------------------------------------------------
 
 custom_domain_frontend = "getinspiredbythebible.ai4you.sh"
+
+# email settings
+smtp2go_enabled      = true
+smtp2go_sender_email = "noreply@getinspiredbythebible.ai4you.sh"
+smtp2go_sender_name  = "Bible Inspiration"
+contact_notification_email = "getinspiredbythebible@ai4you.sh"# SMTP2GO config

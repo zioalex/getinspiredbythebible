@@ -19,6 +19,7 @@
 #   TF_VAR_DB_ADMIN_PASSWORD    - Database admin password
 #   TF_VAR_OPENROUTER_API_KEY   - OpenRouter API key
 #   TF_VAR_CLAUDE_API_KEY       - Claude API key (if using Claude)
+#   TF_VAR_SMTP2GO_API_KEY      - SMTP2GO API key (for email notifications)
 #   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate
 #   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Certificate password (if any)
 #
@@ -177,6 +178,7 @@ jobs:
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
 
     steps:
       - name: Checkout
@@ -338,6 +340,7 @@ jobs:
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
 
     steps:
       - name: Checkout
@@ -406,6 +409,7 @@ jobs:
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
 
     steps:
       - name: Checkout

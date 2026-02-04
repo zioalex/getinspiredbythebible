@@ -360,3 +360,38 @@ variable "budget_alert_emails" {
   type        = list(string)
   default     = []
 }
+
+# -----------------------------------------------------------------------------
+# Email Notifications (SMTP2GO) Configuration
+# -----------------------------------------------------------------------------
+
+variable "smtp2go_enabled" {
+  description = "Enable email notifications via SMTP2GO"
+  type        = bool
+  default     = false
+}
+
+variable "smtp2go_api_key" {
+  description = "SMTP2GO API key (required if smtp2go_enabled=true)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "smtp2go_sender_email" {
+  description = "Sender email address for notifications"
+  type        = string
+  default     = "noreply@ai4you.sh"
+}
+
+variable "smtp2go_sender_name" {
+  description = "Sender name for notifications"
+  type        = string
+  default     = "Bible Inspiration"
+}
+
+variable "contact_notification_email" {
+  description = "Email address to receive contact form notifications"
+  type        = string
+  default     = "getinspiredbythebible@ai4you.sh"
+}
