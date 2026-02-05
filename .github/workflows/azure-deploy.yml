@@ -66,7 +66,7 @@ env:
   BACKEND_APP_NAME: bible-app-backend
   FRONTEND_APP_NAME: bible-app-frontend
   ACR_NAME: bibleappacrmb0172
-  RESOURCE_GROUP: bible-app-rg-mb0172
+  RESOURCE_GROUP: bible-app-rg
 
 jobs:
   # ---------------------------------------------------------------------------
