@@ -1,6 +1,7 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
-	tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
-	validate-env validate-env-strict
+	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
+	validate-env validate-env-strict \
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -439,11 +440,112 @@ docker-get-backend-url: ## Get the backend URL from Azure
 update-env-backend-url: ## Update .env.production with current Azure backend URL
 	@./scripts/update-env-backend-url.sh
 
+# ==================== Azure ACR Image Management ====================
+
+# Resource suffix (same as used for PostgreSQL and other Azure resources)
+RESOURCE_SUFFIX := mb0172
+
+# ACR name built from suffix
+ACR_NAME := bibleappacr$(RESOURCE_SUFFIX)
+
+az-acr-list-images: ## List all image tags with creation dates from ACR
+	@echo "$(BLUE)Listing images in ACR...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend Images (bible-backend) ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-backend \
+		--orderby time_desc \
+		--detail \
+		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No backend images found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Frontend Images (bible-frontend) ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-frontend \
+		--orderby time_desc \
+		--detail \
+		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No frontend images found$(NC)"
+
+az-acr-list-tags: ## List image tags for backend and frontend (quick view)
+	@echo "$(BLUE)Listing image tags in ACR...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend Tags ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-backend \
+		--orderby time_desc \
+		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Frontend Tags ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-frontend \
+		--orderby time_desc \
+		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
+
+az-deployed-images: ## Show currently deployed images with digest info
+	@echo "$(BLUE)Checking deployed images in Azure Container Apps...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend ($(CA_BACKEND)) ===$(NC)"
+	@BACKEND_IMAGE=$$(az containerapp show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+	if [ -n "$$BACKEND_IMAGE" ]; then \
+		echo "  Image: $$BACKEND_IMAGE"; \
+		TAG=$$(echo "$$BACKEND_IMAGE" | sed 's/.*://'); \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-backend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
+	else \
+		echo "  $(YELLOW)Could not retrieve backend image$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)=== Frontend ($(CA_FRONTEND)) ===$(NC)"
+	@FRONTEND_IMAGE=$$(az containerapp show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+	if [ -n "$$FRONTEND_IMAGE" ]; then \
+		echo "  Image: $$FRONTEND_IMAGE"; \
+		TAG=$$(echo "$$FRONTEND_IMAGE" | sed 's/.*://'); \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-frontend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
+	else \
+		echo "  $(YELLOW)Could not retrieve frontend image$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✓ Deployment check complete$(NC)"
+
+az-image-info: ## Show detailed info for a specific image (usage: make az-image-info REPO=bible-backend TAG=latest)
+	@if [ -z "$(REPO)" ] || [ -z "$(TAG)" ]; then \
+		echo "$(YELLOW)Usage: make az-image-info REPO=bible-backend TAG=abc1234$(NC)"; \
+		echo "$(YELLOW)  REPO: bible-backend or bible-frontend$(NC)"; \
+		echo "$(YELLOW)  TAG: image tag (e.g., latest, abc1234, full SHA)$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Getting info for $(REPO):$(TAG)...$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository $(REPO) \
+		--detail \
+		--query "[?name=='$(TAG)']" \
+		--output yaml 2>/dev/null || echo "$(YELLOW)Image not found$(NC)"
+
 # ==================== Azure PostgreSQL Commands ====================
 
-# PostgreSQL server name suffix (from terraform.tfvars)
-PG_SUFFIX := mb0172
-PG_SERVER := bible-app-db-$(PG_SUFFIX)
+# PostgreSQL server name (using shared RESOURCE_SUFFIX)
+PG_SERVER := bible-app-db-$(RESOURCE_SUFFIX)
 PG_RG := bible-app-rg
 
 az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
@@ -524,9 +626,44 @@ TF_DIR := deployment
 TF_VARS := -var-file="terraform.tfvars"
 TF_SECRETS := -var-file="terraform.tfvars.secrets"
 
-tf-init: ## Initialize Terraform
+tf-check-version: ## Check if local Terraform version matches pipeline version
+	@echo "$(BLUE)Checking Terraform version consistency...$(NC)"
+	@PIPELINE_VERSION=$$(grep 'TF_VERSION:' .github/workflows/terraform.yml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
+	LOCAL_VERSION=$$(terraform version | head -1 | sed 's/Terraform v//'); \
+	echo "  Pipeline version: $$PIPELINE_VERSION"; \
+	echo "  Local version:    $$LOCAL_VERSION"; \
+	if [ "$$PIPELINE_VERSION" != "$$LOCAL_VERSION" ]; then \
+		echo ""; \
+		echo "$(YELLOW)⚠ WARNING: Version mismatch!$(NC)"; \
+		echo "$(YELLOW)  Pipeline uses Terraform $$PIPELINE_VERSION$(NC)"; \
+		echo "$(YELLOW)  You have Terraform $$LOCAL_VERSION$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)  This may cause state file compatibility issues.$(NC)"; \
+		echo "$(YELLOW)  Consider installing Terraform $$PIPELINE_VERSION or updating the pipeline.$(NC)"; \
+	else \
+		echo "$(GREEN)✓ Terraform versions match$(NC)"; \
+	fi
+
+tf-init: tf-check-version ## Initialize Terraform
 	@echo "$(BLUE)Initializing Terraform...$(NC)"
-	@cd $(TF_DIR) && terraform init
+	@if [ -f "$(TF_DIR)/backend.hcl" ]; then \
+		echo "$(YELLOW)Using backend.hcl for backend configuration$(NC)"; \
+		cd $(TF_DIR) && terraform init -backend-config=backend.hcl; \
+	else \
+		echo "$(YELLOW)Detecting storage account from Azure...$(NC)"; \
+		STORAGE_ACCOUNT=$$(az storage account list --resource-group bible-app-tfstate-rg --query "[0].name" -o tsv 2>/dev/null); \
+		if [ -n "$$STORAGE_ACCOUNT" ]; then \
+			echo "$(YELLOW)Found storage account: $$STORAGE_ACCOUNT$(NC)"; \
+			cd $(TF_DIR) && terraform init \
+				-backend-config="storage_account_name=$$STORAGE_ACCOUNT" \
+				-backend-config="resource_group_name=bible-app-tfstate-rg" \
+				-backend-config="container_name=tfstate" \
+				-backend-config="key=bible-app.tfstate"; \
+		else \
+			echo "$(YELLOW)Error: Could not find storage account. Create backend.hcl or ensure Azure CLI is logged in$(NC)"; \
+			exit 1; \
+		fi; \
+	fi
 	@echo "$(GREEN)✓ Terraform initialized$(NC)"
 
 tf-plan: ## Run Terraform plan (preview changes)
