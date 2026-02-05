@@ -197,20 +197,21 @@ jobs:
         id: backend-url
         run: |
           # Get the backend URL from Azure Container Apps
+          # IMPORTANT: No fallback - fail fast if backend URL can't be fetched
           BACKEND_FQDN=$(az containerapp show \
             --name ${{ env.BACKEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+            --query "properties.configuration.ingress.fqdn" -o tsv)
 
-          if [ -n "$BACKEND_FQDN" ]; then
-            BACKEND_URL="https://$BACKEND_FQDN"
-          else
-            # Fallback to custom domain if container app not found
-            BACKEND_URL="https://getinspiredbythebible.ai4you.sh"
+          if [ -z "$BACKEND_FQDN" ]; then
+            echo "::error::Failed to get backend URL from Azure Container Apps"
+            echo "::error::Check RESOURCE_GROUP and BACKEND_APP_NAME are correct"
+            exit 1
           fi
 
+          BACKEND_URL="https://$BACKEND_FQDN"
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
-          echo "Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
+          echo "✅ Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
