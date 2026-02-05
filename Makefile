@@ -442,29 +442,32 @@ update-env-backend-url: ## Update .env.production with current Azure backend URL
 
 # ==================== Azure ACR Image Management ====================
 
-# ACR name (from .env.production or default)
-ACR_NAME := $(shell grep -s '^ACR_NAME=' .env.production | cut -d= -f2 || echo "bibleappacrmb0172")
+# Resource suffix (same as used for PostgreSQL and other Azure resources)
+RESOURCE_SUFFIX := mb0172
+
+# ACR name built from suffix
+ACR_NAME := bibleappacr$(RESOURCE_SUFFIX)
 
 az-acr-list-images: ## List all image tags with creation dates from ACR
 	@echo "$(BLUE)Listing images in ACR...$(NC)"
 	@echo ""
 	@echo "$(YELLOW)=== Backend Images (bible-backend) ===$(NC)"
-	@az acr repository show-manifests \
+	@az acr repository show-tags \
 		--name $(ACR_NAME) \
 		--repository bible-backend \
 		--orderby time_desc \
-		--query "[].{Digest: digest, Tags: tags[0], Created: createdTime}" \
+		--detail \
 		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No backend images found$(NC)"
 	@echo ""
 	@echo "$(YELLOW)=== Frontend Images (bible-frontend) ===$(NC)"
-	@az acr repository show-manifests \
+	@az acr repository show-tags \
 		--name $(ACR_NAME) \
 		--repository bible-frontend \
 		--orderby time_desc \
-		--query "[].{Digest: digest, Tags: tags[0], Created: createdTime}" \
+		--detail \
 		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No frontend images found$(NC)"
 
-az-acr-list-tags: ## List image tags for backend and frontend
+az-acr-list-tags: ## List image tags for backend and frontend (quick view)
 	@echo "$(BLUE)Listing image tags in ACR...$(NC)"
 	@echo ""
 	@echo "$(YELLOW)=== Backend Tags ===$(NC)"
@@ -492,22 +495,13 @@ az-deployed-images: ## Show currently deployed images with digest info
 	if [ -n "$$BACKEND_IMAGE" ]; then \
 		echo "  Image: $$BACKEND_IMAGE"; \
 		TAG=$$(echo "$$BACKEND_IMAGE" | sed 's/.*://'); \
-		if [ "$$TAG" = "latest" ]; then \
-			echo "  $(YELLOW)Tag is 'latest' - resolving actual digest...$(NC)"; \
-			DIGEST=$$(az acr repository show-manifests \
-				--name $(ACR_NAME) \
-				--repository bible-backend \
-				--query "[?tags[?@=='latest']].{digest: digest, created: createdTime}" \
-				--output tsv 2>/dev/null | head -1); \
-			echo "  Digest: $$DIGEST"; \
-		else \
-			MANIFEST=$$(az acr repository show-manifests \
-				--name $(ACR_NAME) \
-				--repository bible-backend \
-				--query "[?tags[?@=='$$TAG']] | [0].{digest: digest, created: createdTime}" \
-				--output tsv 2>/dev/null); \
-			echo "  Manifest: $$MANIFEST"; \
-		fi; \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-backend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
 	else \
 		echo "  $(YELLOW)Could not retrieve backend image$(NC)"; \
 	fi
@@ -520,22 +514,13 @@ az-deployed-images: ## Show currently deployed images with digest info
 	if [ -n "$$FRONTEND_IMAGE" ]; then \
 		echo "  Image: $$FRONTEND_IMAGE"; \
 		TAG=$$(echo "$$FRONTEND_IMAGE" | sed 's/.*://'); \
-		if [ "$$TAG" = "latest" ]; then \
-			echo "  $(YELLOW)Tag is 'latest' - resolving actual digest...$(NC)"; \
-			DIGEST=$$(az acr repository show-manifests \
-				--name $(ACR_NAME) \
-				--repository bible-frontend \
-				--query "[?tags[?@=='latest']].{digest: digest, created: createdTime}" \
-				--output tsv 2>/dev/null | head -1); \
-			echo "  Digest: $$DIGEST"; \
-		else \
-			MANIFEST=$$(az acr repository show-manifests \
-				--name $(ACR_NAME) \
-				--repository bible-frontend \
-				--query "[?tags[?@=='$$TAG']] | [0].{digest: digest, created: createdTime}" \
-				--output tsv 2>/dev/null); \
-			echo "  Manifest: $$MANIFEST"; \
-		fi; \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-frontend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
 	else \
 		echo "  $(YELLOW)Could not retrieve frontend image$(NC)"; \
 	fi
@@ -550,17 +535,17 @@ az-image-info: ## Show detailed info for a specific image (usage: make az-image-
 		exit 1; \
 	fi
 	@echo "$(BLUE)Getting info for $(REPO):$(TAG)...$(NC)"
-	@az acr repository show-manifests \
+	@az acr repository show-tags \
 		--name $(ACR_NAME) \
 		--repository $(REPO) \
-		--query "[?tags[?@=='$(TAG)']] | [0]" \
+		--detail \
+		--query "[?name=='$(TAG)']" \
 		--output yaml 2>/dev/null || echo "$(YELLOW)Image not found$(NC)"
 
 # ==================== Azure PostgreSQL Commands ====================
 
-# PostgreSQL server name suffix (from terraform.tfvars)
-PG_SUFFIX := mb0172
-PG_SERVER := bible-app-db-$(PG_SUFFIX)
+# PostgreSQL server name (using shared RESOURCE_SUFFIX)
+PG_SERVER := bible-app-db-$(RESOURCE_SUFFIX)
 PG_RG := bible-app-rg
 
 az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
