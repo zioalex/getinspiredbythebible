@@ -1,5 +1,5 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
-	tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
+	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
@@ -626,9 +626,44 @@ TF_DIR := deployment
 TF_VARS := -var-file="terraform.tfvars"
 TF_SECRETS := -var-file="terraform.tfvars.secrets"
 
-tf-init: ## Initialize Terraform
+tf-check-version: ## Check if local Terraform version matches pipeline version
+	@echo "$(BLUE)Checking Terraform version consistency...$(NC)"
+	@PIPELINE_VERSION=$$(grep 'TF_VERSION:' .github/workflows/terraform.yml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
+	LOCAL_VERSION=$$(terraform version | head -1 | sed 's/Terraform v//'); \
+	echo "  Pipeline version: $$PIPELINE_VERSION"; \
+	echo "  Local version:    $$LOCAL_VERSION"; \
+	if [ "$$PIPELINE_VERSION" != "$$LOCAL_VERSION" ]; then \
+		echo ""; \
+		echo "$(YELLOW)⚠ WARNING: Version mismatch!$(NC)"; \
+		echo "$(YELLOW)  Pipeline uses Terraform $$PIPELINE_VERSION$(NC)"; \
+		echo "$(YELLOW)  You have Terraform $$LOCAL_VERSION$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)  This may cause state file compatibility issues.$(NC)"; \
+		echo "$(YELLOW)  Consider installing Terraform $$PIPELINE_VERSION or updating the pipeline.$(NC)"; \
+	else \
+		echo "$(GREEN)✓ Terraform versions match$(NC)"; \
+	fi
+
+tf-init: tf-check-version ## Initialize Terraform
 	@echo "$(BLUE)Initializing Terraform...$(NC)"
-	@cd $(TF_DIR) && terraform init
+	@if [ -f "$(TF_DIR)/backend.hcl" ]; then \
+		echo "$(YELLOW)Using backend.hcl for backend configuration$(NC)"; \
+		cd $(TF_DIR) && terraform init -backend-config=backend.hcl; \
+	else \
+		echo "$(YELLOW)Detecting storage account from Azure...$(NC)"; \
+		STORAGE_ACCOUNT=$$(az storage account list --resource-group bible-app-tfstate-rg --query "[0].name" -o tsv 2>/dev/null); \
+		if [ -n "$$STORAGE_ACCOUNT" ]; then \
+			echo "$(YELLOW)Found storage account: $$STORAGE_ACCOUNT$(NC)"; \
+			cd $(TF_DIR) && terraform init \
+				-backend-config="storage_account_name=$$STORAGE_ACCOUNT" \
+				-backend-config="resource_group_name=bible-app-tfstate-rg" \
+				-backend-config="container_name=tfstate" \
+				-backend-config="key=bible-app.tfstate"; \
+		else \
+			echo "$(YELLOW)Error: Could not find storage account. Create backend.hcl or ensure Azure CLI is logged in$(NC)"; \
+			exit 1; \
+		fi; \
+	fi
 	@echo "$(GREEN)✓ Terraform initialized$(NC)"
 
 tf-plan: ## Run Terraform plan (preview changes)
