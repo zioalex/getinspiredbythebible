@@ -36,7 +36,31 @@ on:
       - "api/**"
       - "frontend/**"
       - "scripts/**"
-  workflow_dispatch: # Allow manual triggers
+  workflow_dispatch:
+    inputs:
+      deploy_component:
+        description: "Component to deploy"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - backend
+          - frontend
+      skip_build:
+        description: "Skip build and deploy existing images"
+        required: false
+        default: false
+        type: boolean
+      image_tag:
+        description: "Image tag to deploy (commit SHA). Leave empty for current commit."
+        required: false
+        type: string
+      skip_database_seed:
+        description: "Skip database seeding"
+        required: false
+        default: true
+        type: boolean
 
 env:
   BACKEND_APP_NAME: bible-app-backend
@@ -72,7 +96,11 @@ jobs:
   # ---------------------------------------------------------------------------
   build-backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      (needs.changes.outputs.backend == 'true') ||
+      (github.event_name == 'workflow_dispatch' &&
+       inputs.skip_build != true &&
+       (inputs.deploy_component == 'both' || inputs.deploy_component == 'backend'))
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
@@ -125,7 +153,11 @@ jobs:
   # ---------------------------------------------------------------------------
   build-frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      (needs.changes.outputs.frontend == 'true') ||
+      (github.event_name == 'workflow_dispatch' &&
+       inputs.skip_build != true &&
+       (inputs.deploy_component == 'both' || inputs.deploy_component == 'frontend'))
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
@@ -237,11 +269,14 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     needs: [build-backend, build-frontend]
-    # Deploy if: at least one build succeeded AND neither failed (skipped is OK)
+    # Deploy if:
+    # - At least one build succeeded AND neither failed (normal flow), OR
+    # - Manual trigger with skip_build=true (deploy existing images)
     if: >-
-      always() && github.event_name != 'pull_request' && (needs.build-backend.result == 'success' ||
-      needs.build-frontend.result == 'success') && needs.build-backend.result != 'failure' &&
-      needs.build-frontend.result != 'failure'
+      always() && github.event_name != 'pull_request' && ((needs.build-backend.result == 'success' ||
+      needs.build-frontend.result == 'success') &&
+       needs.build-backend.result != 'failure' && needs.build-frontend.result != 'failure') ||
+      (github.event_name == 'workflow_dispatch' && inputs.skip_build == true)
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -254,6 +289,87 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Determine Image Tags
+        id: image-tags
+        run: |
+          # Use provided image_tag or fall back to current commit SHA
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
+            echo "Using provided image tag: $IMAGE_TAG"
+          else
+            IMAGE_TAG="${{ github.sha }}"
+            echo "Using current commit SHA: $IMAGE_TAG"
+          fi
+
+          # For skip_build deployments, verify images exist in ACR
+          if [ "${{ inputs.skip_build }}" == "true" ]; then
+            echo "Verifying images exist in ACR..."
+
+            DEPLOY_COMPONENT="${{ inputs.deploy_component }}"
+            if [ "$DEPLOY_COMPONENT" == "both" ] || [ "$DEPLOY_COMPONENT" == "backend" ]; then
+              if ! az acr repository show-tags -n ${{ env.ACR_NAME }} --repository bible-backend \
+                   --query "[?@=='$IMAGE_TAG']" -o tsv | grep -q .; then
+                echo "::error::Backend image with tag '$IMAGE_TAG' not found in ACR"
+                exit 1
+              fi
+              echo "✅ Backend image found: $IMAGE_TAG"
+            fi
+
+            if [ "$DEPLOY_COMPONENT" == "both" ] || [ "$DEPLOY_COMPONENT" == "frontend" ]; then
+              if ! az acr repository show-tags -n ${{ env.ACR_NAME }} --repository bible-frontend \
+                   --query "[?@=='$IMAGE_TAG']" -o tsv | grep -q .; then
+                echo "::error::Frontend image with tag '$IMAGE_TAG' not found in ACR"
+                exit 1
+              fi
+              echo "✅ Frontend image found: $IMAGE_TAG"
+            fi
+          fi
+
+          # Get currently deployed images for components we're NOT updating
+          CURRENT_BACKEND=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+          CURRENT_FRONTEND=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+
+          echo "Currently deployed - Backend: $CURRENT_BACKEND"
+          echo "Currently deployed - Frontend: $CURRENT_FRONTEND"
+
+          # Determine final image tags based on deploy_component
+          DEPLOY_COMPONENT="${{ inputs.deploy_component }}"
+          if [ "$DEPLOY_COMPONENT" == "frontend" ] && [ -n "$CURRENT_BACKEND" ]; then
+            BACKEND_IMAGE="$CURRENT_BACKEND"
+          else
+            BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:$IMAGE_TAG"
+          fi
+
+          if [ "$DEPLOY_COMPONENT" == "backend" ] && [ -n "$CURRENT_FRONTEND" ]; then
+            FRONTEND_IMAGE="$CURRENT_FRONTEND"
+          else
+            FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:$IMAGE_TAG"
+          fi
+
+          echo "backend_image=$BACKEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo ""
+          echo "Will deploy:"
+          echo "  Backend:  $BACKEND_IMAGE"
+          echo "  Frontend: $FRONTEND_IMAGE"
 
       - name: Decode Cloudflare Origin Certificate
         env:
@@ -287,8 +403,8 @@ jobs:
         run: |
           terraform apply \
             -var-file="terraform.tfvars" \
-            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}" \
-            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
+            -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
+            -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
             -auto-approve
 
       - name: Login to Azure (for verification)
@@ -334,19 +450,25 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed via Terraform**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Image Tag |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.skip_build }}" == "true" ]; then
+            echo "🔄 **Mode:** Deploy existing images (skip build)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🏗️ **Mode:** Build and deploy" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | \`${{ steps.image-tags.outputs.backend_image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | \`${{ steps.image-tags.outputs.frontend_image }}\` |" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
-  # Seed Database (runs when scripts change or manually triggered)
+  # Seed Database (runs when scripts change or manually triggered with seed enabled)
   # ---------------------------------------------------------------------------
   seed-database:
     needs: [changes, deploy]
     if: >-
-      github.event_name != 'pull_request' && (needs.changes.outputs.scripts == 'true' || github.event_name ==
-      'workflow_dispatch')
+      github.event_name != 'pull_request' && ((needs.changes.outputs.scripts == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed != true))
     runs-on: ubuntu-latest
     environment: production
 
