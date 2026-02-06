@@ -70,6 +70,11 @@ on:
         description: "Specific translation to load (e.g., 'kjv', 'ita1927'). Leave empty for all."
         required: false
         type: string
+      skip_embeddings:
+        description: "Skip embedding generation (requires Azure OpenAI)"
+        required: false
+        default: true
+        type: boolean
 
 env:
   BACKEND_APP_NAME: bible-app-backend
@@ -597,19 +602,33 @@ jobs:
           python load_bible.py $TRANSLATION_FLAG $FORCE_FLAG
 
       - name: Generate Embeddings
+        if: inputs.skip_embeddings != true
         env:
           DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
           DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
-          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: "text-embedding-3-small"
         run: |
+          # Check if Azure OpenAI is configured
+          if [ -z "$AZURE_OPENAI_ENDPOINT" ]; then
+            echo "⏭️ Skipping embedding generation"
+            echo "   Reason: AZURE_OPENAI_ENDPOINT secret not configured"
+            exit 0
+          fi
+
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
           echo "Generating embeddings with Azure OpenAI..."
           python create_azure_embeddings.py
+
+      - name: Skip Embeddings Notice
+        if: inputs.skip_embeddings == true
+        run: |
+          echo "⏭️ Skipping embedding generation"
+          echo "   Reason: skip_embeddings=true"
 
       - name: Verify Database
         env:
