@@ -41,6 +41,17 @@ When adding new functionality that requires commands:
   - Test plan (how to verify)
 - Aim for PRs that can be reviewed in under 15 minutes
 
+### 5. Always Check PR Status Before Pushing
+
+- **Before pushing to an existing PR branch**, always check if the PR is still open:
+
+  ```bash
+  gh pr view <PR_NUMBER> --json state
+  ```
+
+- If the PR was already merged or closed, **create a new branch and PR** instead
+- Never push additional commits to a merged PR's branch
+
 ## Development Commands
 
 ### Environment Setup
