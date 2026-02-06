@@ -61,6 +61,15 @@ on:
         required: false
         default: true
         type: boolean
+      force_database_seed:
+        description: "Force reload Bible data even if already loaded"
+        required: false
+        default: false
+        type: boolean
+      bible_translation:
+        description: "Specific translation to load (e.g., 'kjv', 'ita1927'). Leave empty for all."
+        required: false
+        type: string
 
 env:
   BACKEND_APP_NAME: bible-app-backend
@@ -568,8 +577,24 @@ jobs:
         run: |
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
-          echo "Loading Bible translations..."
-          python load_bible.py --all
+
+          # Build command flags
+          FORCE_FLAG=""
+          TRANSLATION_FLAG="--all"
+
+          if [ "${{ inputs.force_database_seed }}" == "true" ]; then
+            FORCE_FLAG="--force"
+            echo "Force mode enabled - will reload translations"
+          fi
+
+          if [ -n "${{ inputs.bible_translation }}" ]; then
+            TRANSLATION_FLAG="--translation ${{ inputs.bible_translation }}"
+            echo "Loading specific translation: ${{ inputs.bible_translation }}"
+          else
+            echo "Loading all translations..."
+          fi
+
+          python load_bible.py $TRANSLATION_FLAG $FORCE_FLAG
 
       - name: Generate Embeddings
         env:
