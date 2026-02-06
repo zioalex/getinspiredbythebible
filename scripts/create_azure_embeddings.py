@@ -94,13 +94,17 @@ async def create_embeddings(
     azure_endpoint: str,
     azure_api_key: str,
     deployment_name: str,
-):
-    """Generate embeddings for all verses using Azure OpenAI."""
+) -> bool:
+    """Generate embeddings for all verses using Azure OpenAI.
 
-    print(f"Checking Azure OpenAI connection...")
+    Returns:
+        bool: True if successful, False if failed.
+    """
+
+    print("Checking Azure OpenAI connection...")
     if not await check_azure_openai(azure_endpoint, azure_api_key, deployment_name):
         print("Failed to connect to Azure OpenAI. Please check your configuration.")
-        return
+        return False
 
     print("Azure OpenAI connection successful!")
 
@@ -133,7 +137,7 @@ async def create_embeddings(
 
             if not verses:
                 print("All verses already have embeddings!")
-                return
+                return True
 
             print(f"Generating embeddings for {len(verses)} verses...")
             print(f"   Using deployment: {deployment_name}")
@@ -197,6 +201,12 @@ async def create_embeddings(
             await session.commit()
             print("Index created")
 
+            return True
+
+    except Exception as e:
+        print(f"Error generating embeddings: {e}")
+        return False
+
     finally:
         await engine.dispose()
 
@@ -204,9 +214,10 @@ async def create_embeddings(
 async def main():
     """Main entry point."""
     # Required environment variables
-    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
-    deployment_name = os.getenv("AZURE_EMBEDDING_DEPLOYMENT", "text-embedding-3-small")
+    # Strip whitespace to handle Windows line endings (\r\n) in env vars
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip()
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY", "").strip()
+    deployment_name = os.getenv("AZURE_EMBEDDING_DEPLOYMENT", "text-embedding-3-small").strip()
 
     if not azure_endpoint:
         print("Error: AZURE_OPENAI_ENDPOINT environment variable is required")
@@ -220,7 +231,7 @@ async def main():
     database_url = os.getenv(
         "DATABASE_URL",
         "postgresql://bible:bible123@localhost:5432/bibledb",  # pragma: allowlist secret
-    )
+    ).strip()
 
     print("Azure OpenAI Bible Embedding Generator")
     print(f"   Database: {database_url}")
@@ -228,14 +239,18 @@ async def main():
     print(f"   Deployment: {deployment_name}")
     print("")
 
-    await create_embeddings(
+    success = await create_embeddings(
         database_url,
         azure_endpoint,
         azure_api_key,
         deployment_name,
     )
 
-    print("\nDone! Your Bible is now searchable with Azure OpenAI embeddings.")
+    if success:
+        print("\nDone! Your Bible is now searchable with Azure OpenAI embeddings.")
+    else:
+        print("\nFailed to generate embeddings. See errors above.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
