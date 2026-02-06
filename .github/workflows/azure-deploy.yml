@@ -111,7 +111,7 @@ jobs:
   build-backend:
     needs: changes
     if: |
-      (needs.changes.outputs.backend == 'true') ||
+      (github.event_name != 'workflow_dispatch' && needs.changes.outputs.backend == 'true') ||
       (github.event_name == 'workflow_dispatch' &&
        inputs.skip_build != true &&
        (inputs.deploy_component == 'both' || inputs.deploy_component == 'backend'))
@@ -168,7 +168,7 @@ jobs:
   build-frontend:
     needs: changes
     if: |
-      (needs.changes.outputs.frontend == 'true') ||
+      (github.event_name != 'workflow_dispatch' && needs.changes.outputs.frontend == 'true') ||
       (github.event_name == 'workflow_dispatch' &&
        inputs.skip_build != true &&
        (inputs.deploy_component == 'both' || inputs.deploy_component == 'frontend'))
