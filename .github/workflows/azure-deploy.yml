@@ -306,11 +306,13 @@ jobs:
     # Deploy if:
     # - At least one build succeeded AND neither failed (normal flow), OR
     # - Manual trigger with skip_build=true (deploy existing images)
+    # Note: always() must wrap entire condition to evaluate when builds are skipped
     if: >-
-      always() && github.event_name != 'pull_request' && ((needs.build-backend.result == 'success' ||
-      needs.build-frontend.result == 'success') &&
-       needs.build-backend.result != 'failure' && needs.build-frontend.result != 'failure') ||
-      (github.event_name == 'workflow_dispatch' && inputs.skip_build == true)
+      always() && github.event_name != 'pull_request' && (
+        ((needs.build-backend.result == 'success' || needs.build-frontend.result == 'success') &&
+         needs.build-backend.result != 'failure' && needs.build-frontend.result != 'failure') ||
+        (inputs.skip_build == true)
+      )
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -543,9 +545,14 @@ jobs:
   # ---------------------------------------------------------------------------
   seed-database:
     needs: [changes, deploy]
+    # Run if:
+    # - Scripts changed (auto-trigger), OR
+    # - Manual trigger with skip_database_seed=false
+    # Note: always() needed to evaluate when deploy is skipped, but only run if deploy didn't fail
     if: >-
-      github.event_name != 'pull_request' && ((needs.changes.outputs.scripts == 'true') ||
-       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed != true))
+      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
+      ((needs.changes.outputs.scripts == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
 
