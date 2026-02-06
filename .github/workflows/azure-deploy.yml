@@ -370,18 +370,43 @@ jobs:
           echo "Currently deployed - Backend: $CURRENT_BACKEND"
           echo "Currently deployed - Frontend: $CURRENT_FRONTEND"
 
-          # Determine final image tags based on deploy_component
+          # Determine which components were actually built in this run
+          BACKEND_BUILT="${{ needs.build-backend.result == 'success' }}"
+          FRONTEND_BUILT="${{ needs.build-frontend.result == 'success' }}"
+          echo "Build results - Backend: $BACKEND_BUILT, Frontend: $FRONTEND_BUILT"
+
+          # Determine final image tags based on:
+          # 1. Manual deploy_component input (workflow_dispatch)
+          # 2. Whether the component was actually built in this run
+          # 3. Fall back to currently deployed image if not built
           DEPLOY_COMPONENT="${{ inputs.deploy_component }}"
+
+          # Backend image selection
           if [ "$DEPLOY_COMPONENT" == "frontend" ] && [ -n "$CURRENT_BACKEND" ]; then
+            # Manual deploy: frontend only - keep current backend
             BACKEND_IMAGE="$CURRENT_BACKEND"
+            echo "Using current backend (manual frontend-only deploy)"
+          elif [ "$BACKEND_BUILT" != "true" ] && [ -n "$CURRENT_BACKEND" ]; then
+            # Backend was not built (skipped/no changes) - keep current backend
+            BACKEND_IMAGE="$CURRENT_BACKEND"
+            echo "Using current backend (not built in this run)"
           else
             BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:$IMAGE_TAG"
+            echo "Using new backend image: $IMAGE_TAG"
           fi
 
+          # Frontend image selection
           if [ "$DEPLOY_COMPONENT" == "backend" ] && [ -n "$CURRENT_FRONTEND" ]; then
+            # Manual deploy: backend only - keep current frontend
             FRONTEND_IMAGE="$CURRENT_FRONTEND"
+            echo "Using current frontend (manual backend-only deploy)"
+          elif [ "$FRONTEND_BUILT" != "true" ] && [ -n "$CURRENT_FRONTEND" ]; then
+            # Frontend was not built (skipped/no changes) - keep current frontend
+            FRONTEND_IMAGE="$CURRENT_FRONTEND"
+            echo "Using current frontend (not built in this run)"
           else
             FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:$IMAGE_TAG"
+            echo "Using new frontend image: $IMAGE_TAG"
           fi
 
           echo "backend_image=$BACKEND_IMAGE" >> $GITHUB_OUTPUT
