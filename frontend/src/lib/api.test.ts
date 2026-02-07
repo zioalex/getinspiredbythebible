@@ -616,14 +616,19 @@ describe("sendMessage with timeoutMs", () => {
   });
 
   it("should throw ColdStartError on AbortError (timeout)", async () => {
-    const abortError = new DOMException("The operation was aborted", "AbortError");
+    const abortError = new DOMException(
+      "The operation was aborted",
+      "AbortError",
+    );
     (global.fetch as any).mockRejectedValueOnce(abortError);
 
     await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
   });
 
   it("should throw ColdStartError on TypeError (network failure)", async () => {
-    (global.fetch as any).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    (global.fetch as any).mockRejectedValueOnce(
+      new TypeError("Failed to fetch"),
+    );
 
     await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
   });
