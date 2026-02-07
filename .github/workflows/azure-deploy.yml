@@ -110,11 +110,14 @@ jobs:
   # ---------------------------------------------------------------------------
   build-backend:
     needs: changes
+    # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
     if: |
-      (github.event_name != 'workflow_dispatch' && needs.changes.outputs.backend == 'true') ||
-      (github.event_name == 'workflow_dispatch' &&
-       inputs.skip_build != true &&
-       (inputs.deploy_component == 'both' || inputs.deploy_component == 'backend'))
+      github.actor != 'dependabot[bot]' && (
+        (github.event_name != 'workflow_dispatch' && needs.changes.outputs.backend == 'true') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.skip_build != true &&
+         (inputs.deploy_component == 'both' || inputs.deploy_component == 'backend'))
+      )
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
@@ -167,11 +170,14 @@ jobs:
   # ---------------------------------------------------------------------------
   build-frontend:
     needs: changes
+    # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
     if: |
-      (github.event_name != 'workflow_dispatch' && needs.changes.outputs.frontend == 'true') ||
-      (github.event_name == 'workflow_dispatch' &&
-       inputs.skip_build != true &&
-       (inputs.deploy_component == 'both' || inputs.deploy_component == 'frontend'))
+      github.actor != 'dependabot[bot]' && (
+        (github.event_name != 'workflow_dispatch' && needs.changes.outputs.frontend == 'true') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.skip_build != true &&
+         (inputs.deploy_component == 'both' || inputs.deploy_component == 'frontend'))
+      )
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
