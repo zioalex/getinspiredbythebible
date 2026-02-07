@@ -22,6 +22,7 @@ import {
   generateSessionId,
   ColdStartError,
   checkBackendReady,
+  warmupBackend,
 } from "@/lib/api";
 
 // Extended message type with message_id for feedback tracking
@@ -43,6 +44,8 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isWarmingUp, setIsWarmingUp] = useState(false);
+  // null = checking, true = ready, false = warming up
+  const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
   const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -119,6 +122,14 @@ export default function Home() {
       }
     };
     loadTranslations();
+  }, []);
+
+  // Pre-warm backend on mount so cold-start scaling begins immediately
+  useEffect(() => {
+    warmupBackend(
+      () => setBackendReady(true),
+      () => setBackendReady(false),
+    );
   }, []);
 
   // Save preference to localStorage when changed
@@ -231,15 +242,20 @@ export default function Home() {
           content: m.content,
         }));
 
+        // Use shorter timeout when we know backend is cold to enter retry loop faster
+        const timeout = backendReady === false ? 8000 : 30000;
+
         const response = await sendMessage(
           userMessageContent,
           apiMessages,
           selectedTranslation || undefined,
           sessionId,
+          timeout,
         );
 
-        // Success - clear warming up state
+        // Success - clear warming up state and mark backend as ready
         setIsWarmingUp(false);
+        setBackendReady(true);
 
         // Extract verse references from scripture context
         const versesCited =
@@ -479,6 +495,16 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        {/* Backend warming-up notification */}
+        {backendReady === false && (
+          <div className="mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span className="text-sm">
+              Server is waking up, you can start typing...
+            </span>
+          </div>
+        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
