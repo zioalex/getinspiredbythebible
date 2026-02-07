@@ -159,6 +159,35 @@ export interface ChurchSearchResponse {
 }
 
 /**
+ * Pre-warm the backend by polling /health/ready.
+ * Calls onReady when the backend responds, or onWaiting on first failed check.
+ */
+export async function warmupBackend(
+  onReady: () => void,
+  onWaiting?: () => void,
+  maxWaitMs: number = 30000,
+): Promise<void> {
+  const start = Date.now();
+  const interval = 3000;
+
+  const ready = await checkBackendReady();
+  if (ready) {
+    onReady();
+    return;
+  }
+
+  onWaiting?.();
+
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, interval));
+    if (await checkBackendReady()) {
+      onReady();
+      return;
+    }
+  }
+}
+
+/**
  * Send a chat message and get a response
  */
 export async function sendMessage(
@@ -166,11 +195,12 @@ export async function sendMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
+  timeoutMs: number = 30000,
 ): Promise<ChatResponse> {
   try {
-    // Set a timeout for cold start detection (30 seconds)
+    // Set a timeout for cold start detection
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const response = await fetch(`${API_URL}/api/v1/chat`, {
       method: "POST",
