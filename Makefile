@@ -144,6 +144,16 @@ golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/test_golden_set.py -v -m golden_set
 	@echo "$(GREEN)✓ Golden set tests complete$(NC)"
 
+golden-test-live: install-deps ## Run golden set against live LLM (requires running services)
+	@echo "$(BLUE)Running golden set tests (live mode)...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -c "import asyncio; from golden_set.runner import run_live, save_run, print_summary; print('Configure providers and DB first')"
+	@echo "$(YELLOW)Use: cd api && python -c \"import asyncio; from golden_set.runner import run_mock, save_run, print_summary; r = asyncio.run(run_mock()); save_run(r); print_summary(r)\"$(NC)"
+
+golden-review: install-deps ## Review golden set results (interactive human scoring)
+	@echo "$(BLUE)Starting golden set review...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m golden_set.reviewer
+	@echo "$(GREEN)✓ Review session complete$(NC)"
+
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
