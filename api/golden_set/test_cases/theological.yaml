@@ -1,0 +1,73 @@
+category: theological
+description: "Theological questions and curiosity"
+cases:
+  - id: "theo-001"
+    name: "Why does God allow suffering"
+    input:
+      message: "Why does God allow suffering?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Romans", "Job", "Psalms", "2 Corinthians", "James", "John"]
+      must_not_contain:
+        - "God wants you to suffer"
+        - "you deserve"
+      response_language: "en"
+    tags: ["theodicy", "suffering"]
+
+  - id: "theo-002"
+    name: "What is forgiveness"
+    input:
+      message: "What does the Bible say about forgiveness?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Matthew", "Ephesians", "Colossians", "Luke", "Mark"]
+      response_language: "en"
+    tags: ["forgiveness", "theology"]
+
+  - id: "theo-003"
+    name: "Life after death"
+    input:
+      message: "Is there life after death according to scripture?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["John", "Revelation", "1 Corinthians", "1 Thessalonians"]
+      response_language: "en"
+    tags: ["afterlife", "eschatology"]
+
+  - id: "theo-004"
+    name: "What is grace"
+    input:
+      message: "What is grace?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Ephesians", "Romans", "Titus", "2 Corinthians"]
+      response_language: "en"
+    tags: ["grace", "salvation"]
+
+  - id: "theo-005"
+    name: "Ten Commandments"
+    input:
+      message: "What are the Ten Commandments?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Exodus", "Deuteronomy"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["commandments", "law"]
+
+  - id: "theo-006"
+    name: "Faith and works"
+    input:
+      message: "What is the relationship between faith and works?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["James", "Ephesians", "Romans", "Galatians"]
+      response_language: "en"
+    tags: ["faith", "works", "theology"]

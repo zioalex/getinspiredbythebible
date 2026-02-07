@@ -24,6 +24,7 @@ openai==1.59.7
 python-dotenv==1.2.1
 numpy==1.26.4
 lingua-language-detector==2.1.1
+pyyaml>=6.0
 
 # Testing
 pytest==7.4.4

@@ -1,0 +1,106 @@
+category: verse_lookup
+description: "Direct verse lookup and explanation requests"
+cases:
+  - id: "verse-001"
+    name: "John 3:16"
+    input:
+      message: "What does John 3:16 say?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["John"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["well-known", "gospel"]
+
+  - id: "verse-002"
+    name: "Romans 8:28"
+    input:
+      message: "Explain Romans 8:28"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Romans"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["pauline-epistles", "theology"]
+
+  - id: "verse-003"
+    name: "Psalm 23"
+    input:
+      message: "Tell me about Psalm 23"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["psalms", "well-known"]
+
+  - id: "verse-004"
+    name: "Genesis 1:1"
+    input:
+      message: "What is Genesis 1:1?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Genesis"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["creation", "old-testament"]
+
+  - id: "verse-005"
+    name: "Proverbs 3:5-6"
+    input:
+      message: "What does Proverbs 3:5-6 mean?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Proverbs"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["wisdom", "trust"]
+
+  - id: "verse-006"
+    name: "Jeremiah 29:11"
+    input:
+      message: "Can you explain Jeremiah 29:11 to me?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Jeremiah"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["prophets", "hope"]
+
+  - id: "verse-007"
+    name: "Matthew 6:33"
+    input:
+      message: "What does Matthew 6:33 teach?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Matthew"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["sermon-on-mount", "priorities"]
+
+  - id: "verse-008"
+    name: "1 Corinthians 13"
+    input:
+      message: "Tell me about the love chapter, 1 Corinthians 13"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["1 Corinthians"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["love", "pauline-epistles"]

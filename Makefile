@@ -137,6 +137,13 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
+# ==================== Golden Set Testing ====================
+
+golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
+	@echo "$(BLUE)Running golden set tests (mock mode)...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/test_golden_set.py -v -m golden_set
+	@echo "$(GREEN)✓ Golden set tests complete$(NC)"
+
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
