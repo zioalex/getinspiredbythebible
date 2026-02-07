@@ -41,7 +41,14 @@ When adding new functionality that requires commands:
   - Test plan (how to verify)
 - Aim for PRs that can be reviewed in under 15 minutes
 
-### 5. Always Check PR Status Before Pushing
+### 5. Always Run Pre-Commit Before Pushing
+
+- **Before every push**, run `make pre-commit` to catch formatting and linting issues
+- This runs the same checks as the CI Pre-Commit Hooks workflow
+- If hooks modify files (e.g., Prettier reformats), re-stage and commit the fixes before pushing
+- **NEVER skip this step** — the CI will reject PRs that fail pre-commit checks
+
+### 6. Always Check PR Status Before Pushing
 
 - **Before pushing to an existing PR branch**, always check if the PR is still open:
 
