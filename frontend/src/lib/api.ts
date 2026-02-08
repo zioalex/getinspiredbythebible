@@ -165,7 +165,7 @@ export interface ChurchSearchResponse {
 export async function warmupBackend(
   onReady: () => void,
   onWaiting?: () => void,
-  maxWaitMs: number = 30000,
+  maxWaitMs: number = 60000,
 ): Promise<void> {
   const start = Date.now();
   const interval = 3000;
