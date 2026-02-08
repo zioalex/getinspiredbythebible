@@ -169,6 +169,14 @@ embedding_model_version = "1"
 embedding_capacity      = 120  # Tokens per minute (thousands)
 
 # -----------------------------------------------------------------------------
+# Application Insights (Monitoring - RECOMMENDED)
+# -----------------------------------------------------------------------------
+
+# Enable Application Insights for observability (response times, errors, scaling)
+# Uses existing Log Analytics workspace - effectively free for low traffic (<5 GB/month)
+enable_application_insights = true
+
+# -----------------------------------------------------------------------------
 # Budget Alerts
 # -----------------------------------------------------------------------------
 
