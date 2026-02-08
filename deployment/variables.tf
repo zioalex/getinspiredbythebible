@@ -340,6 +340,16 @@ variable "openrouter_allow_fallbacks" {
 }
 
 # -----------------------------------------------------------------------------
+# Application Insights (Monitoring)
+# -----------------------------------------------------------------------------
+
+variable "enable_application_insights" {
+  description = "Enable Application Insights for monitoring and telemetry"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
 # Budget Configuration
 # -----------------------------------------------------------------------------
 

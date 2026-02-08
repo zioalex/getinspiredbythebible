@@ -154,6 +154,13 @@ locals {
       }
     } : {},
 
+    # Application Insights telemetry
+    var.enable_application_insights ? {
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = {
+        value = azurerm_application_insights.main[0].connection_string
+      }
+    } : {},
+
     # SMTP2GO email notification configuration
     var.smtp2go_enabled ? {
       "CONTACT_NOTIFICATION_EMAIL" = {
@@ -209,6 +216,21 @@ resource "azurerm_log_analytics_workspace" "main" {
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Application Insights (optional - for monitoring and telemetry)
+# -----------------------------------------------------------------------------
+
+resource "azurerm_application_insights" "main" {
+  count               = var.enable_application_insights ? 1 : 0
+  name                = "${local.name_prefix}-insights"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  workspace_id        = azurerm_log_analytics_workspace.main.id
+  application_type    = "web"
 
   tags = local.tags
 }

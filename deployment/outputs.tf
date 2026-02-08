@@ -218,6 +218,26 @@ output "build_and_push_frontend" {
 # Cost Estimation
 # -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Application Insights
+# -----------------------------------------------------------------------------
+
+output "application_insights_connection_string" {
+  description = "Application Insights connection string"
+  value       = var.enable_application_insights ? azurerm_application_insights.main[0].connection_string : ""
+  sensitive   = true
+}
+
+output "application_insights_instrumentation_key" {
+  description = "Application Insights instrumentation key (for frontend JS SDK)"
+  value       = var.enable_application_insights ? azurerm_application_insights.main[0].instrumentation_key : ""
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Cost Estimates
+# -----------------------------------------------------------------------------
+
 output "estimated_monthly_cost" {
   description = "Estimated monthly cost breakdown"
   value       = <<-EOT
@@ -228,21 +248,33 @@ output "estimated_monthly_cost" {
 
     PostgreSQL Flexible Server (B1ms):  ~$13-16
     Container Registry (Basic):         ~$5
-    Container Apps (scale-to-zero):     ~$5-15*
-    Log Analytics:                      ~$2-3
+    Container Apps (scale-to-zero):     ~$5-18*
+    Log Analytics + App Insights:       ~$2-3***
     Azure OpenAI Embeddings:            ~$0.05**
     ------------------------------------------------
-    TOTAL ESTIMATE:                     ~$25-40/month
+    TOTAL ESTIMATE:                     ~$25-42/month
 
-    * Container Apps cost depends on usage:
-      - Scale-to-zero = pay only when processing requests
-      - First 180,000 vCPU-seconds/month FREE
-      - First 360,000 GiB-seconds/month FREE
+    * Container Apps cost with HTTP scale rules:
+      - Scale-to-zero with 300s cooldown per wake-up
+      - Each wake-up keeps both containers warm for ~5 min:
+        Backend (0.5 vCPU, 1 GiB) + Frontend (0.25 vCPU, 0.5 GiB)
+        = 225 vCPU-sec + 450 GiB-sec per wake-up
+      - Free tier: 180,000 vCPU-sec + 360,000 GiB-sec/month
+        (~800 wake-ups before any charges)
+      - Low traffic (<20 visits/day): ~$0 (within free tier)
+      - Moderate traffic (~50 visits/day): ~$5-10
+      - Sustained traffic (always warm): ~$15-18
+      - Beyond free tier: $0.000024/vCPU-sec, $0.000003/GiB-sec
 
     ** Azure OpenAI Embeddings are extremely cheap:
       - One-time Bible embedding (~31K verses): ~$0.20
       - Per query embedding: ~$0.00002
       - Monthly estimate for 1000 queries: ~$0.05
+
+    *** Application Insights shares Log Analytics workspace:
+      - First 5 GB/month ingestion FREE
+      - Low-traffic app telemetry: ~0.5-1 GB/month (free)
+      - Adds ~$0 for <5 GB, ~$2.76/GB beyond free tier
 
     Budget alert set at: $${var.monthly_budget}
     ================================================
