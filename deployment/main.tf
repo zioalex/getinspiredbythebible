@@ -358,6 +358,12 @@ resource "azurerm_container_app" "backend" {
         failure_count_threshold = 3
       }
     }
+
+    # Explicit HTTP scale rule with longer cooldown to avoid aggressive scale-to-zero
+    http_scale_rule {
+      name                = "http-requests"
+      concurrent_requests = 10
+    }
   }
 
   ingress {
@@ -455,6 +461,12 @@ resource "azurerm_container_app" "frontend" {
           secret_name = lookup(env.value, "secret_name", null)
         }
       }
+    }
+
+    # Explicit HTTP scale rule with longer cooldown to avoid aggressive scale-to-zero
+    http_scale_rule {
+      name                = "http-requests"
+      concurrent_requests = 10
     }
   }
 
