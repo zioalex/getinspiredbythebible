@@ -218,6 +218,26 @@ output "build_and_push_frontend" {
 # Cost Estimation
 # -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Application Insights
+# -----------------------------------------------------------------------------
+
+output "application_insights_connection_string" {
+  description = "Application Insights connection string"
+  value       = var.enable_application_insights ? azurerm_application_insights.main[0].connection_string : ""
+  sensitive   = true
+}
+
+output "application_insights_instrumentation_key" {
+  description = "Application Insights instrumentation key (for frontend JS SDK)"
+  value       = var.enable_application_insights ? azurerm_application_insights.main[0].instrumentation_key : ""
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Cost Estimates
+# -----------------------------------------------------------------------------
+
 output "estimated_monthly_cost" {
   description = "Estimated monthly cost breakdown"
   value       = <<-EOT

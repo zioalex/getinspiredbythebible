@@ -5,6 +5,7 @@ Main FastAPI application entry point.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -27,6 +28,18 @@ from utils.logging_config import setup_logging
 # Configure logging before anything else
 setup_logging()
 logger = logging.getLogger(__name__)
+
+# Configure Azure Monitor (Application Insights) if connection string is set.
+# Auto-instruments FastAPI requests, httpx calls, asyncpg queries, and exceptions.
+_appinsights_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if _appinsights_conn:
+    try:
+        from azure.monitor.opentelemetry import configure_azure_monitor
+
+        configure_azure_monitor(connection_string=_appinsights_conn)
+        logger.info("Application Insights telemetry enabled")
+    except Exception as e:
+        logger.warning("Failed to configure Application Insights: %s", e)
 
 
 @asynccontextmanager
