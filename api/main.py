@@ -30,7 +30,10 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Configure Azure Monitor (Application Insights) if connection string is set.
-# Auto-instruments FastAPI requests, httpx calls, asyncpg queries, and exceptions.
+# Sets up OpenTelemetry exporters for traces, metrics, and logs.
+# NOTE: The FastAPI app must be explicitly instrumented after creation (below)
+# because `from fastapi import FastAPI` binds the local name before
+# configure_azure_monitor() can replace the class with an instrumented subclass.
 _appinsights_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 if _appinsights_conn:
     try:
@@ -153,6 +156,20 @@ def _get_cors_origins() -> list[str]:
         origins.extend(custom_origins)
     return origins
 
+
+# Explicitly instrument the FastAPI app for Application Insights request tracing.
+# configure_azure_monitor() replaces fastapi.FastAPI with an instrumented subclass,
+# but our `from fastapi import FastAPI` already bound the original class. So the app
+# created above is uninstrumented. instrument_app() adds the ASGI tracing middleware
+# directly, giving us server requests, response times, and dependency tracking.
+if _appinsights_conn:
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+        FastAPIInstrumentor.instrument_app(app)
+        logger.info("FastAPI request tracing instrumented")
+    except Exception as e:
+        logger.warning("Failed to instrument FastAPI app: %s", e)
 
 # CORS middleware for frontend
 app.add_middleware(
