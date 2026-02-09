@@ -20,7 +20,9 @@ from utils.language import detect_language, get_translation_info, resolve_transl
 from utils.verse_parser import extract_references, is_verse_lookup_request
 
 from .prompts import (
+    OFF_TOPIC_PROMPT,
     build_search_context_prompt,
+    detect_intent_prompt,
     get_prayer_lookup_prompt,
     get_system_prompt,
     get_verse_lookup_prompt,
@@ -90,6 +92,30 @@ class ChatService:
         self.embedding = embedding_provider
         self.search_service = ScriptureSearchService(db_session, embedding_provider)
 
+    async def _detect_intent(self, message: str) -> str:
+        """
+        Classify user intent with a fast LLM call.
+
+        Returns one of: COMFORT, GUIDANCE, CURIOSITY, VERSE_LOOKUP, OFF_TOPIC, GENERAL.
+        On any error, returns "GENERAL" (fail-open).
+        """
+        try:
+            messages = [
+                ChatMessage(role="system", content="You are an intent classifier."),
+                ChatMessage(role="user", content=detect_intent_prompt(message)),
+            ]
+            response = await self.llm.chat(messages=messages, temperature=0.0, max_tokens=20)
+            intent = response.content.strip().upper().split()[0]
+            valid = {"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP", "OFF_TOPIC", "GENERAL"}
+            if intent not in valid:
+                logger.warning("Unexpected intent classification: %s", intent)
+                return "GENERAL"
+            logger.info("Intent detected", extra={"intent": intent})
+            return intent
+        except Exception as e:
+            logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
+            return "GENERAL"
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -122,6 +148,14 @@ class ChatService:
             "Language detection",
             extra={"detected": detected_language, "translation": translation},
         )
+
+        # Intent detection: classify before scripture search
+        if settings.content_filter_intent_detection:
+            detected_intent = await self._detect_intent(request.message)
+            if detected_intent == "OFF_TOPIC":
+                return await self._handle_off_topic(
+                    request, detected_language, translation, translation_info, total_start
+                )
 
         # Check if this is a verse/prayer lookup request
         is_verse_lookup = is_verse_lookup_request(request.message)
@@ -196,6 +230,44 @@ class ChatService:
             message_id=message_id,
             message=response.content,
             scripture_context=scripture_context,
+            provider=response.provider,
+            model=response.model,
+            detected_translation=translation,
+            translation_info=translation_info,
+        )
+
+    async def _handle_off_topic(
+        self,
+        request: ChatRequest,
+        detected_language: str,
+        translation: str,
+        translation_info: dict | None,
+        total_start: float,
+    ) -> ChatResponse:
+        """Generate a warm redirect response for off-topic messages, skipping scripture search."""
+        logger.info("Off-topic message detected, skipping scripture search")
+        messages = self._build_messages(
+            user_message=request.message,
+            history=request.conversation_history,
+            search_context="",
+            language_code=detected_language,
+            prompt_type="off_topic",
+        )
+        response = await self.llm.chat(
+            messages=messages,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+        )
+        message_id = str(uuid.uuid4())
+        total_duration = time.time() - total_start
+        logger.info(
+            "Off-topic redirect completed",
+            extra={"total_duration_seconds": f"{total_duration:.2f}"},
+        )
+        return ChatResponse(
+            message_id=message_id,
+            message=response.content,
+            scripture_context=None,
             provider=response.provider,
             model=response.model,
             detected_translation=translation,
@@ -312,6 +384,26 @@ class ChatService:
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
 
+        # Intent detection: short-circuit off-topic before scripture search
+        if settings.content_filter_intent_detection:
+            detected_intent = await self._detect_intent(request.message)
+            if detected_intent == "OFF_TOPIC":
+                logger.info("Off-topic message detected in stream, skipping scripture search")
+                messages = self._build_messages(
+                    user_message=request.message,
+                    history=request.conversation_history,
+                    search_context="",
+                    language_code=detected_language,
+                    prompt_type="off_topic",
+                )
+                async for chunk in self.llm.chat_stream(
+                    messages=messages,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                ):
+                    yield chunk
+                return
+
         # Check if this is a verse/prayer lookup request
         is_verse_lookup = is_verse_lookup_request(request.message)
         verse_refs, prayer_ref = extract_references(request.message)
@@ -364,7 +456,7 @@ class ChatService:
             history: Previous conversation messages
             search_context: Optional scripture context from search
             language_code: Detected language code for response language
-            prompt_type: Type of prompt to use ("default", "verse_lookup", "prayer_lookup")
+            prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic")
 
         Returns:
             List of ChatMessage objects for the LLM
@@ -372,7 +464,9 @@ class ChatService:
         messages = []
 
         # Select appropriate system prompt based on request type
-        if prompt_type == "verse_lookup":
+        if prompt_type == "off_topic":
+            system_prompt = get_system_prompt(language_code) + "\n\n" + OFF_TOPIC_PROMPT
+        elif prompt_type == "verse_lookup":
             system_prompt = get_verse_lookup_prompt(language_code)
         elif prompt_type == "prayer_lookup":
             system_prompt = get_prayer_lookup_prompt(language_code)
