@@ -448,19 +448,24 @@ Do NOT attempt to answer the off-topic question, even partially."""
 
 def detect_intent_prompt(user_message: str) -> str:
     """
-    Generate a prompt to help detect user intent.
-    This can be used for routing or adjusting the response approach.
-    """
-    return f"""Analyze this message and determine the user's primary intent.
-Choose ONE of the following categories:
+    Generate a prompt to classify user intent for routing.
 
-1. COMFORT - seeking emotional support, going through hardship
-2. GUIDANCE - seeking wisdom for a decision or life situation
-3. CURIOSITY - asking a question about the Bible or faith
-4. VERSE_LOOKUP - asking about a specific verse or passage
-5. OFF_TOPIC - asking about something unrelated to faith, the Bible, or spiritual life (e.g., travel, sports, cooking, games, programming, politics, other religions)
-6. GENERAL - general conversation or unclear intent (but still within a spiritual context)
+    Used by the intent detection layer to decide whether to short-circuit
+    off-topic messages before scripture search.
+    """
+    return f"""Classify this message into exactly ONE category.
+
+Categories:
+- COMFORT: seeking emotional support, going through hardship
+- GUIDANCE: seeking wisdom for a decision or life situation
+- CURIOSITY: asking a question about the Bible, theology, or faith
+- VERSE_LOOKUP: asking about a specific Bible verse or passage
+- OFF_TOPIC: clearly unrelated to faith, the Bible, or spiritual life \
+(e.g., travel, sports, cooking, games, programming, politics)
+- GENERAL: general conversation or unclear intent within a spiritual context
+
+When in doubt between OFF_TOPIC and another category, choose the other category.
 
 User message: "{user_message}"
 
-Respond with just the category name."""
+Respond with ONLY the category name, nothing else."""

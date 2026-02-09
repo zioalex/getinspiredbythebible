@@ -95,6 +95,7 @@ class Settings(BaseSettings):
     content_filter_block_spam: bool = True
     content_filter_max_repeated_chars: int = 5  # Block excessive repeated chars
     content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
+    content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
 
     class Config:
