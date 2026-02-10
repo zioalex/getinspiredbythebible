@@ -103,8 +103,10 @@ class Settings(BaseSettings):
     turnstile_enabled: bool = False  # Enable Turnstile verification
     turnstile_secret_key: str | None = None  # Server-side secret key
     turnstile_site_key: str | None = None  # Client-side site key (for /config endpoint)
-    # Skip verification for these paths (health checks, docs, etc.)
-    turnstile_skip_paths: str = "/health,/docs,/openapi.json,/config,/"
+    # Skip verification for these paths (prefix match).
+    # Health probes, docs, and info endpoints don't go through the frontend
+    # Turnstile widget and must work without a token.
+    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/"
     # Development: Use Cloudflare test keys for local testing
     # Test secret: 1x0000000000000000000000000000000AA (always passes)
     # Test secret: 2x0000000000000000000000000000000AA (always fails)

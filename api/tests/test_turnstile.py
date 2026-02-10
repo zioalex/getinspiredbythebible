@@ -118,13 +118,20 @@ class TestTurnstileVerifier:
 
 
 class TestPathSkipping:
-    """Tests for path skip logic."""
+    """Tests for path skip logic (prefix matching)."""
 
     def test_should_skip_health_endpoint(self):
         """Health endpoint should be skipped."""
         with patch("utils.turnstile.settings") as mock_settings:
             mock_settings.turnstile_skip_paths = "/health,/docs,/"
             assert _should_skip_path("/health") is True
+
+    def test_should_skip_health_subpath(self):
+        """Health subpaths like /health/live should be skipped via prefix."""
+        with patch("utils.turnstile.settings") as mock_settings:
+            mock_settings.turnstile_skip_paths = "/health,/docs,/"
+            assert _should_skip_path("/health/live") is True
+            assert _should_skip_path("/health/ready") is True
 
     def test_should_skip_root(self):
         """Root path should be skipped."""
@@ -137,6 +144,13 @@ class TestPathSkipping:
         with patch("utils.turnstile.settings") as mock_settings:
             mock_settings.turnstile_skip_paths = "/health,/docs,/"
             assert _should_skip_path("/api/v1/chat") is False
+            assert _should_skip_path("/api/v1/scripture/search") is False
+
+    def test_should_not_match_partial_prefix(self):
+        """'/healthz' should NOT match the '/health' skip prefix."""
+        with patch("utils.turnstile.settings") as mock_settings:
+            mock_settings.turnstile_skip_paths = "/health,/docs"
+            assert _should_skip_path("/healthz") is False
 
 
 class TestClientIPExtraction:
@@ -192,18 +206,54 @@ class TestRequireTurnstile:
             assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_request_allowed(self):
-        """GET requests should be allowed without token."""
+    async def test_get_on_skipped_path_allowed(self):
+        """GET on a skipped path (health) should be allowed without token."""
+        mock_request = MagicMock(spec=Request)
+        mock_request.method = "GET"
+        mock_request.url.path = "/health/ready"
+
+        with patch("utils.turnstile.settings") as mock_settings:
+            mock_settings.turnstile_enabled = True
+            mock_settings.turnstile_secret_key = "test-secret"  # pragma: allowlist secret
+            mock_settings.turnstile_skip_paths = "/health,/docs,/"
+
+            # Should not raise — path is skipped
+            result = await require_turnstile(mock_request)
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_on_api_path_requires_token(self):
+        """GET on an API path should require a Turnstile token."""
         mock_request = MagicMock(spec=Request)
         mock_request.method = "GET"
         mock_request.url.path = "/api/v1/scripture/search"
+        mock_request.headers = {}
+        mock_request.client = MagicMock()
+        mock_request.client.host = "192.168.1.1"
+
+        with patch("utils.turnstile.settings") as mock_settings:
+            mock_settings.turnstile_enabled = True
+            mock_settings.turnstile_secret_key = "test-secret"  # pragma: allowlist secret
+            mock_settings.turnstile_skip_paths = "/health,/docs,/"
+
+            with pytest.raises(HTTPException) as exc_info:
+                await require_turnstile(mock_request)
+
+            assert exc_info.value.status_code == 403
+            assert "TURNSTILE_REQUIRED" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_options_request_allowed(self):
+        """OPTIONS requests (CORS preflight) should be allowed without token."""
+        mock_request = MagicMock(spec=Request)
+        mock_request.method = "OPTIONS"
+        mock_request.url.path = "/api/v1/chat"
 
         with patch("utils.turnstile.settings") as mock_settings:
             mock_settings.turnstile_enabled = True
             mock_settings.turnstile_secret_key = "test-secret"  # pragma: allowlist secret
             mock_settings.turnstile_skip_paths = "/health"
 
-            # Should not raise
             result = await require_turnstile(mock_request)
             assert result is None
 

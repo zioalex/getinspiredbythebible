@@ -327,7 +327,9 @@ export async function searchScripture(
     max_verses: maxVerses.toString(),
   });
 
-  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`);
+  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`, {
+    headers: getHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
@@ -346,6 +348,7 @@ export async function getVerse(
 ): Promise<Verse> {
   const response = await fetch(
     `${API_URL}/api/v1/scripture/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers: getHeaders() },
   );
 
   if (!response.ok) {
@@ -375,6 +378,7 @@ export async function getChapter(
     : "";
   const response = await fetch(
     `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
+    { headers: getHeaders() },
   );
 
   if (!response.ok) {
@@ -394,6 +398,7 @@ export async function getVerseContext(
 ): Promise<{ target_verse: number; verses: Verse[] }> {
   const response = await fetch(
     `${API_URL}/api/v1/chat/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers: getHeaders() },
   );
 
   if (!response.ok) {
@@ -420,7 +425,9 @@ export async function checkHealth(): Promise<HealthStatus> {
  * Get available translations
  */
 export async function getTranslations(): Promise<TranslationInfo[]> {
-  const response = await fetch(`${API_URL}/api/v1/scripture/translations`);
+  const response = await fetch(`${API_URL}/api/v1/scripture/translations`, {
+    headers: getHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);

@@ -121,9 +121,13 @@ def get_turnstile_verifier() -> TurnstileVerifier | None:
 
 
 def _should_skip_path(path: str) -> bool:
-    """Check if the path should skip Turnstile verification."""
+    """Check if the path should skip Turnstile verification.
+
+    Uses prefix matching so that e.g. "/health" also covers
+    "/health/live" and "/health/ready".
+    """
     skip_paths = [p.strip() for p in settings.turnstile_skip_paths.split(",") if p.strip()]
-    return path in skip_paths
+    return any(path == sp or path.startswith(sp + "/") for sp in skip_paths)
 
 
 def _get_client_ip(request: Request) -> str:
@@ -162,12 +166,12 @@ async def require_turnstile(request: Request) -> None:
     if not settings.turnstile_enabled:
         return
 
-    # Skip certain paths
+    # Skip certain paths (health probes, docs, root)
     if _should_skip_path(request.url.path):
         return
 
-    # Skip non-mutating requests (GET, HEAD, OPTIONS)
-    if request.method in ("GET", "HEAD", "OPTIONS"):
+    # Skip CORS preflight and HEAD requests (harmless, no side effects)
+    if request.method in ("HEAD", "OPTIONS"):
         return
 
     verifier = get_turnstile_verifier()
