@@ -161,6 +161,7 @@ describe("searchScripture", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/search?q=peace&max_verses=5",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockContext);
   });
@@ -175,6 +176,7 @@ describe("searchScripture", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("max_verses=5"),
+      { headers: { "Content-Type": "application/json" } },
     );
   });
 
@@ -209,6 +211,7 @@ describe("getVerse", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/verse/John/3/16",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockVerse);
   });
@@ -229,6 +232,7 @@ describe("getVerse", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/verse/Song%20of%20Solomon/1/1",
+      { headers: { "Content-Type": "application/json" } },
     );
   });
 
@@ -276,6 +280,7 @@ describe("getChapter", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/chapter/Psalm/23",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockChapter);
     expect(result.verses).toHaveLength(2);
@@ -329,6 +334,7 @@ describe("getVerseContext", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/chat/verse/John/3/16",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockContext);
     expect(result.target_verse).toBe(16);
