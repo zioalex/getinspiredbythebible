@@ -248,6 +248,35 @@ resource "azurerm_application_insights" "main" {
   tags = local.tags
 }
 
+# Standard availability test — pings the backend /health/live endpoint every
+# 5 minutes from multiple Azure locations.  This populates the "Availability"
+# tab in Application Insights (which is 0% without an explicit test).
+resource "azurerm_application_insights_standard_web_test" "backend_availability" {
+  count                   = var.enable_application_insights ? 1 : 0
+  name                    = "${local.name_prefix}-availability"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  application_insights_id = azurerm_application_insights.main[0].id
+
+  geo_locations = [
+    "emea-nl-ams-azr", # West Europe
+    "emea-gb-db3-azr", # UK South
+    "us-va-ash-azr",   # East US
+  ]
+
+  frequency = 300 # every 5 minutes
+
+  request {
+    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/live"
+  }
+
+  validation_rules {
+    expected_status_code = 200
+  }
+
+  tags = local.tags
+}
+
 # -----------------------------------------------------------------------------
 # Container Apps Environment
 # -----------------------------------------------------------------------------

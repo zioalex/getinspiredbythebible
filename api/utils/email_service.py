@@ -4,13 +4,12 @@ Email service for sending notifications via SMTP2GO HTTP API.
 Uses SMTP2GO's REST API with API key authentication.
 """
 
-import logging
-
 import httpx
 
 from config import settings
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SMTP2GO_API_URL = "https://api.smtp2go.com/v3/email/send"
 

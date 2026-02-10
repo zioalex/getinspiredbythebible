@@ -5,7 +5,6 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
-import logging
 import time
 import uuid
 from typing import AsyncIterator
@@ -17,6 +16,7 @@ from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
 from utils.language import detect_language, get_translation_info, resolve_translation
+from utils.logging_config import get_logger
 from utils.verse_parser import extract_references, is_verse_lookup_request
 
 from .prompts import (
@@ -28,7 +28,7 @@ from .prompts import (
     get_verse_lookup_prompt,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ConversationMessage(BaseModel):
