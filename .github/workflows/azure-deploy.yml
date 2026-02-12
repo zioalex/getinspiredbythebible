@@ -22,6 +22,7 @@
 #   TF_VAR_OPENROUTER_API_KEY   - OpenRouter API key
 #   TF_VAR_CLAUDE_API_KEY       - Claude API key
 #   TF_VAR_SMTP2GO_API_KEY      - SMTP2GO API key
+#   TF_VAR_TURNSTILE_SECRET_KEY - Cloudflare Turnstile server-side secret
 #   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate
 #   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Certificate password
 #
@@ -397,17 +398,16 @@ jobs:
   # ---------------------------------------------------------------------------
   # Terraform Plan
   # ---------------------------------------------------------------------------
-  # Runs after builds on PRs, workflow_run (main), and manual plan-only.
+  # Runs after builds on PRs, workflow_run (main), and manual plan/deploy.
   # On PRs: posts plan as PR comment.
-  # On main: uploads plan artifact for the deploy job.
-  # On workflow_dispatch action=plan: runs plan-only (no deploy).
-  # Skipped for workflow_dispatch action=deploy (deploy job handles plan+apply inline).
+  # On main / workflow_dispatch: uploads plan artifact for the deploy job.
+  # Skipped only for workflow_dispatch action=destroy.
   tf-plan:
     needs: [changes, build-backend, build-frontend]
     if: >-
       always() && needs.changes.result == 'success' && needs.build-backend.result != 'failure' &&
       needs.build-frontend.result != 'failure' && (github.event_name != 'workflow_dispatch' ||
-       inputs.action == 'plan')
+       inputs.action != 'destroy')
     runs-on: ubuntu-latest
     outputs:
       plan_exit_code: ${{ steps.plan.outputs.exitcode }}
@@ -417,6 +417,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
       - name: Checkout
@@ -595,18 +596,14 @@ jobs:
   # Deploy via Terraform
   # ---------------------------------------------------------------------------
   # On workflow_run (main after tests): applies the plan artifact from tf-plan.
-  # On workflow_dispatch (action=deploy): does inline plan+apply with custom inputs.
+  # On workflow_dispatch (action=deploy): applies the plan artifact from tf-plan.
   deploy:
     needs: [changes, build-backend, build-frontend, tf-plan]
     if: >-
-      always() && github.event_name != 'pull_request' && (
-        (github.event_name == 'workflow_run' &&
-         needs.tf-plan.result == 'success') ||
+      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' && (
+        github.event_name == 'workflow_run' ||
         (github.event_name == 'workflow_dispatch' &&
-         inputs.action == 'deploy' &&
-         needs.changes.result == 'success' &&
-         needs.build-backend.result != 'failure' &&
-         needs.build-frontend.result != 'failure')
+         inputs.action == 'deploy')
       )
     runs-on: ubuntu-latest
     environment: production
@@ -616,6 +613,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
       - name: Checkout
@@ -765,30 +763,16 @@ jobs:
             -backend-config="key=bible-app.tfstate"
 
       - name: Download Plan Artifact
-        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           name: tfplan
           path: deployment
 
-      - name: Terraform Apply (from plan)
-        if: github.event_name == 'workflow_run'
+      - name: Terraform Apply
         working-directory: deployment
         env:
           ARM_USE_CLI: "false"
         run: terraform apply -auto-approve tfplan
-
-      - name: Terraform Apply (inline for manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: deployment
-        env:
-          ARM_USE_CLI: "false"
-        run: |
-          terraform apply \
-            -var-file="terraform.tfvars" \
-            -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
-            -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
-            -auto-approve
 
       - name: Login to Azure (for verification)
         uses: azure/login@v1
@@ -858,6 +842,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
       - name: Checkout
