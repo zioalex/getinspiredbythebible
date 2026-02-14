@@ -85,13 +85,13 @@ export default function ChurchFinderModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4">
+      <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen sm:max-h-[85vh] flex flex-col sm:m-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-teal-50/50">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 bg-teal-50/50">
           <div className="flex items-center gap-3">
-            <MapPin className="w-7 h-7 text-teal-600" />
+            <MapPin className="w-6 h-6 sm:w-7 sm:h-7 text-teal-600" />
             <div>
-              <h2 className="text-2xl font-serif font-bold text-gray-800">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-800">
                 Find a Church
               </h2>
               <p className="text-sm text-gray-500">
@@ -108,8 +108,11 @@ export default function ChurchFinderModal({
         </div>
 
         {/* Search Form */}
-        <div className="p-5 border-b border-gray-200">
-          <form onSubmit={handleSearch} className="flex gap-3">
+        <div className="p-4 sm:p-5 border-b border-gray-200">
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-col sm:flex-row gap-3"
+          >
             <input
               type="text"
               value={location}
