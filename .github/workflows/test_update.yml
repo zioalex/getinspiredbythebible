@@ -328,13 +328,15 @@ jobs:
           SCRIPT
 
           # Test 5: Frontend health
+          # Note: With next-intl i18n middleware, GET / redirects (307) to /en,
+          # so we use -L to follow redirects for the health check.
           cat > /tmp/tests/test_frontend.sh << 'SCRIPT'
           #!/bin/bash
           set -e
           echo "=== Testing Frontend ==="
           max_attempts=30
           attempt=0
-          until curl -sf http://localhost:3000 > /dev/null || [ $attempt -eq $max_attempts ]; do
+          until curl -sfL http://localhost:3000 > /dev/null || [ $attempt -eq $max_attempts ]; do
             attempt=$((attempt + 1))
             echo "Waiting for Frontend... attempt $attempt/$max_attempts"
             sleep 2
