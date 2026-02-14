@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function FeedbackModal({
   rating,
   isSubmitting = false,
 }: FeedbackModalProps) {
+  const t = useTranslations("Feedback");
   const [comment, setComment] = useState("");
 
   if (!isOpen) return null;
@@ -48,22 +50,20 @@ export default function FeedbackModal({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          aria-label="Close"
+          aria-label={t("close")}
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
         <h2 className="text-lg font-semibold text-gray-800 mb-2">
-          {rating === "positive"
-            ? "What was helpful?"
-            : "What could be improved?"}
+          {rating === "positive" ? t("positiveHeading") : t("negativeHeading")}
         </h2>
 
         <p className="text-sm text-gray-500 mb-4">
           {rating === "positive"
-            ? "Your feedback helps us understand what works well."
-            : "Let us know how we can do better."}
+            ? t("positiveDescription")
+            : t("negativeDescription")}
         </p>
 
         {/* Form */}
@@ -73,8 +73,8 @@ export default function FeedbackModal({
             onChange={(e) => setComment(e.target.value)}
             placeholder={
               rating === "positive"
-                ? "The verse suggestions were relevant to my question..."
-                : "The response didn't address my specific concern..."
+                ? t("positivePlaceholder")
+                : t("negativePlaceholder")
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             rows={4}
@@ -84,10 +84,7 @@ export default function FeedbackModal({
           {/* Privacy Notice */}
           <div className="flex items-start gap-2 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800">
-              By submitting feedback, your message and the AI response will be
-              logged to help us improve the service.
-            </p>
+            <p className="text-xs text-amber-800">{t("privacyNotice")}</p>
           </div>
 
           {/* Buttons */}
@@ -98,14 +95,14 @@ export default function FeedbackModal({
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Skip
+              {t("skip")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
             >
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+              {isSubmitting ? t("submitting") : t("submit")}
             </button>
           </div>
         </form>

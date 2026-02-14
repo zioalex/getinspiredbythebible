@@ -10,25 +10,23 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { submitContactForm, ContactRequest } from "@/lib/api";
 
 const CONTACT_EMAIL = "getinspiredbythebible@ai4you.sh";
 
 type Subject = "spiritual" | "bug" | "feature" | "feedback" | "other";
 
-const subjectOptions: { value: Subject; label: string }[] = [
-  {
-    value: "spiritual",
-    label:
-      "Do you want to talk deeper about any spiritual or biblical question?",
-  },
-  { value: "feedback", label: "General Feedback" },
-  { value: "bug", label: "Bug Report" },
-  { value: "feature", label: "Feature Request" },
-  { value: "other", label: "Other" },
-];
-
 export default function ContactForm() {
+  const t = useTranslations("Contact");
+
+  const subjectOptions: { value: Subject; label: string }[] = [
+    { value: "spiritual", label: t("subjectSpiritual") },
+    { value: "feedback", label: t("subjectFeedback") },
+    { value: "bug", label: t("subjectBug") },
+    { value: "feature", label: t("subjectFeature") },
+    { value: "other", label: t("subjectOther") },
+  ];
   const [isExpanded, setIsExpanded] = useState(false);
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState<Subject>("spiritual");
@@ -59,9 +57,7 @@ export default function ContactForm() {
       setMessage("");
       setSubject("spiritual");
     } catch (err) {
-      setError(
-        "Failed to send message. Please try again or email us directly.",
-      );
+      setError(t("errorSend"));
       console.error("Failed to submit contact form:", err);
     } finally {
       setIsSubmitting(false);
@@ -82,7 +78,7 @@ export default function ContactForm() {
       >
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4" />
-          <span className="text-sm font-medium">Get in Touch</span>
+          <span className="text-sm font-medium">{t("getInTouch")}</span>
         </div>
         {isExpanded ? (
           <ChevronUp className="w-4 h-4" />
@@ -97,7 +93,7 @@ export default function ContactForm() {
           {/* Contact email */}
           <div className="flex items-center gap-2 text-sm">
             <Mail className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-500">Email us:</span>
+            <span className="text-gray-500">{t("emailUs")}</span>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="text-primary-600 hover:text-primary-700 hover:underline"
@@ -112,17 +108,17 @@ export default function ContactForm() {
               <Check className="w-5 h-5 text-green-600" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-800">
-                  Message sent successfully!
+                  {t("successTitle")}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  Thank you for reaching out. We'll review your message soon.
+                  {t("successDescription")}
                 </p>
               </div>
               <button
                 onClick={handleReset}
                 className="text-xs text-green-600 hover:text-green-700 underline"
               >
-                Send another
+                {t("sendAnother")}
               </button>
             </div>
           ) : (
@@ -142,14 +138,14 @@ export default function ContactForm() {
                   htmlFor="contact-email"
                   className="block text-xs text-gray-500 mb-1"
                 >
-                  Your email (optional, for reply)
+                  {t("emailLabel")}
                 </label>
                 <input
                   type="email"
                   id="contact-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={isSubmitting}
                 />
@@ -161,7 +157,7 @@ export default function ContactForm() {
                   htmlFor="contact-subject"
                   className="block text-xs text-gray-500 mb-1"
                 >
-                  Subject
+                  {t("subjectLabel")}
                 </label>
                 <select
                   id="contact-subject"
@@ -184,13 +180,13 @@ export default function ContactForm() {
                   htmlFor="contact-message"
                   className="block text-xs text-gray-500 mb-1"
                 >
-                  Message
+                  {t("messageLabel")}
                 </label>
                 <textarea
                   id="contact-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Share your thoughts, report an issue, or suggest an improvement..."
+                  placeholder={t("messagePlaceholder")}
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   disabled={isSubmitting}
@@ -199,9 +195,7 @@ export default function ContactForm() {
               </div>
 
               {/* Privacy note */}
-              <p className="text-xs text-gray-400">
-                Your message will be stored to help us improve the service.
-              </p>
+              <p className="text-xs text-gray-400">{t("privacyNote")}</p>
 
               {/* Submit button */}
               <button
@@ -212,12 +206,12 @@ export default function ContactForm() {
                 {isSubmitting ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Sending...
+                    {t("sending")}
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    Send Message
+                    {t("sendMessage")}
                   </>
                 )}
               </button>

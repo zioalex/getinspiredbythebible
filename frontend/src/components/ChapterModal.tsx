@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X, BookOpen, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
 interface ChapterModalProps {
@@ -27,6 +28,8 @@ export default function ChapterModal({
   isLoading = false,
   translationName,
 }: ChapterModalProps) {
+  const t = useTranslations("ChapterModal");
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -75,7 +78,7 @@ export default function ChapterModal({
                 {localized_book ? localized_book : book} {chapter}
               </h2>
               <p className="text-sm text-gray-500">
-                {verses.length} verse{verses.length !== 1 ? "s" : ""}
+                {t("verseCount", { count: verses.length })}
               </p>
             </div>
           </div>
@@ -135,7 +138,7 @@ export default function ChapterModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            {translationName || "King James Version"}
+            {translationName || t("defaultTranslation")}
           </p>
         </div>
       </div>

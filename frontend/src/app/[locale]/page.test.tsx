@@ -1,13 +1,8 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  act,
-} from "@testing-library/react";
+import { screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Home from "./page";
 import * as api from "@/lib/api";
+import { renderWithIntl } from "@/test/i18n-helpers";
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn();
@@ -39,6 +34,21 @@ vi.mock("@/lib/verseExtraction", () => ({
   isVerseReferenced: vi.fn().mockReturnValue(true),
 }));
 
+// Mock i18n navigation (used by LanguageSwitcher)
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: React.PropsWithChildren) => (
+    <a {...props}>{children}</a>
+  ),
+  redirect: vi.fn(),
+  usePathname: vi.fn().mockReturnValue("/"),
+  useRouter: vi.fn().mockReturnValue({ replace: vi.fn() }),
+}));
+
+// Mock i18n routing
+vi.mock("@/i18n/routing", () => ({
+  routing: { locales: ["en", "it", "de"], defaultLocale: "en" },
+}));
+
 // Helper to render Home with verses pre-loaded via the API mock
 async function renderHomeWithVerses() {
   vi.mocked(api.sendMessage).mockResolvedValue({
@@ -66,7 +76,7 @@ async function renderHomeWithVerses() {
     },
   });
 
-  const result = render(<Home />);
+  const result = renderWithIntl(<Home />);
 
   // Type a message and submit to trigger verse loading
   const input = screen.getByPlaceholderText("Share what's on your heart...");
@@ -99,7 +109,7 @@ describe("Home page responsive layout", () => {
 
   describe("responsive header", () => {
     it("renders header with responsive padding", () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       const header = document.querySelector("header");
       expect(header).not.toBeNull();
       expect(header!.className).toContain("px-3");
@@ -109,14 +119,14 @@ describe("Home page responsive layout", () => {
     });
 
     it("hides subtitle on mobile (hidden sm:block)", () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       const subtitle = screen.getByText("Find encouragement through Scripture");
       expect(subtitle.className).toContain("hidden");
       expect(subtitle.className).toContain("sm:block");
     });
 
     it('hides "New Chat" text on mobile (hidden md:inline)', () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       const newChatText = screen.getByText("New Chat");
       expect(newChatText.className).toContain("hidden");
       expect(newChatText.className).toContain("md:inline");
@@ -125,13 +135,13 @@ describe("Home page responsive layout", () => {
 
   describe("responsive main container", () => {
     it("uses h-dvh for dynamic viewport height", () => {
-      const { container } = render(<Home />);
+      const { container } = renderWithIntl(<Home />);
       const main = container.querySelector("main");
       expect(main!.className).toContain("h-dvh");
     });
 
     it("renders messages area with responsive padding", () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       const messagesArea = document.querySelector(
         '[class*="overflow-y-auto"][class*="px-3"]',
       );
@@ -143,7 +153,7 @@ describe("Home page responsive layout", () => {
     });
 
     it("renders input area with responsive padding", () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       const inputArea = document.querySelector(".sticky.bottom-0");
       expect(inputArea).not.toBeNull();
       expect(inputArea!.className).toContain("px-3");
@@ -155,7 +165,7 @@ describe("Home page responsive layout", () => {
 
   describe("mobile FAB (Floating Action Button)", () => {
     it("does not show FAB when there are no verses", () => {
-      render(<Home />);
+      renderWithIntl(<Home />);
       expect(
         screen.queryByLabelText("Show scripture references"),
       ).not.toBeInTheDocument();

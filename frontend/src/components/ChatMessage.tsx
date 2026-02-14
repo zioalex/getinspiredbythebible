@@ -3,6 +3,7 @@
 import React from "react";
 import { User, BookOpen, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useTranslations } from "next-intl";
 import { Message } from "@/lib/api";
 
 interface ChatMessageProps {
@@ -22,6 +23,7 @@ export default function ChatMessage({
   feedbackGiven,
   feedbackDisabled = false,
 }: ChatMessageProps) {
+  const t = useTranslations("Feedback");
   const isUser = message.role === "user";
 
   // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
@@ -111,7 +113,7 @@ export default function ChatMessage({
           key={`${key}-quote-${partKey++}`}
           className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded italic font-serif border-l-2 border-amber-400"
         >
-          "{match[1]}"
+          &ldquo;{match[1]}&rdquo;
         </span>,
       );
       lastIndex = match.index + match[0].length;
@@ -211,7 +213,7 @@ export default function ChatMessage({
             {messageId && onFeedback && (
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                 <span className="text-xs text-gray-400 mr-1">
-                  Was this helpful?
+                  {t("wasHelpful")}
                 </span>
                 <button
                   onClick={() => onFeedback("positive")}
@@ -223,8 +225,8 @@ export default function ChatMessage({
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-400 hover:text-green-600 hover:bg-green-50"
                   }`}
-                  aria-label="Thumbs up"
-                  title="This was helpful"
+                  aria-label={t("thumbsUp")}
+                  title={t("helpfulTitle")}
                 >
                   <ThumbsUp
                     className={`w-4 h-4 ${feedbackGiven === "positive" ? "fill-current" : ""}`}
@@ -240,8 +242,8 @@ export default function ChatMessage({
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-400 hover:text-red-600 hover:bg-red-50"
                   }`}
-                  aria-label="Thumbs down"
-                  title="This could be improved"
+                  aria-label={t("thumbsDown")}
+                  title={t("improveTitle")}
                 >
                   <ThumbsDown
                     className={`w-4 h-4 ${feedbackGiven === "negative" ? "fill-current" : ""}`}
@@ -249,7 +251,7 @@ export default function ChatMessage({
                 </button>
                 {feedbackGiven && (
                   <span className="text-xs text-gray-400 ml-1">
-                    Thanks for your feedback!
+                    {t("thanks")}
                   </span>
                 )}
               </div>

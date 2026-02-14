@@ -10,6 +10,7 @@ import {
   BookOpen,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -18,6 +19,7 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import ContactForm from "@/components/ContactForm";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   sendMessage,
   Message,
@@ -48,6 +50,12 @@ import {
 } from "@/lib/verseExtraction";
 
 export default function Home() {
+  const tHeader = useTranslations("Header");
+  const tWelcome = useTranslations("Welcome");
+  const tChat = useTranslations("Chat");
+  const tVerses = useTranslations("Verses");
+  const tFeedback = useTranslations("Feedback");
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -357,8 +365,8 @@ export default function Home() {
       role: "assistant",
       content:
         lastError instanceof ColdStartError
-          ? "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!"
-          : "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh",
+          ? tChat("errorColdStart")
+          : tChat("errorConnection"),
     };
     setMessages((prev) => [...prev, errorMessage]);
     setIsLoading(false);
@@ -421,9 +429,7 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to submit feedback:", error);
       // Show error but still mark as given to prevent duplicate attempts
-      setFeedbackError(
-        "Couldn't save your feedback right now, but thank you for trying!",
-      );
+      setFeedbackError(tFeedback("toastError"));
       setFeedbackGiven((prev) => ({
         ...prev,
         [feedbackModalMessageId]: feedbackModalRating,
@@ -454,10 +460,10 @@ export default function Home() {
     messages.length >= inlinePromptIndex;
 
   const suggestedPrompts = [
-    "I'm feeling anxious about the future",
-    "What does the Bible say about forgiveness?",
-    "I need encouragement today",
-    "Help me understand John 3:16",
+    tWelcome("prompt1"),
+    tWelcome("prompt2"),
+    tWelcome("prompt3"),
+    tWelcome("prompt4"),
   ];
 
   return (
@@ -471,26 +477,29 @@ export default function Home() {
               <Book className="w-8 h-8 text-primary-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">
-                  Bible Inspiration
+                  {tHeader("title")}
                 </h1>
                 <p className="text-sm text-gray-500 hidden sm:block">
-                  Find encouragement through Scripture
+                  {tHeader("subtitle")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+
               {/* Translation Selector */}
               {translations.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="hidden md:inline text-xs text-gray-500">
-                    Bible version:
+                    {tHeader("bibleVersion")}
                   </span>
                   <select
                     value={selectedTranslation}
                     onChange={(e) => handleTranslationChange(e.target.value)}
                     className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="">Auto-detect</option>
+                    <option value="">{tHeader("autoDetect")}</option>
                     {translations.map((t) => (
                       <option key={t.code} value={t.code}>
                         {t.language} - {t.short_name}
@@ -504,7 +513,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span className="hidden md:inline">New Chat</span>
+                <span className="hidden md:inline">{tHeader("newChat")}</span>
               </button>
             </div>
           </div>
@@ -514,9 +523,7 @@ export default function Home() {
         {backendReady === false && (
           <div className="mx-3 sm:mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-            <span className="text-sm">
-              Server is waking up, you can start typing...
-            </span>
+            <span className="text-sm">{tChat("backendWarmingUp")}</span>
           </div>
         )}
 
@@ -526,13 +533,10 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Book className="w-16 h-16 text-primary-300 mb-4" />
               <h2 className="text-2xl font-serif text-gray-700 mb-2">
-                Welcome
+                {tWelcome("heading")}
               </h2>
               <p className="text-gray-500 max-w-md mb-8">
-                Share what's on your heart, ask questions about Scripture, or
-                simply seek encouragement. While I can help explore theological
-                topics, I'm not a substitute for trained theologians or pastoral
-                guidance.
+                {tWelcome("description")}
               </p>
 
               {/* Suggested Prompts */}
@@ -583,8 +587,8 @@ export default function Home() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>
                     {isWarmingUp
-                      ? "I'm warming up. Be patient a moment..."
-                      : "Searching Scripture and reflecting..."}
+                      ? tChat("loadingWarmup")
+                      : tChat("loadingSearch")}
                   </span>
                 </div>
               )}
@@ -601,7 +605,7 @@ export default function Home() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Share what's on your heart..."
+              placeholder={tChat("inputPlaceholder")}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               disabled={isLoading}
             />
@@ -614,8 +618,7 @@ export default function Home() {
             </button>
           </form>
           <p className="text-xs text-gray-400 mt-2 text-center">
-            AI-generated responses may contain errors. Not a substitute for
-            theology or pastoral counsel.
+            {tChat("disclaimer")}
           </p>
 
           {/* Church Finder Banner */}
@@ -637,11 +640,10 @@ export default function Home() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-gray-700">
-                Scripture References
+                {tVerses("scriptureReferences")}
               </h3>
               <span className="text-xs text-gray-400">
-                {displayedVerses.length} verse
-                {displayedVerses.length !== 1 ? "s" : ""}
+                {tVerses("verseCount", { count: displayedVerses.length })}
               </span>
             </div>
             {/* Filter Toggle */}
@@ -654,7 +656,7 @@ export default function Home() {
                     : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                 }`}
               >
-                Referenced
+                {tVerses("referenced")}
               </button>
               <button
                 onClick={() => setShowOnlyReferenced(false)}
@@ -664,7 +666,7 @@ export default function Home() {
                     : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                 }`}
               >
-                All Related ({relevantVerses.length})
+                {tVerses("allRelated", { count: relevantVerses.length })}
               </button>
             </div>
           </div>
@@ -690,9 +692,9 @@ export default function Home() {
             ) : (
               <div className="text-center text-gray-500 text-sm py-8">
                 <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p>No verses referenced yet.</p>
+                <p>{tVerses("noVersesReferenced")}</p>
                 <p className="text-xs mt-1">
-                  Verses will appear here when mentioned in the chat.
+                  {tVerses("noVersesReferencedHint")}
                 </p>
               </div>
             )}
@@ -705,7 +707,7 @@ export default function Home() {
         <button
           onClick={() => setMobileVersesOpen(true)}
           className="lg:hidden fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
-          aria-label="Show scripture references"
+          aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />
           <span className="text-sm font-medium">{displayedVerses.length}</span>
@@ -725,19 +727,18 @@ export default function Home() {
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-700">
-                  Scripture References
+                  {tVerses("scriptureReferences")}
                 </h3>
                 <button
                   onClick={() => setMobileVersesOpen(false)}
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  aria-label="Close"
+                  aria-label={tVerses("close")}
                 >
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
               <span className="text-xs text-gray-400">
-                {displayedVerses.length} verse
-                {displayedVerses.length !== 1 ? "s" : ""}
+                {tVerses("verseCount", { count: displayedVerses.length })}
               </span>
               {/* Filter Toggle */}
               <div className="flex items-center gap-2 mt-2">
@@ -749,7 +750,7 @@ export default function Home() {
                       : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
                 >
-                  Referenced
+                  {tVerses("referenced")}
                 </button>
                 <button
                   onClick={() => setShowOnlyReferenced(false)}
@@ -759,7 +760,7 @@ export default function Home() {
                       : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
                 >
-                  All Related ({relevantVerses.length})
+                  {tVerses("allRelated", { count: relevantVerses.length })}
                 </button>
               </div>
             </div>
@@ -785,9 +786,9 @@ export default function Home() {
               ) : (
                 <div className="text-center text-gray-500 text-sm py-8">
                   <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p>No verses referenced yet.</p>
+                  <p>{tVerses("noVersesReferenced")}</p>
                   <p className="text-xs mt-1">
-                    Verses will appear here when mentioned in the chat.
+                    {tVerses("noVersesReferencedHint")}
                   </p>
                 </div>
               )}
