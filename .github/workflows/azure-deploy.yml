@@ -417,6 +417,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
@@ -613,6 +614,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
@@ -842,6 +844,7 @@ jobs:
       TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
