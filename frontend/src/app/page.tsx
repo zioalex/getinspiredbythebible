@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Send, Book, Loader2, RefreshCw, Filter } from "lucide-react";
+import {
+  Send,
+  Book,
+  Loader2,
+  RefreshCw,
+  Filter,
+  BookOpen,
+  X,
+} from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -93,6 +101,9 @@ export default function Home() {
   const [inlinePromptIndex, setInlinePromptIndex] = useState<number | null>(
     null,
   );
+
+  // Mobile verses panel
+  const [mobileVersesOpen, setMobileVersesOpen] = useState(false);
 
   // Session tracking - generate unique ID per chat session
   const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
@@ -364,6 +375,7 @@ export default function Home() {
     setInlinePromptIndex(null);
     setFeedbackGiven({});
     setFeedbackError(null);
+    setMobileVersesOpen(false);
     setSessionId(generateSessionId()); // Generate new session ID for new chat
   };
 
@@ -449,11 +461,11 @@ export default function Home() {
   ];
 
   return (
-    <main className="flex h-screen">
+    <main className="flex h-dvh">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col max-w-4xl mx-auto">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-6 py-4">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Book className="w-8 h-8 text-primary-600" />
@@ -461,16 +473,18 @@ export default function Home() {
                 <h1 className="text-xl font-semibold text-gray-800">
                   Bible Inspiration
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 hidden sm:block">
                   Find encouragement through Scripture
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Translation Selector */}
               {translations.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Bible version:</span>
+                  <span className="hidden md:inline text-xs text-gray-500">
+                    Bible version:
+                  </span>
                   <select
                     value={selectedTranslation}
                     onChange={(e) => handleTranslationChange(e.target.value)}
@@ -490,7 +504,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                New Chat
+                <span className="hidden md:inline">New Chat</span>
               </button>
             </div>
           </div>
@@ -498,7 +512,7 @@ export default function Home() {
 
         {/* Backend warming-up notification */}
         {backendReady === false && (
-          <div className="mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
+          <div className="mx-3 sm:mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
             <span className="text-sm">
               Server is waking up, you can start typing...
@@ -507,7 +521,7 @@ export default function Home() {
         )}
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Book className="w-16 h-16 text-primary-300 mb-4" />
@@ -581,7 +595,7 @@ export default function Home() {
         </div>
 
         {/* Input Area */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="text"
@@ -684,6 +698,102 @@ export default function Home() {
             )}
           </div>
         </aside>
+      )}
+
+      {/* Mobile FAB for verse references */}
+      {relevantVerses.length > 0 && (
+        <button
+          onClick={() => setMobileVersesOpen(true)}
+          className="lg:hidden fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          aria-label="Show scripture references"
+        >
+          <BookOpen className="w-5 h-5" />
+          <span className="text-sm font-medium">{displayedVerses.length}</span>
+        </button>
+      )}
+
+      {/* Mobile slide-over panel for verses */}
+      {mobileVersesOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setMobileVersesOpen(false)}
+          />
+          {/* Panel */}
+          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-gray-700">
+                  Scripture References
+                </h3>
+                <button
+                  onClick={() => setMobileVersesOpen(false)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <span className="text-xs text-gray-400">
+                {displayedVerses.length} verse
+                {displayedVerses.length !== 1 ? "s" : ""}
+              </span>
+              {/* Filter Toggle */}
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => setShowOnlyReferenced(true)}
+                  className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
+                    showOnlyReferenced
+                      ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  Referenced
+                </button>
+                <button
+                  onClick={() => setShowOnlyReferenced(false)}
+                  className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
+                    !showOnlyReferenced
+                      ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  All Related ({relevantVerses.length})
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {displayedVerses.length > 0 ? (
+                <div className="space-y-3">
+                  {displayedVerses.map((verse, index) => (
+                    <VerseCard
+                      key={index}
+                      verse={verse}
+                      onClick={() => {
+                        handleVerseClick(
+                          verse.book,
+                          verse.chapter,
+                          verse.verse,
+                          verse.translation,
+                        );
+                        setMobileVersesOpen(false);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 text-sm py-8">
+                  <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>No verses referenced yet.</p>
+                  <p className="text-xs mt-1">
+                    Verses will appear here when mentioned in the chat.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Chapter Modal */}

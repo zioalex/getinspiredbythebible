@@ -43,7 +43,7 @@ export default function FeedbackModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-4 sm:p-6">
         {/* Close button */}
         <button
           onClick={onClose}

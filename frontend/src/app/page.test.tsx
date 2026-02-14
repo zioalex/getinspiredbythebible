@@ -1,0 +1,319 @@
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import Home from "./page";
+import * as api from "@/lib/api";
+
+// Mock scrollIntoView
+Element.prototype.scrollIntoView = vi.fn();
+
+// Mock react-markdown to simplify rendering
+vi.mock("react-markdown", () => ({
+  default: ({ children }: { children: string }) => <p>{children}</p>,
+}));
+
+// Mock the API module
+vi.mock("@/lib/api", () => ({
+  sendMessage: vi.fn(),
+  getChapter: vi.fn(),
+  getTranslations: vi.fn().mockResolvedValue([]),
+  submitFeedback: vi.fn(),
+  generateSessionId: vi.fn().mockReturnValue("test-session-id"),
+  ColdStartError: class ColdStartError extends Error {},
+  checkBackendReady: vi.fn().mockResolvedValue(true),
+  warmupBackend: vi.fn((onReady: () => void) => {
+    onReady();
+  }),
+  searchChurches: vi.fn(),
+  submitContactForm: vi.fn(),
+}));
+
+// Mock verse extraction
+vi.mock("@/lib/verseExtraction", () => ({
+  extractVerseReferences: vi.fn().mockReturnValue([]),
+  isVerseReferenced: vi.fn().mockReturnValue(true),
+}));
+
+// Helper to render Home with verses pre-loaded via the API mock
+async function renderHomeWithVerses() {
+  vi.mocked(api.sendMessage).mockResolvedValue({
+    message: "Here is a verse for you.",
+    message_id: "msg-1",
+    scripture_context: {
+      verses: [
+        {
+          book: "John",
+          chapter: 3,
+          verse: 16,
+          text: "For God so loved the world...",
+          reference: "John 3:16",
+          similarity: 0.9,
+        },
+        {
+          book: "Romans",
+          chapter: 8,
+          verse: 28,
+          text: "And we know that all things work together...",
+          reference: "Romans 8:28",
+          similarity: 0.7,
+        },
+      ],
+    },
+  });
+
+  const result = render(<Home />);
+
+  // Type a message and submit to trigger verse loading
+  const input = screen.getByPlaceholderText("Share what's on your heart...");
+  await act(async () => {
+    fireEvent.change(input, { target: { value: "Tell me about love" } });
+  });
+  const submitButton = result.container.querySelector('button[type="submit"]');
+  await act(async () => {
+    fireEvent.click(submitButton!);
+  });
+
+  // Wait for the API response to be processed
+  await waitFor(() => {
+    expect(screen.getByText("Here is a verse for you.")).toBeInTheDocument();
+  });
+
+  return result;
+}
+
+describe("Home page responsive layout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Re-setup mocks that are needed for every render
+    vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+      onReady();
+    });
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+  });
+
+  describe("responsive header", () => {
+    it("renders header with responsive padding", () => {
+      render(<Home />);
+      const header = document.querySelector("header");
+      expect(header).not.toBeNull();
+      expect(header!.className).toContain("px-3");
+      expect(header!.className).toContain("py-3");
+      expect(header!.className).toContain("sm:px-6");
+      expect(header!.className).toContain("sm:py-4");
+    });
+
+    it("hides subtitle on mobile (hidden sm:block)", () => {
+      render(<Home />);
+      const subtitle = screen.getByText("Find encouragement through Scripture");
+      expect(subtitle.className).toContain("hidden");
+      expect(subtitle.className).toContain("sm:block");
+    });
+
+    it('hides "New Chat" text on mobile (hidden md:inline)', () => {
+      render(<Home />);
+      const newChatText = screen.getByText("New Chat");
+      expect(newChatText.className).toContain("hidden");
+      expect(newChatText.className).toContain("md:inline");
+    });
+  });
+
+  describe("responsive main container", () => {
+    it("uses h-dvh for dynamic viewport height", () => {
+      const { container } = render(<Home />);
+      const main = container.querySelector("main");
+      expect(main!.className).toContain("h-dvh");
+    });
+
+    it("renders messages area with responsive padding", () => {
+      render(<Home />);
+      const messagesArea = document.querySelector(
+        '[class*="overflow-y-auto"][class*="px-3"]',
+      );
+      expect(messagesArea).not.toBeNull();
+      expect(messagesArea!.className).toContain("px-3");
+      expect(messagesArea!.className).toContain("py-4");
+      expect(messagesArea!.className).toContain("sm:px-6");
+      expect(messagesArea!.className).toContain("sm:py-6");
+    });
+
+    it("renders input area with responsive padding", () => {
+      render(<Home />);
+      const inputArea = document.querySelector(".sticky.bottom-0");
+      expect(inputArea).not.toBeNull();
+      expect(inputArea!.className).toContain("px-3");
+      expect(inputArea!.className).toContain("py-3");
+      expect(inputArea!.className).toContain("sm:px-6");
+      expect(inputArea!.className).toContain("sm:py-4");
+    });
+  });
+
+  describe("mobile FAB (Floating Action Button)", () => {
+    it("does not show FAB when there are no verses", () => {
+      render(<Home />);
+      expect(
+        screen.queryByLabelText("Show scripture references"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows FAB after API returns verses", async () => {
+      await renderHomeWithVerses();
+
+      const fab = screen.getByLabelText("Show scripture references");
+      expect(fab).toBeInTheDocument();
+      expect(fab.className).toContain("lg:hidden");
+    });
+
+    it("FAB displays the count of displayed verses", async () => {
+      await renderHomeWithVerses();
+
+      const fab = screen.getByLabelText("Show scripture references");
+      expect(fab.textContent).toContain("2");
+    });
+  });
+
+  describe("mobile slide-over panel", () => {
+    it("opens slide-over panel when FAB is clicked", async () => {
+      await renderHomeWithVerses();
+
+      // Before opening: desktop sidebar has "Scripture References" but mobile panel does not
+      const beforeCount = screen.getAllByText("Scripture References").length;
+
+      // Click FAB
+      const fab = screen.getByLabelText("Show scripture references");
+      await act(async () => {
+        fireEvent.click(fab);
+      });
+
+      // Mobile panel adds another "Scripture References" heading
+      const afterCount = screen.getAllByText("Scripture References").length;
+      expect(afterCount).toBe(beforeCount + 1);
+    });
+
+    it("shows verse cards in the slide-over panel", async () => {
+      await renderHomeWithVerses();
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      // Should show verse references (from VerseCard component in both sidebar and panel)
+      expect(screen.getAllByText(/John 3:16/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Romans 8:28/).length).toBeGreaterThanOrEqual(
+        1,
+      );
+    });
+
+    it("closes panel when close button is clicked", async () => {
+      await renderHomeWithVerses();
+
+      const beforeCount = screen.getAllByText("Scripture References").length;
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      expect(screen.getAllByText("Scripture References").length).toBe(
+        beforeCount + 1,
+      );
+
+      // Click close button (on the mobile panel)
+      const closeButton = screen.getByLabelText("Close");
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // Mobile panel should be gone, back to original count
+      expect(screen.getAllByText("Scripture References").length).toBe(
+        beforeCount,
+      );
+    });
+
+    it("closes panel when backdrop is clicked", async () => {
+      await renderHomeWithVerses();
+
+      const beforeCount = screen.getAllByText("Scripture References").length;
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      expect(screen.getAllByText("Scripture References").length).toBe(
+        beforeCount + 1,
+      );
+
+      // Click backdrop
+      const backdrop = document.querySelector('[class*="bg-black/30"]');
+      expect(backdrop).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(backdrop!);
+      });
+
+      expect(screen.getAllByText("Scripture References").length).toBe(
+        beforeCount,
+      );
+    });
+
+    it("shows filter toggle buttons in slide-over panel", async () => {
+      await renderHomeWithVerses();
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      // Panel filter buttons (desktop sidebar also has them)
+      const referencedButtons = screen.getAllByText("Referenced");
+      expect(referencedButtons.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("panel has lg:hidden class so it only shows on mobile", async () => {
+      await renderHomeWithVerses();
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      const panel = document.querySelector(
+        '[class*="lg:hidden"][class*="fixed"]',
+      );
+      expect(panel).not.toBeNull();
+    });
+
+    it("resets mobile panel state on New Chat", async () => {
+      await renderHomeWithVerses();
+
+      // Open panel
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      // Mobile panel should be present (more than just the desktop sidebar)
+      const beforeResetCount = screen.getAllByText(
+        "Scripture References",
+      ).length;
+      expect(beforeResetCount).toBeGreaterThanOrEqual(2);
+
+      // Click New Chat
+      const newChatButton = screen.getByText("New Chat").closest("button")!;
+      await act(async () => {
+        fireEvent.click(newChatButton);
+      });
+
+      // Panel and FAB should be gone (no verses after reset)
+      expect(screen.queryAllByText("Scripture References").length).toBe(0);
+      expect(
+        screen.queryByLabelText("Show scripture references"),
+      ).not.toBeInTheDocument();
+    });
+  });
+});

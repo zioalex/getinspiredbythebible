@@ -18,23 +18,42 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
+/* Scrollbar styling - hidden on mobile (native touch scroll is better) */
+@media (min-width: 641px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c4c4c4;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+@media (max-width: 640px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #c4c4c4;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+/* Safe area insets for phones with notches/gesture bars */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .sticky.bottom-0 {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
 }
 
 /* Chat message animations */
