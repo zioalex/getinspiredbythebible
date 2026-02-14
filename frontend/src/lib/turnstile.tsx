@@ -62,6 +62,8 @@ export function TurnstileProvider({
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
   // Fetch config to get Turnstile settings
   useEffect(() => {
@@ -142,12 +144,25 @@ export function TurnstileProvider({
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         callback: (newToken: string) => {
+          retryCountRef.current = 0;
           setToken(newToken);
           setIsReady(true);
         },
         "error-callback": (error: unknown) => {
-          console.error("Turnstile error:", error);
-          setIsReady(true); // Proceed even on error
+          console.warn("Turnstile challenge error:", error);
+          if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current += 1;
+            const delay = 1000 * retryCountRef.current;
+            console.warn(
+              `Retrying Turnstile (${retryCountRef.current}/${MAX_RETRIES}) in ${delay}ms`,
+            );
+            setTimeout(() => refreshToken(), delay);
+          } else {
+            console.error(
+              "Turnstile failed after retries, proceeding without token",
+            );
+            setIsReady(true);
+          }
         },
         "expired-callback": () => {
           setToken(null);
