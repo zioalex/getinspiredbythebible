@@ -461,7 +461,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="flex h-dvh">
+    <main className="flex h-dvh w-full overflow-x-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col max-w-4xl mx-auto">
         {/* Header */}
