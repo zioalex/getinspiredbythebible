@@ -131,4 +131,4 @@ contact_notification_email = "getinspiredbythebible@ai4you.sh"
 # -----------------------------------------------------------------------------
 
 turnstile_enabled  = true
-turnstile_site_key = "0x4AAAAAABfTYVZ_gQDK2nAN"
+turnstile_site_key = "0x4AAAAAACaR4GHzrw8fgN5O"
