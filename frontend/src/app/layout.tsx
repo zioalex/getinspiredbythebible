@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-primary-50 to-white">
+          <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
             {children}
           </div>
         </Providers>

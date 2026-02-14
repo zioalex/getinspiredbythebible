@@ -461,9 +461,9 @@ export default function Home() {
   ];
 
   return (
-    <main className="flex h-dvh w-full overflow-x-hidden">
+    <main className="flex h-dvh">
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto">
+      <div className="flex-1 min-w-0 flex flex-col max-w-4xl mx-auto">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
