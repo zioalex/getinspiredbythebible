@@ -1,3 +1,7 @@
+const createNextIntlPlugin = require("next-intl/plugin");
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -6,4 +10,4 @@ const nextConfig = {
   // The API URL should be set via NEXT_PUBLIC_API_URL build-arg in Docker.
 };
 
-module.exports = nextConfig;
+module.exports = withNextIntl(nextConfig);

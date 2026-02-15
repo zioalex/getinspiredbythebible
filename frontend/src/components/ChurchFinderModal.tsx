@@ -11,6 +11,7 @@ import {
   Search,
   Building2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { searchChurches, Church } from "@/lib/api";
 
 interface ChurchFinderModalProps {
@@ -22,6 +23,7 @@ export default function ChurchFinderModal({
   isOpen,
   onClose,
 }: ChurchFinderModalProps) {
+  const t = useTranslations("ChurchFinder");
   const [location, setLocation] = useState("");
   const [churches, setChurches] = useState<Church[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +69,7 @@ export default function ChurchFinderModal({
       const response = await searchChurches(location.trim());
       setChurches(response.churches);
     } catch (err) {
-      setError("Failed to search for churches. Please try again.");
+      setError(t("errorSearch"));
       console.error("Church search error:", err);
     } finally {
       setIsLoading(false);
@@ -92,11 +94,9 @@ export default function ChurchFinderModal({
             <MapPin className="w-6 h-6 sm:w-7 sm:h-7 text-teal-600" />
             <div>
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-800">
-                Find a Church
+                {t("modalTitle")}
               </h2>
-              <p className="text-sm text-gray-500">
-                Connect with a faith community near you
-              </p>
+              <p className="text-sm text-gray-500">{t("modalSubtitle")}</p>
             </div>
           </div>
           <button
@@ -117,7 +117,7 @@ export default function ChurchFinderModal({
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="City in English (e.g., Rome, Munich, Zurich)"
+              placeholder={t("searchPlaceholder")}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               disabled={isLoading}
               autoFocus
@@ -141,7 +141,7 @@ export default function ChurchFinderModal({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-teal-600 mb-3" />
-              <p className="text-gray-500">Searching for churches...</p>
+              <p className="text-gray-500">{t("searching")}</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -150,14 +150,13 @@ export default function ChurchFinderModal({
               </div>
               <p className="text-red-600 font-medium">{error}</p>
               <p className="text-sm text-gray-500 mt-1">
-                Please check your connection and try again.
+                {t("errorConnection")}
               </p>
             </div>
           ) : churches.length > 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-gray-500 mb-4">
-                Found {churches.length} church
-                {churches.length !== 1 ? "es" : ""}
+                {t("foundCount", { count: churches.length })}
               </p>
               {churches.map((church, index) => (
                 <ChurchCard key={index} church={church} />
@@ -166,17 +165,19 @@ export default function ChurchFinderModal({
           ) : hasSearched ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Building2 className="w-12 h-12 text-gray-300 mb-3" />
-              <p className="text-gray-600 font-medium">No churches found</p>
+              <p className="text-gray-600 font-medium">
+                {t("noChurchesFound")}
+              </p>
               <p className="text-sm text-gray-500 mt-1">
-                Try a different location or broader search term.
+                {t("noChurchesHint")}
               </p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MapPin className="w-12 h-12 text-gray-300 mb-3" />
-              <p className="text-gray-600">Enter a location to search</p>
+              <p className="text-gray-600">{t("enterLocation")}</p>
               <p className="text-sm text-gray-500 mt-1">
-                Use English city names (e.g., Rome, Munich, Vienna)
+                {t("enterLocationHint")}
               </p>
             </div>
           )}
@@ -185,14 +186,14 @@ export default function ChurchFinderModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            Church data provided by{" "}
+            {t("churchData")}{" "}
             <a
               href="https://disciplestoday.org"
               target="_blank"
               rel="noopener noreferrer"
               className="text-teal-600 hover:underline"
             >
-              DisciplesToday.org
+              {t("churchDataLink")}
             </a>
           </p>
         </div>
@@ -202,6 +203,8 @@ export default function ChurchFinderModal({
 }
 
 function ChurchCard({ church }: { church: Church }) {
+  const t = useTranslations("ChurchFinder");
+
   const formatAddress = () => {
     const parts = [church.address, church.city, church.state, church.country]
       .filter(Boolean)
@@ -235,7 +238,7 @@ function ChurchCard({ church }: { church: Church }) {
             className="flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-800 hover:underline"
           >
             <Globe className="w-4 h-4" />
-            Website
+            {t("website")}
           </a>
         )}
 
@@ -255,7 +258,7 @@ function ChurchCard({ church }: { church: Church }) {
             className="flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-800 hover:underline"
           >
             <Mail className="w-4 h-4" />
-            Email
+            {t("email")}
           </a>
         )}
       </div>

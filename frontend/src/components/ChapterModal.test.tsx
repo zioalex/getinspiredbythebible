@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import ChapterModal from "./ChapterModal";
+import { renderWithIntl } from "@/test/i18n-helpers";
 
 describe("ChapterModal responsive layout", () => {
   const defaultProps = {
@@ -28,7 +29,7 @@ describe("ChapterModal responsive layout", () => {
   };
 
   it("renders modal with responsive rounded corners (full screen on mobile)", () => {
-    const { container } = render(<ChapterModal {...defaultProps} />);
+    const { container } = renderWithIntl(<ChapterModal {...defaultProps} />);
     // The modal panel should have sm:rounded-2xl (no rounding on mobile)
     const modal = container.querySelector('[class*="shadow-2xl"]');
     expect(modal).not.toBeNull();
@@ -39,14 +40,14 @@ describe("ChapterModal responsive layout", () => {
   });
 
   it("renders modal with responsive max-height (full screen on mobile)", () => {
-    const { container } = render(<ChapterModal {...defaultProps} />);
+    const { container } = renderWithIntl(<ChapterModal {...defaultProps} />);
     const modal = container.querySelector('[class*="shadow-2xl"]');
     expect(modal!.className).toContain("max-h-screen");
     expect(modal!.className).toContain("sm:max-h-[85vh]");
   });
 
   it("renders modal with responsive margin (no margin on mobile)", () => {
-    const { container } = render(<ChapterModal {...defaultProps} />);
+    const { container } = renderWithIntl(<ChapterModal {...defaultProps} />);
     const modal = container.querySelector('[class*="shadow-2xl"]');
     expect(modal!.className).toContain("sm:m-4");
     // Should not have standalone m-4 (only sm: prefixed)
@@ -55,7 +56,7 @@ describe("ChapterModal responsive layout", () => {
   });
 
   it("renders header with responsive padding and text sizes", () => {
-    render(<ChapterModal {...defaultProps} />);
+    renderWithIntl(<ChapterModal {...defaultProps} />);
     const heading = screen.getByText("Genesis 1");
     expect(heading.className).toContain("text-xl");
     expect(heading.className).toContain("sm:text-2xl");
@@ -67,7 +68,7 @@ describe("ChapterModal responsive layout", () => {
   });
 
   it("renders content area with responsive padding", () => {
-    const { container } = render(<ChapterModal {...defaultProps} />);
+    const { container } = renderWithIntl(<ChapterModal {...defaultProps} />);
     const content = container.querySelector('[class*="overflow-y-auto"]');
     expect(content!.className).toContain("px-4");
     expect(content!.className).toContain("py-4");
@@ -76,7 +77,7 @@ describe("ChapterModal responsive layout", () => {
   });
 
   it("does not render when isOpen is false", () => {
-    const { container } = render(
+    const { container } = renderWithIntl(
       <ChapterModal {...defaultProps} isOpen={false} />,
     );
     expect(container.innerHTML).toBe("");

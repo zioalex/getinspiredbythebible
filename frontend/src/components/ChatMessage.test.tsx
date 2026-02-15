@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import ChatMessage from "./ChatMessage";
+import { renderWithIntl } from "@/test/i18n-helpers";
 
 // Mock react-markdown to avoid complex rendering
 vi.mock("react-markdown", () => ({
@@ -9,7 +10,7 @@ vi.mock("react-markdown", () => ({
 
 describe("ChatMessage responsive classes", () => {
   it("renders user message with responsive gap and avatar sizes", () => {
-    const { container } = render(
+    const { container } = renderWithIntl(
       <ChatMessage message={{ role: "user", content: "Hello" }} />,
     );
 
@@ -20,7 +21,9 @@ describe("ChatMessage responsive classes", () => {
   });
 
   it("renders user avatar with responsive size", () => {
-    render(<ChatMessage message={{ role: "user", content: "Hello" }} />);
+    renderWithIntl(
+      <ChatMessage message={{ role: "user", content: "Hello" }} />,
+    );
     const avatars = document.querySelectorAll('[class*="rounded-full"]');
     const userAvatar = avatars[0];
     expect(userAvatar.className).toContain("w-8");
@@ -30,7 +33,7 @@ describe("ChatMessage responsive classes", () => {
   });
 
   it("renders assistant avatar with responsive size", () => {
-    render(
+    renderWithIntl(
       <ChatMessage
         message={{ role: "assistant", content: "Peace be with you" }}
       />,
@@ -44,7 +47,7 @@ describe("ChatMessage responsive classes", () => {
   });
 
   it("renders message bubble with responsive max-width and padding", () => {
-    const { container } = render(
+    const { container } = renderWithIntl(
       <ChatMessage message={{ role: "user", content: "Hello" }} />,
     );
     const bubble = container.querySelector('[class*="rounded-2xl"]');
