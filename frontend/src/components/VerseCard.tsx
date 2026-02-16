@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
 interface VerseCardProps {
@@ -9,6 +10,7 @@ interface VerseCardProps {
 }
 
 export default function VerseCard({ verse, onClick }: VerseCardProps) {
+  const t = useTranslations("Verses");
   // Calculate relevance indicator color based on similarity
   const getRelevanceColor = (similarity?: number) => {
     if (!similarity) return "bg-gray-200";
@@ -62,7 +64,7 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
       {/* Footer */}
       {onClick && (
         <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-800">
-          <span>Read full chapter</span>
+          <span>{t("readFullChapter")}</span>
           <ExternalLink className="w-3 h-3" />
         </div>
       )}

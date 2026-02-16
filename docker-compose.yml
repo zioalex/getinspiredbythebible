@@ -89,6 +89,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next
     depends_on:
       - api
     command: npm run dev # Override for development mode
