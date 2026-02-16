@@ -16,6 +16,7 @@ from feedback.models import (
 )
 from scripture import get_db_session
 from utils.email_service import email_service
+from utils.turnstile import require_turnstile
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ async def get_feedback_repository(
     return FeedbackRepository(db)
 
 
-@router.post("", response_model=FeedbackResponse)
+@router.post("", response_model=FeedbackResponse, dependencies=[Depends(require_turnstile)])
 async def submit_feedback(
     request: FeedbackRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),
@@ -94,7 +95,7 @@ async def submit_feedback(
         ) from e
 
 
-@router.post("/contact", response_model=ContactResponse)
+@router.post("/contact", response_model=ContactResponse, dependencies=[Depends(require_turnstile)])
 async def submit_contact(
     request: ContactRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),

@@ -1,0 +1,108 @@
+{
+  "Metadata": {
+    "title": "Biblische Inspirations-Chat",
+    "description": "Finde geistliche Ermutigung und Führung durch die Heilige Schrift"
+  },
+  "Header": {
+    "title": "Biblische Inspiration",
+    "subtitle": "Finde Ermutigung in der Heiligen Schrift",
+    "bibleVersion": "Bibelversion:",
+    "autoDetect": "Automatisch erkennen",
+    "newChat": "Neuer Chat"
+  },
+  "Welcome": {
+    "heading": "Willkommen",
+    "description": "Teile mit, was dich bewegt, stelle Fragen zur Heiligen Schrift oder suche einfach Ermutigung. Ich kann dir helfen, theologische Themen zu erkunden, bin aber kein Ersatz für ausgebildete Theologen oder seelsorgerliche Begleitung.",
+    "prompt1": "Ich fühle mich ängstlich wegen der Zukunft",
+    "prompt2": "Was sagt die Bibel über Vergebung?",
+    "prompt3": "Ich brauche heute Ermutigung",
+    "prompt4": "Hilf mir, Johannes 3:16 zu verstehen"
+  },
+  "Chat": {
+    "inputPlaceholder": "Teile mit, was dich bewegt...",
+    "disclaimer": "KI-generierte Antworten können Fehler enthalten. Kein Ersatz für Theologie oder seelsorgerliche Beratung.",
+    "loadingWarmup": "Ich wärme mich auf. Einen Moment Geduld bitte...",
+    "loadingSearch": "Durchsuche die Heilige Schrift und reflektiere...",
+    "backendWarmingUp": "Der Server startet gerade, du kannst schon anfangen zu schreiben...",
+    "errorColdStart": "Ich wärme mich noch auf und es dauert länger als erwartet. Bitte versuche es gleich noch einmal – ich bin bald bereit!",
+    "errorConnection": "Es tut mir leid, ich habe gerade Verbindungsprobleme. Dies könnte ein vorübergehendes Problem sein – bitte versuche es gleich noch einmal. Wenn das Problem weiterhin besteht, erreichst du uns unter getinspiredbythebible@ai4you.sh"
+  },
+  "Verses": {
+    "scriptureReferences": "Bibelstellen",
+    "verseCount": "{count, plural, =1 {1 Vers} other {# Verse}}",
+    "referenced": "Zitiert",
+    "allRelated": "Alle verwandten ({count})",
+    "noVersesReferenced": "Noch keine Verse zitiert.",
+    "noVersesReferencedHint": "Verse erscheinen hier, wenn sie im Chat erwähnt werden.",
+    "readFullChapter": "Ganzes Kapitel lesen",
+    "showScriptureReferences": "Bibelstellen anzeigen",
+    "close": "Schließen"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, =1 {1 Vers} other {# Verse}}",
+    "defaultTranslation": "King James Version"
+  },
+  "Feedback": {
+    "wasHelpful": "War das hilfreich?",
+    "thumbsUp": "Daumen hoch",
+    "thumbsDown": "Daumen runter",
+    "helpfulTitle": "Das war hilfreich",
+    "improveTitle": "Das könnte verbessert werden",
+    "thanks": "Danke für dein Feedback!",
+    "positiveHeading": "Was war hilfreich?",
+    "negativeHeading": "Was könnte verbessert werden?",
+    "positiveDescription": "Dein Feedback hilft uns zu verstehen, was gut funktioniert.",
+    "negativeDescription": "Lass uns wissen, wie wir es besser machen können.",
+    "positivePlaceholder": "Die Versvorschläge waren relevant für meine Frage...",
+    "negativePlaceholder": "Die Antwort ist nicht auf mein konkretes Anliegen eingegangen...",
+    "privacyNotice": "Mit dem Absenden des Feedbacks werden deine Nachricht und die KI-Antwort protokolliert, um uns bei der Verbesserung des Dienstes zu helfen.",
+    "skip": "Überspringen",
+    "submit": "Feedback absenden",
+    "submitting": "Wird gesendet...",
+    "close": "Schließen",
+    "toastError": "Dein Feedback konnte gerade nicht gespeichert werden, aber danke für den Versuch!"
+  },
+  "ChurchFinder": {
+    "bannerText": "Suchst du eine Glaubensgemeinschaft?",
+    "findChurch": "Kirche finden",
+    "dismiss": "Schließen",
+    "inlineText": "Suchst du eine Gebetsgemeinschaft oder Kirche?",
+    "inlineCta": "Finde eine in deiner Nähe",
+    "modalTitle": "Kirche finden",
+    "modalSubtitle": "Verbinde dich mit einer Glaubensgemeinschaft in deiner Nähe",
+    "searchPlaceholder": "Stadt auf Englisch (z.B. Rome, Munich, Zurich)",
+    "searching": "Suche nach Kirchen...",
+    "errorSearch": "Kirchensuche fehlgeschlagen. Bitte versuche es erneut.",
+    "errorConnection": "Bitte überprüfe deine Verbindung und versuche es erneut.",
+    "foundCount": "{count, plural, =1 {1 Kirche gefunden} other {# Kirchen gefunden}}",
+    "noChurchesFound": "Keine Kirchen gefunden",
+    "noChurchesHint": "Versuche es mit einem anderen Ort oder einem breiteren Suchbegriff.",
+    "enterLocation": "Gib einen Ort ein, um zu suchen",
+    "enterLocationHint": "Verwende englische Städtenamen (z.B. Rome, Munich, Vienna)",
+    "website": "Webseite",
+    "email": "E-Mail",
+    "churchData": "Kirchendaten bereitgestellt von",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Contact": {
+    "getInTouch": "Kontakt",
+    "emailUs": "Schreib uns:",
+    "emailLabel": "Deine E-Mail (optional, für Antwort)",
+    "emailPlaceholder": "du@beispiel.de",
+    "subjectLabel": "Betreff",
+    "subjectSpiritual": "Möchtest du eine geistliche oder biblische Frage vertiefen?",
+    "subjectFeedback": "Allgemeines Feedback",
+    "subjectBug": "Fehlerbericht",
+    "subjectFeature": "Funktionswunsch",
+    "subjectOther": "Sonstiges",
+    "messageLabel": "Nachricht",
+    "messagePlaceholder": "Teile deine Gedanken mit, melde ein Problem oder schlage eine Verbesserung vor...",
+    "privacyNote": "Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.",
+    "sending": "Wird gesendet...",
+    "sendMessage": "Nachricht senden",
+    "successTitle": "Nachricht erfolgreich gesendet!",
+    "successDescription": "Danke für deine Nachricht. Wir werden sie bald prüfen.",
+    "sendAnother": "Weitere senden",
+    "errorSend": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut oder schreib uns direkt per E-Mail."
+  }
+}

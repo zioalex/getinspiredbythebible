@@ -178,6 +178,19 @@ locals {
       "SMTP2GO_SENDER_NAME" = {
         value = var.smtp2go_sender_name
       }
+    } : {},
+
+    # Cloudflare Turnstile bot protection
+    var.turnstile_enabled ? {
+      "TURNSTILE_ENABLED" = {
+        value = "true"
+      }
+      "TURNSTILE_SECRET_KEY" = {
+        secret_name = "turnstile-secret-key" # pragma: allowlist secret
+      }
+      "TURNSTILE_SITE_KEY" = {
+        value = var.turnstile_site_key
+      }
     } : {}
   )
 
@@ -432,6 +445,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "smtp2go-api-key"
       value = var.smtp2go_api_key
+    }
+  }
+
+  # Turnstile secret key (if bot protection enabled)
+  dynamic "secret" {
+    for_each = var.turnstile_enabled ? [1] : []
+    content {
+      name  = "turnstile-secret-key"
+      value = var.turnstile_secret_key
     }
   }
 
