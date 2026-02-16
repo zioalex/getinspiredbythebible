@@ -1,0 +1,172 @@
+# =============================================================================
+# Environment Variable Manifest
+# =============================================================================
+# Single source of truth for all environment variables.
+# Used by validate-env.py to ensure docker-compose and Terraform stay in sync.
+#
+# Fields:
+#   - required_in: where this variable must be set (local, remote, both)
+#   - condition: optional condition for when the variable is needed
+#   - default: default value in config.py (for documentation)
+#   - description: what this variable does
+# =============================================================================
+
+variables:
+  # ---------------------------------------------------------------------------
+  # Database
+  # ---------------------------------------------------------------------------
+  DATABASE_URL:
+    required_in: both
+    description: PostgreSQL connection string
+    default: null # Must be explicitly set
+
+  # ---------------------------------------------------------------------------
+  # LLM Provider Configuration
+  # ---------------------------------------------------------------------------
+  LLM_PROVIDER:
+    required_in: both
+    description: LLM provider (ollama, claude, openrouter)
+    default: ollama
+
+  # Ollama-specific (local only - remote uses OpenRouter/Claude)
+  LLM_MODEL:
+    required_in: local
+    condition: LLM_PROVIDER=ollama
+    description: Model name for Ollama provider
+    default: llama3:8b
+
+  OLLAMA_HOST:
+    required_in: local
+    condition: LLM_PROVIDER=ollama
+    description: Ollama server URL
+    default: http://localhost:11434
+
+  # Claude-specific
+  ANTHROPIC_API_KEY:
+    required_in: both
+    condition: LLM_PROVIDER=claude
+    description: Anthropic API key for Claude
+    sensitive: true
+
+  # OpenRouter-specific
+  OPENROUTER_API_KEY:
+    required_in: both
+    condition: LLM_PROVIDER=openrouter
+    description: OpenRouter API key
+    sensitive: true
+
+  OPENROUTER_MODEL:
+    required_in: both
+    condition: LLM_PROVIDER=openrouter
+    description: OpenRouter model name
+    default: meta-llama/llama-3.3-70b-instruct:free
+
+  OPENROUTER_BASE_URL:
+    required_in: both
+    condition: LLM_PROVIDER=openrouter
+    description: OpenRouter API base URL
+    default: https://openrouter.ai/api/v1
+
+  OPENROUTER_FALLBACK_MODELS:
+    required_in: both
+    condition: LLM_PROVIDER=openrouter
+    description: Comma-separated fallback models
+    default: meta-llama/llama-3.3-70b-instruct
+
+  OPENROUTER_ALLOW_FALLBACKS:
+    required_in: both
+    condition: LLM_PROVIDER=openrouter
+    description: Allow automatic fallback to paid models
+    default: "true"
+
+  # ---------------------------------------------------------------------------
+  # Embedding Configuration
+  # ---------------------------------------------------------------------------
+  EMBEDDING_PROVIDER:
+    required_in: both
+    description: Embedding provider (ollama for local, azure_openai for remote)
+    default: ollama
+
+  EMBEDDING_MODEL:
+    required_in: local
+    condition: EMBEDDING_PROVIDER=ollama
+    description: Ollama embedding model name
+    default: mxbai-embed-large
+
+  EMBEDDING_DIMENSIONS:
+    required_in: both
+    description: Vector dimensions (1024 for mxbai, 1536 for Azure)
+    default: "1024"
+
+  # Azure OpenAI (remote only)
+  AZURE_OPENAI_ENDPOINT:
+    required_in: both
+    condition: EMBEDDING_PROVIDER=azure_openai
+    description: Azure OpenAI endpoint URL
+
+  AZURE_OPENAI_API_KEY:
+    required_in: both
+    condition: EMBEDDING_PROVIDER=azure_openai
+    description: Azure OpenAI API key
+    sensitive: true
+
+  AZURE_EMBEDDING_DEPLOYMENT:
+    required_in: remote
+    condition: EMBEDDING_PROVIDER=azure_openai
+    description: Azure OpenAI embedding deployment name
+    default: text-embedding-3-small
+
+  # ---------------------------------------------------------------------------
+  # Security & Application Settings
+  # ---------------------------------------------------------------------------
+  DEBUG:
+    required_in: remote
+    description: Debug mode (should be false in production)
+    default: "false"
+
+  LOG_LEVEL:
+    required_in: remote
+    description: Logging level
+    default: INFO
+
+  RATE_LIMIT_ENABLED:
+    required_in: remote
+    description: Enable rate limiting
+    default: "true"
+
+  RATE_LIMIT_REQUESTS_PER_MINUTE:
+    required_in: remote
+    description: Max requests per IP per minute
+    default: "20"
+
+  CONTENT_FILTER_ENABLED:
+    required_in: remote
+    description: Enable content filtering
+    default: "true"
+
+  MAX_MESSAGE_LENGTH:
+    required_in: remote
+    description: Maximum chat message length
+    default: "200"
+
+  ENVIRONMENT:
+    required_in: remote
+    description: Deployment environment name
+    default: production
+
+  CORS_ORIGINS:
+    required_in: remote
+    description: Allowed CORS origins (comma-separated)
+
+  # ---------------------------------------------------------------------------
+  # Frontend
+  # ---------------------------------------------------------------------------
+  NEXT_PUBLIC_API_URL:
+    required_in: both
+    description: Backend API URL for frontend
+    default: http://localhost:8000
+
+  NODE_ENV:
+    required_in: remote
+    description: Node environment
+    default: production

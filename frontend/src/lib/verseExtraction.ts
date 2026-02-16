@@ -1,13 +1,17 @@
 /**
  * Extracts verse references from text
  * Matches formats like: "John 3:16", "1 John 2:3", "Song of Solomon 1:1", etc.
+ * Also supports localized formats: "Giovanni 3:16" (Italian), "1. Mose 1:1" (German)
  */
 export function extractVerseReferences(text: string): Set<string> {
-  // Pattern to match verse references
-  // Matches: "John 3:16", "1 John 2:3", "Psalms 143:4", "Song of Solomon 1:1", etc.
-  // More restrictive: numbered books or books with "of" can be multi-word, others single word
+  // Pattern to match verse references in multiple languages
+  // Supports:
+  // - English: "John 3:16", "1 John 2:3", "Song of Solomon 1:1"
+  // - Italian: "Giovanni 3:16", "Salmi 23:1"
+  // - German: "1. Mose 1:1", "Römer 8:28", "Johannes 3:16"
+  // Uses Unicode letter classes to match accented characters
   const versePattern =
-    /(?<![A-Za-z])((?:\d+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?|[A-Z][a-z]+(?:\s+of\s+[A-Z][a-z]+)+|[A-Z][a-z]+))\s+(\d+):(\d+)(?:-\d+)?/g;
+    /(?<![A-Za-zÀ-ÿ])((?:\d+\.?\s+[\p{L}][\p{L}]*(?:\s+[\p{L}][\p{L}]*)?|[\p{L}][\p{L}]*(?:\s+(?:of|dei|des|der)\s+[\p{L}][\p{L}]*)+|[\p{L}][\p{L}]*))\s+(\d+):(\d+)(?:-\d+)?/gu;
 
   const references = new Set<string>();
   const matches = Array.from(text.matchAll(versePattern));

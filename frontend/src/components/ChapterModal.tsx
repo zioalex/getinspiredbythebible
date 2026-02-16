@@ -2,27 +2,34 @@
 
 import { useEffect } from "react";
 import { X, BookOpen, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
 interface ChapterModalProps {
   isOpen: boolean;
   onClose: () => void;
   book: string;
+  localized_book?: string;
   chapter: number;
   verses: Verse[];
   highlightVerse?: number;
   isLoading?: boolean;
+  translationName?: string;
 }
 
 export default function ChapterModal({
   isOpen,
   onClose,
   book,
+  localized_book,
   chapter,
   verses,
   highlightVerse,
   isLoading = false,
+  translationName,
 }: ChapterModalProps) {
+  const t = useTranslations("ChapterModal");
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -61,17 +68,17 @@ export default function ChapterModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m-4">
+      <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen sm:max-h-[85vh] flex flex-col sm:m-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-primary-50/50">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 bg-primary-50/50">
           <div className="flex items-center gap-3">
-            <BookOpen className="w-7 h-7 text-primary-600" />
+            <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-primary-600" />
             <div>
-              <h2 className="text-2xl font-serif font-bold text-gray-800">
-                {book} {chapter}
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-800">
+                {localized_book ? localized_book : book} {chapter}
               </h2>
               <p className="text-sm text-gray-500">
-                {verses.length} verse{verses.length !== 1 ? "s" : ""}
+                {t("verseCount", { count: verses.length })}
               </p>
             </div>
           </div>
@@ -84,7 +91,7 @@ export default function ChapterModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -131,7 +138,7 @@ export default function ChapterModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            King James Version (KJV)
+            {translationName || t("defaultTranslation")}
           </p>
         </div>
       </div>

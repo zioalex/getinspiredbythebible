@@ -1,0 +1,22 @@
+# =============================================================================
+# Terraform Backend Configuration
+# =============================================================================
+# Copy this file to backend.hcl and fill in your values.
+# Do NOT commit backend.hcl to version control (it may contain secrets).
+#
+# Usage:
+#   cp backend.hcl.example backend.hcl
+#   # Edit backend.hcl with your values
+#   terraform init -backend-config=backend.hcl
+# =============================================================================
+
+storage_account_name = "bibleapptfstateXXXXXX"  # From setup script
+resource_group_name  = "bible-app-tfstate-rg"
+container_name       = "tfstate"
+key                  = "bible-app.tfstate"
+
+# Optional: Use SAS token instead of access key
+# sas_token = "?sv=2021-06-08&ss=..."
+
+# Optional: Use Azure AD authentication (recommended for CI/CD)
+# use_azuread_auth = true

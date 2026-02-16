@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Bible Inspiration Chat"
     app_version: str = "0.1.0"
-    debug: bool = True
+    debug: bool = False  # Set DEBUG=true in .env for development
 
     # LLM Configuration
     llm_provider: Literal["ollama", "claude", "openai", "openrouter"] = "ollama"
@@ -37,20 +37,80 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # Fallback models (comma-separated) - used when primary model is rate limited
+    # Default: paid version of llama-3.3-70b for when free tier hits limits
+    openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
+    # Allow automatic fallback to other providers/models
+    openrouter_allow_fallbacks: bool = True
 
     # Embedding Configuration
-    embedding_provider: Literal["ollama", "openai", "openrouter"] = "ollama"
+    embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
-    # Database
+    # Azure OpenAI Settings (optional - for Azure deployment)
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_embedding_deployment: str = "text-embedding-3-small"
+
+    # Database - MUST be configured via DATABASE_URL environment variable
+    # Default is a non-functional placeholder to prevent accidental use of hardcoded credentials
     database_url: str = (
-        "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
+        "postgresql://CONFIGURE_ME:CONFIGURE_ME@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+
+    # Email Settings (SMTP2GO HTTP API)
+    smtp2go_enabled: bool = False  # Set to True to enable email notifications
+    smtp2go_api_key: str | None = None  # SMTP2GO API key
+    smtp2go_sender_email: str = "noreply@ai4you.sh"
+    smtp2go_sender_name: str = "Bible Inspiration"
+    contact_notification_email: str = "getinspiredbythebible@ai4you.sh"
+
+    # CORS Settings
+    # Comma-separated list of allowed origins (in addition to localhost)
+    # Example: "https://myapp.azurecontainerapps.io,https://example.com"
+    cors_origins: str = ""
+
+    # Logging
+    log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+    # Health Checks
+    health_check_timeout: int = (
+        15  # Timeout for dependency checks in seconds (longer for free APIs)
+    )
+    memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
+
+    # Security Settings
+    max_message_length: int = 200  # Max characters per chat message
+    rate_limit_enabled: bool = True
+    rate_limit_requests_per_minute: int = 20  # Per IP address
+    rate_limit_requests_per_session_minute: int = 10  # Per session per minute
+    rate_limit_session_max_requests: int = 100  # Lifetime max per session
+    content_filter_enabled: bool = True
+    content_filter_block_profanity: bool = True
+    content_filter_block_spam: bool = True
+    content_filter_max_repeated_chars: int = 5  # Block excessive repeated chars
+    content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
+    content_filter_intent_detection: bool = True  # Pre-LLM intent classification
+    security_log_violations: bool = True  # Log security violations
+
+    # Cloudflare Turnstile (Bot Protection)
+    # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile
+    turnstile_enabled: bool = False  # Enable Turnstile verification
+    turnstile_secret_key: str | None = None  # Server-side secret key
+    turnstile_site_key: str | None = None  # Client-side site key (for /config endpoint)
+    # Skip verification for these paths (prefix match).
+    # Health probes, docs, and info endpoints don't go through the frontend
+    # Turnstile widget and must work without a token.
+    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/"
+    # Development: Use Cloudflare test keys for local testing
+    # Test secret: 1x0000000000000000000000000000000AA (always passes)
+    # Test secret: 2x0000000000000000000000000000000AA (always fails)
+    # Test secret: 3x0000000000000000000000000000000AA (forces interactive challenge)
 
     class Config:
         env_file = ".env"

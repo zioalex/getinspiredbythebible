@@ -5,6 +5,7 @@ Basic API tests for Bible Chat application
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 # Add parent directory to path to import main
@@ -15,13 +16,72 @@ from main import app
 client = TestClient(app)
 
 
-def test_health_endpoint():
-    """Test that health endpoint returns 200 and valid status"""
-    response = client.get("/health")
+@pytest.mark.skipif(
+    True,  # Skip in CI - these tests require populated database
+    reason="Requires database with loaded Bible data (integration test)",
+)
+def test_verse_endpoint_localized_book():
+    """Test that /verse endpoint returns localized_book for Italian and German translations"""
+    # Italian
+    response = client.get("/api/v1/scripture/verse/Genesis/1/1?translation=ita1927")
     assert response.status_code == 200
     data = response.json()
-    # Status can be "healthy" or "degraded" (when Ollama is unavailable in CI)
-    assert data["status"] in ["healthy", "degraded"]
+    assert "localized_book" in data
+    assert data["localized_book"] == "Genesi"
+    # German
+    response = client.get("/api/v1/scripture/verse/Genesis/1/1?translation=schlachter")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] in ["1. Mose", "Genesis"]  # Accept alternate spellings
+
+
+@pytest.mark.skipif(
+    True,  # Skip in CI - these tests require populated database
+    reason="Requires database with loaded Bible data (integration test)",
+)
+def test_chapter_endpoint_localized_book():
+    """Test that /chapter endpoint returns localized_book for Italian and German translations"""
+    # Italian
+    response = client.get("/api/v1/scripture/chapter/Genesis/1?translation=ita1927")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] == "Genesi"
+    # German
+    response = client.get("/api/v1/scripture/chapter/Genesis/1?translation=schlachter")
+    assert response.status_code == 200
+    data = response.json()
+    assert "localized_book" in data
+    assert data["localized_book"] in ["1. Mose", "Genesis"]
+
+
+def test_health_endpoint():
+    """Test that health endpoint returns valid status"""
+    response = client.get("/health")
+    # 200 for healthy/degraded, 503 for unhealthy (e.g., no DB in CI)
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert data["status"] in ["healthy", "degraded", "unhealthy"]
+    assert "components" in data
+    assert "memory" in data
+
+
+def test_health_live_endpoint():
+    """Test that liveness probe always returns 200"""
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "alive"
+
+
+def test_health_ready_endpoint():
+    """Test that readiness probe returns valid status"""
+    response = client.get("/health/ready")
+    # 200 if ready, 503 if not ready (e.g., no DB in CI)
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert "status" in data
 
 
 def test_config_endpoint():

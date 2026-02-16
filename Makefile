@@ -1,4 +1,7 @@
-.PHONY: help venv install-hooks setup-dev lint test format check-all clean
+.PHONY: help venv install-hooks setup-dev lint test format check-all clean \
+	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
+	validate-env validate-env-strict \
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -134,13 +137,23 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
-check-all: lint type-check security test ## Run all checks (pre-push validation)
+check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
 pre-commit: install-deps ## Run pre-commit on all files
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
+
+validate-env: install-deps ## Validate env vars between docker-compose and Terraform
+	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
+	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
+	@echo "$(GREEN)✓ Environment validation complete$(NC)"
+
+validate-env-strict: install-deps ## Validate env vars (strict mode - warnings are errors)
+	@echo "$(BLUE)Validating environment variables (strict mode)...$(NC)"
+	@$(CURDIR)/$(PYTHON) scripts/validate-env.py --strict
+	@echo "$(GREEN)✓ Environment validation complete$(NC)"
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
@@ -332,3 +345,388 @@ functional-test-dev: ## Run functional tests on dev environment
 		 ELSE '✗ ERROR: Mixed dimensions!' END FROM verses WHERE embedding IS NOT NULL;" \
 		2>/dev/null || echo "$(YELLOW)Database not accessible$(NC)"
 	@echo "$(GREEN)✓ Dev functional tests complete$(NC)"
+
+# ==================== Azure Production Build Commands ====================
+
+# Get git SHA for image tagging (short 7-char version)
+GIT_SHA := $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo "latest")
+
+docker-build-prod: docker-build-prod-backend docker-build-prod-frontend ## Build and push all images to ACR (tagged with git SHA)
+	@echo "$(GREEN)✓ All production images built and pushed with tag: $(GIT_SHA)$(NC)"
+
+docker-build-prod-backend: ## Build and push backend image to ACR (tagged with git SHA)
+	@echo "$(BLUE)Building and pushing backend to ACR (tag: $(GIT_SHA))...$(NC)"
+	@if [ ! -f .env.production ]; then \
+		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
+		exit 1; \
+	fi
+	@source .env.production && az acr login --name $$ACR_NAME && \
+	docker build -t $$ACR_NAME.azurecr.io/bible-backend:$(GIT_SHA) \
+		-t $$ACR_NAME.azurecr.io/bible-backend:latest ./api && \
+	docker push $$ACR_NAME.azurecr.io/bible-backend:$(GIT_SHA) && \
+	docker push $$ACR_NAME.azurecr.io/bible-backend:latest
+	@echo "$(GREEN)✓ Backend image pushed to ACR ($(GIT_SHA))$(NC)"
+
+docker-build-prod-frontend: ## Build and push frontend image to ACR (tagged with git SHA)
+	@echo "$(BLUE)Building and pushing frontend to ACR (tag: $(GIT_SHA))...$(NC)"
+	@if [ ! -f .env.production ]; then \
+		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
+		exit 1; \
+	fi
+	@source .env.production && az acr login --name $$ACR_NAME && \
+	docker build --no-cache -t $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) \
+		-t $$ACR_NAME.azurecr.io/bible-frontend:latest \
+		--target production \
+		--build-arg NEXT_PUBLIC_API_URL=$$NEXT_PUBLIC_API_URL ./frontend && \
+	docker push $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) && \
+	docker push $$ACR_NAME.azurecr.io/bible-frontend:latest
+	@$(MAKE) docker-verify-frontend
+	@echo "$(GREEN)✓ Frontend image pushed to ACR ($(GIT_SHA))$(NC)"
+
+docker-verify-frontend: ## Verify frontend image has correct API URL baked in
+	@echo "$(BLUE)Verifying frontend image configuration...$(NC)"
+	@source .env.production && \
+	IMAGE="$$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA)" && \
+	echo "$(YELLOW)Checking image: $$IMAGE$(NC)" && \
+	if docker run --rm $$IMAGE sh -c "grep -r 'localhost:8000' .next/ 2>/dev/null" | head -1 | grep -q .; then \
+		echo "$(YELLOW)ERROR: localhost:8000 found in image - NEXT_PUBLIC_API_URL not applied!$(NC)"; \
+		exit 1; \
+	else \
+		echo "$(GREEN)✓ No localhost:8000 found in image$(NC)"; \
+	fi && \
+	if docker run --rm $$IMAGE sh -c "grep -r '$$NEXT_PUBLIC_API_URL' .next/ 2>/dev/null" | head -1 | grep -q .; then \
+		echo "$(GREEN)✓ Correct API URL found: $$NEXT_PUBLIC_API_URL$(NC)"; \
+	else \
+		echo "$(YELLOW)Warning: Could not verify API URL (may be minified)$(NC)"; \
+	fi
+
+docker-update-tfvars: ## Update terraform.tfvars with current git SHA image tags
+	@echo "$(BLUE)Updating terraform.tfvars with image tag: $(GIT_SHA)...$(NC)"
+	@source .env.production && \
+	sed -i 's|backend_image  = ".*"|backend_image  = "'$$ACR_NAME'.azurecr.io/bible-backend:$(GIT_SHA)"|' $(TF_DIR)/terraform.tfvars && \
+	sed -i 's|frontend_image = ".*"|frontend_image = "'$$ACR_NAME'.azurecr.io/bible-frontend:$(GIT_SHA)"|' $(TF_DIR)/terraform.tfvars
+	@echo "$(GREEN)✓ terraform.tfvars updated with tag: $(GIT_SHA)$(NC)"
+	@grep -E "^(backend|frontend)_image" $(TF_DIR)/terraform.tfvars
+
+docker-deploy-prod: ## Deploy images to Azure Container Apps via Terraform
+	@echo "$(BLUE)Deploying to Azure Container Apps via Terraform...$(NC)"
+	@$(MAKE) docker-update-tfvars
+	@$(MAKE) tf-apply-auto
+	@echo "$(GREEN)✓ Deployment complete (tag: $(GIT_SHA))$(NC)"
+
+docker-deploy-prod-quick: ## Deploy images directly via az CLI (faster, no Terraform)
+	@echo "$(BLUE)Deploying to Azure Container Apps (quick mode)...$(NC)"
+	@source .env.production && \
+	az containerapp update \
+		--name bible-app-backend \
+		--resource-group bible-app-rg \
+		--image $$ACR_NAME.azurecr.io/bible-backend:$(GIT_SHA) && \
+	az containerapp update \
+		--name bible-app-frontend \
+		--resource-group bible-app-rg \
+		--image $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA)
+	@echo "$(GREEN)✓ Deployment complete (tag: $(GIT_SHA))$(NC)"
+
+docker-build-deploy-prod: docker-build-prod docker-deploy-prod ## Build, push, and deploy all images
+	@echo "$(GREEN)✓ Full production deployment complete (tag: $(GIT_SHA))$(NC)"
+
+docker-get-backend-url: ## Get the backend URL from Azure
+	@az containerapp show \
+		--name bible-app-backend \
+		--resource-group bible-app-rg \
+		--query "properties.configuration.ingress.fqdn" -o tsv | \
+		xargs -I {} echo "https://{}"
+
+update-env-backend-url: ## Update .env.production with current Azure backend URL
+	@./scripts/update-env-backend-url.sh
+
+# ==================== Azure ACR Image Management ====================
+
+# Resource suffix (same as used for PostgreSQL and other Azure resources)
+RESOURCE_SUFFIX := mb0172
+
+# ACR name built from suffix
+ACR_NAME := bibleappacr$(RESOURCE_SUFFIX)
+
+az-acr-list-images: ## List all image tags with creation dates from ACR
+	@echo "$(BLUE)Listing images in ACR...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend Images (bible-backend) ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-backend \
+		--orderby time_desc \
+		--detail \
+		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No backend images found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Frontend Images (bible-frontend) ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-frontend \
+		--orderby time_desc \
+		--detail \
+		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No frontend images found$(NC)"
+
+az-acr-list-tags: ## List image tags for backend and frontend (quick view)
+	@echo "$(BLUE)Listing image tags in ACR...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend Tags ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-backend \
+		--orderby time_desc \
+		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Frontend Tags ===$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository bible-frontend \
+		--orderby time_desc \
+		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
+
+az-deployed-images: ## Show currently deployed images with digest info
+	@echo "$(BLUE)Checking deployed images in Azure Container Apps...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)=== Backend ($(CA_BACKEND)) ===$(NC)"
+	@BACKEND_IMAGE=$$(az containerapp show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+	if [ -n "$$BACKEND_IMAGE" ]; then \
+		echo "  Image: $$BACKEND_IMAGE"; \
+		TAG=$$(echo "$$BACKEND_IMAGE" | sed 's/.*://'); \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-backend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
+	else \
+		echo "  $(YELLOW)Could not retrieve backend image$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)=== Frontend ($(CA_FRONTEND)) ===$(NC)"
+	@FRONTEND_IMAGE=$$(az containerapp show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+	if [ -n "$$FRONTEND_IMAGE" ]; then \
+		echo "  Image: $$FRONTEND_IMAGE"; \
+		TAG=$$(echo "$$FRONTEND_IMAGE" | sed 's/.*://'); \
+		echo "  $(YELLOW)Resolving digest for tag '$$TAG'...$(NC)"; \
+		az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository bible-frontend \
+			--detail \
+			--query "[?name=='$$TAG'].{Tag: name, Digest: digest, Created: createdTime}" \
+			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
+	else \
+		echo "  $(YELLOW)Could not retrieve frontend image$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✓ Deployment check complete$(NC)"
+
+az-image-info: ## Show detailed info for a specific image (usage: make az-image-info REPO=bible-backend TAG=latest)
+	@if [ -z "$(REPO)" ] || [ -z "$(TAG)" ]; then \
+		echo "$(YELLOW)Usage: make az-image-info REPO=bible-backend TAG=abc1234$(NC)"; \
+		echo "$(YELLOW)  REPO: bible-backend or bible-frontend$(NC)"; \
+		echo "$(YELLOW)  TAG: image tag (e.g., latest, abc1234, full SHA)$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Getting info for $(REPO):$(TAG)...$(NC)"
+	@az acr repository show-tags \
+		--name $(ACR_NAME) \
+		--repository $(REPO) \
+		--detail \
+		--query "[?name=='$(TAG)']" \
+		--output yaml 2>/dev/null || echo "$(YELLOW)Image not found$(NC)"
+
+# ==================== Azure PostgreSQL Commands ====================
+
+# PostgreSQL server name (using shared RESOURCE_SUFFIX)
+PG_SERVER := bible-app-db-$(RESOURCE_SUFFIX)
+PG_RG := bible-app-rg
+
+az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
+	@echo "$(BLUE)Adding your IP to PostgreSQL firewall...$(NC)"
+	@MY_IP=$$(curl -4 -s ifconfig.me) && \
+	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
+	az postgres flexible-server firewall-rule create \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--rule-name "allow-my-ip-$$(date +%Y%m%d%H%M%S)" \
+		--start-ip-address $$MY_IP \
+		--end-ip-address $$MY_IP && \
+	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP$(NC)"
+
+az-pg-list-rules: ## List PostgreSQL firewall rules
+	@echo "$(BLUE)Listing PostgreSQL firewall rules...$(NC)"
+	@az postgres flexible-server firewall-rule list \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--output table
+
+az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name)
+	@if [ -z "$(RULE)" ]; then \
+		echo "$(YELLOW)Usage: make az-pg-remove-ip RULE=rule-name$(NC)"; \
+		echo "$(YELLOW)Run 'make az-pg-list-rules' to see existing rules$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Removing firewall rule: $(RULE)...$(NC)"
+	@az postgres flexible-server firewall-rule delete \
+		--resource-group $(PG_RG) \
+		--name $(PG_SERVER) \
+		--rule-name $(RULE) \
+		--yes && \
+	echo "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
+
+# ==================== Azure Container Apps Logs ====================
+
+# Container Apps names
+CA_BACKEND := bible-app-backend
+CA_FRONTEND := bible-app-frontend
+CA_RG := bible-app-rg
+
+az-logs-backend: ## Tail backend container app logs
+	@echo "$(BLUE)Streaming backend logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--type console \
+		--follow
+
+az-logs-frontend: ## Tail frontend container app logs
+	@echo "$(BLUE)Streaming frontend logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--type console \
+		--follow
+
+az-logs-backend-system: ## Tail backend system logs (startup, scaling events)
+	@echo "$(BLUE)Streaming backend system logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--type system \
+		--follow
+
+az-logs-frontend-system: ## Tail frontend system logs (startup, scaling events)
+	@echo "$(BLUE)Streaming frontend system logs (Ctrl+C to stop)...$(NC)"
+	@az containerapp logs show \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
+		--type system \
+		--follow
+
+# ==================== Terraform Commands ====================
+
+TF_DIR := deployment
+TF_VARS := -var-file="terraform.tfvars"
+TF_SECRETS := -var-file="terraform.tfvars.secrets"
+
+tf-check-version: ## Check if local Terraform version matches pipeline version
+	@echo "$(BLUE)Checking Terraform version consistency...$(NC)"
+	@PIPELINE_VERSION=$$(grep 'TF_VERSION:' .github/workflows/azure-deploy.yml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
+	LOCAL_VERSION=$$(terraform version | head -1 | sed 's/Terraform v//'); \
+	echo "  Pipeline version: $$PIPELINE_VERSION"; \
+	echo "  Local version:    $$LOCAL_VERSION"; \
+	if [ "$$PIPELINE_VERSION" != "$$LOCAL_VERSION" ]; then \
+		echo ""; \
+		echo "$(YELLOW)⚠ WARNING: Version mismatch!$(NC)"; \
+		echo "$(YELLOW)  Pipeline uses Terraform $$PIPELINE_VERSION$(NC)"; \
+		echo "$(YELLOW)  You have Terraform $$LOCAL_VERSION$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)  This may cause state file compatibility issues.$(NC)"; \
+		echo "$(YELLOW)  Consider installing Terraform $$PIPELINE_VERSION or updating the pipeline.$(NC)"; \
+	else \
+		echo "$(GREEN)✓ Terraform versions match$(NC)"; \
+	fi
+
+tf-init: tf-check-version ## Initialize Terraform
+	@echo "$(BLUE)Initializing Terraform...$(NC)"
+	@if [ -f "$(TF_DIR)/backend.hcl" ]; then \
+		echo "$(YELLOW)Using backend.hcl for backend configuration$(NC)"; \
+		cd $(TF_DIR) && terraform init -backend-config=backend.hcl; \
+	else \
+		echo "$(YELLOW)Detecting storage account from Azure...$(NC)"; \
+		STORAGE_ACCOUNT=$$(az storage account list --resource-group bible-app-tfstate-rg --query "[0].name" -o tsv 2>/dev/null); \
+		if [ -n "$$STORAGE_ACCOUNT" ]; then \
+			echo "$(YELLOW)Found storage account: $$STORAGE_ACCOUNT$(NC)"; \
+			cd $(TF_DIR) && terraform init \
+				-backend-config="storage_account_name=$$STORAGE_ACCOUNT" \
+				-backend-config="resource_group_name=bible-app-tfstate-rg" \
+				-backend-config="container_name=tfstate" \
+				-backend-config="key=bible-app.tfstate"; \
+		else \
+			echo "$(YELLOW)Error: Could not find storage account. Create backend.hcl or ensure Azure CLI is logged in$(NC)"; \
+			exit 1; \
+		fi; \
+	fi
+	@echo "$(GREEN)✓ Terraform initialized$(NC)"
+
+tf-plan: ## Run Terraform plan (preview changes)
+	@echo "$(BLUE)Running Terraform plan...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Warning: terraform.tfvars.secrets not found$(NC)"; \
+		echo "$(YELLOW)Copy terraform.tfvars.secrets.example and fill in your secrets$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform plan $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform plan complete$(NC)"
+
+tf-apply: ## Apply Terraform changes
+	@echo "$(BLUE)Applying Terraform changes...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform apply $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform apply complete$(NC)"
+
+tf-apply-auto: ## Apply Terraform changes (auto-approve)
+	@echo "$(BLUE)Applying Terraform changes (auto-approve)...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform apply $(TF_VARS) $(TF_SECRETS) -auto-approve
+	@echo "$(GREEN)✓ Terraform apply complete$(NC)"
+
+tf-destroy: ## Destroy Terraform infrastructure
+	@echo "$(YELLOW)WARNING: This will destroy all infrastructure!$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform destroy $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform destroy complete$(NC)"
+
+tf-fmt: ## Format Terraform files
+	@echo "$(BLUE)Formatting Terraform files...$(NC)"
+	@cd $(TF_DIR) && terraform fmt -recursive
+	@echo "$(GREEN)✓ Terraform files formatted$(NC)"
+
+tf-validate: ## Validate Terraform configuration
+	@echo "$(BLUE)Validating Terraform configuration...$(NC)"
+	@cd $(TF_DIR) && terraform init -backend=false -upgrade > /dev/null 2>&1
+	@cd $(TF_DIR) && terraform validate
+	@echo "$(GREEN)✓ Terraform configuration valid$(NC)"
+
+tf-output: ## Show Terraform outputs
+	@echo "$(BLUE)Terraform outputs:$(NC)"
+	@cd $(TF_DIR) && terraform output
+
+tf-refresh: ## Refresh Terraform state
+	@echo "$(BLUE)Refreshing Terraform state...$(NC)"
+	@if [ ! -f "$(TF_DIR)/terraform.tfvars.secrets" ]; then \
+		echo "$(YELLOW)Error: terraform.tfvars.secrets not found$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(TF_DIR) && terraform refresh $(TF_VARS) $(TF_SECRETS)
+	@echo "$(GREEN)✓ Terraform state refreshed$(NC)"
+
+tf-state-list: ## List resources in Terraform state
+	@echo "$(BLUE)Resources in Terraform state:$(NC)"
+	@cd $(TF_DIR) && terraform state list
