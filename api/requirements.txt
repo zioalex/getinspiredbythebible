@@ -18,7 +18,7 @@ aiohttp==3.13.3
 anthropic==0.79.0
 
 # OpenAI (for OpenRouter provider - optional)
-openai==1.59.7
+openai==1.109.1
 
 # Azure Monitor (Application Insights via OpenTelemetry)
 azure-monitor-opentelemetry==1.6.4
