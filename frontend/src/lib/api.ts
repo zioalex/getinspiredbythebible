@@ -2,7 +2,99 @@
  * API client for Bible Chat backend
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// In production builds, NEXT_PUBLIC_API_URL must be set at build time.
+// The fallback is only for local development.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+// Validate API URL in production (this check is tree-shaken in dev builds)
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL === "http://localhost:8000")
+) {
+  console.error(
+    "WARNING: NEXT_PUBLIC_API_URL is not set or is set to localhost in production build",
+  );
+}
+
+/**
+ * Error thrown when the backend is warming up (cold start)
+ */
+export class ColdStartError extends Error {
+  constructor(message: string = "Backend is warming up") {
+    super(message);
+    this.name = "ColdStartError";
+  }
+}
+
+/**
+ * Check if the backend is ready
+ */
+export async function checkBackendReady(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(`${API_URL}/health/ready`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Turnstile token for bot protection
+let turnstileToken: string | null = null;
+let onTokenConsumed: (() => void) | null = null;
+
+/**
+ * Set the Turnstile token for API requests
+ */
+export function setTurnstileToken(token: string | null): void {
+  turnstileToken = token;
+}
+
+/**
+ * Register a callback that fires after a token is used in an API request.
+ * This allows the Turnstile widget to refresh and generate a new token.
+ */
+export function setOnTokenConsumed(callback: (() => void) | null): void {
+  onTokenConsumed = callback;
+}
+
+/**
+ * Consume the current token (use it once then trigger refresh).
+ * Turnstile tokens are single-use — Cloudflare rejects reused tokens
+ * with "timeout-or-duplicate".
+ */
+function consumeToken(): void {
+  if (turnstileToken) {
+    turnstileToken = null;
+    onTokenConsumed?.();
+  }
+}
+
+/**
+ * Get headers with optional Turnstile token
+ */
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (turnstileToken) {
+    headers["X-Turnstile-Token"] = turnstileToken;
+  }
+  return headers;
+}
+
+/**
+ * Generate a unique session ID for tracking user interactions
+ */
+export function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
 
 export interface Message {
   role: "user" | "assistant";
@@ -13,6 +105,7 @@ export interface Verse {
   reference: string;
   text: string;
   book: string;
+  localized_book?: string;
   chapter: number;
   verse: number;
   translation?: string;
@@ -33,11 +126,55 @@ export interface ScriptureContext {
   passages: Passage[];
 }
 
+export interface TranslationInfo {
+  code: string;
+  name: string;
+  short_name: string;
+  language: string;
+  language_code: string;
+}
+
 export interface ChatResponse {
+  message_id: string;
   message: string;
   scripture_context?: ScriptureContext;
   provider: string;
   model: string;
+  detected_translation?: string;
+  translation_info?: TranslationInfo;
+}
+
+export interface FeedbackRequest {
+  message_id: string;
+  rating: "positive" | "negative";
+  comment?: string;
+  user_message: string;
+  assistant_response: string;
+  verses_cited?: string[];
+  model_used?: string;
+  response_time_ms?: number;
+  session_id?: string;
+}
+
+export interface FeedbackResponse {
+  id: number;
+  message_id: string;
+  rating: string;
+  created_at: string;
+}
+
+export interface ContactRequest {
+  email?: string;
+  subject: "spiritual" | "bug" | "feature" | "feedback" | "other";
+  message: string;
+  session_id?: string;
+  user_agent?: string;
+}
+
+export interface ContactResponse {
+  id: number;
+  subject: string;
+  created_at: string;
 }
 
 export interface HealthStatus {
@@ -48,30 +185,107 @@ export interface HealthStatus {
   };
 }
 
+export interface Church {
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface ChurchSearchResponse {
+  churches: Church[];
+  total: number;
+  location: string;
+}
+
+/**
+ * Pre-warm the backend by polling /health/ready.
+ * Calls onReady when the backend responds, or onWaiting on first failed check.
+ */
+export async function warmupBackend(
+  onReady: () => void,
+  onWaiting?: () => void,
+  maxWaitMs: number = 60000,
+): Promise<void> {
+  const start = Date.now();
+  const interval = 3000;
+
+  const ready = await checkBackendReady();
+  if (ready) {
+    onReady();
+    return;
+  }
+
+  onWaiting?.();
+
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, interval));
+    if (await checkBackendReady()) {
+      onReady();
+      return;
+    }
+  }
+}
+
 /**
  * Send a chat message and get a response
  */
 export async function sendMessage(
   message: string,
   history: Message[] = [],
+  preferredTranslation?: string,
+  sessionId?: string,
+  timeoutMs: number = 30000,
 ): Promise<ChatResponse> {
-  const response = await fetch(`${API_URL}/api/v1/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message,
-      conversation_history: history,
-      include_search: true,
-    }),
-  });
+  try {
+    // Set a timeout for cold start detection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const headers = getHeaders();
+    consumeToken();
+
+    const response = await fetch(`${API_URL}/api/v1/chat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        message,
+        conversation_history: history,
+        include_search: true,
+        preferred_translation: preferredTranslation,
+        session_id: sessionId,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // 503 Service Unavailable often indicates cold start
+      if (response.status === 503 || response.status === 502) {
+        throw new ColdStartError("Backend is starting up");
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Network errors or timeouts during cold start
+    if (error instanceof ColdStartError) {
+      throw error;
+    }
+    if (
+      error instanceof TypeError ||
+      (error instanceof DOMException && error.name === "AbortError")
+    ) {
+      throw new ColdStartError("Backend is warming up, please wait...");
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
@@ -81,11 +295,12 @@ export async function* streamMessage(
   message: string,
   history: Message[] = [],
 ): AsyncGenerator<string> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       message,
       conversation_history: history,
@@ -139,7 +354,12 @@ export async function searchScripture(
     max_verses: maxVerses.toString(),
   });
 
-  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`);
+  const headers = getHeaders();
+  consumeToken();
+
+  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`, {
+    headers,
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
@@ -156,8 +376,12 @@ export async function getVerse(
   chapter: number,
   verse: number,
 ): Promise<Verse> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(
     `${API_URL}/api/v1/scripture/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers },
   );
 
   if (!response.ok) {
@@ -173,9 +397,24 @@ export async function getVerse(
 export async function getChapter(
   book: string,
   chapter: number,
-): Promise<{ book: string; chapter: number; verses: Verse[] }> {
+  translation?: string,
+): Promise<{
+  book: string;
+  localized_book?: string;
+  chapter: number;
+  verses: Verse[];
+  translation?: string;
+  translation_name?: string;
+}> {
+  const params = translation
+    ? `?translation=${encodeURIComponent(translation)}`
+    : "";
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(
-    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}`,
+    `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
+    { headers },
   );
 
   if (!response.ok) {
@@ -195,6 +434,7 @@ export async function getVerseContext(
 ): Promise<{ target_verse: number; verses: Verse[] }> {
   const response = await fetch(
     `${API_URL}/api/v1/chat/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers: { "Content-Type": "application/json" } },
   );
 
   if (!response.ok) {
@@ -209,6 +449,88 @@ export async function getVerseContext(
  */
 export async function checkHealth(): Promise<HealthStatus> {
   const response = await fetch(`${API_URL}/health`);
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get available translations
+ */
+export async function getTranslations(): Promise<TranslationInfo[]> {
+  const response = await fetch(`${API_URL}/api/v1/scripture/translations`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.translations;
+}
+
+/**
+ * Search for churches near a location
+ */
+export async function searchChurches(
+  location: string,
+): Promise<ChurchSearchResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
+  const response = await fetch(`${API_URL}/api/v1/church/search`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ location }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Submit feedback for a chat message (thumbs up/down)
+ */
+export async function submitFeedback(
+  feedback: FeedbackRequest,
+): Promise<FeedbackResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
+  const response = await fetch(`${API_URL}/api/v1/feedback`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(feedback),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Submit a contact form message
+ */
+export async function submitContactForm(
+  contact: ContactRequest,
+): Promise<ContactResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
+  const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(contact),
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);

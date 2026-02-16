@@ -1,0 +1,1035 @@
+# =============================================================================
+# GitHub Actions CI/CD Pipeline for Azure Container Apps
+# =============================================================================
+# This workflow builds, plans, and deploys the Bible Chat Application to Azure
+# using Terraform. It consolidates build/deploy and infrastructure management
+# into a single workflow.
+#
+# Triggers:
+#   - workflow_run: After tests pass on main (build + plan + deploy)
+#   - pull_request: Build validation + Terraform plan (no deploy)
+#   - workflow_dispatch: Manual deploy, plan-only, or destroy
+#
+# Required secrets:
+#   ARM_CLIENT_ID          - Azure Service Principal Client ID
+#   ARM_CLIENT_SECRET      - Azure Service Principal Client Secret
+#   ARM_SUBSCRIPTION_ID    - Azure Subscription ID
+#   ARM_TENANT_ID          - Azure Tenant ID
+#   TF_STORAGE_ACCOUNT     - Storage account name for Terraform state
+#
+# Optional secrets (for deployment):
+#   TF_VAR_DB_ADMIN_PASSWORD    - Database admin password
+#   TF_VAR_OPENROUTER_API_KEY   - OpenRouter API key
+#   TF_VAR_CLAUDE_API_KEY       - Claude API key
+#   TF_VAR_SMTP2GO_API_KEY      - SMTP2GO API key
+#   TF_VAR_TURNSTILE_SECRET_KEY - Cloudflare Turnstile server-side secret
+#   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate
+#   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Certificate password
+#
+# For database seeding (optional):
+#   TF_VAR_DB_ADMIN_USERNAME - e.g., bibleadmin
+#   TF_VAR_DB_NAME           - e.g., bibleapp
+#   AZURE_OPENAI_ENDPOINT    - e.g., https://your-resource.openai.azure.com/
+#   AZURE_OPENAI_API_KEY     - Azure OpenAI API key
+# =============================================================================
+
+name: Build and Deploy to Azure
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_run:
+    workflows: ["CI/CD - Test Application"]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "deployment/**"
+      - ".github/workflows/azure-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "deploy"
+        type: choice
+        options:
+          - deploy
+          - plan
+          - destroy
+      deploy_component:
+        description: "Component to deploy"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - backend
+          - frontend
+      skip_build:
+        description: "Skip build and deploy existing images"
+        required: false
+        default: false
+        type: boolean
+      image_tag:
+        description: "Image tag to deploy (commit SHA). Leave empty for current commit."
+        required: false
+        type: string
+      skip_database_seed:
+        description: "Skip database seeding"
+        required: false
+        default: true
+        type: boolean
+      force_database_seed:
+        description: "Force reload Bible data even if already loaded"
+        required: false
+        default: false
+        type: boolean
+      bible_translation:
+        description: "Specific translation to load (e.g., 'kjv', 'ita1927'). Leave empty for all."
+        required: false
+        type: string
+      skip_embeddings:
+        description: "Skip embedding generation (requires Azure OpenAI)"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  # Normalize commit SHA: workflow_run events use the triggering commit,
+  # not the latest default-branch commit
+  DEPLOY_SHA: >-
+    ${{ github.event_name == 'workflow_run'
+        && github.event.workflow_run.head_sha
+        || github.sha }}
+  TF_VERSION: "1.6.0"
+  TF_WORKING_DIR: "./deployment"
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+  ACR_NAME: bibleappacrmb0172
+  RESOURCE_GROUP: bible-app-rg
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect Changes
+  # ---------------------------------------------------------------------------
+  changes:
+    # Skip entirely when the test workflow failed (gates deploy on test success)
+    if: >-
+      github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+      deployment: ${{ steps.filter.outputs.deployment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 2
+      - name: Resolve base commit
+        id: base
+        run: echo "sha=$(git rev-parse HEAD~1)" >> "$GITHUB_OUTPUT"
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ steps.base.outputs.sha }}
+          filters: |
+            backend:
+              - 'api/**'
+            frontend:
+              - 'frontend/**'
+            scripts:
+              - 'scripts/**'
+            deployment:
+              - 'deployment/**'
+
+  # ---------------------------------------------------------------------------
+  # Build and Push Backend
+  # ---------------------------------------------------------------------------
+  build-backend:
+    needs: changes
+    # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
+    if: |
+      github.actor != 'dependabot[bot]' && (
+        (github.event_name != 'workflow_dispatch' && needs.changes.outputs.backend == 'true') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.action == 'deploy' &&
+         inputs.skip_build != true &&
+         (inputs.deploy_component == 'both' || inputs.deploy_component == 'backend'))
+      )
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ACR_NAME }}.azurecr.io/bible-backend
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Build and Push Frontend
+  # ---------------------------------------------------------------------------
+  build-frontend:
+    needs: changes
+    # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
+    if: |
+      github.actor != 'dependabot[bot]' && (
+        (github.event_name != 'workflow_dispatch' && needs.changes.outputs.frontend == 'true') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.action == 'deploy' &&
+         inputs.skip_build != true &&
+         (inputs.deploy_component == 'both' || inputs.deploy_component == 'frontend'))
+      )
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ACR_NAME }}.azurecr.io/bible-frontend
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          # Get the backend URL from Azure Container Apps
+          # IMPORTANT: No fallback - fail fast if backend URL can't be fetched
+          BACKEND_FQDN=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          if [ -z "$BACKEND_FQDN" ]; then
+            echo "::error::Failed to get backend URL from Azure Container Apps"
+            echo "::error::Check RESOURCE_GROUP and BACKEND_APP_NAME are correct"
+            exit 1
+          fi
+
+          BACKEND_URL="https://$BACKEND_FQDN"
+
+          # VALIDATE: Actually test that this URL is a backend, not frontend
+          echo "Validating backend URL responds correctly..."
+          HEALTH_RESPONSE=$(curl -sf "$BACKEND_URL/health/live" 2>/dev/null || echo "")
+          if [ -z "$HEALTH_RESPONSE" ]; then
+            echo "::error::Backend URL does not respond to /health/live"
+            echo "::error::URL: $BACKEND_URL"
+            exit 1
+          fi
+
+          # Check it returns expected backend response (not frontend HTML)
+          if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
+            echo "✅ Backend health check passed"
+          else
+            echo "::error::Backend URL returned unexpected response (possibly frontend?)"
+            echo "::error::Response: $HEALTH_RESPONSE"
+            exit 1
+          fi
+
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "✅ Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          target: production
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
+
+      - name: Verify API URL in image
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Verifying NEXT_PUBLIC_API_URL is correctly baked into the image..."
+          IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ env.DEPLOY_SHA }}"
+          EXPECTED_URL="${{ steps.backend-url.outputs.url }}"
+
+          docker pull "$IMAGE"
+
+          # Primary check: verify the CORRECT URL is present in the compiled JS
+          # This is more reliable than checking for absence of localhost
+          echo "Checking for expected API URL: $EXPECTED_URL"
+          if docker run --rm "$IMAGE" sh -c "grep -r '$EXPECTED_URL' .next/ 2>/dev/null | head -3"; then
+            echo "✅ Correct API URL found in image: $EXPECTED_URL"
+          else
+            echo "::error::ERROR: Expected API URL not found in image. Build arg may not have been applied."
+            echo "::error::Expected: $EXPECTED_URL"
+            # Show what URLs are in the image for debugging
+            echo "URLs found in .next/ directory:"
+            docker run --rm "$IMAGE" sh -c \
+              "grep -roh 'http[s]*://[^\"'\'']*' .next/ 2>/dev/null | sort -u | head -20" || true
+            exit 1
+          fi
+
+          # Secondary check: warn if localhost:8000 is found in main JS files (not source maps)
+          # This is a warning, not a failure, since dead code paths may contain the fallback
+          if docker run --rm "$IMAGE" sh -c \
+            "grep -r 'localhost:8000' .next/server/ .next/static/ 2>/dev/null --include='*.js' | grep -v '.map'" \
+            | head -1; then
+            echo "::warning::localhost:8000 found in compiled JS. This may be dead code or fallback string."
+          else
+            echo "✅ No localhost:8000 found in compiled JavaScript"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Terraform Validate (PRs only, when deployment/ changes)
+  # ---------------------------------------------------------------------------
+  tf-validate:
+    needs: changes
+    if: >-
+      github.event_name == 'pull_request' && needs.changes.outputs.deployment == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        continue-on-error: true
+
+      - name: Post Format Warning
+        if: steps.fmt.outcome == 'failure'
+        run: |
+          echo "::warning::Terraform files are not properly formatted. Run 'terraform fmt -recursive' locally."
+
+      - name: Terraform Init (validation only)
+        run: terraform init -backend=false
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+  # ---------------------------------------------------------------------------
+  # Terraform Plan
+  # ---------------------------------------------------------------------------
+  # Runs after builds on PRs, workflow_run (main), and manual plan/deploy.
+  # On PRs: posts plan as PR comment.
+  # On main / workflow_dispatch: uploads plan artifact for the deploy job.
+  # Skipped only for workflow_dispatch action=destroy.
+  tf-plan:
+    needs: [changes, build-backend, build-frontend]
+    if: >-
+      always() && needs.changes.result == 'success' && needs.build-backend.result != 'failure' &&
+      needs.build-frontend.result != 'failure' && (github.event_name != 'workflow_dispatch' ||
+       inputs.action != 'destroy')
+    runs-on: ubuntu-latest
+    outputs:
+      plan_exit_code: ${{ steps.plan.outputs.exitcode }}
+    env:
+      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+      TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Determine Image Tags
+        id: image-tags
+        run: |
+          # Get currently deployed images
+          CURRENT_BACKEND=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+          CURRENT_FRONTEND=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+
+          echo "Currently deployed - Backend: $CURRENT_BACKEND"
+          echo "Currently deployed - Frontend: $CURRENT_FRONTEND"
+
+          IMAGE_TAG="${{ env.DEPLOY_SHA }}"
+          BACKEND_BUILT="${{ needs.build-backend.result == 'success' }}"
+          FRONTEND_BUILT="${{ needs.build-frontend.result == 'success' }}"
+
+          # Backend image: use new if built, otherwise current
+          if [ "$BACKEND_BUILT" == "true" ]; then
+            BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:$IMAGE_TAG"
+            echo "Using new backend image: $IMAGE_TAG"
+          elif [ -n "$CURRENT_BACKEND" ]; then
+            BACKEND_IMAGE="$CURRENT_BACKEND"
+            echo "Using current backend (not built in this run)"
+          else
+            BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:latest"
+            echo "Using fallback backend: latest"
+          fi
+
+          # Frontend image: use new if built, otherwise current
+          if [ "$FRONTEND_BUILT" == "true" ]; then
+            FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:$IMAGE_TAG"
+            echo "Using new frontend image: $IMAGE_TAG"
+          elif [ -n "$CURRENT_FRONTEND" ]; then
+            FRONTEND_IMAGE="$CURRENT_FRONTEND"
+            echo "Using current frontend (not built in this run)"
+          else
+            FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:latest"
+            echo "Using fallback frontend: latest"
+          fi
+
+          echo "backend_image=$BACKEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo ""
+          echo "Will plan with:"
+          echo "  Backend:  $BACKEND_IMAGE"
+          echo "  Frontend: $FRONTEND_IMAGE"
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
+            -backend-config="resource_group_name=bible-app-tfstate-rg" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=bible-app.tfstate"
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_CLI: "false"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var-file="terraform.tfvars" \
+            -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
+            -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
+            -out=tfplan \
+            -detailed-exitcode 2>&1 | tee plan_output.txt
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_CLI: "false"
+        continue-on-error: true
+
+      - name: Upload Plan Artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: |
+            ${{ env.TF_WORKING_DIR }}/tfplan
+            ${{ env.TF_WORKING_DIR }}/plan_output.txt
+          retention-days: 5
+
+      - name: Post Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = '${{ steps.plan.outputs.exitcode }}';
+            let status = '✅ No changes';
+            if (exitCode === '2') {
+              status = '📝 Changes detected';
+            } else if (exitCode === '1') {
+              status = '❌ Plan failed';
+            }
+
+            const backendImage = '${{ steps.image-tags.outputs.backend_image }}';
+            const frontendImage = '${{ steps.image-tags.outputs.frontend_image }}';
+
+            const body = `## Terraform Plan Results
+
+            **Status:** ${status}
+
+            **Images:**
+            - Backend: \`${backendImage}\`
+            - Frontend: \`${frontendImage}\`
+
+            <details>
+            <summary>Plan Details</summary>
+
+            \`\`\`
+            See workflow logs for full plan output
+            \`\`\`
+
+            </details>
+
+            > To apply these changes, merge to main or trigger the workflow manually.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Post Plan Summary
+        if: always()
+        run: |
+          echo "## Terraform Plan Output" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: \`${{ steps.image-tags.outputs.backend_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: \`${{ steps.image-tags.outputs.frontend_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f "${{ env.TF_WORKING_DIR }}/plan_output.txt" ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 "${{ env.TF_WORKING_DIR }}/plan_output.txt" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Deploy via Terraform
+  # ---------------------------------------------------------------------------
+  # On workflow_run (main after tests): applies the plan artifact from tf-plan.
+  # On workflow_dispatch (action=deploy): applies the plan artifact from tf-plan.
+  deploy:
+    needs: [changes, build-backend, build-frontend, tf-plan]
+    if: >-
+      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' && (
+        github.event_name == 'workflow_run' ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.action == 'deploy')
+      )
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+      TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Determine Image Tags
+        id: image-tags
+        run: |
+          # Get currently deployed images
+          CURRENT_BACKEND=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+          CURRENT_FRONTEND=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+
+          echo "Currently deployed - Backend: $CURRENT_BACKEND"
+          echo "Currently deployed - Frontend: $CURRENT_FRONTEND"
+
+          # Determine image tag to use
+          SKIP_BUILD="${{ inputs.skip_build }}"
+          PROVIDED_TAG="${{ inputs.image_tag }}"
+
+          if [ "$SKIP_BUILD" == "true" ] && [ -z "$PROVIDED_TAG" ]; then
+            # skip_build without image_tag: use currently deployed images
+            echo "Mode: skip_build without image_tag - using currently deployed images"
+            BACKEND_IMAGE="$CURRENT_BACKEND"
+            FRONTEND_IMAGE="$CURRENT_FRONTEND"
+
+            if [ -z "$BACKEND_IMAGE" ] || [ -z "$FRONTEND_IMAGE" ]; then
+              echo "::error::Cannot skip build without deployed images. Deploy at least once first."
+              exit 1
+            fi
+          elif [ "$SKIP_BUILD" == "true" ] && [ -n "$PROVIDED_TAG" ]; then
+            # skip_build with image_tag: verify and use specified tag
+            echo "Mode: skip_build with image_tag - verifying tag: $PROVIDED_TAG"
+            DEPLOY_COMPONENT="${{ inputs.deploy_component }}"
+
+            if [ "$DEPLOY_COMPONENT" == "both" ] || [ "$DEPLOY_COMPONENT" == "backend" ]; then
+              if ! az acr repository show-tags -n ${{ env.ACR_NAME }} --repository bible-backend \
+                   --query "[?@=='$PROVIDED_TAG']" -o tsv | grep -q .; then
+                echo "::error::Backend image with tag '$PROVIDED_TAG' not found in ACR"
+                exit 1
+              fi
+              echo "✅ Backend image found: $PROVIDED_TAG"
+              BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:$PROVIDED_TAG"
+            else
+              BACKEND_IMAGE="$CURRENT_BACKEND"
+            fi
+
+            if [ "$DEPLOY_COMPONENT" == "both" ] || [ "$DEPLOY_COMPONENT" == "frontend" ]; then
+              if ! az acr repository show-tags -n ${{ env.ACR_NAME }} --repository bible-frontend \
+                   --query "[?@=='$PROVIDED_TAG']" -o tsv | grep -q .; then
+                echo "::error::Frontend image with tag '$PROVIDED_TAG' not found in ACR"
+                exit 1
+              fi
+              echo "✅ Frontend image found: $PROVIDED_TAG"
+              FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:$PROVIDED_TAG"
+            else
+              FRONTEND_IMAGE="$CURRENT_FRONTEND"
+            fi
+          else
+            # Normal build: use new images for built components, current for others
+            echo "Mode: normal build"
+            IMAGE_TAG="${{ env.DEPLOY_SHA }}"
+            BACKEND_BUILT="${{ needs.build-backend.result == 'success' }}"
+            FRONTEND_BUILT="${{ needs.build-frontend.result == 'success' }}"
+            DEPLOY_COMPONENT="${{ inputs.deploy_component }}"
+
+            echo "Build results - Backend: $BACKEND_BUILT, Frontend: $FRONTEND_BUILT"
+
+            # Backend image selection
+            if [ "$DEPLOY_COMPONENT" == "frontend" ] && [ -n "$CURRENT_BACKEND" ]; then
+              BACKEND_IMAGE="$CURRENT_BACKEND"
+              echo "Using current backend (frontend-only deploy)"
+            elif [ "$BACKEND_BUILT" == "true" ]; then
+              BACKEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-backend:$IMAGE_TAG"
+              echo "Using new backend image: $IMAGE_TAG"
+            elif [ -n "$CURRENT_BACKEND" ]; then
+              BACKEND_IMAGE="$CURRENT_BACKEND"
+              echo "Using current backend (not built in this run)"
+            else
+              echo "::error::No backend image available"
+              exit 1
+            fi
+
+            # Frontend image selection
+            if [ "$DEPLOY_COMPONENT" == "backend" ] && [ -n "$CURRENT_FRONTEND" ]; then
+              FRONTEND_IMAGE="$CURRENT_FRONTEND"
+              echo "Using current frontend (backend-only deploy)"
+            elif [ "$FRONTEND_BUILT" == "true" ]; then
+              FRONTEND_IMAGE="${{ env.ACR_NAME }}.azurecr.io/bible-frontend:$IMAGE_TAG"
+              echo "Using new frontend image: $IMAGE_TAG"
+            elif [ -n "$CURRENT_FRONTEND" ]; then
+              FRONTEND_IMAGE="$CURRENT_FRONTEND"
+              echo "Using current frontend (not built in this run)"
+            else
+              echo "::error::No frontend image available"
+              exit 1
+            fi
+          fi
+
+          echo "backend_image=$BACKEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo ""
+          echo "Will deploy:"
+          echo "  Backend:  $BACKEND_IMAGE"
+          echo "  Frontend: $FRONTEND_IMAGE"
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=deployment/cloudflare-origin.pfx" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: deployment
+        env:
+          ARM_USE_CLI: "false"
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
+            -backend-config="resource_group_name=bible-app-tfstate-rg" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=bible-app.tfstate"
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: deployment
+
+      - name: Terraform Apply
+        working-directory: deployment
+        env:
+          ARM_USE_CLI: "false"
+        run: terraform apply -auto-approve tfplan
+
+      - name: Login to Azure (for verification)
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+
+          # Check backend health
+          BACKEND_URL=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$BACKEND_URL" ]; then
+            echo "Backend URL: https://$BACKEND_URL"
+            curl -sf "https://$BACKEND_URL/health" || echo "Backend health check pending..."
+          fi
+
+          # Get frontend URL
+          FRONTEND_URL=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$FRONTEND_URL" ]; then
+            echo "Frontend URL: https://$FRONTEND_URL"
+          fi
+
+      - name: Post Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed via Terraform**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.skip_build }}" == "true" ]; then
+            echo "🔄 **Mode:** Deploy existing images (skip build)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🏗️ **Mode:** Build and deploy" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | \`${{ steps.image-tags.outputs.backend_image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | \`${{ steps.image-tags.outputs.frontend_image }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Terraform Destroy (manual only)
+  # ---------------------------------------------------------------------------
+  destroy:
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+      TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
+      TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decode Cloudflare Origin Certificate
+        env:
+          CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
+        if: env.CERT_B64 != ''
+        run: |
+          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
+            -backend-config="resource_group_name=bible-app-tfstate-rg" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=bible-app.tfstate"
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_CLI: "false"
+
+      - name: Terraform Destroy
+        run: |
+          terraform destroy \
+            -var-file="terraform.tfvars" \
+            -var="backend_image=${{ env.ACR_NAME }}.azurecr.io/bible-backend:${{ github.sha }}" \
+            -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
+            -auto-approve
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_CLI: "false"
+
+      - name: Post Destroy Summary
+        run: |
+          echo "## ⚠️ Infrastructure Destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All Azure resources have been destroyed." >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Seed Database (runs when scripts change or manually triggered with seed enabled)
+  # ---------------------------------------------------------------------------
+  seed-database:
+    needs: [changes, deploy]
+    # Run if:
+    # - Scripts changed (auto-trigger), OR
+    # - Manual trigger with skip_database_seed=false
+    # Note: always() needed to evaluate when deploy is skipped, but only run if deploy didn't fail
+    if: >-
+      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
+      ((needs.changes.outputs.scripts == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "api/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          pip install httpx asyncpg sqlalchemy openai
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Get Database Connection String
+        id: db
+        run: |
+          # Get PostgreSQL FQDN from Azure
+          DB_HOST=$(az postgres flexible-server list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[0].fullyQualifiedDomainName" -o tsv)
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+
+      - name: Load Bible Data
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd scripts
+
+          # Build command flags
+          FORCE_FLAG=""
+          TRANSLATION_FLAG="--all"
+
+          if [ "${{ inputs.force_database_seed }}" == "true" ]; then
+            FORCE_FLAG="--force"
+            echo "Force mode enabled - will reload translations"
+          fi
+
+          if [ -n "${{ inputs.bible_translation }}" ]; then
+            TRANSLATION_FLAG="--translation ${{ inputs.bible_translation }}"
+            echo "Loading specific translation: ${{ inputs.bible_translation }}"
+          else
+            echo "Loading all translations..."
+          fi
+
+          python load_bible.py $TRANSLATION_FLAG $FORCE_FLAG
+
+      - name: Generate Embeddings
+        if: inputs.skip_embeddings != true
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: "text-embedding-3-small"
+        run: |
+          # Check if Azure OpenAI is configured
+          if [ -z "$AZURE_OPENAI_ENDPOINT" ]; then
+            echo "⏭️ Skipping embedding generation"
+            echo "   Reason: AZURE_OPENAI_ENDPOINT secret not configured"
+            exit 0
+          fi
+
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd scripts
+          echo "Generating embeddings with Azure OpenAI..."
+          python create_azure_embeddings.py
+
+      - name: Skip Embeddings Notice
+        if: inputs.skip_embeddings == true
+        run: |
+          echo "⏭️ Skipping embedding generation"
+          echo "   Reason: skip_embeddings=true"
+
+      - name: Verify Database
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          pip install psycopg2-binary
+          python -c "
+          import os
+          import psycopg2
+          conn = psycopg2.connect(os.environ['DATABASE_URL'])
+          cur = conn.cursor()
+          cur.execute('SELECT COUNT(*) FROM verses')
+          verse_count = cur.fetchone()[0]
+          cur.execute('SELECT COUNT(*) FROM verses WHERE embedding IS NOT NULL')
+          embedded_count = cur.fetchone()[0]
+          print(f'Total verses: {verse_count}')
+          print(f'Verses with embeddings: {embedded_count}')
+          if verse_count == 0:
+              raise Exception('No verses loaded!')
+          if embedded_count == 0:
+              raise Exception('No embeddings generated!')
+          "
+
+      - name: Post Seeding Summary
+        run: |
+          echo "## Database Seeding Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Bible data loaded and embeddings generated successfully." >> $GITHUB_STEP_SUMMARY

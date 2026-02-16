@@ -20,13 +20,17 @@ anthropic==0.76.0
 # OpenAI (for OpenRouter provider - optional)
 openai==1.59.7
 
+# Azure Monitor (Application Insights via OpenTelemetry)
+azure-monitor-opentelemetry==1.6.4
+
 # Utilities
 python-dotenv==1.2.1
 numpy==1.26.4
+lingua-language-detector==2.1.1
 
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.4
 
 # CORS
-python-multipart==0.0.18
+python-multipart==0.0.22

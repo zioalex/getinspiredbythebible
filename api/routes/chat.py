@@ -3,18 +3,32 @@ Chat API routes.
 """
 
 import json
+import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+from utils.security import check_content_filter, require_rate_limit
+from utils.turnstile import require_turnstile
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("", response_model=ChatResponse)
+@router.post(
+    "",
+    response_model=ChatResponse,
+    dependencies=[
+        Depends(require_turnstile),
+        Depends(require_rate_limit),
+        Depends(check_content_filter),
+    ],
+)
 async def chat(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
 ):
@@ -29,11 +43,32 @@ async def chat(
     try:
         response = await service.chat(request)
         return response
+    except RuntimeError as e:
+        # Handle "all models rate limited" from OpenRouter fallback
+        if "All models rate limited" in str(e):
+            logger.warning("All LLM models rate limited: %s", str(e))
+            raise HTTPException(
+                status_code=HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Our AI service is temporarily busy. Please try again in a moment.",
+            ) from e
+        # Other runtime errors
+        logger.exception("Chat runtime error: %s", str(e))
+        raise HTTPException(status_code=500, detail="An unexpected error occurred") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Chat request failed: %s", str(e))
+        raise HTTPException(
+            status_code=500, detail="An error occurred processing your request"
+        ) from e
 
 
-@router.post("/stream")
+@router.post(
+    "/stream",
+    dependencies=[
+        Depends(require_turnstile),
+        Depends(require_rate_limit),
+        Depends(check_content_filter),
+    ],
+)
 async def chat_stream(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
 ):
@@ -50,8 +85,17 @@ async def chat_stream(
                 # SSE format
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
             yield "data: [DONE]\n\n"
+        except RuntimeError as e:
+            # Handle "all models rate limited" from OpenRouter fallback
+            if "All models rate limited" in str(e):
+                logger.warning("Streaming: All LLM models rate limited: %s", str(e))
+                yield f"data: {json.dumps({'error': 'Our AI service is temporarily busy. Please try again in a moment.'})}\n\n"
+            else:
+                logger.exception("Chat stream runtime error: %s", str(e))
+                yield f"data: {json.dumps({'error': 'An unexpected error occurred'})}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            logger.exception("Chat stream failed: %s", str(e))
+            yield f"data: {json.dumps({'error': 'An error occurred processing your request'})}\n\n"
 
     return StreamingResponse(
         generate(),
@@ -82,4 +126,7 @@ async def get_verse_context(
     try:
         return await service.get_verse_context(book, chapter, verse)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Get verse context failed: %s", str(e))
+        raise HTTPException(
+            status_code=500, detail="An error occurred retrieving verse context"
+        ) from e

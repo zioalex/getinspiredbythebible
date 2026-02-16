@@ -1,0 +1,60 @@
+# =============================================================================
+# Production Docker Compose - Azure Container Registry
+# =============================================================================
+#
+# Use this file to build and push images to Azure Container Registry.
+# Reads configuration from .env.production file.
+#
+# IMPORTANT: Use --env-file flag to pass build args correctly!
+#
+# Required variables in .env.production:
+#   ACR_NAME              - Azure Container Registry name (e.g., bibleappacrmb0172)
+#   NEXT_PUBLIC_API_URL   - Backend API URL for frontend build
+#
+# Usage (recommended - using Make):
+#   make docker-build-prod           # Build and push all images
+#   make docker-build-prod-frontend  # Build and push frontend only
+#   make docker-build-prod-backend   # Build and push backend only
+#   make docker-deploy-prod          # Deploy to Azure Container Apps
+#   make docker-build-deploy-prod    # Build, push, and deploy
+#
+# Usage (manual):
+#   # 1. Update backend URL in .env.production (if needed)
+#   make update-env-backend-url
+#
+#   # 2. Login to ACR
+#   source .env.production
+#   az acr login --name $ACR_NAME
+#
+#   # 3. Build images (--env-file is REQUIRED for build args)
+#   docker compose --env-file .env.production -f docker-compose.prod.yml build --no-cache
+#
+#   # 4. Verify frontend has correct API URL
+#   make docker-verify-frontend
+#
+#   # 5. Push images to ACR
+#   docker compose --env-file .env.production -f docker-compose.prod.yml push
+#
+# =============================================================================
+
+services:
+  api:
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-backend:${TAG:-latest}
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+    platform: linux/amd64
+
+  frontend:
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-frontend:${TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      platforms:
+        - linux/amd64
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    platform: linux/amd64

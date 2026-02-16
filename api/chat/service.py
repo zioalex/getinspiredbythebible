@@ -5,16 +5,30 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import logging
+import time
+import uuid
 from typing import AsyncIterator
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
+from utils.language import detect_language, get_translation_info, resolve_translation
+from utils.verse_parser import extract_references, is_verse_lookup_request
 
-from .prompts import SYSTEM_PROMPT, build_search_context_prompt
+from .prompts import (
+    OFF_TOPIC_PROMPT,
+    build_search_context_prompt,
+    detect_intent_prompt,
+    get_prayer_lookup_prompt,
+    get_system_prompt,
+    get_verse_lookup_prompt,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationMessage(BaseModel):
@@ -27,18 +41,34 @@ class ConversationMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Request to the chat endpoint."""
 
-    message: str
+    message: str = Field(..., min_length=1, max_length=settings.max_message_length)
     conversation_history: list[ConversationMessage] = []
     include_search: bool = True  # Whether to search scripture first
+    preferred_translation: str | None = None  # User's preferred translation code
+    session_id: str | None = Field(
+        default=None, max_length=64, pattern=r"^[a-zA-Z0-9\-_]+$"
+    )  # Optional session identifier for tracking
+
+    @field_validator("message")
+    @classmethod
+    def validate_message_content(cls, v: str) -> str:
+        """Strip whitespace and validate message is not empty."""
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Message cannot be empty or whitespace only")
+        return stripped
 
 
 class ChatResponse(BaseModel):
     """Response from the chat endpoint."""
 
+    message_id: str  # Unique ID for feedback tracking
     message: str
     scripture_context: SearchResults | None = None
     provider: str
     model: str
+    detected_translation: str | None = None
+    translation_info: dict | None = None
 
 
 class ChatService:
@@ -62,6 +92,30 @@ class ChatService:
         self.embedding = embedding_provider
         self.search_service = ScriptureSearchService(db_session, embedding_provider)
 
+    async def _detect_intent(self, message: str) -> str:
+        """
+        Classify user intent with a fast LLM call.
+
+        Returns one of: COMFORT, GUIDANCE, CURIOSITY, VERSE_LOOKUP, OFF_TOPIC, GENERAL.
+        On any error, returns "GENERAL" (fail-open).
+        """
+        try:
+            messages = [
+                ChatMessage(role="system", content="You are an intent classifier."),
+                ChatMessage(role="user", content=detect_intent_prompt(message)),
+            ]
+            response = await self.llm.chat(messages=messages, temperature=0.0, max_tokens=20)
+            intent = response.content.strip().upper().split()[0]
+            valid = {"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP", "OFF_TOPIC", "GENERAL"}
+            if intent not in valid:
+                logger.warning("Unexpected intent classification: %s", intent)
+                return "GENERAL"
+            logger.info("Intent detected", extra={"intent": intent})
+            return intent
+        except Exception as e:
+            logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
+            return "GENERAL"
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -72,47 +126,252 @@ class ChatService:
         Returns:
             ChatResponse with generated message and context
         """
-        # Step 1: Search for relevant scripture (if enabled)
-        scripture_context = None
-        search_context_prompt = ""
+        total_start = time.time()
+        # Track session interactions (history_count + 1 = total messages in session)
+        session_message_count = len(request.conversation_history) + 1
+        logger.info(
+            "Processing chat request",
+            extra={
+                "session_id": request.session_id,
+                "session_message_count": session_message_count,
+                "message_length": len(request.message),
+                "history_count": len(request.conversation_history),
+                "include_search": request.include_search,
+            },
+        )
 
-        if request.include_search:
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-            )
+        # Resolve translation: user preference > language detection > default
+        detected_language = detect_language(request.message)
+        translation = resolve_translation(request.preferred_translation, detected_language)
+        translation_info = get_translation_info(translation)
+        logger.debug(
+            "Language detection",
+            extra={"detected": detected_language, "translation": translation},
+        )
 
-            # Build context prompt from search results
-            if scripture_context.verses or scripture_context.passages:
-                search_context_prompt = build_search_context_prompt(
-                    {
-                        "verses": [v.model_dump() for v in scripture_context.verses],
-                        "passages": [p.model_dump() for p in scripture_context.passages],
-                    }
+        # Intent detection: classify before scripture search
+        if settings.content_filter_intent_detection:
+            detected_intent = await self._detect_intent(request.message)
+            if detected_intent == "OFF_TOPIC":
+                return await self._handle_off_topic(
+                    request, detected_language, translation, translation_info, total_start
                 )
 
+        # Check if this is a verse/prayer lookup request
+        is_verse_lookup = is_verse_lookup_request(request.message)
+        verse_refs, prayer_ref = extract_references(request.message)
+
+        if is_verse_lookup:
+            logger.info(
+                "Detected verse lookup request",
+                extra={
+                    "verse_refs": [str(v) for v in verse_refs],
+                    "prayer_ref": prayer_ref.name if prayer_ref else None,
+                },
+            )
+
+        # Step 1: Search for relevant scripture (if enabled)
+        scripture_context, search_context_prompt = await self._search_scripture(
+            request, translation, verse_refs, is_verse_lookup
+        )
+
         # Step 2: Build the message list
+        prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
+
         messages = self._build_messages(
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
+            prompt_type=prompt_type,
         )
 
         # Step 3: Generate response
+        llm_start = time.time()
+        try:
+            logger.debug("Sending request to LLM provider")
+            response = await self.llm.chat(
+                messages=messages,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+            )
+            llm_duration = time.time() - llm_start
+            logger.info(
+                "LLM response received",
+                extra={
+                    "provider": response.provider,
+                    "model": response.model,
+                    "response_length": len(response.content),
+                    "duration_seconds": f"{llm_duration:.2f}",
+                },
+            )
+        except Exception as e:
+            logger.error(
+                "LLM provider error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "provider": settings.llm_provider,
+                    "model": settings.llm_model,
+                },
+            )
+            raise
+
+        # Generate unique message ID for feedback tracking
+        message_id = str(uuid.uuid4())
+
+        total_duration = time.time() - total_start
+        logger.info(
+            "Chat request completed",
+            extra={"total_duration_seconds": f"{total_duration:.2f}"},
+        )
+
+        return ChatResponse(
+            message_id=message_id,
+            message=response.content,
+            scripture_context=scripture_context,
+            provider=response.provider,
+            model=response.model,
+            detected_translation=translation,
+            translation_info=translation_info,
+        )
+
+    async def _handle_off_topic(
+        self,
+        request: ChatRequest,
+        detected_language: str,
+        translation: str,
+        translation_info: dict | None,
+        total_start: float,
+    ) -> ChatResponse:
+        """Generate a warm redirect response for off-topic messages, skipping scripture search."""
+        logger.info("Off-topic message detected, skipping scripture search")
+        messages = self._build_messages(
+            user_message=request.message,
+            history=request.conversation_history,
+            search_context="",
+            language_code=detected_language,
+            prompt_type="off_topic",
+        )
         response = await self.llm.chat(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
         )
-
+        message_id = str(uuid.uuid4())
+        total_duration = time.time() - total_start
+        logger.info(
+            "Off-topic redirect completed",
+            extra={"total_duration_seconds": f"{total_duration:.2f}"},
+        )
         return ChatResponse(
+            message_id=message_id,
             message=response.content,
-            scripture_context=scripture_context,
+            scripture_context=None,
             provider=response.provider,
             model=response.model,
+            detected_translation=translation,
+            translation_info=translation_info,
         )
+
+    async def _search_scripture(
+        self,
+        request: ChatRequest,
+        translation: str,
+        verse_refs: list,
+        is_verse_lookup: bool,
+    ) -> tuple[SearchResults | None, str]:
+        """
+        Search for relevant scripture, including direct lookups for specific verse references.
+
+        Returns:
+            Tuple of (scripture_context, search_context_prompt)
+        """
+        if not request.include_search:
+            return None, ""
+
+        search_start = time.time()
+        scripture_context = None
+        search_context_prompt = ""
+
+        try:
+            # Direct verse lookups for specific references
+            direct_verses = await self._lookup_direct_verses(verse_refs, translation)
+
+            # Semantic search for additional context
+            scripture_context = await self.search_service.search(
+                query=request.message,
+                max_verses=settings.max_context_verses,
+                max_passages=2,
+                similarity_threshold=0.35,
+                translation=translation,
+            )
+
+            # Merge direct lookup results with semantic search
+            self._merge_direct_verses(scripture_context, direct_verses)
+
+            search_duration = time.time() - search_start
+            logger.info(
+                "Scripture search completed",
+                extra={
+                    "duration_seconds": f"{search_duration:.2f}",
+                    "verses_found": len(scripture_context.verses) if scripture_context else 0,
+                    "passages_found": (len(scripture_context.passages) if scripture_context else 0),
+                    "is_verse_lookup": is_verse_lookup,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
+            return None, ""
+
+        # Build context prompt from search results
+        if scripture_context and (scripture_context.verses or scripture_context.passages):
+            search_context_prompt = build_search_context_prompt(
+                {
+                    "verses": [v.model_dump() for v in scripture_context.verses],
+                    "passages": [p.model_dump() for p in scripture_context.passages],
+                }
+            )
+
+        return scripture_context, search_context_prompt
+
+    async def _lookup_direct_verses(self, verse_refs: list, translation: str | None = None) -> list:
+        """Look up specific verses from references, filtered by translation."""
+        direct_verses = []
+        for ref in verse_refs:
+            if ref.verse_end:
+                range_verses = await self.search_service.get_verse_range(
+                    book=ref.book,
+                    chapter=ref.chapter,
+                    start_verse=ref.verse_start,
+                    end_verse=ref.verse_end,
+                    translation=translation,
+                )
+                direct_verses.extend(range_verses)
+            else:
+                verse = await self.search_service.get_verse(
+                    book=ref.book,
+                    chapter=ref.chapter,
+                    verse=ref.verse_start,
+                    translation=translation,
+                )
+                if verse:
+                    direct_verses.append(verse)
+
+        if direct_verses:
+            logger.info("Direct verse lookup completed", extra={"verses_found": len(direct_verses)})
+        return direct_verses
+
+    def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
+        """Merge direct lookup verses into scripture context (at beginning)."""
+        if not direct_verses or not scripture_context:
+            return
+
+        existing_refs = {(v.book, v.chapter, v.verse) for v in scripture_context.verses}
+        for dv in direct_verses:
+            if (dv.book, dv.chapter, dv.verse) not in existing_refs:
+                scripture_context.verses.insert(0, dv)
+                existing_refs.add((dv.book, dv.chapter, dv.verse))
 
     async def chat_stream(self, request: ChatRequest) -> AsyncIterator[str]:
         """
@@ -121,30 +380,48 @@ class ChatService:
         Yields:
             Chunks of the response as they're generated
         """
-        # Step 1: Search for relevant scripture
-        search_context_prompt = ""
+        # Resolve translation: user preference > language detection > default
+        detected_language = detect_language(request.message)
+        translation = resolve_translation(request.preferred_translation, detected_language)
 
-        if request.include_search:
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-            )
-
-            if scripture_context.verses or scripture_context.passages:
-                search_context_prompt = build_search_context_prompt(
-                    {
-                        "verses": [v.model_dump() for v in scripture_context.verses],
-                        "passages": [p.model_dump() for p in scripture_context.passages],
-                    }
+        # Intent detection: short-circuit off-topic before scripture search
+        if settings.content_filter_intent_detection:
+            detected_intent = await self._detect_intent(request.message)
+            if detected_intent == "OFF_TOPIC":
+                logger.info("Off-topic message detected in stream, skipping scripture search")
+                messages = self._build_messages(
+                    user_message=request.message,
+                    history=request.conversation_history,
+                    search_context="",
+                    language_code=detected_language,
+                    prompt_type="off_topic",
                 )
+                async for chunk in self.llm.chat_stream(
+                    messages=messages,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                ):
+                    yield chunk
+                return
 
-        # Step 2: Build messages
+        # Check if this is a verse/prayer lookup request
+        is_verse_lookup = is_verse_lookup_request(request.message)
+        verse_refs, prayer_ref = extract_references(request.message)
+
+        # Step 1: Search for relevant scripture
+        _, search_context_prompt = await self._search_scripture(
+            request, translation, verse_refs, is_verse_lookup
+        )
+
+        # Step 2: Build messages with appropriate prompt type
+        prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
+
         messages = self._build_messages(
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
+            language_code=detected_language,
+            prompt_type=prompt_type,
         )
 
         # Step 3: Stream response
@@ -155,8 +432,21 @@ class ChatService:
         ):
             yield chunk
 
+    def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
+        """Determine the appropriate prompt type based on request characteristics."""
+        if is_verse_lookup and prayer_ref:
+            return "prayer_lookup"
+        elif is_verse_lookup:
+            return "verse_lookup"
+        return "default"
+
     def _build_messages(
-        self, user_message: str, history: list[ConversationMessage], search_context: str = ""
+        self,
+        user_message: str,
+        history: list[ConversationMessage],
+        search_context: str = "",
+        language_code: str = "en",
+        prompt_type: str = "default",
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -165,16 +455,27 @@ class ChatService:
             user_message: Current user message
             history: Previous conversation messages
             search_context: Optional scripture context from search
+            language_code: Detected language code for response language
+            prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic")
 
         Returns:
             List of ChatMessage objects for the LLM
         """
         messages = []
 
-        # System prompt with optional search context
-        system_content = SYSTEM_PROMPT
+        # Select appropriate system prompt based on request type
+        if prompt_type == "off_topic":
+            system_prompt = get_system_prompt(language_code) + "\n\n" + OFF_TOPIC_PROMPT
+        elif prompt_type == "verse_lookup":
+            system_prompt = get_verse_lookup_prompt(language_code)
+        elif prompt_type == "prayer_lookup":
+            system_prompt = get_prayer_lookup_prompt(language_code)
+        else:
+            system_prompt = get_system_prompt(language_code)
+
+        system_content = system_prompt
         if search_context:
-            system_content = search_context + "\n" + SYSTEM_PROMPT
+            system_content = search_context + "\n" + system_prompt
 
         messages.append(ChatMessage(role="system", content=system_content))
 

@@ -27,15 +27,6 @@ exclude = [
     "*.pyc",
 ]
 
-[tool.ruff.lint.isort]
-# Match isort's black profile for consistency between ruff and isort
-force-single-line = false
-combine-as-imports = true
-
-[tool.isort]
-profile = "black"
-line_length = 100
-skip_gitignore = true
 
 [tool.mypy]
 python_version = "3.12"

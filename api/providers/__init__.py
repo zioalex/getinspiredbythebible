@@ -5,7 +5,13 @@ This package provides a unified interface for different LLM backends,
 making it easy to switch between Ollama (local), Claude, OpenAI, etc.
 """
 
-from .base import ChatMessage, EmbeddingProvider, EmbeddingResponse, LLMProvider, LLMResponse
+from .base import (
+    ChatMessage,
+    EmbeddingProvider,
+    EmbeddingResponse,
+    LLMProvider,
+    LLMResponse,
+)
 from .claude import ClaudeProvider
 from .factory import (
     EmbeddingProviderDep,

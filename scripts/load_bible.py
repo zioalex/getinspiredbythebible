@@ -10,14 +10,22 @@ Usage:
     python load_bible.py --translation kjv  # Load specific translation
     python load_bible.py --list             # List available translations
     python load_bible.py --all              # Load all translations
+    python load_bible.py --ci               # Load only 1 Corinthians (for CI testing)
+
+Environment Variables:
+    DATABASE_URL          - PostgreSQL connection string
+    EMBEDDING_DIMENSIONS  - Vector dimensions (default: 1024 for Ollama, use 1536 for Azure OpenAI)
 """
 
 import argparse
 import asyncio
 import json
+import os
 import httpx
 from pathlib import Path
 import sys
+import time
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
@@ -101,30 +109,44 @@ BIBLE_BOOKS = [
     {"name": "Revelation", "abbr": "Rev", "testament": "new", "position": 66},
 ]
 
+# Books to load in CI mode (minimal set for testing semantic search)
+# 1 Corinthians contains the famous "love chapter" (chapter 13)
+CI_MODE_BOOKS = ["1 Corinthians"]
+
+
+def log(message: str, flush: bool = True):
+    """Print timestamped log message and flush immediately for CI visibility."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=flush)
+
 
 async def download_translation(translation_code: str, output_path: Path) -> dict:
     """Download Bible translation JSON."""
     config = TRANSLATIONS[translation_code]
 
     if output_path.exists():
-        print(f"📖 Loading {config['name']} from cache: {output_path}")
+        log(f"📖 Loading {config['name']} from cache: {output_path}")
         with open(output_path, encoding="utf-8") as f:
             return json.load(f)
 
-    print(f"📥 Downloading {config['name']} ({config['language']}) from {config['source']}")
-    print(f"    URL: {config['url']}")
+    log(f"📥 Downloading {config['name']} ({config['language']}) from {config['source']}")
+    log(f"    URL: {config['url']}")
 
+    start_time = time.time()
     async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.get(config["url"], follow_redirects=True)
         response.raise_for_status()
         data = response.json()
+
+    elapsed = time.time() - start_time
+    log(f"    Downloaded in {elapsed:.1f}s")
 
     # Save for future use
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print(f"💾 Saved to: {output_path}")
+    log(f"💾 Saved to: {output_path}")
     return data
 
 
@@ -159,8 +181,13 @@ def normalize_bible_data(data: dict|list, source: str) -> list:
     return data if isinstance(data, list) else []
 
 
-async def ensure_schema(session):
-    """Ensure database schema exists with translation support."""
+async def ensure_schema(session, embedding_dimensions: int = 1024):
+    """Ensure database schema exists with translation support.
+
+    Args:
+        session: Database session
+        embedding_dimensions: Vector dimensions (1024 for Ollama, 1536 for Azure OpenAI)
+    """
 
     # Create translations table first
     await session.execute(text("""
@@ -206,7 +233,7 @@ async def ensure_schema(session):
 
     if not has_translation_column:
         # Create new verses table with translation column
-        await session.execute(text("""
+        await session.execute(text(f"""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
                 book_id INTEGER REFERENCES books(id),
@@ -215,13 +242,13 @@ async def ensure_schema(session):
                 verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
                 translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
-                embedding vector(1024),
+                embedding vector({embedding_dimensions}),
                 UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
     else:
         # Table exists with translation column - just ensure it exists
-        await session.execute(text("""
+        await session.execute(text(f"""
             CREATE TABLE IF NOT EXISTS verses (
                 id SERIAL PRIMARY KEY,
                 book_id INTEGER REFERENCES books(id),
@@ -230,13 +257,13 @@ async def ensure_schema(session):
                 verse_number INTEGER NOT NULL,
                 text TEXT NOT NULL,
                 translation VARCHAR(20) DEFAULT 'kjv' NOT NULL REFERENCES translations(code),
-                embedding vector(1024),
+                embedding vector({embedding_dimensions}),
                 UNIQUE(book_id, chapter_number, verse_number, translation)
             )
         """))
 
     # Create other tables
-    await session.execute(text("""
+    await session.execute(text(f"""
         CREATE TABLE IF NOT EXISTS passages (
             id SERIAL PRIMARY KEY,
             title VARCHAR(200) NOT NULL,
@@ -247,17 +274,17 @@ async def ensure_schema(session):
             end_verse INTEGER NOT NULL,
             text TEXT NOT NULL,
             topics VARCHAR(500),
-            embedding vector(1024)
+            embedding vector({embedding_dimensions})
         )
     """))
 
-    await session.execute(text("""
+    await session.execute(text(f"""
         CREATE TABLE IF NOT EXISTS topics (
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL UNIQUE,
             description TEXT,
             parent_id INTEGER REFERENCES topics(id),
-            embedding vector(1024)
+            embedding vector({embedding_dimensions})
         )
     """))
 
@@ -301,7 +328,7 @@ async def load_translation_metadata(session, translation_code: str):
         }
     )
     await session.commit()
-    print(f"✅ Loaded translation metadata: {config['name']} ({config['code']})")
+    log(f"✅ Loaded translation metadata: {config['name']} ({config['code']})")
 
 
 async def ensure_books_and_chapters(session) -> dict:
@@ -313,11 +340,12 @@ async def ensure_books_and_chapters(session) -> dict:
 
     if book_count == 66:
         # Books already exist, fetch IDs
+        log("📚 Books already loaded, fetching IDs...")
         result = await session.execute(text("SELECT id, name FROM books"))
         book_ids = {row[1]: row[0] for row in result.fetchall()}
         return book_ids
 
-    print("📚 Loading books and chapters (one-time setup)...")
+    log("📚 Loading books and chapters (one-time setup)...")
 
     # Insert books
     book_ids = {}
@@ -372,13 +400,20 @@ async def ensure_books_and_chapters(session) -> dict:
             )
 
     await session.commit()
-    print(f"✅ Loaded {len(book_ids)} books with chapters")
+    log(f"✅ Loaded {len(book_ids)} books with chapters")
 
     return book_ids
 
 
-async def load_verses(session, translation_code: str, bible_data: list):
-    """Load verses for a specific translation."""
+async def load_verses(session, translation_code: str, bible_data: list, books_filter: list = None):
+    """Load verses for a specific translation.
+
+    Args:
+        session: Database session
+        translation_code: Translation code (e.g., 'kjv')
+        bible_data: Bible data from JSON
+        books_filter: Optional list of book names to load (None = all books)
+    """
 
     config = TRANSLATIONS[translation_code]
     book_name_map = config.get("book_names")
@@ -391,6 +426,9 @@ async def load_verses(session, translation_code: str, bible_data: list):
     normalized_data = normalize_bible_data(bible_data, config["source"])
 
     verse_count = 0
+    total_books = len(normalized_data)
+    books_loaded = 0
+    start_time = time.time()
 
     for book_idx, book_data in enumerate(normalized_data):
         # Get book name - handle both dict and list formats
@@ -410,10 +448,18 @@ async def load_verses(session, translation_code: str, bible_data: list):
 
         book_id = book_ids.get(standard_name)
         if not book_id:
-            print(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
+            log(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
             continue
 
-        print(f"  📖 Loading {standard_name} ({translation_code})...")
+        # Skip if not in filter (when filter is specified)
+        if books_filter and standard_name not in books_filter:
+            continue
+
+        books_loaded += 1
+        book_verse_count = 0
+        num_chapters = len(chapters)
+
+        log(f"  📖 [{books_loaded}/{total_books}] {standard_name} ({num_chapters} chapters)...")
 
         # Get chapter IDs for this book
         chapter_result = await session.execute(
@@ -452,18 +498,69 @@ async def load_verses(session, translation_code: str, bible_data: list):
                     }
                 )
                 verse_count += 1
+                book_verse_count += 1
 
         await session.commit()
+        log(f"      ✓ {standard_name}: {book_verse_count:,} verses loaded")
+
+    elapsed = time.time() - start_time
+    log(f"  ⏱️  Completed in {elapsed:.1f}s ({verse_count:,} total verses)")
 
     return verse_count
 
 
-async def load_translation_to_db(database_url: str, translation_code: str):
-    """Load a specific Bible translation into the database."""
+def convert_db_url_for_asyncpg(database_url: str) -> str:
+    """Convert database URL for asyncpg compatibility.
 
+    asyncpg uses 'ssl' parameter instead of 'sslmode', so we need to convert.
+    """
     # Convert to async URL
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    # asyncpg uses 'ssl' instead of 'sslmode'
+    # sslmode=require -> ssl=require
+    database_url = database_url.replace("sslmode=", "ssl=")
+
+    return database_url
+
+
+async def check_translation_loaded(session, translation_code: str) -> tuple[bool, int]:
+    """Check if a translation is already loaded in the database.
+
+    Returns:
+        Tuple of (is_loaded, verse_count)
+    """
+    try:
+        result = await session.execute(
+            text("SELECT COUNT(*) FROM verses WHERE translation = :code"),
+            {"code": translation_code}
+        )
+        count = result.scalar() or 0
+        # Consider loaded if we have at least 30,000 verses (full Bible has ~31,000)
+        return count >= 30000, count
+    except Exception:
+        return False, 0
+
+
+async def load_translation_to_db(
+    database_url: str,
+    translation_code: str,
+    embedding_dimensions: int = 1024,
+    books_filter: list = None,
+    force: bool = False,
+):
+    """Load a specific Bible translation into the database.
+
+    Args:
+        database_url: PostgreSQL connection string
+        translation_code: Translation code (e.g., 'kjv', 'ita1927')
+        embedding_dimensions: Vector dimensions (1024 for Ollama, 1536 for Azure OpenAI)
+        books_filter: Optional list of book names to load (None = all books)
+        force: Force reload even if translation already exists
+    """
+
+    database_url = convert_db_url_for_asyncpg(database_url)
 
     engine = create_async_engine(database_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -473,8 +570,16 @@ async def load_translation_to_db(database_url: str, translation_code: str):
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
     async with async_session() as session:
-        # Ensure schema exists
-        await ensure_schema(session)
+        # Ensure schema exists with correct embedding dimensions
+        await ensure_schema(session, embedding_dimensions)
+
+        # Check if translation is already loaded (skip check in CI mode with filter)
+        if not force and not books_filter:
+            is_loaded, existing_count = await check_translation_loaded(session, translation_code)
+            if is_loaded:
+                log(f"⏭️  Skipping {TRANSLATIONS[translation_code]['name']} - already loaded ({existing_count:,} verses)")
+                await engine.dispose()
+                return
 
         # Load translation metadata
         await load_translation_metadata(session, translation_code)
@@ -487,17 +592,19 @@ async def load_translation_to_db(database_url: str, translation_code: str):
         bible_data = await download_translation(translation_code, bible_path)
 
         # Load verses
-        print(f"\n📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
-        verse_count = await load_verses(session, translation_code, bible_data)
+        if books_filter:
+            log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})...")
+        else:
+            log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
+        verse_count = await load_verses(session, translation_code, bible_data, books_filter)
 
-        print(f"✅ Loaded {verse_count:,} verses for {translation_code}")
+        log(f"✅ Loaded {verse_count:,} verses for {translation_code}")
 
     await engine.dispose()
 
 
 async def main():
     """Main entry point."""
-    import os
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Load Bible translations into database")
@@ -516,14 +623,29 @@ async def main():
         action="store_true",
         help="Load all translations"
     )
+    parser.add_argument(
+        "--dimensions", "-d",
+        type=int,
+        help="Embedding dimensions (1024 for Ollama, 1536 for Azure OpenAI)"
+    )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI mode: load only 1 Corinthians (minimal data for testing semantic search)"
+    )
+    parser.add_argument(
+        "--force", "-f",
+        action="store_true",
+        help="Force reload translations even if already loaded"
+    )
 
     args = parser.parse_args()
 
     # List translations and exit
     if args.list:
-        print("\n📚 Available translations:")
+        log("📚 Available translations:")
         for trans in list_available_translations():
-            print(f"  - {trans['code']:<12} {trans['name']:<30} ({trans['language']})")
+            log(f"  - {trans['code']:<12} {trans['name']:<30} ({trans['language']})")
         return
 
     # Get database URL
@@ -532,32 +654,49 @@ async def main():
         "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
+    # Get embedding dimensions (CLI arg > env var > default)
+    embedding_dimensions = args.dimensions or int(os.getenv("EMBEDDING_DIMENSIONS", "1024"))
+
     # Determine which translations to load
     if args.all:
         translations_to_load = list(TRANSLATIONS.keys())
     elif args.translation:
         if args.translation not in TRANSLATIONS:
-            print(f"❌ Unknown translation: {args.translation}")
-            print(f"   Available: {', '.join(TRANSLATIONS.keys())}")
+            log(f"❌ Unknown translation: {args.translation}")
+            log(f"   Available: {', '.join(TRANSLATIONS.keys())}")
             return
         translations_to_load = [args.translation]
     else:
         # Default: load KJV
         translations_to_load = ["kjv"]
 
+    # Determine books filter (CI mode loads only specific books)
+    books_filter = CI_MODE_BOOKS if args.ci else None
+
     # Load each translation
-    print(f"\n🗄️  Database: {database_url}")
-    print(f"📖 Translations to load: {', '.join(translations_to_load)}\n")
+    total_translations = len(translations_to_load)
+    log(f"🗄️  Database: {database_url}")
+    log(f"📐 Embedding dimensions: {embedding_dimensions}")
+    log(f"📖 Translations to load: {total_translations} ({', '.join(translations_to_load)})")
+    if books_filter:
+        log(f"📚 CI mode: loading only {', '.join(books_filter)}")
 
-    for trans_code in translations_to_load:
-        print(f"\n{'='*60}")
-        print(f"Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
-        print(f"{'='*60}")
-        await load_translation_to_db(database_url, trans_code)
+    if args.force:
+        log("⚠️  Force mode: will reload all translations even if they exist")
 
-    print("\n🎉 All translations loaded successfully!")
-    print("\nNext step: Run create_embeddings.py to generate semantic search vectors")
-    print("Example: python create_embeddings.py --translation ita1927")
+    overall_start = time.time()
+    for idx, trans_code in enumerate(translations_to_load, 1):
+        log(f"\n{'='*60}")
+        log(f"[{idx}/{total_translations}] Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
+        log(f"{'='*60}")
+        await load_translation_to_db(database_url, trans_code, embedding_dimensions, books_filter, args.force)
+
+    overall_elapsed = time.time() - overall_start
+    log(f"\n🎉 All {total_translations} translations loaded successfully in {overall_elapsed:.1f}s!")
+    log("\nNext step: Run create_embeddings.py to generate semantic search vectors")
+    log("Example: python create_embeddings.py --translation ita1927")
+    if embedding_dimensions == 1536:
+        log("   (or create_azure_embeddings.py for Azure OpenAI)")
 
 
 if __name__ == "__main__":
