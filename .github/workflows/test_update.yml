@@ -328,22 +328,35 @@ jobs:
           SCRIPT
 
           # Test 5: Frontend health
+          # Test root path / which should redirect to /en (i18n locale detection).
+          # Uses -L to follow the redirect. First request triggers compilation (~6s).
           cat > /tmp/tests/test_frontend.sh << 'SCRIPT'
           #!/bin/bash
           set -e
           echo "=== Testing Frontend ==="
           max_attempts=30
           attempt=0
-          until curl -sf http://localhost:3000 > /dev/null || [ $attempt -eq $max_attempts ]; do
+          # Wait for Next.js dev server - hit / which redirects to /en via locale detection
+          until curl -s -L -o /dev/null --max-time 30 -w "%{http_code}" http://localhost:3000/ | grep -qE "^200"; do
             attempt=$((attempt + 1))
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Frontend failed to start"
+              docker compose logs frontend --tail=50
+              exit 1
+            fi
             echo "Waiting for Frontend... attempt $attempt/$max_attempts"
             sleep 2
           done
-          if [ $attempt -eq $max_attempts ]; then
-            echo "Frontend failed to start"
+          echo "✓ Frontend root redirect OK (/ → /en)"
+
+          # Also verify a non-default locale works
+          http_code=$(curl -s -o /dev/null --max-time 30 -w "%{http_code}" http://localhost:3000/it)
+          if [ "$http_code" = "200" ]; then
+            echo "✓ Frontend locale /it OK"
+          else
+            echo "ERROR: /it returned HTTP $http_code"
             exit 1
           fi
-          echo "✓ Frontend OK"
           SCRIPT
 
           chmod +x /tmp/tests/*.sh

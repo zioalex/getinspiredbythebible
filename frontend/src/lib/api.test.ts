@@ -9,6 +9,9 @@ import {
   searchChurches,
   checkBackendReady,
   warmupBackend,
+  setTurnstileToken,
+  setOnTokenConsumed,
+  submitFeedback,
   ColdStartError,
   type ChatResponse,
   type ScriptureContext,
@@ -637,5 +640,165 @@ describe("sendMessage with timeoutMs", () => {
     );
 
     await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
+  });
+});
+
+describe("Turnstile token consumption", () => {
+  afterEach(() => {
+    setTurnstileToken(null);
+    setOnTokenConsumed(null);
+  });
+
+  it("should include Turnstile token in request headers when set", async () => {
+    setTurnstileToken("test-token-123");
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Turnstile-Token": "test-token-123",
+        }),
+      }),
+    );
+  });
+
+  it("should consume token after API call (not reuse it)", async () => {
+    setTurnstileToken("single-use-token");
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    // First call should include the token
+    await sendMessage("First message");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Turnstile-Token": "single-use-token",
+        }),
+      }),
+    );
+
+    // Second call should NOT include the token (it was consumed)
+    await sendMessage("Second message");
+    const secondCallHeaders = (global.fetch as any).mock.calls[1][1].headers;
+    expect(secondCallHeaders["X-Turnstile-Token"]).toBeUndefined();
+  });
+
+  it("should call onTokenConsumed callback after using a token", async () => {
+    const onConsumed = vi.fn();
+    setTurnstileToken("token-to-consume");
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(onConsumed).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not call onTokenConsumed when no token is set", async () => {
+    const onConsumed = vi.fn();
+    setTurnstileToken(null);
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(onConsumed).not.toHaveBeenCalled();
+  });
+
+  it("should consume token for all protected endpoints", async () => {
+    const onConsumed = vi.fn();
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    // Each call sets a fresh token and verifies consumption
+    setTurnstileToken("token-chat");
+    await sendMessage("msg");
+    expect(onConsumed).toHaveBeenCalledTimes(1);
+
+    setTurnstileToken("token-search");
+    await searchScripture("peace");
+    expect(onConsumed).toHaveBeenCalledTimes(2);
+
+    setTurnstileToken("token-verse");
+    await getVerse("John", 3, 16);
+    expect(onConsumed).toHaveBeenCalledTimes(3);
+
+    setTurnstileToken("token-chapter");
+    await getChapter("Psalm", 23);
+    expect(onConsumed).toHaveBeenCalledTimes(4);
+
+    setTurnstileToken("token-church");
+    await searchChurches("Zurich");
+    expect(onConsumed).toHaveBeenCalledTimes(5);
+
+    setTurnstileToken("token-feedback");
+    await submitFeedback({
+      message_id: "test",
+      rating: "positive",
+      user_message: "q",
+      assistant_response: "a",
+    });
+    expect(onConsumed).toHaveBeenCalledTimes(6);
+  });
+
+  it("should not send token for unprotected endpoints", async () => {
+    setTurnstileToken("should-not-be-sent");
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        target_verse: 16,
+        verses: [],
+      }),
+    });
+
+    await getVerseContext("John", 3, 16);
+
+    const headers = (global.fetch as any).mock.calls[0][1].headers;
+    expect(headers["X-Turnstile-Token"]).toBeUndefined();
+
+    // Token should still be available (not consumed by unprotected endpoint)
+    expect(
+      (global.fetch as any).mock.calls[0][1].headers["X-Turnstile-Token"],
+    ).toBeUndefined();
   });
 });
