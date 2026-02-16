@@ -578,7 +578,7 @@ backend_memory = "2Gi"  # More memory for vector operations
 
 ### Terraform Infrastructure Pipeline
 
-The repository includes a GitHub Actions workflow (`.github/workflows/terraform.yml`) that automates infrastructure management:
+The repository includes a GitHub Actions workflow (`.github/workflows/azure-deploy.yml`) that automates infrastructure management:
 
 | Trigger | Action |
 |---------|--------|

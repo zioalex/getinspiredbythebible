@@ -628,7 +628,7 @@ TF_SECRETS := -var-file="terraform.tfvars.secrets"
 
 tf-check-version: ## Check if local Terraform version matches pipeline version
 	@echo "$(BLUE)Checking Terraform version consistency...$(NC)"
-	@PIPELINE_VERSION=$$(grep 'TF_VERSION:' .github/workflows/terraform.yml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
+	@PIPELINE_VERSION=$$(grep 'TF_VERSION:' .github/workflows/azure-deploy.yml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
 	LOCAL_VERSION=$$(terraform version | head -1 | sed 's/Terraform v//'); \
 	echo "  Pipeline version: $$PIPELINE_VERSION"; \
 	echo "  Local version:    $$LOCAL_VERSION"; \
