@@ -538,7 +538,7 @@ jobs:
 
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const exitCode = '${{ steps.plan.outputs.exitcode }}';
