@@ -5,16 +5,16 @@ Provides endpoint to search for churches near a given location
 by proxying to disciplestoday.org's church finder API.
 """
 
-import logging
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from utils.logging_config import get_logger
 from utils.turnstile import require_turnstile
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/church", tags=["church"])
 

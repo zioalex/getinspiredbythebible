@@ -4,7 +4,6 @@ Bible Inspiration Chat API
 Main FastAPI application entry point.
 """
 
-import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -23,11 +22,11 @@ from routes import (
 )
 from scripture import close_db, init_db
 from utils.local_only import require_local_access
-from utils.logging_config import setup_logging
+from utils.logging_config import get_logger, setup_logging
 
 # Configure logging before anything else
 setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Configure Azure Monitor (Application Insights) if connection string is set.
 # Sets up OpenTelemetry exporters for traces, metrics, and logs.
@@ -39,7 +38,11 @@ if _appinsights_conn:
     try:
         from azure.monitor.opentelemetry import configure_azure_monitor
 
-        configure_azure_monitor(connection_string=_appinsights_conn)
+        configure_azure_monitor(
+            connection_string=_appinsights_conn,
+            # Scope to our app logger so Azure SDK internal logs are not exported
+            logger_name="bible_app",
+        )
         logger.info("Application Insights telemetry enabled")
     except Exception as e:
         logger.warning("Failed to configure Application Insights: %s", e)
@@ -112,6 +115,20 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down application")
     await close_db()
+
+    # Flush OpenTelemetry telemetry before container shuts down.
+    # Without this, the batch exporter may lose pending spans/logs
+    # when the container scales to zero.
+    if _appinsights_conn:
+        try:
+            from opentelemetry import trace  # type: ignore[attr-defined]
+            from opentelemetry.sdk.trace import TracerProvider
+
+            tp = trace.get_tracer_provider()
+            if isinstance(tp, TracerProvider):
+                tp.force_flush(timeout_millis=5000)
+        except Exception:
+            pass
 
 
 # Create FastAPI app

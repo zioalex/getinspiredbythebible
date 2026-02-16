@@ -3,7 +3,6 @@ Chat API routes.
 """
 
 import json
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,10 +11,11 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+from utils.logging_config import get_logger
 from utils.security import check_content_filter, require_rate_limit
 from utils.turnstile import require_turnstile
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
