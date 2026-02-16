@@ -1,0 +1,56 @@
+# Local testing with cloud providers (OpenRouter + Azure OpenAI + remote DB).
+# No Ollama or local PostgreSQL — all external services come from .env.production.
+#
+# Usage:
+#   make docker-up-local-prod          # Use cached images (fast)
+#   make docker-up-local-prod-build    # Rebuild images from source
+#   make docker-down-local-prod        # Stop
+#   make docker-logs-local-prod        # Tail logs
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "0.0.0.0:8000:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openrouter}
+      - LLM_MODEL=${LLM_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-azure_openai}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1536}
+      - DATABASE_URL=${DATABASE_URL:-}
+      # OpenRouter
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - OPENROUTER_FALLBACK_MODELS=${OPENROUTER_FALLBACK_MODELS:-meta-llama/llama-3.3-70b-instruct}
+      - OPENROUTER_ALLOW_FALLBACKS=${OPENROUTER_ALLOW_FALLBACKS:-true}
+      # Azure OpenAI (embeddings)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      # Other providers (optional)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Contact form
+      - SMTP2GO_API_KEY=${SMTP2GO_API_KEY:-}
+    volumes:
+      - ./api:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: deps
+    ports:
+      - "0.0.0.0:3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    command: npm run dev

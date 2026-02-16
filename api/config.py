@@ -95,7 +95,22 @@ class Settings(BaseSettings):
     content_filter_block_spam: bool = True
     content_filter_max_repeated_chars: int = 5  # Block excessive repeated chars
     content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
+    content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
+
+    # Cloudflare Turnstile (Bot Protection)
+    # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile
+    turnstile_enabled: bool = False  # Enable Turnstile verification
+    turnstile_secret_key: str | None = None  # Server-side secret key
+    turnstile_site_key: str | None = None  # Client-side site key (for /config endpoint)
+    # Skip verification for these paths (prefix match).
+    # Health probes, docs, and info endpoints don't go through the frontend
+    # Turnstile widget and must work without a token.
+    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/"
+    # Development: Use Cloudflare test keys for local testing
+    # Test secret: 1x0000000000000000000000000000000AA (always passes)
+    # Test secret: 2x0000000000000000000000000000000AA (always fails)
+    # Test secret: 3x0000000000000000000000000000000AA (forces interactive challenge)
 
     class Config:
         env_file = ".env"

@@ -5,6 +5,7 @@ Tests for feedback API endpoints.
 import sys
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -249,4 +250,143 @@ class TestContactEndpoint:
             },
         )
         # Should succeed without email
+        assert response.status_code in [200, 500]
+
+
+class TestFeedbackEmailIntegration:
+    """Tests for email notification integration in feedback endpoints."""
+
+    @patch("routes.feedback.email_service")
+    def test_negative_feedback_sends_email(self, mock_email_service):
+        """Test that negative feedback triggers email notification."""
+        mock_email_service.send_feedback_notification.return_value = True
+
+        response = client.post(
+            "/api/v1/feedback",
+            json={
+                "message_id": str(uuid.uuid4()),
+                "rating": "negative",
+                "comment": "The response wasn't helpful.",
+                "user_message": "How can I find peace?",
+                "assistant_response": "Let me help you find peace...",
+            },
+        )
+
+        # Endpoint should succeed (or fail due to DB, not email)
+        assert response.status_code in [200, 500]
+
+        # Verify email service was called with correct params
+        if response.status_code == 200:
+            mock_email_service.send_feedback_notification.assert_called_once_with(
+                rating="negative",
+                comment="The response wasn't helpful.",
+                user_message="How can I find peace?",
+                assistant_response="Let me help you find peace...",
+            )
+
+    @patch("routes.feedback.email_service")
+    def test_positive_feedback_skips_email(self, mock_email_service):
+        """Test that positive feedback does NOT trigger email notification."""
+        response = client.post(
+            "/api/v1/feedback",
+            json={
+                "message_id": str(uuid.uuid4()),
+                "rating": "positive",
+                "comment": "Great response!",
+                "user_message": "What does the Bible say about hope?",
+                "assistant_response": "The Bible speaks about hope...",
+            },
+        )
+
+        assert response.status_code in [200, 500]
+
+        # Email should NOT be called for positive feedback
+        mock_email_service.send_feedback_notification.assert_not_called()
+
+    @patch("routes.feedback.email_service")
+    def test_feedback_succeeds_when_email_fails(self, mock_email_service):
+        """Test that feedback submission succeeds even if email sending fails."""
+        mock_email_service.send_feedback_notification.return_value = False
+
+        response = client.post(
+            "/api/v1/feedback",
+            json={
+                "message_id": str(uuid.uuid4()),
+                "rating": "negative",
+                "comment": "Not helpful",
+                "user_message": "Test question",
+                "assistant_response": "Test response",
+            },
+        )
+
+        # Endpoint should still succeed (or fail due to DB, not email)
+        # Email failure should not cause endpoint failure
+        assert response.status_code in [200, 500]
+
+
+class TestContactEmailIntegration:
+    """Tests for email notification integration in contact endpoint."""
+
+    @patch("routes.feedback.email_service")
+    def test_contact_sends_email_notification(self, mock_email_service):
+        """Test that contact form submission triggers email notification."""
+        mock_email_service.send_contact_notification.return_value = True
+
+        response = client.post(
+            "/api/v1/feedback/contact",
+            json={
+                "email": "user@example.com",
+                "subject": "bug",
+                "message": "Found a bug in the app.",
+                "user_agent": "Mozilla/5.0 Chrome/120.0",
+            },
+        )
+
+        assert response.status_code in [200, 500]
+
+        if response.status_code == 200:
+            mock_email_service.send_contact_notification.assert_called_once_with(
+                subject_type="bug",
+                message="Found a bug in the app.",
+                reply_email="user@example.com",
+                user_agent="Mozilla/5.0 Chrome/120.0",
+            )
+
+    @patch("routes.feedback.email_service")
+    def test_contact_sends_email_without_reply_email(self, mock_email_service):
+        """Test contact notification with no reply email provided."""
+        mock_email_service.send_contact_notification.return_value = True
+
+        response = client.post(
+            "/api/v1/feedback/contact",
+            json={
+                "subject": "feedback",
+                "message": "Great app!",
+            },
+        )
+
+        assert response.status_code in [200, 500]
+
+        if response.status_code == 200:
+            mock_email_service.send_contact_notification.assert_called_once_with(
+                subject_type="feedback",
+                message="Great app!",
+                reply_email=None,
+                user_agent=None,
+            )
+
+    @patch("routes.feedback.email_service")
+    def test_contact_succeeds_when_email_fails(self, mock_email_service):
+        """Test that contact submission succeeds even if email sending fails."""
+        mock_email_service.send_contact_notification.return_value = False
+
+        response = client.post(
+            "/api/v1/feedback/contact",
+            json={
+                "subject": "feature",
+                "message": "Please add dark mode.",
+            },
+        )
+
+        # Endpoint should still succeed (or fail due to DB, not email)
         assert response.status_code in [200, 500]

@@ -214,21 +214,49 @@ api/
 - **Repository Pattern**: `ScriptureRepository` encapsulates database queries,
   `ScriptureSearchService` provides high-level search API.
 
-### Frontend Structure (Next.js)
+### Frontend Structure (Next.js + next-intl)
 
 ```text
-frontend/src/
-├── app/
-│   ├── page.tsx        # Main chat interface (Server Component)
-│   ├── layout.tsx      # Root layout
-│   └── globals.css     # Tailwind styles
-├── components/
-│   ├── ChatMessage.tsx # Message display with verse references
-│   ├── VerseCard.tsx   # Verse display card
-│   └── ChapterModal.tsx # Full chapter modal
-└── lib/
-    └── api.ts          # API client functions
+frontend/
+├── middleware.ts             # next-intl middleware (locale redirect, detection)
+├── messages/                 # Translation files (one per locale)
+│   ├── en.json              # English translations
+│   ├── it.json              # Italian translations
+│   └── de.json              # German translations
+└── src/
+    ├── app/
+    │   ├── page.tsx         # Root redirect (/ → /en, /it, /de via Accept-Language)
+    │   ├── layout.tsx       # Root layout (passes children, no html/body)
+    │   ├── globals.css      # Tailwind styles
+    │   └── [locale]/
+    │       ├── layout.tsx   # Locale layout (html/body, NextIntlClientProvider)
+    │       ├── page.tsx     # Main chat interface (Client Component)
+    │       └── providers.tsx # Theme/UI providers
+    ├── i18n/
+    │   ├── routing.ts       # Locale config (locales, defaultLocale, prefix)
+    │   ├── request.ts       # Server-side locale/message resolution
+    │   └── navigation.ts    # Localized Link, redirect, useRouter, usePathname
+    ├── components/
+    │   ├── ChatMessage.tsx   # Message display with verse references
+    │   ├── VerseCard.tsx     # Verse display card
+    │   ├── LanguageSwitcher.tsx # Locale selector dropdown
+    │   └── ChapterModal.tsx  # Full chapter modal
+    └── lib/
+        ├── api.ts            # API client functions
+        └── locale-detection.ts # Accept-Language header parsing
 ```
+
+**Internationalization (i18n) Architecture:**
+
+- **Library**: [next-intl](https://next-intl.dev) v4 with App Router
+- **Supported Locales**: `en` (English, default), `it` (Italian), `de` (German)
+- **Locale Prefix**: `always` — all routes are prefixed (`/en/`, `/it/`, `/de/`)
+- **Root Path**: `page.tsx` at app root reads `Accept-Language` header and redirects
+  to the best matching locale
+- **Translation Files**: JSON files in `messages/` with namespaced keys
+  (Metadata, Header, Welcome, Chat, Verses, etc.)
+- **Client Components**: Use `useTranslations('Namespace')` hook from `next-intl`
+- **Server Components**: Use `getTranslations()` from `next-intl/server`
 
 ### Database Models
 
@@ -372,6 +400,30 @@ See `docs/TECHNICAL_DEBT.md` for detailed tracking. Key items:
 3. Update `config.py` to add new provider to `llm_provider` Literal type
 4. Add provider-specific settings to `Settings` class
 5. Update README.md configuration section
+
+### Adding a New Language (i18n)
+
+1. **Create translation file**: Copy `frontend/messages/en.json` to `frontend/messages/{locale}.json`
+   and translate all values (keep the keys identical).
+
+2. **Register the locale** in `frontend/src/i18n/routing.ts`:
+
+   ```ts
+   export const routing = defineRouting({
+     locales: ["en", "it", "de", "fr"],  // add your locale
+     defaultLocale: "en",
+     localePrefix: "always",
+   });
+   ```
+
+3. **Add locale label** in `frontend/src/components/LanguageSwitcher.tsx` — add an entry to
+   the `localeNames` map (e.g., `fr: "Francais"`).
+
+4. **Add `hreflang` alternate** in `frontend/src/app/[locale]/layout.tsx` — add the locale
+   to the `alternates.languages` object in `generateMetadata()`.
+
+5. **Run tests**: `npx vitest run` — the translation consistency tests will automatically
+   verify the new locale has all required keys, namespaces, and valid ICU plural formatting.
 
 ### Running Pre-commit Hooks on All Files
 

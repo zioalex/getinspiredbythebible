@@ -405,3 +405,26 @@ variable "contact_notification_email" {
   type        = string
   default     = "getinspiredbythebible@ai4you.sh"
 }
+
+# -----------------------------------------------------------------------------
+# Cloudflare Turnstile (Bot Protection) Configuration
+# -----------------------------------------------------------------------------
+
+variable "turnstile_enabled" {
+  description = "Enable Cloudflare Turnstile bot protection"
+  type        = bool
+  default     = false
+}
+
+variable "turnstile_secret_key" {
+  description = "Cloudflare Turnstile server-side secret key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "turnstile_site_key" {
+  description = "Cloudflare Turnstile client-side site key"
+  type        = string
+  default     = ""
+}
