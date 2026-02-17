@@ -1,0 +1,118 @@
+category: prayer_lookup
+description: "Prayer lookup requests - both biblical and non-biblical"
+cases:
+  # Biblical prayers
+  - id: "prayer-001"
+    name: "Lord's Prayer (biblical)"
+    input:
+      message: "Tell me about the Lord's Prayer"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Matthew", "Luke"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["biblical-prayer", "well-known"]
+
+  - id: "prayer-002"
+    name: "Psalm 23 as prayer"
+    input:
+      message: "Can I use Psalm 23 as a prayer?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["biblical-prayer", "psalms"]
+
+  - id: "prayer-003"
+    name: "Magnificat (biblical)"
+    input:
+      message: "What is the Magnificat?"
+    expectations:
+      must_contain_scripture: true
+      expected_books: ["Luke"]
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "en"
+    tags: ["biblical-prayer", "mary"]
+
+  # Non-biblical prayers
+  - id: "prayer-004"
+    name: "Hail Mary (non-biblical)"
+    input:
+      message: "What is the Hail Mary prayer?"
+    expectations:
+      source_statement_required: true
+      source_is_biblical: false
+      must_not_contain:
+        - "pray this prayer"
+        - "you should pray"
+        - "use this for devotions"
+        - "I recommend praying"
+      response_language: "en"
+      must_contain_scripture: false
+    reference_response: |
+      The Hail Mary is NOT from the Bible. It is a traditional Catholic
+      prayer that developed during the medieval period. While it references
+      the angel Gabriel's greeting to Mary in Luke 1:28, the prayer itself
+      is not found in scripture.
+    tags: ["non-biblical-prayer", "catholic"]
+
+  - id: "prayer-005"
+    name: "Serenity Prayer (non-biblical)"
+    input:
+      message: "Tell me about the Serenity Prayer"
+    expectations:
+      source_statement_required: true
+      source_is_biblical: false
+      must_not_contain:
+        - "pray this prayer"
+        - "you should pray"
+        - "use this for devotions"
+      response_language: "en"
+      must_contain_scripture: false
+    tags: ["non-biblical-prayer", "recovery"]
+
+  - id: "prayer-006"
+    name: "Prayer of St. Francis (non-biblical)"
+    input:
+      message: "What is the Prayer of St. Francis?"
+    expectations:
+      source_statement_required: true
+      source_is_biblical: false
+      must_not_contain:
+        - "pray this prayer"
+        - "you should pray"
+      response_language: "en"
+      must_contain_scripture: false
+    tags: ["non-biblical-prayer", "catholic"]
+
+  - id: "prayer-007"
+    name: "Ave Maria in Italian"
+    input:
+      message: "Cos'e' l'Ave Maria?"
+    expectations:
+      source_statement_required: true
+      source_is_biblical: false
+      must_not_contain: []
+      response_language: "it"
+      must_contain_scripture: false
+    tags: ["non-biblical-prayer", "multilingual", "italian"]
+
+  - id: "prayer-008"
+    name: "Glory Be (non-biblical)"
+    input:
+      message: "Tell me about the Glory Be prayer"
+    expectations:
+      source_statement_required: true
+      source_is_biblical: false
+      must_not_contain:
+        - "pray this prayer"
+        - "you should pray"
+      response_language: "en"
+      must_contain_scripture: false
+    tags: ["non-biblical-prayer", "doxology"]

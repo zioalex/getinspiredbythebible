@@ -1,0 +1,117 @@
+category: encouragement
+description: "Comfort-seeking and encouragement scenarios"
+cases:
+  - id: "enc-001"
+    name: "Feeling anxious about work"
+    input:
+      message: "I've been feeling very anxious about my job lately"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Philippians", "Psalms", "Matthew", "1 Peter", "Isaiah"]
+      must_not_contain:
+        - "just pray about it"
+        - "you should not feel"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["anxiety", "comfort", "workplace"]
+
+  - id: "enc-002"
+    name: "Loss of a parent"
+    input:
+      message: "My father passed away last month and I feel lost"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms", "Revelation", "2 Corinthians", "Matthew", "John"]
+      must_not_contain:
+        - "everything happens for a reason"
+        - "just pray about it"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["grief", "loss", "comfort"]
+
+  - id: "enc-003"
+    name: "Loneliness after divorce"
+    input:
+      message: "I'm struggling with loneliness after my divorce"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms", "Isaiah", "Deuteronomy", "Hebrews"]
+      must_not_contain:
+        - "just pray about it"
+        - "you should not feel"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["loneliness", "divorce", "comfort"]
+
+  - id: "enc-004"
+    name: "Feeling abandoned by God"
+    input:
+      message: "I feel like God has abandoned me"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms", "Deuteronomy", "Isaiah", "Romans", "Hebrews"]
+      must_not_contain:
+        - "God would never"
+        - "just pray about it"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["faith-crisis", "doubt", "comfort"]
+
+  - id: "enc-005"
+    name: "Health worries"
+    input:
+      message: "I just got a scary diagnosis and I'm afraid"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Psalms", "Isaiah", "2 Corinthians", "Romans"]
+      must_not_contain:
+        - "just pray about it"
+        - "God will heal you"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["health", "fear", "comfort"]
+
+  - id: "enc-006"
+    name: "Financial stress"
+    input:
+      message: "I'm overwhelmed by debt and don't know what to do"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Philippians", "Matthew", "Psalms", "Proverbs"]
+      must_not_contain:
+        - "just pray about it"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["finances", "stress", "comfort"]
+
+  - id: "enc-007"
+    name: "Parenting struggles"
+    input:
+      message: "I feel like I'm failing as a parent"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Proverbs", "Psalms", "Deuteronomy", "Isaiah", "Ephesians"]
+      must_not_contain:
+        - "just pray about it"
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["parenting", "failure", "comfort"]
+
+  - id: "enc-008"
+    name: "Seeking strength"
+    input:
+      message: "I need strength to get through this difficult time"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      expected_books: ["Isaiah", "Philippians", "Psalms", "2 Corinthians"]
+      response_language: "en"
+      must_acknowledge_situation: true
+    tags: ["strength", "perseverance", "comfort"]

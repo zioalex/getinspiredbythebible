@@ -1,0 +1,71 @@
+category: multilingual
+description: "Multilingual input tests (Italian, German)"
+cases:
+  # Italian
+  - id: "multi-001"
+    name: "Italian comfort request"
+    input:
+      message: "Mi sento solo e triste, ho bisogno di conforto"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      response_language: "it"
+      must_acknowledge_situation: true
+    tags: ["italian", "comfort"]
+
+  - id: "multi-002"
+    name: "Italian verse lookup"
+    input:
+      message: "Cosa dice Giovanni 3:16?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "it"
+    tags: ["italian", "verse-lookup"]
+
+  - id: "multi-003"
+    name: "Italian prayer question"
+    input:
+      message: "Parlami del Padre Nostro"
+    expectations:
+      must_contain_scripture: true
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "it"
+    tags: ["italian", "prayer"]
+
+  # German
+  - id: "multi-004"
+    name: "German comfort request"
+    input:
+      message: "Ich habe Angst vor der Zukunft und brauche Trost"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      response_language: "de"
+      must_acknowledge_situation: true
+    tags: ["german", "comfort", "fear"]
+
+  - id: "multi-005"
+    name: "German verse lookup"
+    input:
+      message: "Was sagt Psalm 23?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      source_statement_required: true
+      source_is_biblical: true
+      response_language: "de"
+    tags: ["german", "verse-lookup"]
+
+  - id: "multi-006"
+    name: "German theological question"
+    input:
+      message: "Was sagt die Bibel ueber Vergebung?"
+    expectations:
+      must_contain_scripture: true
+      min_verses_cited: 1
+      response_language: "de"
+    tags: ["german", "theology", "forgiveness"]
