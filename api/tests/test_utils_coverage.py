@@ -241,7 +241,7 @@ class TestGetLogger:
     def test_returns_logger(self):
         logger = get_logger("test.module")
         assert isinstance(logger, logging.Logger)
-        assert logger.name == "test.module"
+        assert logger.name == "bible_app.test.module"
 
     def test_returns_same_logger(self):
         logger1 = get_logger("test.same")
