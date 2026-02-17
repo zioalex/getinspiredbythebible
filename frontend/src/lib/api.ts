@@ -239,7 +239,7 @@ export async function sendMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
-  timeoutMs: number = 30000,
+  timeoutMs: number = 60000,
 ): Promise<ChatResponse> {
   try {
     // Set a timeout for cold start detection
