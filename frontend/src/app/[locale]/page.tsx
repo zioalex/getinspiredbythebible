@@ -262,7 +262,7 @@ export default function Home() {
         }));
 
         // Use shorter timeout when we know backend is cold to enter retry loop faster
-        const timeout = backendReady === false ? 8000 : 30000;
+        const timeout = backendReady === false ? 15000 : 60000;
 
         const response = await sendMessage(
           userMessageContent,
