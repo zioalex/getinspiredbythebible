@@ -55,7 +55,7 @@ frontend_image = "bibleappacrmb0172.azurecr.io/bible-frontend:latest"
 # Backend (FastAPI)
 backend_cpu          = 0.5
 backend_memory       = "1Gi"
-backend_min_replicas = 0
+backend_min_replicas = 1
 backend_max_replicas = 2
 
 # Frontend (Next.js)

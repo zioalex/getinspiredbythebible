@@ -248,7 +248,7 @@ resource "azurerm_application_insights" "main" {
   tags = local.tags
 }
 
-# Standard availability test — pings the backend /health/live endpoint every
+# Standard availability test — pings the backend /health/ready endpoint every
 # 5 minutes from multiple Azure locations.  This populates the "Availability"
 # tab in Application Insights (which is 0% without an explicit test).
 resource "azurerm_application_insights_standard_web_test" "backend_availability" {
@@ -267,7 +267,7 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
   frequency = 300 # every 5 minutes
 
   request {
-    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/live"
+    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/ready"
   }
 
   validation_rules {
