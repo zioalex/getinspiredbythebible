@@ -84,6 +84,17 @@
     "churchData": "Church data provided by",
     "churchDataLink": "DisciplesToday.org"
   },
+  "Share": {
+    "share": "Share",
+    "copyToClipboard": "Copy to clipboard",
+    "copied": "Copied!",
+    "shareOnWhatsApp": "Share on WhatsApp",
+    "shareOnTwitter": "Share on X",
+    "shareOnFacebook": "Share on Facebook",
+    "shareOnBluesky": "Share on Bluesky",
+    "sharePrefix": "I found this inspiring biblical insight:",
+    "shareVia": "Bible Inspiration Chat"
+  },
   "Contact": {
     "getInTouch": "Get in Touch",
     "emailUs": "Email us:",
