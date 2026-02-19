@@ -30,6 +30,7 @@ import {
   submitFeedback,
   FeedbackRequest,
   generateSessionId,
+  getOrCreateSessionId,
   ColdStartError,
   checkBackendReady,
   warmupBackend,
@@ -113,8 +114,12 @@ export default function Home() {
   // Mobile verses panel
   const [mobileVersesOpen, setMobileVersesOpen] = useState(false);
 
-  // Session tracking - generate unique ID per chat session
-  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
+  // Persistent session ID for DAU/MAU tracking (survives page refreshes)
+  const [sessionId] = useState<string>(() => getOrCreateSessionId());
+  // Conversation ID resets on "New Chat" for per-conversation tracking
+  const [conversationId, setConversationId] = useState<string>(() =>
+    generateSessionId(),
+  );
 
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
@@ -384,7 +389,7 @@ export default function Home() {
     setFeedbackGiven({});
     setFeedbackError(null);
     setMobileVersesOpen(false);
-    setSessionId(generateSessionId()); // Generate new session ID for new chat
+    setConversationId(generateSessionId()); // New conversation, same persistent session
   };
 
   // Handle feedback button click

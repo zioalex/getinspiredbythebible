@@ -15,6 +15,7 @@ from scripture import (
 )
 from utils.book_names import get_localized_book_name
 from utils.language import get_all_translations, get_translation_info
+from utils.metrics import scripture_search_counter, scripture_verses_returned
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
 
@@ -188,6 +189,10 @@ async def search_scripture(
     results = await service.search(
         query=q, max_verses=max_verses, max_passages=max_passages, translation=translation
     )
+
+    # Record search metrics
+    scripture_search_counter.add(1)
+    scripture_verses_returned.record(len(results.verses))
 
     return results
 

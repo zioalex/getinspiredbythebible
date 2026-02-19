@@ -147,3 +147,21 @@ CREATE TABLE IF NOT EXISTS contact_submissions (
 
 CREATE INDEX IF NOT EXISTS idx_contact_created_at ON contact_submissions(created_at);
 CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions(status);
+
+-- ============================================================================
+-- Create sessions table (usage tracking for DAU/MAU)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id SERIAL PRIMARY KEY,
+    session_token VARCHAR(64) UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    message_count INTEGER DEFAULT 0,
+    language VARCHAR(10),
+    user_agent TEXT,
+    is_mobile BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity);
