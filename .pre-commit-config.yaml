@@ -119,11 +119,15 @@ repos:
         exclude: 'package-lock.json|\.next/'
 
   # Frontend - ESLint (uses project-local eslint with flat config)
+  # Note: NVM must be sourced so the correct Node.js version is used,
+  # because VS Code git hooks don't inherit the NVM shell environment.
   - repo: local
     hooks:
       - id: eslint
         name: eslint
-        entry: bash -c 'cd frontend && npx eslint --fix "${@/#frontend\//}"' --
+        entry:
+          bash -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; cd frontend && npx
+          eslint --fix "${@/#frontend\//}"' --
         language: system
         files: ^frontend/src/.*\.[jt]sx?$
         types: [file]
