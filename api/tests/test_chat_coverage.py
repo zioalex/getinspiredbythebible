@@ -69,6 +69,11 @@ class TestGetSystemPrompt:
         result = get_system_prompt("pt")
         assert "Portuguese" in result
 
+    def test_arabic(self):
+        result = get_system_prompt("ar")
+        assert "Arabic" in result
+        assert "You MUST respond entirely in" in result
+
     def test_unknown_language_falls_back(self):
         result = get_system_prompt("xx")
         # Should still produce a valid prompt (falls back to English name)
@@ -283,6 +288,7 @@ class TestLanguageNames:
         assert "es" in LANGUAGE_NAMES
         assert "fr" in LANGUAGE_NAMES
         assert "pt" in LANGUAGE_NAMES
+        assert "ar" in LANGUAGE_NAMES
 
 
 class TestSystemPromptConstant:
