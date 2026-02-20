@@ -91,6 +91,7 @@ Any additional context or considerations.
 ```
 
 **Workflow:**
+
 1. Create tracking doc in `docs/WIP/` when starting a complex PR or multi-step task
 2. Update progress log as you work
 3. Check off tasks as completed
