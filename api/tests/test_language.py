@@ -64,6 +64,46 @@ GERMAN_PHRASES = [
     "Ich fühle mich heute ängstlich",
 ]
 
+# Spanish phrases that should be detected as Spanish
+SPANISH_PHRASES = [
+    "¿Qué dice la Biblia sobre el amor y la esperanza?",
+    "Ayúdame a entender el significado de este versículo",
+    "Necesito ánimo y esperanza para seguir adelante hoy",
+    "Explícame el significado de la fe cristiana",
+    "Me siento ansioso hoy y necesito encontrar paz",
+    "Quiero saber qué dice la palabra de Dios acerca del perdón",
+]
+
+# French phrases that should be detected as French
+FRENCH_PHRASES = [
+    "Que dit la Bible sur l'amour et l'espérance?",
+    "Aidez-moi à comprendre la signification de ce verset",
+    "J'ai besoin d'encouragement et de réconfort aujourd'hui",
+    "Expliquez-moi la signification de la foi chrétienne",
+    "Je me sens très anxieux aujourd'hui et j'ai besoin de paix",
+    "Montrez-moi un verset biblique sur l'espérance et la grâce",
+]
+
+# Portuguese phrases that should be detected as Portuguese
+PORTUGUESE_PHRASES = [
+    "O que a Bíblia diz sobre o amor e a esperança?",
+    "Me ajude a entender o significado deste versículo bíblico",
+    "Preciso de encorajamento e conforto para hoje",
+    "Explique para mim o significado da fé cristã",
+    "Estou me sentindo muito ansioso hoje e preciso de paz",
+    "Mostre-me um versículo bíblico sobre esperança e graça",
+]
+
+# Arabic phrases that should be detected as Arabic
+ARABIC_PHRASES = [
+    "ماذا يقول الكتاب المقدس عن المحبة؟",
+    "ساعدني في فهم يوحنا الفصل الثالث الآية السادسة عشرة",
+    "أحتاج إلى تشجيع اليوم",
+    "اشرح لي معنى الإيمان",
+    "أشعر بالقلق اليوم",
+    "أرني آية عن الرجاء والأمل",
+]
+
 # Short/ambiguous phrases that should default to English
 AMBIGUOUS_PHRASES = [
     "John 3:16",  # Just a reference
@@ -101,6 +141,30 @@ class TestLanguageDetection:
         result = detect_language(phrase)
         assert result == "de", f"Expected 'de' for '{phrase}', got '{result}'"
 
+    @pytest.mark.parametrize("phrase", SPANISH_PHRASES)
+    def test_detects_spanish(self, phrase: str):
+        """Spanish phrases should be detected as Spanish."""
+        result = detect_language(phrase)
+        assert result == "es", f"Expected 'es' for '{phrase}', got '{result}'"
+
+    @pytest.mark.parametrize("phrase", FRENCH_PHRASES)
+    def test_detects_french(self, phrase: str):
+        """French phrases should be detected as French."""
+        result = detect_language(phrase)
+        assert result == "fr", f"Expected 'fr' for '{phrase}', got '{result}'"
+
+    @pytest.mark.parametrize("phrase", PORTUGUESE_PHRASES)
+    def test_detects_portuguese(self, phrase: str):
+        """Portuguese phrases should be detected as Portuguese."""
+        result = detect_language(phrase)
+        assert result == "pt", f"Expected 'pt' for '{phrase}', got '{result}'"
+
+    @pytest.mark.parametrize("phrase", ARABIC_PHRASES)
+    def test_detects_arabic(self, phrase: str):
+        """Arabic phrases should be detected as Arabic."""
+        result = detect_language(phrase)
+        assert result == "ar", f"Expected 'ar' for '{phrase}', got '{result}'"
+
     @pytest.mark.parametrize("phrase", AMBIGUOUS_PHRASES)
     def test_ambiguous_defaults_to_english(self, phrase: str):
         """Ambiguous or short phrases should default to English."""
@@ -120,7 +184,16 @@ class TestLanguageDetection:
     def test_returns_supported_language(self):
         """Detection should only return supported languages."""
         # Test with various inputs
-        for phrase in ENGLISH_PHRASES + ITALIAN_PHRASES + GERMAN_PHRASES:
+        all_phrases = (
+            ENGLISH_PHRASES
+            + ITALIAN_PHRASES
+            + GERMAN_PHRASES
+            + SPANISH_PHRASES
+            + FRENCH_PHRASES
+            + PORTUGUESE_PHRASES
+            + ARABIC_PHRASES
+        )
+        for phrase in all_phrases:
             result = detect_language(phrase)
             assert result in SUPPORTED_LANGUAGES, f"Got unsupported language '{result}'"
 
@@ -235,9 +308,25 @@ class TestTranslationMapping:
         """German should map to Schlachter."""
         assert get_translation_for_language("de") == "schlachter"
 
+    def test_spanish_maps_to_valera(self):
+        """Spanish should map to Reina Valera."""
+        assert get_translation_for_language("es") == "valera"
+
+    def test_french_maps_to_ls1910(self):
+        """French should map to Louis Segond."""
+        assert get_translation_for_language("fr") == "ls1910"
+
+    def test_portuguese_maps_to_almeida(self):
+        """Portuguese should map to Almeida."""
+        assert get_translation_for_language("pt") == "almeida"
+
+    def test_arabic_maps_to_arabicsv(self):
+        """Arabic should map to Smith & Van Dyke."""
+        assert get_translation_for_language("ar") == "arabicsv"
+
     def test_unknown_language_maps_to_default(self):
         """Unknown language should map to default translation."""
-        assert get_translation_for_language("fr") == DEFAULT_TRANSLATION
+        assert get_translation_for_language("zh") == DEFAULT_TRANSLATION
         assert get_translation_for_language("unknown") == DEFAULT_TRANSLATION
 
     def test_detect_translation_english(self):
@@ -280,12 +369,16 @@ class TestTranslationInfo:
     def test_get_all_translations(self):
         """get_all_translations should return all translations."""
         translations = get_all_translations()
-        assert len(translations) == 4  # kjv, web, ita1927, schlachter
+        assert len(translations) == 8
         codes = [t["code"] for t in translations]
         assert "kjv" in codes
         assert "web" in codes
         assert "ita1927" in codes
         assert "schlachter" in codes
+        assert "valera" in codes
+        assert "ls1910" in codes
+        assert "almeida" in codes
+        assert "arabicsv" in codes
 
     def test_get_translations_for_language_english(self):
         """get_translations_for_language should return English translations."""
@@ -308,6 +401,10 @@ class TestTranslationInfo:
         assert is_valid_translation("web") is True
         assert is_valid_translation("ita1927") is True
         assert is_valid_translation("schlachter") is True
+        assert is_valid_translation("valera") is True
+        assert is_valid_translation("ls1910") is True
+        assert is_valid_translation("almeida") is True
+        assert is_valid_translation("arabicsv") is True
         assert is_valid_translation("invalid") is False
         assert is_valid_translation("") is False
 
@@ -363,10 +460,40 @@ class TestBookNameLocalization:
         assert get_localized_book_name("John", "schlachter") == "Johannes"
         assert get_localized_book_name("Psalms", "schlachter") == "Psalmen"
 
+    def test_book_localized_for_spanish(self):
+        """Book names should be localized for Spanish translation."""
+        assert get_localized_book_name("Genesis", "valera") == "Génesis"
+        assert get_localized_book_name("Matthew", "valera") == "Mateo"
+        assert get_localized_book_name("John", "valera") == "Juan"
+        assert get_localized_book_name("Psalms", "valera") == "Salmos"
+
+    def test_book_localized_for_french(self):
+        """Book names should be localized for French translation."""
+        assert get_localized_book_name("Genesis", "ls1910") == "Genèse"
+        assert get_localized_book_name("Matthew", "ls1910") == "Matthieu"
+        assert get_localized_book_name("John", "ls1910") == "Jean"
+        assert get_localized_book_name("Psalms", "ls1910") == "Psaumes"
+
+    def test_book_localized_for_portuguese(self):
+        """Book names should be localized for Portuguese translation."""
+        assert get_localized_book_name("Genesis", "almeida") == "Gênesis"
+        assert get_localized_book_name("Matthew", "almeida") == "Mateus"
+        assert get_localized_book_name("John", "almeida") == "João"
+        assert get_localized_book_name("Psalms", "almeida") == "Salmos"
+
+    def test_book_localized_for_arabic(self):
+        """Book names should be localized for Arabic translation."""
+        assert get_localized_book_name("Genesis", "arabicsv") == "تكوين"
+        assert get_localized_book_name("Matthew", "arabicsv") == "متى"
+        assert get_localized_book_name("John", "arabicsv") == "يوحنا"
+        assert get_localized_book_name("Psalms", "arabicsv") == "المزامير"
+
     def test_unknown_book_returns_original(self):
         """Unknown book names should return the original."""
         assert get_localized_book_name("UnknownBook", "ita1927") == "UnknownBook"
         assert get_localized_book_name("UnknownBook", "schlachter") == "UnknownBook"
+        assert get_localized_book_name("UnknownBook", "valera") == "UnknownBook"
+        assert get_localized_book_name("UnknownBook", "arabicsv") == "UnknownBook"
 
 
 # =============================================================================

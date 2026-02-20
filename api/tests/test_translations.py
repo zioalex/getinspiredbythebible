@@ -13,8 +13,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
 
 from translations import (
+    ARABIC_BOOK_NAMES,
+    FRENCH_BOOK_NAMES,
     GERMAN_BOOK_NAMES,
     ITALIAN_BOOK_NAMES,
+    PORTUGUESE_BOOK_NAMES,
+    SPANISH_BOOK_NAMES,
     TRANSLATIONS,
     get_translation_config,
     list_available_translations,
@@ -128,12 +132,72 @@ def test_german_new_testament_books():
         assert GERMAN_BOOK_NAMES[german] == english
 
 
+def test_spanish_book_names_complete():
+    """Test that all 66 Bible books have Spanish mappings"""
+    assert len(SPANISH_BOOK_NAMES) == 66
+    assert SPANISH_BOOK_NAMES["Génesis"] == "Genesis"
+    assert SPANISH_BOOK_NAMES["Mateo"] == "Matthew"
+    assert SPANISH_BOOK_NAMES["Apocalipsis"] == "Revelation"
+
+
+def test_french_book_names_complete():
+    """Test that all 66 Bible books have French mappings"""
+    assert len(FRENCH_BOOK_NAMES) == 66
+    assert FRENCH_BOOK_NAMES["Genèse"] == "Genesis"
+    assert FRENCH_BOOK_NAMES["Matthieu"] == "Matthew"
+    assert FRENCH_BOOK_NAMES["Apocalypse"] == "Revelation"
+
+
+def test_portuguese_book_names_complete():
+    """Test that all 66 Bible books have Portuguese mappings"""
+    assert len(PORTUGUESE_BOOK_NAMES) == 66
+    assert PORTUGUESE_BOOK_NAMES["Gênesis"] == "Genesis"
+    assert PORTUGUESE_BOOK_NAMES["Mateus"] == "Matthew"
+    assert PORTUGUESE_BOOK_NAMES["Apocalipse"] == "Revelation"
+
+
+def test_arabic_book_names_complete():
+    """Test that all 66 Bible books have Arabic mappings"""
+    assert len(ARABIC_BOOK_NAMES) == 66
+    assert ARABIC_BOOK_NAMES["تكوين"] == "Genesis"
+    assert ARABIC_BOOK_NAMES["متى"] == "Matthew"
+    assert ARABIC_BOOK_NAMES["الرؤيا"] == "Revelation"
+
+
+def test_all_spanish_books_unique():
+    """Test that all Spanish book names map to unique English names"""
+    english_names = list(SPANISH_BOOK_NAMES.values())
+    assert len(english_names) == len(set(english_names))
+
+
+def test_all_french_books_unique():
+    """Test that all French book names map to unique English names"""
+    english_names = list(FRENCH_BOOK_NAMES.values())
+    assert len(english_names) == len(set(english_names))
+
+
+def test_all_portuguese_books_unique():
+    """Test that all Portuguese book names map to unique English names"""
+    english_names = list(PORTUGUESE_BOOK_NAMES.values())
+    assert len(english_names) == len(set(english_names))
+
+
+def test_all_arabic_books_unique():
+    """Test that all Arabic book names map to unique English names"""
+    english_names = list(ARABIC_BOOK_NAMES.values())
+    assert len(english_names) == len(set(english_names))
+
+
 def test_translations_config_exists():
     """Test that translations configuration exists for all expected translations"""
     assert "kjv" in TRANSLATIONS
     assert "web" in TRANSLATIONS
     assert "ita1927" in TRANSLATIONS
     assert "schlachter" in TRANSLATIONS
+    assert "valera" in TRANSLATIONS
+    assert "ls1910" in TRANSLATIONS
+    assert "almeida" in TRANSLATIONS
+    assert "arabicsv" in TRANSLATIONS
 
 
 def test_kjv_translation_config():
@@ -185,10 +249,54 @@ def test_get_translation_config_invalid():
         assert "Unknown translation code" in str(e)
 
 
+def test_spanish_translation_config():
+    """Test Spanish translation configuration"""
+    es = TRANSLATIONS["valera"]
+    assert es["code"] == "valera"
+    assert es["name"] == "Reina Valera 1909"
+    assert es["language"] == "Spanish"
+    assert es["language_code"] == "es"
+    assert es["is_default"] is False
+    assert es["book_names"] == SPANISH_BOOK_NAMES
+
+
+def test_french_translation_config():
+    """Test French translation configuration"""
+    fr = TRANSLATIONS["ls1910"]
+    assert fr["code"] == "ls1910"
+    assert fr["name"] == "Louis Segond 1910"
+    assert fr["language"] == "French"
+    assert fr["language_code"] == "fr"
+    assert fr["is_default"] is False
+    assert fr["book_names"] == FRENCH_BOOK_NAMES
+
+
+def test_portuguese_translation_config():
+    """Test Portuguese translation configuration"""
+    pt = TRANSLATIONS["almeida"]
+    assert pt["code"] == "almeida"
+    assert pt["name"] == "Almeida Atualizada"
+    assert pt["language"] == "Portuguese"
+    assert pt["language_code"] == "pt"
+    assert pt["is_default"] is False
+    assert pt["book_names"] == PORTUGUESE_BOOK_NAMES
+
+
+def test_arabic_translation_config():
+    """Test Arabic translation configuration"""
+    ar = TRANSLATIONS["arabicsv"]
+    assert ar["code"] == "arabicsv"
+    assert ar["name"] == "Smith & Van Dyke"
+    assert ar["language"] == "Arabic"
+    assert ar["language_code"] == "ar"
+    assert ar["is_default"] is False
+    assert ar["book_names"] == ARABIC_BOOK_NAMES
+
+
 def test_list_available_translations():
     """Test list_available_translations function"""
     translations = list_available_translations()
-    assert len(translations) == 4  # kjv, web, ita1927, schlachter
+    assert len(translations) == 8
 
     # Check structure
     assert all("code" in t for t in translations)
@@ -209,6 +317,34 @@ def test_map_book_name_german():
     assert map_book_name("1. Mose", "schlachter") == "Genesis"
     assert map_book_name("Matthäus", "schlachter") == "Matthew"
     assert map_book_name("Offenbarung", "schlachter") == "Revelation"
+
+
+def test_map_book_name_spanish():
+    """Test book name mapping for Spanish"""
+    assert map_book_name("Génesis", "valera") == "Genesis"
+    assert map_book_name("Mateo", "valera") == "Matthew"
+    assert map_book_name("Apocalipsis", "valera") == "Revelation"
+
+
+def test_map_book_name_french():
+    """Test book name mapping for French"""
+    assert map_book_name("Genèse", "ls1910") == "Genesis"
+    assert map_book_name("Matthieu", "ls1910") == "Matthew"
+    assert map_book_name("Apocalypse", "ls1910") == "Revelation"
+
+
+def test_map_book_name_portuguese():
+    """Test book name mapping for Portuguese"""
+    assert map_book_name("Gênesis", "almeida") == "Genesis"
+    assert map_book_name("Mateus", "almeida") == "Matthew"
+    assert map_book_name("Apocalipse", "almeida") == "Revelation"
+
+
+def test_map_book_name_arabic():
+    """Test book name mapping for Arabic"""
+    assert map_book_name("تكوين", "arabicsv") == "Genesis"
+    assert map_book_name("متى", "arabicsv") == "Matthew"
+    assert map_book_name("الرؤيا", "arabicsv") == "Revelation"
 
 
 def test_map_book_name_english():
