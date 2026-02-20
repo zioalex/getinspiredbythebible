@@ -1,6 +1,7 @@
 # GitHub Actions Security Quick Reference
 
-> **TL;DR**: You cannot make workflow logs private in a public repository. Use GitHub Secrets and follow security best practices instead.
+> **TL;DR**: You cannot make workflow logs private in a public repository.
+> Use GitHub Secrets and follow security best practices instead.
 
 ## Core Principle
 
@@ -34,9 +35,9 @@ env:
   # ✅ GOOD
   API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
-  
+
   # ❌ BAD
-  API_KEY: "sk-1234567890"
+  API_KEY: "sk-1234567890"  # pragma: allowlist secret
 ```
 
 ### Masking Dynamic Values
@@ -65,6 +66,7 @@ env:
 ## Current Repository Status
 
 ✅ This repository follows best practices:
+
 - All credentials stored in GitHub Secrets
 - Secrets properly referenced via `${{ secrets.NAME }}`
 - No secrets echoed or printed in workflows
@@ -73,6 +75,7 @@ env:
 ## Need More Details?
 
 See [docs/GITHUB_ACTIONS_SECURITY.md](../docs/GITHUB_ACTIONS_SECURITY.md) for comprehensive documentation including:
+
 - Detailed explanation of GitHub's log visibility policy
 - Complete audit checklist
 - Advanced security patterns
