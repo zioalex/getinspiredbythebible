@@ -85,7 +85,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
 
     steps:
       - name: Checkout code
@@ -447,7 +447,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "20.x"
+          node-version: "22.x"
 
       - name: Check npm dependencies for vulnerabilities
         run: |
