@@ -50,10 +50,11 @@ export default function ChapterModal({
   // Scroll to highlighted verse
   useEffect(() => {
     if (isOpen && highlightVerse && verses.length > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const element = document.getElementById(`verse-${highlightVerse}`);
         element?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, highlightVerse, verses]);
 
