@@ -15,6 +15,7 @@ from feedback.models import (
 from scripture import get_db_session
 from utils.email_service import email_service
 from utils.logging_config import get_logger
+from utils.metrics import contact_form_counter, feedback_counter
 from utils.turnstile import require_turnstile
 
 logger = get_logger(__name__)
@@ -54,6 +55,10 @@ async def submit_feedback(
 
     try:
         feedback = await repo.save_feedback(request)
+
+        # Record metrics
+        feedback_counter.add(1, {"rating": request.rating})
+
         logger.info(
             "Feedback saved successfully",
             extra={"feedback_id": feedback.id, "rating": feedback.rating},
@@ -119,6 +124,10 @@ async def submit_contact(
 
     try:
         contact = await repo.save_contact(request)
+
+        # Record metrics
+        contact_form_counter.add(1, {"subject": request.subject})
+
         logger.info(
             "Contact submission saved",
             extra={"contact_id": contact.id, "subject": contact.subject},

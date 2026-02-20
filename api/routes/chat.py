@@ -13,7 +13,12 @@ from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
 from utils.logging_config import get_logger
-from utils.metrics import chat_messages_counter, chat_response_time, chat_sessions_counter
+from utils.metrics import (
+    chat_messages_counter,
+    chat_response_time,
+    chat_sessions_counter,
+    chat_stream_counter,
+)
 from utils.security import check_content_filter, require_rate_limit
 from utils.session_tracker import track_session
 from utils.turnstile import require_turnstile
@@ -99,6 +104,12 @@ async def chat_stream(
 
     Returns Server-Sent Events (SSE) with response chunks.
     """
+    # Record metrics
+    chat_messages_counter.add(1)
+    chat_stream_counter.add(1)
+    if request.session_id:
+        chat_sessions_counter.add(1, {"session_token": request.session_id})
+
     service = ChatService(db, llm, embedding)
 
     async def generate():

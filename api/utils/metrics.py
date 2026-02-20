@@ -29,6 +29,12 @@ chat_sessions_counter = meter.create_counter(
     unit="1",
 )
 
+chat_stream_counter = meter.create_counter(
+    name="chat.stream.total",
+    description="Total streaming chat requests",
+    unit="1",
+)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",
@@ -39,5 +45,25 @@ scripture_search_counter = meter.create_counter(
 scripture_verses_returned = meter.create_histogram(
     name="scripture.verses.returned",
     description="Number of verses returned per search",
+    unit="1",
+)
+
+# ── Church metrics ────────────────────────────────────────────────────────
+church_search_counter = meter.create_counter(
+    name="church.search.total",
+    description="Total church search requests",
+    unit="1",
+)
+
+# ── Feedback metrics ──────────────────────────────────────────────────────
+feedback_counter = meter.create_counter(
+    name="feedback.total",
+    description="Total feedback submissions",
+    unit="1",
+)
+
+contact_form_counter = meter.create_counter(
+    name="feedback.contact.total",
+    description="Total contact form submissions",
     unit="1",
 )
