@@ -559,6 +559,7 @@ export default function Home() {
                   <ChatMessage
                     message={{ role: message.role, content: message.content }}
                     messageId={message.messageId}
+                    userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}
                     onFeedback={
                       message.messageId

@@ -5,10 +5,12 @@ import { User, BookOpen, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useTranslations } from "next-intl";
 import { Message } from "@/lib/api";
+import ShareMenu from "./ShareMenu";
 
 interface ChatMessageProps {
   message: Message;
   messageId?: string;
+  userMessage?: string;
   onVerseClick?: (book: string, chapter: number, verse: number) => void;
   onFeedback?: (rating: "positive" | "negative") => void;
   feedbackGiven?: "positive" | "negative" | null;
@@ -18,6 +20,7 @@ interface ChatMessageProps {
 export default function ChatMessage({
   message,
   messageId,
+  userMessage,
   onVerseClick,
   onFeedback,
   feedbackGiven,
@@ -209,7 +212,7 @@ export default function ChatMessage({
               </ReactMarkdown>
             </div>
 
-            {/* Feedback buttons for assistant messages */}
+            {/* Feedback and share buttons for assistant messages */}
             {messageId && onFeedback && (
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                 <span className="text-xs text-gray-400 mr-1">
@@ -254,6 +257,12 @@ export default function ChatMessage({
                     {t("thanks")}
                   </span>
                 )}
+                <div className="ml-auto">
+                  <ShareMenu
+                    question={userMessage || ""}
+                    answer={message.content}
+                  />
+                </div>
               </div>
             )}
           </>

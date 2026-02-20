@@ -84,6 +84,17 @@
     "churchData": "Kirchendaten bereitgestellt von",
     "churchDataLink": "DisciplesToday.org"
   },
+  "Share": {
+    "share": "Teilen",
+    "copyToClipboard": "In die Zwischenablage kopieren",
+    "copied": "Kopiert!",
+    "shareOnWhatsApp": "Auf WhatsApp teilen",
+    "shareOnTwitter": "Auf X teilen",
+    "shareOnFacebook": "Auf Facebook teilen",
+    "shareOnBluesky": "Auf Bluesky teilen",
+    "sharePrefix": "Ich habe diese inspirierende biblische Erkenntnis gefunden:",
+    "shareVia": "Biblische Inspirations-Chat"
+  },
   "Contact": {
     "getInTouch": "Kontakt",
     "emailUs": "Schreib uns:",
