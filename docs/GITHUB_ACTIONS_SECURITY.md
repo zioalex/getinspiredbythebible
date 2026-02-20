@@ -2,9 +2,14 @@
 
 ## Question: Can I Make Actions Logs Private in a Public Project?
 
-**Short Answer**: No, GitHub Actions workflow logs in public repositories are **always public** by design. There is no setting to make them private.
+**Short Answer**: No, GitHub Actions workflow logs in public repositories are
+**always public** by design. There is no setting to make them private.
 
-**Long Answer**: GitHub's design philosophy for public repositories emphasizes transparency and openness for open-source collaboration. When workflows run in a public repository, the logs are publicly accessible to anyone, regardless of whether they are logged into GitHub or not. This is an intentional design decision that cannot be changed through repository settings or configuration.
+**Long Answer**: GitHub's design philosophy for public repositories emphasizes
+transparency and openness for open-source collaboration. When workflows run in a
+public repository, the logs are publicly accessible to anyone, regardless of
+whether they are logged into GitHub or not. This is an intentional design
+decision that cannot be changed through repository settings or configuration.
 
 ## Available Options
 
@@ -23,6 +28,7 @@ Keep your repository public but prevent sensitive data from appearing in logs:
 ### Option 2: Move to Private Repository
 
 If you absolutely need private workflow logs:
+
 - Convert your repository to private
 - All logs will then only be accessible to repository collaborators
 - This is the only way to truly restrict log access
@@ -30,6 +36,7 @@ If you absolutely need private workflow logs:
 ### Option 3: Disable Workflows
 
 If workflows are exposing sensitive data and you can't fix them immediately:
+
 - Disable specific workflows via GitHub UI or API
 - This prevents new logs from being generated
 - Note: This doesn't hide existing logs
@@ -46,8 +53,8 @@ env:
 
 # ❌ BAD - Hardcoded values
 env:
-  API_KEY: "sk-1234567890abcdef"
-  DATABASE_PASSWORD: "MyP@ssw0rd"
+  API_KEY: "sk-1234567890abcdef" #  pragma: allowlist secret
+  DATABASE_PASSWORD: "MyP@ssw0rd" #  pragma: allowlist secret
 ```
 
 ### 2. Use Manual Masking for Dynamic Values
@@ -98,6 +105,7 @@ Be especially careful with URLs that might contain credentials:
 ### 5. Review Third-Party Actions
 
 Be cautious with third-party GitHub Actions:
+
 - They may log inputs or environment variables
 - Review their source code before use
 - Prefer well-known, verified actions
@@ -118,6 +126,7 @@ permissions:
 ### 7. Use Environment Protection Rules
 
 For production deployments:
+
 - Use GitHub Environments with required reviewers
 - Add deployment protection rules
 - Limit who can approve deployments
@@ -181,12 +190,14 @@ Since this is a public repository with well-managed secrets, the current approac
 ### When to Consider Private Repository
 
 Consider converting to a private repository only if:
+
 - You need to hide deployment infrastructure details
 - Workflow logs reveal proprietary business logic
 - Compliance requirements mandate private CI/CD logs
 - You're exposing internal URLs or system architecture
 
-For most open-source projects (including this one), keeping the repository public with proper secrets management is the correct approach.
+For most open-source projects (including this one), keeping the repository
+public with proper secrets management is the correct approach.
 
 ## Additional Resources
 
@@ -197,7 +208,8 @@ For most open-source projects (including this one), keeping the repository publi
 
 ## Summary
 
-**You cannot make GitHub Actions logs private in a public repository.** This is by design and cannot be changed. Instead, focus on:
+**You cannot make GitHub Actions logs private in a public repository.**
+This is by design and cannot be changed. Instead, focus on:
 
 1. Storing all sensitive data in GitHub Secrets
 2. Never echoing or printing secrets in workflows

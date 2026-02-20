@@ -96,38 +96,15 @@ export function TurnstileProvider({
     fetchConfig();
   }, [apiUrl]);
 
-  // Load Turnstile script when we have a site key
-  useEffect(() => {
-    if (!siteKey) return;
-
-    // Check if script is already loaded
-    if (window.turnstile) {
-      renderWidget();
-      return;
+  // Define refreshToken first so it can be used in renderWidget
+  const refreshToken = useCallback(() => {
+    if (widgetIdRef.current && window.turnstile) {
+      setToken(null);
+      window.turnstile.reset(widgetIdRef.current);
     }
+  }, []);
 
-    // Load the Turnstile script
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-    script.async = true;
-    script.onload = () => {
-      renderWidget();
-    };
-    script.onerror = () => {
-      console.error("Failed to load Turnstile script");
-      setIsReady(true); // Proceed without Turnstile
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup widget on unmount
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
-      }
-    };
-  }, [siteKey]);
-
+  // renderWidget depends on refreshToken
   const renderWidget = useCallback(() => {
     if (!window.turnstile || !siteKey || !containerRef.current) {
       // Retry after a short delay if not ready
@@ -176,14 +153,39 @@ export function TurnstileProvider({
       console.error("Failed to render Turnstile widget:", error);
       setIsReady(true);
     }
-  }, [siteKey]);
+  }, [siteKey, refreshToken]);
 
-  const refreshToken = useCallback(() => {
-    if (widgetIdRef.current && window.turnstile) {
-      setToken(null);
-      window.turnstile.reset(widgetIdRef.current);
+  // Load Turnstile script when we have a site key
+  useEffect(() => {
+    if (!siteKey) return;
+
+    // Check if script is already loaded
+    if (window.turnstile) {
+      renderWidget();
+      return;
     }
-  }, []);
+
+    // Load the Turnstile script
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    script.async = true;
+    script.onload = () => {
+      renderWidget();
+    };
+    script.onerror = () => {
+      console.error("Failed to load Turnstile script");
+      setIsReady(true); // Proceed without Turnstile
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup widget on unmount
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+    };
+  }, [siteKey, renderWidget]);
 
   return (
     <TurnstileContext.Provider
