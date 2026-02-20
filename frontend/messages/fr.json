@@ -1,0 +1,119 @@
+{
+  "Metadata": {
+    "title": "Chat d'Inspiration Biblique",
+    "description": "Trouvez encouragement spirituel et guidance à travers les Écritures"
+  },
+  "Header": {
+    "title": "Inspiration Biblique",
+    "subtitle": "Trouvez l'encouragement dans les Écritures",
+    "bibleVersion": "Version de la Bible :",
+    "autoDetect": "Détection automatique",
+    "newChat": "Nouvelle conversation"
+  },
+  "Welcome": {
+    "heading": "Bienvenue",
+    "description": "Partagez ce qui est sur votre cœur, posez des questions sur les Écritures ou cherchez simplement de l'encouragement. Je peux vous aider à explorer des sujets théologiques, mais je ne remplace pas des théologiens formés ou un accompagnement pastoral.",
+    "prompt1": "Je me sens anxieux face à l'avenir",
+    "prompt2": "Que dit la Bible sur le pardon ?",
+    "prompt3": "J'ai besoin d'encouragement aujourd'hui",
+    "prompt4": "Aidez-moi à comprendre Jean 3:16"
+  },
+  "Chat": {
+    "inputPlaceholder": "Partagez ce qui est sur votre cœur...",
+    "disclaimer": "Les réponses générées par l'IA peuvent contenir des erreurs. Ce n'est pas un substitut à la théologie ou au conseil pastoral.",
+    "loadingWarmup": "Je me prépare. Un instant de patience...",
+    "loadingSearch": "Je cherche dans les Écritures et je réfléchis...",
+    "backendWarmingUp": "Le serveur se réveille, vous pouvez commencer à écrire...",
+    "errorColdStart": "Je me prépare encore et cela prend plus de temps que prévu. Veuillez réessayer dans un moment — je serai prêt très bientôt !",
+    "errorConnection": "Je suis désolé, j'ai des difficultés de connexion en ce moment. Ce pourrait être un problème temporaire — réessayez dans un moment. Si le problème persiste, vous pouvez nous contacter à getinspiredbythebible@ai4you.sh"
+  },
+  "Verses": {
+    "scriptureReferences": "Références Bibliques",
+    "verseCount": "{count, plural, =1 {1 verset} other {# versets}}",
+    "referenced": "Cités",
+    "allRelated": "Tous les associés ({count})",
+    "noVersesReferenced": "Aucun verset cité pour l'instant.",
+    "noVersesReferencedHint": "Les versets apparaîtront ici lorsqu'ils seront mentionnés dans la conversation.",
+    "readFullChapter": "Lire le chapitre entier",
+    "showScriptureReferences": "Afficher les références bibliques",
+    "close": "Fermer"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, =1 {1 verset} other {# versets}}",
+    "defaultTranslation": "King James Version"
+  },
+  "Feedback": {
+    "wasHelpful": "Était-ce utile ?",
+    "thumbsUp": "Pouce levé",
+    "thumbsDown": "Pouce baissé",
+    "helpfulTitle": "C'était utile",
+    "improveTitle": "Cela pourrait être amélioré",
+    "thanks": "Merci pour votre retour !",
+    "positiveHeading": "Qu'est-ce qui était utile ?",
+    "negativeHeading": "Qu'est-ce qui pourrait être amélioré ?",
+    "positiveDescription": "Votre retour nous aide à comprendre ce qui fonctionne bien.",
+    "negativeDescription": "Dites-nous comment nous pouvons faire mieux.",
+    "positivePlaceholder": "Les suggestions de versets étaient pertinentes à ma question...",
+    "negativePlaceholder": "La réponse n'a pas abordé ma préoccupation spécifique...",
+    "privacyNotice": "En envoyant ce retour, votre message et la réponse de l'IA seront enregistrés pour nous aider à améliorer le service.",
+    "skip": "Passer",
+    "submit": "Envoyer le retour",
+    "submitting": "Envoi en cours...",
+    "close": "Fermer",
+    "toastError": "Impossible de sauvegarder votre retour pour l'instant, mais merci d'avoir essayé !"
+  },
+  "ChurchFinder": {
+    "bannerText": "Vous cherchez une communauté de foi ?",
+    "findChurch": "Trouver une Église",
+    "dismiss": "Fermer",
+    "inlineText": "Vous cherchez une communauté de prière ou une église ?",
+    "inlineCta": "Trouvez-en une près de chez vous",
+    "modalTitle": "Trouver une Église",
+    "modalSubtitle": "Rejoignez une communauté de foi près de chez vous",
+    "searchPlaceholder": "Ville en anglais (p. ex. Rome, Munich, Zurich)",
+    "searching": "Recherche d'églises en cours...",
+    "errorSearch": "Impossible de rechercher des églises. Veuillez réessayer.",
+    "errorConnection": "Vérifiez votre connexion et réessayez.",
+    "foundCount": "{count, plural, =1 {1 église trouvée} other {# églises trouvées}}",
+    "noChurchesFound": "Aucune église trouvée",
+    "noChurchesHint": "Essayez un autre lieu ou un terme de recherche plus large.",
+    "enterLocation": "Entrez un lieu pour rechercher",
+    "enterLocationHint": "Utilisez des noms de villes en anglais (p. ex. Rome, Munich, Vienna)",
+    "website": "Site web",
+    "email": "E-mail",
+    "churchData": "Données des églises fournies par",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "Partager",
+    "copyToClipboard": "Copier dans le presse-papiers",
+    "copied": "Copié !",
+    "shareOnWhatsApp": "Partager sur WhatsApp",
+    "shareOnTwitter": "Partager sur X",
+    "shareOnFacebook": "Partager sur Facebook",
+    "shareOnBluesky": "Partager sur Bluesky",
+    "sharePrefix": "J'ai trouvé cette réflexion biblique inspirante :",
+    "shareVia": "Chat d'Inspiration Biblique"
+  },
+  "Contact": {
+    "getInTouch": "Nous contacter",
+    "emailUs": "Écrivez-nous :",
+    "emailLabel": "Votre e-mail (facultatif, pour répondre)",
+    "emailPlaceholder": "vous@exemple.com",
+    "subjectLabel": "Sujet",
+    "subjectSpiritual": "Voulez-vous approfondir une question spirituelle ou biblique ?",
+    "subjectFeedback": "Retour général",
+    "subjectBug": "Signalement de bug",
+    "subjectFeature": "Demande de fonctionnalité",
+    "subjectOther": "Autre",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Partagez vos pensées, signalez un problème ou suggérez une amélioration...",
+    "privacyNote": "Votre message sera conservé pour nous aider à améliorer le service.",
+    "sending": "Envoi en cours...",
+    "sendMessage": "Envoyer le message",
+    "successTitle": "Message envoyé avec succès !",
+    "successDescription": "Merci de nous avoir contactés. Nous examinerons votre message bientôt.",
+    "sendAnother": "Envoyer un autre",
+    "errorSend": "Impossible d'envoyer le message. Veuillez réessayer ou nous écrire directement."
+  }
+}

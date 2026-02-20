@@ -1,0 +1,119 @@
+{
+  "Metadata": {
+    "title": "محادثة الإلهام الكتابي",
+    "description": "اعثر على التشجيع الروحي والتوجيه من خلال الكتاب المقدس"
+  },
+  "Header": {
+    "title": "الإلهام الكتابي",
+    "subtitle": "اعثر على التشجيع في الكتاب المقدس",
+    "bibleVersion": "إصدار الكتاب المقدس:",
+    "autoDetect": "اكتشاف تلقائي",
+    "newChat": "محادثة جديدة"
+  },
+  "Welcome": {
+    "heading": "مرحباً",
+    "description": "شارك ما يشغل قلبك، واطرح أسئلة حول الكتاب المقدس، أو ابحث ببساطة عن التشجيع. يمكنني مساعدتك في استكشاف المواضيع اللاهوتية، لكنني لست بديلاً عن اللاهوتيين المتخصصين أو التوجيه الرعوي.",
+    "prompt1": "أشعر بالقلق من المستقبل",
+    "prompt2": "ماذا يقول الكتاب المقدس عن المغفرة؟",
+    "prompt3": "أحتاج إلى تشجيع اليوم",
+    "prompt4": "ساعدني على فهم يوحنا 3:16"
+  },
+  "Chat": {
+    "inputPlaceholder": "شارك ما يشغل قلبك...",
+    "disclaimer": "الردود التي تولدها الذكاء الاصطناعي قد تحتوي على أخطاء. ليست بديلاً عن اللاهوت أو الإرشاد الرعوي.",
+    "loadingWarmup": "أنا أتحضر. كن صبوراً لحظة...",
+    "loadingSearch": "أبحث في الكتاب المقدس وأتأمل...",
+    "backendWarmingUp": "الخادم يستيقظ، يمكنك البدء بالكتابة...",
+    "errorColdStart": "لا أزال أتحضر وهذا يستغرق وقتاً أطول من المتوقع. يرجى المحاولة مرة أخرى بعد لحظة — سأكون جاهزاً قريباً!",
+    "errorConnection": "آسف، أواجه صعوبة في الاتصال الآن. قد يكون هذا مشكلة مؤقتة — يرجى المحاولة مرة أخرى بعد لحظة. إذا استمرت المشكلة، يمكنك التواصل معنا على getinspiredbythebible@ai4you.sh"
+  },
+  "Verses": {
+    "scriptureReferences": "المراجع الكتابية",
+    "verseCount": "{count, plural, =1 {1 آية} other {# آيات}}",
+    "referenced": "مذكور",
+    "allRelated": "كل المتعلقة ({count})",
+    "noVersesReferenced": "لا توجد آيات مذكورة بعد.",
+    "noVersesReferencedHint": "ستظهر الآيات هنا عند ذكرها في المحادثة.",
+    "readFullChapter": "قراءة الفصل كاملاً",
+    "showScriptureReferences": "إظهار المراجع الكتابية",
+    "close": "إغلاق"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, =1 {1 آية} other {# آيات}}",
+    "defaultTranslation": "King James Version"
+  },
+  "Feedback": {
+    "wasHelpful": "هل كان هذا مفيداً؟",
+    "thumbsUp": "إعجاب",
+    "thumbsDown": "عدم إعجاب",
+    "helpfulTitle": "كان هذا مفيداً",
+    "improveTitle": "يمكن تحسين هذا",
+    "thanks": "شكراً على ملاحظاتك!",
+    "positiveHeading": "ما الذي كان مفيداً؟",
+    "negativeHeading": "ما الذي يمكن تحسينه؟",
+    "positiveDescription": "ملاحظاتك تساعدنا على فهم ما يعمل بشكل جيد.",
+    "negativeDescription": "أخبرنا كيف يمكننا التحسين.",
+    "positivePlaceholder": "اقتراحات الآيات كانت ذات صلة بسؤالي...",
+    "negativePlaceholder": "لم تعالج الإجابة مخاوفي المحددة...",
+    "privacyNotice": "بإرسال ملاحظاتك، سيتم تسجيل رسالتك ورد الذكاء الاصطناعي لمساعدتنا على تحسين الخدمة.",
+    "skip": "تخطي",
+    "submit": "إرسال الملاحظات",
+    "submitting": "جارٍ الإرسال...",
+    "close": "إغلاق",
+    "toastError": "تعذر حفظ ملاحظاتك الآن، لكن شكراً على المحاولة!"
+  },
+  "ChurchFinder": {
+    "bannerText": "هل تبحث عن مجتمع إيماني؟",
+    "findChurch": "ابحث عن كنيسة",
+    "dismiss": "إغلاق",
+    "inlineText": "هل تبحث عن مجتمع صلاة أو كنيسة؟",
+    "inlineCta": "ابحث عن واحدة بالقرب منك",
+    "modalTitle": "ابحث عن كنيسة",
+    "modalSubtitle": "تواصل مع مجتمع إيماني بالقرب منك",
+    "searchPlaceholder": "المدينة بالإنجليزية (مثال: Rome, Munich, Zurich)",
+    "searching": "جارٍ البحث عن كنائس...",
+    "errorSearch": "فشل البحث عن الكنائس. يرجى المحاولة مرة أخرى.",
+    "errorConnection": "يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+    "foundCount": "{count, plural, =1 {تم العثور على 1 كنيسة} other {تم العثور على # كنيسة}}",
+    "noChurchesFound": "لم يتم العثور على كنائس",
+    "noChurchesHint": "جرب موقعاً مختلفاً أو مصطلح بحث أوسع.",
+    "enterLocation": "أدخل موقعاً للبحث",
+    "enterLocationHint": "استخدم أسماء المدن بالإنجليزية (مثال: Rome, Munich, Vienna)",
+    "website": "الموقع الإلكتروني",
+    "email": "البريد الإلكتروني",
+    "churchData": "بيانات الكنائس مقدمة من",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "مشاركة",
+    "copyToClipboard": "نسخ إلى الحافظة",
+    "copied": "تم النسخ!",
+    "shareOnWhatsApp": "مشاركة على واتساب",
+    "shareOnTwitter": "مشاركة على X",
+    "shareOnFacebook": "مشاركة على فيسبوك",
+    "shareOnBluesky": "مشاركة على Bluesky",
+    "sharePrefix": "وجدت هذه الرؤية الكتابية الملهمة:",
+    "shareVia": "محادثة الإلهام الكتابي"
+  },
+  "Contact": {
+    "getInTouch": "تواصل معنا",
+    "emailUs": "راسلنا:",
+    "emailLabel": "بريدك الإلكتروني (اختياري، للرد)",
+    "emailPlaceholder": "anta@example.com",
+    "subjectLabel": "الموضوع",
+    "subjectSpiritual": "هل تريد التعمق في سؤال روحي أو كتابي؟",
+    "subjectFeedback": "ملاحظات عامة",
+    "subjectBug": "تقرير خطأ",
+    "subjectFeature": "طلب ميزة",
+    "subjectOther": "أخرى",
+    "messageLabel": "الرسالة",
+    "messagePlaceholder": "شارك أفكارك، أبلغ عن مشكلة، أو اقترح تحسيناً...",
+    "privacyNote": "سيتم تخزين رسالتك لمساعدتنا على تحسين الخدمة.",
+    "sending": "جارٍ الإرسال...",
+    "sendMessage": "إرسال الرسالة",
+    "successTitle": "تم إرسال الرسالة بنجاح!",
+    "successDescription": "شكراً لتواصلك. سنراجع رسالتك قريباً.",
+    "sendAnother": "إرسال رسالة أخرى",
+    "errorSend": "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى أو مراسلتنا مباشرة."
+  }
+}
