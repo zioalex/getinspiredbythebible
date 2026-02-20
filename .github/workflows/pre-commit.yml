@@ -1,5 +1,11 @@
 name: Pre-Commit Validation
 
+# yamllint disable-line rule:truthy
+run-name: >-
+  ${{ github.event_name == 'pull_request'
+      && format('Pre-commit PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title)
+      || format('Pre-commit {0} ({1})', github.ref_name, github.sha) }}
+
 "on":
   pull_request:
   push:
