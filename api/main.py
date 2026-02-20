@@ -7,33 +7,9 @@ Main FastAPI application entry point.
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
-from config import settings
-from providers import ProviderError
-from routes import (
-    chat_router,
-    church_router,
-    feedback_router,
-    health_router,
-    scripture_router,
-)
-from scripture import close_db, init_db
-from utils.local_only import require_local_access
-from utils.logging_config import get_logger, setup_logging
-from utils.metrics import meter as _metrics_meter  # noqa: F401 — register metrics at import
-
-# Configure logging before anything else
-setup_logging()
-logger = get_logger(__name__)
-
-# Configure Azure Monitor (Application Insights) if connection string is set.
-# Sets up OpenTelemetry exporters for traces, metrics, and logs.
-# NOTE: The FastAPI app must be explicitly instrumented after creation (below)
-# because `from fastapi import FastAPI` binds the local name before
-# configure_azure_monitor() can replace the class with an instrumented subclass.
+# Configure Azure Monitor (Application Insights) as early as possible.
+# This ensures that all subsequent imports that might create meters/tracers
+# are correctly bound to the Azure Monitor provider.
 _appinsights_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 if _appinsights_conn:
     try:
@@ -44,9 +20,32 @@ if _appinsights_conn:
             # Scope to our app logger so Azure SDK internal logs are not exported
             logger_name="bible_app",
         )
-        logger.info("Application Insights telemetry enabled")
+        # Note: We can't use our logger yet as it hasn't been set up
+        print("Application Insights telemetry initialized")
     except Exception as e:
-        logger.warning("Failed to configure Application Insights: %s", e)
+        print(f"Warning: Failed to configure Application Insights: {e}")
+
+from fastapi import Depends, FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+
+from config import settings  # noqa: E402
+from providers import ProviderError  # noqa: E402
+from routes import (  # noqa: E402
+    chat_router,
+    church_router,
+    feedback_router,
+    health_router,
+    scripture_router,
+)
+from scripture import close_db, init_db  # noqa: E402
+from utils.local_only import require_local_access  # noqa: E402
+from utils.logging_config import get_logger, setup_logging  # noqa: E402
+from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
+
+# Configure logging before anything else
+setup_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -118,18 +117,28 @@ async def lifespan(app: FastAPI):
     await close_db()
 
     # Flush OpenTelemetry telemetry before container shuts down.
-    # Without this, the batch exporter may lose pending spans/logs
+    # Without this, the batch exporter may lose pending spans/logs/metrics
     # when the container scales to zero.
     if _appinsights_conn:
         try:
-            from opentelemetry import trace  # type: ignore[attr-defined]
+            logger.info("Flushing telemetry before shutdown...")
+            from opentelemetry import metrics, trace  # type: ignore[attr-defined]
+            from opentelemetry.sdk.metrics import MeterProvider
             from opentelemetry.sdk.trace import TracerProvider
 
+            # Flush traces
             tp = trace.get_tracer_provider()
             if isinstance(tp, TracerProvider):
                 tp.force_flush(timeout_millis=5000)
-        except Exception:
-            pass
+
+            # Flush metrics
+            mp = metrics.get_meter_provider()
+            if isinstance(mp, MeterProvider):
+                mp.force_flush(timeout_millis=5000)
+
+            logger.info("Telemetry flush complete")
+        except Exception as e:
+            logger.debug("Failed to flush telemetry: %s", e)
 
 
 # Create FastAPI app
