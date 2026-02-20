@@ -35,6 +35,13 @@
 
 name: Build and Deploy to Azure
 
+run-name: >-
+  ${{ github.event_name == 'pull_request'
+      && format('Deploy PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title)
+      || github.event_name == 'workflow_dispatch'
+      && format('Manual {0} ({1})', inputs.action, github.ref_name)
+      || format('Deploy main ({0})', github.sha) }}
+
 # yamllint disable-line rule:truthy
 on:
   workflow_run:
