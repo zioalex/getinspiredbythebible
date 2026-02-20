@@ -3,8 +3,9 @@ Chat API routes.
 """
 
 import json
+import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
@@ -12,7 +13,9 @@ from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
 from utils.logging_config import get_logger
+from utils.metrics import chat_messages_counter, chat_response_time, chat_sessions_counter
 from utils.security import check_content_filter, require_rate_limit
+from utils.session_tracker import track_session
 from utils.turnstile import require_turnstile
 
 logger = get_logger(__name__)
@@ -30,7 +33,11 @@ router = APIRouter(prefix="/chat", tags=["chat"])
     ],
 )
 async def chat(
-    request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
+    request: ChatRequest,
+    http_request: Request,
+    db: DbSession,
+    llm: LLMProviderDep,
+    embedding: EmbeddingProviderDep,
 ):
     """
     Send a message and receive a Bible-grounded response.
@@ -38,10 +45,25 @@ async def chat(
     The response will include relevant scripture context
     and a thoughtful, compassionate reply.
     """
+    start = time.monotonic()
     service = ChatService(db, llm, embedding)
 
     try:
         response = await service.chat(request)
+
+        # Record metrics
+        elapsed_ms = (time.monotonic() - start) * 1000
+        chat_messages_counter.add(1)
+        chat_response_time.record(elapsed_ms)
+        if request.session_id:
+            chat_sessions_counter.add(1, {"session_token": request.session_id})
+
+        # Track session (fire-and-forget, errors logged internally)
+        user_agent = http_request.headers.get("user-agent")
+        accept_lang = http_request.headers.get("accept-language", "")
+        language = accept_lang.split(",")[0].split("-")[0] if accept_lang else None
+        await track_session(db, request.session_id, user_agent=user_agent, language=language)
+
         return response
     except RuntimeError as e:
         # Handle "all models rate limited" from OpenRouter fallback

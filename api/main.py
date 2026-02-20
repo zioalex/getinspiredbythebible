@@ -23,6 +23,7 @@ from routes import (
 from scripture import close_db, init_db
 from utils.local_only import require_local_access
 from utils.logging_config import get_logger, setup_logging
+from utils.metrics import meter as _metrics_meter  # noqa: F401 — register metrics at import
 
 # Configure logging before anything else
 setup_logging()

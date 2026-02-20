@@ -96,6 +96,32 @@ export function generateSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+const SESSION_STORAGE_KEY = "bible-chat-session-id";
+
+/**
+ * Get or create a persistent session ID stored in localStorage.
+ * Returns the same ID across page refreshes for DAU/MAU tracking.
+ * Use generateSessionId() for per-conversation IDs.
+ */
+export function getOrCreateSessionId(): string {
+  if (typeof window === "undefined") {
+    return generateSessionId();
+  }
+  try {
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (stored) return stored;
+  } catch {
+    // localStorage unavailable (SSR, privacy mode)
+  }
+  const id = generateSessionId();
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, id);
+  } catch {
+    // ignore write failures
+  }
+  return id;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;

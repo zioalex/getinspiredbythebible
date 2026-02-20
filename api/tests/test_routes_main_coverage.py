@@ -640,6 +640,13 @@ class TestFeedbackRoutes:
 class TestChatRoutes:
     """Tests for chat route functions."""
 
+    @staticmethod
+    def _mock_http_request():
+        """Create a mock HTTP request with headers for chat route tests."""
+        mock_req = MagicMock()
+        mock_req.headers = {"user-agent": "test-agent", "accept-language": "en-US"}
+        return mock_req
+
     @pytest.mark.asyncio
     async def test_chat_success(self):
         from chat.service import ChatRequest, ChatResponse
@@ -648,6 +655,7 @@ class TestChatRoutes:
         mock_db = AsyncMock()
         mock_llm = AsyncMock()
         mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
 
         request = ChatRequest(message="I need encouragement")
 
@@ -658,12 +666,15 @@ class TestChatRoutes:
             model="test-model",
         )
 
-        with patch("routes.chat.ChatService") as mock_service_cls:
+        with (
+            patch("routes.chat.ChatService") as mock_service_cls,
+            patch("routes.chat.track_session", new_callable=AsyncMock),
+        ):
             mock_service = AsyncMock()
             mock_service.chat = AsyncMock(return_value=expected_response)
             mock_service_cls.return_value = mock_service
 
-            result = await chat(request, mock_db, mock_llm, mock_embedding)
+            result = await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
         assert result.message == "God loves you!"
 
@@ -677,6 +688,7 @@ class TestChatRoutes:
         mock_db = AsyncMock()
         mock_llm = AsyncMock()
         mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
 
         request = ChatRequest(message="Hello")
 
@@ -688,7 +700,7 @@ class TestChatRoutes:
             mock_service_cls.return_value = mock_service
 
             with pytest.raises(HTTPException) as exc_info:
-                await chat(request, mock_db, mock_llm, mock_embedding)
+                await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             assert exc_info.value.status_code == 503
 
@@ -702,6 +714,7 @@ class TestChatRoutes:
         mock_db = AsyncMock()
         mock_llm = AsyncMock()
         mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
 
         request = ChatRequest(message="Hello")
 
@@ -711,7 +724,7 @@ class TestChatRoutes:
             mock_service_cls.return_value = mock_service
 
             with pytest.raises(HTTPException) as exc_info:
-                await chat(request, mock_db, mock_llm, mock_embedding)
+                await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             assert exc_info.value.status_code == 500
 
@@ -725,6 +738,7 @@ class TestChatRoutes:
         mock_db = AsyncMock()
         mock_llm = AsyncMock()
         mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
 
         request = ChatRequest(message="Hello")
 
@@ -734,7 +748,7 @@ class TestChatRoutes:
             mock_service_cls.return_value = mock_service
 
             with pytest.raises(HTTPException) as exc_info:
-                await chat(request, mock_db, mock_llm, mock_embedding)
+                await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             assert exc_info.value.status_code == 500
 
