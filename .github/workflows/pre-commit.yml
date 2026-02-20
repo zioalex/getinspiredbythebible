@@ -26,6 +26,9 @@ jobs:
         with:
           node-version: "22.x"
 
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
       - name: Install pre-commit
         run: pip install pre-commit
 
