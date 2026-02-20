@@ -228,6 +228,7 @@ LANGUAGE_NAMES = {
     "es": "Spanish (Español)",
     "fr": "French (Français)",
     "pt": "Portuguese (Português)",
+    "ar": "Arabic (العربية)",
 }
 
 
