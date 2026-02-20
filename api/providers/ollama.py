@@ -56,6 +56,7 @@ class OllamaProvider(LLMProvider):
         **kwargs,
     ) -> LLMResponse:
         """Send a chat completion request to Ollama."""
+        kwargs.pop("model_override", None)  # Not supported, ignore
         client = await self._get_client()
 
         response = await client.post(
@@ -89,6 +90,7 @@ class OllamaProvider(LLMProvider):
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion from Ollama."""
+        kwargs.pop("model_override", None)  # Not supported, ignore
         client = await self._get_client()
 
         async with client.stream(

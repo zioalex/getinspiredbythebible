@@ -15,7 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
-from utils.language import detect_language, get_translation_info, resolve_translation
+from utils.language import (
+    detect_language,
+    get_model_override_for_language,
+    get_translation_info,
+    resolve_translation,
+)
 from utils.logging_config import get_logger
 from utils.verse_parser import extract_references, is_verse_lookup_request
 
@@ -92,7 +97,7 @@ class ChatService:
         self.embedding = embedding_provider
         self.search_service = ScriptureSearchService(db_session, embedding_provider)
 
-    async def _detect_intent(self, message: str) -> str:
+    async def _detect_intent(self, message: str, model_override: str | None = None) -> str:
         """
         Classify user intent with a fast LLM call.
 
@@ -104,7 +109,12 @@ class ChatService:
                 ChatMessage(role="system", content="You are an intent classifier."),
                 ChatMessage(role="user", content=detect_intent_prompt(message)),
             ]
-            response = await self.llm.chat(messages=messages, temperature=0.0, max_tokens=20)
+            response = await self.llm.chat(
+                messages=messages,
+                temperature=0.0,
+                max_tokens=20,
+                model_override=model_override,
+            )
             intent = response.content.strip().upper().split()[0]
             valid = {"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP", "OFF_TOPIC", "GENERAL"}
             if intent not in valid:
@@ -144,6 +154,7 @@ class ChatService:
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
+        model_override = get_model_override_for_language(detected_language)
         logger.debug(
             "Language detection",
             extra={"detected": detected_language, "translation": translation},
@@ -151,10 +162,15 @@ class ChatService:
 
         # Intent detection: classify before scripture search
         if settings.content_filter_intent_detection:
-            detected_intent = await self._detect_intent(request.message)
+            detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
                 return await self._handle_off_topic(
-                    request, detected_language, translation, translation_info, total_start
+                    request,
+                    detected_language,
+                    translation,
+                    translation_info,
+                    total_start,
+                    model_override,
                 )
 
         # Check if this is a verse/prayer lookup request
@@ -194,6 +210,7 @@ class ChatService:
                 messages=messages,
                 temperature=settings.llm_temperature,
                 max_tokens=settings.llm_max_tokens,
+                model_override=model_override,
             )
             llm_duration = time.time() - llm_start
             logger.info(
@@ -243,6 +260,7 @@ class ChatService:
         translation: str,
         translation_info: dict | None,
         total_start: float,
+        model_override: str | None = None,
     ) -> ChatResponse:
         """Generate a warm redirect response for off-topic messages, skipping scripture search."""
         logger.info("Off-topic message detected, skipping scripture search")
@@ -257,6 +275,7 @@ class ChatService:
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
+            model_override=model_override,
         )
         message_id = str(uuid.uuid4())
         total_duration = time.time() - total_start
@@ -383,10 +402,11 @@ class ChatService:
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
+        model_override = get_model_override_for_language(detected_language)
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:
-            detected_intent = await self._detect_intent(request.message)
+            detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
                 logger.info("Off-topic message detected in stream, skipping scripture search")
                 messages = self._build_messages(
@@ -400,6 +420,7 @@ class ChatService:
                     messages=messages,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
+                    model_override=model_override,
                 ):
                     yield chunk
                 return
@@ -429,6 +450,7 @@ class ChatService:
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
+            model_override=model_override,
         ):
             yield chunk
 

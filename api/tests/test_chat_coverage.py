@@ -786,3 +786,83 @@ class TestConversationMessage:
     def test_assistant_message(self):
         msg = ConversationMessage(role="assistant", content="Hi there")
         assert msg.role == "assistant"
+
+
+# =============================================================================
+# Model Override Integration Tests
+# =============================================================================
+
+
+class TestChatServiceModelOverride:
+    """Tests that ChatService passes model_override to LLM calls."""
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="ar")
+    @patch("chat.service.resolve_translation", return_value="arabicsv")
+    @patch("chat.service.get_translation_info", return_value={"code": "arabicsv", "name": "SVD"})
+    @patch(
+        "chat.service.get_model_override_for_language", return_value="qwen/qwen-2.5-72b-instruct"
+    )
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_arabic_message_passes_model_override(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """Arabic message should trigger model_override on the LLM call."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="مرحباً! كيف يمكنني مساعدتك؟",
+                provider="openrouter",
+                model="qwen/qwen-2.5-72b-instruct",
+            )
+        )
+
+        request = ChatRequest(message="مرحبا، أريد معرفة المزيد عن الإيمان")
+        response = await service.chat(request)
+
+        assert response.message == "مرحباً! كيف يمكنني مساعدتك؟"
+        # Intent detection + main chat both call llm.chat; check the last (main) call
+        assert llm.chat.call_count >= 1
+        last_call_kwargs = llm.chat.call_args_list[-1].kwargs
+        assert last_call_kwargs.get("model_override") == "qwen/qwen-2.5-72b-instruct"
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.get_translation_info", return_value={"code": "kjv", "name": "KJV"})
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_english_message_passes_no_override(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """English message should pass model_override=None to the LLM call."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="God loves you!",
+                provider="openrouter",
+                model="default-model",
+            )
+        )
+
+        request = ChatRequest(message="Help me find hope")
+        await service.chat(request)
+
+        # Intent detection + main chat both call llm.chat; check the last (main) call
+        assert llm.chat.call_count >= 1
+        last_call_kwargs = llm.chat.call_args_list[-1].kwargs
+        assert last_call_kwargs.get("model_override") is None

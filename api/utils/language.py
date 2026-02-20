@@ -368,6 +368,25 @@ def is_valid_translation(translation_code: str) -> bool:
     return translation_code in TRANSLATION_INFO
 
 
+def get_model_override_for_language(language_code: str) -> str | None:
+    """Return model override for a language, or None to use the default model.
+
+    Reads from settings.language_model_overrides (e.g. "ar=qwen/qwen-2.5-72b-instruct").
+    """
+    from config import get_settings
+
+    raw = get_settings().language_model_overrides
+    if not raw or not raw.strip():
+        return None
+    for pair in raw.split(","):
+        pair = pair.strip()
+        if "=" in pair:
+            lang, model = pair.split("=", 1)
+            if lang.strip() == language_code:
+                return model.strip()
+    return None
+
+
 def resolve_translation(
     preferred_translation: str | None, detected_language: str | None = None
 ) -> str:

@@ -1180,6 +1180,112 @@ class TestOpenRouterProviderAdditional:
 
 
 # =============================================================================
+# OpenRouter model_override kwarg tests
+# =============================================================================
+
+
+class TestOpenRouterModelOverride:
+    """Tests for model_override kwarg behavior in OpenRouterProvider."""
+
+    def _make_provider(self, **kwargs):
+        from providers.openrouter import OpenRouterProvider
+
+        defaults = {
+            "api_key": "sk-or-v1-test-key",  # pragma: allowlist secret
+            "model": "default-model",
+            "fallback_models": ["fallback1"],
+            "allow_fallbacks": True,
+        }
+        defaults.update(kwargs)
+        return OpenRouterProvider(**defaults)
+
+    @pytest.mark.asyncio
+    async def test_chat_uses_model_override(self):
+        """chat() should use model_override kwarg instead of default model."""
+        provider = self._make_provider()
+
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Marhaba!"
+        mock_choice.finish_reason = "stop"
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.model = "qwen/qwen-2.5-72b-instruct"
+        mock_response.usage = None
+
+        with patch.object(
+            provider._client.chat.completions,
+            "create",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_create:
+            result = await provider.chat(
+                [ChatMessage(role="user", content="مرحبا")],
+                model_override="qwen/qwen-2.5-72b-instruct",
+            )
+
+        # The API was called with the override model, not the default
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs["model"] == "qwen/qwen-2.5-72b-instruct"
+        # No extra_body (auto-router disabled for override)
+        assert call_kwargs.kwargs.get("extra_body") is None
+        assert result.content == "Marhaba!"
+
+    @pytest.mark.asyncio
+    async def test_chat_without_override_uses_default(self):
+        """chat() without model_override should use the auto-router default."""
+        provider = self._make_provider()
+
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Hello!"
+        mock_choice.finish_reason = "stop"
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.model = "openrouter/auto"
+        mock_response.usage = None
+
+        with patch.object(
+            provider._client.chat.completions,
+            "create",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_create:
+            await provider.chat([ChatMessage(role="user", content="Hi")])
+
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs["model"] == "openrouter/auto"
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_uses_model_override(self):
+        """chat_stream() should use model_override kwarg."""
+        provider = self._make_provider()
+
+        async def mock_create(**kwargs):
+            async def _iter():
+                chunk = MagicMock()
+                chunk.choices = [MagicMock()]
+                chunk.choices[0].delta.content = "chunk"
+                yield chunk
+
+            return _iter()
+
+        with patch.object(
+            provider._client.chat.completions,
+            "create",
+            side_effect=mock_create,
+        ) as mock_create_fn:
+            chunks = []
+            async for chunk in provider.chat_stream(
+                [ChatMessage(role="user", content="مرحبا")],
+                model_override="qwen/qwen-2.5-72b-instruct",
+            ):
+                chunks.append(chunk)
+
+        call_kwargs = mock_create_fn.call_args
+        assert call_kwargs.kwargs["model"] == "qwen/qwen-2.5-72b-instruct"
+        assert call_kwargs.kwargs.get("extra_body") is None
+
+
+# =============================================================================
 # Base Model Tests
 # =============================================================================
 

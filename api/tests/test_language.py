@@ -542,3 +542,75 @@ class TestMockDetector:
 
         # Restore original
         set_detector(original)
+
+
+# =============================================================================
+# Model Override Tests
+# =============================================================================
+
+
+class TestGetModelOverrideForLanguage:
+    """Tests for get_model_override_for_language()."""
+
+    def test_arabic_returns_qwen_override(self):
+        """Arabic should return the Qwen model override by default."""
+        from unittest.mock import patch
+
+        from config import Settings
+        from utils.language import get_model_override_for_language
+
+        mock_settings = Settings(language_model_overrides="ar=qwen/qwen-2.5-72b-instruct")
+        with patch("config.get_settings", return_value=mock_settings):
+            result = get_model_override_for_language("ar")
+        assert result == "qwen/qwen-2.5-72b-instruct"
+
+    def test_english_returns_none(self):
+        """English should return None (use default model)."""
+        from unittest.mock import patch
+
+        from config import Settings
+        from utils.language import get_model_override_for_language
+
+        mock_settings = Settings(language_model_overrides="ar=qwen/qwen-2.5-72b-instruct")
+        with patch("config.get_settings", return_value=mock_settings):
+            result = get_model_override_for_language("en")
+        assert result is None
+
+    def test_french_returns_none(self):
+        """French should return None when not in overrides."""
+        from unittest.mock import patch
+
+        from config import Settings
+        from utils.language import get_model_override_for_language
+
+        mock_settings = Settings(language_model_overrides="ar=qwen/qwen-2.5-72b-instruct")
+        with patch("config.get_settings", return_value=mock_settings):
+            result = get_model_override_for_language("fr")
+        assert result is None
+
+    def test_empty_config_returns_none(self):
+        """Empty overrides string should return None."""
+        from unittest.mock import patch
+
+        from config import Settings
+        from utils.language import get_model_override_for_language
+
+        mock_settings = Settings(language_model_overrides="")
+        with patch("config.get_settings", return_value=mock_settings):
+            result = get_model_override_for_language("ar")
+        assert result is None
+
+    def test_multiple_overrides_parsed_correctly(self):
+        """Multiple comma-separated overrides should all be resolved."""
+        from unittest.mock import patch
+
+        from config import Settings
+        from utils.language import get_model_override_for_language
+
+        mock_settings = Settings(
+            language_model_overrides="ar=qwen/qwen-2.5-72b-instruct,zh=qwen/qwen-2.5-72b-instruct"
+        )
+        with patch("config.get_settings", return_value=mock_settings):
+            assert get_model_override_for_language("ar") == "qwen/qwen-2.5-72b-instruct"
+            assert get_model_override_for_language("zh") == "qwen/qwen-2.5-72b-instruct"
+            assert get_model_override_for_language("en") is None
