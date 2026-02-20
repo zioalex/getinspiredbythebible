@@ -59,6 +59,44 @@ When adding new functionality that requires commands:
 - If the PR was already merged or closed, **create a new branch and PR** instead
 - Never push additional commits to a merged PR's branch
 
+### 7. Document Work Progress
+
+Use `docs/WIP/` and `docs/DONE/` folders to track complex work:
+
+- **`docs/WIP/`**: Work in progress - create a tracking document when starting complex tasks
+- **`docs/DONE/`**: Completed work - move documents here when finished
+
+**Tracking Document Format** (`docs/WIP/PR{number}-{description}.md`):
+
+```markdown
+# PR #{number}: {Title}
+
+**Status:** In Progress
+**PR URL:** {GitHub PR URL}
+**Started:** {Date}
+
+## Summary
+Brief description of what this PR does.
+
+## Tasks
+- [ ] Task 1
+- [ ] Task 2
+
+## Progress Log
+### {Date}
+- Notes about progress, issues found, decisions made
+
+## Notes
+Any additional context or considerations.
+```
+
+**Workflow:**
+
+1. Create tracking doc in `docs/WIP/` when starting a complex PR or multi-step task
+2. Update progress log as you work
+3. Check off tasks as completed
+4. Move to `docs/DONE/` when PR is merged and verified
+
 ## Development Commands
 
 ### Environment Setup
