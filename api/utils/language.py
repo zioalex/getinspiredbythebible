@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 # Supported languages for this application
-SUPPORTED_LANGUAGES = ["en", "it", "de"]
+SUPPORTED_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar"]
 DEFAULT_LANGUAGE = "en"
 
 # Map ISO 639-1 language codes to default translation codes
@@ -18,6 +18,10 @@ LANGUAGE_TRANSLATIONS = {
     "en": ["web", "kjv"],  # English: WEB (default), KJV
     "it": ["ita1927"],  # Italian: Riveduta 1927
     "de": ["schlachter"],  # German: Schlachter 1951
+    "es": ["valera"],  # Spanish: Reina Valera 1909
+    "fr": ["ls1910"],  # French: Louis Segond 1910
+    "pt": ["almeida"],  # Portuguese: Almeida Atualizada
+    "ar": ["arabicsv"],  # Arabic: Smith & Van Dyke
 }
 
 # Legacy mapping for backwards compatibility (uses first/default translation)
@@ -54,6 +58,34 @@ TRANSLATION_INFO = {
         "short_name": "Schlachter",
         "language": "German",
         "language_code": "de",
+    },
+    "valera": {
+        "code": "valera",
+        "name": "Reina Valera 1909",
+        "short_name": "Valera",
+        "language": "Spanish",
+        "language_code": "es",
+    },
+    "ls1910": {
+        "code": "ls1910",
+        "name": "Louis Segond 1910",
+        "short_name": "Segond",
+        "language": "French",
+        "language_code": "fr",
+    },
+    "almeida": {
+        "code": "almeida",
+        "name": "Almeida Atualizada",
+        "short_name": "Almeida",
+        "language": "Portuguese",
+        "language_code": "pt",
+    },
+    "arabicsv": {
+        "code": "arabicsv",
+        "name": "Smith & Van Dyke",
+        "short_name": "SVD",
+        "language": "Arabic",
+        "language_code": "ar",
     },
 }
 
@@ -128,6 +160,10 @@ class LinguaLanguageDetector(LanguageDetector):
             "en": Language.ENGLISH,
             "it": Language.ITALIAN,
             "de": Language.GERMAN,
+            "es": Language.SPANISH,
+            "fr": Language.FRENCH,
+            "pt": Language.PORTUGUESE,
+            "ar": Language.ARABIC,
         }
         languages = [lang_map[code] for code in self._supported_languages if code in lang_map]
 
@@ -332,6 +368,25 @@ def is_valid_translation(translation_code: str) -> bool:
     return translation_code in TRANSLATION_INFO
 
 
+def get_model_override_for_language(language_code: str) -> str | None:
+    """Return model override for a language, or None to use the default model.
+
+    Reads from settings.language_model_overrides (e.g. "ar=qwen/qwen-2.5-72b-instruct").
+    """
+    from config import get_settings
+
+    raw = get_settings().language_model_overrides
+    if not raw or not raw.strip():
+        return None
+    for pair in raw.split(","):
+        pair = pair.strip()
+        if "=" in pair:
+            lang, model = pair.split("=", 1)
+            if lang.strip() == language_code:
+                return model.strip()
+    return None
+
+
 def resolve_translation(
     preferred_translation: str | None, detected_language: str | None = None
 ) -> str:
@@ -437,6 +492,290 @@ ENGLISH_TO_ITALIAN_BOOKS = {
     "Revelation": "Apocalisse",
 }
 
+ENGLISH_TO_SPANISH_BOOKS = {
+    # Old Testament
+    "Genesis": "Génesis",
+    "Exodus": "Éxodo",
+    "Leviticus": "Levítico",
+    "Numbers": "Números",
+    "Deuteronomy": "Deuteronomio",
+    "Joshua": "Josué",
+    "Judges": "Jueces",
+    "Ruth": "Rut",
+    "1 Samuel": "1 Samuel",
+    "2 Samuel": "2 Samuel",
+    "1 Kings": "1 Reyes",
+    "2 Kings": "2 Reyes",
+    "1 Chronicles": "1 Crónicas",
+    "2 Chronicles": "2 Crónicas",
+    "Ezra": "Esdras",
+    "Nehemiah": "Nehemías",
+    "Esther": "Ester",
+    "Job": "Job",
+    "Psalms": "Salmos",
+    "Proverbs": "Proverbios",
+    "Ecclesiastes": "Eclesiastés",
+    "Song of Solomon": "Cantares",
+    "Isaiah": "Isaías",
+    "Jeremiah": "Jeremías",
+    "Lamentations": "Lamentaciones",
+    "Ezekiel": "Ezequiel",
+    "Daniel": "Daniel",
+    "Hosea": "Oseas",
+    "Joel": "Joel",
+    "Amos": "Amós",
+    "Obadiah": "Abdías",
+    "Jonah": "Jonás",
+    "Micah": "Miqueas",
+    "Nahum": "Nahúm",
+    "Habakkuk": "Habacuc",
+    "Zephaniah": "Sofonías",
+    "Haggai": "Hageo",
+    "Zechariah": "Zacarías",
+    "Malachi": "Malaquías",
+    # New Testament
+    "Matthew": "Mateo",
+    "Mark": "Marcos",
+    "Luke": "Lucas",
+    "John": "Juan",
+    "Acts": "Hechos",
+    "Romans": "Romanos",
+    "1 Corinthians": "1 Corintios",
+    "2 Corinthians": "2 Corintios",
+    "Galatians": "Gálatas",
+    "Ephesians": "Efesios",
+    "Philippians": "Filipenses",
+    "Colossians": "Colosenses",
+    "1 Thessalonians": "1 Tesalonicenses",
+    "2 Thessalonians": "2 Tesalonicenses",
+    "1 Timothy": "1 Timoteo",
+    "2 Timothy": "2 Timoteo",
+    "Titus": "Tito",
+    "Philemon": "Filemón",
+    "Hebrews": "Hebreos",
+    "James": "Santiago",
+    "1 Peter": "1 Pedro",
+    "2 Peter": "2 Pedro",
+    "1 John": "1 Juan",
+    "2 John": "2 Juan",
+    "3 John": "3 Juan",
+    "Jude": "Judas",
+    "Revelation": "Apocalipsis",
+}
+
+ENGLISH_TO_FRENCH_BOOKS = {
+    # Old Testament
+    "Genesis": "Genèse",
+    "Exodus": "Exode",
+    "Leviticus": "Lévitique",
+    "Numbers": "Nombres",
+    "Deuteronomy": "Deutéronome",
+    "Joshua": "Josué",
+    "Judges": "Juges",
+    "Ruth": "Ruth",
+    "1 Samuel": "1 Samuel",
+    "2 Samuel": "2 Samuel",
+    "1 Kings": "1 Rois",
+    "2 Kings": "2 Rois",
+    "1 Chronicles": "1 Chroniques",
+    "2 Chronicles": "2 Chroniques",
+    "Ezra": "Esdras",
+    "Nehemiah": "Néhémie",
+    "Esther": "Esther",
+    "Job": "Job",
+    "Psalms": "Psaumes",
+    "Proverbs": "Proverbes",
+    "Ecclesiastes": "Ecclésiaste",
+    "Song of Solomon": "Cantique des Cantiques",
+    "Isaiah": "Ésaïe",
+    "Jeremiah": "Jérémie",
+    "Lamentations": "Lamentations",
+    "Ezekiel": "Ézéchiel",
+    "Daniel": "Daniel",
+    "Hosea": "Osée",
+    "Joel": "Joël",
+    "Amos": "Amos",
+    "Obadiah": "Abdias",
+    "Jonah": "Jonas",
+    "Micah": "Michée",
+    "Nahum": "Nahum",
+    "Habakkuk": "Habacuc",
+    "Zephaniah": "Sophonie",
+    "Haggai": "Aggée",
+    "Zechariah": "Zacharie",
+    "Malachi": "Malachie",
+    # New Testament
+    "Matthew": "Matthieu",
+    "Mark": "Marc",
+    "Luke": "Luc",
+    "John": "Jean",
+    "Acts": "Actes des Apôtres",
+    "Romans": "Romains",
+    "1 Corinthians": "1 Corinthiens",
+    "2 Corinthians": "2 Corinthiens",
+    "Galatians": "Galates",
+    "Ephesians": "Éphésiens",
+    "Philippians": "Philippiens",
+    "Colossians": "Colossiens",
+    "1 Thessalonians": "1 Thessaloniciens",
+    "2 Thessalonians": "2 Thessaloniciens",
+    "1 Timothy": "1 Timothée",
+    "2 Timothy": "2 Timothée",
+    "Titus": "Tite",
+    "Philemon": "Philémon",
+    "Hebrews": "Hébreux",
+    "James": "Jacques",
+    "1 Peter": "1 Pierre",
+    "2 Peter": "2 Pierre",
+    "1 John": "1 Jean",
+    "2 John": "2 Jean",
+    "3 John": "3 Jean",
+    "Jude": "Jude",
+    "Revelation": "Apocalypse",
+}
+
+ENGLISH_TO_PORTUGUESE_BOOKS = {
+    # Old Testament
+    "Genesis": "Gênesis",
+    "Exodus": "Êxodo",
+    "Leviticus": "Levítico",
+    "Numbers": "Números",
+    "Deuteronomy": "Deuteronômio",
+    "Joshua": "Josué",
+    "Judges": "Juízes",
+    "Ruth": "Rute",
+    "1 Samuel": "1 Samuel",
+    "2 Samuel": "2 Samuel",
+    "1 Kings": "1 Reis",
+    "2 Kings": "2 Reis",
+    "1 Chronicles": "1 Crônicas",
+    "2 Chronicles": "2 Crônicas",
+    "Ezra": "Esdras",
+    "Nehemiah": "Neemias",
+    "Esther": "Ester",
+    "Job": "Jó",
+    "Psalms": "Salmos",
+    "Proverbs": "Provérbios",
+    "Ecclesiastes": "Eclesiastes",
+    "Song of Solomon": "Cântico dos Cânticos",
+    "Isaiah": "Isaías",
+    "Jeremiah": "Jeremias",
+    "Lamentations": "Lamentações",
+    "Ezekiel": "Ezequiel",
+    "Daniel": "Daniel",
+    "Hosea": "Oseias",
+    "Joel": "Joel",
+    "Amos": "Amós",
+    "Obadiah": "Obadias",
+    "Jonah": "Jonas",
+    "Micah": "Miquéias",
+    "Nahum": "Naum",
+    "Habakkuk": "Habacuque",
+    "Zephaniah": "Sofonias",
+    "Haggai": "Ageu",
+    "Zechariah": "Zacarias",
+    "Malachi": "Malaquias",
+    # New Testament
+    "Matthew": "Mateus",
+    "Mark": "Marcos",
+    "Luke": "Lucas",
+    "John": "João",
+    "Acts": "Atos",
+    "Romans": "Romanos",
+    "1 Corinthians": "1 Coríntios",
+    "2 Corinthians": "2 Coríntios",
+    "Galatians": "Gálatas",
+    "Ephesians": "Efésios",
+    "Philippians": "Filipenses",
+    "Colossians": "Colossenses",
+    "1 Thessalonians": "1 Tessalonicenses",
+    "2 Thessalonians": "2 Tessalonicenses",
+    "1 Timothy": "1 Timóteo",
+    "2 Timothy": "2 Timóteo",
+    "Titus": "Tito",
+    "Philemon": "Filemom",
+    "Hebrews": "Hebreus",
+    "James": "Tiago",
+    "1 Peter": "1 Pedro",
+    "2 Peter": "2 Pedro",
+    "1 John": "1 João",
+    "2 John": "2 João",
+    "3 John": "3 João",
+    "Jude": "Judas",
+    "Revelation": "Apocalipse",
+}
+
+ENGLISH_TO_ARABIC_BOOKS = {
+    # Old Testament
+    "Genesis": "تكوين",
+    "Exodus": "خروج",
+    "Leviticus": "لاويين",
+    "Numbers": "عدد",
+    "Deuteronomy": "تثنية",
+    "Joshua": "يشوع",
+    "Judges": "القضاة",
+    "Ruth": "راعوث",
+    "1 Samuel": "1 صموئيل",
+    "2 Samuel": "2 صموئيل",
+    "1 Kings": "1 الملوك",
+    "2 Kings": "2 الملوك",
+    "1 Chronicles": "1 أخبار الأيام",
+    "2 Chronicles": "2 أخبار الأيام",
+    "Ezra": "عزرا",
+    "Nehemiah": "نحميا",
+    "Esther": "أستير",
+    "Job": "أيوب",
+    "Psalms": "المزامير",
+    "Proverbs": "الأمثال",
+    "Ecclesiastes": "الجامعة",
+    "Song of Solomon": "نشيد الأنشاد",
+    "Isaiah": "إشعياء",
+    "Jeremiah": "إرميا",
+    "Lamentations": "مراثي إرميا",
+    "Ezekiel": "حزقيال",
+    "Daniel": "دانيال",
+    "Hosea": "هوشع",
+    "Joel": "يوئيل",
+    "Amos": "عاموس",
+    "Obadiah": "عوبديا",
+    "Jonah": "يونان",
+    "Micah": "ميخا",
+    "Nahum": "ناحوم",
+    "Habakkuk": "حبقوق",
+    "Zephaniah": "صفنيا",
+    "Haggai": "حجي",
+    "Zechariah": "زكريا",
+    "Malachi": "ملاخي",
+    # New Testament
+    "Matthew": "متى",
+    "Mark": "مرقس",
+    "Luke": "لوقا",
+    "John": "يوحنا",
+    "Acts": "أعمال الرسل",
+    "Romans": "رومية",
+    "1 Corinthians": "1 كورنثوس",
+    "2 Corinthians": "2 كورنثوس",
+    "Galatians": "غلاطية",
+    "Ephesians": "أفسس",
+    "Philippians": "فيليبي",
+    "Colossians": "كولوسي",
+    "1 Thessalonians": "1 تسالونيكي",
+    "2 Thessalonians": "2 تسالونيكي",
+    "1 Timothy": "1 تيموثاوس",
+    "2 Timothy": "2 تيموثاوس",
+    "Titus": "تيطس",
+    "Philemon": "فليمون",
+    "Hebrews": "عبرانيين",
+    "James": "يعقوب",
+    "1 Peter": "1 بطرس",
+    "2 Peter": "2 بطرس",
+    "1 John": "1 يوحنا",
+    "2 John": "2 يوحنا",
+    "3 John": "3 يوحنا",
+    "Jude": "يهوذا",
+    "Revelation": "الرؤيا",
+}
+
 ENGLISH_TO_GERMAN_BOOKS = {
     # Old Testament
     "Genesis": "1. Mose",
@@ -520,9 +859,15 @@ def get_localized_book_name(english_name: str, translation_code: str) -> str:
     Returns:
         Localized book name, or original if no mapping exists
     """
-    if translation_code == "ita1927":
-        return ENGLISH_TO_ITALIAN_BOOKS.get(english_name, english_name)
-    elif translation_code == "schlachter":
-        return ENGLISH_TO_GERMAN_BOOKS.get(english_name, english_name)
-    else:
+    book_map = {
+        "ita1927": ENGLISH_TO_ITALIAN_BOOKS,
+        "schlachter": ENGLISH_TO_GERMAN_BOOKS,
+        "valera": ENGLISH_TO_SPANISH_BOOKS,
+        "ls1910": ENGLISH_TO_FRENCH_BOOKS,
+        "almeida": ENGLISH_TO_PORTUGUESE_BOOKS,
+        "arabicsv": ENGLISH_TO_ARABIC_BOOKS,
+    }
+    mapping = book_map.get(translation_code)
+    if mapping is None:
         return english_name
+    return mapping.get(english_name, english_name)

@@ -38,8 +38,8 @@ class TestLanguageDetection:
         """Test detection of Italian text."""
         texts = [
             "Ciao, ho bisogno di aiuto con la mia vita",
-            "Mi sento ansioso per il futuro",
-            "Cosa dice la Bibbia sul perdono?",
+            "Mi sento molto ansioso per il mio futuro",
+            "Cosa dice la Bibbia sul perdono e la grazia?",
         ]
         for text in texts:
             assert detect_language(text) == "it"
@@ -80,10 +80,25 @@ class TestTranslationMapping:
         """Test German maps to Schlachter."""
         assert get_translation_for_language("de") == "schlachter"
 
+    def test_get_translation_for_spanish(self):
+        """Test Spanish maps to Reina Valera."""
+        assert get_translation_for_language("es") == "valera"
+
+    def test_get_translation_for_french(self):
+        """Test French maps to Louis Segond."""
+        assert get_translation_for_language("fr") == "ls1910"
+
+    def test_get_translation_for_portuguese(self):
+        """Test Portuguese maps to Almeida."""
+        assert get_translation_for_language("pt") == "almeida"
+
+    def test_get_translation_for_arabic(self):
+        """Test Arabic maps to Smith & Van Dyke."""
+        assert get_translation_for_language("ar") == "arabicsv"
+
     def test_get_translation_for_unknown_language(self):
-        """Test unknown language defaults to KJV."""
-        assert get_translation_for_language("fr") == DEFAULT_TRANSLATION
-        assert get_translation_for_language("es") == DEFAULT_TRANSLATION
+        """Test unknown language defaults to WEB."""
+        assert get_translation_for_language("zh") == DEFAULT_TRANSLATION
         assert get_translation_for_language("xx") == DEFAULT_TRANSLATION
 
     def test_detect_translation_english(self):
@@ -226,7 +241,7 @@ class TestLanguageToTranslationMapping:
 
     def test_all_supported_languages_have_mappings(self):
         """Test all supported languages have translation mappings."""
-        supported = ["en", "it", "de"]
+        supported = ["en", "it", "de", "es", "fr", "pt", "ar"]
         for lang in supported:
             assert lang in LANGUAGE_TO_TRANSLATION
 
@@ -285,7 +300,7 @@ class TestGetTranslationsForLanguage:
 
     def test_unknown_language_returns_empty(self):
         """Test unknown language returns empty list."""
-        result = get_translations_for_language("fr")
+        result = get_translations_for_language("zh")
         assert result == []
 
 

@@ -29,7 +29,11 @@ INSERT INTO translations (code, name, language, language_code, is_default, descr
     ('kjv', 'King James Version', 'English', 'en', TRUE, 'Classic English translation from 1611'),
     ('web', 'World English Bible', 'English', 'en', FALSE, 'Modern English, public domain'),
     ('ita1927', 'Riveduta 1927', 'Italian', 'it', FALSE, 'Italian Luzzi translation from 1927'),
-    ('schlachter', 'Schlachter 1951', 'German', 'de', FALSE, 'German Schlachter translation from 1951')
+    ('schlachter', 'Schlachter 1951', 'German', 'de', FALSE, 'German Schlachter translation from 1951'),
+    ('valera', 'Reina Valera 1909', 'Spanish', 'es', FALSE, 'Spanish Reina Valera translation from 1909'),
+    ('ls1910', 'Louis Segond 1910', 'French', 'fr', FALSE, 'French Louis Segond translation from 1910'),
+    ('almeida', 'Almeida Atualizada', 'Portuguese', 'pt', FALSE, 'Portuguese Almeida Atualizada translation'),
+    ('arabicsv', 'Smith & Van Dyke', 'Arabic', 'ar', FALSE, 'Arabic Smith and Van Dyke translation')
 ON CONFLICT (code) DO NOTHING;
 -- END_TRANSLATIONS_INSERT (marker for test parsing)
 

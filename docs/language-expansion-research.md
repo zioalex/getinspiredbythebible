@@ -153,6 +153,77 @@ Before adding these languages, the frontend must support RTL rendering:
 
 ---
 
+## 5. LLM Language Support Constraints
+
+The application uses Llama 3.3 70B Instruct as its default LLM (via OpenRouter or Ollama).
+This model's officially supported languages must be considered when expanding i18n support.
+
+### Llama 3.3 70B — Officially Supported Languages
+
+| Language   | ISO 639-1 | Supported | In Our App |
+|------------|-----------|-----------|------------|
+| English    | en        | Yes       | Yes        |
+| German     | de        | Yes       | Yes        |
+| French     | fr        | Yes       | Yes        |
+| Italian    | it        | Yes       | Yes        |
+| Portuguese | pt        | Yes       | Yes        |
+| Spanish    | es        | Yes       | Yes        |
+| Hindi      | hi        | Yes       | No (Phase 2) |
+| Thai       | th        | Yes       | No         |
+
+### Languages NOT Officially Supported by Llama 3.3
+
+The following Phase 1-4 languages are **not** in Llama 3.3's official list:
+
+| Language        | ISO 639-1 | Phase | Risk Level |
+|-----------------|-----------|-------|------------|
+| **Arabic**      | ar        | 1     | Medium — widely present in training data, may work acceptably |
+| Mandarin Chinese| zh        | 2     | Medium     |
+| Russian         | ru        | 2     | Low-Medium — Cyrillic well-represented in training |
+| Korean          | ko        | 2     | Medium     |
+| Urdu            | ur        | 3     | High — limited training data |
+| Persian (Farsi) | fa        | 3     | High       |
+| Bengali         | bn        | 3     | High       |
+| Hausa           | ha        | 4     | Very High  |
+| Tigrinya        | ti        | 4     | Very High  |
+| Somali          | so        | 4     | Very High  |
+| Pashto          | ps        | 4     | Very High  |
+
+### Mitigation Strategies
+
+For unsupported languages (especially Arabic in Phase 1):
+
+1. **Model routing**: Route non-supported language requests to a model with
+   better coverage (e.g., Claude, GPT-4, Qwen 2.5, or Command R+).
+2. **Quality testing**: Before launch, manually evaluate response quality for
+   each unsupported language. Accept if quality is sufficient; route otherwise.
+3. **User disclosure**: Indicate in the UI that some languages are in "beta"
+   quality when the underlying LLM doesn't officially support them.
+4. **Future-proofing**: As Llama 4+ or other open models add broader language
+   support, revisit this table and remove mitigations.
+
+### Alternative Models with Arabic Support (OpenRouter)
+
+Investigated Feb 2026. Pricing is per 1M tokens on OpenRouter.
+
+| Model | Arabic Support | Input Cost | Output Cost | Free Tier | Recommendation |
+|-------|---------------|------------|-------------|-----------|----------------|
+| Llama 3.3 70B (current) | Not official | Free | Free | Yes | Keep for es/fr/pt |
+| **Qwen 2.5 72B Instruct** | **Official (29+ langs)** | **$0.04** | **$0.10** | No | **Best for Arabic** |
+| Mistral Saba 24B | Official (Arabic focus) | Low | Low | No | Smaller, less capable |
+| Mistral Large 2 | Official | ~$2.00 | ~$6.00 | No | Expensive |
+| Command R+ (Cohere) | Official (10 langs) | $2.50 | $10.00 | No | Very expensive |
+
+**Recommendation**: Use **Qwen 2.5 72B Instruct** (`qwen/qwen-2.5-72b-instruct` on OpenRouter)
+for Arabic requests. At $0.04/$0.10 per 1M tokens, it's essentially the same cost as paid
+Llama 3.3 but with official Arabic support across 29+ languages. This could be implemented as:
+
+- A per-language model routing config in `config.py`
+- Or a simple fallback: use Llama 3.3 for supported languages, Qwen 2.5 for others
+- Or replace the default model entirely with Qwen 2.5 (it supports all our languages)
+
+---
+
 ## Sources
 
 - Ethnologue: Languages of the World (2024 edition) -- total speaker counts

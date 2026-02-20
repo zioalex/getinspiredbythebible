@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
     # Allow automatic fallback to other providers/models
     openrouter_allow_fallbacks: bool = True
+    # Language-specific model overrides (comma-separated lang=model pairs)
+    # Routes requests in unsupported languages to a model that handles them better
+    # Example: "ar=qwen/qwen-2.5-72b-instruct,zh=qwen/qwen-2.5-72b-instruct"
+    language_model_overrides: str = "ar=qwen/qwen-2.5-72b-instruct"
 
     # Embedding Configuration
     embedding_provider: Literal["ollama", "openai", "openrouter", "azure_openai"] = "ollama"

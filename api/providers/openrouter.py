@@ -139,7 +139,13 @@ class OpenRouterProvider(LLMProvider):
     ) -> LLMResponse:
         """Send a chat completion request to OpenRouter with explicit 429 fallback."""
         converted_messages = self._convert_messages(messages)
-        model_to_use, extra_body = self._get_model_and_extra_body()
+        model_override = kwargs.pop("model_override", None)
+        if model_override:
+            model_to_use = model_override
+            extra_body = None  # No auto-router for overrides
+            logger.info(f"Using language-based model override: {model_override}")
+        else:
+            model_to_use, extra_body = self._get_model_and_extra_body()
 
         try:
             response = await self._client.chat.completions.create(
@@ -259,7 +265,13 @@ class OpenRouterProvider(LLMProvider):
     ) -> AsyncIterator[str]:
         """Stream chat completion from OpenRouter with explicit 429 fallback."""
         converted_messages = self._convert_messages(messages)
-        model_to_use, extra_body = self._get_model_and_extra_body()
+        model_override = kwargs.pop("model_override", None)
+        if model_override:
+            model_to_use = model_override
+            extra_body = None  # No auto-router for overrides
+            logger.info(f"Using language-based model override: {model_override}")
+        else:
+            model_to_use, extra_body = self._get_model_and_extra_body()
 
         logger.info(f"OpenRouter streaming request - model: {model_to_use}")
 

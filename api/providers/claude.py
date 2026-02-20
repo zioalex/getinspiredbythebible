@@ -58,6 +58,7 @@ class ClaudeProvider(LLMProvider):
         **kwargs,
     ) -> LLMResponse:
         """Send a chat completion request to Claude."""
+        kwargs.pop("model_override", None)  # Not supported, ignore
         system_prompt, converted_messages = self._convert_messages(messages)
 
         request_params = {
@@ -94,6 +95,7 @@ class ClaudeProvider(LLMProvider):
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion from Claude."""
+        kwargs.pop("model_override", None)  # Not supported, ignore
         system_prompt, converted_messages = self._convert_messages(messages)
 
         async with self._client.messages.stream(
