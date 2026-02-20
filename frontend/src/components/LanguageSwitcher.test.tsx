@@ -12,7 +12,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 vi.mock("@/i18n/routing", () => ({
-  routing: { locales: ["en", "it", "de"] },
+  routing: { locales: ["en", "it", "de", "es", "fr", "pt", "ar"] },
 }));
 
 vi.mock("next-intl", async (importOriginal) => {
@@ -28,12 +28,12 @@ describe("LanguageSwitcher", () => {
     mockReplace.mockClear();
   });
 
-  it("renders a select with 3 options", () => {
+  it("renders a select with 7 options", () => {
     renderWithIntl(<LanguageSwitcher />);
     const select = screen.getByRole("combobox");
     const options = screen.getAllByRole("option");
     expect(select).toBeDefined();
-    expect(options).toHaveLength(3);
+    expect(options).toHaveLength(7);
   });
 
   it("current locale is pre-selected", () => {
@@ -54,6 +54,10 @@ describe("LanguageSwitcher", () => {
     expect(screen.getByText("English")).toBeDefined();
     expect(screen.getByText("Italiano")).toBeDefined();
     expect(screen.getByText("Deutsch")).toBeDefined();
+    expect(screen.getByText("Español")).toBeDefined();
+    expect(screen.getByText("Français")).toBeDefined();
+    expect(screen.getByText("Português")).toBeDefined();
+    expect(screen.getByText("العربية")).toBeDefined();
   });
 
   it("renders Globe icon", () => {

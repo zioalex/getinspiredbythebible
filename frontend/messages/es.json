@@ -1,0 +1,119 @@
+{
+  "Metadata": {
+    "title": "Chat de Inspiración Bíblica",
+    "description": "Encuentra aliento espiritual y orientación a través de las Escrituras"
+  },
+  "Header": {
+    "title": "Inspiración Bíblica",
+    "subtitle": "Encuentra aliento en las Escrituras",
+    "bibleVersion": "Versión de la Biblia:",
+    "autoDetect": "Detectar automáticamente",
+    "newChat": "Nueva Conversación"
+  },
+  "Welcome": {
+    "heading": "Bienvenido",
+    "description": "Comparte lo que tienes en el corazón, haz preguntas sobre las Escrituras o simplemente busca aliento. Puedo ayudarte a explorar temas teológicos, pero no soy un sustituto de teólogos capacitados o de la orientación pastoral.",
+    "prompt1": "Me siento ansioso por el futuro",
+    "prompt2": "¿Qué dice la Biblia sobre el perdón?",
+    "prompt3": "Necesito aliento hoy",
+    "prompt4": "Ayúdame a entender Juan 3:16"
+  },
+  "Chat": {
+    "inputPlaceholder": "Comparte lo que tienes en el corazón...",
+    "disclaimer": "Las respuestas generadas por IA pueden contener errores. No es un sustituto de la teología o el consejo pastoral.",
+    "loadingWarmup": "Me estoy preparando. Un momento de paciencia...",
+    "loadingSearch": "Buscando en las Escrituras y reflexionando...",
+    "backendWarmingUp": "El servidor se está iniciando, puedes empezar a escribir...",
+    "errorColdStart": "Todavía me estoy preparando y está tomando más tiempo de lo esperado. Por favor, inténtalo de nuevo en un momento. ¡Estaré listo pronto!",
+    "errorConnection": "Lo siento, estoy teniendo problemas de conexión en este momento. Podría ser un problema temporal: inténtalo de nuevo en un momento. Si el problema persiste, puedes contactarnos en getinspiredbythebible@ai4you.sh"
+  },
+  "Verses": {
+    "scriptureReferences": "Referencias Bíblicas",
+    "verseCount": "{count, plural, =1 {1 versículo} other {# versículos}}",
+    "referenced": "Citados",
+    "allRelated": "Todos relacionados ({count})",
+    "noVersesReferenced": "Ningún versículo citado aún.",
+    "noVersesReferencedHint": "Los versículos aparecerán aquí cuando se mencionen en la conversación.",
+    "readFullChapter": "Leer el capítulo completo",
+    "showScriptureReferences": "Mostrar referencias bíblicas",
+    "close": "Cerrar"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, =1 {1 versículo} other {# versículos}}",
+    "defaultTranslation": "King James Version"
+  },
+  "Feedback": {
+    "wasHelpful": "¿Fue útil esto?",
+    "thumbsUp": "Pulgar arriba",
+    "thumbsDown": "Pulgar abajo",
+    "helpfulTitle": "Esto fue útil",
+    "improveTitle": "Esto podría mejorar",
+    "thanks": "¡Gracias por tus comentarios!",
+    "positiveHeading": "¿Qué fue útil?",
+    "negativeHeading": "¿Qué podría mejorar?",
+    "positiveDescription": "Tus comentarios nos ayudan a entender qué funciona bien.",
+    "negativeDescription": "Cuéntanos cómo podemos mejorar.",
+    "positivePlaceholder": "Las sugerencias de versículos eran relevantes para mi pregunta...",
+    "negativePlaceholder": "La respuesta no abordó mi preocupación específica...",
+    "privacyNotice": "Al enviar comentarios, tu mensaje y la respuesta de la IA se registrarán para ayudarnos a mejorar el servicio.",
+    "skip": "Omitir",
+    "submit": "Enviar Comentarios",
+    "submitting": "Enviando...",
+    "close": "Cerrar",
+    "toastError": "No se pudieron guardar tus comentarios en este momento, ¡pero gracias por intentarlo!"
+  },
+  "ChurchFinder": {
+    "bannerText": "¿Buscas una comunidad de fe?",
+    "findChurch": "Encontrar una Iglesia",
+    "dismiss": "Cerrar",
+    "inlineText": "¿Buscas una comunidad de oración o una iglesia?",
+    "inlineCta": "Encuentra una cerca",
+    "modalTitle": "Encontrar una Iglesia",
+    "modalSubtitle": "Conéctate con una comunidad de fe cerca de ti",
+    "searchPlaceholder": "Ciudad en inglés (p. ej., Rome, Munich, Zurich)",
+    "searching": "Buscando iglesias...",
+    "errorSearch": "Error al buscar iglesias. Por favor, inténtalo de nuevo.",
+    "errorConnection": "Comprueba tu conexión e inténtalo de nuevo.",
+    "foundCount": "{count, plural, =1 {Encontrada 1 iglesia} other {Encontradas # iglesias}}",
+    "noChurchesFound": "No se encontraron iglesias",
+    "noChurchesHint": "Prueba con una ubicación diferente o un término de búsqueda más amplio.",
+    "enterLocation": "Ingresa una ubicación para buscar",
+    "enterLocationHint": "Usa nombres de ciudades en inglés (p. ej., Rome, Munich, Vienna)",
+    "website": "Sitio web",
+    "email": "Correo electrónico",
+    "churchData": "Datos de iglesias proporcionados por",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "Compartir",
+    "copyToClipboard": "Copiar al portapapeles",
+    "copied": "¡Copiado!",
+    "shareOnWhatsApp": "Compartir en WhatsApp",
+    "shareOnTwitter": "Compartir en X",
+    "shareOnFacebook": "Compartir en Facebook",
+    "shareOnBluesky": "Compartir en Bluesky",
+    "sharePrefix": "Encontré esta inspiradora reflexión bíblica:",
+    "shareVia": "Chat de Inspiración Bíblica"
+  },
+  "Contact": {
+    "getInTouch": "Contáctanos",
+    "emailUs": "Escríbenos:",
+    "emailLabel": "Tu correo electrónico (opcional, para responder)",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "subjectLabel": "Asunto",
+    "subjectSpiritual": "¿Quieres profundizar en alguna pregunta espiritual o bíblica?",
+    "subjectFeedback": "Comentarios Generales",
+    "subjectBug": "Informe de Error",
+    "subjectFeature": "Solicitud de Función",
+    "subjectOther": "Otro",
+    "messageLabel": "Mensaje",
+    "messagePlaceholder": "Comparte tus pensamientos, reporta un problema o sugiere una mejora...",
+    "privacyNote": "Tu mensaje se almacenará para ayudarnos a mejorar el servicio.",
+    "sending": "Enviando...",
+    "sendMessage": "Enviar Mensaje",
+    "successTitle": "¡Mensaje enviado con éxito!",
+    "successDescription": "Gracias por comunicarte. Revisaremos tu mensaje pronto.",
+    "sendAnother": "Enviar otro",
+    "errorSend": "Error al enviar el mensaje. Por favor, inténtalo de nuevo o escríbenos directamente."
+  }
+}
