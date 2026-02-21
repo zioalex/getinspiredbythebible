@@ -26,3 +26,29 @@ rebuild (CI run 07:25–07:36). Root cause: version incompatibility.
 
 - `/config` endpoint now shows `telemetry.appinsights_initialized: true/false`
 - Container logs will show full traceback on any future initialization failure
+
+## Progress Log
+
+### 2026-02-21
+
+- Identified root cause: CI test failure due to guard condition change
+- Test expects `if _appinsights_conn:` but code now uses `if _appinsights_initialized:`
+- This is the correct, intentional change - test needs updating
+- Plan: Update test assertions + add new test for initialization flag + update docs
+
+### 2026-02-21 (Test Fix)
+
+- Updated `test_force_flush_is_guarded_by_connection_string` → `test_force_flush_is_guarded_by_initialized_flag`
+- Added new test `test_appinsights_initialized_flag_exists_and_used` to verify flag usage
+- Updated test file docstring to reflect _appinsights_initialized flag
+- All 911 tests now passing locally
+
+## Tasks
+
+- [x] Identify CI test failure root cause
+- [x] Update failing test assertions
+- [x] Add new test for _appinsights_initialized flag
+- [x] Update test documentation
+- [ ] Run `make pre-commit` before pushing
+- [ ] Push to PR branch and verify CI passes
+- [ ] Verify App Insights metrics flowing after deployment
