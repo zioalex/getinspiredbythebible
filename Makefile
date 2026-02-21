@@ -1,7 +1,8 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
-	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	android-test android-build android-lint android-clean
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -136,6 +137,28 @@ test-frontend: ## Run frontend tests
 	@echo "$(GREEN)✓ Frontend tests complete$(NC)"
 
 test: test-backend test-frontend ## Run all tests
+
+# ==================== Android ====================
+
+android-test: ## Run Android unit tests (requires JDK 17)
+	@echo "$(BLUE)Running Android unit tests...$(NC)"
+	@cd android && ./gradlew testDebugUnitTest --no-daemon
+	@echo "$(GREEN)✓ Android unit tests complete$(NC)"
+
+android-build: ## Build Android debug APK (requires JDK 17)
+	@echo "$(BLUE)Building Android debug APK...$(NC)"
+	@cd android && ./gradlew assembleDebug --no-daemon
+	@echo "$(GREEN)✓ Android debug APK: android/app/build/outputs/apk/debug/app-debug.apk$(NC)"
+
+android-lint: ## Run Android lint checks
+	@echo "$(BLUE)Running Android lint...$(NC)"
+	@cd android && ./gradlew lintDebug --no-daemon
+	@echo "$(GREEN)✓ Android lint report: android/app/build/reports/lint-results-debug.html$(NC)"
+
+android-clean: ## Clean Android build artifacts
+	@echo "$(BLUE)Cleaning Android build artifacts...$(NC)"
+	@cd android && ./gradlew clean --no-daemon
+	@echo "$(GREEN)✓ Android build artifacts cleaned$(NC)"
 
 # ==================== Golden Set Testing ====================
 
