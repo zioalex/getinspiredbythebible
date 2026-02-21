@@ -5,12 +5,14 @@ Main FastAPI application entry point.
 """
 
 import os
+import traceback as _traceback
 from contextlib import asynccontextmanager
 
 # Configure Azure Monitor (Application Insights) as early as possible.
 # This ensures that all subsequent imports that might create meters/tracers
 # are correctly bound to the Azure Monitor provider.
 _appinsights_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+_appinsights_initialized: bool = False
 if _appinsights_conn:
     try:
         from azure.monitor.opentelemetry import configure_azure_monitor
@@ -20,10 +22,13 @@ if _appinsights_conn:
             # Scope to our app logger so Azure SDK internal logs are not exported
             logger_name="bible_app",
         )
+        _appinsights_initialized = True
         # Note: We can't use our logger yet as it hasn't been set up
         print("Application Insights telemetry initialized")
     except Exception as e:
-        print(f"Warning: Failed to configure Application Insights: {e}")
+        # Print full traceback so container logs capture the root cause
+        print(f"WARNING: Failed to configure Application Insights: {e}")
+        print(_traceback.format_exc())
 
 from fastapi import Depends, FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -119,7 +124,7 @@ async def lifespan(app: FastAPI):
     # Flush OpenTelemetry telemetry before container shuts down.
     # Without this, the batch exporter may lose pending spans/logs/metrics
     # when the container scales to zero.
-    if _appinsights_conn:
+    if _appinsights_initialized:
         try:
             logger.info("Flushing telemetry before shutdown...")
             from opentelemetry import metrics, trace  # type: ignore[attr-defined]
@@ -189,7 +194,7 @@ def _get_cors_origins() -> list[str]:
 # but our `from fastapi import FastAPI` already bound the original class. So the app
 # created above is uninstrumented. instrument_app() adds the ASGI tracing middleware
 # directly, giving us server requests, response times, and dependency tracking.
-if _appinsights_conn:
+if _appinsights_initialized:
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
@@ -245,6 +250,10 @@ async def get_config():
         llm_model = settings.llm_model
 
     return {
+        "telemetry": {
+            "appinsights_configured": bool(_appinsights_conn),
+            "appinsights_initialized": _appinsights_initialized,
+        },
         "llm": {
             "provider": settings.llm_provider,
             "model": llm_model,
