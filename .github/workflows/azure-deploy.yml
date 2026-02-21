@@ -141,6 +141,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       scripts: ${{ steps.filter.outputs.scripts }}
+      bible_scripts: ${{ steps.filter.outputs.bible_scripts }}
       deployment: ${{ steps.filter.outputs.deployment }}
     steps:
       - uses: actions/checkout@v6
@@ -161,6 +162,10 @@ jobs:
               - 'frontend/**'
             scripts:
               - 'scripts/**'
+            bible_scripts:
+              - 'scripts/load_bible.py'
+              - 'scripts/create_embeddings.py'
+              - 'scripts/create_azure_embeddings.py'
             deployment:
               - 'deployment/**'
 
@@ -993,12 +998,12 @@ jobs:
   seed-database:
     needs: [changes, deploy]
     # Run if:
-    # - Scripts changed (auto-trigger), OR
+    # - Seeding-relevant scripts changed (load_bible.py, create_embeddings.py, create_azure_embeddings.py), OR
     # - Manual trigger with skip_database_seed=false
     # Note: always() needed to evaluate when deploy is skipped, but only run if deploy didn't fail
     if: >-
       always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
-      ((needs.changes.outputs.scripts == 'true') ||
+      ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
