@@ -239,11 +239,11 @@ export default function Home() {
     setModalOpen(false);
     setModalChapter(null);
   };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
 
-    const userMessageContent = input.trim();
+  const submitMessage = async (content: string) => {
+    if (!content.trim() || isLoading) return;
+
+    const userMessageContent = content.trim();
     const userMessage: ChatMessage = {
       role: "user",
       content: userMessageContent,
@@ -375,6 +375,11 @@ export default function Home() {
     };
     setMessages((prev) => [...prev, errorMessage]);
     setIsLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitMessage(input);
   };
 
   const handleNewChat = () => {
@@ -549,7 +554,7 @@ export default function Home() {
                 {suggestedPrompts.map((prompt, index) => (
                   <button
                     key={index}
-                    onClick={() => setInput(prompt)}
+                    onClick={() => submitMessage(prompt)}
                     className="text-left px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors"
                   >
                     {prompt}

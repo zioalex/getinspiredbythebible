@@ -188,6 +188,53 @@ describe("Home page responsive layout", () => {
     });
   });
 
+  describe("Suggested prompts", () => {
+    it("submits a message when a suggested prompt is clicked", async () => {
+      vi.mocked(api.sendMessage).mockResolvedValue({
+        message: "Response to suggested prompt",
+        message_id: "msg-suggested",
+        scripture_context: { verses: [] },
+      });
+
+      renderWithIntl(<Home />);
+
+      // Find one of the suggested prompts (assuming they are rendered based on the mock translations)
+      // Since we use renderWithIntl, it uses messages/en.json by default
+      // In messages/en.json, Welcome.prompt1 is something like "How can I find peace?"
+      // But let's look at the actual translations to be sure.
+
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      expect(prompts.length).toBeGreaterThan(0);
+
+      const promptText = prompts[0].textContent;
+
+      await act(async () => {
+        fireEvent.click(prompts[0]);
+      });
+
+      // Verify sendMessage was called with the prompt text
+      expect(api.sendMessage).toHaveBeenCalledWith(
+        promptText,
+        expect.any(Array),
+        undefined,
+        expect.any(String),
+        expect.any(Number),
+      );
+
+      // Verify the response is displayed
+      await waitFor(() => {
+        expect(
+          screen.getByText("Response to suggested prompt"),
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
   describe("mobile slide-over panel", () => {
     it("opens slide-over panel when FAB is clicked", async () => {
       await renderHomeWithVerses();
