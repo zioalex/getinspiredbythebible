@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bibel-Inspiration</string>
+    <string name="chat_input_hint">Teile, was dir auf dem Herzen liegt…</string>
+    <string name="chat_send_button">Senden</string>
+    <string name="action_clear_conversation">Gespräch löschen</string>
+    <string name="welcome_title">Finde Inspiration in der Schrift</string>
+    <string name="welcome_subtitle">Erzähle, was du durchmachst, und erhalte Ermutigung, die in Gottes Wort verwurzelt ist.</string>
+    <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
+    <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
+</resources>

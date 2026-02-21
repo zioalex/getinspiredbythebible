@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bible Inspiration</string>
+
+    <!-- Chat screen -->
+    <string name="chat_input_hint">Share what\'s on your heart…</string>
+    <string name="chat_send_button">Send</string>
+    <string name="action_clear_conversation">Clear conversation</string>
+
+    <!-- Welcome banner -->
+    <string name="welcome_title">Find Inspiration in Scripture</string>
+    <string name="welcome_subtitle">Share what you\'re going through and receive encouragement grounded in God\'s Word.</string>
+
+    <!-- Errors -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+</resources>
