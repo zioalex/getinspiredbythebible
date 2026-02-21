@@ -137,6 +137,16 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
+test-functional: install-deps ## Run functional tests against production API
+	@echo "$(BLUE)Running functional tests against production...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
+	@echo "$(GREEN)✓ Functional tests complete$(NC)"
+
+test-functional-local: install-deps ## Run functional tests against local API (localhost:8000)
+	@echo "$(BLUE)Running functional tests against local API...$(NC)"
+	@cd api && FUNCTIONAL_TEST_URL=http://localhost:8000 $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
+	@echo "$(GREEN)✓ Local functional tests complete$(NC)"
+
 # ==================== Golden Set Testing ====================
 
 golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
