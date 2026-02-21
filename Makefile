@@ -1,6 +1,7 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
+	test-functional test-functional-local test-e2e test-e2e-local \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
 # Use bash for better compatibility
@@ -137,15 +138,25 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
-test-functional: install-deps ## Run functional tests against production API
-	@echo "$(BLUE)Running functional tests against production...$(NC)"
+test-functional: install-deps ## Run functional tests against the backend API (requires BACKEND_API_URL)
+	@echo "$(BLUE)Running functional tests against backend API...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
 	@echo "$(GREEN)✓ Functional tests complete$(NC)"
 
-test-functional-local: install-deps ## Run functional tests against local API (localhost:8000)
+test-functional-local: install-deps ## Run functional tests against local backend API (localhost:8000)
 	@echo "$(BLUE)Running functional tests against local API...$(NC)"
-	@cd api && FUNCTIONAL_TEST_URL=http://localhost:8000 $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
+	@cd api && BACKEND_API_URL=http://localhost:8000 $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
 	@echo "$(GREEN)✓ Local functional tests complete$(NC)"
+
+test-e2e: install-deps ## Run e2e tests simulating real users via the frontend URL
+	@echo "$(BLUE)Running e2e tests against production frontend...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
+	@echo "$(GREEN)✓ E2E tests complete$(NC)"
+
+test-e2e-local: install-deps ## Run e2e tests against local frontend (localhost:3000)
+	@echo "$(BLUE)Running e2e tests against local frontend...$(NC)"
+	@cd api && FRONTEND_URL=http://localhost:3000 $(CURDIR)/$(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
+	@echo "$(GREEN)✓ Local e2e tests complete$(NC)"
 
 # ==================== Golden Set Testing ====================
 

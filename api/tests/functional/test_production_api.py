@@ -1,26 +1,37 @@
 """
-Functional tests against a live API instance (local or production).
+Functional tests against the live backend API.
 
 These make **real HTTP requests** — they are NOT mocked.
 The entire suite is skipped automatically when the API is unreachable.
 
+Architecture note
+-----------------
+These tests target the **backend API** directly (FastAPI on Azure Container Apps).
+The backend URL is separate from the frontend URL (https://getinspiredbythebible.ai4you.sh).
+In CI, BACKEND_API_URL is passed from the deploy job output. Locally, set it
+to http://localhost:8000 or the Azure Container Apps FQDN.
+
+For frontend page tests (simulating real user browser visits), see tests/e2e/.
+
 Usage
 -----
-# Against production (default):
-    pytest tests/functional/test_production_api.py -m functional -v
+# Against production backend (set BACKEND_API_URL in CI via deploy job output):
+    BACKEND_API_URL=https://<backend-fqdn>.azurecontainerapps.io \
+        pytest tests/functional/ -m functional -v
 
 # Against local dev:
-    FUNCTIONAL_TEST_URL=http://localhost:8000 \
-        pytest tests/functional/test_production_api.py -m functional -v
+    BACKEND_API_URL=http://localhost:8000 \
+        pytest tests/functional/ -m functional -v
 
 # Via Makefile:
-    make test-functional          # production
+    make test-functional          # production (requires BACKEND_API_URL)
     make test-functional-local    # localhost:8000
 
 Environment variables
 ---------------------
-FUNCTIONAL_TEST_URL   Base URL of the API to test against.
-                      Defaults to https://getinspiredbythebible.ai4you.sh
+BACKEND_API_URL   Base URL of the backend API to test against (required in CI).
+                  Falls back to FUNCTIONAL_TEST_URL for backward compatibility.
+                  No default — the suite is skipped if no URL is configured.
 """
 
 import os
@@ -28,7 +39,9 @@ import os
 import httpx
 import pytest
 
-BASE_URL = os.environ.get("FUNCTIONAL_TEST_URL", "https://getinspiredbythebible.ai4you.sh")
+# BACKEND_API_URL is the Azure Container Apps FQDN for the backend API.
+# FUNCTIONAL_TEST_URL is kept as a backward-compat alias.
+BASE_URL = os.environ.get("BACKEND_API_URL") or os.environ.get("FUNCTIONAL_TEST_URL") or ""
 TIMEOUT = 30.0
 
 pytestmark = pytest.mark.functional
@@ -42,14 +55,17 @@ pytestmark = pytest.mark.functional
 @pytest.fixture(scope="session")
 def api():
     """
-    Synchronous httpx Client pointed at BASE_URL.
-    The entire test session is skipped when the API is not reachable.
+    Synchronous httpx Client pointed at BASE_URL (the backend API).
+    The entire test session is skipped when BASE_URL is not set or not reachable.
     """
+    if not BASE_URL:
+        pytest.skip("Backend API URL not configured. Set BACKEND_API_URL to the backend FQDN.")
+
     try:
         resp = httpx.get(f"{BASE_URL}/health/live", timeout=10.0)
         resp.raise_for_status()
     except Exception as exc:
-        pytest.skip(f"API not reachable at {BASE_URL}: {exc}")
+        pytest.skip(f"Backend API not reachable at {BASE_URL}: {exc}")
 
     with httpx.Client(base_url=BASE_URL, timeout=TIMEOUT) as client:
         yield client
