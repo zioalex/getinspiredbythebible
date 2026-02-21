@@ -13,7 +13,7 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
-from utils.book_names import get_localized_book_name
+from utils.book_names import get_localized_book_name, normalize_book_name
 from utils.language import get_all_translations, get_translation_info
 from utils.metrics import scripture_search_counter, scripture_verses_returned
 
@@ -82,6 +82,7 @@ async def get_verse(
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
 ):
     """Get a specific verse by reference, optionally filtered by translation."""
+    book = normalize_book_name(book)
     repo = ScriptureRepository(db)
     result = await repo.get_verse(book, chapter, verse, translation=translation)
 
@@ -108,6 +109,7 @@ async def get_chapter(
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
 ):
     """Get all verses in a chapter, optionally filtered by translation."""
+    book = normalize_book_name(book)
     repo = ScriptureRepository(db)
     verses = await repo.get_chapter_verses(book, chapter, translation=translation)
 

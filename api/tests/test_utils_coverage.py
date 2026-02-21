@@ -13,11 +13,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from utils.book_names import (
+    ENGLISH_TO_FRENCH,
     ENGLISH_TO_GERMAN,
     ENGLISH_TO_ITALIAN,
+    ENGLISH_TO_SPANISH,
+    FRENCH_TO_ENGLISH,
     GERMAN_TO_ENGLISH,
     ITALIAN_TO_ENGLISH,
     LOCALIZED_TO_ENGLISH,
+    SPANISH_TO_ENGLISH,
     TRANSLATION_BOOK_NAMES,
     get_localized_book_name,
     normalize_book_name,
@@ -335,15 +339,39 @@ class TestBookNames:
         assert GERMAN_TO_ENGLISH["1. Mose"] == "Genesis"
         assert GERMAN_TO_ENGLISH["Johannes"] == "John"
 
+    def test_english_to_spanish_count(self):
+        """Should have 66 Spanish book mappings."""
+        assert len(ENGLISH_TO_SPANISH) == 66
+
+    def test_english_to_french_count(self):
+        """Should have 66 French book mappings."""
+        assert len(ENGLISH_TO_FRENCH) == 66
+
+    def test_spanish_reverse_mapping(self):
+        """Spanish reverse mapping should work."""
+        assert SPANISH_TO_ENGLISH["Génesis"] == "Genesis"
+        assert SPANISH_TO_ENGLISH["Juan"] == "John"
+        assert SPANISH_TO_ENGLISH["Salmos"] == "Psalms"
+
+    def test_french_reverse_mapping(self):
+        """French reverse mapping should work."""
+        assert FRENCH_TO_ENGLISH["Genèse"] == "Genesis"
+        assert FRENCH_TO_ENGLISH["Jean"] == "John"
+        assert FRENCH_TO_ENGLISH["Psaumes"] == "Psalms"
+
     def test_localized_to_english_combined(self):
-        """Combined mapping should contain both languages."""
+        """Combined mapping should contain all supported languages."""
         assert "Genesi" in LOCALIZED_TO_ENGLISH  # Italian
         assert "1. Mose" in LOCALIZED_TO_ENGLISH  # German
+        assert "Juan" in LOCALIZED_TO_ENGLISH  # Spanish
+        assert "Jean" in LOCALIZED_TO_ENGLISH  # French
 
     def test_translation_book_names_mapping(self):
         """TRANSLATION_BOOK_NAMES should map translation codes to book maps."""
         assert TRANSLATION_BOOK_NAMES["ita1927"] is ENGLISH_TO_ITALIAN
         assert TRANSLATION_BOOK_NAMES["schlachter"] is ENGLISH_TO_GERMAN
+        assert TRANSLATION_BOOK_NAMES["valera"] is ENGLISH_TO_SPANISH
+        assert TRANSLATION_BOOK_NAMES["ls1910"] is ENGLISH_TO_FRENCH
         assert TRANSLATION_BOOK_NAMES["kjv"] is None
         assert TRANSLATION_BOOK_NAMES["web"] is None
 
@@ -359,6 +387,18 @@ class TestGetLocalizedBookName:
         assert get_localized_book_name("Genesis", "schlachter") == "1. Mose"
         assert get_localized_book_name("John", "schlachter") == "Johannes"
 
+    def test_spanish_translation(self):
+        assert get_localized_book_name("Genesis", "valera") == "Génesis"
+        assert get_localized_book_name("John", "valera") == "Juan"
+        assert get_localized_book_name("Psalms", "valera") == "Salmos"
+        assert get_localized_book_name("2 Corinthians", "valera") == "2 Corintios"
+
+    def test_french_translation(self):
+        assert get_localized_book_name("Genesis", "ls1910") == "Genèse"
+        assert get_localized_book_name("John", "ls1910") == "Jean"
+        assert get_localized_book_name("Psalms", "ls1910") == "Psaumes"
+        assert get_localized_book_name("2 Corinthians", "ls1910") == "2 Corinthiens"
+
     def test_english_translations_return_english(self):
         assert get_localized_book_name("Genesis", "kjv") == "Genesis"
         assert get_localized_book_name("Genesis", "web") == "Genesis"
@@ -371,7 +411,7 @@ class TestGetLocalizedBookName:
 
     def test_unknown_book_returns_original(self):
         assert get_localized_book_name("FakeBook", "ita1927") == "FakeBook"
-        assert get_localized_book_name("FakeBook", "schlachter") == "FakeBook"
+        assert get_localized_book_name("FakeBook", "valera") == "FakeBook"
 
 
 class TestNormalizeBookName:
@@ -390,6 +430,18 @@ class TestNormalizeBookName:
         assert normalize_book_name("1. Mose") == "Genesis"
         assert normalize_book_name("Johannes") == "John"
         assert normalize_book_name("Psalmen") == "Psalms"
+
+    def test_spanish_to_english(self):
+        assert normalize_book_name("Génesis") == "Genesis"
+        assert normalize_book_name("Juan") == "John"
+        assert normalize_book_name("Salmos") == "Psalms"
+        assert normalize_book_name("2 Corintios") == "2 Corinthians"
+
+    def test_french_to_english(self):
+        assert normalize_book_name("Genèse") == "Genesis"
+        assert normalize_book_name("Jean") == "John"
+        assert normalize_book_name("Psaumes") == "Psalms"
+        assert normalize_book_name("2 Corinthiens") == "2 Corinthians"
 
     def test_unknown_name_returned_as_is(self):
         assert normalize_book_name("UnknownBook") == "UnknownBook"

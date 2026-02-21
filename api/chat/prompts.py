@@ -12,13 +12,9 @@ SYSTEM_PROMPT_TEMPLATE = """You are a compassionate spiritual companion who help
 {language_instruction}
 
 ## MANDATORY: Always State the Source
-**When discussing ANY prayer, verse, or spiritual text, you MUST clearly state its source at the beginning of your response:**
+**When discussing ANY prayer, verse, or spiritual text, you MUST clearly state its source at the beginning of your response.**
 
-For biblical content, start with:
-- "This is from the Bible, specifically [Book Chapter:Verse]"
-
-For non-biblical content, start with:
-- "This prayer/text is NOT from the Bible. It is [origin - e.g., 'a traditional Catholic prayer from the medieval period']"
+{source_instruction}
 
 **This is not optional. Every response about a prayer or passage must begin by clarifying its source.**
 
@@ -231,6 +227,39 @@ LANGUAGE_NAMES = {
     "ar": "Arabic (العربية)",
 }
 
+# Source attribution examples in each supported language
+# Each tuple: (biblical_source_example, non_biblical_source_example)
+SOURCE_ATTRIBUTION_EXAMPLES = {
+    "en": (
+        'For biblical content, start with:\n- "This is from the Bible, specifically [Book Chapter:Verse]"',
+        'For non-biblical content, start with:\n- "This prayer/text is NOT from the Bible. It is [origin]"',
+    ),
+    "it": (
+        'Per i contenuti biblici, inizia con:\n- "Questo è tratto dalla Bibbia, precisamente [Libro Capitolo:Versetto]"',
+        'Per i contenuti non biblici, inizia con:\n- "Questa preghiera/testo NON proviene dalla Bibbia. È [origine]"',
+    ),
+    "de": (
+        'Für biblische Inhalte, beginne mit:\n- "Dies stammt aus der Bibel, genauer gesagt aus [Buch Kapitel:Vers]"',
+        'Für nicht-biblische Inhalte, beginne mit:\n- "Dieses Gebet/dieser Text stammt NICHT aus der Bibel. Es ist [Herkunft]"',
+    ),
+    "es": (
+        'Para contenido bíblico, comienza con:\n- "Esto proviene de la Biblia, específicamente de [Libro Capítulo:Versículo]"',
+        'Para contenido no bíblico, comienza con:\n- "Esta oración/texto NO proviene de la Biblia. Es [origen]"',
+    ),
+    "fr": (
+        'Pour le contenu biblique, commencez par:\n- "Ceci provient de la Bible, précisément de [Livre Chapitre:Verset]"',
+        'Pour le contenu non biblique, commencez par:\n- "Cette prière/ce texte ne provient PAS de la Bible. Il s\'agit de [origine]"',
+    ),
+    "pt": (
+        'Para conteúdo bíblico, comece com:\n- "Isto vem da Bíblia, especificamente de [Livro Capítulo:Versículo]"',
+        'Para conteúdo não bíblico, comece com:\n- "Esta oração/texto NÃO vem da Bíblia. É [origem]"',
+    ),
+    "ar": (
+        'للمحتوى الكتابي، ابدأ بـ:\n- "هذا من الكتاب المقدس، تحديداً من [الكتاب الفصل:الآية]"',
+        'للمحتوى غير الكتابي، ابدأ بـ:\n- "هذه الصلاة/النص ليست من الكتاب المقدس. إنها [المصدر]"',
+    ),
+}
+
 
 def get_system_prompt(language_code: str = "en") -> str:
     """
@@ -253,7 +282,15 @@ def get_system_prompt(language_code: str = "en") -> str:
             f"Do not switch to English unless the user does."
         )
 
-    return SYSTEM_PROMPT_TEMPLATE.format(language_instruction=language_instruction)
+    biblical_ex, non_biblical_ex = SOURCE_ATTRIBUTION_EXAMPLES.get(
+        language_code, SOURCE_ATTRIBUTION_EXAMPLES["en"]
+    )
+    source_instruction = f"{biblical_ex}\n\n{non_biblical_ex}"
+
+    return SYSTEM_PROMPT_TEMPLATE.format(
+        language_instruction=language_instruction,
+        source_instruction=source_instruction,
+    )
 
 
 # Keep SYSTEM_PROMPT for backwards compatibility (defaults to English)
