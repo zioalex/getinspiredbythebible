@@ -59,7 +59,31 @@ When adding new functionality that requires commands:
 - If the PR was already merged or closed, **create a new branch and PR** instead
 - Never push additional commits to a merged PR's branch
 
-### 7. Document Work Progress
+### 7. Use Git Worktrees for Parallel Work
+
+When working on **two or more independent tasks simultaneously**, use git worktrees to
+avoid branch-switching conflicts (stashing, checkout failures, agents blocking each other):
+
+```bash
+# Claude Code built-in — creates .claude/worktrees/<name>/ on a new branch
+EnterWorktree("fix-description")
+```
+
+**When to use worktrees:**
+
+- Kicking off a background agent on a separate branch while continuing on the current branch
+- Two independent bugfixes that should not share working-tree state
+- Fixing CI on a PR while a different PR is being merged/reviewed
+
+**When NOT to use worktrees:**
+
+- The branch is already checked out in the main working tree (git prevents double checkout)
+  — in that case, just work directly in the main tree
+- Simple sequential tasks where you switch branches one at a time
+
+After the worktree task is done, exit the worktree; Claude Code will prompt to keep or remove it.
+
+### 8. Document Work Progress
 
 Use `docs/WIP/` and `docs/DONE/` folders to track complex work:
 
