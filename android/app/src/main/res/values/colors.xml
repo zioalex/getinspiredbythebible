@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm gold / amber palette -->
+    <color name="gold_primary">#C9A84C</color>
+    <color name="gold_light">#F0D080</color>
+    <color name="gold_dark">#9A7A20</color>
+    <color name="amber_surface">#FFF8E7</color>
+
+    <!-- Deep navy palette -->
+    <color name="navy_primary">#0D1B3E</color>
+    <color name="navy_medium">#1A2E5A</color>
+    <color name="navy_light">#2A4A7F</color>
+    <color name="navy_surface">#E8EDF5</color>
+
+    <!-- Neutral -->
+    <color name="white">#FFFFFF</color>
+    <color name="off_white">#F9F7F2</color>
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#5A6070</color>
+    <color name="text_on_dark">#F5F0E8</color>
+    <color name="error">#B91C1C</color>
+</resources>

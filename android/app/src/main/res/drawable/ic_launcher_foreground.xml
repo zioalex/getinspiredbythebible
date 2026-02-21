@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple cross / book icon in gold on transparent background -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Book shape -->
+    <path
+        android:fillColor="#C9A84C"
+        android:pathData="M24,20 L84,20 Q88,20 88,24 L88,84 Q88,88 84,88 L24,88 Q20,88 20,84 L20,24 Q20,20 24,20 Z" />
+
+    <!-- Book spine -->
+    <path
+        android:fillColor="#9A7A20"
+        android:pathData="M20,20 L32,20 L32,88 L20,88 Z" />
+
+    <!-- Cross on book -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,35 L56,35 L56,51 L72,51 L72,55 L56,55 L56,73 L52,73 L52,55 L36,55 L36,51 L52,51 Z" />
+</vector>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme. Compose handles most theming; this sets the window background
+         and status bar color used before Compose content is rendered. -->
+    <style name="Theme.GetInspiredByTheBible" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/navy_primary</item>
+        <item name="android:navigationBarColor">@color/navy_primary</item>
+        <item name="android:windowBackground">@color/off_white</item>
+    </style>
+</resources>

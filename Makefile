@@ -1,7 +1,8 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
-	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	android-build android-test android-lint
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -730,3 +731,36 @@ tf-refresh: ## Refresh Terraform state
 tf-state-list: ## List resources in Terraform state
 	@echo "$(BLUE)Resources in Terraform state:$(NC)"
 	@cd $(TF_DIR) && terraform state list
+
+# ──────────────────────────────────────────────────────────────────────────────
+## Android
+# ──────────────────────────────────────────────────────────────────────────────
+
+ANDROID_DIR := android
+
+android-build: ## Build the Android debug APK (requires gradle wrapper jar — see android/README.md)
+	@echo "$(BLUE)Building Android debug APK...$(NC)"
+	@if [ ! -f "$(ANDROID_DIR)/gradle/wrapper/gradle-wrapper.jar" ]; then \
+		echo "$(YELLOW)⚠ gradle-wrapper.jar not found. Run: cd $(ANDROID_DIR) && gradle wrapper --gradle-version 8.9$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(ANDROID_DIR) && ./gradlew assembleDebug
+	@echo "$(GREEN)✓ Android APK built: $(ANDROID_DIR)/app/build/outputs/apk/debug/app-debug.apk$(NC)"
+
+android-test: ## Run Android JVM unit tests (no device required)
+	@echo "$(BLUE)Running Android unit tests...$(NC)"
+	@if [ ! -f "$(ANDROID_DIR)/gradle/wrapper/gradle-wrapper.jar" ]; then \
+		echo "$(YELLOW)⚠ gradle-wrapper.jar not found. Run: cd $(ANDROID_DIR) && gradle wrapper --gradle-version 8.9$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(ANDROID_DIR) && ./gradlew test
+	@echo "$(GREEN)✓ Android unit tests passed$(NC)"
+
+android-lint: ## Run Android lint checks
+	@echo "$(BLUE)Running Android lint...$(NC)"
+	@if [ ! -f "$(ANDROID_DIR)/gradle/wrapper/gradle-wrapper.jar" ]; then \
+		echo "$(YELLOW)⚠ gradle-wrapper.jar not found. Run: cd $(ANDROID_DIR) && gradle wrapper --gradle-version 8.9$(NC)"; \
+		exit 1; \
+	fi
+	@cd $(ANDROID_DIR) && ./gradlew lint
+	@echo "$(GREEN)✓ Android lint complete — report at $(ANDROID_DIR)/app/build/reports/lint-results-debug.html$(NC)"

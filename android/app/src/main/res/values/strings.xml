@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Get Inspired by the Bible</string>
+    <string name="chat_hint">Share what\'s on your heart…</string>
+    <string name="send_button">Send</string>
+    <string name="loading">Finding inspiration…</string>
+    <string name="verse_reference">%1$s %2$d:%3$d</string>
+    <string name="error_message">Something went wrong. Please try again.</string>
+    <string name="welcome_message">Welcome! Share what\'s on your heart and I\'ll help you find relevant Bible passages and encouragement.</string>
+</resources>
