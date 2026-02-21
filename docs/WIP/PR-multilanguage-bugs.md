@@ -48,19 +48,35 @@ Right pane links "point to the English version" label-wise.
 
 ## Tasks
 
-- [ ] Create WIP document (this file)
-- [ ] Bug 1+3: Update `api/utils/book_names.py` — add Spanish/French/Portuguese/Arabic mappings
+- [x] Create WIP document (this file)
+- [x] Bug 1+3: Update `api/utils/book_names.py` — add Spanish/French/Portuguese/Arabic mappings
       and their reverse mappings to `LOCALIZED_TO_ENGLISH`
-- [ ] Bug 1: Add `normalize_book_name()` calls to `get_chapter` + `get_verse` endpoints
-- [ ] Bug 3: Add `localized_book` field to `VerseResult` model; populate it in `search()`
-- [ ] Bug 2: Make source attribution example in `SYSTEM_PROMPT_TEMPLATE` language-aware
-- [ ] Run tests; create PR
+- [x] Bug 1: Add `normalize_book_name()` calls to `get_chapter` + `get_verse` endpoints
+- [x] Bug 3: Add `localized_book` field to `VerseResult` model; populate it in `search()`
+- [x] Bug 2: Make source attribution example in `SYSTEM_PROMPT_TEMPLATE` language-aware
+- [x] Run tests (+11 new tests); create PR #157
+
+## Additional Bugs (discovered during testing, NOT in PR #157)
+
+### Bug 4: Right pane appears only on second interaction
+
+- All languages except Arabic (reported): verse sidebar doesn't render after the first chat message
+  even when the response contains Bible verse references.
+- Arabic works on first interaction (possibly due to model override in `language_model_overrides`).
+- Possible causes: off-topic intent detector misclassifies first-message spiritual queries in
+  non-English languages, OR similarity search returns empty results on first query (embeddings
+  cold start with Ollama), OR the intent detector OK but `scripture_context.verses` is empty.
+- Needs live testing with backend logs to confirm root cause.
+- **Not fixed in this PR** — filed for separate investigation.
 
 ## Notes
 
 - `language.py` already has complete Spanish/French/Portuguese/Arabic book name tables.
-  We should sync `book_names.py` from those (avoid circular import by copying the data).
+  We added the same data to `book_names.py` (copying avoids circular import).
 - The `ChapterResponse` already returns `localized_book` correctly from the `language.py`
   version of `get_localized_book_name`. Search results use `book_names.py` version.
 - `normalize_book_name()` only needs to be called at API boundaries (chapter/verse endpoints).
   The DB always stores English canonical names.
+- Side-fix: "Referenced" (Citations) filter tab now works for all locales because
+  `verse.reference` is now correctly localized (e.g., "Jean 3:16" not "John 3:16"),
+  matching what `extractVerseReferences` extracts from the LLM's French/Spanish chat text.
