@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Inspiração Bíblica</string>
+    <string name="chat_input_hint">Compartilhe o que está no seu coração…</string>
+    <string name="chat_send_button">Enviar</string>
+    <string name="action_clear_conversation">Limpar conversa</string>
+    <string name="welcome_title">Encontre Inspiração nas Escrituras</string>
+    <string name="welcome_subtitle">Compartilhe o que você está passando e receba encorajamento baseado na Palavra de Deus.</string>
+    <string name="error_network">Erro de rede. Verifique sua conexão.</string>
+    <string name="error_generic">Algo deu errado. Tente novamente.</string>
+</resources>

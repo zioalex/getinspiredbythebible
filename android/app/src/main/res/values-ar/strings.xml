@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">إلهام الكتاب المقدس</string>
+    <string name="chat_input_hint">شارك ما يدور في خاطرك…</string>
+    <string name="chat_send_button">إرسال</string>
+    <string name="action_clear_conversation">مسح المحادثة</string>
+    <string name="welcome_title">اعثر على الإلهام في الكتاب المقدس</string>
+    <string name="welcome_subtitle">شارك ما تمر به واحصل على تشجيع مستمد من كلمة الله.</string>
+    <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
+    <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
+</resources>
