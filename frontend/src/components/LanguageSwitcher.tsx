@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "@/i18n/navigation";
 import { Globe } from "lucide-react";
 import { routing } from "@/i18n/routing";
 
-const localeLabels: Record<string, string> = {
+export const localeLabels: Record<string, string> = {
   en: "English",
   it: "Italiano",
   de: "Deutsch",

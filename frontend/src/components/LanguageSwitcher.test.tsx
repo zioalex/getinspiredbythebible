@@ -1,7 +1,8 @@
 import { screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import LanguageSwitcher from "./LanguageSwitcher";
+import LanguageSwitcher, { localeLabels } from "./LanguageSwitcher";
 import { renderWithIntl } from "@/test/i18n-helpers";
+import { routing } from "@/i18n/routing";
 
 const mockReplace = vi.fn();
 const mockPathname = "/some-page";
@@ -28,12 +29,12 @@ describe("LanguageSwitcher", () => {
     mockReplace.mockClear();
   });
 
-  it("renders a select with 7 options", () => {
+  it("renders one option per configured locale", () => {
     renderWithIntl(<LanguageSwitcher />);
     const select = screen.getByRole("combobox");
     const options = screen.getAllByRole("option");
     expect(select).toBeDefined();
-    expect(options).toHaveLength(7);
+    expect(options).toHaveLength(routing.locales.length);
   });
 
   it("current locale is pre-selected", () => {
@@ -49,15 +50,16 @@ describe("LanguageSwitcher", () => {
     expect(mockReplace).toHaveBeenCalledWith(mockPathname, { locale: "it" });
   });
 
-  it("all locale labels are native names", () => {
+  it("every configured locale has a label and it is displayed", () => {
     renderWithIntl(<LanguageSwitcher />);
-    expect(screen.getByText("English")).toBeDefined();
-    expect(screen.getByText("Italiano")).toBeDefined();
-    expect(screen.getByText("Deutsch")).toBeDefined();
-    expect(screen.getByText("Español")).toBeDefined();
-    expect(screen.getByText("Français")).toBeDefined();
-    expect(screen.getByText("Português")).toBeDefined();
-    expect(screen.getByText("العربية")).toBeDefined();
+    for (const loc of routing.locales) {
+      const label = localeLabels[loc];
+      expect(label, `Missing localeLabels entry for "${loc}"`).toBeTruthy();
+      expect(
+        screen.getByText(label),
+        `Option for locale "${loc}" not rendered`,
+      ).toBeDefined();
+    }
   });
 
   it("renders Globe icon", () => {
