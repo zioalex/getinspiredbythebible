@@ -17,6 +17,7 @@ class VerseResult(BaseModel):
     reference: str
     text: str
     book: str
+    localized_book: str | None = None
     chapter: int
     verse: int
     translation: str | None = None
@@ -102,6 +103,7 @@ class ScriptureSearchService:
                 reference=self._get_localized_reference(verse),
                 text=verse.text,
                 book=verse.book.name,
+                localized_book=get_localized_book_name(verse.book.name, verse.translation),
                 chapter=verse.chapter_number,
                 verse=verse.verse_number,
                 translation=verse.translation,

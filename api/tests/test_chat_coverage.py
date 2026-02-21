@@ -69,6 +69,11 @@ class TestGetSystemPrompt:
         result = get_system_prompt("pt")
         assert "Portuguese" in result
 
+    def test_arabic(self):
+        result = get_system_prompt("ar")
+        assert "Arabic" in result
+        assert "You MUST respond entirely in" in result
+
     def test_unknown_language_falls_back(self):
         result = get_system_prompt("xx")
         # Should still produce a valid prompt (falls back to English name)
@@ -79,6 +84,27 @@ class TestGetSystemPrompt:
         result = get_system_prompt("en")
         assert "compassionate spiritual companion" in result
         assert "Scripture Context" in result or "scripture" in result.lower()
+
+    def test_source_instruction_is_localized_for_spanish(self):
+        """Spanish prompt should contain a Spanish source attribution example."""
+        result = get_system_prompt("es")
+        assert "Biblia" in result  # Spanish word for Bible
+        assert "source_instruction" not in result  # placeholder fully substituted
+
+    def test_source_instruction_is_localized_for_french(self):
+        """French prompt should contain a French source attribution example."""
+        result = get_system_prompt("fr")
+        assert "Bible" in result  # same word in French
+        assert "provient de la Bible" in result  # French source phrase
+        assert "source_instruction" not in result  # placeholder fully substituted
+
+    def test_no_hardcoded_english_in_non_english_prompt(self):
+        """Non-English prompts should not contain the hardcoded English attribution phrase."""
+        for lang in ("es", "fr", "it", "de", "pt"):
+            result = get_system_prompt(lang)
+            assert (
+                "This is from the Bible, specifically" not in result
+            ), f"Hardcoded English attribution still present for lang={lang}"
 
 
 class TestGetVerseLookupPrompt:
@@ -283,6 +309,7 @@ class TestLanguageNames:
         assert "es" in LANGUAGE_NAMES
         assert "fr" in LANGUAGE_NAMES
         assert "pt" in LANGUAGE_NAMES
+        assert "ar" in LANGUAGE_NAMES
 
 
 class TestSystemPromptConstant:

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from utils.logging_config import get_logger
+from utils.metrics import church_search_counter
 from utils.turnstile import require_turnstile
 
 logger = get_logger(__name__)
@@ -57,6 +58,10 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     """
     location = request.location.strip()
     logger.info("Church search request received")
+
+    # Record metrics
+    church_search_counter.add(1)
+
     # Log location at debug level only to avoid PII in production logs
     logger.debug(f"Church search location: '{location}'")
 

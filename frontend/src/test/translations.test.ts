@@ -2,12 +2,20 @@ import { describe, it, expect } from "vitest";
 import enMessages from "../../messages/en.json";
 import itMessages from "../../messages/it.json";
 import deMessages from "../../messages/de.json";
+import esMessages from "../../messages/es.json";
+import frMessages from "../../messages/fr.json";
+import ptMessages from "../../messages/pt.json";
+import arMessages from "../../messages/ar.json";
 import IntlMessageFormat from "intl-messageformat";
 
 const locales: Record<string, typeof enMessages> = {
   en: enMessages,
   it: itMessages,
   de: deMessages,
+  es: esMessages,
+  fr: frMessages,
+  pt: ptMessages,
+  ar: arMessages,
 };
 
 function getKeys(obj: Record<string, unknown>, prefix = ""): string[] {
