@@ -615,6 +615,8 @@ jobs:
       )
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      backend_url: ${{ steps.verify.outputs.backend_url }}
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
@@ -795,29 +797,36 @@ jobs:
             }
 
       - name: Verify Deployment
+        id: verify
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 30
 
-          # Check backend health
-          BACKEND_URL=$(az containerapp show \
+          # Check backend health and export URL for functional-tests job
+          BACKEND_FQDN=$(az containerapp show \
             --name ${{ env.BACKEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
 
-          if [ -n "$BACKEND_URL" ]; then
-            echo "Backend URL: https://$BACKEND_URL"
-            curl -sf "https://$BACKEND_URL/health" || echo "Backend health check pending..."
+          if [ -n "$BACKEND_FQDN" ]; then
+            BACKEND_URL="https://$BACKEND_FQDN"
+            echo "Backend URL: $BACKEND_URL"
+            curl -sf "$BACKEND_URL/health" || echo "Backend health check pending..."
+            # Export for functional-tests job
+            echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Could not determine backend URL — functional API tests will be skipped"
+            echo "backend_url=" >> $GITHUB_OUTPUT
           fi
 
-          # Get frontend URL
-          FRONTEND_URL=$(az containerapp show \
+          # Get frontend URL (for logging)
+          FRONTEND_FQDN=$(az containerapp show \
             --name ${{ env.FRONTEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
 
-          if [ -n "$FRONTEND_URL" ]; then
-            echo "Frontend URL: https://$FRONTEND_URL"
+          if [ -n "$FRONTEND_FQDN" ]; then
+            echo "Frontend URL: https://$FRONTEND_FQDN"
           fi
 
       - name: Post Deployment Summary
@@ -840,9 +849,19 @@ jobs:
   # ---------------------------------------------------------------------------
   # Functional Tests (post-deployment smoke tests)
   # ---------------------------------------------------------------------------
-  # Runs after a successful deploy to verify the live production API.
-  # Uses the stable Cloudflare-proxied URL — no Azure login required.
-  # A failure marks the pipeline red so on-call can investigate / roll back.
+  # Two test suites run after a successful deploy:
+  #
+  #  1. E2E tests (tests/e2e/)  — hit the frontend URL like a real user's
+  #     browser would. Checks that all locale pages load with HTML content.
+  #     URL: https://getinspiredbythebible.ai4you.sh  (stable Cloudflare URL)
+  #
+  #  2. Functional API tests (tests/functional/) — hit the backend API directly.
+  #     URL: the Azure Container Apps FQDN passed from the deploy job output.
+  #     Tests API endpoints (scripture verse/chapter/search, chat validation,
+  #     multilanguage localization fixes, health/config).
+  #
+  # A failure in either suite marks the pipeline red so the team can
+  # investigate and consider rolling back.
   functional-tests:
     name: Functional Tests (smoke)
     needs: [deploy]
@@ -863,10 +882,18 @@ jobs:
       - name: Install test dependencies
         run: pip install httpx pytest pytest-asyncio
 
-      - name: Run functional tests
-        id: tests
+      - name: Run e2e tests (real user — frontend URL)
+        id: e2e
         env:
-          FUNCTIONAL_TEST_URL: https://getinspiredbythebible.ai4you.sh
+          FRONTEND_URL: https://getinspiredbythebible.ai4you.sh
+        run: |
+          cd api
+          python -m pytest tests/e2e/ -m e2e -v --tb=short
+
+      - name: Run functional API tests (backend API)
+        id: functional
+        env:
+          BACKEND_API_URL: ${{ needs.deploy.outputs.backend_url }}
         run: |
           cd api
           python -m pytest tests/functional/ -m functional -v --tb=short
@@ -874,16 +901,28 @@ jobs:
       - name: Post Test Summary
         if: always()
         run: |
-          echo "## Functional Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**API:** https://getinspiredbythebible.ai4you.sh" >> $GITHUB_STEP_SUMMARY
+          echo "### E2E Tests (real user via frontend)" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** https://getinspiredbythebible.ai4you.sh" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.tests.outcome }}" == "success" ]; then
-            echo "✅ All smoke tests passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.tests.outcome }}" == "skipped" ]; then
-            echo "⏭️ Tests skipped (API unreachable)" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.e2e.outcome }}" == "success" ]; then
+            echo "✅ All e2e tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.e2e.outcome }}" == "skipped" ]; then
+            echo "⏭️ E2E tests skipped (frontend unreachable)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Smoke tests failed — check logs and consider rollback" >> $GITHUB_STEP_SUMMARY
+            echo "❌ E2E tests failed — frontend may be broken" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Functional API Tests (backend)" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend:** ${{ needs.deploy.outputs.backend_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.functional.outcome }}" == "success" ]; then
+            echo "✅ All API functional tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.functional.outcome }}" == "skipped" ]; then
+            echo "⏭️ API tests skipped (backend URL not available)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ API functional tests failed — check backend logs, consider rollback" >> $GITHUB_STEP_SUMMARY
           fi
 
   # ---------------------------------------------------------------------------
