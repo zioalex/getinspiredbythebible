@@ -838,6 +838,55 @@ jobs:
           echo "| Frontend | \`${{ steps.image-tags.outputs.frontend_image }}\` |" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
+  # Functional Tests (post-deployment smoke tests)
+  # ---------------------------------------------------------------------------
+  # Runs after a successful deploy to verify the live production API.
+  # Uses the stable Cloudflare-proxied URL — no Azure login required.
+  # A failure marks the pipeline red so on-call can investigate / roll back.
+  functional-tests:
+    name: Functional Tests (smoke)
+    needs: [deploy]
+    if: always() && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install httpx pytest pytest-asyncio
+
+      - name: Run functional tests
+        id: tests
+        env:
+          FUNCTIONAL_TEST_URL: https://getinspiredbythebible.ai4you.sh
+        run: |
+          cd api
+          python -m pytest tests/functional/ -m functional -v --tb=short
+
+      - name: Post Test Summary
+        if: always()
+        run: |
+          echo "## Functional Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**API:** https://getinspiredbythebible.ai4you.sh" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.tests.outcome }}" == "success" ]; then
+            echo "✅ All smoke tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.tests.outcome }}" == "skipped" ]; then
+            echo "⏭️ Tests skipped (API unreachable)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Smoke tests failed — check logs and consider rollback" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ---------------------------------------------------------------------------
   # Terraform Destroy (manual only)
   # ---------------------------------------------------------------------------
   destroy:
