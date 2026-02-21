@@ -61,7 +61,7 @@ backend_max_replicas = 2
 # Frontend (Next.js)
 frontend_cpu          = 0.25
 frontend_memory       = "0.5Gi"
-frontend_min_replicas = 0
+frontend_min_replicas = 1
 frontend_max_replicas = 2
 
 # -----------------------------------------------------------------------------

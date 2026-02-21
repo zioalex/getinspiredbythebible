@@ -21,9 +21,9 @@ anthropic==0.79.0
 openai==1.109.1
 
 # Azure Monitor (Application Insights via OpenTelemetry)
-azure-monitor-opentelemetry==1.6.4
-opentelemetry-api>=1.20.0
-opentelemetry-instrumentation-fastapi>=0.40b0
+# azure-monitor-opentelemetry pins its opentelemetry-sdk and instrumentation
+# versions exactly, so we let it manage those transitive dependencies.
+azure-monitor-opentelemetry==1.8.6
 
 # Utilities
 python-dotenv==1.2.1

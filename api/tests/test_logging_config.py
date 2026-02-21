@@ -6,7 +6,8 @@ Verifies:
 - setup_logging() preserves OpenTelemetry handlers
 - All application modules use get_logger (not logging.getLogger directly)
 - APP_LOGGER_NAME matches what main.py passes to configure_azure_monitor
-- Telemetry flush is called on shutdown when App Insights is enabled
+- Telemetry operations are guarded by _appinsights_initialized flag
+- Telemetry flush is called on shutdown when App Insights successfully initialized
 """
 
 import ast
@@ -254,17 +255,56 @@ class TestTelemetryFlush:
             "shutdown path to flush OpenTelemetry data before scale-to-zero"
         )
 
-    def test_force_flush_is_guarded_by_connection_string(self):
-        """The force_flush call should only run when App Insights is enabled."""
+    def test_force_flush_is_guarded_by_initialized_flag(self):
+        """The force_flush call should only run when App Insights successfully initialized."""
         main_path = Path(__file__).resolve().parent.parent / "main.py"
         source = main_path.read_text()
 
-        # The flush block should be inside 'if _appinsights_conn:'
-        assert "if _appinsights_conn:" in source
+        # The flush block should be inside 'if _appinsights_initialized:'
+        assert "if _appinsights_initialized:" in source
         # And force_flush should appear after it
-        conn_idx = source.index("if _appinsights_conn:", source.index("Shutting down"))
-        flush_idx = source.index("force_flush", conn_idx)
-        assert flush_idx > conn_idx
+        init_idx = source.index("if _appinsights_initialized:", source.index("Shutting down"))
+        flush_idx = source.index("force_flush", init_idx)
+        assert flush_idx > init_idx
+
+    def test_appinsights_initialized_flag_exists_and_used(self):
+        """Verify that _appinsights_initialized flag is defined and properly guards telemetry operations.
+
+        The flag should be:
+        1. Initialized to False at module level
+        2. Set to True after successful configure_azure_monitor()
+        3. Used to guard FastAPI instrumentation
+        4. Used to guard shutdown flush
+        """
+        main_path = Path(__file__).resolve().parent.parent / "main.py"
+        source = main_path.read_text()
+
+        # 1. Flag should be initialized to False at module level
+        assert (
+            "_appinsights_initialized: bool = False" in source
+        ), "main.py must define _appinsights_initialized flag at module level"
+
+        # 2. Flag should be set to True after successful configure_azure_monitor()
+        config_idx = source.index("configure_azure_monitor")
+        set_true_idx = source.index("_appinsights_initialized = True", config_idx)
+        assert (
+            set_true_idx > config_idx
+        ), "_appinsights_initialized must be set to True after configure_azure_monitor()"
+
+        # 3. Should guard FastAPI instrumentation - the guard comes BEFORE the import
+        fastapi_comment_idx = source.index("Explicitly instrument the FastAPI app")
+        guard_before_fapi = source.rfind(
+            "if _appinsights_initialized:", 0, fastapi_comment_idx + 100
+        )
+        assert (
+            guard_before_fapi > 0
+        ), "FastAPI instrumentation should be guarded by _appinsights_initialized"
+
+        # 4. Should guard shutdown flush
+        shutdown_idx = source.index("Shutting down")
+        assert (
+            source.index("if _appinsights_initialized:", shutdown_idx) > shutdown_idx
+        ), "Shutdown flush should be guarded by _appinsights_initialized"
 
 
 # ---------------------------------------------------------------------------
