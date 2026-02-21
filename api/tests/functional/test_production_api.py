@@ -77,29 +77,18 @@ def api():
 
 
 class TestHealthSmoke:
-    """Basic liveness / configuration checks."""
+    """Basic liveness / configuration checks against public production endpoints.
+
+    Note: GET /health is intentionally excluded — it requires local/internal
+    network access (require_local_access middleware) and is not a public endpoint.
+    Use /health/live (liveness) or /health/ready (readiness) instead.
+    """
 
     def test_liveness_probe(self, api):
         """GET /health/live always returns 200 with status=alive."""
         r = api.get("/health/live")
         assert r.status_code == 200
         assert r.json()["status"] == "alive"
-
-    def test_health_check_structure(self, api):
-        """GET /health returns a well-formed response with a valid status value.
-
-        Note: /health requires local/internal network access. External IPs (including
-        CI runners hitting production) receive 403, which is also valid.
-        """
-        r = api.get("/health")
-        assert r.status_code in (200, 403, 503)
-        if r.status_code == 403:
-            return  # Access-restricted from external network — valid production behaviour
-        data = r.json()
-        assert "status" in data
-        assert data["status"] in ("healthy", "degraded", "unhealthy")
-        assert "components" in data
-        assert "memory" in data
 
     def test_config_endpoint(self, api):
         """GET /config exposes llm and embedding configuration."""
@@ -344,37 +333,8 @@ class TestScriptureSearch:
         assert r.status_code == 422
 
 
-# ---------------------------------------------------------------------------
-# Chat endpoint — structural validation only (no LLM inference triggered)
-# ---------------------------------------------------------------------------
-
-
-class TestChatEndpointValidation:
-    """
-    Only validate request/response structure.
-    We do NOT send real messages to avoid LLM cost and non-determinism.
-    """
-
-    def test_chat_rejects_missing_message_field(self, api):
-        """POST /chat without 'message' field returns 422 or 403 (Turnstile).
-
-        When Turnstile bot-protection is enabled in production, requests without
-        a valid token return 403 before FastAPI validation runs.
-        """
-        r = api.post("/api/v1/chat", json={"language": "es"})
-        assert r.status_code in (403, 422)
-
-    def test_chat_rejects_empty_body(self, api):
-        """POST /chat with an empty body returns 422 or 403 (Turnstile).
-
-        When Turnstile bot-protection is enabled in production, requests without
-        a valid token return 403 before FastAPI validation runs.
-        """
-        r = api.post("/api/v1/chat", json={})
-        assert r.status_code in (403, 422)
-
-    def test_chat_rejects_empty_message(self, api):
-        """POST /chat with an empty string message returns 422 or 400."""
-        r = api.post("/api/v1/chat", json={"message": ""})
-        # FastAPI may return 422 (validation) or 400 (business logic)
-        assert r.status_code in (400, 403, 422)
+# Note: POST /api/v1/chat validation tests are intentionally absent here.
+# Turnstile bot-protection blocks all unauthenticated POST /chat requests
+# with 403 before FastAPI validation runs, making those tests meaningless
+# against the production backend. Input validation is covered in the unit
+# test suite (api/tests/test_api.py) where Turnstile is not active.
