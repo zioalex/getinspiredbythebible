@@ -115,42 +115,34 @@ Benefits:
 
 ### Migrate to ESLint 9 and Flat Config
 
-**Status:** Planned
+**Status:** ✅ Resolved (February 2026)
 **Priority:** Medium
 **Effort:** 2-4 hours
 **Impact:** Removes deprecation warnings, enables latest lint rules
 
-#### Current State
+#### Final State
 
-The project uses ESLint 8.x which is now deprecated. ESLint 9.x is the current
-supported version and uses a new "flat config" format.
+Successfully migrated to ESLint 9 with flat config:
 
-Current setup:
+- `eslint`: `^9.18.0` (latest stable)
+- `eslint-config-next`: `15.5.11` (matches Next.js 15.5.11)
+- Config format: `eslint.config.mjs` (flat config)
 
-- `eslint`: `~8.56.0` (deprecated)
-- `eslint-config-next`: `14.x` (requires ESLint 8.x)
+#### Migration Steps Completed
 
-#### Why We Can't Just Upgrade
+1. ✅ Upgraded `eslint` from `~8.56.0` to `^9.18.0`
+2. ✅ Kept `eslint-config-next` at `15.5.11` (already compatible with ESLint 9)
+3. ✅ Converted `.eslintrc.json` to `eslint.config.mjs` (flat config)
+4. ✅ Used `@eslint/eslintrc` FlatCompat for backward compatibility
+5. ✅ Updated `.pre-commit-config.yaml` to use local hook calling `npm run lint`
+6. ✅ Verified all tests and pre-commit hooks pass
 
-ESLint 9.x introduced breaking changes:
+#### Notes
 
-1. New flat config format (`eslint.config.js` instead of `.eslintrc.json`)
-2. `eslint-config-next` 16.x requires ESLint 9.x
-3. Many ESLint plugins need updates for flat config compatibility
-
-#### Upgrade Path
-
-1. Upgrade `eslint` to `^9.0.0`
-2. Upgrade `eslint-config-next` to `16.x`
-3. Convert `.eslintrc.json` to `eslint.config.js` (flat config)
-4. Update any custom ESLint rules for flat config compatibility
-5. Test thoroughly - new rules may flag new issues
-
-#### Useful Links
-
-- [ESLint 9.0.0 Migration Guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0)
-- [ESLint Flat Config](https://eslint.org/docs/latest/use/configure/configuration-files-new)
-- [Next.js ESLint Config](https://nextjs.org/docs/app/building-your-application/configuring/eslint)
+- Next.js 15.x ships with ESLint 9 support out of the box
+- Used FlatCompat to maintain compatibility with existing `next/core-web-vitals` config
+- Custom rules (`react/no-unescaped-entities`, `@next/next/no-page-custom-font`) preserved
+- Pre-commit hook now runs `npm run lint` from frontend directory for proper config resolution
 
 ---
 
@@ -244,6 +236,13 @@ Decision: Keep current approach. Type ignores are acceptable for SDK compatibili
 
 ## Resolved
 
+### ESLint 9 Migration (February 2026)
+
+**PR:** TBD
+
+Successfully migrated from ESLint 8 (deprecated) to ESLint 9 with flat config format.
+See "Migrate to ESLint 9 and Flat Config" section above for details.
+
 ### Dependency Management and CI Reliability (January 2026)
 
 **PRs:** #7, #8, #9, #10
@@ -276,4 +275,4 @@ Decision: Keep current approach. Type ignores are acceptable for SDK compatibili
 
 ## Document Metadata
 
-**Last Updated:** January 21, 2026
+**Last Updated:** February 22, 2026
