@@ -238,7 +238,7 @@ Decision: Keep current approach. Type ignores are acceptable for SDK compatibili
 
 ### ESLint 9 Migration (February 2026)
 
-**PR:** TBD
+**PR:** #167
 
 Successfully migrated from ESLint 8 (deprecated) to ESLint 9 with flat config format.
 See "Migrate to ESLint 9 and Flat Config" section above for details.
