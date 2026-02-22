@@ -212,12 +212,27 @@ Decision: Keep current approach. Type ignores are acceptable for SDK compatibili
 
 ### Frontend Testing
 
-**Status:** Placeholder exists
-**Priority:** Medium
-**Effort:** 4-6 hours
+**Status:** Vitest + RTL Complete, E2E Pending
+**Priority:** Medium (E2E remaining)
+**Effort:** 4-6 hours (E2E only)
 
-- Add Jest or Vitest for component unit tests
-- Add React Testing Library for integration tests
+#### Completed (February 2026)
+
+- ✅ Added Vitest for component unit tests
+- ✅ Added React Testing Library for integration tests
+- ✅ Configured Vitest with jsdom environment
+- ✅ Set up test utilities and global test setup
+- ✅ Comprehensive component test coverage (100 tests):
+  - `ChatMessage.test.tsx` - Message rendering with responsive styles
+  - `ChapterModal.test.tsx` - Modal behavior and responsive layout
+  - `ChurchFinderModal.test.tsx` - Church finder modal tests
+  - `ChurchFinderBanner.test.tsx` - Banner component tests
+  - `page.test.tsx` - Main page component with responsive behavior
+  - `api.test.ts` - API client functions with mocked fetch
+  - `verseExtraction.test.ts` - Verse reference extraction logic
+
+#### Remaining Work
+
 - Add Playwright or Cypress for E2E tests
 
 ### Code Coverage
