@@ -2,7 +2,7 @@
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	android-build android-test android-lint
+	android-build android-test android-lint android-security-check
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -764,3 +764,6 @@ android-lint: ## Run Android lint checks
 	fi
 	@cd $(ANDROID_DIR) && ./gradlew lint
 	@echo "$(GREEN)✓ Android lint complete — report at $(ANDROID_DIR)/app/build/reports/lint-results-debug.html$(NC)"
+
+android-security-check: ## Run OWASP dependency vulnerability scan
+	@cd android && ./gradlew dependencyCheckAnalyze --no-daemon
