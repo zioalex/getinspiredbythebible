@@ -173,8 +173,8 @@ async def search_scripture(
     max_verses: int = Query(5, ge=1, le=20),
     max_passages: int = Query(2, ge=0, le=5),
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
-    db: DbSession = None,
-    embedding: EmbeddingProviderDep = None,
+    db: DbSession = None,  # type: ignore
+    embedding: EmbeddingProviderDep = None,  # type: ignore
 ):
     """
     Semantic search for relevant scripture.
@@ -203,8 +203,8 @@ async def search_scripture(
 async def search_text(
     q: str = Query(..., min_length=2, description="Text to search"),
     limit: int = Query(20, ge=1, le=100),
-    db: DbSession = None,
-    embedding: EmbeddingProviderDep = None,
+    db: DbSession = None,  # type: ignore
+    embedding: EmbeddingProviderDep = None,  # type: ignore
 ):
     """
     Simple text search in verse content.

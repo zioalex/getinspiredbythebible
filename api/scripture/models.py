@@ -5,12 +5,11 @@ Defines the schema for storing Bible verses with vector embeddings.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
     ForeignKey,
     Index,
@@ -19,11 +18,15 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from config import settings
 
-Base: Any = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+
+    pass
 
 
 class Translation(Base):
@@ -35,20 +38,22 @@ class Translation(Base):
 
     __tablename__ = "translations"
 
-    code = Column(String(20), primary_key=True)  # e.g., 'kjv', 'ita1927', 'deu1912'
-    name = Column(String(100), nullable=False)  # e.g., 'King James Version'
-    language = Column(String(50), nullable=False)  # e.g., 'English', 'Italian'
-    language_code = Column(String(10), nullable=False)  # ISO 639-1: 'en', 'it', 'de'
-    description = Column(Text, nullable=True)
-    source_url = Column(Text, nullable=True)
-    license = Column(String(100), default="Public Domain")
-    is_default = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    code: Mapped[str] = mapped_column(
+        String(20), primary_key=True
+    )  # e.g., 'kjv', 'ita1927', 'deu1912'
+    name: Mapped[str] = mapped_column(String(100))  # e.g., 'King James Version'
+    language: Mapped[str] = mapped_column(String(50))  # e.g., 'English', 'Italian'
+    language_code: Mapped[str] = mapped_column(String(10))  # ISO 639-1: 'en', 'it', 'de'
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    license: Mapped[str] = mapped_column(String(100), default="Public Domain")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    verses = relationship("Verse", back_populates="translation_rel")
+    verses: Mapped[list["Verse"]] = relationship(back_populates="translation_rel")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Translation(code='{self.code}', name='{self.name}', language='{self.language}')>"
 
 
@@ -59,17 +64,21 @@ class Book(Base):
 
     __tablename__ = "books"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
-    abbreviation = Column(String(10), nullable=False)
-    testament = Column(String(20), nullable=False)  # 'old' or 'new'
-    position = Column(Integer, nullable=False)  # Order in Bible (1-66)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+    abbreviation: Mapped[str] = mapped_column(String(10))
+    testament: Mapped[str] = mapped_column(String(20))  # 'old' or 'new'
+    position: Mapped[int] = mapped_column(Integer)  # Order in Bible (1-66)
 
     # Relationships
-    chapters = relationship("Chapter", back_populates="book", cascade="all, delete-orphan")
-    verses = relationship("Verse", back_populates="book", cascade="all, delete-orphan")
+    chapters: Mapped[list["Chapter"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
+    verses: Mapped[list["Verse"]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Book(name='{self.name}', testament='{self.testament}')>"
 
 
@@ -80,17 +89,19 @@ class Chapter(Base):
 
     __tablename__ = "chapters"
 
-    id = Column(Integer, primary_key=True)
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    number = Column(Integer, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey("books.id"))
+    number: Mapped[int] = mapped_column(Integer)
 
     # Relationships
-    book = relationship("Book", back_populates="chapters")
-    verses = relationship("Verse", back_populates="chapter", cascade="all, delete-orphan")
+    book: Mapped["Book"] = relationship(back_populates="chapters")
+    verses: Mapped[list["Verse"]] = relationship(
+        back_populates="chapter", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (UniqueConstraint("book_id", "number", name="unique_chapter"),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Chapter(book_id={self.book_id}, number={self.number})>"
 
 
@@ -103,26 +114,27 @@ class Verse(Base):
 
     __tablename__ = "verses"
 
-    id = Column(Integer, primary_key=True)
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=False)
-    chapter_number = Column(Integer, nullable=False)
-    verse_number = Column(Integer, nullable=False)
-    text = Column(Text, nullable=False)
-    translation = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey("books.id"))
+    chapter_id: Mapped[int] = mapped_column(Integer, ForeignKey("chapters.id"))
+    chapter_number: Mapped[int] = mapped_column(Integer)
+    verse_number: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)
+    translation: Mapped[str] = mapped_column(
         String(20),
         ForeignKey("translations.code", ondelete="CASCADE"),
-        nullable=False,
         default="kjv",
     )
 
     # Vector embedding for semantic search
-    embedding = Column(Vector(settings.embedding_dimensions), nullable=True)
+    embedding: Mapped[Optional[Vector]] = mapped_column(
+        Vector(settings.embedding_dimensions), nullable=True
+    )
 
     # Relationships
-    book = relationship("Book", back_populates="verses")
-    chapter = relationship("Chapter", back_populates="verses")
-    translation_rel = relationship("Translation", back_populates="verses")
+    book: Mapped["Book"] = relationship(back_populates="verses")
+    chapter: Mapped["Chapter"] = relationship(back_populates="verses")
+    translation_rel: Mapped["Translation"] = relationship(back_populates="verses")
 
     __table_args__ = (
         UniqueConstraint(
@@ -141,7 +153,7 @@ class Verse(Base):
         """Return the verse reference (e.g., 'John 3:16')."""
         return f"{self.book.name} {self.chapter_number}:{self.verse_number}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Verse(reference='{self.reference}', translation='{self.translation}')>"
 
 
@@ -155,21 +167,25 @@ class Passage(Base):
 
     __tablename__ = "passages"
 
-    id = Column(Integer, primary_key=True)
-    title = Column(String(200), nullable=False)  # e.g., "The Lord's Prayer"
-    start_book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    start_chapter = Column(Integer, nullable=False)
-    start_verse = Column(Integer, nullable=False)
-    end_chapter = Column(Integer, nullable=False)
-    end_verse = Column(Integer, nullable=False)
-    text = Column(Text, nullable=False)  # Full passage text
-    topics = Column(String(500), nullable=True)  # Comma-separated topics
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))  # e.g., "The Lord's Prayer"
+    start_book_id: Mapped[int] = mapped_column(Integer, ForeignKey("books.id"))
+    start_chapter: Mapped[int] = mapped_column(Integer)
+    start_verse: Mapped[int] = mapped_column(Integer)
+    end_chapter: Mapped[int] = mapped_column(Integer)
+    end_verse: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)  # Full passage text
+    topics: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True
+    )  # Comma-separated topics
 
     # Vector embedding for semantic search
-    embedding = Column(Vector(settings.embedding_dimensions), nullable=True)
+    embedding: Mapped[Optional[Vector]] = mapped_column(
+        Vector(settings.embedding_dimensions), nullable=True
+    )
 
     # Relationships
-    book = relationship("Book")
+    book: Mapped["Book"] = relationship()
 
     __table_args__ = (Index("idx_passage_embedding", "embedding", postgresql_using="ivfflat"),)
 
@@ -180,7 +196,7 @@ class Passage(Base):
             return f"{self.book.name} {self.start_chapter}:{self.start_verse}-{self.end_verse}"
         return f"{self.book.name} {self.start_chapter}:{self.start_verse}-{self.end_chapter}:{self.end_verse}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Passage(title='{self.title}', reference='{self.reference}')>"
 
 
@@ -192,16 +208,20 @@ class Topic(Base):
 
     __tablename__ = "topics"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False, unique=True)
-    description = Column(Text, nullable=True)
-    parent_id = Column(Integer, ForeignKey("topics.id"), nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("topics.id"), nullable=True
+    )
 
     # Embedding for topic-based search
-    embedding = Column(Vector(settings.embedding_dimensions), nullable=True)
+    embedding: Mapped[Optional[Vector]] = mapped_column(
+        Vector(settings.embedding_dimensions), nullable=True
+    )
 
     # Self-referential relationship for hierarchical topics
-    parent = relationship("Topic", remote_side=[id], backref="children")
+    parent: Mapped[Optional["Topic"]] = relationship(remote_side=[id], backref="children")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Topic(name='{self.name}')>"

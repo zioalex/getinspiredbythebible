@@ -3,15 +3,20 @@ Feedback models - Pydantic for API and SQLAlchemy for database.
 """
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-Base: Any = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+
+    pass
 
 
 # ==================== Pydantic Models (API) ====================
@@ -72,19 +77,19 @@ class Feedback(Base):
 
     __tablename__ = "feedback"
 
-    id = Column(Integer, primary_key=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    message_id = Column(PGUUID(as_uuid=True), nullable=False)
-    session_id = Column(String(255), nullable=True)
-    rating = Column(String(10), nullable=False)  # 'positive' or 'negative'
-    comment = Column(Text, nullable=True)
-    user_message = Column(Text, nullable=True)
-    assistant_response = Column(Text, nullable=True)
-    verses_cited = Column(JSONB, nullable=True)
-    model_used = Column(String(100), nullable=True)
-    response_time_ms = Column(Integer, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    message_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
+    session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rating: Mapped[str] = mapped_column(String(10))  # 'positive' or 'negative'
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    user_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assistant_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    verses_cited: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    model_used: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    response_time_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Feedback(id={self.id}, rating='{self.rating}', message_id='{self.message_id}')>"
 
 
@@ -95,18 +100,20 @@ class ContactSubmission(Base):
 
     __tablename__ = "contact_submissions"
 
-    id = Column(Integer, primary_key=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    email = Column(String(255), nullable=True)
-    subject = Column(
-        String(50), nullable=False
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    subject: Mapped[str] = mapped_column(
+        String(50)
     )  # 'spiritual', 'bug', 'feature', 'feedback', 'other'
-    message = Column(Text, nullable=False)
-    session_id = Column(String(255), nullable=True)
-    user_agent = Column(Text, nullable=True)
-    status = Column(String(20), default="new")  # 'new', 'read', 'replied', 'resolved'
+    message: Mapped[str] = mapped_column(Text)
+    session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), default="new"
+    )  # 'new', 'read', 'replied', 'resolved'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<ContactSubmission(id={self.id}, subject='{self.subject}', status='{self.status}')>"
         )
