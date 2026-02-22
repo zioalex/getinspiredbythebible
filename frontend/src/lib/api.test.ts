@@ -179,7 +179,9 @@ describe("searchScripture", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("max_verses=5"),
-      { headers: { "Content-Type": "application/json" } },
+      {
+        headers: { "Content-Type": "application/json" },
+      },
     );
   });
 
@@ -337,7 +339,9 @@ describe("getVerseContext", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/chat/verse/John/3/16",
-      { headers: { "Content-Type": "application/json" } },
+      {
+        headers: { "Content-Type": "application/json" },
+      },
     );
     expect(result).toEqual(mockContext);
     expect(result.target_verse).toBe(16);

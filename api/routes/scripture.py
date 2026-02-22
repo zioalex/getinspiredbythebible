@@ -166,12 +166,12 @@ async def get_verse_range(
 
 @router.get("/search", response_model=SearchResults)
 async def search_scripture(
+    db: DbSession,
+    embedding: EmbeddingProviderDep,
     q: str = Query(..., min_length=2, description="Search query"),
     max_verses: int = Query(5, ge=1, le=20),
     max_passages: int = Query(2, ge=0, le=5),
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
-    db: DbSession = None,
-    embedding: EmbeddingProviderDep = None,
 ):
     """
     Semantic search for relevant scripture.
@@ -194,10 +194,10 @@ async def search_scripture(
 
 @router.get("/search/text")
 async def search_text(
+    db: DbSession,
+    embedding: EmbeddingProviderDep,
     q: str = Query(..., min_length=2, description="Text to search"),
     limit: int = Query(20, ge=1, le=100),
-    db: DbSession = None,
-    embedding: EmbeddingProviderDep = None,
 ):
     """
     Simple text search in verse content.
