@@ -320,15 +320,16 @@ export default function Home() {
             ]);
           }
 
-          // Update the placeholder message with metadata
+          // Update the placeholder message with metadata (immutable update)
           setMessages((prev) => {
             const updated = [...prev];
             const msg = updated[assistantMessageIndex];
             if (msg && msg.role === "assistant") {
-              msg.messageId = metadata!.message_id;
-              msg.versesCited =
-                chunk.scripture_context?.verses?.map((v) => v.reference) || [];
-              msg.model = metadata!.model;
+              updated[assistantMessageIndex] = {
+                ...msg,
+                messageId: metadata!.message_id,
+                model: metadata!.model,
+              };
             }
             return updated;
           });
@@ -336,17 +337,34 @@ export default function Home() {
           // Received content chunk - append to streaming message
           streamedContent += chunk.content || "";
 
-          // Update the message content in real-time
+          // Update the message content in real-time using immutable update
+          // so React detects the change and referencedVerses useMemo re-runs
           setMessages((prev) => {
             const updated = [...prev];
             const msg = updated[assistantMessageIndex];
             if (msg && msg.role === "assistant") {
-              msg.content = streamedContent;
+              updated[assistantMessageIndex] = {
+                ...msg,
+                content: streamedContent,
+              };
             }
             return updated;
           });
         }
       }
+
+      // After streaming completes, extract actual verse citations from the response text
+      // (not from search results metadata — those are all semantically relevant verses,
+      // not necessarily the ones the assistant actually cited in its response)
+      const citedRefs = Array.from(extractVerseReferences(streamedContent));
+      setMessages((prev) => {
+        const updated = [...prev];
+        const msg = updated[assistantMessageIndex];
+        if (msg && msg.role === "assistant") {
+          updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
+        }
+        return updated;
+      });
 
       // Stream complete - increment interaction count for church finder
       setInteractionCount((prev) => {
