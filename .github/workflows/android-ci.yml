@@ -153,15 +153,14 @@ jobs:
         run: | # pragma: allowlist secret
           pip install detect-secrets==1.4.0
 
-          # Scan the android/ directory and update a temporary scan result.
-          # --baseline causes detect-secrets to compare against the existing
-          # .secrets.baseline and exit non-zero when NEW secrets are found.
+          # Scan android/ and update the baseline with any new findings.
+          # --update writes results back to the baseline file in place.
           detect-secrets scan android/ \
-            --baseline .secrets.baseline \
+            --update .secrets.baseline \
             --exclude-files 'android/gradle/wrapper/gradle-wrapper.jar' \
             --exclude-files '.*\.png$' \
             --exclude-files '.*\.jpg$'
 
-          # `audit --report` prints any unreviewed findings and exits non-zero
-          # if there are secrets that have not been acknowledged in the baseline.
-          detect-secrets audit --report --baseline .secrets.baseline
+          # `audit --report` exits non-zero if there are any unreviewed (new)
+          # secrets not yet acknowledged in the baseline.
+          detect-secrets audit --report .secrets.baseline
