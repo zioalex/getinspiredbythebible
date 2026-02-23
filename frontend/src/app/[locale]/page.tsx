@@ -49,6 +49,7 @@ import {
   extractVerseReferences,
   isVerseReferenced,
 } from "@/lib/verseExtraction";
+import { useTurnstile } from "@/lib/turnstile";
 
 export default function Home() {
   const tHeader = useTranslations("Header");
@@ -56,6 +57,8 @@ export default function Home() {
   const tChat = useTranslations("Chat");
   const tVerses = useTranslations("Verses");
   const tFeedback = useTranslations("Feedback");
+  const { isReady: turnstileReady, isEnabled: turnstileEnabled } =
+    useTurnstile();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -549,13 +552,22 @@ export default function Home() {
                 {tWelcome("description")}
               </p>
 
+              {/* Security check loading indicator */}
+              {turnstileEnabled && !turnstileReady && (
+                <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Preparing secure connection...</span>
+                </div>
+              )}
+
               {/* Suggested Prompts */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                 {suggestedPrompts.map((prompt, index) => (
                   <button
                     key={index}
                     onClick={() => submitMessage(prompt)}
-                    className="text-left px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                    disabled={turnstileEnabled && !turnstileReady}
+                    className="text-left px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {prompt}
                   </button>
@@ -622,7 +634,11 @@ export default function Home() {
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={
+                isLoading ||
+                !input.trim() ||
+                (turnstileEnabled && !turnstileReady)
+              }
               className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               <Send className="w-5 h-5" />
