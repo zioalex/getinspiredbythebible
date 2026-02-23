@@ -120,3 +120,48 @@ jobs:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Secrets Detection
+  # ---------------------------------------------------------------------------
+  # Two complementary tools:
+  #   1. TruffleHog  – scans the git diff between base and head for verified
+  #      secrets (API keys, tokens, creds) that are actually live/confirmed.
+  #   2. detect-secrets – static heuristic scan of the android/ tree checked
+  #      against the repo-wide .secrets.baseline; fails on any NEW finding not
+  #      already acknowledged in the baseline.
+  # ---------------------------------------------------------------------------
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history required for TruffleHog diff scan
+
+      - name: TruffleHog OSS scan
+        uses: trufflesecurity/trufflehog@v3.88.1
+        with:
+          path: ./android
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified
+
+      - name: detect-secrets baseline check
+        run: | # pragma: allowlist secret
+          pip install detect-secrets==1.4.0
+
+          # Scan the android/ directory and update a temporary scan result.
+          # --baseline causes detect-secrets to compare against the existing
+          # .secrets.baseline and exit non-zero when NEW secrets are found.
+          detect-secrets scan android/ \
+            --baseline .secrets.baseline \
+            --exclude-files 'android/gradle/wrapper/gradle-wrapper.jar' \
+            --exclude-files '.*\.png$' \
+            --exclude-files '.*\.jpg$'
+
+          # `audit --report` prints any unreviewed findings and exits non-zero
+          # if there are secrets that have not been acknowledged in the baseline.
+          detect-secrets audit --report --baseline .secrets.baseline
