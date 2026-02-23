@@ -151,12 +151,14 @@ jobs:
 
       - name: detect-secrets baseline check
         run: | # pragma: allowlist secret
-          pip install detect-secrets==1.4.0
+          # Use 1.5.0 — matches the version in the project's .venv (the pre-commit
+          # hook pins v1.4.0 but only uses detect-secrets-hook, not detect-secrets
+          # scan directly; 1.5.0 adds --baseline support to the scan subcommand).
+          pip install detect-secrets==1.5.0
 
-          # Scan android/ and compare against the existing baseline.
-          # Flags must precede positional paths in detect-secrets 1.4.x.
-          # --baseline merges new results into the baseline file; audit then
-          # reports any findings that have not been reviewed/acknowledged.
+          # Scan android/ against the existing baseline.
+          # --baseline causes scan to merge new results into the baseline file;
+          # audit --report then exits non-zero on any unreviewed finding.
           detect-secrets scan \
             --baseline .secrets.baseline \
             --exclude-files 'android/gradle/wrapper/gradle-wrapper.jar' \
