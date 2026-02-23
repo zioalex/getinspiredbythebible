@@ -125,12 +125,12 @@ jobs:
   # Secrets Detection
   # ---------------------------------------------------------------------------
   # Two complementary tools:
-  #   1. TruffleHog  – scans the git diff between PR base and HEAD for verified
-  #      secrets (API keys, tokens, creds) that are actually live/confirmed.
-  #      Runs on PRs only (requires base SHA from pull_request event).
+  #   1. TruffleHog  – git diff scan for verified secrets (API keys, tokens,
+  #      creds). Uses TruffleHog's GitHub Actions auto-detection mode (no
+  #      explicit base/head) to avoid shallow-clone SHA resolution failures.
   #   2. detect-secrets – static heuristic scan of the android/ tree checked
   #      against the repo-wide .secrets.baseline; fails on any NEW finding not
-  #      already acknowledged in the baseline. Runs on PRs and pushes to main.
+  #      already acknowledged in the baseline.
   # ---------------------------------------------------------------------------
   secrets-scan:
     name: Secrets Detection
@@ -142,15 +142,11 @@ jobs:
         with:
           fetch-depth: 0 # full history required for TruffleHog diff scan
 
-      - name: TruffleHog OSS scan (PR only)
-        # TruffleHog diff scan requires a distinct base SHA — only available on
-        # pull_request events. Skip on push-to-main (no diff base to compare).
-        if: github.event_name == 'pull_request'
+      - name: TruffleHog OSS scan
+        # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
+        # env vars set by GitHub Actions — no explicit base/head needed.
         uses: trufflesecurity/trufflehog@v3.88.1
         with:
-          path: ./android
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.sha }}
           extra_args: --only-verified
 
       - name: detect-secrets baseline check
