@@ -167,4 +167,5 @@ jobs:
             android/
 
           # Exit non-zero if there are any unreviewed (new) findings.
-          detect-secrets audit --report --baseline .secrets.baseline
+          # Note: 'audit' takes the baseline file as a positional arg, not --baseline.
+          detect-secrets audit --report .secrets.baseline
