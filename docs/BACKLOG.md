@@ -18,7 +18,7 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 
 ### ✅ BITB-001: Fix Turnstile 403 Errors on Example Sentences
 
-**Status:** ✅ Done (PR #171 merged 2026-02-23, deploying to production)
+**Status:** ✅ Done (PR #171 merged, deployed to production 2026-02-23 12:26 UTC)
 **Size:** S
 **Completed:** 2026-02-23
 
@@ -86,8 +86,8 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 
 ### 🎯 BITB-003: Enable Turnstile Bot Protection on Android
 
-**Status:** 🎯 Todo
-**Size:** L
+**Status:** 🎯 Todo (research completed 2026-02-23)
+**Size:** M (~9 hours)
 
 **As a** mobile user,
 **I want** the Android app to have the same bot protection as the web app,
@@ -95,28 +95,49 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 
 **Acceptance Criteria:**
 
-- [ ] Cloudflare Turnstile widget integrated in Android chat screen
-- [ ] Widget token passed in API request headers (same as web)
-- [ ] Backend validates Android tokens same as web tokens
-- [ ] UI shows loading state while Turnstile initializes
-- [ ] Graceful error handling if Turnstile fails to load
-- [ ] E2E tests verify Turnstile flow on Android
+Android Implementation:
+
+- [ ] Hidden `TurnstileWebView` composable created (loads local HTML with Turnstile widget)
+- [ ] `TurnstileManager` Hilt singleton manages token state (StateFlow)
+- [ ] `TurnstileInterceptor` (OkHttp) injects `X-Turnstile-Token` header automatically
+- [ ] `ChatInputField` disables send button while `!isTurnstileReady` (matches web UX)
+- [ ] WebView configured: JavaScript enabled, DOM storage enabled, cookies enabled
+- [ ] `turnstile.html` asset created with Cloudflare widget (invisible mode)
+- [ ] ProGuard rules added to preserve `@JavascriptInterface` methods
+
+Testing & Documentation:
+
+- [ ] Unit tests for `TurnstileManager` token state management
+- [ ] Manual QA: initialization timing, token expiry, offline behavior
+- [ ] Graceful fail-open when WebView unavailable or network down
+- [ ] Backend validation works unchanged (reuses `api/utils/turnstile.py`)
 
 **Tech Constraints:**
 
-- Min SDK 26 (existing constraint)
-- Must use official Cloudflare Turnstile Android SDK (if available) or WebView fallback
-- Must reuse existing backend validation logic (`api/utils/turnstile.py`)
+- ❌ **NO official Cloudflare Android SDK** — must use WebView approach (Cloudflare's official recommendation)
+- Min SDK 26 (existing constraint) ✅ Compatible
+- Zero backend changes required — `X-Turnstile-Token` header already validated
+- Token lifetime: 5 minutes (WebView auto-refreshes on expiry via `expired-callback`)
+
+**Implementation Approach (from research):**
+
+1. Create `assets/turnstile.html` with Cloudflare JS widget (invisible, data-size="invisible")
+2. `TurnstileWebView` loads HTML, exposes `Android.onToken()` JavaScript bridge
+3. `TurnstileManager` singleton holds token as `StateFlow<String?>`, injected via Hilt
+4. `TurnstileInterceptor` reads token from manager, adds to every API request header
+5. `ChatViewModel` observes `TurnstileManager.isReady` → UI disables send button until ready
 
 **Out of Scope:**
 
-- Alternative bot protection methods
+- Custom CAPTCHA implementation (using official Cloudflare widget)
+- Separate Turnstile site key for Android (can use same as web initially)
 - Backend changes to Turnstile logic
 
 **Dependencies:**
 
 - Requires: Android app bootstrap (PR #156) already merged ✅
 
+**Research Doc:** Task ses_3753a6f4cffezvpl17chuMVTHC (Turnstile Android research)
 **Tracking Doc:** `docs/WIP/android-app.md`
 
 ---
@@ -184,6 +205,146 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 - Database encryption at rest (already enabled)
 
 **Related:** TASKS.md #2.1 (Critical security issue)
+
+---
+
+### 🎯 BITB-013: Performance Monitoring & Dashboard
+
+**Status:** 🎯 Todo (research completed 2026-02-23)
+**Size:** L (3–5 days, can be split into 4 sub-PRs)
+**Priority:** P1 (High) — Web UI responses are slow, need visibility
+
+**As a** product owner and developer,
+**I want** comprehensive performance monitoring with a visual dashboard,
+**so that** I can identify bottlenecks, track improvements over time, and be alerted before users are impacted.
+
+**Root Cause Analysis (from research):**
+
+1. **LLM Response Latency** (5–30s per request) — Primary bottleneck
+   - Double LLM call: `_detect_intent()` + main `llm.chat()`
+   - Frontend uses non-streaming `/api/v1/chat` (users wait for full response)
+   - OpenRouter free tier has 3–10s queue times
+2. **Container Apps Cold Start** (15–45s intermittent)
+   - `min_replicas = 0` for cost savings → scale-to-zero
+   - First request wakes container, FastAPI startup includes DB init + provider health checks
+3. **pgvector Semantic Search** (200ms–2s per search)
+   - **NO HNSW or IVFFlat indexes** — full table scan of 31K verses × 1024 dimensions
+   - Two searches per request: `search_verses_semantic()` + `search_passages_semantic()`
+   - B1ms PostgreSQL (1 vCore, 2GB RAM) — smallest SKU, can't keep embeddings in memory
+
+**Quick Wins (can be done before full monitoring):**
+
+- [ ] Switch frontend to streaming endpoint (`/api/v1/chat/stream`) — **HIGHEST IMPACT**
+- [ ] Add pgvector HNSW indexes (200–2000ms → 10–50ms) — **MASSIVE DB SPEEDUP**
+- [ ] Set `backend_min_replicas = 1` in Terraform — **ELIMINATE COLD STARTS**
+- [ ] Remove or optimize `_detect_intent()` LLM call — **CUT 1–3s LATENCY**
+
+**Acceptance Criteria:**
+
+**Backend Instrumentation:**
+
+- [ ] OTel spans added for LLM call duration (intent detect + main chat)
+- [ ] OTel spans added for embedding generation duration
+- [ ] OTel spans added for pgvector search duration (`search_verses_semantic`, `search_passages_semantic`)
+- [ ] Correlation ID middleware added (X-Request-ID header, logged in every entry) — **BITB-008**
+- [ ] LLM-specific metrics: `llm.duration_ms`, `llm.time_to_first_token_ms`, `llm.tokens_per_second`
+- [ ] LLM metrics: `llm.tokens.total` (counter), `llm.fallback.attempts` (counter), `llm.rate_limit.hits` (counter)
+- [ ] DB metrics: `db.search.duration_ms` (histogram), `db.query.duration_ms` (histogram), `db.connections.active` (gauge)
+
+**Database-Specific:**
+
+- [ ] PostgreSQL slow query log enabled (`log_min_duration_statement = 100ms` in Terraform)
+- [ ] HNSW indexes created on `verses.embedding` and `passages.embedding`
+- [ ] Index usage tracked via `pg_stat_user_indexes` queries in dashboard
+- [ ] Query profiler middleware logs EXPLAIN ANALYZE for queries >500ms
+
+**OpenRouter-Specific:**
+
+- [ ] Time to first token (TTFT) tracked in streaming responses
+- [ ] Token usage and generation speed tracked (`tokens_per_second`)
+- [ ] Model-specific performance comparison (llama-3.3 vs gemma-2)
+- [ ] Fallback frequency tracked (how often primary model fails with 429)
+- [ ] Rate limit headers parsed (`X-RateLimit-Remaining-Requests`)
+
+**Frontend Instrumentation:**
+
+- [ ] `@microsoft/applicationinsights-web` SDK integrated in Next.js
+- [ ] Page load time tracked (Core Web Vitals)
+- [ ] Chat message send → first byte timing tracked as custom metric
+- [ ] Frontend errors reported to App Insights
+
+**Dashboard:**
+
+- [ ] Azure Monitor Workbook created with panels for: traffic, performance, LLM, DB, infrastructure
+- [ ] Dashboard shows p50/p95/p99 response time, error rate, availability
+- [ ] LLM panel: TTFT, duration, tokens/sec, model comparison, fallback rate
+- [ ] DB panel: search duration, query duration, connection pool, CPU/memory, index usage
+- [ ] Workbook definition committed as code (Terraform or JSON) to repo
+- [ ] Dashboard link added to README
+
+**Alerting:**
+
+- [ ] Alert: chat response time p95 > 15s sustained 5min
+- [ ] Alert: error rate > 5% sustained 5min
+- [ ] Alert: backend availability < 95% (1h window)
+- [ ] Alert: PostgreSQL CPU > 85% sustained 10min
+- [ ] Alert: OpenRouter rate limit <10% remaining
+- [ ] All alerts notify via email
+
+**Tech Constraints:**
+
+- Must use existing Azure Application Insights (no new SaaS APM tools)
+- Must work with async FastAPI and Next.js App Router
+- Dashboard definition must be in source control (Terraform or ARM template)
+- Frontend SDK must not significantly increase bundle size
+
+**Out of Scope:**
+
+- Distributed tracing across Cloudflare edge (complex, low value currently)
+- Cost attribution per user
+- Custom OpenTelemetry collector deployment
+- Self-hosted Grafana/Prometheus (Azure Monitor is sufficient)
+
+**Suggested Implementation Split:**
+
+1. **PR A: Quick Wins** (S — 2–4 hours)
+   - Switch UI to streaming endpoint
+   - Add pgvector HNSW indexes
+   - Set `backend_min_replicas = 1`
+
+2. **PR B: Backend OTel Spans + Metrics** (M — 1–2 days)
+   - Add spans to LLM calls, DB queries, embeddings
+   - Add histogram/counter metrics
+   - Enable PostgreSQL slow query log
+
+3. **PR C: Frontend App Insights SDK** (S — 3–5 hours)
+   - Integrate `@microsoft/applicationinsights-web`
+   - Track Core Web Vitals, custom events
+
+4. **PR D: Azure Monitor Workbook + Alerts** (M — 1–2 days)
+   - Build workbook with KQL queries
+   - Configure alert rules
+   - Commit as Terraform code
+
+**Dependencies:**
+
+- BITB-008 (Correlation IDs) — can be done as part of this story (PR B)
+- BITB-004 (Alembic) — optional, HNSW indexes can be added via migration or manual SQL
+
+**Research Docs:**
+
+- Task ses_3753a0314ffeOZnLwB42JZ3AJI (Performance monitoring research)
+- `docs/WIP/MONITORING-DB-OPENROUTER-ADDENDUM.md` (DB & OpenRouter deep dive)
+
+**Expected Impact:**
+
+| Metric | Before | After (Expected) | Improvement |
+|--------|--------|------------------|-------------|
+| Semantic search | 200-2000ms | 10-50ms | **40-200x faster** |
+| LLM TTFT | Unknown | 1-3s (visible) | **10x UX improvement** |
+| Total response | 10-30s perceived | 1-3s perceived | **Streaming = instant** |
+| DB CPU usage | 60-80% | <20% | **4x efficiency** |
+| Cold starts | 15-45s | 0s (always warm) | **Eliminated** |
 
 ---
 

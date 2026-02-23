@@ -15,7 +15,7 @@ vi.mock("react-markdown", () => ({
 
 // Mock the API module
 vi.mock("@/lib/api", () => ({
-  sendMessage: vi.fn(),
+  streamMessage: vi.fn(),
   getChapter: vi.fn(),
   getTranslations: vi.fn().mockResolvedValue([]),
   submitFeedback: vi.fn(),
@@ -58,29 +58,36 @@ vi.mock("@/lib/turnstile", () => ({
 
 // Helper to render Home with verses pre-loaded via the API mock
 async function renderHomeWithVerses() {
-  vi.mocked(api.sendMessage).mockResolvedValue({
-    message: "Here is a verse for you.",
-    message_id: "msg-1",
-    scripture_context: {
-      verses: [
-        {
-          book: "John",
-          chapter: 3,
-          verse: 16,
-          text: "For God so loved the world...",
-          reference: "John 3:16",
-          similarity: 0.9,
-        },
-        {
-          book: "Romans",
-          chapter: 8,
-          verse: 28,
-          text: "And we know that all things work together...",
-          reference: "Romans 8:28",
-          similarity: 0.7,
-        },
-      ],
-    },
+  vi.mocked(api.streamMessage).mockImplementation(async function* () {
+    yield {
+      type: "metadata" as const,
+      message_id: "msg-1",
+      scripture_context: {
+        query: "Tell me about love",
+        verses: [
+          {
+            book: "John",
+            chapter: 3,
+            verse: 16,
+            text: "For God so loved the world...",
+            reference: "John 3:16",
+            similarity: 0.9,
+          },
+          {
+            book: "Romans",
+            chapter: 8,
+            verse: 28,
+            text: "And we know that all things work together...",
+            reference: "Romans 8:28",
+            similarity: 0.7,
+          },
+        ],
+        passages: [],
+      },
+      provider: "test",
+      model: "test-model",
+    };
+    yield { type: "content" as const, content: "Here is a verse for you." };
   });
 
   const result = renderWithIntl(<Home />);
@@ -203,10 +210,18 @@ describe("Home page responsive layout", () => {
 
   describe("Suggested prompts", () => {
     it("submits a message when a suggested prompt is clicked", async () => {
-      vi.mocked(api.sendMessage).mockResolvedValue({
-        message: "Response to suggested prompt",
-        message_id: "msg-suggested",
-        scripture_context: { verses: [] },
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-suggested",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield {
+          type: "content" as const,
+          content: "Response to suggested prompt",
+        };
       });
 
       renderWithIntl(<Home />);
@@ -230,13 +245,12 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // Verify sendMessage was called with the prompt text
-      expect(api.sendMessage).toHaveBeenCalledWith(
+      // Verify streamMessage was called with the prompt text
+      expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
         undefined,
         expect.any(String),
-        expect.any(Number),
       );
 
       // Verify the response is displayed
@@ -580,10 +594,18 @@ describe("Home page responsive layout", () => {
         refreshToken: vi.fn(),
       });
 
-      vi.mocked(api.sendMessage).mockResolvedValue({
-        message: "This should not be called",
-        message_id: "msg-1",
-        scripture_context: { verses: [] },
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-1",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield {
+          type: "content" as const,
+          content: "This should not be called",
+        };
       });
 
       renderWithIntl(<Home />);
@@ -599,8 +621,8 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // sendMessage should not have been called because button is disabled
-      expect(api.sendMessage).not.toHaveBeenCalled();
+      // streamMessage should not have been called because button is disabled
+      expect(api.streamMessage).not.toHaveBeenCalled();
     });
 
     it("allows message submission via suggested prompts when Turnstile is ready", async () => {
@@ -612,10 +634,18 @@ describe("Home page responsive layout", () => {
         refreshToken: vi.fn(),
       });
 
-      vi.mocked(api.sendMessage).mockResolvedValue({
-        message: "Response to suggested prompt",
-        message_id: "msg-1",
-        scripture_context: { verses: [] },
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-1",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield {
+          type: "content" as const,
+          content: "Response to suggested prompt",
+        };
       });
 
       renderWithIntl(<Home />);
@@ -633,13 +663,12 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // sendMessage should have been called
-      expect(api.sendMessage).toHaveBeenCalledWith(
+      // streamMessage should have been called
+      expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
         undefined,
         expect.any(String),
-        expect.any(Number),
       );
 
       // Verify the response is displayed

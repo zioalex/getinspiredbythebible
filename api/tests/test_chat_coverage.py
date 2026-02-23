@@ -741,7 +741,16 @@ class TestChatServiceChatStream:
         async for chunk in service.chat_stream(request):
             chunks.append(chunk)
 
-        assert chunks == ["Hello ", "world!"]
+        # First chunk should be metadata
+        assert len(chunks) == 3
+        assert chunks[0]["type"] == "metadata"
+        assert "message_id" in chunks[0]
+        assert "provider" in chunks[0]
+        assert "model" in chunks[0]
+
+        # Remaining chunks should be content
+        assert chunks[1] == {"type": "content", "content": "Hello "}
+        assert chunks[2] == {"type": "content", "content": "world!"}
 
 
 class TestChatServiceGetVerseContext:

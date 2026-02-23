@@ -98,3 +98,8 @@ rules.md
 task.md
 data/bible/translations/*
 deployment/tfplan.*
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/.playwright/

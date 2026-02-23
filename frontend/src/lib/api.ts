@@ -314,13 +314,39 @@ export async function sendMessage(
   }
 }
 
+export interface StreamMetadata {
+  message_id: string;
+  scripture_context?: ScriptureContext;
+  provider: string;
+  model: string;
+  detected_translation?: string;
+  translation_info?: TranslationInfo;
+}
+
+export interface StreamChunk {
+  type: "metadata" | "content" | "error";
+  // For metadata type:
+  message_id?: string;
+  scripture_context?: ScriptureContext;
+  provider?: string;
+  model?: string;
+  detected_translation?: string;
+  translation_info?: TranslationInfo;
+  // For content type:
+  content?: string;
+  // For error type:
+  error?: string;
+}
+
 /**
- * Stream a chat response
+ * Stream a chat response with metadata
  */
 export async function* streamMessage(
   message: string,
   history: Message[] = [],
-): AsyncGenerator<string> {
+  preferredTranslation?: string,
+  sessionId?: string,
+): AsyncGenerator<StreamChunk> {
   const headers = getHeaders();
   consumeToken();
 
@@ -331,6 +357,8 @@ export async function* streamMessage(
       message,
       conversation_history: history,
       include_search: true,
+      preferred_translation: preferredTranslation,
+      session_id: sessionId,
     }),
   });
 
@@ -356,10 +384,8 @@ export async function* streamMessage(
         if (data === "[DONE]") return;
 
         try {
-          const parsed = JSON.parse(data);
-          if (parsed.content) {
-            yield parsed.content;
-          }
+          const parsed: StreamChunk = JSON.parse(data);
+          yield parsed;
         } catch {
           // Skip invalid JSON
         }

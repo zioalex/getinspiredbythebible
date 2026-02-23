@@ -144,7 +144,13 @@ class Verse(Base):
             "translation",
             name="unique_verse_translation",
         ),
-        Index("idx_verse_embedding", "embedding", postgresql_using="ivfflat"),
+        Index(
+            "idx_verse_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
         Index("idx_verses_translation", "translation"),
     )
 
@@ -187,7 +193,15 @@ class Passage(Base):
     # Relationships
     book: Mapped["Book"] = relationship()
 
-    __table_args__ = (Index("idx_passage_embedding", "embedding", postgresql_using="ivfflat"),)
+    __table_args__ = (
+        Index(
+            "idx_passage_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
 
     @property
     def reference(self) -> str:
