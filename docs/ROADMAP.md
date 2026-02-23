@@ -8,7 +8,8 @@ High-level planning for Get Inspired by the Bible - organized into Now / Next / 
 
 ## Vision
 
-Get Inspired by the Bible helps people find spiritual encouragement and relevant scripture based on their life situations through:
+Get Inspired by the Bible helps people find spiritual encouragement and relevant
+scripture based on their life situations through:
 
 - **Natural conversation**: Ask questions in your own words, get biblically-grounded responses
 - **Semantic scripture search**: Find verses by meaning, not just keywords
@@ -19,11 +20,12 @@ Get Inspired by the Bible helps people find spiritual encouragement and relevant
 
 ## Now (Current Focus - Feb 2026)
 
-**Theme: Stability & Security**
+### Theme: Stability & Security
 
-Focus on fixing critical bugs, securing the platform, and cleaning up technical debt from the initial launch.
+Focus on fixing critical bugs, securing the platform, and cleaning up technical debt
+from the initial launch.
 
-### Milestones
+### M1–M2 Milestones
 
 #### 🚀 M1: Production Stability (In Progress)
 
@@ -77,11 +79,11 @@ Focus on fixing critical bugs, securing the platform, and cleaning up technical 
 
 ## Next (Upcoming Quarter - Q2 2026)
 
-**Theme: Quality & Testing**
+### Theme: Quality & Testing
 
 Build confidence in the codebase with comprehensive testing and improve code quality.
 
-### Milestones
+### M3–M4 Milestones
 
 #### 🧪 M3: Testing & Quality
 
@@ -140,11 +142,11 @@ Build confidence in the codebase with comprehensive testing and improve code qua
 
 ## Later (Future - Q3 2026 and Beyond)
 
-**Theme: Scale & Features**
+### Theme: Scale & Features
 
 Expand capabilities, improve performance, and add user-requested features.
 
-### Milestones
+### M5–M6 Milestones
 
 #### 🚀 M5: Scale & Performance
 

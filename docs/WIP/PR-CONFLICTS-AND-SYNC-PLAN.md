@@ -7,7 +7,9 @@
 
 ## Executive Summary
 
-**Critical Finding:** PRs #164, #168, #169, and #170 all branched from `8232baf` (98 commits behind main). Since then, **PR #156 merged a full Android scaffold into main**, making PR #164 redundant and causing cascading conflicts in #168, #169, #170.
+**Critical Finding:** PRs #164, #168, #169, and #170 all branched from `8232baf`
+(98 commits behind main). Since then, **PR #156 merged a full Android scaffold into main**,
+making PR #164 redundant and causing cascading conflicts in #168, #169, #170.
 
 **Immediate Actions:**
 
@@ -136,7 +138,7 @@
 
 ## Dependency Map
 
-```
+```text
 main (current)
 │
 ├── PR #171 (turnstile) ────────────────────→ ✅ MERGE NOW (no conflicts)
@@ -184,14 +186,15 @@ main (current)
 
 ### Phase 2: Rebase Standalone PRs (Next 1 hour)
 
-**Option A: Delegate to Orchestrator**
+#### Option A: Delegate to Orchestrator
 
-```
+```text
 Orchestrator: Rebase PR #167 onto main, resolve conflicts, run tests, create new PR if needed
 Orchestrator: Rebase PR #168 onto main, merge secrets-scan job into android-ci.yml
 ```
 
-**Option B: Manual**
+#### Option B: Manual
+
 Use worktrees at:
 
 - `/home/asurace/github/worktree-eslint`
@@ -201,23 +204,23 @@ Use worktrees at:
 
 **After PR #164 is closed:**
 
-1. **PR #169 (OWASP)**:
+#### 1. PR #169 (OWASP)
 
-   ```
-   cd /home/asurace/github/worktree-android-depcheck
-   git fetch origin
-   git rebase origin/main
-   # Resolve conflicts, keeping only OWASP-specific changes
-   ```
+```bash
+cd /home/asurace/github/worktree-android-depcheck
+git fetch origin
+git rebase origin/main
+# Resolve conflicts, keeping only OWASP-specific changes
+```
 
-2. **PR #170 (APK Security)**:
+#### 2. PR #170 (APK Security)
 
-   ```
-   cd /home/asurace/github/worktree-android-apksec
-   git fetch origin
-   git rebase origin/main
-   # Resolve conflicts, keeping only APK security changes
-   ```
+```bash
+cd /home/asurace/github/worktree-android-apksec
+git fetch origin
+git rebase origin/main
+# Resolve conflicts, keeping only APK security changes
+```
 
 ---
 

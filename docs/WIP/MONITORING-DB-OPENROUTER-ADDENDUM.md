@@ -3,7 +3,9 @@
 **Created:** 2026-02-23
 **Status:** Research Addendum to Performance Monitoring Report
 
-This document provides detailed instrumentation plans for PostgreSQL and OpenRouter performance tracking, addressing the specific request to monitor DB and OpenRouter response times closely.
+This document provides detailed instrumentation plans for PostgreSQL and OpenRouter
+performance tracking, addressing the specific request to monitor DB and OpenRouter
+response times closely.
 
 ---
 
@@ -50,7 +52,7 @@ This document provides detailed instrumentation plans for PostgreSQL and OpenRou
 
 #### Recommended Instrumentation
 
-**1.1 — Add OTel Spans to Repository Queries**
+##### 1.1 — Add OTel Spans to Repository Queries
 
 ```python
 # api/scripture/repository.py
@@ -119,7 +121,7 @@ async def search_verses_semantic(
 - `get_verse()` — indexed lookup (should be fast, baseline measurement)
 - `get_chapter_verses()` — batch fetch (measures JOIN performance)
 
-**1.2 — Add EXPLAIN ANALYZE Logging for Slow Queries**
+##### 1.2 — Add EXPLAIN ANALYZE Logging for Slow Queries
 
 ```python
 # api/utils/db_profiler.py (NEW FILE)
@@ -168,7 +170,7 @@ if settings.debug or settings.enable_query_profiling:
     from utils.db_profiler import before_cursor_execute, after_cursor_execute
 ```
 
-**1.3 — Track Connection Pool Metrics**
+##### 1.3 — Track Connection Pool Metrics
 
 ```python
 # api/utils/metrics.py (ADD TO EXISTING FILE)
@@ -200,7 +202,7 @@ db_embedding_fetch_duration = meter.create_histogram(
 )
 ```
 
-**1.4 — Enable Azure PostgreSQL Slow Query Log**
+##### 1.4 — Enable Azure PostgreSQL Slow Query Log
 
 Add to Terraform (`deployment/main.tf`):
 
@@ -276,7 +278,7 @@ WHERE indexname LIKE '%embedding%';
 
 Add to Azure Monitor Workbook:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  DATABASE PERFORMANCE                                        │
 ├─────────────────────────────────────────────────────────────│
@@ -344,7 +346,7 @@ traces
 
 ## 🌐 OpenRouter Performance Monitoring
 
-### Current State Analysis
+### Current State Analysis — OpenRouter
 
 **What We Have:**
 
@@ -369,7 +371,7 @@ traces
 
 ### 1. OpenRouter Response Time — What to Track
 
-#### Critical Metrics
+#### Critical Metrics — OpenRouter
 
 | Metric | Why It Matters | Current Gap | How to Track |
 |--------|----------------|-------------|--------------|
@@ -381,9 +383,9 @@ traces
 | **Rate limit exhaustion** | When we hit API limits | Not tracked | Parse `X-RateLimit-*` headers |
 | **Model-specific performance** | Compare llama-3.3 vs gemma-2 | Not tracked | Tag metrics by `model` attribute |
 
-#### Recommended Instrumentation
+#### Recommended Instrumentation — OpenRouter
 
-**2.1 — Add OTel Spans & Metrics to OpenRouter Provider**
+##### 2.1 — Add OTel Spans & Metrics to OpenRouter Provider
 
 ```python
 # api/providers/openrouter.py
@@ -499,7 +501,7 @@ async def chat(
             raise
 ```
 
-**2.2 — Add TTFT Tracking for Streaming**
+##### 2.2 — Add TTFT Tracking for Streaming
 
 ```python
 async def chat_stream(
@@ -565,7 +567,7 @@ async def chat_stream(
             raise
 ```
 
-**2.3 — Parse OpenRouter Rate Limit Headers**
+##### 2.3 — Parse OpenRouter Rate Limit Headers
 
 ```python
 # After API response
@@ -595,7 +597,7 @@ if hasattr(response, "headers"):
 
 Add to Azure Monitor Workbook:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  LLM (OpenRouter) PERFORMANCE                                │
 ├─────────────────────────────────────────────────────────────│
@@ -687,7 +689,7 @@ customMetrics
 
 Track the full journey of a chat request:
 
-```
+```text
 User sends message
   ↓ [Frontend: page.tsx]
   ↓ POST /api/v1/chat
@@ -733,7 +735,8 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             return response
 ```
 
-In Application Insights, all spans for a single request will be grouped under the same `operation_Id` → distributed trace view.
+In Application Insights, all spans for a single request will be grouped under the same
+`operation_Id` → distributed trace view.
 
 ---
 
@@ -810,4 +813,5 @@ Add to the user story:
 
 **Total Additional Development Time:** +2-3 days (on top of base monitoring effort)
 
-This gives you **deep visibility** into the two most critical performance bottlenecks: database semantic search and OpenRouter LLM response times. 🎯
+This gives you **deep visibility** into the two most critical performance bottlenecks:
+database semantic search and OpenRouter LLM response times. 🎯
