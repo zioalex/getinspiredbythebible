@@ -30,11 +30,14 @@ vi.mock("@/lib/api", () => ({
   submitContactForm: vi.fn(),
 }));
 
-// Mock verse extraction
-vi.mock("@/lib/verseExtraction", () => ({
-  extractVerseReferences: vi.fn().mockReturnValue([]),
-  isVerseReferenced: vi.fn().mockReturnValue(true),
-}));
+// Use real verse extraction logic for proper testing
+vi.mock("@/lib/verseExtraction", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/verseExtraction")>();
+  return {
+    extractVerseReferences: actual.extractVerseReferences,
+    isVerseReferenced: actual.isVerseReferenced,
+  };
+});
 
 // Mock i18n navigation (used by LanguageSwitcher)
 vi.mock("@/i18n/navigation", () => ({
