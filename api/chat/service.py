@@ -392,16 +392,22 @@ class ChatService:
                 scripture_context.verses.insert(0, dv)
                 existing_refs.add((dv.book, dv.chapter, dv.verse))
 
-    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[str]:
+    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[dict]:
         """
         Stream a chat response for real-time display.
 
         Yields:
-            Chunks of the response as they're generated
+            Dict with 'type' field:
+            - {'type': 'metadata', 'message_id': '...', 'scripture_context': {...}, ...}
+            - {'type': 'content', 'content': '...'}
         """
+        # Generate unique message ID for feedback tracking
+        message_id = str(uuid.uuid4())
+
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
         translation = resolve_translation(request.preferred_translation, detected_language)
+        translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(detected_language)
 
         # Intent detection: short-circuit off-topic before scripture search
@@ -409,6 +415,18 @@ class ChatService:
             detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
                 logger.info("Off-topic message detected in stream, skipping scripture search")
+
+                # Send metadata first (no scripture context for off-topic)
+                yield {
+                    "type": "metadata",
+                    "message_id": message_id,
+                    "scripture_context": None,
+                    "provider": settings.llm_provider,
+                    "model": settings.llm_model,
+                    "detected_translation": translation,
+                    "translation_info": translation_info,
+                }
+
                 messages = self._build_messages(
                     user_message=request.message,
                     history=request.conversation_history,
@@ -422,7 +440,7 @@ class ChatService:
                     max_tokens=settings.llm_max_tokens,
                     model_override=model_override,
                 ):
-                    yield chunk
+                    yield {"type": "content", "content": chunk}
                 return
 
         # Check if this is a verse/prayer lookup request
@@ -430,11 +448,22 @@ class ChatService:
         verse_refs, prayer_ref = extract_references(request.message)
 
         # Step 1: Search for relevant scripture
-        _, search_context_prompt = await self._search_scripture(
+        scripture_context, search_context_prompt = await self._search_scripture(
             request, translation, verse_refs, is_verse_lookup
         )
 
-        # Step 2: Build messages with appropriate prompt type
+        # Step 2: Send metadata before streaming starts
+        yield {
+            "type": "metadata",
+            "message_id": message_id,
+            "scripture_context": scripture_context.model_dump() if scripture_context else None,
+            "provider": settings.llm_provider,
+            "model": settings.llm_model,
+            "detected_translation": translation,
+            "translation_info": translation_info,
+        }
+
+        # Step 3: Build messages with appropriate prompt type
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
 
         messages = self._build_messages(
@@ -445,14 +474,14 @@ class ChatService:
             prompt_type=prompt_type,
         )
 
-        # Step 3: Stream response
+        # Step 4: Stream response content
         async for chunk in self.llm.chat_stream(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
             model_override=model_override,
         ):
-            yield chunk
+            yield {"type": "content", "content": chunk}
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

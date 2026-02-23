@@ -21,7 +21,7 @@ import FeedbackModal from "@/components/FeedbackModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
-  sendMessage,
+  streamMessage,
   Message,
   Verse,
   getChapter,
@@ -34,6 +34,8 @@ import {
   ColdStartError,
   checkBackendReady,
   warmupBackend,
+  StreamChunk,
+  StreamMetadata,
 } from "@/lib/api";
 
 // Extended message type with message_id for feedback tracking
@@ -256,128 +258,127 @@ export default function Home() {
     setInput("");
     setIsLoading(true);
     setIsWarmingUp(false);
+    setBackendReady(true); // Streaming doesn't have cold start issues with min_replicas=1
 
-    // Retry logic for cold start scenarios
-    const maxRetries = 3;
-    let lastError: Error | null = null;
+    try {
+      // Convert messages to the API format (without extra fields)
+      const apiMessages: Message[] = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        // Convert messages to the API format (without extra fields)
-        const apiMessages: Message[] = messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+      // Streaming metadata and content
+      let metadata: StreamMetadata | null = null;
+      let streamedContent = "";
+      let assistantMessageIndex = -1;
 
-        // Use shorter timeout when we know backend is cold to enter retry loop faster
-        const timeout = backendReady === false ? 15000 : 60000;
+      // Create a placeholder assistant message that will be updated as content streams
+      const placeholderMessage: ChatMessage = {
+        role: "assistant",
+        content: "",
+        userMessage: userMessageContent,
+      };
 
-        const response = await sendMessage(
-          userMessageContent,
-          apiMessages,
-          selectedTranslation || undefined,
-          sessionId,
-          timeout,
-        );
+      // Add placeholder to messages immediately
+      setMessages((prev) => {
+        assistantMessageIndex = prev.length; // Will be the index of the new message
+        return [...prev, placeholderMessage];
+      });
 
-        // Success - clear warming up state and mark backend as ready
-        setIsWarmingUp(false);
-        setBackendReady(true);
-
-        // Extract verse references from scripture context
-        const versesCited =
-          response.scripture_context?.verses?.map((v) => v.reference) || [];
-
-        const assistantMessage: ChatMessage = {
-          role: "assistant",
-          content: response.message,
-          messageId: response.message_id,
-          userMessage: userMessageContent,
-          versesCited,
-          model: response.model,
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
-
-        // Update detected translation from response
-        if (response.detected_translation) {
-          setDetectedTranslation(response.detected_translation);
+      // Stream the response
+      for await (const chunk of streamMessage(
+        userMessageContent,
+        apiMessages,
+        selectedTranslation || undefined,
+        sessionId,
+      )) {
+        if (chunk.type === "error") {
+          throw new Error(chunk.error || "Stream error");
         }
 
-        // Append relevant verses if returned
-        if (response.scripture_context?.verses) {
-          setRelevantVerses((prev) => [
-            ...prev,
-            ...(response.scripture_context?.verses || []),
-          ]);
-        }
+        if (chunk.type === "metadata") {
+          // Received metadata - update state with verses and message_id
+          metadata = {
+            message_id: chunk.message_id!,
+            scripture_context: chunk.scripture_context,
+            provider: chunk.provider!,
+            model: chunk.model!,
+            detected_translation: chunk.detected_translation,
+            translation_info: chunk.translation_info,
+          };
 
-        // Increment interaction count for church finder
-        setInteractionCount((prev) => {
-          const newCount = prev + 1;
-          // After 3-5 exchanges, randomly decide to show inline prompt
-          // Only trigger once and only if not already shown/dismissed
-          if (
-            !inlinePromptShown &&
-            !inlinePromptDismissed &&
-            newCount >= 3 &&
-            inlinePromptIndex === null
-          ) {
-            // Random chance increases with each message: 40% at 3, 60% at 4, 80% at 5+
-            const chance = Math.min(0.4 + (newCount - 3) * 0.2, 0.8);
-            if (Math.random() < chance) {
-              // Set the inline prompt to appear after the current message
-              // messages.length will be the index after the new assistant message is added
-              setInlinePromptIndex(messages.length + 1);
-              setInlinePromptShown(true);
-            }
+          // Update detected translation
+          if (chunk.detected_translation) {
+            setDetectedTranslation(chunk.detected_translation);
           }
-          return newCount;
-        });
-        setIsLoading(false);
-        return; // Success, exit the function
-      } catch (error) {
-        lastError = error as Error;
 
-        // Check if this is a cold start error
-        if (error instanceof ColdStartError) {
-          console.log(
-            `Backend warming up, attempt ${attempt + 1}/${maxRetries}`,
-          );
-          setIsWarmingUp(true);
-
-          // Wait before retrying (exponential backoff: 3s, 6s, 12s)
-          if (attempt < maxRetries - 1) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, 3000 * Math.pow(2, attempt)),
-            );
-
-            // Check if backend is ready before retrying
-            const ready = await checkBackendReady();
-            if (!ready) {
-              continue; // Backend still not ready, try again
-            }
+          // Append relevant verses immediately (verses appear before text starts)
+          if (chunk.scripture_context?.verses) {
+            setRelevantVerses((prev) => [
+              ...prev,
+              ...(chunk.scripture_context?.verses || []),
+            ]);
           }
-        } else {
-          // Non-cold-start error, don't retry
-          break;
+
+          // Update the placeholder message with metadata
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              msg.messageId = metadata!.message_id;
+              msg.versesCited =
+                chunk.scripture_context?.verses?.map((v) => v.reference) || [];
+              msg.model = metadata!.model;
+            }
+            return updated;
+          });
+        } else if (chunk.type === "content") {
+          // Received content chunk - append to streaming message
+          streamedContent += chunk.content || "";
+
+          // Update the message content in real-time
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              msg.content = streamedContent;
+            }
+            return updated;
+          });
         }
       }
+
+      // Stream complete - increment interaction count for church finder
+      setInteractionCount((prev) => {
+        const newCount = prev + 1;
+        // After 3-5 exchanges, randomly decide to show inline prompt
+        if (
+          !inlinePromptShown &&
+          !inlinePromptDismissed &&
+          newCount >= 3 &&
+          inlinePromptIndex === null
+        ) {
+          const chance = Math.min(0.4 + (newCount - 3) * 0.2, 0.8);
+          if (Math.random() < chance) {
+            setInlinePromptIndex(messages.length + 1);
+            setInlinePromptShown(true);
+          }
+        }
+        return newCount;
+      });
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      setIsWarmingUp(false);
+
+      const errorMessage: ChatMessage = {
+        role: "assistant",
+        content: tChat("errorConnection"),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsLoading(false);
     }
-
-    // All retries failed or non-retryable error
-    console.error("Failed to send message:", lastError);
-    setIsWarmingUp(false);
-
-    const errorMessage: ChatMessage = {
-      role: "assistant",
-      content:
-        lastError instanceof ColdStartError
-          ? tChat("errorColdStart")
-          : tChat("errorConnection"),
-    };
-    setMessages((prev) => [...prev, errorMessage]);
-    setIsLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

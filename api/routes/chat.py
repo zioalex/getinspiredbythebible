@@ -115,20 +115,21 @@ async def chat_stream(
     async def generate():
         try:
             async for chunk in service.chat_stream(request):
-                # SSE format
-                yield f"data: {json.dumps({'content': chunk})}\n\n"
+                # chunk is now a dict with 'type' field
+                # SSE format: data: {json}\n\n
+                yield f"data: {json.dumps(chunk)}\n\n"
             yield "data: [DONE]\n\n"
         except RuntimeError as e:
             # Handle "all models rate limited" from OpenRouter fallback
             if "All models rate limited" in str(e):
                 logger.warning("Streaming: All LLM models rate limited: %s", str(e))
-                yield f"data: {json.dumps({'error': 'Our AI service is temporarily busy. Please try again in a moment.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': 'Our AI service is temporarily busy. Please try again in a moment.'})}\n\n"
             else:
                 logger.exception("Chat stream runtime error: %s", str(e))
-                yield f"data: {json.dumps({'error': 'An unexpected error occurred'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'error': 'An unexpected error occurred'})}\n\n"
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
-            yield f"data: {json.dumps({'error': 'An error occurred processing your request'})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'error': 'An error occurred processing your request'})}\n\n"
 
     return StreamingResponse(
         generate(),

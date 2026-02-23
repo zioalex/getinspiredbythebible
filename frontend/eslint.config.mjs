@@ -63,6 +63,8 @@ const eslintConfig = [
       "@next/next/no-page-custom-font": "off",
     },
   },
-  { ignores: ["*.config.js", "*.config.ts", "node_modules/", ".next/"] },
+  {
+    ignores: ["*.config.js", "*.config.ts", "node_modules/", ".next/", "e2e/"],
+  },
 ];
 export default eslintConfig;

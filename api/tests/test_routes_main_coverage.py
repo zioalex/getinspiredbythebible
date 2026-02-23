@@ -807,8 +807,15 @@ class TestChatStreamRoute:
         request = ChatRequest(message="Hello")
 
         async def mock_gen(req):
-            yield "Hello "
-            yield "world!"
+            yield {
+                "type": "metadata",
+                "message_id": "test-id",
+                "scripture_context": None,
+                "provider": "test",
+                "model": "test-model",
+            }
+            yield {"type": "content", "content": "Hello "}
+            yield {"type": "content", "content": "world!"}
 
         with patch("routes.chat.ChatService") as mock_service_cls:
             mock_service = MagicMock()
