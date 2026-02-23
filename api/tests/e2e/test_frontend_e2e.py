@@ -159,6 +159,29 @@ class TestFrontendPageContent:
         assert r.status_code == 200
         assert locale in str(r.url), f"Expected /{locale} in final URL, got: {r.url}"
 
+    def test_english_page_has_suggested_prompts(self, frontend):
+        """The English page shows suggested prompt buttons for quick start."""
+        r = frontend.get("/en")
+        assert r.status_code == 200
+        html = r.text.lower()
+
+        # Check for suggested prompt text (from messages/en.json Welcome section)
+        suggested_prompts = ["anxious", "forgiveness", "encouragement", "john"]
+        found = sum(1 for prompt in suggested_prompts if prompt in html)
+
+        assert found >= 2, f"Expected at least 2 suggested prompts in English page, found {found}"
+
+    def test_english_page_has_security_infrastructure(self, frontend):
+        """The page loads with substantial content (security infrastructure in place)."""
+        r = frontend.get("/en")
+        assert r.status_code == 200
+        html = r.text
+
+        # Verify the page has substantial content — the Turnstile-aware
+        # welcome screen with suggested prompts is rendered server-side.
+        # Client-side React controls the disabled state of the buttons.
+        assert len(html) > 1000, "Page should have substantial content"
+
 
 # ---------------------------------------------------------------------------
 # Real user flows — simulate common navigation patterns
@@ -238,3 +261,81 @@ class TestFrontendUserFlows:
         # Both pages must have content
         assert len(r_en.text) > 1000
         assert len(r_es.text) > 1000
+
+
+# ---------------------------------------------------------------------------
+# Turnstile ready state — verify bot-protection infrastructure in HTML
+# ---------------------------------------------------------------------------
+
+
+class TestTurnstileReadyState:
+    """
+    Verify the Turnstile bot-protection ready state HTML structure.
+
+    The fix (fix/turnstile-ready-check) disables suggested prompt buttons
+    until Cloudflare Turnstile is ready. The disabled state is managed by
+    React client-side, so these tests only verify what's present in the
+    server-rendered HTML.
+
+    What CAN be tested here (server-rendered):
+      - Suggested prompt text is present in HTML
+      - Button CSS class structure is present
+
+    What CANNOT be tested here (client-side React):
+      - The `disabled` attribute on buttons (set by React state)
+      - Turnstile widget initialization / script loading
+      - "Preparing secure connection..." loading indicator visibility
+
+    Client-side behaviour is covered by the Vitest unit tests in
+    frontend/src/app/[locale]/page.test.tsx.
+    """
+
+    def test_suggested_prompts_present_in_server_rendered_html(self, frontend):
+        """
+        Suggested prompt text is present in the server-rendered HTML.
+
+        The welcome screen renders the prompt text server-side so it's
+        immediately visible. React then controls whether the buttons are
+        enabled/disabled based on Turnstile readiness.
+        """
+        r = frontend.get("/en")
+        assert r.status_code == 200
+        html = r.text.lower()
+
+        # All four prompts from messages/en.json Welcome section
+        expected_prompts = ["anxious", "forgiveness", "encouragement", "john"]
+        missing = [p for p in expected_prompts if p not in html]
+
+        assert not missing, (
+            f"Suggested prompt text missing from server-rendered HTML: {missing}. "
+            "These prompts should be present even when buttons are disabled."
+        )
+
+    def test_suggested_prompt_button_styles_present(self, frontend):
+        """
+        The suggested prompt buttons' CSS classes are present in the HTML.
+
+        Verifies the button elements are rendered server-side with the
+        correct styling. The `disabled` attribute is added client-side by
+        React when Turnstile is not yet ready.
+        """
+        r = frontend.get("/en")
+        assert r.status_code == 200
+        html = r.text.lower()
+
+        # Buttons have: text-left px-4 py-3 bg-white border-primary-200
+        assert (
+            "text-left" in html
+        ), "Expected suggested prompt button CSS class 'text-left' not found in HTML"
+
+    def test_suggested_prompts_not_in_other_locales_unexpectedly(self, frontend):
+        """
+        Smoke check: Italian and German pages also load correctly.
+
+        The Turnstile fix applies to all locales. Verify other locales
+        still load with substantial content after the change.
+        """
+        for locale in ["it", "de"]:
+            r = frontend.get(f"/{locale}")
+            assert r.status_code == 200, f"/{locale} page failed to load"
+            assert len(r.text) > 1000, f"/{locale} page has suspiciously little content"

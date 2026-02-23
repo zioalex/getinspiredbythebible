@@ -2,6 +2,7 @@ import { screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Home from "./page";
 import * as api from "@/lib/api";
+import * as turnstile from "@/lib/turnstile";
 import { renderWithIntl } from "@/test/i18n-helpers";
 
 // Mock scrollIntoView
@@ -48,6 +49,11 @@ vi.mock("@/i18n/navigation", () => ({
 // Mock i18n routing
 vi.mock("@/i18n/routing", () => ({
   routing: { locales: ["en", "it", "de"], defaultLocale: "en" },
+}));
+
+// Mock Turnstile hook
+vi.mock("@/lib/turnstile", () => ({
+  useTurnstile: vi.fn(),
 }));
 
 // Helper to render Home with verses pre-loaded via the API mock
@@ -106,6 +112,13 @@ describe("Home page responsive layout", () => {
     });
     vi.mocked(api.getTranslations).mockResolvedValue([]);
     vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    // Default: Turnstile is ready (doesn't block any actions)
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      refreshToken: vi.fn(),
+    });
   });
 
   describe("responsive header", () => {
@@ -372,6 +385,269 @@ describe("Home page responsive layout", () => {
       expect(
         screen.queryByLabelText("Show scripture references"),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Turnstile security checks", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      // Re-setup mocks that are needed for every render
+      vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+        onReady();
+      });
+      vi.mocked(api.getTranslations).mockResolvedValue([]);
+      vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    });
+
+    it("disables suggested prompts when Turnstile is loading", () => {
+      // Mock Turnstile as enabled but not ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: false,
+        isEnabled: true,
+        token: null,
+        refreshToken: vi.fn(),
+      });
+
+      renderWithIntl(<Home />);
+
+      // Find the suggested prompt buttons
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      // All suggested prompts should be disabled
+      prompts.forEach((prompt) => {
+        expect(prompt).toBeDisabled();
+      });
+    });
+
+    it("enables suggested prompts when Turnstile is ready", () => {
+      // Mock Turnstile as enabled and ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: true,
+        isEnabled: true,
+        token: "test-token",
+        refreshToken: vi.fn(),
+      });
+
+      renderWithIntl(<Home />);
+
+      // Find the suggested prompt buttons
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      // All suggested prompts should be enabled
+      prompts.forEach((prompt) => {
+        expect(prompt).not.toBeDisabled();
+      });
+    });
+
+    it("disables send button when Turnstile is loading", () => {
+      // Mock Turnstile as enabled but not ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: false,
+        isEnabled: true,
+        token: null,
+        refreshToken: vi.fn(),
+      });
+
+      const { container } = renderWithIntl(<Home />);
+
+      // Find the send button by looking for the form submit button
+      const submitButton = container.querySelector(
+        'form button[type="submit"]',
+      ) as HTMLButtonElement;
+
+      expect(submitButton).toBeDisabled();
+    });
+
+    it("enables send button when Turnstile is ready", () => {
+      // Mock Turnstile as enabled and ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: true,
+        isEnabled: true,
+        token: "test-token",
+        refreshToken: vi.fn(),
+      });
+
+      const { container } = renderWithIntl(<Home />);
+
+      // Find the send button by looking for the form submit button
+      const submitButton = container.querySelector(
+        'form button[type="submit"]',
+      ) as HTMLButtonElement;
+
+      // Button should still be disabled because input is empty
+      expect(submitButton).toBeDisabled();
+
+      // Type something in the input
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      fireEvent.change(input, { target: { value: "Test message" } });
+
+      // Now button should be enabled
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    it("shows loading message when Turnstile is loading", () => {
+      // Mock Turnstile as enabled but not ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: false,
+        isEnabled: true,
+        token: null,
+        refreshToken: vi.fn(),
+      });
+
+      renderWithIntl(<Home />);
+
+      // Look for the loading message
+      expect(
+        screen.getByText("Preparing secure connection..."),
+      ).toBeInTheDocument();
+    });
+
+    it("hides loading message when Turnstile is ready", () => {
+      // Mock Turnstile as enabled and ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: true,
+        isEnabled: true,
+        token: "test-token",
+        refreshToken: vi.fn(),
+      });
+
+      renderWithIntl(<Home />);
+
+      // Loading message should not be present
+      expect(
+        screen.queryByText("Preparing secure connection..."),
+      ).not.toBeInTheDocument();
+    });
+
+    it("works correctly when Turnstile is disabled", () => {
+      // Mock Turnstile as disabled
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: true,
+        isEnabled: false,
+        token: null,
+        refreshToken: vi.fn(),
+      });
+
+      const { container } = renderWithIntl(<Home />);
+
+      // Suggested prompts should be enabled
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+      prompts.forEach((prompt) => {
+        expect(prompt).not.toBeDisabled();
+      });
+
+      // Loading message should not be present
+      expect(
+        screen.queryByText("Preparing secure connection..."),
+      ).not.toBeInTheDocument();
+
+      // Send button should only be disabled because input is empty
+      const submitButton = container.querySelector(
+        'form button[type="submit"]',
+      ) as HTMLButtonElement;
+      expect(submitButton).toBeDisabled();
+
+      // Type something in the input
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      fireEvent.change(input, { target: { value: "Test message" } });
+
+      // Now button should be enabled (not blocked by Turnstile)
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    it("prevents message submission via suggested prompts when Turnstile is not ready", async () => {
+      // Mock Turnstile as enabled but not ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: false,
+        isEnabled: true,
+        token: null,
+        refreshToken: vi.fn(),
+      });
+
+      vi.mocked(api.sendMessage).mockResolvedValue({
+        message: "This should not be called",
+        message_id: "msg-1",
+        scripture_context: { verses: [] },
+      });
+
+      renderWithIntl(<Home />);
+
+      // Find and click a suggested prompt
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      await act(async () => {
+        fireEvent.click(prompts[0]);
+      });
+
+      // sendMessage should not have been called because button is disabled
+      expect(api.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it("allows message submission via suggested prompts when Turnstile is ready", async () => {
+      // Mock Turnstile as enabled and ready
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: true,
+        isEnabled: true,
+        token: "test-token",
+        refreshToken: vi.fn(),
+      });
+
+      vi.mocked(api.sendMessage).mockResolvedValue({
+        message: "Response to suggested prompt",
+        message_id: "msg-1",
+        scripture_context: { verses: [] },
+      });
+
+      renderWithIntl(<Home />);
+
+      // Find and click a suggested prompt
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      const promptText = prompts[0].textContent;
+
+      await act(async () => {
+        fireEvent.click(prompts[0]);
+      });
+
+      // sendMessage should have been called
+      expect(api.sendMessage).toHaveBeenCalledWith(
+        promptText,
+        expect.any(Array),
+        undefined,
+        expect.any(String),
+        expect.any(Number),
+      );
+
+      // Verify the response is displayed
+      await waitFor(() => {
+        expect(
+          screen.getByText("Response to suggested prompt"),
+        ).toBeInTheDocument();
+      });
     });
   });
 });
