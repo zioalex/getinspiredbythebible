@@ -70,7 +70,7 @@ export default function Home() {
   // null = checking, true = ready, false = warming up
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
-  const [showOnlyReferenced, setShowOnlyReferenced] = useState(false); // Default to showing all related verses
+  const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
 
