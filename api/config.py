@@ -6,6 +6,7 @@ Supports environment variables and .env files.
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -115,6 +116,86 @@ class Settings(BaseSettings):
     # Test secret: 1x0000000000000000000000000000000AA (always passes)
     # Test secret: 2x0000000000000000000000000000000AA (always fails)
     # Test secret: 3x0000000000000000000000000000000AA (forces interactive challenge)
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        """Validate that database_url is not using placeholder value."""
+        if "CONFIGURE_ME" in v:
+            raise ValueError(
+                "DATABASE_URL must be configured (currently set to placeholder value). "
+                "Set the DATABASE_URL environment variable."
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_llm_provider_keys(self) -> "Settings":
+        """Validate LLM provider API keys."""
+        if self.llm_provider == "claude" and self.anthropic_api_key is None:
+            raise ValueError(
+                "anthropic_api_key is required when llm_provider=claude. "
+                "Set ANTHROPIC_API_KEY environment variable."
+            )
+        if self.llm_provider == "openai" and self.openai_api_key is None:
+            raise ValueError(
+                "openai_api_key is required when llm_provider=openai. "
+                "Set OPENAI_API_KEY environment variable."
+            )
+        if self.llm_provider == "openrouter" and self.openrouter_api_key is None:
+            raise ValueError(
+                "openrouter_api_key is required when llm_provider=openrouter. "
+                "Set OPENROUTER_API_KEY environment variable."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_embedding_provider_keys(self) -> "Settings":
+        """Validate embedding provider API keys and configuration."""
+        if self.embedding_provider == "openai" and self.openai_api_key is None:
+            raise ValueError(
+                "openai_api_key is required when embedding_provider=openai. "
+                "Set OPENAI_API_KEY environment variable."
+            )
+        if self.embedding_provider == "azure_openai" and (
+            self.azure_openai_endpoint is None or self.azure_openai_api_key is None
+        ):
+            raise ValueError(
+                "azure_openai_endpoint and azure_openai_api_key are required "
+                "when embedding_provider=azure_openai."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_embedding_dimensions(self) -> "Settings":
+        """Validate embedding dimensions match the model requirements."""
+        dimension_map = {
+            "mxbai-embed-large": 1024,
+            "nomic-embed-text": 768,
+        }
+        if self.embedding_model in dimension_map:
+            expected = dimension_map[self.embedding_model]
+            if self.embedding_dimensions != expected:
+                raise ValueError(
+                    f"Embedding dimensions mismatch: {self.embedding_model} requires "
+                    f"{expected} dimensions, but config has {self.embedding_dimensions}"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_turnstile_keys(self) -> "Settings":
+        """Validate Turnstile configuration when enabled."""
+        if self.turnstile_enabled:
+            if self.turnstile_secret_key is None:
+                raise ValueError(
+                    "turnstile_secret_key is required when turnstile_enabled=true. "
+                    "Set TURNSTILE_SECRET_KEY environment variable."
+                )
+            if self.turnstile_site_key is None:
+                raise ValueError(
+                    "turnstile_site_key is required when turnstile_enabled=true. "
+                    "Set TURNSTILE_SITE_KEY environment variable."
+                )
+        return self
 
     class Config:
         env_file = ".env"
