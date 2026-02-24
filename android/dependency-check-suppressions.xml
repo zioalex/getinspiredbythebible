@@ -11,4 +11,16 @@
         <cve>CVE-XXXX-XXXXX</cve>
       </suppress>
   -->
+
+  <!--
+    To add a suppression after reviewing the HTML report:
+
+      <suppress>
+        <notes>CVE-XXXX-XXXXX: Confirmed false positive.
+          [Library] is not affected because [reason].
+          See: [upstream issue/advisory link]
+        </notes>
+        <cve>CVE-XXXX-XXXXX</cve>
+      </suppress>
+  -->
 </suppressions>
