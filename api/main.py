@@ -35,6 +35,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
 from config import settings  # noqa: E402
+from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError  # noqa: E402
 from routes import (  # noqa: E402
     chat_router,
@@ -211,6 +212,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Correlation ID middleware for request tracing
+# Added after CORS (executes before CORS in request chain due to middleware stack)
+app.add_middleware(CorrelationIDMiddleware)
 
 
 # ==================== Routes ====================
