@@ -303,20 +303,27 @@ jobs:
 
           # VALIDATE: Actually test that this URL is a backend, not frontend
           echo "Validating backend URL responds correctly..."
-          HEALTH_RESPONSE=$(curl -sf "$BACKEND_URL/health/live" 2>/dev/null || echo "")
+          HEALTH_RESPONSE=$(curl -sf --max-time 30 "$BACKEND_URL/health/live" 2>/dev/null || echo "")
           if [ -z "$HEALTH_RESPONSE" ]; then
-            echo "::error::Backend URL does not respond to /health/live"
-            echo "::error::URL: $BACKEND_URL"
-            exit 1
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "::warning::Backend URL health check failed on PR (backend may be scaled to zero)."
+              echo "::warning::Proceeding with build-only validation."
+            else
+              echo "::error::Backend URL does not respond to /health/live"
+              echo "::error::URL: $BACKEND_URL"
+              exit 1
+            fi
           fi
 
           # Check it returns expected backend response (not frontend HTML)
-          if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
+          if [ -n "$HEALTH_RESPONSE" ] && echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
             echo "✅ Backend health check passed"
-          else
+          elif [ -n "$HEALTH_RESPONSE" ]; then
             echo "::error::Backend URL returned unexpected response (possibly frontend?)"
             echo "::error::Response: $HEALTH_RESPONSE"
             exit 1
+          else
+            echo "⚠️ Skipping response validation (no health response received)"
           fi
 
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
