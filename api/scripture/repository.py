@@ -341,6 +341,242 @@ class ScriptureRepository:
 
         return [(verses_by_id[vid], float(scores[vid])) for vid in verse_ids if vid in verses_by_id]
 
+    async def search_verses_semantic_boosted(
+        self,
+        query_embedding: list[float],
+        boost_topics: list[str],
+        topic_boost_factor: float = 0.2,
+        limit: int = 5,
+        similarity_threshold: float = 0.35,
+        translation: str | None = None,
+    ) -> list[tuple["Verse", float]]:
+        """
+        Semantic search with optional topic-based score boosting.
+
+        Applies multiplicative boost: final_score = base_score * (1 + factor * matching_topic_count)
+        Supports hierarchical topics: child topic also matches parent topic name.
+
+        Args:
+            query_embedding: The embedding vector of the search query
+            boost_topics: List of topic names to boost (matched against topics.name)
+            topic_boost_factor: Boost multiplier per matching topic (default 0.2 = 20%)
+            limit: Maximum results to return
+            similarity_threshold: Minimum base similarity score
+            translation: Optional translation filter
+
+        Returns:
+            List of (verse, final_score) tuples ordered by final_score DESC
+        """
+        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+        translation_filter = ""
+        params: dict = {
+            "embedding": embedding_str,
+            "threshold": similarity_threshold,
+            "topic_boost_factor": topic_boost_factor,
+            "boost_topics": boost_topics,
+            "limit": limit,
+        }
+
+        if translation:
+            translation_filter = "AND v.translation = :translation"
+            params["translation"] = translation
+
+        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+            WITH base_search AS (
+                SELECT
+                    v.id,
+                    (1 - (v.embedding <=> :embedding::vector)) AS base_score
+                FROM verses v
+                WHERE v.embedding IS NOT NULL
+                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  {translation_filter}
+            ),
+            topic_matches AS (
+                SELECT
+                    bs.id,
+                    bs.base_score,
+                    COUNT(DISTINCT vt.topic_id) AS matching_topic_count
+                FROM base_search bs
+                LEFT JOIN verse_topics vt ON bs.id = vt.verse_id
+                LEFT JOIN topics t ON vt.topic_id = t.id
+                WHERE t.name = ANY(:boost_topics)
+                   OR t.parent_id IN (
+                       SELECT id FROM topics WHERE name = ANY(:boost_topics)
+                   )
+                GROUP BY bs.id, bs.base_score
+            ),
+            all_verses AS (
+                -- Verses with matching topics
+                SELECT
+                    tm.id,
+                    tm.base_score * (1 + (:topic_boost_factor * tm.matching_topic_count)) AS final_score
+                FROM topic_matches tm
+                UNION ALL
+                -- Verses without any matching topics (no boost)
+                SELECT
+                    bs.id,
+                    bs.base_score AS final_score
+                FROM base_search bs
+                WHERE bs.id NOT IN (SELECT id FROM topic_matches)
+            )
+            SELECT DISTINCT ON (id) id, final_score
+            FROM all_verses
+            ORDER BY id, final_score DESC
+        """
+
+        # Wrap in outer query to get overall ordering
+        outer_sql = f"""
+            SELECT id, final_score FROM (
+                {sql}
+            ) AS deduped
+            ORDER BY final_score DESC
+            LIMIT :limit
+        """
+
+        result = await self.session.execute(text(outer_sql), params)
+        rows = result.fetchall()
+
+        if not rows:
+            return []
+
+        verse_ids = [row[0] for row in rows]
+        scores = {row[0]: row[1] for row in rows}
+
+        verses_result = await self.session.execute(
+            select(Verse).where(Verse.id.in_(verse_ids)).options(selectinload(Verse.book))
+        )
+        verses_by_id = {v.id: v for v in verses_result.scalars().all()}
+
+        return [(verses_by_id[vid], float(scores[vid])) for vid in verse_ids if vid in verses_by_id]
+
+    async def search_verses_hybrid_boosted(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        boost_topics: list[str],
+        topic_boost_factor: float = 0.2,
+        semantic_weight: float = 0.7,
+        keyword_weight: float = 0.3,
+        similarity_threshold: float = 0.35,
+        limit: int = 10,
+        translation: str | None = None,
+    ) -> list[tuple["Verse", float]]:
+        """
+        Hybrid search with topic-based score boosting.
+
+        Combines semantic + keyword scores, then applies topic boost.
+        Formula: final_score = hybrid_score * (1 + factor * matching_topic_count)
+        """
+        # Normalize weights
+        total_weight = semantic_weight + keyword_weight
+        if total_weight > 0:
+            semantic_weight /= total_weight
+            keyword_weight /= total_weight
+
+        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+        translation_filter = ""
+        params: dict = {
+            "embedding": embedding_str,
+            "query_text": query_text,
+            "threshold": similarity_threshold,
+            "semantic_weight": semantic_weight,
+            "keyword_weight": keyword_weight,
+            "topic_boost_factor": topic_boost_factor,
+            "boost_topics": boost_topics,
+            "limit": limit,
+        }
+
+        if translation:
+            translation_filter = "AND v.translation = :translation"
+            params["translation"] = translation
+
+        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+            WITH ranked AS (
+                SELECT
+                    v.id,
+                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    ts_rank(
+                        to_tsvector('simple', v.text),
+                        plainto_tsquery('simple', :query_text)
+                    ) AS keyword_score_raw
+                FROM verses v
+                WHERE v.embedding IS NOT NULL
+                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  {translation_filter}
+            ),
+            normalized AS (
+                SELECT
+                    id,
+                    semantic_score,
+                    CASE
+                        WHEN MAX(keyword_score_raw) OVER () > 0
+                        THEN keyword_score_raw / MAX(keyword_score_raw) OVER ()
+                        ELSE 0.0
+                    END AS keyword_score
+                FROM ranked
+            ),
+            hybrid_scored AS (
+                SELECT
+                    id,
+                    (:semantic_weight * semantic_score) +
+                    (:keyword_weight * keyword_score) AS hybrid_score
+                FROM normalized
+            ),
+            topic_matches AS (
+                SELECT
+                    hs.id,
+                    hs.hybrid_score,
+                    COUNT(DISTINCT vt.topic_id) AS matching_topic_count
+                FROM hybrid_scored hs
+                LEFT JOIN verse_topics vt ON hs.id = vt.verse_id
+                LEFT JOIN topics t ON vt.topic_id = t.id
+                WHERE t.name = ANY(:boost_topics)
+                   OR t.parent_id IN (
+                       SELECT id FROM topics WHERE name = ANY(:boost_topics)
+                   )
+                GROUP BY hs.id, hs.hybrid_score
+            ),
+            all_verses AS (
+                SELECT
+                    tm.id,
+                    tm.hybrid_score * (1 + (:topic_boost_factor * tm.matching_topic_count)) AS final_score
+                FROM topic_matches tm
+                UNION ALL
+                SELECT
+                    hs.id,
+                    hs.hybrid_score AS final_score
+                FROM hybrid_scored hs
+                WHERE hs.id NOT IN (SELECT id FROM topic_matches)
+            )
+            SELECT DISTINCT ON (id) id, final_score
+            FROM all_verses
+            ORDER BY id, final_score DESC
+        """
+
+        outer_sql = f"""
+            SELECT id, final_score FROM (
+                {sql}
+            ) AS deduped
+            ORDER BY final_score DESC
+            LIMIT :limit
+        """
+
+        result = await self.session.execute(text(outer_sql), params)
+        rows = result.fetchall()
+
+        if not rows:
+            return []
+
+        verse_ids = [row[0] for row in rows]
+        scores = {row[0]: row[1] for row in rows}
+
+        verses_result = await self.session.execute(
+            select(Verse).where(Verse.id.in_(verse_ids)).options(selectinload(Verse.book))
+        )
+        verses_by_id = {v.id: v for v in verses_result.scalars().all()}
+
+        return [(verses_by_id[vid], float(scores[vid])) for vid in verse_ids if vid in verses_by_id]
+
     # ==================== Passages ====================
 
     async def get_passage_by_id(self, passage_id: int) -> Passage | None:

@@ -1,0 +1,127 @@
+{
+  "description": "Golden test cases for topic-based boosting (BITB-018.3)",
+  "version": "1.0",
+  "topic_detection_cases": [
+    {
+      "id": "td-001",
+      "message": "I'm anxious about the future",
+      "language": "en",
+      "expected_topics": ["anxiety"],
+      "description": "Basic English anxiety detection"
+    },
+    {
+      "id": "td-002",
+      "message": "I can't forgive them for hurting me",
+      "language": "en",
+      "expected_topics": ["forgiveness"],
+      "description": "English forgiveness detection"
+    },
+    {
+      "id": "td-003",
+      "message": "I feel so alone and isolated",
+      "language": "en",
+      "expected_topics": ["loneliness"],
+      "description": "English loneliness detection"
+    },
+    {
+      "id": "td-004",
+      "message": "Sono ansioso per il futuro",
+      "language": "it",
+      "expected_topics": ["anxiety"],
+      "description": "Italian anxiety detection"
+    },
+    {
+      "id": "td-005",
+      "message": "Sono frustrato dalla situazione",
+      "language": "it",
+      "expected_topics": ["anger"],
+      "description": "Italian frustration/anger detection"
+    },
+    {
+      "id": "td-006",
+      "message": "Ich bin sehr ängstlich",
+      "language": "de",
+      "expected_topics": ["anxiety"],
+      "description": "German anxiety detection"
+    },
+    {
+      "id": "td-007",
+      "message": "Me siento muy solo y aislado",
+      "language": "es",
+      "expected_topics": ["loneliness"],
+      "description": "Spanish loneliness detection"
+    },
+    {
+      "id": "td-008",
+      "message": "Je me sens sans espoir",
+      "language": "fr",
+      "expected_topics": ["hope"],
+      "description": "French hopelessness → hope topic"
+    },
+    {
+      "id": "td-009",
+      "message": "أنا قلق جداً بشأن المستقبل",
+      "language": "ar",
+      "expected_topics": ["anxiety"],
+      "description": "Arabic anxiety detection"
+    },
+    {
+      "id": "td-010",
+      "message": "I'm stressed and angry, I can't forgive",
+      "language": "en",
+      "expected_topics": ["anxiety", "anger", "forgiveness"],
+      "description": "Multiple topic detection"
+    },
+    {
+      "id": "td-011",
+      "message": "I feel hopeless and desperate",
+      "language": "en",
+      "expected_topics": ["hope"],
+      "description": "English hopelessness → hope topic"
+    },
+    {
+      "id": "td-012",
+      "message": "I lost my mother and I'm grieving",
+      "language": "en",
+      "expected_topics": ["grief"],
+      "description": "English grief detection"
+    }
+  ],
+  "boost_score_cases": [
+    {
+      "id": "bs-001",
+      "description": "No matching topics → no boost applied",
+      "base_score": 0.75,
+      "matching_topic_count": 0,
+      "topic_boost_factor": 0.2,
+      "expected_final_score": 0.75
+    },
+    {
+      "id": "bs-002",
+      "description": "1 matching topic → 20% boost",
+      "base_score": 0.75,
+      "matching_topic_count": 1,
+      "topic_boost_factor": 0.2,
+      "expected_final_score": 0.90
+    },
+    {
+      "id": "bs-003",
+      "description": "2 matching topics → 40% boost",
+      "base_score": 0.75,
+      "matching_topic_count": 2,
+      "topic_boost_factor": 0.2,
+      "expected_final_score": 1.05
+    },
+    {
+      "id": "bs-004",
+      "description": "Boosted lower score can beat unboosted higher score",
+      "base_score_boosted": 0.65,
+      "base_score_unboosted": 0.75,
+      "matching_topic_count": 1,
+      "topic_boost_factor": 0.2,
+      "boosted_final_score": 0.78,
+      "unboosted_final_score": 0.75,
+      "boosted_wins": true
+    }
+  ]
+}

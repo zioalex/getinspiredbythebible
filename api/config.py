@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
 
+    # Topic Boosting Settings
+    topic_boosting_enabled: bool = False  # Feature flag for topic-based search boosting
+    topic_boost_factor: float = 0.2  # 20% boost per matching topic
+
     # Email Settings (SMTP2GO HTTP API)
     smtp2go_enabled: bool = False  # Set to True to enable email notifications
     smtp2go_api_key: str | None = None  # SMTP2GO API key
