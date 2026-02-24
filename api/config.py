@@ -102,6 +102,9 @@ class Settings(BaseSettings):
     content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
 
+    # Performance Monitoring
+    slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
+
     # Cloudflare Turnstile (Bot Protection)
     # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile
     turnstile_enabled: bool = False  # Enable Turnstile verification
