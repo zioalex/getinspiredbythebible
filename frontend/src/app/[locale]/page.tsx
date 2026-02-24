@@ -188,13 +188,21 @@ export default function Home() {
   }, [relevantVerses]);
 
   // Extract verse references mentioned in chat messages
+  // Use the pre-computed versesCited field if available (set after streaming completes),
+  // otherwise fall back to extracting from content for backwards compatibility
   const referencedVerses = useMemo(() => {
-    const allText = messages
+    const allRefs = messages
       .filter((m) => m.role === "assistant")
-      .map((m) => m.content)
-      .join(" ");
+      .flatMap((m) => {
+        // Prefer pre-computed versesCited (more reliable after streaming)
+        if (m.versesCited && m.versesCited.length > 0) {
+          return m.versesCited;
+        }
+        // Fallback: extract from content (for older messages or non-streaming)
+        return Array.from(extractVerseReferences(m.content));
+      });
 
-    return extractVerseReferences(allText);
+    return new Set(allRefs);
   }, [messages]);
 
   // Filter verses based on the toggle
