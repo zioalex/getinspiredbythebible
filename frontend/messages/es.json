@@ -115,5 +115,11 @@
     "successDescription": "Gracias por comunicarte. Revisaremos tu mensaje pronto.",
     "sendAnother": "Enviar otro",
     "errorSend": "Error al enviar el mensaje. Por favor, inténtalo de nuevo o escríbenos directamente."
+  },
+  "ErrorBoundary": {
+    "title": "Algo salió mal",
+    "message": "Ocurrió un error inesperado. Por favor intenta recargar la página. Si el problema persiste, contacta al soporte.",
+    "reloadButton": "Recargar página",
+    "reportIssue": "Reportar este problema"
   }
 }

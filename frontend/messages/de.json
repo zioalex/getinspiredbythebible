@@ -115,5 +115,11 @@
     "successDescription": "Danke für deine Nachricht. Wir werden sie bald prüfen.",
     "sendAnother": "Weitere senden",
     "errorSend": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut oder schreib uns direkt per E-Mail."
+  },
+  "ErrorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "message": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche die Seite neu zu laden. Wenn das Problem weiterhin besteht, kontaktiere den Support.",
+    "reloadButton": "Seite neu laden",
+    "reportIssue": "Problem melden"
   }
 }
