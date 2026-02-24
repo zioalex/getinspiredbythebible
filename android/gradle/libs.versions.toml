@@ -20,6 +20,7 @@ junitExt = "1.2.1"
 espressoCore = "3.6.1"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"
+owaspDepCheck = "12.1.0"
 
 [libraries]
 # AndroidX Core
@@ -82,3 +83,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owaspDepCheck" }
