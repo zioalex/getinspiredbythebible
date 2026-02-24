@@ -1,7 +1,7 @@
 # PR B3: LLM Performance Instrumentation (OpenTelemetry)
 
 **Status:** In Progress
-**PR URL:** (Will be created after implementation)
+**PR URL:** <https://github.com/zioalex/getinspiredbythebible/pull/190>
 **Branch:** `feat/llm-performance-instrumentation`
 **Base Branch:** `feat/db-performance-instrumentation` (PR B2)
 **Started:** 2026-02-24
@@ -231,9 +231,9 @@ Only set attribute if context var is non-empty to avoid cluttering traces.
 - [x] Instrument `providers/claude.py` with basic spans
 - [x] Instrument `providers/ollama.py` with basic spans
 - [x] Create comprehensive test suite in `test_llm_instrumentation.py`
-- [ ] Run `make test-backend` — verify all tests pass
-- [ ] Run `make pre-commit` — verify formatting/linting
-- [ ] Push branch and create PR
+- [x] Run `make test-backend` — verify all tests pass (981 passed)
+- [x] Run `make pre-commit` — verify formatting/linting
+- [x] Push branch and create PR (#190)
 - [ ] Verify CI passes
 - [ ] Merge to `feat/db-performance-instrumentation`
 
@@ -243,8 +243,11 @@ Only set attribute if context var is non-empty to avoid cluttering traces.
 
 - Created branch `feat/llm-performance-instrumentation` from `feat/db-performance-instrumentation`
 - Implemented all instrumentation changes across 5 files
-- Created comprehensive test suite with 8 test classes
-- Ready for test validation
+- Created comprehensive test suite with 8 test classes (30 new tests)
+- All tests pass: 981 passed total (951 existing + 30 new)
+- Pre-commit checks pass (fixed formatting, secrets detection, markdown linting)
+- Pushed branch and created PR #190
+- Ready for CI validation and review
 
 ## Notes
 
