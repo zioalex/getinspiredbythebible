@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from middleware.context import REQUEST_ID_CTX_VAR
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
 from utils.language import (
@@ -22,6 +23,7 @@ from utils.language import (
     resolve_translation,
 )
 from utils.logging_config import get_logger
+from utils.telemetry import llm_duration_histogram, llm_tracer, llm_ttft_histogram
 from utils.verse_parser import extract_references, is_verse_lookup_request
 
 from .prompts import (
@@ -203,36 +205,54 @@ class ChatService:
         )
 
         # Step 3: Generate response
-        llm_start = time.time()
-        try:
-            logger.debug("Sending request to LLM provider")
-            response = await self.llm.chat(
-                messages=messages,
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_tokens,
-                model_override=model_override,
-            )
-            llm_duration = time.time() - llm_start
-            logger.info(
-                "LLM response received",
-                extra={
-                    "provider": response.provider,
-                    "model": response.model,
-                    "response_length": len(response.content),
-                    "duration_seconds": f"{llm_duration:.2f}",
-                },
-            )
-        except Exception as e:
-            logger.error(
-                "LLM provider error",
-                extra={
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "provider": settings.llm_provider,
-                    "model": settings.llm_model,
-                },
-            )
-            raise
+        llm_start = time.perf_counter()
+        with llm_tracer.start_as_current_span("llm.chat") as span:
+            try:
+                logger.debug("Sending request to LLM provider")
+                response = await self.llm.chat(
+                    messages=messages,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                    model_override=model_override,
+                )
+                llm_duration_sec = time.perf_counter() - llm_start
+                llm_duration_ms = llm_duration_sec * 1000
+
+                # Set span attributes
+                span.set_attribute("llm.provider", response.provider)
+                span.set_attribute("llm.model", response.model)
+                span.set_attribute("llm.streaming", False)
+                span.set_attribute("llm.duration_ms", llm_duration_ms)
+                request_id = REQUEST_ID_CTX_VAR.get("")
+                if request_id:
+                    span.set_attribute("request_id", request_id)
+
+                # Record metrics
+                llm_duration_histogram.record(
+                    llm_duration_ms,
+                    {"provider": response.provider, "model": response.model, "streaming": "false"},
+                )
+
+                logger.info(
+                    "LLM response received",
+                    extra={
+                        "provider": response.provider,
+                        "model": response.model,
+                        "response_length": len(response.content),
+                        "duration_seconds": f"{llm_duration_sec:.2f}",
+                    },
+                )
+            except Exception as e:
+                logger.error(
+                    "LLM provider error",
+                    extra={
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "provider": settings.llm_provider,
+                        "model": settings.llm_model,
+                    },
+                )
+                raise
 
         # Generate unique message ID for feedback tracking
         message_id = str(uuid.uuid4())
@@ -475,13 +495,47 @@ class ChatService:
         )
 
         # Step 4: Stream response content
-        async for chunk in self.llm.chat_stream(
-            messages=messages,
-            temperature=settings.llm_temperature,
-            max_tokens=settings.llm_max_tokens,
-            model_override=model_override,
-        ):
-            yield {"type": "content", "content": chunk}
+        span = llm_tracer.start_span("llm.chat_stream")
+        stream_start = time.perf_counter()
+        first_token_time: float | None = None
+        try:
+            span.set_attribute("llm.provider", settings.llm_provider)
+            span.set_attribute("llm.model", settings.llm_model)
+            span.set_attribute("llm.streaming", True)
+            request_id = REQUEST_ID_CTX_VAR.get("")
+            if request_id:
+                span.set_attribute("request_id", request_id)
+
+            async for chunk in self.llm.chat_stream(
+                messages=messages,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+                model_override=model_override,
+            ):
+                if first_token_time is None and chunk:
+                    first_token_time = time.perf_counter()
+                yield {"type": "content", "content": chunk}
+        finally:
+            duration_ms = (time.perf_counter() - stream_start) * 1000
+            span.set_attribute("llm.duration_ms", duration_ms)
+
+            if first_token_time is not None:
+                ttft_ms = (first_token_time - stream_start) * 1000
+                span.set_attribute("llm.ttft_ms", ttft_ms)
+                llm_ttft_histogram.record(
+                    ttft_ms,
+                    {"provider": settings.llm_provider, "model": settings.llm_model},
+                )
+
+            llm_duration_histogram.record(
+                duration_ms,
+                {
+                    "provider": settings.llm_provider,
+                    "model": settings.llm_model,
+                    "streaming": "true",
+                },
+            )
+            span.end()
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

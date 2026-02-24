@@ -4,9 +4,13 @@ Connects to a local or remote Ollama instance.
 """
 
 import json
+import time
 from typing import AsyncIterator
 
 import httpx
+
+from middleware.context import REQUEST_ID_CTX_VAR
+from utils.telemetry import llm_duration_histogram, llm_tracer, llm_ttft_histogram
 
 from .base import (
     ChatMessage,
@@ -59,28 +63,45 @@ class OllamaProvider(LLMProvider):
         kwargs.pop("model_override", None)  # Not supported, ignore
         client = await self._get_client()
 
-        response = await client.post(
-            f"{self.host}/api/chat",
-            json={
-                "model": self.model,
-                "messages": [msg.model_dump() for msg in messages],
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
-                },
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
+        start_time = time.perf_counter()
+        with llm_tracer.start_as_current_span("llm.ollama.chat") as span:
+            span.set_attribute("llm.provider", self.provider_name)
+            span.set_attribute("llm.model", self.model)
+            span.set_attribute("llm.streaming", False)
+            request_id = REQUEST_ID_CTX_VAR.get("")
+            if request_id:
+                span.set_attribute("request_id", request_id)
 
-        return LLMResponse(
-            content=data["message"]["content"],
-            model=self.model,
-            provider=self.provider_name,
-            tokens_used=data.get("eval_count"),
-            finish_reason=data.get("done_reason", "stop"),
-        )
+            response = await client.post(
+                f"{self.host}/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": [msg.model_dump() for msg in messages],
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "num_predict": max_tokens,
+                    },
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            span.set_attribute("llm.duration_ms", duration_ms)
+
+            llm_duration_histogram.record(
+                duration_ms,
+                {"provider": self.provider_name, "model": self.model, "streaming": "false"},
+            )
+
+            return LLMResponse(
+                content=data["message"]["content"],
+                model=self.model,
+                provider=self.provider_name,
+                tokens_used=data.get("eval_count"),
+                finish_reason=data.get("done_reason", "stop"),
+            )
 
     async def chat_stream(  # type: ignore[override]
         self,
@@ -93,25 +114,55 @@ class OllamaProvider(LLMProvider):
         kwargs.pop("model_override", None)  # Not supported, ignore
         client = await self._get_client()
 
-        async with client.stream(
-            "POST",
-            f"{self.host}/api/chat",
-            json={
-                "model": self.model,
-                "messages": [msg.model_dump() for msg in messages],
-                "stream": True,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
+        span = llm_tracer.start_span("llm.ollama.chat_stream")
+        start_time = time.perf_counter()
+        first_token_time: float | None = None
+
+        try:
+            span.set_attribute("llm.provider", self.provider_name)
+            span.set_attribute("llm.model", self.model)
+            span.set_attribute("llm.streaming", True)
+            request_id = REQUEST_ID_CTX_VAR.get("")
+            if request_id:
+                span.set_attribute("request_id", request_id)
+
+            async with client.stream(
+                "POST",
+                f"{self.host}/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": [msg.model_dump() for msg in messages],
+                    "stream": True,
+                    "options": {
+                        "temperature": temperature,
+                        "num_predict": max_tokens,
+                    },
                 },
-            },
-        ) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if line:
-                    data = json.loads(line)
-                    if "message" in data and "content" in data["message"]:
-                        yield data["message"]["content"]
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if line:
+                        data = json.loads(line)
+                        if "message" in data and "content" in data["message"]:
+                            if first_token_time is None and data["message"]["content"]:
+                                first_token_time = time.perf_counter()
+                            yield data["message"]["content"]
+        finally:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            span.set_attribute("llm.duration_ms", duration_ms)
+
+            if first_token_time is not None:
+                ttft_ms = (first_token_time - start_time) * 1000
+                span.set_attribute("llm.ttft_ms", ttft_ms)
+                llm_ttft_histogram.record(
+                    ttft_ms, {"provider": self.provider_name, "model": self.model}
+                )
+
+            llm_duration_histogram.record(
+                duration_ms,
+                {"provider": self.provider_name, "model": self.model, "streaming": "true"},
+            )
+            span.end()
 
     async def health_check(self) -> bool:
         """Check if Ollama is running and model is available."""

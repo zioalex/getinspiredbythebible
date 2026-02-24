@@ -3,12 +3,23 @@ OpenRouter LLM Provider implementation.
 OpenRouter provides access to various LLMs including free models via an OpenAI-compatible API.
 """
 
+import time
 from typing import AsyncIterator, cast
 
 from openai import APIStatusError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
+from middleware.context import REQUEST_ID_CTX_VAR
 from utils.logging_config import get_logger
+from utils.telemetry import (
+    llm_duration_histogram,
+    llm_fallback_attempts_counter,
+    llm_rate_limit_hits_counter,
+    llm_tokens_per_second_histogram,
+    llm_tokens_total_counter,
+    llm_tracer,
+    llm_ttft_histogram,
+)
 
 from .base import ChatMessage, LLMProvider, LLMResponse
 
@@ -130,7 +141,7 @@ class OpenRouterProvider(LLMProvider):
         """Check if we should try fallback models for this error."""
         return self._is_rate_limit_error(e) or self._is_model_unavailable_error(e)
 
-    async def chat(
+    async def chat(  # noqa: C901
         self,
         messages: list[ChatMessage],
         temperature: float = 0.7,
@@ -147,92 +158,183 @@ class OpenRouterProvider(LLMProvider):
         else:
             model_to_use, extra_body = self._get_model_and_extra_body()
 
-        try:
-            response = await self._client.chat.completions.create(
-                model=model_to_use,
-                messages=converted_messages,  # type: ignore[arg-type]
-                temperature=temperature,
-                max_tokens=max_tokens,
-                extra_body=extra_body,
-            )
-        except (RateLimitError, APIStatusError) as e:
-            should_fallback = self._should_try_fallback(e)
+        start_time = time.perf_counter()
+        with llm_tracer.start_as_current_span("llm.openrouter.chat") as span:
+            span.set_attribute("llm.provider", self.provider_name)
+            span.set_attribute("llm.model", model_to_use)
+            span.set_attribute("llm.streaming", False)
+            request_id = REQUEST_ID_CTX_VAR.get("")
+            if request_id:
+                span.set_attribute("request_id", request_id)
 
-            if should_fallback and self.fallback_models and self.allow_fallbacks:
-                logger.warning(
-                    f"Primary model failed (model={model_to_use}, primary={self.model}), "
-                    f"attempting fallback to: {self.fallback_models}"
+            try:
+                response = await self._client.chat.completions.create(
+                    model=model_to_use,
+                    messages=converted_messages,  # type: ignore[arg-type]
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    extra_body=extra_body,
                 )
-                for fallback_model in self.fallback_models:
-                    try:
-                        logger.info(f"Trying fallback model: {fallback_model}")
-                        response = await self._client.chat.completions.create(
-                            model=fallback_model,
-                            messages=converted_messages,  # type: ignore[arg-type]
-                            temperature=temperature,
-                            max_tokens=max_tokens,
-                        )
-                        logger.info(f"Fallback to {fallback_model} succeeded")
-                        # Return response with the fallback model name
-                        content = response.choices[0].message.content or ""
-                        return LLMResponse(
-                            content=content,
-                            model=fallback_model,
-                            provider=self.provider_name,
-                            tokens_used=(
-                                (response.usage.prompt_tokens if response.usage else 0)
-                                + (response.usage.completion_tokens if response.usage else 0)
-                            ),
-                            finish_reason=response.choices[0].finish_reason,
-                        )
-                    except (RateLimitError, APIStatusError) as fallback_e:
-                        if self._should_try_fallback(fallback_e):
-                            logger.warning(
-                                f"Fallback model {fallback_model} also failed: {fallback_e}"
-                            )
-                        else:
-                            logger.error(f"Fallback model {fallback_model} failed: {fallback_e}")
-                        continue
-                    except Exception as fallback_error:
-                        logger.error(f"Fallback model {fallback_model} failed: {fallback_error}")
-                        continue
-                # All fallbacks exhausted
-                raise RuntimeError(
-                    "All models unavailable or rate limited. "
-                    f"Primary: {self.model}, "
-                    f"Fallbacks: {self.fallback_models}. "
-                    "Check model names at https://openrouter.ai/models"
-                ) from e
-            else:
-                # No fallbacks configured or not a recoverable error
-                if should_fallback:
-                    logger.error(
-                        f"Model failed but no fallbacks available: "
-                        f"fallback_models={self.fallback_models}, allow_fallbacks={self.allow_fallbacks}"
+            except (RateLimitError, APIStatusError) as e:
+                should_fallback = self._should_try_fallback(e)
+
+                # Track rate limit hit
+                if self._is_rate_limit_error(e):
+                    llm_rate_limit_hits_counter.add(
+                        1, {"provider": self.provider_name, "model": model_to_use}
                     )
-                raise
+                    span.set_attribute("llm.rate_limit.hit", True)
 
-        # Handle cases where response might be malformed
-        if not response or not response.choices:
-            raise ValueError("OpenRouter returned empty response - API may be overloaded")
+                if should_fallback and self.fallback_models and self.allow_fallbacks:
+                    span.set_attribute("llm.fallback.triggered", True)
+                    llm_fallback_attempts_counter.add(
+                        1, {"provider": self.provider_name, "model": model_to_use}
+                    )
 
-        # Extract response content
-        content = response.choices[0].message.content or ""
+                    logger.warning(
+                        f"Primary model failed (model={model_to_use}, primary={self.model}), "
+                        f"attempting fallback to: {self.fallback_models}"
+                    )
+                    for fallback_model in self.fallback_models:
+                        try:
+                            logger.info(f"Trying fallback model: {fallback_model}")
+                            response = await self._client.chat.completions.create(
+                                model=fallback_model,
+                                messages=converted_messages,  # type: ignore[arg-type]
+                                temperature=temperature,
+                                max_tokens=max_tokens,
+                            )
+                            logger.info(f"Fallback to {fallback_model} succeeded")
+                            span.set_attribute("llm.fallback.model", fallback_model)
 
-        # Use actual model from response (may differ if auto-router selected different model)
-        actual_model = response.model if response.model else self.model
-        logger.info(f"OpenRouter response from model: {actual_model}")
+                            # Calculate duration and metrics
+                            duration_ms = (time.perf_counter() - start_time) * 1000
+                            span.set_attribute("llm.duration_ms", duration_ms)
 
-        return LLMResponse(
-            content=content,
-            model=actual_model,
-            provider=self.provider_name,
-            tokens_used=(
-                (response.usage.prompt_tokens if response.usage else 0)
-                + (response.usage.completion_tokens if response.usage else 0)
-            ),
-            finish_reason=response.choices[0].finish_reason,
-        )
+                            # Set token attributes
+                            if response.usage:
+                                total_tokens = (
+                                    response.usage.prompt_tokens + response.usage.completion_tokens
+                                )
+                                span.set_attribute("llm.tokens.total", total_tokens)
+                                span.set_attribute(
+                                    "llm.tokens.prompt", response.usage.prompt_tokens
+                                )
+                                span.set_attribute(
+                                    "llm.tokens.completion", response.usage.completion_tokens
+                                )
+                                llm_tokens_total_counter.add(
+                                    total_tokens,
+                                    {"provider": self.provider_name, "model": fallback_model},
+                                )
+
+                                if response.usage.completion_tokens > 0 and duration_ms > 0:
+                                    tokens_per_sec = (
+                                        response.usage.completion_tokens / duration_ms
+                                    ) * 1000
+                                    span.set_attribute("llm.tokens_per_second", tokens_per_sec)
+                                    llm_tokens_per_second_histogram.record(
+                                        tokens_per_sec,
+                                        {"provider": self.provider_name, "model": fallback_model},
+                                    )
+
+                            # Return response with the fallback model name
+                            content = response.choices[0].message.content or ""
+                            return LLMResponse(
+                                content=content,
+                                model=fallback_model,
+                                provider=self.provider_name,
+                                tokens_used=(
+                                    (response.usage.prompt_tokens if response.usage else 0)
+                                    + (response.usage.completion_tokens if response.usage else 0)
+                                ),
+                                finish_reason=response.choices[0].finish_reason,
+                            )
+                        except (RateLimitError, APIStatusError) as fallback_e:
+                            if self._is_rate_limit_error(fallback_e):
+                                llm_rate_limit_hits_counter.add(
+                                    1, {"provider": self.provider_name, "model": fallback_model}
+                                )
+
+                            if self._should_try_fallback(fallback_e):
+                                logger.warning(
+                                    f"Fallback model {fallback_model} also failed: {fallback_e}"
+                                )
+                            else:
+                                logger.error(
+                                    f"Fallback model {fallback_model} failed: {fallback_e}"
+                                )
+                            continue
+                        except Exception as fallback_error:
+                            logger.error(
+                                f"Fallback model {fallback_model} failed: {fallback_error}"
+                            )
+                            continue
+                    # All fallbacks exhausted
+                    raise RuntimeError(
+                        "All models unavailable or rate limited. "
+                        f"Primary: {self.model}, "
+                        f"Fallbacks: {self.fallback_models}. "
+                        "Check model names at https://openrouter.ai/models"
+                    ) from e
+                else:
+                    # No fallbacks configured or not a recoverable error
+                    if should_fallback:
+                        logger.error(
+                            f"Model failed but no fallbacks available: "
+                            f"fallback_models={self.fallback_models}, allow_fallbacks={self.allow_fallbacks}"
+                        )
+                    raise
+
+            # Handle cases where response might be malformed
+            if not response or not response.choices:
+                raise ValueError("OpenRouter returned empty response - API may be overloaded")
+
+            # Calculate duration and metrics
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            span.set_attribute("llm.duration_ms", duration_ms)
+
+            # Extract response content
+            content = response.choices[0].message.content or ""
+
+            # Use actual model from response (may differ if auto-router selected different model)
+            actual_model = response.model if response.model else self.model
+            logger.info(f"OpenRouter response from model: {actual_model}")
+            span.set_attribute("llm.model.actual", actual_model)
+
+            # Set token attributes
+            if response.usage:
+                total_tokens = response.usage.prompt_tokens + response.usage.completion_tokens
+                span.set_attribute("llm.tokens.total", total_tokens)
+                span.set_attribute("llm.tokens.prompt", response.usage.prompt_tokens)
+                span.set_attribute("llm.tokens.completion", response.usage.completion_tokens)
+                llm_tokens_total_counter.add(
+                    total_tokens, {"provider": self.provider_name, "model": actual_model}
+                )
+
+                # Calculate tokens per second
+                if response.usage.completion_tokens > 0 and duration_ms > 0:
+                    tokens_per_sec = (response.usage.completion_tokens / duration_ms) * 1000
+                    span.set_attribute("llm.tokens_per_second", tokens_per_sec)
+                    llm_tokens_per_second_histogram.record(
+                        tokens_per_sec, {"provider": self.provider_name, "model": actual_model}
+                    )
+
+            llm_duration_histogram.record(
+                duration_ms,
+                {"provider": self.provider_name, "model": actual_model, "streaming": "false"},
+            )
+
+            return LLMResponse(
+                content=content,
+                model=actual_model,
+                provider=self.provider_name,
+                tokens_used=(
+                    (response.usage.prompt_tokens if response.usage else 0)
+                    + (response.usage.completion_tokens if response.usage else 0)
+                ),
+                finish_reason=response.choices[0].finish_reason,
+            )
 
     async def _try_stream_with_fallback(
         self,
@@ -256,7 +358,7 @@ class OpenRouterProvider(LLMProvider):
         )
         return stream
 
-    async def chat_stream(  # type: ignore[override]
+    async def chat_stream(  # type: ignore[override]  # noqa: C901
         self,
         messages: list[ChatMessage],
         temperature: float = 0.7,
@@ -278,53 +380,96 @@ class OpenRouterProvider(LLMProvider):
         current_model = model_to_use
         fallback_index = 0
 
-        while True:
-            try:
-                stream = cast(
-                    AsyncIterator[ChatCompletionChunk],
-                    await self._client.chat.completions.create(
-                        model=current_model,
-                        messages=converted_messages,  # type: ignore[arg-type]
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        stream=True,
-                        extra_body=extra_body if current_model == model_to_use else None,
-                    ),
+        span = llm_tracer.start_span("llm.openrouter.chat_stream")
+        start_time = time.perf_counter()
+        first_token_time: float | None = None
+
+        try:
+            span.set_attribute("llm.provider", self.provider_name)
+            span.set_attribute("llm.model", current_model)
+            span.set_attribute("llm.streaming", True)
+            request_id = REQUEST_ID_CTX_VAR.get("")
+            if request_id:
+                span.set_attribute("request_id", request_id)
+
+            while True:
+                try:
+                    stream = cast(
+                        AsyncIterator[ChatCompletionChunk],
+                        await self._client.chat.completions.create(
+                            model=current_model,
+                            messages=converted_messages,  # type: ignore[arg-type]
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stream=True,
+                            extra_body=extra_body if current_model == model_to_use else None,
+                        ),
+                    )
+
+                    async for chunk in stream:
+                        if chunk.choices and chunk.choices[0].delta.content:
+                            if first_token_time is None:
+                                first_token_time = time.perf_counter()
+                            yield chunk.choices[0].delta.content
+                    return  # Success, exit the generator
+
+                except (RateLimitError, APIStatusError) as e:
+                    # Check if this error should trigger fallback
+                    should_fallback = self._should_try_fallback(e)
+
+                    # Track rate limit hit
+                    if self._is_rate_limit_error(e):
+                        llm_rate_limit_hits_counter.add(
+                            1, {"provider": self.provider_name, "model": current_model}
+                        )
+                        span.set_attribute("llm.rate_limit.hit", True)
+
+                    if not should_fallback:
+                        # Not a recoverable error, re-raise
+                        raise
+
+                    logger.warning(f"Model {current_model} failed in streaming: {e}")
+
+                    # Try next fallback model
+                    if (
+                        self.fallback_models
+                        and self.allow_fallbacks
+                        and fallback_index < len(self.fallback_models)
+                    ):
+                        span.set_attribute("llm.fallback.triggered", True)
+                        llm_fallback_attempts_counter.add(
+                            1, {"provider": self.provider_name, "model": current_model}
+                        )
+
+                        current_model = self.fallback_models[fallback_index]
+                        fallback_index += 1
+                        extra_body = None  # Don't use auto-router for direct fallback
+                        logger.info(f"Streaming fallback to: {current_model}")
+                        span.set_attribute("llm.fallback.model", current_model)
+                        continue
+                    else:
+                        # No more fallbacks
+                        raise RuntimeError(
+                            "All models unavailable in streaming. "
+                            f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
+                            "Check model names at https://openrouter.ai/models"
+                        ) from e
+        finally:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            span.set_attribute("llm.duration_ms", duration_ms)
+
+            if first_token_time is not None:
+                ttft_ms = (first_token_time - start_time) * 1000
+                span.set_attribute("llm.ttft_ms", ttft_ms)
+                llm_ttft_histogram.record(
+                    ttft_ms, {"provider": self.provider_name, "model": current_model}
                 )
 
-                async for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        yield chunk.choices[0].delta.content
-                return  # Success, exit the generator
-
-            except (RateLimitError, APIStatusError) as e:
-                # Check if this error should trigger fallback
-                should_fallback = self._should_try_fallback(e)
-
-                if not should_fallback:
-                    # Not a recoverable error, re-raise
-                    raise
-
-                logger.warning(f"Model {current_model} failed in streaming: {e}")
-
-                # Try next fallback model
-                if (
-                    self.fallback_models
-                    and self.allow_fallbacks
-                    and fallback_index < len(self.fallback_models)
-                ):
-                    current_model = self.fallback_models[fallback_index]
-                    fallback_index += 1
-                    extra_body = None  # Don't use auto-router for direct fallback
-                    logger.info(f"Streaming fallback to: {current_model}")
-                    continue
-                else:
-                    # No more fallbacks
-                    raise RuntimeError(
-                        "All models unavailable in streaming. "
-                        f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
-                        "Check model names at https://openrouter.ai/models"
-                    ) from e
+            llm_duration_histogram.record(
+                duration_ms,
+                {"provider": self.provider_name, "model": current_model, "streaming": "true"},
+            )
+            span.end()
 
     async def verify_model_available(self, model: str) -> tuple[bool, str]:
         """
