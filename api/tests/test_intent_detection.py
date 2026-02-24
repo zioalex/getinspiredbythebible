@@ -167,6 +167,7 @@ class TestChatOffTopicFlow:
         mock_settings.llm_max_tokens = 1024
         mock_settings.max_context_verses = 10
         mock_settings.max_conversation_history = 10
+        mock_settings.query_expansion_enabled = False  # NEW: disable query expansion
 
         # First call: intent detection returns COMFORT
         # Second call: main LLM response
@@ -194,6 +195,7 @@ class TestChatOffTopicFlow:
         mock_settings.llm_max_tokens = 1024
         mock_settings.max_context_verses = 10
         mock_settings.max_conversation_history = 10
+        mock_settings.query_expansion_enabled = False  # NEW: disable query expansion
 
         mock_llm.chat.return_value = LLMResponse(
             content="Here are some travel tips!", model="m", provider="p"
