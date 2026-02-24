@@ -77,6 +77,10 @@ jobs:
           pytest -v --tb=short
 
       - name: Test API syntax and imports
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          LLM_PROVIDER: ollama
+          OLLAMA_HOST: http://localhost:11434
         run: |
           cd api
           python -c "import main; import config; print('✓ Core modules import successfully')"
