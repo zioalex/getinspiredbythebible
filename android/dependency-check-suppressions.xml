@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-  <!-- Add suppressions here for known false positives -->
+  <!--
+    Suppressions for known false positives in OWASP Dependency Check.
+    Review the HTML report artifact after each OWASP scan run and add
+    suppressions here for any confirmed false positives.
+
+    Format:
+      <suppress>
+        <notes>CVE-XXXX-XXXXX: False positive - this library is not affected because...</notes>
+        <cve>CVE-XXXX-XXXXX</cve>
+      </suppress>
+  -->
 </suppressions>
