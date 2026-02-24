@@ -5,6 +5,7 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import hashlib
 import time
 import uuid
 from typing import AsyncIterator
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
+from utils.content_safety import ContentSafetyViolationError, get_content_safety_service
 from utils.language import (
     detect_language,
     get_model_override_for_language,
@@ -159,6 +161,37 @@ class ChatService:
             "Language detection",
             extra={"detected": detected_language, "translation": translation},
         )
+
+        # Content safety check BEFORE LLM call
+        if settings.content_safety_enabled:
+            safety_service = get_content_safety_service()
+            safety_result = await safety_service.check(request.message, detected_language)
+
+            if not safety_result.allowed:
+                text_hash = hashlib.sha256(request.message.encode()).hexdigest()[:16]
+                logger.warning(
+                    "Content safety violation in chat",
+                    extra={
+                        "text_hash": text_hash,
+                        "language": detected_language,
+                        "reason": safety_result.reason,
+                        "categories": safety_result.categories,
+                        "session_id": request.session_id,
+                    },
+                )
+                raise ContentSafetyViolationError(
+                    message=(
+                        "We're here to help. If you're struggling or in crisis, please reach out: "
+                        "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
+                    ),
+                    categories=safety_result.categories,
+                    reason=safety_result.reason,
+                )
+
+            # If help-seeking detected, note it for compassionate prompt selection
+            if safety_result.compassionate_response_needed:
+                logger.info("Help-seeking message detected, will use compassionate response")
+                # The existing compassionate system prompts handle this well
 
         # Intent detection: classify before scripture search
         if settings.content_filter_intent_detection:
@@ -409,6 +442,38 @@ class ChatService:
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(detected_language)
+
+        # Content safety check BEFORE LLM call
+        if settings.content_safety_enabled:
+            safety_service = get_content_safety_service()
+            safety_result = await safety_service.check(request.message, detected_language)
+
+            if not safety_result.allowed:
+                text_hash = hashlib.sha256(request.message.encode()).hexdigest()[:16]
+                logger.warning(
+                    "Content safety violation in chat stream",
+                    extra={
+                        "text_hash": text_hash,
+                        "language": detected_language,
+                        "reason": safety_result.reason,
+                        "categories": safety_result.categories,
+                        "session_id": request.session_id,
+                    },
+                )
+                raise ContentSafetyViolationError(
+                    message=(
+                        "We're here to help. If you're struggling or in crisis, please reach out: "
+                        "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
+                    ),
+                    categories=safety_result.categories,
+                    reason=safety_result.reason,
+                )
+
+            # If help-seeking detected, note it for compassionate prompt selection
+            if safety_result.compassionate_response_needed:
+                logger.info(
+                    "Help-seeking message detected in stream, will use compassionate response"
+                )
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:

@@ -3,11 +3,14 @@ Security utilities for anti-abuse protection.
 
 Provides:
 - Content filtering (profanity, spam, URL detection)
+- Multi-language violence & harm detection
 - Rate limiting dependencies
 - Security violation logging
 """
 
+import hashlib
 import re
+import unicodedata
 from enum import Enum
 from typing import Annotated
 
@@ -32,6 +35,10 @@ class ViolationType(str, Enum):
     URL_DETECTED = "url_detected"
     REPEATED_CHARS = "repeated_chars"
     MESSAGE_TOO_LONG = "message_too_long"
+    VIOLENCE = "violence"
+    SELF_HARM = "self_harm"
+    HATE_SPEECH = "hate_speech"
+    DIRECTED_HARM = "directed_harm"
 
 
 def log_security_violation(
@@ -261,3 +268,374 @@ async def check_content_filter(request: Request) -> None:
 # Type alias for dependency injection
 RateLimitDep = Annotated[None, Depends(require_rate_limit)]
 ContentFilterDep = Annotated[None, Depends(check_content_filter)]
+
+
+def normalize_text(text: str) -> str:
+    """
+    Normalize text to catch evasion attempts.
+
+    - NFKC normalization (compatibility characters)
+    - Zero-width character removal
+    - Leet-speak substitution (b0mb → bomb)
+    """
+    # NFKC normalization
+    text = unicodedata.normalize("NFKC", text)
+
+    # Remove zero-width characters
+    zero_width_chars = [
+        "\u200b",  # Zero-width space
+        "\u200c",  # Zero-width non-joiner
+        "\u200d",  # Zero-width joiner
+        "\ufeff",  # Zero-width no-break space
+    ]
+    for char in zero_width_chars:
+        text = text.replace(char, "")
+
+    # Leet-speak substitution (common patterns)
+    leet_map = {
+        "0": "o",
+        "1": "i",
+        "3": "e",
+        "4": "a",
+        "5": "s",
+        "7": "t",
+        "@": "a",
+        "$": "s",
+        "*": "",  # Remove asterisks (f*ck → fck)
+    }
+    for leet, normal in leet_map.items():
+        text = text.replace(leet, normal)
+
+    return text.lower()
+
+
+class MultiLanguageContentFilter:
+    """
+    Multi-language content filter for violence, self-harm, hate speech.
+
+    Supports 7 languages: EN, IT, DE, ES, FR, PT, AR
+
+    Critical distinction:
+    - Help-seeking (low confidence) → allow, flag for compassionate response
+    - Harmful intent (high confidence) → block immediately
+    """
+
+    # Violence patterns by language
+    VIOLENCE_PATTERNS = {
+        "en": [
+            r"\bbomb\b",
+            r"\bexplosive\b",
+            r"\bweapon\b",
+            r"\bgun\b",
+            r"\bkill\b",
+            r"\bmurder\b",
+            r"\battack\b",
+            r"\bterror",
+            r"\bshoot\b",
+            r"\bstab\b",
+            r"\bslaughter\b",
+        ],
+        "it": [
+            r"\bbomba\b",
+            r"\besplosi",
+            r"\barma\b",
+            r"\barmi\b",
+            r"\buccidere\b",
+            r"\bomicidio\b",
+            r"\battacco\b",
+            r"\bterror",
+            r"\bsparare\b",
+            r"\baccoltellare\b",
+        ],
+        "de": [
+            r"\bbombe\b",
+            r"\bsprengstoff\b",
+            r"\bwaffe\b",
+            r"\bwaffen\b",
+            r"\btöten\b",
+            r"\bmord\b",
+            r"\bangriff\b",
+            r"\bterror",
+            r"\bschießen\b",
+            r"\bstechen\b",
+        ],
+        "es": [
+            r"\bbomba\b",
+            r"\bexplosivo\b",
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\basesinato\b",
+            r"\bataque\b",
+            r"\bterror",
+            r"\bdisparar\b",
+            r"\bapuñalar\b",
+        ],
+        "fr": [
+            r"\bbombe\b",
+            r"\bexplosif\b",
+            r"\barme\b",
+            r"\barmes\b",
+            r"\btuer\b",
+            r"\bmeurtre\b",
+            r"\battaque\b",
+            r"\bterror",
+            r"\btirer\b",
+            r"\bpoignarder\b",
+        ],
+        "pt": [
+            r"\bbomba\b",
+            r"\bexplosivo\b",
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\bassassinato\b",
+            r"\bataque\b",
+            r"\bterror",
+            r"\batirar\b",
+            r"\besfaquear\b",
+        ],
+        "ar": [
+            r"قنبلة",
+            r"متفجر",
+            r"سلاح",
+            r"أسلحة",
+            r"قتل",
+            r"جريمة قتل",
+            r"هجوم",
+            r"إرهاب",
+        ],
+    }
+
+    # Self-harm patterns by language
+    SELF_HARM_PATTERNS = {
+        "en": [
+            r"\bsuicide\b",
+            r"\bkill myself\b",
+            r"\bend my life\b",
+            r"\bself.harm\b",
+            r"\bcut myself\b",
+            r"\bwant to die\b",
+            r"\bwish i was dead\b",
+            r"\bno reason to live\b",
+        ],
+        "it": [
+            r"\bsuicidio\b",
+            r"\buccidermi\b",
+            r"\bfinire la mia vita\b",
+            r"\bautolesionism",
+            r"\btagliarmi\b",
+            r"\bvoglio morire\b",
+        ],
+        "de": [
+            r"\bselbstmord\b",
+            r"\bsuizid\b",
+            r"\bmich umbringen\b",
+            r"\bselbstverletzung\b",
+            r"\bich will sterben\b",
+        ],
+        "es": [
+            r"\bsuicidio\b",
+            r"\bmatarme\b",
+            r"\bterminar con mi vida\b",
+            r"\bautolesion",
+            r"\bquiero morir\b",
+        ],
+        "fr": [
+            r"\bsuicide\b",
+            r"\bme tuer\b",
+            r"\bmettre fin à ma vie\b",
+            r"\bauto.mutilation\b",
+            r"\bje veux mourir\b",
+        ],
+        "pt": [
+            r"\bsuicídio\b",
+            r"\bsuicidio\b",
+            r"\bme matar\b",
+            r"\bautomutilação\b",
+            r"\bquero morrer\b",
+        ],
+        "ar": [
+            r"انتحار",
+            r"أقتل نفسي",
+            r"إنهاء حياتي",
+            r"إيذاء النفس",
+            r"أريد أن أموت",
+        ],
+    }
+
+    # Hate speech patterns (language-agnostic)
+    HATE_SPEECH_PATTERNS = {
+        "all": [
+            r"\bn[i1]gg[e3]r\b",
+            r"\bfagg[o0]t\b",
+            r"\bk[i1]ke\b",
+            r"\bsp[i1]c\b",
+            r"\bch[i1]nk\b",
+            r"\bgod hates\b",
+            r"\bdeath to\b",
+            r"\bkill all\b",
+            r"\bexterminate\b",
+        ],
+    }
+
+    # Directed harm patterns (indicates harmful intent, not help-seeking)
+    DIRECTED_HARM_PATTERNS = {
+        "en": [
+            r"\bgo kill yourself\b",
+            r"\bkill yourself\b",
+            r"\bgo die\b",
+            r"\byou should die\b",
+            r"\bi will kill you\b",
+            r"\bi want to kill you\b",
+            r"\bgo fuck yourself\b",
+        ],
+        "it": [
+            r"\bvattene a fanculo\b",
+            r"\bti ammazzo\b",
+            r"\bmuori\b",
+        ],
+        "de": [
+            r"\bgeh sterben\b",
+            r"\bich töte dich\b",
+            r"\bverpiss dich\b",
+        ],
+        "es": [
+            r"\bvete a la mierda\b",
+            r"\bte mato\b",
+            r"\bmuérete\b",
+        ],
+        "fr": [
+            r"\bva te faire foutre\b",
+            r"\bje vais te tuer\b",
+            r"\bcrève\b",
+        ],
+        "pt": [
+            r"\bvá se foder\b",
+            r"\bvou te matar\b",
+            r"\bmorra\b",
+        ],
+    }
+
+    def __init__(self):
+        """Initialize compiled regex patterns."""
+        self._violence_regex = {}
+        self._self_harm_regex = {}
+        self._hate_speech_regex = None
+        self._directed_harm_regex = {}
+
+        # Compile violence patterns
+        for lang, patterns in self.VIOLENCE_PATTERNS.items():
+            self._violence_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
+
+        # Compile self-harm patterns
+        for lang, patterns in self.SELF_HARM_PATTERNS.items():
+            self._self_harm_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
+
+        # Compile hate speech patterns
+        self._hate_speech_regex = re.compile(
+            "|".join(self.HATE_SPEECH_PATTERNS["all"]), re.IGNORECASE | re.UNICODE
+        )
+
+        # Compile directed harm patterns
+        for lang, patterns in self.DIRECTED_HARM_PATTERNS.items():
+            self._directed_harm_regex[lang] = re.compile(
+                "|".join(patterns), re.IGNORECASE | re.UNICODE
+            )
+
+    def check_multilingual(
+        self, text: str, language: str = "en"
+    ) -> tuple[bool, str, str | None, str | None]:
+        """
+        Check text for harmful content in the specified language.
+
+        Args:
+            text: The message to check
+            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+
+        Returns:
+            Tuple of (blocked, confidence, violation_type, pattern_matched)
+            - blocked: True if content should be blocked
+            - confidence: "high" (block immediately) or "low" (may be help-seeking)
+            - violation_type: Type of violation detected (or None)
+            - pattern_matched: The pattern that matched (for logging)
+        """
+        # Normalize text to catch evasion attempts
+        normalized = normalize_text(text)
+
+        # Check directed harm first (highest priority - always block)
+        directed_patterns = self._directed_harm_regex.get(
+            language
+        ) or self._directed_harm_regex.get("en")
+        if directed_patterns and directed_patterns.search(normalized):
+            match = directed_patterns.search(normalized)
+            pattern = match.group(0) if match else "directed_harm"
+            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+            logger.warning(
+                "Content safety: directed harm detected",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": pattern,
+                    "violation_type": "directed_harm",
+                },
+            )
+            return True, "high", ViolationType.DIRECTED_HARM.value, pattern
+
+        # Check hate speech (always block, high confidence)
+        if self._hate_speech_regex.search(normalized):
+            match = self._hate_speech_regex.search(normalized)
+            pattern = match.group(0) if match else "hate_speech"
+            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+            logger.warning(
+                "Content safety: hate speech detected",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": pattern,
+                    "violation_type": "hate_speech",
+                },
+            )
+            return True, "high", ViolationType.HATE_SPEECH.value, pattern
+
+        # Check violence (high confidence - block)
+        # Check both specified language and English (fallback)
+        for check_lang in [language, "en"]:
+            if check_lang in self._violence_regex:
+                if self._violence_regex[check_lang].search(normalized):
+                    match = self._violence_regex[check_lang].search(normalized)
+                    pattern = match.group(0) if match else "violence"
+                    text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+                    logger.warning(
+                        "Content safety: violence detected",
+                        extra={
+                            "text_hash": text_hash,
+                            "language": language,
+                            "pattern": pattern,
+                            "violation_type": "violence",
+                        },
+                    )
+                    return True, "high", ViolationType.VIOLENCE.value, pattern
+
+        # Check self-harm (low confidence - may be help-seeking)
+        for check_lang in [language, "en"]:
+            if check_lang in self._self_harm_regex:
+                if self._self_harm_regex[check_lang].search(normalized):
+                    match = self._self_harm_regex[check_lang].search(normalized)
+                    pattern = match.group(0) if match else "self_harm"
+                    text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+                    logger.info(
+                        "Content safety: possible help-seeking detected",
+                        extra={
+                            "text_hash": text_hash,
+                            "language": language,
+                            "pattern": pattern,
+                            "violation_type": "self_harm",
+                            "confidence": "low",
+                        },
+                    )
+                    # Return blocked=True but low confidence (caller decides)
+                    return True, "low", ViolationType.SELF_HARM.value, pattern
+
+        # No violations detected
+        return False, "high", None, None
