@@ -451,8 +451,8 @@ jobs:
         run: |
           cd api
           pip install safety
+          # Ignore 70612: historical pip vendored dependency CVE (no longer present)
           safety check -r requirements.txt --ignore 70612
-        continue-on-error: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
