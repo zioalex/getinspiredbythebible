@@ -115,5 +115,11 @@
     "successDescription": "Merci de nous avoir contactés. Nous examinerons votre message bientôt.",
     "sendAnother": "Envoyer un autre",
     "errorSend": "Impossible d'envoyer le message. Veuillez réessayer ou nous écrire directement."
+  },
+  "ErrorBoundary": {
+    "title": "Quelque chose s'est mal passé",
+    "message": "Une erreur inattendue s'est produite. Veuillez essayer de recharger la page. Si le problème persiste, contactez le support.",
+    "reloadButton": "Recharger la page",
+    "reportIssue": "Signaler ce problème"
   }
 }

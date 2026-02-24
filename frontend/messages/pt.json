@@ -115,5 +115,11 @@
     "successDescription": "Obrigado por entrar em contacto. Analisaremos a sua mensagem em breve.",
     "sendAnother": "Enviar outra",
     "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente."
+  },
+  "ErrorBoundary": {
+    "title": "Algo deu errado",
+    "message": "Ocorreu um erro inesperado. Por favor tente recarregar a página. Se o problema persistir, entre em contato com o suporte.",
+    "reloadButton": "Recarregar página",
+    "reportIssue": "Relatar este problema"
   }
 }

@@ -115,5 +115,11 @@
     "successDescription": "Thank you for reaching out. We'll review your message soon.",
     "sendAnother": "Send another",
     "errorSend": "Failed to send message. Please try again or email us directly."
+  },
+  "ErrorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Please try reloading the page. If the problem persists, contact support.",
+    "reloadButton": "Reload Page",
+    "reportIssue": "Report this issue"
   }
 }
