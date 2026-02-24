@@ -155,9 +155,15 @@ class ChatService:
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(detected_language)
-        logger.debug(
-            "Language detection",
-            extra={"detected": detected_language, "translation": translation},
+        logger.info(
+            "Language detection and translation resolution",
+            extra={
+                "detected_language": detected_language,
+                "translation": translation,
+                "user_preference": request.preferred_translation,
+                "model_override": model_override,
+                "message_preview": request.message[:50],
+            },
         )
 
         # Intent detection: classify before scripture search
@@ -409,6 +415,16 @@ class ChatService:
         translation = resolve_translation(request.preferred_translation, detected_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(detected_language)
+        logger.info(
+            "Language detection and translation resolution (stream)",
+            extra={
+                "detected_language": detected_language,
+                "translation": translation,
+                "user_preference": request.preferred_translation,
+                "model_override": model_override,
+                "message_preview": request.message[:50],
+            },
+        )
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:
@@ -512,6 +528,15 @@ class ChatService:
         Returns:
             List of ChatMessage objects for the LLM
         """
+        logger.debug(
+            "Building messages for LLM",
+            extra={
+                "language_code": language_code,
+                "prompt_type": prompt_type,
+                "has_search_context": bool(search_context),
+            },
+        )
+
         messages = []
 
         # Select appropriate system prompt based on request type
