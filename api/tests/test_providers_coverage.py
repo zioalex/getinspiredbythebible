@@ -8,6 +8,7 @@ providers/factory.py, providers/base.py, providers/openrouter.py
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from providers.base import ChatMessage, EmbeddingResponse, LLMResponse
 
@@ -620,34 +621,40 @@ class TestProviderFactory:
         from providers.factory import create_llm_provider
 
         config = Settings(
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
             llm_provider="claude",
             llm_model="claude-sonnet-4-20250514",
             anthropic_api_key="test-key",  # pragma: allowlist secret
+            _env_file=None,
         )
         provider = create_llm_provider(config)
         assert provider.provider_name == "claude"
 
     def test_create_claude_requires_api_key(self):
-        """Factory should raise ProviderError for Claude without API key."""
+        """Settings validation should reject Claude without API key."""
         from config import Settings
-        from providers.factory import ProviderError, create_llm_provider
 
-        config = Settings(
-            llm_provider="claude",
-            llm_model="claude-sonnet-4-20250514",
-            anthropic_api_key=None,
-        )
-        with pytest.raises(ProviderError, match="ANTHROPIC_API_KEY"):
-            create_llm_provider(config)
+        with pytest.raises(ValidationError, match="anthropic_api_key is required"):
+            Settings(
+                database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+                llm_provider="claude",
+                llm_model="claude-sonnet-4-20250514",
+                anthropic_api_key=None,
+                _env_file=None,
+            )
 
     def test_create_openai_raises_not_implemented(self):
-        """Factory should raise ProviderError for OpenAI (not yet implemented)."""
+        """Settings validation should reject OpenAI without API key."""
         from config import Settings
-        from providers.factory import ProviderError, create_llm_provider
 
-        config = Settings(llm_provider="openai", llm_model="gpt-4")
-        with pytest.raises(ProviderError, match="not yet implemented"):
-            create_llm_provider(config)
+        with pytest.raises(ValidationError, match="openai_api_key is required"):
+            Settings(
+                database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+                llm_provider="openai",
+                llm_model="gpt-4",
+                openai_api_key=None,
+                _env_file=None,
+            )
 
     def test_create_unknown_provider_raises(self):
         """Factory should raise ProviderError for unknown provider."""
@@ -666,10 +673,12 @@ class TestProviderFactory:
         from providers.ollama import OllamaEmbeddingProvider
 
         config = Settings(
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
             embedding_provider="ollama",
             embedding_model="mxbai-embed-large",
             embedding_dimensions=1024,
             ollama_host="http://localhost:11434",
+            _env_file=None,
         )
         provider = create_embedding_provider(config)
         assert isinstance(provider, OllamaEmbeddingProvider)
@@ -680,58 +689,72 @@ class TestProviderFactory:
         from providers.factory import create_embedding_provider
 
         config = Settings(
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
             embedding_provider="azure_openai",
+            embedding_model="text-embedding-3-small",  # Azure model, not mxbai-embed-large
             azure_openai_endpoint="https://test.openai.azure.com",
             azure_openai_api_key="test-key",  # pragma: allowlist secret
             azure_embedding_deployment="text-embedding-3-small",
             embedding_dimensions=1536,
+            _env_file=None,
         )
         provider = create_embedding_provider(config)
         assert provider.provider_name == "azure_openai"
 
     def test_create_embedding_azure_requires_endpoint(self):
-        """Factory should raise if Azure endpoint is missing."""
+        """Settings validation should reject Azure without endpoint."""
         from config import Settings
-        from providers.factory import ProviderError, create_embedding_provider
 
-        config = Settings(
-            embedding_provider="azure_openai",
-            azure_openai_endpoint=None,
-            azure_openai_api_key="test-key",  # pragma: allowlist secret
-        )
-        with pytest.raises(ProviderError, match="AZURE_OPENAI_ENDPOINT"):
-            create_embedding_provider(config)
+        with pytest.raises(
+            ValidationError, match="azure_openai_endpoint and azure_openai_api_key are required"
+        ):
+            Settings(
+                database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+                embedding_provider="azure_openai",
+                azure_openai_endpoint=None,
+                azure_openai_api_key="test-key",  # pragma: allowlist secret
+                _env_file=None,
+            )
 
     def test_create_embedding_azure_requires_api_key(self):
-        """Factory should raise if Azure API key is missing."""
+        """Settings validation should reject Azure without API key."""
         from config import Settings
-        from providers.factory import ProviderError, create_embedding_provider
 
-        config = Settings(
-            embedding_provider="azure_openai",
-            azure_openai_endpoint="https://test.openai.azure.com",
-            azure_openai_api_key=None,
-        )
-        with pytest.raises(ProviderError, match="AZURE_OPENAI_API_KEY"):
-            create_embedding_provider(config)
+        with pytest.raises(
+            ValidationError, match="azure_openai_endpoint and azure_openai_api_key are required"
+        ):
+            Settings(
+                database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+                embedding_provider="azure_openai",
+                azure_openai_endpoint="https://test.openai.azure.com",
+                azure_openai_api_key=None,
+                _env_file=None,
+            )
 
     def test_create_embedding_openrouter_raises(self):
         """Factory should raise for OpenRouter embeddings (not supported)."""
         from config import Settings
         from providers.factory import ProviderError, create_embedding_provider
 
-        config = Settings(embedding_provider="openrouter")
+        config = Settings(
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+            embedding_provider="openrouter",
+            _env_file=None,
+        )
         with pytest.raises(ProviderError, match="doesn't support embeddings"):
             create_embedding_provider(config)
 
     def test_create_embedding_openai_raises(self):
-        """Factory should raise for OpenAI embeddings (not yet implemented)."""
+        """Settings validation should reject OpenAI embeddings without API key."""
         from config import Settings
-        from providers.factory import ProviderError, create_embedding_provider
 
-        config = Settings(embedding_provider="openai")
-        with pytest.raises(ProviderError, match="not yet implemented"):
-            create_embedding_provider(config)
+        with pytest.raises(ValidationError, match="openai_api_key is required"):
+            Settings(
+                database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+                embedding_provider="openai",
+                openai_api_key=None,
+                _env_file=None,
+            )
 
     def test_create_embedding_unknown_raises(self):
         """Factory should raise for unknown embedding provider."""
@@ -749,11 +772,13 @@ class TestProviderFactory:
         from providers.factory import create_llm_provider
 
         config = Settings(
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
             llm_provider="openrouter",
             openrouter_api_key="test-key",  # pragma: allowlist secret
             openrouter_model="primary-model",
             openrouter_fallback_models="fallback1, fallback2",
             openrouter_allow_fallbacks=True,
+            _env_file=None,
         )
         provider = create_llm_provider(config)
         assert provider.fallback_models == ["fallback1", "fallback2"]
