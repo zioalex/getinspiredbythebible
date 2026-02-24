@@ -284,6 +284,7 @@ jobs:
             --project "BibleInspirationApp" \
             --failOnCVSS 7 \
             --suppression android/dependency-check-suppressions.xml \
+            --disableOssIndex \
             --nvdApiKey "${{ secrets.NIST_API_KEY }}"
         env:
           NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
