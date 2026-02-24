@@ -112,6 +112,12 @@ db_query_duration_histogram = meter.create_histogram(
     unit="ms",
 )
 
+db_connections_active_gauge = meter.create_up_down_counter(
+    name="db.connections.active",
+    description="Number of active database connections",
+    unit="1",
+)
+
 db_slow_queries_counter = meter.create_counter(
     name="db.slow_queries",
     description="Count of queries exceeding slow query threshold (default 100ms)",

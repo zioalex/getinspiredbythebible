@@ -13,6 +13,10 @@ from utils.metrics import (
     chat_stream_counter,
     church_search_counter,
     contact_form_counter,
+    db_connections_active_gauge,
+    db_query_duration_histogram,
+    db_search_duration_histogram,
+    db_slow_queries_counter,
     feedback_counter,
     scripture_search_counter,
     scripture_verses_returned,
@@ -157,3 +161,46 @@ class TestMetrics:
         with patch.object(db_slow_queries_counter, "add") as mock_add:
             db_slow_queries_counter.add(1)
             mock_add.assert_called_once_with(1)
+
+
+class TestDBMetrics:
+    """Verify database performance metrics definitions and recording."""
+
+    def test_db_metrics_defined(self):
+        """Ensure all DB metrics objects are initialized."""
+        assert db_search_duration_histogram is not None
+        assert db_query_duration_histogram is not None
+        assert db_connections_active_gauge is not None
+        assert db_slow_queries_counter is not None
+
+    def test_db_search_duration_recording(self):
+        """Test recording search duration histogram with operation/translation dimensions."""
+        with patch.object(db_search_duration_histogram, "record") as mock_record:
+            db_search_duration_histogram.record(
+                45.2, {"operation": "semantic_search_verses", "translation": "kjv"}
+            )
+            mock_record.assert_called_once_with(
+                45.2, {"operation": "semantic_search_verses", "translation": "kjv"}
+            )
+
+    def test_db_query_duration_recording(self):
+        """Test recording query duration histogram with operation dimension."""
+        with patch.object(db_query_duration_histogram, "record") as mock_record:
+            db_query_duration_histogram.record(12.5, {"operation": "get_verse"})
+            mock_record.assert_called_once_with(12.5, {"operation": "get_verse"})
+
+    def test_db_slow_query_counter_recording(self):
+        """Test incrementing slow query counter with operation dimension."""
+        with patch.object(db_slow_queries_counter, "add") as mock_add:
+            db_slow_queries_counter.add(1, {"operation": "semantic_search_verses"})
+            mock_add.assert_called_once_with(1, {"operation": "semantic_search_verses"})
+
+    def test_db_connections_active_gauge_operations(self):
+        """Test incrementing/decrementing active connections gauge."""
+        with patch.object(db_connections_active_gauge, "add") as mock_add:
+            db_connections_active_gauge.add(1)
+            mock_add.assert_called_once_with(1)
+
+        with patch.object(db_connections_active_gauge, "add") as mock_add:
+            db_connections_active_gauge.add(-1)
+            mock_add.assert_called_once_with(-1)
