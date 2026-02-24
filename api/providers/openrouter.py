@@ -394,3 +394,7 @@ class OpenRouterProvider(LLMProvider):
             return response is not None
         except Exception:
             return False
+
+    async def close(self) -> None:
+        """Close the OpenAI HTTP client."""
+        await self._client.close()
