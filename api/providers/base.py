@@ -94,6 +94,10 @@ class LLMProvider(ABC):
         """
         pass
 
+    async def close(self) -> None:
+        """Close any resources held by this provider (e.g. HTTP clients)."""
+        pass
+
 
 class EmbeddingProvider(ABC):
     """
@@ -141,4 +145,8 @@ class EmbeddingProvider(ABC):
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the provider is available."""
+        pass
+
+    async def close(self) -> None:
+        """Close any resources held by this provider (e.g. HTTP clients)."""
         pass
