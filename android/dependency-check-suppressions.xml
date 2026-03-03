@@ -23,4 +23,108 @@
         <cve>CVE-XXXX-XXXXX</cve>
       </suppress>
   -->
+
+  <!-- ============================================================
+       Gradle build tool CVEs — not bundled in the APK
+       ============================================================ -->
+
+  <suppress>
+    <notes>CVE-2026-22816: Gradle dependency-resolution spoofing via lapsed domain names.
+      Affects Gradle versions before 9.3.0. gradle-8.4.2.jar, gradle-api-8.4.2.jar,
+      and gradle-settings-api-8.4.2.jar are build-tool JARs that are never bundled into
+      the Android APK and are not present at app runtime. The vulnerability requires
+      control over repository infrastructure during a build, which is a build-environment
+      concern, not a shipped-app concern.
+      See: https://github.com/gradle/gradle/security/advisories/GHSA-jgvh-hgmg-6wp5
+    </notes>
+    <cve>CVE-2026-22816</cve>
+  </suppress>
+
+  <suppress>
+    <notes>CVE-2026-22865: Gradle dependency-resolution spoofing (variant of CVE-2026-22816).
+      Same reasoning: gradle-8.4.2.jar and related Gradle JARs are build-tool artifacts
+      only — never included in the Android APK. Not exploitable at app runtime.
+      See: https://github.com/gradle/gradle/security/advisories/GHSA-jgvh-hgmg-6wp5
+    </notes>
+    <cve>CVE-2026-22865</cve>
+  </suppress>
+
+  <!-- ============================================================
+       protobuf-java CVE — build-time only; app uses protobuf-lite
+       ============================================================ -->
+
+  <suppress>
+    <notes>CVE-2024-7254: protobuf-java denial-of-service via recursive parsing.
+      protobuf-java-3.22.3.jar appears in the Gradle cache because it is pulled in by
+      build-time tooling (kotlin-gradle-plugin-idea-proto, AGP, etc.). The Android app
+      itself depends only on protobuf-lite (the android-optimised variant), which is a
+      separate artifact and is not affected by this CVE.
+      See: https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-735f-pc8j-v9w8
+    </notes>
+    <cve>CVE-2024-7254</cve>
+  </suppress>
+
+  <!-- ============================================================
+       gRPC / Netty CVEs — client-only app; server-side CVE
+       ============================================================ -->
+
+  <suppress>
+    <notes>CVE-2023-44487: HTTP/2 Rapid Reset attack (CVE-2023-44487).
+      This vulnerability affects HTTP/2 server implementations. The Android app is a
+      pure HTTP client — it never listens for or accepts HTTP/2 connections. The gRPC
+      jars (grpc-*-1.57.0.jar) are transitive dependencies pulled in by Firebase/Play
+      Services for internal GCP communication; the app code does not directly open gRPC
+      server sockets. Netty (4.1.93.Final) is likewise a transitive dependency of gRPC
+      and is not exploitable via client-only use.
+      See: https://github.com/grpc/grpc-java/security/advisories/GHSA-xpw8-rcwv-8f8p
+    </notes>
+    <cve>CVE-2023-44487</cve>
+  </suppress>
+
+  <suppress>
+    <notes>CVE-2025-55163: Netty HTTP/2 CONTINUATION flood denial-of-service.
+      Affects Netty server configurations. The app only uses Netty transitively through
+      gRPC (Firebase/Firestore SDK) as a client. No server-side socket is opened by the
+      app, so this server-side DoS vector is not reachable.
+      See: https://github.com/netty/netty/security/advisories/GHSA-4g8c-wm8x-jfhw
+    </notes>
+    <cve>CVE-2025-55163</cve>
+  </suppress>
+
+  <!-- ============================================================
+       jdom2 — build-tool dependency, not in APK
+       ============================================================ -->
+
+  <suppress>
+    <notes>CVE-2021-33813: jdom2 SSRF / unbounded entity expansion in XML parsing.
+      jdom2-2.0.6.jar is used by Gradle's XML processing during the build and is not
+      bundled into the Android APK. The app does not parse untrusted XML at runtime
+      using jdom2.
+      See: https://github.com/hunterhacker/jdom/issues/188
+    </notes>
+    <cve>CVE-2021-33813</cve>
+  </suppress>
+
+  <!-- ============================================================
+       jose4j — used by OWASP DC tooling, not an app dependency
+       ============================================================ -->
+
+  <suppress>
+    <notes>CVE-2023-31582: jose4j algorithm confusion / weak key acceptance.
+      jose4j-0.7.0.jar is not a dependency of the Android app. It appears in the scan
+      because it is a runtime dependency of the OWASP Dependency Check tool itself.
+      The Gradle cache scan inadvertently picks up tool JARs alongside app JARs.
+      See: https://github.com/openid/AppAuth-Android (jose4j is not used by the app)
+    </notes>
+    <cve>CVE-2023-31582</cve>
+  </suppress>
+
+  <suppress>
+    <notes>CVE-2024-29371: jose4j signature validation bypass.
+      Same reasoning as CVE-2023-31582: jose4j is an OWASP DC tool dependency scanned
+      incidentally from the Gradle cache, not an app runtime dependency.
+    </notes>
+    <cve>CVE-2024-29371</cve>
+  </suppress>
+
 </suppressions>
