@@ -48,24 +48,6 @@ When adding new functionality that requires commands:
 - If hooks modify files (e.g., Prettier reformats), re-stage and commit the fixes before pushing
 - **NEVER skip this step** — the CI will reject PRs that fail pre-commit checks
 
-### 5a. Run npm audit Before Pushing Any Frontend Changes
-
-- **Before pushing any branch that touches `frontend/`**, run:
-
-  ```bash
-  cd frontend && npm audit --audit-level=high
-  ```
-
-- If high-severity vulnerabilities are found, fix them first:
-
-  ```bash
-  npm audit fix
-  ```
-
-- If `npm audit fix` changes `package-lock.json`, stage and commit that file before pushing
-- **NEVER push frontend changes with known high-severity npm vulnerabilities** — the CI
-  Security & Dependency Check job will fail
-
 ### 6. Always Check PR Status Before Pushing
 
 - **Before pushing to an existing PR branch**, always check if the PR is still open:
