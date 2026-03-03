@@ -2,7 +2,7 @@
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	android-test android-build android-lint android-clean \
+	android-test android-build android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
@@ -161,6 +161,21 @@ android-clean: ## Clean Android build artifacts
 	@echo "$(BLUE)Cleaning Android build artifacts...$(NC)"
 	@cd android && ./gradlew clean --no-daemon
 	@echo "$(GREEN)✓ Android build artifacts cleaned$(NC)"
+
+android-security-check: ## Run OWASP dependency vulnerability scan (uses CLI, not Gradle plugin)
+	@echo "$(BLUE)Running OWASP dependency vulnerability scan...$(NC)"
+	@echo "$(YELLOW)⚠ Requires dependency-check CLI: https://dependency-check.github.io/DependencyCheck/$(NC)"
+	@mkdir -p android/app/build/reports
+	@cd android && ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
+	@dependency-check.sh \
+		--scan "$$HOME/.gradle/caches/modules-2/files-2.1/" \
+		--format HTML \
+		--out android/app/build/reports \
+		--project "BibleInspirationApp" \
+		--failOnCVSS 7 \
+		--suppression android/dependency-check-suppressions.xml
+	@echo "$(GREEN)✓ OWASP scan complete. Report: android/app/build/reports/dependency-check-report.html$(NC)"
+
 test-functional: install-deps ## Run functional tests against the backend API (requires BACKEND_API_URL)
 	@echo "$(BLUE)Running functional tests against backend API...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
