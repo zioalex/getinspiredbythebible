@@ -223,6 +223,28 @@ def test_embedding_dimensions_correct_passes():
     assert settings.embedding_dimensions == 512
 
 
+def test_azure_openai_embedding_skips_dimension_validation():
+    """Test that azure_openai embedding provider skips local-model dimension validation.
+
+    Azure OpenAI uses a deployment name (e.g. text-embedding-3-small) and its own
+    dimensions (1536), independent of the Ollama dimension_map. The embedding_model
+    field defaults to 'mxbai-embed-large' and must not trigger a mismatch error.
+    This is exactly the production configuration (EMBEDDING_PROVIDER=azure_openai,
+    EMBEDDING_DIMENSIONS=1536, EMBEDDING_MODEL=mxbai-embed-large default).
+    """
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+        embedding_provider="azure_openai",
+        embedding_model="mxbai-embed-large",  # default value — not used by azure_openai
+        embedding_dimensions=1536,  # text-embedding-3-small dimension
+        azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+        azure_openai_api_key="test-key",  # pragma: allowlist secret
+    )
+    assert settings.embedding_provider == "azure_openai"
+    assert settings.embedding_dimensions == 1536
+
+
 def test_turnstile_requires_keys_when_enabled():
     """Test that turnstile_enabled=true requires secret_key and site_key."""
     # Missing both keys
