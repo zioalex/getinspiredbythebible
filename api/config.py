@@ -167,7 +167,18 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_embedding_dimensions(self) -> "Settings":
-        """Validate embedding dimensions match the model requirements."""
+        """Validate embedding dimensions match the model requirements.
+
+        Only validates Ollama local models (mxbai-embed-large, nomic-embed-text).
+        Azure OpenAI uses a separate deployment name (azure_embedding_deployment) and
+        its own dimensions (e.g. 1536 for text-embedding-3-small), so we skip this
+        check when embedding_provider=azure_openai.
+        """
+        if self.embedding_provider == "azure_openai":
+            # Azure OpenAI uses azure_embedding_deployment, not embedding_model.
+            # The embedding_model field is irrelevant when azure_openai is the provider,
+            # so dimension validation is skipped.
+            return self
         dimension_map = {
             "mxbai-embed-large": 1024,
             "nomic-embed-text": 768,
