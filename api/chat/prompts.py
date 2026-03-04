@@ -277,9 +277,11 @@ def get_system_prompt(language_code: str = "en") -> str:
         language_instruction = "The user is writing in English. Respond in English."
     else:
         language_instruction = (
-            f"The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name}. "
-            f"Do not switch to English unless the user does."
+            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name} from start to finish. "
+            f"Every single word of your response must be in {language_name}. "
+            f"Do NOT switch languages at any point in your response. "
+            f"Do NOT mix {language_name} with English or any other language."
         )
 
     biblical_ex, non_biblical_ex = SOURCE_ATTRIBUTION_EXAMPLES.get(
@@ -313,9 +315,11 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         language_instruction = "The user is writing in English. Respond in English."
     else:
         language_instruction = (
-            f"The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name}. "
-            f"Do not switch to English unless the user does."
+            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name} from start to finish. "
+            f"Every single word of your response must be in {language_name}. "
+            f"Do NOT switch languages at any point in your response. "
+            f"Do NOT mix {language_name} with English or any other language."
         )
 
     return VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
@@ -337,9 +341,11 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         language_instruction = "The user is writing in English. Respond in English."
     else:
         language_instruction = (
-            f"The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name}. "
-            f"Do not switch to English unless the user does."
+            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
+            f"You MUST respond entirely in {language_name} from start to finish. "
+            f"Every single word of your response must be in {language_name}. "
+            f"Do NOT switch languages at any point in your response. "
+            f"Do NOT mix {language_name} with English or any other language."
         )
 
     return PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)

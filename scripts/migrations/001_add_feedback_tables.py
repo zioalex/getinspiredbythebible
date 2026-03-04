@@ -20,6 +20,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "api"))
 
 from config import settings  # noqa: E402
 
+# Add the migrations directory to path for local utils
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+
+from utils import get_migration_connection_params  # noqa: E402
+
 
 async def run_migration():
     """Run the migration to create feedback tables."""
@@ -27,10 +32,8 @@ async def run_migration():
 
     # Parse connection string - handle both local and Azure formats
     database_url = settings.database_url
-    if database_url.startswith("postgresql+asyncpg://"):
-        database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
-
-    conn = await asyncpg.connect(database_url)
+    clean_url, conn_kwargs = get_migration_connection_params(database_url)
+    conn = await asyncpg.connect(clean_url, **conn_kwargs)
 
     try:
         print("Creating feedback table...")
@@ -68,7 +71,7 @@ async def run_migration():
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 email VARCHAR(255),
                 subject VARCHAR(50) NOT NULL CHECK (
-                    subject IN ('bug', 'feature', 'feedback', 'other')
+                    subject IN ('spiritual', 'bug', 'feature', 'feedback', 'other')
                 ),
                 message TEXT NOT NULL,
                 session_id VARCHAR(255),

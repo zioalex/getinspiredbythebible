@@ -77,6 +77,10 @@ jobs:
           pytest -v --tb=short
 
       - name: Test API syntax and imports
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          LLM_PROVIDER: ollama
+          OLLAMA_HOST: http://localhost:11434
         run: |
           cd api
           python -c "import main; import config; print('✓ Core modules import successfully')"
@@ -447,8 +451,8 @@ jobs:
         run: |
           cd api
           pip install safety
+          # Ignore 70612: historical pip vendored dependency CVE (no longer present)
           safety check -r requirements.txt --ignore 70612
-        continue-on-error: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

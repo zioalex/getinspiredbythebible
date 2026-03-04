@@ -222,6 +222,11 @@ output "build_and_push_frontend" {
 # Application Insights
 # -----------------------------------------------------------------------------
 
+output "workbook_portal_url" {
+  description = "Azure Portal URL to view the performance dashboard workbook"
+  value       = var.enable_application_insights ? "https://portal.azure.com/#resource${azurerm_application_insights_workbook.performance_dashboard[0].id}/workbook" : ""
+}
+
 output "application_insights_connection_string" {
   description = "Application Insights connection string"
   value       = var.enable_application_insights ? azurerm_application_insights.main[0].connection_string : ""

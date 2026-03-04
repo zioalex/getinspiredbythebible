@@ -30,11 +30,14 @@ vi.mock("@/lib/api", () => ({
   submitContactForm: vi.fn(),
 }));
 
-// Mock verse extraction
-vi.mock("@/lib/verseExtraction", () => ({
-  extractVerseReferences: vi.fn().mockReturnValue([]),
-  isVerseReferenced: vi.fn().mockReturnValue(true),
-}));
+// Use real verse extraction logic for proper testing
+vi.mock("@/lib/verseExtraction", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/verseExtraction")>();
+  return {
+    extractVerseReferences: actual.extractVerseReferences,
+    isVerseReferenced: actual.isVerseReferenced,
+  };
+});
 
 // Mock i18n navigation (used by LanguageSwitcher)
 vi.mock("@/i18n/navigation", () => ({
@@ -87,7 +90,11 @@ async function renderHomeWithVerses() {
       provider: "test",
       model: "test-model",
     };
-    yield { type: "content" as const, content: "Here is a verse for you." };
+    yield {
+      type: "content" as const,
+      content:
+        "Here are verses for you: John 3:16 says God so loved the world, and Romans 8:28 reminds us all things work together.",
+    };
   });
 
   const result = renderWithIntl(<Home />);
@@ -104,7 +111,11 @@ async function renderHomeWithVerses() {
 
   // Wait for the API response to be processed
   await waitFor(() => {
-    expect(screen.getByText("Here is a verse for you.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Here are verses for you: John 3:16 says God so loved the world, and Romans 8:28 reminds us all things work together.",
+      ),
+    ).toBeInTheDocument();
   });
 
   return result;

@@ -9,6 +9,7 @@ import {
   Filter,
   BookOpen,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import ChatMessage from "@/components/ChatMessage";
@@ -69,9 +70,15 @@ export default function Home() {
   // null = checking, true = ready, false = warming up
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
-  const [showOnlyReferenced, setShowOnlyReferenced] = useState(false); // Default to showing all related verses
+  const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
+
+  // Smart auto-scroll state
+  const [isUserNearBottom, setIsUserNearBottom] = useState(true);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const SCROLL_THRESHOLD = 100; // px from bottom to consider "near bottom"
+  const SCROLL_BUTTON_THRESHOLD = 200; // px from bottom to show scroll button
 
   // Feedback state
   const [feedbackGiven, setFeedbackGiven] = useState<
@@ -175,26 +182,56 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleScrollToBottomClick = () => {
+    setIsUserNearBottom(true);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const scrollVersesToBottom = () => {
     versesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll detection - track if user is near bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setIsUserNearBottom(distanceFromBottom < SCROLL_THRESHOLD);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isUserNearBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isUserNearBottom]);
 
   useEffect(() => {
     scrollVersesToBottom();
   }, [relevantVerses]);
 
   // Extract verse references mentioned in chat messages
+  // Use the pre-computed versesCited field if available (set after streaming completes),
+  // otherwise fall back to extracting from content for backwards compatibility
   const referencedVerses = useMemo(() => {
-    const allText = messages
+    const allRefs = messages
       .filter((m) => m.role === "assistant")
-      .map((m) => m.content)
-      .join(" ");
+      .flatMap((m) => {
+        // Prefer pre-computed versesCited (more reliable after streaming)
+        if (m.versesCited && m.versesCited.length > 0) {
+          return m.versesCited;
+        }
+        // Fallback: extract from content (for older messages or non-streaming)
+        return Array.from(extractVerseReferences(m.content));
+      });
 
-    return extractVerseReferences(allText);
+    return new Set(allRefs);
   }, [messages]);
 
   // Filter verses based on the toggle
@@ -560,7 +597,10 @@ export default function Home() {
         )}
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6"
+        >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Book className="w-16 h-16 text-primary-300 mb-4" />
@@ -748,11 +788,23 @@ export default function Home() {
         </aside>
       )}
 
+      {/* Scroll to bottom button - appears when user scrolls up during streaming */}
+      {!isUserNearBottom && messages.length > 0 && (
+        <button
+          onClick={handleScrollToBottomClick}
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-gray-800/90 text-white rounded-full shadow-lg hover:bg-gray-900 transition-colors backdrop-blur-sm"
+          aria-label="Scroll to bottom"
+        >
+          <ChevronDown className="w-4 h-4" />
+          <span className="text-sm font-medium">Scroll to bottom</span>
+        </button>
+      )}
+
       {/* Mobile FAB for verse references */}
       {relevantVerses.length > 0 && (
         <button
           onClick={() => setMobileVersesOpen(true)}
-          className="lg:hidden fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          className="lg:hidden fixed top-20 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
           aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />

@@ -141,6 +141,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       scripts: ${{ steps.filter.outputs.scripts }}
+      migration_scripts: ${{ steps.filter.outputs.migration_scripts }}
       bible_scripts: ${{ steps.filter.outputs.bible_scripts }}
       deployment: ${{ steps.filter.outputs.deployment }}
     steps:
@@ -162,6 +163,8 @@ jobs:
               - 'frontend/**'
             scripts:
               - 'scripts/**'
+            migration_scripts:
+              - 'scripts/migrations/**'
             bible_scripts:
               - 'scripts/load_bible.py'
               - 'scripts/create_embeddings.py'
@@ -303,20 +306,27 @@ jobs:
 
           # VALIDATE: Actually test that this URL is a backend, not frontend
           echo "Validating backend URL responds correctly..."
-          HEALTH_RESPONSE=$(curl -sf "$BACKEND_URL/health/live" 2>/dev/null || echo "")
+          HEALTH_RESPONSE=$(curl -sf --max-time 30 "$BACKEND_URL/health/live" 2>/dev/null || echo "")
           if [ -z "$HEALTH_RESPONSE" ]; then
-            echo "::error::Backend URL does not respond to /health/live"
-            echo "::error::URL: $BACKEND_URL"
-            exit 1
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "::warning::Backend URL health check failed on PR (backend may be scaled to zero)."
+              echo "::warning::Proceeding with build-only validation."
+            else
+              echo "::error::Backend URL does not respond to /health/live"
+              echo "::error::URL: $BACKEND_URL"
+              exit 1
+            fi
           fi
 
           # Check it returns expected backend response (not frontend HTML)
-          if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
+          if [ -n "$HEALTH_RESPONSE" ] && echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
             echo "✅ Backend health check passed"
-          else
+          elif [ -n "$HEALTH_RESPONSE" ]; then
             echo "::error::Backend URL returned unexpected response (possibly frontend?)"
             echo "::error::Response: $HEALTH_RESPONSE"
             exit 1
+          else
+            echo "⚠️ Skipping response validation (no health response received)"
           fi
 
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
@@ -422,7 +432,8 @@ jobs:
        inputs.action != 'destroy')
     runs-on: ubuntu-latest
     outputs:
-      plan_exit_code: ${{ steps.plan.outputs.exitcode }}
+      has_changes: ${{ steps.plan.outputs.exit_code == '2' }}
+      plan_exit_code: ${{ steps.plan.outputs.exit_code }}
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
@@ -527,12 +538,17 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
+          # Exit codes: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
+          set -o pipefail
           terraform plan \
             -var-file="terraform.tfvars" \
             -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
             -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
+          PLAN_EXIT_CODE=$?
+          echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $PLAN_EXIT_CODE
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
@@ -553,7 +569,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            const exitCode = '${{ steps.plan.outputs.exitcode }}';
+            const exitCode = '${{ steps.plan.outputs.exit_code }}';
             let status = '✅ No changes';
             if (exitCode === '2') {
               status = '📝 Changes detected';
@@ -605,6 +621,25 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Plan Result Summary
+        if: always()
+        run: |
+          # Summarize plan result: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
+          EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
+          if [ "$EXIT_CODE" == "0" ]; then
+            echo "## ℹ️ No Infrastructure Changes Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Terraform plan completed with no changes. Deploy job will be skipped." >> $GITHUB_STEP_SUMMARY
+          elif [ "$EXIT_CODE" == "2" ]; then
+            echo "## 📝 Infrastructure Changes Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Terraform plan detected changes. Deploy job will execute." >> $GITHUB_STEP_SUMMARY
+          elif [ "$EXIT_CODE" == "1" ]; then
+            echo "## ❌ Terraform Plan Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "See plan output for error details." >> $GITHUB_STEP_SUMMARY
+          fi
+
   # ---------------------------------------------------------------------------
   # Deploy via Terraform
   # ---------------------------------------------------------------------------
@@ -613,11 +648,9 @@ jobs:
   deploy:
     needs: [changes, build-backend, build-frontend, tf-plan]
     if: >-
-      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' && (
-        github.event_name == 'workflow_run' ||
-        (github.event_name == 'workflow_dispatch' &&
-         inputs.action == 'deploy')
-      )
+      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' &&
+      needs.tf-plan.outputs.has_changes == 'true' && (github.event_name == 'workflow_run' ||
+       (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -993,6 +1026,90 @@ jobs:
           echo "All Azure resources have been destroyed." >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
+  # Run Database Migrations (runs when migration scripts change or on deploy)
+  # ---------------------------------------------------------------------------
+  # Applies all numbered migration scripts in order after a successful deploy.
+  # Safe to re-run: each script is idempotent (uses IF EXISTS / IF NOT EXISTS).
+  #
+  # IMPORTANT: This job must be able to run independently when migration scripts
+  # change, even if deploy is skipped. The 'always()' function ensures this job
+  # evaluates even when deploy is skipped, and we check deploy didn't fail.
+  run-migrations:
+    needs: [changes, deploy]
+    # Run when:
+    # - migration scripts changed (always apply on migration changes), OR
+    # - manual deploy triggered
+    # Only on main/workflow_run — not on PRs (no DB access from PR branches)
+    # Conditions:
+    # 1. always() - evaluate even if deploy was skipped
+    # 2. Not a PR (no DB access from PR branches)
+    # 3. Deploy didn't fail (success or skipped is OK)
+    # 4. Migration scripts changed OR manual workflow_dispatch
+    if: >-
+      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
+      'skipped') && (needs.changes.outputs.migration_scripts == 'true' ||
+       github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install asyncpg pydantic pydantic-settings
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Get Database Connection String
+        id: db
+        run: |
+          DB_HOST=$(az postgres flexible-server list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[0].fullyQualifiedDomainName" -o tsv)
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+
+      - name: Run migrations
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
+          cd scripts/migrations
+          echo "Running database migrations..."
+          for script in $(ls [0-9][0-9][0-9]_*.py | sort); do
+            echo "▶ Running $script..."
+            python "$script"
+            echo "✅ $script completed"
+          done
+          echo "All migrations completed."
+
+      - name: Post Migration Summary
+        if: always()
+        run: |
+          echo "## Database Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ran all numbered migration scripts from \`scripts/migrations/\`." >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered with seed enabled)
   # ---------------------------------------------------------------------------
   seed-database:
@@ -1001,9 +1118,14 @@ jobs:
     # - Seeding-relevant scripts changed (load_bible.py, create_embeddings.py, create_azure_embeddings.py), OR
     # - Manual trigger with skip_database_seed=false
     # Note: always() needed to evaluate when deploy is skipped, but only run if deploy didn't fail
+    # Conditions:
+    # 1. always() - evaluate even if deploy was skipped
+    # 2. Not a PR (no DB access from PR branches)
+    # 3. Deploy didn't fail (success or skipped is OK)
+    # 4. Bible scripts changed OR manual workflow_dispatch with seeding enabled
     if: >-
-      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
-      ((needs.changes.outputs.bible_scripts == 'true') ||
+      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
+      'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production

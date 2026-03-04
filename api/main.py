@@ -35,7 +35,8 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
 from config import settings  # noqa: E402
-from providers import ProviderError  # noqa: E402
+from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
+from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
 from routes import (  # noqa: E402
     chat_router,
     church_router,
@@ -120,6 +121,23 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down application")
     await close_db()
+
+    # Close provider HTTP clients
+    try:
+        logger.info("Cleaning up LLM provider")
+        await get_llm_provider().close()
+        logger.info("LLM provider cleanup complete")
+    except Exception as e:
+        logger.warning("Failed to clean up LLM provider: %s", e)
+
+    try:
+        logger.info("Cleaning up embedding provider")
+        await get_embedding_provider().close()
+        logger.info("Embedding provider cleanup complete")
+    except Exception as e:
+        logger.warning("Failed to clean up embedding provider: %s", e)
+
+    logger.info("Provider cleanup complete")
 
     # Flush OpenTelemetry telemetry before container shuts down.
     # Without this, the batch exporter may lose pending spans/logs/metrics
@@ -211,6 +229,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Correlation ID middleware for request tracing
+# Added after CORS (executes before CORS in request chain due to middleware stack)
+app.add_middleware(CorrelationIDMiddleware)
 
 
 # ==================== Routes ====================

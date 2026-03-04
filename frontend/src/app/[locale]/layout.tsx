@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Providers } from "./providers";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,9 +70,11 @@ export default async function LocaleLayout({
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
           <Providers>
-            <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
-              {children}
-            </div>
+            <ErrorBoundary>
+              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+                {children}
+              </div>
+            </ErrorBoundary>
           </Providers>
         </NextIntlClientProvider>
       </body>

@@ -50,7 +50,7 @@ class TestGetSystemPrompt:
         result = get_system_prompt("it")
         assert "Italian" in result
         assert "You MUST respond entirely in" in result
-        assert "Do not switch to English" in result
+        assert "Do NOT switch languages" in result  # Updated for stronger instruction
 
     def test_german(self):
         result = get_system_prompt("de")

@@ -361,6 +361,69 @@ resource "azurerm_postgresql_flexible_server_configuration" "extensions" {
   value     = "vector,uuid-ossp"
 }
 
+# -----------------------------------------------------------------------------
+# PostgreSQL Performance Tuning
+# -----------------------------------------------------------------------------
+
+# Increase maintenance_work_mem to prevent index build spill to disk
+# Critical for HNSW index builds (31K verses × 1024 dims × 4 bytes ≈ 127MB)
+resource "azurerm_postgresql_flexible_server_configuration" "maintenance_work_mem" {
+  name      = "maintenance_work_mem"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "262144" # 256MB (in KB) - enough to build HNSW indexes in memory
+}
+
+# Increase shared_buffers for better query caching
+# PostgreSQL best practice: 25% of RAM for dedicated DB servers
+resource "azurerm_postgresql_flexible_server_configuration" "shared_buffers" {
+  name      = "shared_buffers"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "65536" # 512MB (in 8KB pages)
+}
+
+# Set effective_cache_size to help query planner estimate available OS cache
+# PostgreSQL best practice: 50-75% of total RAM
+resource "azurerm_postgresql_flexible_server_configuration" "effective_cache_size" {
+  name      = "effective_cache_size"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "196608" # 1.5GB (in 8KB pages)
+}
+
+# Increase work_mem for complex sorts and joins (especially pgvector searches)
+resource "azurerm_postgresql_flexible_server_configuration" "work_mem" {
+  name      = "work_mem"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "16384" # 16MB (in KB) - higher than default 4MB for vector operations
+}
+
+# Enable slow query logging (queries slower than 100ms)
+resource "azurerm_postgresql_flexible_server_configuration" "log_min_duration_statement" {
+  name      = "log_min_duration_statement"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "100" # Log queries taking >100ms
+}
+
+# Enable checkpoint logging for performance analysis
+resource "azurerm_postgresql_flexible_server_configuration" "log_checkpoints" {
+  name      = "log_checkpoints"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
+}
+
+# Increase max_wal_size to reduce checkpoint frequency
+resource "azurerm_postgresql_flexible_server_configuration" "max_wal_size" {
+  name      = "max_wal_size"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "2048" # 2GB (in MB) - reduces checkpoint storms
+}
+
+# Enable connection logging for monitoring
+resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
+  name      = "log_connections"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
+}
+
 # Create the application database
 resource "azurerm_postgresql_flexible_server_database" "app" {
   name      = var.db_name
@@ -853,4 +916,25 @@ resource "azurerm_consumption_budget_resource_group" "main" {
   lifecycle {
     ignore_changes = [time_period]
   }
+}
+
+# -----------------------------------------------------------------------------
+# Azure Monitor Workbook — Performance Dashboard (optional)
+# -----------------------------------------------------------------------------
+# Deploys a visual performance dashboard to Azure Monitor Workbooks.
+# Only created when Application Insights is enabled.
+# Access via: Azure Portal → Application Insights → Workbooks
+
+resource "azurerm_application_insights_workbook" "performance_dashboard" {
+  count = var.enable_application_insights ? 1 : 0
+
+  # Fixed UUID so the workbook is stable across re-applies
+  name                = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  display_name        = "${local.name_prefix} - Performance Dashboard"
+
+  data_json = file("${path.module}/azure-monitor/workbook-performance-dashboard.json")
+
+  tags = local.tags
 }
