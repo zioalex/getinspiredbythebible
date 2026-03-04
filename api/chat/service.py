@@ -128,6 +128,60 @@ class ChatService:
             logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
             return "GENERAL"
 
+    async def _check_content_safety(
+        self,
+        message: str,
+        detected_language: str,
+        session_id: str | None,
+        context: str = "chat",
+    ) -> bool:
+        """
+        Check message for harmful content and raise if violation found.
+
+        Args:
+            message: The user's message to check
+            detected_language: ISO language code detected from message
+            session_id: Session identifier for logging
+            context: Context label for log messages (e.g., 'chat' or 'chat stream')
+
+        Returns:
+            True if help-seeking/compassionate response is needed, False otherwise.
+            Raises ContentSafetyViolationError if message is not safe.
+        """
+        if not settings.content_safety_enabled:
+            return False
+
+        safety_service = get_content_safety_service()
+        safety_result = await safety_service.check(message, detected_language)
+
+        if not safety_result.allowed:
+            text_hash = hashlib.sha256(message.encode()).hexdigest()[:16]
+            logger.warning(
+                f"Content safety violation in {context}",
+                extra={
+                    "text_hash": text_hash,
+                    "language": detected_language,
+                    "reason": safety_result.reason,
+                    "categories": safety_result.categories,
+                    "session_id": session_id,
+                },
+            )
+            raise ContentSafetyViolationError(
+                message=(
+                    "We're here to help. If you're struggling or in crisis, please reach out: "
+                    "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
+                ),
+                categories=safety_result.categories,
+                reason=safety_result.reason,
+            )
+
+        if safety_result.compassionate_response_needed:
+            logger.info(
+                f"Help-seeking message detected in {context}, will use compassionate response"
+            )
+
+        return safety_result.compassionate_response_needed
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -163,35 +217,9 @@ class ChatService:
         )
 
         # Content safety check BEFORE LLM call
-        if settings.content_safety_enabled:
-            safety_service = get_content_safety_service()
-            safety_result = await safety_service.check(request.message, detected_language)
-
-            if not safety_result.allowed:
-                text_hash = hashlib.sha256(request.message.encode()).hexdigest()[:16]
-                logger.warning(
-                    "Content safety violation in chat",
-                    extra={
-                        "text_hash": text_hash,
-                        "language": detected_language,
-                        "reason": safety_result.reason,
-                        "categories": safety_result.categories,
-                        "session_id": request.session_id,
-                    },
-                )
-                raise ContentSafetyViolationError(
-                    message=(
-                        "We're here to help. If you're struggling or in crisis, please reach out: "
-                        "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
-                    ),
-                    categories=safety_result.categories,
-                    reason=safety_result.reason,
-                )
-
-            # If help-seeking detected, note it for compassionate prompt selection
-            if safety_result.compassionate_response_needed:
-                logger.info("Help-seeking message detected, will use compassionate response")
-                # The existing compassionate system prompts handle this well
+        await self._check_content_safety(
+            request.message, detected_language, request.session_id, context="chat"
+        )
 
         # Intent detection: classify before scripture search
         if settings.content_filter_intent_detection:
@@ -444,36 +472,9 @@ class ChatService:
         model_override = get_model_override_for_language(detected_language)
 
         # Content safety check BEFORE LLM call
-        if settings.content_safety_enabled:
-            safety_service = get_content_safety_service()
-            safety_result = await safety_service.check(request.message, detected_language)
-
-            if not safety_result.allowed:
-                text_hash = hashlib.sha256(request.message.encode()).hexdigest()[:16]
-                logger.warning(
-                    "Content safety violation in chat stream",
-                    extra={
-                        "text_hash": text_hash,
-                        "language": detected_language,
-                        "reason": safety_result.reason,
-                        "categories": safety_result.categories,
-                        "session_id": request.session_id,
-                    },
-                )
-                raise ContentSafetyViolationError(
-                    message=(
-                        "We're here to help. If you're struggling or in crisis, please reach out: "
-                        "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
-                    ),
-                    categories=safety_result.categories,
-                    reason=safety_result.reason,
-                )
-
-            # If help-seeking detected, note it for compassionate prompt selection
-            if safety_result.compassionate_response_needed:
-                logger.info(
-                    "Help-seeking message detected in stream, will use compassionate response"
-                )
+        await self._check_content_safety(
+            request.message, detected_language, request.session_id, context="chat stream"
+        )
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:
