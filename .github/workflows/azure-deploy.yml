@@ -141,6 +141,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       scripts: ${{ steps.filter.outputs.scripts }}
+      migration_scripts: ${{ steps.filter.outputs.migration_scripts }}
       bible_scripts: ${{ steps.filter.outputs.bible_scripts }}
       deployment: ${{ steps.filter.outputs.deployment }}
     steps:
@@ -162,6 +163,8 @@ jobs:
               - 'frontend/**'
             scripts:
               - 'scripts/**'
+            migration_scripts:
+              - 'scripts/migrations/**'
             bible_scripts:
               - 'scripts/load_bible.py'
               - 'scripts/create_embeddings.py'
@@ -998,6 +1001,81 @@ jobs:
           echo "## ⚠️ Infrastructure Destroyed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All Azure resources have been destroyed." >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Run Database Migrations (runs when migration scripts change or on deploy)
+  # ---------------------------------------------------------------------------
+  # Applies all numbered migration scripts in order after a successful deploy.
+  # Safe to re-run: each script is idempotent (uses IF EXISTS / IF NOT EXISTS).
+  run-migrations:
+    needs: [changes, deploy]
+    # Run when:
+    # - migration scripts changed (always apply on migration changes), OR
+    # - manual deploy triggered
+    # Only on main/workflow_run — not on PRs (no DB access from PR branches)
+    if: >-
+      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
+      (needs.changes.outputs.migration_scripts == 'true' ||
+       github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install asyncpg pydantic pydantic-settings
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Get Database Connection String
+        id: db
+        run: |
+          DB_HOST=$(az postgres flexible-server list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[0].fullyQualifiedDomainName" -o tsv)
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+
+      - name: Run migrations
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
+          cd scripts/migrations
+          echo "Running database migrations..."
+          for script in $(ls [0-9][0-9][0-9]_*.py | sort); do
+            echo "▶ Running $script..."
+            python "$script"
+            echo "✅ $script completed"
+          done
+          echo "All migrations completed."
+
+      - name: Post Migration Summary
+        if: always()
+        run: |
+          echo "## Database Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ran all numbered migration scripts from \`scripts/migrations/\`." >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered with seed enabled)
