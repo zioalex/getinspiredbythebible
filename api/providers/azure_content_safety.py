@@ -9,6 +9,10 @@ import asyncio
 import hashlib
 import logging
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from azure.ai.contentsafety import ContentSafetyClient
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +47,7 @@ class AzureContentSafetyProvider:
         self.endpoint = endpoint
         self.key = key
         self.threshold = threshold
-        self._client = None
+        self._client: Optional["ContentSafetyClient"] = None
         self._sdk_available = False
         self._init_client()
 
