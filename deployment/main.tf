@@ -917,3 +917,24 @@ resource "azurerm_consumption_budget_resource_group" "main" {
     ignore_changes = [time_period]
   }
 }
+
+# -----------------------------------------------------------------------------
+# Azure Monitor Workbook — Performance Dashboard (optional)
+# -----------------------------------------------------------------------------
+# Deploys a visual performance dashboard to Azure Monitor Workbooks.
+# Only created when Application Insights is enabled.
+# Access via: Azure Portal → Application Insights → Workbooks
+
+resource "azurerm_application_insights_workbook" "performance_dashboard" {
+  count = var.enable_application_insights ? 1 : 0
+
+  # Fixed UUID so the workbook is stable across re-applies
+  name                = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  display_name        = "${local.name_prefix} - Performance Dashboard"
+
+  data_json = file("${path.module}/azure-monitor/workbook-performance-dashboard.json")
+
+  tags = local.tags
+}

@@ -1,0 +1,665 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "timeRange",
+            "version": "KqlParameterItem/1.0",
+            "name": "timeRange",
+            "label": "Time Range",
+            "type": 4,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 21600000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": { "durationMs": 3600000 }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Quick Actions\n\n[🔍 Application Insights](https://portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/microsoft.insights%2Fcomponents) | [📡 Live Metrics](https://portal.azure.com/#blade/AppInsightsExtension/QuickPulseBladeV2) | [🔔 Alerts](https://portal.azure.com/#blade/Microsoft_Azure_Monitoring/AlertsManagementSummaryBlade) | [📊 Logs](https://portal.azure.com/#blade/Microsoft_OperationsManagementSuite_Workspace/AnalyticsBlade)\n\n---"
+      }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "📊 Overview — Error Detection",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Overview — Error Detection\n\nHigh-level health indicators. **Green = healthy**, **Yellow = investigate**, **Red = urgent action required**.\n\n- **Error Rate %**: Percentage of requests returning HTTP 5xx. Above 5% warrants investigation; above 10% is critical.\n- **Response Time**: P50/P95/P99 latencies across all endpoints. P95 > 5 000 ms suggests capacity or LLM issues.\n- **Availability**: Based on the automated health-check probes (3 Azure regions, every 5 min)."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize total = count(), errors = countif(resultCode >= 500)\n| extend ErrorRate = iff(total > 0, round((errors * 100.0) / total, 2), 0.0)\n| project [\"Total Requests\"] = total, [\"5xx Errors\"] = errors, [\"Error Rate %\"] = ErrorRate",
+              "size": 4,
+              "title": "Request Volume & Error Rate",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Error Rate %",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 1,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "green" },
+                        { "threshold": 5, "color": "yellow" },
+                        { "threshold": 10, "color": "red" }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize P50 = percentile(duration, 50), P95 = percentile(duration, 95), P99 = percentile(duration, 99)\n| project [\"P50 (ms)\"] = round(P50, 0), [\"P95 (ms)\"] = round(P95, 0), [\"P99 (ms)\"] = round(P99, 0)",
+              "size": 4,
+              "title": "Response Time Percentiles",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "availabilityResults\n| where timestamp > ago(7d)\n| summarize\n    [\"Last 1h\"] = round(100.0 * countif(success == 1 and timestamp > ago(1h)) / max(1, countif(timestamp > ago(1h))), 1),\n    [\"Last 24h\"] = round(100.0 * countif(success == 1 and timestamp > ago(24h)) / max(1, countif(timestamp > ago(24h))), 1),\n    [\"Last 7d\"] = round(100.0 * countif(success == 1) / count(), 1)",
+              "size": 4,
+              "title": "Availability (health probe)",
+              "timeContext": { "durationMs": 604800000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Last 1h",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 1,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "red" },
+                        { "threshold": 95, "color": "yellow" },
+                        { "threshold": 99, "color": "green" }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Last 24h",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 1,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "red" },
+                        { "threshold": 95, "color": "yellow" },
+                        { "threshold": 99, "color": "green" }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Last 7d",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 1,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "red" },
+                        { "threshold": 95, "color": "yellow" },
+                        { "threshold": 99, "color": "green" }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize RequestsPerMin = count() by bin(timestamp, 1m)\n| project timestamp, [\"Requests/min\"] = RequestsPerMin\n| order by timestamp asc",
+              "size": 0,
+              "title": "Request Rate Over Time",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "linechart"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "🤖 LLM Performance",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## LLM Performance\n\nMetrics emitted by the OpenRouter / Claude provider layer (PRs B3 & B4).\n\n- **TTFT** (Time to First Token): How quickly the model starts streaming. P95 > 10 000 ms indicates upstream throttling.\n- **Total Duration**: End-to-end LLM call time. Includes streaming completion.\n- **Tokens/sec**: Generation throughput. Low values may indicate model or network congestion.\n- **Fallback Rate %**: Percentage of requests that triggered a model fallback. Persistently > 5% means the primary model is overloaded.\n- **Rate Limit Hits**: Count of 429 responses from the LLM provider in the last hour."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.ttft_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"TTFT P50 (ms)\"] = round(P50, 0), [\"TTFT P95 (ms)\"] = round(P95, 0), [\"TTFT P99 (ms)\"] = round(P99, 0)",
+              "size": 4,
+              "title": "Time to First Token (TTFT)",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "TTFT P95 (ms)",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "green" },
+                        { "threshold": 3000, "color": "yellow" },
+                        { "threshold": 10000, "color": "red" }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.total_duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Duration P50 (ms)\"] = round(P50, 0), [\"Duration P95 (ms)\"] = round(P95, 0), [\"Duration P99 (ms)\"] = round(P99, 0)",
+              "size": 4,
+              "title": "Total LLM Duration",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name in (\"llm.fallback_count\", \"llm.ttft_ms\")\n| summarize Fallbacks = sumif(value, name == \"llm.fallback_count\"), Requests = countif(name == \"llm.ttft_ms\")\n| extend FallbackRate = iff(Requests > 0, round((Fallbacks * 100.0) / Requests, 1), 0.0)\n| project [\"Fallback Count\"] = toint(Fallbacks), [\"Total LLM Requests\"] = Requests, [\"Fallback Rate %\"] = FallbackRate",
+              "size": 4,
+              "title": "Fallback Rate",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Fallback Rate %",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 1,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "green" },
+                        { "threshold": 5, "color": "orange" },
+                        { "threshold": 10, "color": "red" }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > ago(1h)\n| where name == \"llm.rate_limit_hits\"\n| summarize [\"Rate Limit Hits (last 1h)\"] = toint(sum(value))",
+              "size": 4,
+              "title": "Rate Limit Hits",
+              "timeContext": { "durationMs": 3600000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > ago(24h)\n| where name == \"llm.tokens_per_second\"\n| summarize AvgTPS = avg(value) by bin(timestamp, 1h)\n| project timestamp, [\"Tokens/sec\"] = round(AvgTPS, 1)\n| order by timestamp asc",
+              "size": 0,
+              "title": "Tokens per Second Trend (last 24 h, 1 h bins)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "linechart"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "🗄️ Database Performance",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Database Performance\n\nMetrics emitted by the pgvector semantic-search and general query layers (PR B2).\n\n- **Search Duration**: pgvector cosine-similarity query times. P95 > 500 ms may indicate missing HNSW index or high load.\n- **Query Duration**: General PostgreSQL query times. P95 > 200 ms warrants index review.\n- **Slow Queries (> 100 ms)**: Absolute count of queries exceeding the slow-query threshold. A rising trend indicates progressive degradation."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.search.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Search P50 (ms)\"] = round(P50, 1), [\"Search P95 (ms)\"] = round(P95, 1), [\"Search P99 (ms)\"] = round(P99, 1)",
+              "size": 4,
+              "title": "Semantic Search Duration",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.query.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Query P50 (ms)\"] = round(P50, 1), [\"Query P95 (ms)\"] = round(P95, 1), [\"Query P99 (ms)\"] = round(P99, 1)",
+              "size": 4,
+              "title": "General Query Duration",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.slow_queries\"\n| summarize SlowQueries = sum(value) by bin(timestamp, 1h)\n| project timestamp, [\"Slow Queries (>100ms)\"] = toint(SlowQueries)\n| order by timestamp asc",
+              "size": 0,
+              "title": "Slow Query Count Trend (1 h bins)",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "linechart"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "🚨 Error Analysis",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Error Analysis\n\nDetailed breakdown of failures to help root-cause incidents quickly.\n\n- **Error Count by Type**: Proportion of 4xx vs 5xx vs timeout errors. Dominated by 4xx? Likely a client-side or validation issue. Dominated by 5xx? Check LLM or DB.\n- **Top 10 Slowest Requests**: The worst-case latency outliers. Correlation ID lets you jump to the full trace in Application Insights.\n- **Failed Requests**: Recent 5xx failures with Correlation IDs. Copy the ID and paste into **Transaction search** to see the exact span tree.\n- **Exception Summary**: Most frequent unhandled exceptions — useful for spotting regressions after deployments."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| where resultCode >= 400\n| summarize Count = count() by ErrorType = case(\n    resultCode >= 500, \"5xx Server Error\",\n    resultCode == 408 or resultCode == 504, \"Timeout\",\n    resultCode >= 400, \"4xx Client Error\",\n    \"Other\"\n  )\n| order by Count desc",
+              "size": 3,
+              "title": "Error Count by Type",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "piechart"
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| top 10 by duration desc\n| project\n    Timestamp = timestamp,\n    [\"Request\"] = name,\n    [\"Duration (ms)\"] = round(duration, 0),\n    [\"Status\"] = resultCode,\n    [\"Correlation ID\"] = tostring(customDimensions[\"correlation_id\"]),\n    [\"Operation ID\"] = operation_Id\n| order by [\"Duration (ms)\"] desc",
+              "size": 0,
+              "title": "Top 10 Slowest Requests",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Duration (ms)",
+                    "formatter": 18,
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": { "style": "decimal" }
+                    },
+                    "thresholdsSettings": {
+                      "steps": [
+                        { "threshold": null, "color": "green" },
+                        { "threshold": 5000, "color": "yellow" },
+                        { "threshold": 15000, "color": "red" }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| where success == false or resultCode >= 500\n| project\n    Timestamp = timestamp,\n    [\"Request\"] = name,\n    [\"Status\"] = resultCode,\n    [\"Duration (ms)\"] = round(duration, 0),\n    [\"Correlation ID\"] = tostring(customDimensions[\"correlation_id\"]),\n    [\"Operation ID\"] = operation_Id,\n    [\"Error\"] = tostring(customDimensions[\"error\"])\n| order by Timestamp desc\n| take 50",
+              "size": 0,
+              "title": "Failed Requests with Details (last 50)",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "exceptions\n| where timestamp > {timeRange:start}\n| summarize Count = count() by ExceptionType = type, [\"Message Sample\"] = any(outerMessage)\n| order by Count desc\n| take 10",
+              "size": 0,
+              "title": "Exception Summary (top 10 types)",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "🖥️ Infrastructure",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Infrastructure\n\nContainer-level resource utilisation and restart events.\n\n- **CPU / Memory Trend**: 5-minute averages from the `performanceCounters` table. Sustained CPU > 80% or memory nearing the container limit (1 GiB backend / 0.5 GiB frontend) indicates a need to scale up.\n- **Container Restarts (last 1 h)**: Restart events tracked via custom telemetry. Any non-zero value in a stable window warrants investigation (OOM kill, health probe failure, crash loop)."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "performanceCounters\n| where timestamp > {timeRange:start}\n| where category == \"Process\"\n| summarize\n    AvgCPU = avg(iff(counter == \"% Processor Time\", value, real(null))),\n    AvgMem = avg(iff(counter == \"Private Bytes\", value / 1048576.0, real(null)))\n  by bin(timestamp, 5m)\n| project timestamp, [\"CPU %\"] = round(AvgCPU, 1), [\"Memory (MB)\"] = round(AvgMem, 1)\n| order by timestamp asc",
+              "size": 0,
+              "title": "Container CPU & Memory Trend (5 min bins)",
+              "timeContext": { "durationMs": 0 },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "linechart"
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where timestamp > ago(1h)\n| where name == \"container_restart\" or name startswith \"startup\"\n| summarize [\"Restarts (last 1h)\"] = count()",
+              "size": 4,
+              "title": "Container Restart Events",
+              "timeContext": { "durationMs": 3600000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "metric_name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value_col",
+                  "formatter": 12,
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": { "maximumSignificantDigits": 3 }
+                  }
+                },
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "styleSettings": {},
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
