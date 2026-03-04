@@ -1007,15 +1007,24 @@ jobs:
   # ---------------------------------------------------------------------------
   # Applies all numbered migration scripts in order after a successful deploy.
   # Safe to re-run: each script is idempotent (uses IF EXISTS / IF NOT EXISTS).
+  #
+  # IMPORTANT: This job must be able to run independently when migration scripts
+  # change, even if deploy is skipped. The 'always()' function ensures this job
+  # evaluates even when deploy is skipped, and we check deploy didn't fail.
   run-migrations:
     needs: [changes, deploy]
     # Run when:
     # - migration scripts changed (always apply on migration changes), OR
     # - manual deploy triggered
     # Only on main/workflow_run — not on PRs (no DB access from PR branches)
+    # Conditions:
+    # 1. always() - evaluate even if deploy was skipped
+    # 2. Not a PR (no DB access from PR branches)
+    # 3. Deploy didn't fail (success or skipped is OK)
+    # 4. Migration scripts changed OR manual workflow_dispatch
     if: >-
-      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
-      (needs.changes.outputs.migration_scripts == 'true' ||
+      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
+      'skipped') && (needs.changes.outputs.migration_scripts == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     environment: production
@@ -1086,9 +1095,14 @@ jobs:
     # - Seeding-relevant scripts changed (load_bible.py, create_embeddings.py, create_azure_embeddings.py), OR
     # - Manual trigger with skip_database_seed=false
     # Note: always() needed to evaluate when deploy is skipped, but only run if deploy didn't fail
+    # Conditions:
+    # 1. always() - evaluate even if deploy was skipped
+    # 2. Not a PR (no DB access from PR branches)
+    # 3. Deploy didn't fail (success or skipped is OK)
+    # 4. Bible scripts changed OR manual workflow_dispatch with seeding enabled
     if: >-
-      always() && github.event_name != 'pull_request' && needs.deploy.result != 'failure' &&
-      ((needs.changes.outputs.bible_scripts == 'true') ||
+      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
+      'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
