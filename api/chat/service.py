@@ -5,6 +5,7 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import hashlib
 import time
 import uuid
 from typing import AsyncIterator
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
+from utils.content_safety import ContentSafetyViolationError, get_content_safety_service
 from utils.language import (
     detect_language,
     get_model_override_for_language,
@@ -126,6 +128,60 @@ class ChatService:
             logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
             return "GENERAL"
 
+    async def _check_content_safety(
+        self,
+        message: str,
+        detected_language: str,
+        session_id: str | None,
+        context: str = "chat",
+    ) -> bool:
+        """
+        Check message for harmful content and raise if violation found.
+
+        Args:
+            message: The user's message to check
+            detected_language: ISO language code detected from message
+            session_id: Session identifier for logging
+            context: Context label for log messages (e.g., 'chat' or 'chat stream')
+
+        Returns:
+            True if help-seeking/compassionate response is needed, False otherwise.
+            Raises ContentSafetyViolationError if message is not safe.
+        """
+        if not settings.content_safety_enabled:
+            return False
+
+        safety_service = get_content_safety_service()
+        safety_result = await safety_service.check(message, detected_language)
+
+        if not safety_result.allowed:
+            text_hash = hashlib.sha256(message.encode()).hexdigest()[:16]
+            logger.warning(
+                f"Content safety violation in {context}",
+                extra={
+                    "text_hash": text_hash,
+                    "language": detected_language,
+                    "reason": safety_result.reason,
+                    "categories": safety_result.categories,
+                    "session_id": session_id,
+                },
+            )
+            raise ContentSafetyViolationError(
+                message=(
+                    "We're here to help. If you're struggling or in crisis, please reach out: "
+                    "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
+                ),
+                categories=safety_result.categories,
+                reason=safety_result.reason,
+            )
+
+        if safety_result.compassionate_response_needed:
+            logger.info(
+                f"Help-seeking message detected in {context}, will use compassionate response"
+            )
+
+        return safety_result.compassionate_response_needed
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -164,6 +220,11 @@ class ChatService:
                 "model_override": model_override,
                 "message_preview": request.message[:50],
             },
+        )
+
+        # Content safety check BEFORE LLM call
+        await self._check_content_safety(
+            request.message, detected_language, request.session_id, context="chat"
         )
 
         # Intent detection: classify before scripture search
@@ -424,6 +485,11 @@ class ChatService:
                 "model_override": model_override,
                 "message_preview": request.message[:50],
             },
+        )
+
+        # Content safety check BEFORE LLM call
+        await self._check_content_safety(
+            request.message, detected_language, request.session_id, context="chat stream"
         )
 
         # Intent detection: short-circuit off-topic before scripture search

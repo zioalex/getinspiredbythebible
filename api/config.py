@@ -120,6 +120,16 @@ class Settings(BaseSettings):
     # Test secret: 2x0000000000000000000000000000000AA (always fails)
     # Test secret: 3x0000000000000000000000000000000AA (forces interactive challenge)
 
+    # Azure Content Safety Settings
+    azure_content_safety_enabled: bool = False  # Enable Azure Content Safety API
+    azure_content_safety_endpoint: str | None = None  # Azure endpoint URL
+    azure_content_safety_key: str | None = None  # Azure API key
+    azure_content_safety_threshold: int = 4  # Severity 0-6, block >= threshold
+
+    # Content Safety Mode
+    content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
+    content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "keyword_only"
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
