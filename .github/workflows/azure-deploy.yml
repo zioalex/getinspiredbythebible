@@ -812,7 +812,7 @@ jobs:
             -backend-config="key=bible-app.tfstate"
 
       - name: Download Plan Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: tfplan
           path: deployment
