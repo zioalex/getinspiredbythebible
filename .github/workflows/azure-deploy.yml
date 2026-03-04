@@ -432,7 +432,8 @@ jobs:
        inputs.action != 'destroy')
     runs-on: ubuntu-latest
     outputs:
-      plan_exit_code: ${{ steps.plan.outputs.exitcode }}
+      has_changes: ${{ steps.plan.outputs.exit_code == '2' }}
+      plan_exit_code: ${{ steps.plan.outputs.exit_code }}
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
@@ -537,12 +538,17 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
+          # Exit codes: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
+          set -o pipefail
           terraform plan \
             -var-file="terraform.tfvars" \
             -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
             -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
+          PLAN_EXIT_CODE=$?
+          echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $PLAN_EXIT_CODE
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
@@ -563,7 +569,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            const exitCode = '${{ steps.plan.outputs.exitcode }}';
+            const exitCode = '${{ steps.plan.outputs.exit_code }}';
             let status = '✅ No changes';
             if (exitCode === '2') {
               status = '📝 Changes detected';
@@ -615,6 +621,25 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Plan Result Summary
+        if: always()
+        run: |
+          # Summarize plan result: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
+          EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
+          if [ "$EXIT_CODE" == "0" ]; then
+            echo "## ℹ️ No Infrastructure Changes Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Terraform plan completed with no changes. Deploy job will be skipped." >> $GITHUB_STEP_SUMMARY
+          elif [ "$EXIT_CODE" == "2" ]; then
+            echo "## 📝 Infrastructure Changes Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Terraform plan detected changes. Deploy job will execute." >> $GITHUB_STEP_SUMMARY
+          elif [ "$EXIT_CODE" == "1" ]; then
+            echo "## ❌ Terraform Plan Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "See plan output for error details." >> $GITHUB_STEP_SUMMARY
+          fi
+
   # ---------------------------------------------------------------------------
   # Deploy via Terraform
   # ---------------------------------------------------------------------------
@@ -623,11 +648,9 @@ jobs:
   deploy:
     needs: [changes, build-backend, build-frontend, tf-plan]
     if: >-
-      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' && (
-        github.event_name == 'workflow_run' ||
-        (github.event_name == 'workflow_dispatch' &&
-         inputs.action == 'deploy')
-      )
+      always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' &&
+      needs.tf-plan.outputs.has_changes == 'true' && (github.event_name == 'workflow_run' ||
+       (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     environment: production
     outputs:
