@@ -2,15 +2,59 @@
 Scripture Repository - Database operations for Bible data.
 """
 
+import time
 from typing import Sequence
 
+from opentelemetry.trace import Span
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from config import settings
+from middleware.context import REQUEST_ID_CTX_VAR
 from utils.book_names import normalize_book_name
+from utils.logging_config import get_logger
+from utils.telemetry import tracer
 
 from .models import Book, Passage, Topic, Verse
+
+logger = get_logger("scripture.repository")
+
+
+def _set_common_span_attrs(span: Span, operation: str, translation: str | None) -> None:
+    """Set standard span attributes common to all DB operations."""
+    span.set_attribute("db.operation", operation)
+    span.set_attribute("db.translation", translation or "all")
+    request_id = REQUEST_ID_CTX_VAR.get("")
+    if request_id:
+        span.set_attribute("request_id", request_id)
+
+
+def _record_duration(
+    span: Span,
+    start: float,
+    operation: str,
+    result_count: int,
+    translation: str | None,
+) -> None:
+    """Record query duration on the span and emit slow query log if threshold exceeded."""
+    duration_ms = (time.perf_counter() - start) * 1000
+    span.set_attribute("db.duration_ms", round(duration_ms, 2))
+    span.set_attribute("db.results.count", result_count)
+
+    if duration_ms > settings.slow_query_threshold_ms:
+        request_id = REQUEST_ID_CTX_VAR.get("")
+        logger.warning(
+            "Slow query detected",
+            extra={
+                "operation": operation,
+                "duration_ms": round(duration_ms, 2),
+                "result_count": result_count,
+                "translation": translation or "all",
+                "request_id": request_id or "none",
+                "threshold_ms": settings.slow_query_threshold_ms,
+            },
+        )
 
 
 class ScriptureRepository:
@@ -66,8 +110,14 @@ class ScriptureRepository:
             query = query.where(Verse.translation == translation)
 
         query = query.options(selectinload(Verse.book))
-        result = await self.session.execute(query)
-        return result.scalar_one_or_none()
+
+        with tracer.start_as_current_span("db.get_verse") as span:
+            _set_common_span_attrs(span, "get_verse", translation)
+            start = time.perf_counter()
+            result = await self.session.execute(query)
+            verse_obj = result.scalar_one_or_none()
+            _record_duration(span, start, "get_verse", 1 if verse_obj else 0, translation)
+            return verse_obj
 
     async def get_verses_in_range(
         self,
@@ -115,8 +165,13 @@ class ScriptureRepository:
 
         query = query.order_by(Verse.verse_number).options(selectinload(Verse.book))
 
-        result = await self.session.execute(query)
-        return result.scalars().all()
+        with tracer.start_as_current_span("db.get_chapter_verses") as span:
+            _set_common_span_attrs(span, "get_chapter", translation)
+            start = time.perf_counter()
+            result = await self.session.execute(query)
+            verses = result.scalars().all()
+            _record_duration(span, start, "get_chapter", len(verses), translation)
+            return verses
 
     async def search_verses_text(self, query: str, limit: int = 20) -> Sequence[Verse]:
         """Full-text search on verse content."""
@@ -166,8 +221,14 @@ class ScriptureRepository:
             .options(selectinload(Verse.book))
         )
 
-        result = await self.session.execute(query)
-        return [(row.Verse, row.similarity) for row in result.all()]
+        with tracer.start_as_current_span("db.search_verses_semantic") as span:
+            _set_common_span_attrs(span, "semantic_search_verses", translation)
+            span.set_attribute("db.similarity_threshold", similarity_threshold)
+            start = time.perf_counter()
+            result = await self.session.execute(query)
+            rows = [(row.Verse, row.similarity) for row in result.all()]
+            _record_duration(span, start, "semantic_search_verses", len(rows), translation)
+            return rows
 
     # ==================== Passages ====================
 
@@ -182,18 +243,26 @@ class ScriptureRepository:
         self, query_embedding: list[float], limit: int = 3, similarity_threshold: float = 0.5
     ) -> list[tuple[Passage, float]]:
         """Semantic search on passages."""
-        result = await self.session.execute(
-            select(
-                Passage,
-                (1 - Passage.embedding.cosine_distance(query_embedding)).label("similarity"),
+        with tracer.start_as_current_span("db.search_passages_semantic") as span:
+            _set_common_span_attrs(span, "semantic_search_passages", None)
+            span.set_attribute("db.similarity_threshold", similarity_threshold)
+            start = time.perf_counter()
+            result = await self.session.execute(
+                select(
+                    Passage,
+                    (1 - Passage.embedding.cosine_distance(query_embedding)).label("similarity"),
+                )
+                .where(Passage.embedding.isnot(None))
+                .where(
+                    (1 - Passage.embedding.cosine_distance(query_embedding)) >= similarity_threshold
+                )
+                .order_by(Passage.embedding.cosine_distance(query_embedding))
+                .limit(limit)
+                .options(selectinload(Passage.book))
             )
-            .where(Passage.embedding.isnot(None))
-            .where((1 - Passage.embedding.cosine_distance(query_embedding)) >= similarity_threshold)
-            .order_by(Passage.embedding.cosine_distance(query_embedding))
-            .limit(limit)
-            .options(selectinload(Passage.book))
-        )
-        return [(row.Passage, row.similarity) for row in result.all()]
+            rows = [(row.Passage, row.similarity) for row in result.all()]
+            _record_duration(span, start, "semantic_search_passages", len(rows), None)
+            return rows
 
     # ==================== Topics ====================
 
