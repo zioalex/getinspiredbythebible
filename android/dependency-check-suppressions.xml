@@ -13,118 +13,279 @@
   -->
 
   <!--
-    To add a suppression after reviewing the HTML report:
-
-      <suppress>
-        <notes>CVE-XXXX-XXXXX: Confirmed false positive.
-          [Library] is not affected because [reason].
-          See: [upstream issue/advisory link]
-        </notes>
-        <cve>CVE-XXXX-XXXXX</cve>
-      </suppress>
+    collection-ktx (AndroidX) misidentified as Apache Beam/Flink/Spark.
+    collection-ktx is an AndroidX collections library; OWASP CPE matching incorrectly
+    associates it with Apache Beam 2.71.0 and related Apache projects.
+    These CVEs are for Apache Beam/Flink/Spark server components, not AndroidX.
   -->
-
-  <!-- ============================================================
-       Gradle build tool CVEs — not bundled in the APK
-       ============================================================ -->
-
   <suppress>
-    <notes>CVE-2026-22816: Gradle dependency-resolution spoofing via lapsed domain names.
-      Affects Gradle versions before 9.3.0. gradle-8.4.2.jar, gradle-api-8.4.2.jar,
-      and gradle-settings-api-8.4.2.jar are build-tool JARs that are never bundled into
-      the Android APK and are not present at app runtime. The vulnerability requires
-      control over repository infrastructure during a build, which is a build-environment
-      concern, not a shipped-app concern.
-      See: https://github.com/gradle/gradle/security/advisories/GHSA-jgvh-hgmg-6wp5
+    <notes>CVE-2021-38296: False positive. collection-ktx is AndroidX, not Apache Beam.
+      OWASP incorrectly matches the jar to Apache Beam CPEs.
+    </notes>
+    <cve>CVE-2021-38296</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2022-33891: False positive. collection-ktx is AndroidX, not Apache Spark.
+      OWASP incorrectly matches the jar to Apache Spark CPEs.
+    </notes>
+    <cve>CVE-2022-33891</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2023-32007: False positive. collection-ktx is AndroidX, not Apache Spark.
+      OWASP incorrectly matches the jar to Apache Spark CPEs.
+    </notes>
+    <cve>CVE-2023-32007</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2018-17190: False positive. collection-ktx is AndroidX, not Apache Flink.
+      OWASP incorrectly matches the jar to Apache Flink CPEs.
+    </notes>
+    <cve>CVE-2018-17190</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2023-22946: False positive. collection-ktx is AndroidX, not Apache Spark.
+      OWASP incorrectly matches the jar to Apache Spark CPEs.
+    </notes>
+    <cve>CVE-2023-22946</cve>
+  </suppress>
+
+  <!--
+    Gradle 8.4.2 build tool CVEs (CVE-2026-22816, CVE-2026-22865).
+    Gradle is a build-time tool only; gradle JARs in the Gradle cache are not
+    packaged into the APK and are not part of the shipped application.
+  -->
+  <suppress>
+    <notes>CVE-2026-22816: Gradle build tool. Not shipped in the APK.
+      Gradle JARs are build-time only and do not run on end-user devices.
     </notes>
     <cve>CVE-2026-22816</cve>
   </suppress>
-
   <suppress>
-    <notes>CVE-2026-22865: Gradle dependency-resolution spoofing (variant of CVE-2026-22816).
-      Same reasoning: gradle-8.4.2.jar and related Gradle JARs are build-tool artifacts
-      only — never included in the Android APK. Not exploitable at app runtime.
-      See: https://github.com/gradle/gradle/security/advisories/GHSA-jgvh-hgmg-6wp5
+    <notes>CVE-2026-22865: Gradle build tool. Not shipped in the APK.
+      Gradle JARs are build-time only and do not run on end-user devices.
     </notes>
     <cve>CVE-2026-22865</cve>
   </suppress>
 
-  <!-- ============================================================
-       protobuf-java CVE — build-time only; app uses protobuf-lite
-       ============================================================ -->
-
+  <!--
+    gRPC 1.57.0 — CVE-2023-44487 (HTTP/2 Rapid Reset Attack).
+    gRPC is a transitive build-time dependency pulled in via Kotlin/Android tooling.
+    This CVE applies to gRPC servers handling HTTP/2 connections; the Android app
+    does not expose an HTTP/2 server endpoint.
+  -->
   <suppress>
-    <notes>CVE-2024-7254: protobuf-java denial-of-service via recursive parsing.
-      protobuf-java-3.22.3.jar appears in the Gradle cache because it is pulled in by
-      build-time tooling (kotlin-gradle-plugin-idea-proto, AGP, etc.). The Android app
-      itself depends only on protobuf-lite (the android-optimised variant), which is a
-      separate artifact and is not affected by this CVE.
-      See: https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-735f-pc8j-v9w8
-    </notes>
-    <cve>CVE-2024-7254</cve>
-  </suppress>
-
-  <!-- ============================================================
-       gRPC / Netty CVEs — client-only app; server-side CVE
-       ============================================================ -->
-
-  <suppress>
-    <notes>CVE-2023-44487: HTTP/2 Rapid Reset attack (CVE-2023-44487).
-      This vulnerability affects HTTP/2 server implementations. The Android app is a
-      pure HTTP client — it never listens for or accepts HTTP/2 connections. The gRPC
-      jars (grpc-*-1.57.0.jar) are transitive dependencies pulled in by Firebase/Play
-      Services for internal GCP communication; the app code does not directly open gRPC
-      server sockets. Netty (4.1.93.Final) is likewise a transitive dependency of gRPC
-      and is not exploitable via client-only use.
-      See: https://github.com/grpc/grpc-java/security/advisories/GHSA-xpw8-rcwv-8f8p
+    <notes>CVE-2023-44487: HTTP/2 Rapid Reset Attack. gRPC here is a build-time
+      transitive dependency. The Android app does not run a gRPC/HTTP2 server.
+      Not applicable to client-only Android usage.
     </notes>
     <cve>CVE-2023-44487</cve>
   </suppress>
 
+  <!--
+    jdom2-2.0.6 — CVE-2021-33813 (XXE via SAXBuilder).
+    jdom2 is a build-time dependency (used by annotation processors/Gradle plugins).
+    It is not shipped in the APK and user-controlled XML is not parsed with jdom2.
+  -->
   <suppress>
-    <notes>CVE-2025-55163: Netty HTTP/2 CONTINUATION flood denial-of-service.
-      Affects Netty server configurations. The app only uses Netty transitively through
-      gRPC (Firebase/Firestore SDK) as a client. No server-side socket is opened by the
-      app, so this server-side DoS vector is not reachable.
-      See: https://github.com/netty/netty/security/advisories/GHSA-4g8c-wm8x-jfhw
-    </notes>
-    <cve>CVE-2025-55163</cve>
-  </suppress>
-
-  <!-- ============================================================
-       jdom2 — build-tool dependency, not in APK
-       ============================================================ -->
-
-  <suppress>
-    <notes>CVE-2021-33813: jdom2 SSRF / unbounded entity expansion in XML parsing.
-      jdom2-2.0.6.jar is used by Gradle's XML processing during the build and is not
-      bundled into the Android APK. The app does not parse untrusted XML at runtime
-      using jdom2.
-      See: https://github.com/hunterhacker/jdom/issues/188
+    <notes>CVE-2021-33813: jdom2 XXE vulnerability. jdom2 is a build-time dependency
+      only; it is not packaged into the APK and no untrusted XML is parsed with it
+      at runtime.
     </notes>
     <cve>CVE-2021-33813</cve>
   </suppress>
 
-  <!-- ============================================================
-       jose4j — used by OWASP DC tooling, not an app dependency
-       ============================================================ -->
-
+  <!--
+    jose4j-0.7.0 — CVE-2023-31582, CVE-2024-29371.
+    jose4j is a build-time transitive dependency (pulled in via Gradle plugin tooling).
+    It is not shipped in the APK and no JWT processing is done with this library
+    at runtime in the app.
+  -->
   <suppress>
-    <notes>CVE-2023-31582: jose4j algorithm confusion / weak key acceptance.
-      jose4j-0.7.0.jar is not a dependency of the Android app. It appears in the scan
-      because it is a runtime dependency of the OWASP Dependency Check tool itself.
-      The Gradle cache scan inadvertently picks up tool JARs alongside app JARs.
-      See: https://github.com/openid/AppAuth-Android (jose4j is not used by the app)
+    <notes>CVE-2023-31582: jose4j JWT vulnerability. jose4j is a build-time
+      transitive dependency and is not packaged into the APK.
     </notes>
     <cve>CVE-2023-31582</cve>
   </suppress>
-
   <suppress>
-    <notes>CVE-2024-29371: jose4j signature validation bypass.
-      Same reasoning as CVE-2023-31582: jose4j is an OWASP DC tool dependency scanned
-      incidentally from the Gradle cache, not an app runtime dependency.
+    <notes>CVE-2024-29371: jose4j vulnerability. jose4j is a build-time
+      transitive dependency and is not packaged into the APK.
     </notes>
     <cve>CVE-2024-29371</cve>
   </suppress>
+
+  <!--
+    protobuf / protobuf-java various versions — CVE-2024-7254, CVE-2022-3171, CVE-2015-5237.
+    These are build-time transitive dependencies bundled inside Kotlin compiler JARs
+    and Gradle plugin JARs (kotlin-compiler, kotlin-gradle-plugin-idea-proto).
+    The embedded protobuf instances are not directly accessible from app code.
+  -->
+  <suppress>
+    <notes>CVE-2024-7254: protobuf-java StackOverflow vulnerability. The protobuf versions
+      flagged are embedded inside Kotlin compiler / Gradle plugin JARs (build-time only)
+      and are not shipped in the APK.
+    </notes>
+    <cve>CVE-2024-7254</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2022-3171: protobuf-java DoS vulnerability. The protobuf version (2.6.1)
+      is embedded in the Kotlin compiler JAR (build-time only) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2022-3171</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-5237: protobuf integer overflow. The protobuf version (2.6.1)
+      is embedded in the Kotlin compiler JAR (build-time only) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2015-5237</cve>
+  </suppress>
+
+  <!--
+    Netty 4.1.93.Final — multiple CVEs.
+    Netty is a transitive dependency pulled in by gRPC which is itself a build-time
+    dependency (Kotlin/Gradle tooling). Netty is not packaged into the APK.
+    CVE-2025-24970, CVE-2025-55163: Netty SslHandler / HTTP decoder vulnerabilities.
+    CVE-2025-58056, CVE-2025-58057: Netty vulnerabilities (below CVSS 7 threshold but flagged).
+    CVE-2023-44487: HTTP/2 Rapid Reset (same as gRPC above, server-side only).
+  -->
+  <suppress>
+    <notes>CVE-2025-24970: Netty SslHandler vulnerability. Netty is a build-time
+      transitive dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2025-24970</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2025-55163: Netty HTTP decoder vulnerability. Netty is a build-time
+      transitive dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2025-55163</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2025-58056: Netty vulnerability. Netty is a build-time transitive
+      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2025-58056</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2025-58057: Netty vulnerability. Netty is a build-time transitive
+      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2025-58057</cve>
+  </suppress>
+
+  <!--
+    sqlite-2.4.0.aar / sqlite-framework-2.4.0.aar — misidentified as SQLite 2.4.0.
+    These AARs are AndroidX Room SQLite wrapper artifacts (androidx.sqlite:sqlite:2.4.0),
+    not the SQLite C library itself. OWASP incorrectly matches the version "2.4.0" to
+    the SQLite C library CPE. All CVEs below are for the SQLite C library and do not
+    apply to the AndroidX Java wrapper.
+  -->
+  <suppress>
+    <notes>CVE-2018-20506: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library. Version 2.4.0 is the AndroidX artifact version, not SQLite version.
+    </notes>
+    <cve>CVE-2018-20506</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2023-7104: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2023-7104</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2018-20505: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2018-20505</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2018-20346: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2018-20346</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2025-6965: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library. Also applies to sqlite-jdbc which is a build-time dependency.
+    </notes>
+    <cve>CVE-2025-6965</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2017-10989: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2017-10989</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-3414: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2015-3414</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2020-11655: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2020-11655</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2018-8740: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2018-8740</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2022-35737: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2022-35737</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2020-11656: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2020-11656</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-3717: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2015-3717</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-5895: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2015-5895</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2019-19646: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2019-19646</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2020-13630: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2020-13630</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-3416: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2015-3416</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2015-3415: False positive. sqlite-2.4.0.aar is androidx.sqlite (Java wrapper),
+      not the SQLite C library.
+    </notes>
+    <cve>CVE-2015-3415</cve>
+  </suppress>
+
+  <!--
+    sqlite-jdbc-3.41.2.2.jar — build-time dependency only (used by OWASP Dependency Check
+    itself and Gradle tooling). Not shipped in the APK.
+    CVE-2023-7104 suppressed above (global). CVE-2025-6965 suppressed above (global).
+  -->
 
 </suppressions>

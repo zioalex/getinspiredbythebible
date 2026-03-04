@@ -68,7 +68,7 @@ async def run_migration():
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 email VARCHAR(255),
                 subject VARCHAR(50) NOT NULL CHECK (
-                    subject IN ('bug', 'feature', 'feedback', 'other')
+                    subject IN ('spiritual', 'bug', 'feature', 'feedback', 'other')
                 ),
                 message TEXT NOT NULL,
                 session_id VARCHAR(255),
