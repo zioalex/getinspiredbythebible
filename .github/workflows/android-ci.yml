@@ -49,7 +49,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-results
           path: android/app/build/reports/tests/testDebugUnitTest/
@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: lint-report
           path: android/app/build/reports/lint-results-debug.html
@@ -115,7 +115,7 @@ jobs:
         working-directory: android
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
@@ -290,7 +290,7 @@ jobs:
           NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
 
       - name: Upload dependency check report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-check-report
