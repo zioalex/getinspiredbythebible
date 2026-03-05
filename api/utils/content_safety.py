@@ -66,19 +66,20 @@ class ContentSafetyService:
     Multi-stage content safety service combining keyword filter, Llama Guard 3, and Azure Content Safety.
 
     Decision flow:
-    1. Keyword filter (instant, <5ms):
-       - Checks ONLY directed harm and hate speech
-       - HIGH confidence match → BLOCK immediately
-       - Clean → pass to Stage 2
+    1. Keyword filter (instant, <5ms) — ALL modes:
+       Checks ONLY directed harm and hate speech patterns.
+       HIGH confidence match → BLOCK immediately.
+       Clean → pass to Stage 2 (if mode includes ML).
 
-    2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE):
-       - Distinguishes biblical violence ("David killed Goliath") from real threats
-       - Detects nuanced harmful intent vs help-seeking
-       - Falls back to full keyword filter if API unavailable
+    2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE) — ml_only and hybrid modes only:
+       Distinguishes biblical violence ("David killed Goliath") from real threats.
+       Detects nuanced harmful intent vs help-seeking.
+       Falls back to full keyword filter if API unavailable.
+       keyword_only mode skips this stage entirely (no external API call).
 
-    3. Azure Content Safety (optional, context-aware, ~200ms):
-       - Additional layer for hybrid mode
-       - Provides second opinion on borderline cases
+    3. Azure Content Safety (optional, context-aware, ~200ms) — hybrid mode only:
+       Additional layer for hybrid mode.
+       Provides second opinion on borderline cases.
     """
 
     def __init__(self):
@@ -140,7 +141,10 @@ class ContentSafetyService:
         self, text: str, language: str, start: float
     ) -> ContentSafetyCheckResult:
         """
-        Fallback to full keyword filter when OpenAI Moderation is unavailable.
+        Fallback to full keyword filter when Llama Guard is unavailable.
+
+        Only called in ml_only and hybrid modes. In keyword_only mode,
+        Llama Guard is never invoked so this fallback is never reached.
 
         Re-checks violence and self-harm patterns that were skipped in Stage 1.
         """
@@ -326,8 +330,8 @@ class ContentSafetyService:
         if stage1_result:
             return stage1_result
 
-        # Stage 2: Llama Guard (for all modes)
-        if settings.content_safety_mode in ("keyword_only", "hybrid", "ml_only"):
+        # Stage 2: Llama Guard (ml_only and hybrid modes only — NOT keyword_only)
+        if settings.content_safety_mode in ("hybrid", "ml_only"):
             stage2_result = await self._check_stage2_llama_guard(text, language, start)
             if stage2_result:
                 return stage2_result
@@ -350,9 +354,9 @@ class ContentSafetyService:
                     )
                 except Exception as e:
                     logger.warning(
-                        "Azure Content Safety API unavailable, using OpenAI result: %s", e
+                        "Azure Content Safety API unavailable, using Llama Guard result: %s", e
                     )
-                    # Fall through to use OpenAI result (already computed above)
+                    # Fall through to use Llama Guard result (already computed above)
 
         # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000

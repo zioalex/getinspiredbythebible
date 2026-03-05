@@ -131,10 +131,19 @@ class Settings(BaseSettings):
     azure_content_safety_threshold: int = 4  # Severity 0-6, block >= threshold
 
     # Content Safety Mode
+    # Content safety pipeline mode:
+    #   keyword_only — Stage 1 only (fast local keyword filter, no external API call).
+    #                  Use this when you want safety with zero added latency.
+    #   ml_only      — Stage 1 + Stage 2 (Llama Guard 3 via OpenRouter, ~270ms overhead).
+    #                  Best balance of accuracy and cost (free tier available).
+    #   hybrid       — Stage 1 + Stage 2 + Stage 3 (Azure Content Safety, additional layer).
+    #                  Maximum accuracy, requires Azure Content Safety resource.
     content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "keyword_only"
 
     # Llama Guard Settings
+    # Note: These settings only apply when content_safety_mode is ml_only or hybrid.
+    # In keyword_only mode, Llama Guard is never invoked (no external API call).
     llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency
     llama_guard_timeout: int = 10  # LLM inference timeout (seconds)
 

@@ -213,15 +213,15 @@ def test_leet_speak_evasion_detected(content_filter):
 
 @pytest.fixture
 def safety_service_enabled(monkeypatch):
-    """Create ContentSafetyService with content safety enabled and Llama Guard available."""
+    """Create ContentSafetyService with content safety enabled (ml_only mode) and Llama Guard available."""
     from providers.azure_content_safety import ContentSafetyResult
 
-    # Mock settings
+    # Mock settings (use ml_only mode to test Llama Guard integration)
     monkeypatch.setattr(
         "utils.content_safety.settings",
         MagicMock(
             content_safety_enabled=True,
-            content_safety_mode="keyword_only",
+            content_safety_mode="ml_only",
             azure_content_safety_enabled=False,
             azure_content_safety_endpoint=None,
             azure_content_safety_key=None,
@@ -519,3 +519,125 @@ async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
     result = await safety_service_hybrid.check("borderline violent message", "en")
     assert result.allowed is False
     assert result.reason == "harmful_intent_detected"
+
+
+# ============================================================================
+# Content Safety Mode Semantics Tests
+# ============================================================================
+
+
+@pytest.fixture
+def safety_service_keyword_only(monkeypatch):
+    """Create ContentSafetyService with keyword_only mode (no Llama Guard)."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="keyword_only",
+            azure_content_safety_enabled=False,
+            azure_content_safety_endpoint=None,
+            azure_content_safety_key=None,
+        ),
+    )
+    return ContentSafetyService()
+
+
+@pytest.fixture
+def safety_service_ml_only(monkeypatch):
+    """Create ContentSafetyService with ml_only mode (Llama Guard only, no Azure)."""
+    from providers.azure_content_safety import ContentSafetyResult
+
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="ml_only",
+            azure_content_safety_enabled=False,
+            openrouter_api_key="test-key",  # pragma: allowlist secret
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
+        ),
+    )
+
+    service = ContentSafetyService()
+
+    # Mock Llama Guard provider
+    async def mock_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
+        """Mock Llama Guard to detect violence."""
+        if "bomb" in text.lower():
+            return ContentSafetyResult(
+                allowed=False, reason="violence_or_threat_detected", categories={"violence": 9}
+            )
+        return ContentSafetyResult(allowed=True, reason="clean", categories={})
+
+    def mock_get_llama_guard():
+        if not hasattr(service, "_mock_llama_guard_provider"):
+            mock_provider = MagicMock()
+            mock_provider.analyze_text = mock_analyze_text
+            service._mock_llama_guard_provider = mock_provider
+        return service._mock_llama_guard_provider
+
+    service._get_llama_guard_provider = mock_get_llama_guard
+
+    return service
+
+
+async def test_keyword_only_mode_skips_llama_guard(safety_service_keyword_only, monkeypatch):
+    """Test that keyword_only mode does NOT call Llama Guard (no external API call)."""
+    # Create a spy to track if Llama Guard is called
+    llama_guard_called = False
+
+    def mock_get_llama_guard():
+        nonlocal llama_guard_called
+        llama_guard_called = True
+        raise AssertionError("Llama Guard should NOT be called in keyword_only mode")
+
+    monkeypatch.setattr(
+        safety_service_keyword_only, "_get_llama_guard_provider", mock_get_llama_guard
+    )
+
+    # Check a message that would normally trigger Llama Guard (violence keyword)
+    result = await safety_service_keyword_only.check("I want to build a bomb", "en")
+
+    # In keyword_only mode, violence keywords are NOT blocked (only directed harm/hate speech)
+    # Llama Guard should NOT have been called
+    assert llama_guard_called is False
+    assert result.allowed is True  # Violence not in Stage 1 patterns
+
+
+async def test_ml_only_mode_calls_llama_guard(safety_service_ml_only):
+    """Test that ml_only mode DOES call Llama Guard for violence detection."""
+    result = await safety_service_ml_only.check("I want to build a bomb", "en")
+
+    # Llama Guard should detect violence
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected"
+
+
+async def test_hybrid_mode_calls_llama_guard(safety_service_hybrid):
+    """Test that hybrid mode DOES call Llama Guard (Stage 2)."""
+    result = await safety_service_hybrid.check("I want to build a bomb", "en")
+
+    # Llama Guard should detect violence
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected"
+
+
+async def test_keyword_only_mode_zero_external_calls(safety_service_keyword_only):
+    """Test that keyword_only mode has near-zero latency (no external API calls)."""
+    start = time.monotonic()
+    await safety_service_keyword_only.check("I need guidance on my faith journey", "en")
+    elapsed_ms = (time.monotonic() - start) * 1000
+
+    # Should complete in under 10ms (local keyword filter only, no HTTP calls)
+    assert elapsed_ms < 10
+
+
+async def test_keyword_only_mode_blocks_directed_harm(safety_service_keyword_only):
+    """Test that keyword_only mode still blocks directed harm (Stage 1 pattern)."""
+    result = await safety_service_keyword_only.check("Go kill yourself", "en")
+
+    # Stage 1 should catch directed harm
+    assert result.allowed is False
+    assert "keyword_violation" in result.reason
+    assert ViolationType.DIRECTED_HARM.value in result.reason
