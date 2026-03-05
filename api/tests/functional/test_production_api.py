@@ -509,8 +509,8 @@ class TestContentSafetySmoke:
                         import json
 
                         data = json.loads(line[5:].strip())  # Strip "data:" prefix
-                        if "error" in data:
-                            assert data["error"] == "content_safety_violation", (
+                        if "error_code" in data:
+                            assert data.get("error_code") == "content_safety_violation", (
                                 f"Stream endpoint blocked with wrong error. "
                                 f"Expected 'content_safety_violation', got: {data}"
                             )
