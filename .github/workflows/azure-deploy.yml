@@ -539,14 +539,15 @@ jobs:
         id: plan
         run: |
           # Exit codes: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
-          set -o pipefail
+          # NOTE: $? captures tee's exit code (always 0), not terraform's.
+          # Use PIPESTATUS[0] to get terraform's actual exit code through the pipe.
           terraform plan \
             -var-file="terraform.tfvars" \
             -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
             -var="frontend_image=${{ steps.image-tags.outputs.frontend_image }}" \
             -out=tfplan \
             -detailed-exitcode 2>&1 | tee plan_output.txt
-          PLAN_EXIT_CODE=$?
+          PLAN_EXIT_CODE=${PIPESTATUS[0]}
           echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
           exit $PLAN_EXIT_CODE
         working-directory: ${{ env.TF_WORKING_DIR }}
