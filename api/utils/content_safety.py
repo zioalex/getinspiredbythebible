@@ -1,9 +1,10 @@
 """
 Hybrid Content Safety Service.
 
-Implements a two-stage content safety pipeline:
-1. Fast keyword filter (multi-language, <5ms) — blocks obvious abuse/violence
-2. Azure Content Safety API (context-aware, ~200ms) — distinguishes help-seeking from harmful
+Implements a multi-stage content safety pipeline:
+1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech
+2. OpenAI Moderation API (context-aware, ~100-150ms, FREE) — distinguishes biblical discussion from harmful intent
+3. Azure Content Safety API (optional, context-aware, ~200ms) — additional layer for hybrid mode
 
 CRITICAL DESIGN PRINCIPLE:
 This is a spiritual guidance app. People seeking help for self-harm, addiction,
@@ -62,23 +63,30 @@ class ContentSafetyViolationError(Exception):
 
 class ContentSafetyService:
     """
-    Hybrid content safety service combining keyword filter and Azure Content Safety.
+    Multi-stage content safety service combining keyword filter, OpenAI Moderation, and Azure Content Safety.
 
     Decision flow:
     1. Keyword filter (instant, <5ms):
+       - Checks ONLY directed harm and hate speech
        - HIGH confidence match → BLOCK immediately
-       - LOW confidence (may be help-seeking) → pass to Azure
-       - Clean → ALLOW
+       - Clean → pass to Stage 2
 
-    2. Azure Content Safety (context-aware, ~200ms):
+    2. OpenAI Moderation (context-aware, ~100-150ms, FREE):
+       - Distinguishes biblical violence ("David killed Goliath") from real threats
        - Detects nuanced harmful intent vs help-seeking
-       - Falls back to keyword result if API unavailable
+       - Falls back to full keyword filter if API unavailable
+
+    3. Azure Content Safety (optional, context-aware, ~200ms):
+       - Additional layer for hybrid mode
+       - Provides second opinion on borderline cases
     """
 
     def __init__(self):
         self.keyword_filter = MultiLanguageContentFilter()
         self._azure_provider = None
         self._azure_initialized = False
+        self._openai_provider = None
+        self._openai_initialized = False
 
     def _get_azure_provider(self):
         """Lazy-initialize Azure provider."""
@@ -103,30 +111,108 @@ class ContentSafetyService:
                     self._azure_provider = None
         return self._azure_provider
 
-    async def check(self, text: str, language: str = "en") -> ContentSafetyCheckResult:
+    def _get_openai_provider(self):
+        """Lazy-initialize OpenAI Moderation provider."""
+        if not self._openai_initialized:
+            self._openai_initialized = True
+            api_key = settings.openai_api_key or settings.openrouter_api_key
+            if api_key:
+                try:
+                    from providers.openai_moderation import OpenAIModerationProvider
+
+                    self._openai_provider = OpenAIModerationProvider(
+                        api_key=api_key,
+                        threshold=settings.openai_moderation_threshold,
+                        timeout=settings.openai_moderation_timeout,
+                    )
+                    logger.info("OpenAI Moderation provider initialized")
+                except Exception as e:
+                    logger.warning("Failed to initialize OpenAI Moderation: %s", e)
+                    self._openai_provider = None
+            else:
+                logger.warning(
+                    "OpenAI Moderation not available: no API key configured "
+                    "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
+                )
+        return self._openai_provider
+
+    def _full_keyword_fallback(
+        self, text: str, language: str, start: float
+    ) -> ContentSafetyCheckResult:
         """
-        Perform hybrid content safety check.
+        Fallback to full keyword filter when OpenAI Moderation is unavailable.
 
-        Args:
-            text: The user message to check
-            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
-
-        Returns:
-            ContentSafetyCheckResult with allowed flag and context
+        Re-checks violence and self-harm patterns that were skipped in Stage 1.
         """
-        if not settings.content_safety_enabled:
-            return ContentSafetyCheckResult(allowed=True, reason="disabled")
+        from utils.security import normalize_text
 
-        start = time.monotonic()
+        normalized = normalize_text(text)
 
-        # Stage 1: Fast keyword filter
+        # Check violence patterns (high confidence → block)
+        for check_lang in [language, "en"]:
+            regex = self.keyword_filter._violence_regex.get(check_lang)
+            if regex and regex.search(normalized):
+                match = regex.search(normalized)
+                pattern = match.group(0) if match else "violence"
+                logger.warning(
+                    "Content safety: violence detected (fallback)",
+                    extra={
+                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
+                        "language": language,
+                        "pattern": pattern,
+                    },
+                )
+                return ContentSafetyCheckResult(
+                    allowed=False,
+                    reason="keyword_violation:violence (fallback)",
+                    pattern_matched=pattern,
+                    check_duration_ms=(time.monotonic() - start) * 1000,
+                )
+
+        # Check self-harm patterns (low confidence → allow with compassionate flag)
+        for check_lang in [language, "en"]:
+            regex = self.keyword_filter._self_harm_regex.get(check_lang)
+            if regex and regex.search(normalized):
+                match = regex.search(normalized)
+                pattern = match.group(0) if match else "self_harm"
+                logger.info(
+                    "Content safety: possible help-seeking detected (fallback)",
+                    extra={
+                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
+                        "language": language,
+                        "pattern": pattern,
+                    },
+                )
+                return ContentSafetyCheckResult(
+                    allowed=True,
+                    reason="possible_help_seeking (fallback)",
+                    is_help_seeking=True,
+                    compassionate_response_needed=True,
+                    pattern_matched=pattern,
+                    check_duration_ms=(time.monotonic() - start) * 1000,
+                )
+
+        # No violations in fallback check
+        return ContentSafetyCheckResult(
+            allowed=True,
+            reason="clean (fallback)",
+            check_duration_ms=(time.monotonic() - start) * 1000,
+        )
+
+    def _check_stage1_keywords(
+        self, text: str, language: str, start: float
+    ) -> ContentSafetyCheckResult | None:
+        """
+        Stage 1: Fast keyword check (directed harm + hate speech only).
+
+        Returns ContentSafetyCheckResult if blocked, None if should continue to Stage 2.
+        """
         blocked, confidence, violation_type, pattern_matched = (
             self.keyword_filter.check_multilingual(text, language)
         )
 
         keyword_ms = (time.monotonic() - start) * 1000
 
-        # High confidence keyword match → block immediately (no API needed)
         if blocked and confidence == "high":
             text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
             logger.warning(
@@ -146,8 +232,108 @@ class ContentSafetyService:
                 check_duration_ms=keyword_ms,
             )
 
-        # Stage 2: Azure Content Safety (if enabled and mode is hybrid/ml_only)
-        if settings.content_safety_mode in ("hybrid", "ml_only"):
+        return None
+
+    async def _check_stage2_openai(
+        self, text: str, language: str, start: float
+    ) -> ContentSafetyCheckResult | None:
+        """
+        Stage 2: OpenAI Moderation API check.
+
+        Returns ContentSafetyCheckResult if decision made, None if should continue to Stage 3.
+        """
+        openai_provider = self._get_openai_provider()
+        if not openai_provider:
+            return None
+
+        try:
+            openai_result = await openai_provider.analyze_text(text, language)
+            total_ms = (time.monotonic() - start) * 1000
+
+            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+            logger.info(
+                "OpenAI Moderation check complete",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "allowed": openai_result.allowed,
+                    "reason": openai_result.reason,
+                    "is_help_seeking": openai_result.is_help_seeking,
+                    "duration_ms": f"{total_ms:.1f}",
+                },
+            )
+
+            # If ml_only mode, return OpenAI result directly (skip Azure)
+            if settings.content_safety_mode == "ml_only":
+                return ContentSafetyCheckResult(
+                    allowed=openai_result.allowed,
+                    reason=openai_result.reason,
+                    categories=openai_result.categories,
+                    is_help_seeking=openai_result.is_help_seeking,
+                    compassionate_response_needed=openai_result.compassionate_response_needed,
+                    check_duration_ms=total_ms,
+                )
+
+            # For keyword_only and hybrid modes:
+            # If OpenAI blocks, block immediately
+            if not openai_result.allowed:
+                return ContentSafetyCheckResult(
+                    allowed=False,
+                    reason=openai_result.reason,
+                    categories=openai_result.categories,
+                    check_duration_ms=total_ms,
+                )
+
+            # If OpenAI allows but flags help-seeking (and not hybrid mode), return it
+            if openai_result.is_help_seeking and settings.content_safety_mode != "hybrid":
+                return ContentSafetyCheckResult(
+                    allowed=True,
+                    reason=openai_result.reason,
+                    categories=openai_result.categories,
+                    is_help_seeking=True,
+                    compassionate_response_needed=True,
+                    check_duration_ms=total_ms,
+                )
+
+            # For hybrid mode, continue to Azure (Stage 3)
+            return None
+
+        except Exception as e:
+            logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
+            # Fallback to full keyword filter
+            return self._full_keyword_fallback(text, language, start)
+
+    async def check(
+        self, text: str, language: str = "en"
+    ) -> ContentSafetyCheckResult:  # noqa: C901
+        """
+        Perform multi-stage content safety check.
+
+        Args:
+            text: The user message to check
+            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+
+        Returns:
+            ContentSafetyCheckResult with allowed flag and context
+        """
+        if not settings.content_safety_enabled:
+            return ContentSafetyCheckResult(allowed=True, reason="disabled")
+
+        start = time.monotonic()
+
+        # Stage 1: Fast keyword filter (directed harm + hate speech only)
+        stage1_result = self._check_stage1_keywords(text, language, start)
+        if stage1_result:
+            return stage1_result
+
+        # Stage 2: OpenAI Moderation (for all modes)
+        if settings.content_safety_mode in ("keyword_only", "hybrid", "ml_only"):
+            stage2_result = await self._check_stage2_openai(text, language, start)
+            if stage2_result:
+                return stage2_result
+
+        # Stage 3: Azure Content Safety (hybrid mode only, additional layer)
+        if settings.content_safety_mode == "hybrid":
             azure_provider = self._get_azure_provider()
             if azure_provider:
                 try:
@@ -164,24 +350,12 @@ class ContentSafetyService:
                     )
                 except Exception as e:
                     logger.warning(
-                        "Azure Content Safety API unavailable, falling back to keyword filter: %s",
-                        e,
+                        "Azure Content Safety API unavailable, using OpenAI result: %s", e
                     )
-                    # Fall through to keyword result
+                    # Fall through to use OpenAI result (already computed above)
 
-        # Default: if keyword flagged with low confidence, still allow (help-seeking)
+        # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000
-        if blocked and confidence == "low":
-            # Low confidence = may be help-seeking (e.g., "I want to die")
-            return ContentSafetyCheckResult(
-                allowed=True,
-                reason="possible_help_seeking",
-                is_help_seeking=True,
-                compassionate_response_needed=True,
-                pattern_matched=pattern_matched,
-                check_duration_ms=total_ms,
-            )
-
         return ContentSafetyCheckResult(
             allowed=True,
             reason="clean",

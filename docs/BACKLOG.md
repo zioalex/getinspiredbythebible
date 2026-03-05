@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Get Inspired by the Bible.
 
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-03-04
 
 ---
 
@@ -15,6 +15,41 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 ---
 
 ## P0 - Critical (Ship Now)
+
+### 🎯 BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
+
+**Status:** 🎯 Todo
+**Size:** M (5-6 hours)
+**Created:** 2026-03-04
+
+**As a** user asking about Bible stories involving violence,
+**I want** the content safety filter to understand biblical context vs. harmful intent,
+**so that** "David killed Goliath" is never blocked, but "I want to bomb the school" always is.
+
+**Why P0:** Content safety (BITB-017) is deployed but cannot be enabled due to false
+positives on Bible queries. This unblocks it.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-020-openai-moderation-content-safety.md`):**
+
+- [ ] OpenAI Moderation API (`omni-moderation-latest`, free) replaces broad violence keywords in Stage 2
+- [ ] Stage 1 retains only directed-harm + hate-speech patterns (unambiguous, never biblical)
+- [ ] False positive tests all pass: "David killed Goliath" → HTTP 200
+- [ ] True positive tests all pass: "I want to build a bomb" → HTTP 400
+- [ ] Fallback to existing keyword filter if API unavailable
+- [ ] `CONTENT_SAFETY_ENABLED=true` safely enabled in production after merge
+
+**Tech Constraints:**
+
+- Uses existing `openai_api_key` or `openrouter_api_key` (no new key needed)
+- New provider: `api/providers/openai_moderation.py`
+- Fits existing `keyword_only / hybrid / ml_only` mode config
+- Must not break existing 1,033 tests
+
+**Dependencies:** BITB-017 (PR #208 merged ✅)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-020-openai-moderation-content-safety.md`
+
+---
 
 ### ✅ BITB-001: Fix Turnstile 403 Errors on Example Sentences
 

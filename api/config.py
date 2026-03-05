@@ -130,6 +130,10 @@ class Settings(BaseSettings):
     content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "keyword_only"
 
+    # OpenAI Moderation Settings
+    openai_moderation_threshold: float = 0.5  # Block if score >= threshold (0.0-1.0)
+    openai_moderation_timeout: int = 3  # Timeout in seconds before fallback
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

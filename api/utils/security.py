@@ -549,6 +549,9 @@ class MultiLanguageContentFilter:
         """
         Check text for harmful content in the specified language.
 
+        Stage 1 filter: Checks ONLY directed harm and hate speech patterns.
+        Violence and self-harm patterns are now handled by OpenAI Moderation (Stage 2).
+
         Args:
             text: The message to check
             language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
@@ -598,44 +601,9 @@ class MultiLanguageContentFilter:
             )
             return True, "high", ViolationType.HATE_SPEECH.value, pattern
 
-        # Check violence (high confidence - block)
-        # Check both specified language and English (fallback)
-        for check_lang in [language, "en"]:
-            if check_lang in self._violence_regex:
-                if self._violence_regex[check_lang].search(normalized):
-                    match = self._violence_regex[check_lang].search(normalized)
-                    pattern = match.group(0) if match else "violence"
-                    text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
-                    logger.warning(
-                        "Content safety: violence detected",
-                        extra={
-                            "text_hash": text_hash,
-                            "language": language,
-                            "pattern": pattern,
-                            "violation_type": "violence",
-                        },
-                    )
-                    return True, "high", ViolationType.VIOLENCE.value, pattern
+        # Violence and self-harm patterns are retained as class attributes
+        # for fallback use, but are NOT checked in Stage 1.
+        # OpenAI Moderation (Stage 2) handles these with context awareness.
 
-        # Check self-harm (low confidence - may be help-seeking)
-        for check_lang in [language, "en"]:
-            if check_lang in self._self_harm_regex:
-                if self._self_harm_regex[check_lang].search(normalized):
-                    match = self._self_harm_regex[check_lang].search(normalized)
-                    pattern = match.group(0) if match else "self_harm"
-                    text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
-                    logger.info(
-                        "Content safety: possible help-seeking detected",
-                        extra={
-                            "text_hash": text_hash,
-                            "language": language,
-                            "pattern": pattern,
-                            "violation_type": "self_harm",
-                            "confidence": "low",
-                        },
-                    )
-                    # Return blocked=True but low confidence (caller decides)
-                    return True, "low", ViolationType.SELF_HARM.value, pattern
-
-        # No violations detected
+        # No violations detected in Stage 1
         return False, "high", None, None

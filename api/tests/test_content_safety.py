@@ -60,104 +60,94 @@ def content_filter():
 
 
 def test_violence_detection_english(content_filter):
-    """Test violence keyword detection in English."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I want to build a bomb", "en"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
-    assert pattern is not None
+    # Violence patterns now handled by OpenAI Moderation (Stage 2), not keyword filter
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_italian(content_filter):
-    """Test violence keyword detection in Italian."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Voglio costruire una bomba", "it"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_german(content_filter):
-    """Test violence keyword detection in German."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Ich will eine Bombe bauen", "de"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_spanish(content_filter):
-    """Test violence keyword detection in Spanish."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Quiero construir una bomba", "es"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_french(content_filter):
-    """Test violence keyword detection in French."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Je veux construire une bombe", "fr"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_portuguese(content_filter):
-    """Test violence keyword detection in Portuguese."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Quero construir uma bomba", "pt"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_violence_detection_arabic(content_filter):
-    """Test violence keyword detection in Arabic."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "أريد بناء قنبلة", "ar"
     )
-    assert blocked is True
-    assert confidence == "high"
-    assert violation_type == ViolationType.VIOLENCE.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_self_harm_help_seeking_english(content_filter):
-    """Test self-harm detection returns low confidence (help-seeking)."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I feel like I want to die, can you help?", "en"
     )
-    assert blocked is True  # Pattern detected
-    assert confidence == "low"  # But low confidence (help-seeking)
-    assert violation_type == ViolationType.SELF_HARM.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_self_harm_help_seeking_italian(content_filter):
-    """Test self-harm detection in Italian."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Voglio morire", "it"
     )
-    assert blocked is True
-    assert confidence == "low"
-    assert violation_type == ViolationType.SELF_HARM.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_self_harm_help_seeking_german(content_filter):
-    """Test self-harm detection in German."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Ich will sterben", "de"
     )
-    assert blocked is True
-    assert confidence == "low"
-    assert violation_type == ViolationType.SELF_HARM.value
+    assert blocked is False
+    assert violation_type is None
 
 
 def test_directed_harm_blocked(content_filter):
@@ -200,21 +190,20 @@ def test_clean_message_allowed(content_filter):
 
 
 def test_unicode_evasion_detected(content_filter):
-    """Test Unicode evasion with zero-width chars."""
-    # b\u200bomb with zero-width space
-    text = "I want to build a b\u200bomb"
-    blocked, confidence, violation_type, pattern = content_filter.check_multilingual(text, "en")
-    assert blocked is True  # Should detect despite zero-width char
-    assert confidence == "high"
+    """Unicode evasion no longer detected in Stage 1 (violence moved to OpenAI Stage 2)."""
+    # Zero-width space evasion
+    blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
+        "I want to build a b\u200bomb", "en"
+    )
+    assert blocked is False  # Violence patterns now in Stage 2
 
 
 def test_leet_speak_evasion_detected(content_filter):
-    """Test leet-speak evasion detection."""
+    """Leet-speak evasion no longer detected in Stage 1 (violence moved to OpenAI Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I want to build a b0mb", "en"
     )
-    assert blocked is True  # 0 → o substitution
-    assert confidence == "high"
+    assert blocked is False  # Violence patterns now in Stage 2
 
 
 # ============================================================================
@@ -224,7 +213,10 @@ def test_leet_speak_evasion_detected(content_filter):
 
 @pytest.fixture
 def safety_service_enabled(monkeypatch):
-    """Create ContentSafetyService with content safety enabled."""
+    """Create ContentSafetyService with content safety enabled and OpenAI available."""
+    from providers.azure_content_safety import ContentSafetyResult
+
+    # Mock settings
     monkeypatch.setattr(
         "utils.content_safety.settings",
         MagicMock(
@@ -234,9 +226,60 @@ def safety_service_enabled(monkeypatch):
             azure_content_safety_endpoint=None,
             azure_content_safety_key=None,
             azure_content_safety_threshold=4,
+            openai_api_key="test-key",  # pragma: allowlist secret
+            openrouter_api_key=None,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
         ),
     )
-    return ContentSafetyService()
+
+    service = ContentSafetyService()
+
+    # Mock OpenAI provider to return appropriate responses
+    async def mock_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
+        """Mock OpenAI Moderation API responses based on text content."""
+        text_lower = text.lower()
+
+        # Check for violence keywords (would be blocked by OpenAI)
+        if any(
+            word in text_lower
+            for word in ["bomb", "bomba", "bombe", "gun", "weapon", "kill", "murder"]
+        ):
+            # But allow biblical context
+            if any(
+                phrase in text_lower
+                for phrase in ["david", "goliath", "pharisee", "testament", "bible", "scripture"]
+            ):
+                return ContentSafetyResult(allowed=True, reason="clean", categories={})
+            # Block actual threats
+            return ContentSafetyResult(
+                allowed=False, reason="violence_or_threat_detected", categories={"violence": 9}
+            )
+
+        # Check for self-harm (would be flagged as help-seeking by OpenAI)
+        if any(word in text_lower for word in ["die", "death", "suicide", "morire", "sterben"]):
+            return ContentSafetyResult(
+                allowed=True,
+                reason="possible_help_seeking",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                categories={"self-harm/intent": 7},
+            )
+
+        # Clean message
+        return ContentSafetyResult(allowed=True, reason="clean", categories={})
+
+    # Patch the _get_openai_provider method to return a mock
+    def mock_get_openai():
+        if not hasattr(service, "_mock_openai_provider"):
+            mock_provider = MagicMock()
+            mock_provider.analyze_text = mock_analyze_text
+            service._mock_openai_provider = mock_provider
+        return service._mock_openai_provider
+
+    service._get_openai_provider = mock_get_openai
+
+    return service
 
 
 @pytest.fixture
@@ -279,18 +322,17 @@ async def test_blocks_directed_harm(safety_service_enabled):
 
 
 async def test_blocks_violence(safety_service_enabled):
-    """Test violence is blocked."""
+    """Test violence is blocked (by OpenAI Moderation Stage 2)."""
     result = await safety_service_enabled.check("I want to build a bomb", "en")
     assert result.allowed is False
-    assert "keyword_violation" in result.reason
-    assert ViolationType.VIOLENCE.value in result.reason
+    assert result.reason == "violence_or_threat_detected"
 
 
 async def test_blocks_italian_violence(safety_service_enabled):
-    """Test Italian violence is blocked."""
+    """Test Italian violence is blocked (by OpenAI Moderation Stage 2)."""
     result = await safety_service_enabled.check("Voglio costruire una bomba", "it")
     assert result.allowed is False
-    assert "keyword_violation" in result.reason
+    assert result.reason == "violence_or_threat_detected"
 
 
 async def test_disabled_allows_everything(safety_service_disabled):
@@ -335,7 +377,9 @@ async def test_performance_keyword_under_50ms(safety_service_enabled):
 
 @pytest.fixture
 def safety_service_hybrid(monkeypatch):
-    """Create ContentSafetyService with hybrid mode (mocked Azure)."""
+    """Create ContentSafetyService with hybrid mode (mocked OpenAI and Azure)."""
+    from providers.azure_content_safety import ContentSafetyResult
+
     monkeypatch.setattr(
         "utils.content_safety.settings",
         MagicMock(
@@ -343,26 +387,70 @@ def safety_service_hybrid(monkeypatch):
             content_safety_mode="hybrid",
             azure_content_safety_enabled=True,
             azure_content_safety_endpoint="https://test.cognitiveservices.azure.com/",
-            azure_content_safety_key="test-key",
+            azure_content_safety_key="test-key",  # pragma: allowlist secret
             azure_content_safety_threshold=4,
+            openai_api_key="test-key",  # pragma: allowlist secret
+            openrouter_api_key=None,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
         ),
     )
-    return ContentSafetyService()
+
+    service = ContentSafetyService()
+
+    # Mock OpenAI provider (same logic as safety_service_enabled)
+    async def mock_openai_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
+        """Mock OpenAI Moderation API responses."""
+        text_lower = text.lower()
+
+        # Violence detection
+        if any(word in text_lower for word in ["bomb", "bomba", "violent threat"]):
+            return ContentSafetyResult(
+                allowed=False, reason="violence_or_threat_detected", categories={"violence": 9}
+            )
+
+        # Self-harm help-seeking
+        if any(word in text_lower for word in ["die", "death"]):
+            return ContentSafetyResult(
+                allowed=True,
+                reason="possible_help_seeking",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                categories={"self-harm/intent": 7},
+            )
+
+        return ContentSafetyResult(allowed=True, reason="clean", categories={})
+
+    def mock_get_openai():
+        if not hasattr(service, "_mock_openai_provider"):
+            mock_provider = MagicMock()
+            mock_provider.analyze_text = mock_openai_analyze_text
+            service._mock_openai_provider = mock_provider
+        return service._mock_openai_provider
+
+    service._get_openai_provider = mock_get_openai
+
+    return service
 
 
 async def test_fallback_to_keyword_when_azure_unavailable(safety_service_hybrid, monkeypatch):
-    """Test fallback to keyword filter when Azure API unavailable."""
-    # Mock Azure provider to raise exception
-    mock_provider = MagicMock()
-    mock_provider.analyze_text = AsyncMock(side_effect=RuntimeError("API unavailable"))
+    """Test fallback when both OpenAI and Azure are unavailable."""
+    # Mock OpenAI provider to raise exception
+    mock_openai_provider = MagicMock()
+    mock_openai_provider.analyze_text = AsyncMock(side_effect=RuntimeError("OpenAI unavailable"))
 
-    # Patch _get_azure_provider to return mock
-    monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_provider)
+    # Mock Azure provider to also raise exception
+    mock_azure_provider = MagicMock()
+    mock_azure_provider.analyze_text = AsyncMock(side_effect=RuntimeError("Azure unavailable"))
 
-    # Should fall back to keyword filter for high-confidence match
+    # Patch both providers
+    monkeypatch.setattr(safety_service_hybrid, "_get_openai_provider", lambda: mock_openai_provider)
+    monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
+
+    # Should fall back to full keyword filter (violence patterns)
     result = await safety_service_hybrid.check("I want to build a bomb", "en")
     assert result.allowed is False
-    assert "keyword_violation" in result.reason
+    assert "fallback" in result.reason
 
 
 async def test_azure_help_seeking_allowed(safety_service_hybrid, monkeypatch):
@@ -393,12 +481,12 @@ async def test_azure_help_seeking_allowed(safety_service_hybrid, monkeypatch):
 
 
 async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
-    """Test Azure provider blocks harmful intent."""
+    """Test Azure provider blocks harmful intent in hybrid mode."""
     from providers.azure_content_safety import ContentSafetyResult
 
-    # Mock Azure provider
-    mock_provider = MagicMock()
-    mock_provider.analyze_text = AsyncMock(
+    # Mock Azure provider to block
+    mock_azure_provider = MagicMock()
+    mock_azure_provider.analyze_text = AsyncMock(
         return_value=ContentSafetyResult(
             allowed=False,
             reason="harmful_intent_detected",
@@ -410,9 +498,18 @@ async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
         )
     )
 
-    monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_provider)
+    monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
 
-    # High severity violence should be blocked
-    result = await safety_service_hybrid.check("violent threat", "en")
+    # OpenAI will block first, so Azure won't be reached
+    # Use a message that OpenAI would allow but Azure would block
+    # Mock OpenAI to allow
+    mock_openai_provider = MagicMock()
+    mock_openai_provider.analyze_text = AsyncMock(
+        return_value=ContentSafetyResult(allowed=True, reason="clean", categories={})
+    )
+    monkeypatch.setattr(safety_service_hybrid, "_get_openai_provider", lambda: mock_openai_provider)
+
+    # High severity violence should be blocked by Azure
+    result = await safety_service_hybrid.check("borderline violent message", "en")
     assert result.allowed is False
     assert result.reason == "harmful_intent_detected"
