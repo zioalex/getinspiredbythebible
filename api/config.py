@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
     # Allow automatic fallback to other providers/models
     openrouter_allow_fallbacks: bool = True
+    # Preferred minimum throughput (tokens/sec at p50) for provider selection.
+    # Providers below this threshold are deprioritized in favour of faster ones,
+    # including paid fallbacks. Set to 0 to disable throughput-based routing.
+    openrouter_preferred_min_throughput_p50: int = 50
     # Language-specific model overrides (comma-separated lang=model pairs)
     # Routes requests in unsupported languages to a model that handles them better
     # Example: "ar=qwen/qwen-2.5-72b-instruct,zh=qwen/qwen-2.5-72b-instruct"

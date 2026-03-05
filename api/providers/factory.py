@@ -63,6 +63,7 @@ def create_llm_provider(config: Settings) -> LLMProvider:
                 base_url=config.openrouter_base_url,
                 fallback_models=fallback_models,
                 allow_fallbacks=config.openrouter_allow_fallbacks,
+                preferred_min_throughput_p50=config.openrouter_preferred_min_throughput_p50,
             )
         case "openai":
             # Future implementation
