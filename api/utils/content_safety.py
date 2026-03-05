@@ -3,7 +3,7 @@ Hybrid Content Safety Service.
 
 Implements a multi-stage content safety pipeline:
 1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech
-2. OpenAI Moderation API (context-aware, ~100-150ms, FREE) — distinguishes biblical discussion from harmful intent
+2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE) — distinguishes biblical discussion from harmful intent
 3. Azure Content Safety API (optional, context-aware, ~200ms) — additional layer for hybrid mode
 
 CRITICAL DESIGN PRINCIPLE:
@@ -63,7 +63,7 @@ class ContentSafetyViolationError(Exception):
 
 class ContentSafetyService:
     """
-    Multi-stage content safety service combining keyword filter, OpenAI Moderation, and Azure Content Safety.
+    Multi-stage content safety service combining keyword filter, Llama Guard 3, and Azure Content Safety.
 
     Decision flow:
     1. Keyword filter (instant, <5ms):
@@ -71,7 +71,7 @@ class ContentSafetyService:
        - HIGH confidence match → BLOCK immediately
        - Clean → pass to Stage 2
 
-    2. OpenAI Moderation (context-aware, ~100-150ms, FREE):
+    2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE):
        - Distinguishes biblical violence ("David killed Goliath") from real threats
        - Detects nuanced harmful intent vs help-seeking
        - Falls back to full keyword filter if API unavailable
@@ -85,8 +85,8 @@ class ContentSafetyService:
         self.keyword_filter = MultiLanguageContentFilter()
         self._azure_provider = None
         self._azure_initialized = False
-        self._openai_provider = None
-        self._openai_initialized = False
+        self._llama_guard_provider = None
+        self._llama_guard_initialized = False
 
     def _get_azure_provider(self):
         """Lazy-initialize Azure provider."""
@@ -111,30 +111,30 @@ class ContentSafetyService:
                     self._azure_provider = None
         return self._azure_provider
 
-    def _get_openai_provider(self):
-        """Lazy-initialize OpenAI Moderation provider."""
-        if not self._openai_initialized:
-            self._openai_initialized = True
+    def _get_llama_guard_provider(self):
+        """Lazy-initialize Llama Guard provider."""
+        if not self._llama_guard_initialized:
+            self._llama_guard_initialized = True
             api_key = settings.openai_api_key or settings.openrouter_api_key
             if api_key:
                 try:
-                    from providers.openai_moderation import OpenAIModerationProvider
+                    from providers.llama_guard import LlamaGuardProvider
 
-                    self._openai_provider = OpenAIModerationProvider(
+                    self._llama_guard_provider = LlamaGuardProvider(
                         api_key=api_key,
-                        threshold=settings.openai_moderation_threshold,
-                        timeout=settings.openai_moderation_timeout,
+                        threshold=settings.llama_guard_threshold,
+                        timeout=settings.llama_guard_timeout,
                     )
-                    logger.info("OpenAI Moderation provider initialized")
+                    logger.info("Llama Guard provider initialized")
                 except Exception as e:
-                    logger.warning("Failed to initialize OpenAI Moderation: %s", e)
-                    self._openai_provider = None
+                    logger.warning("Failed to initialize Llama Guard: %s", e)
+                    self._llama_guard_provider = None
             else:
                 logger.warning(
-                    "OpenAI Moderation not available: no API key configured "
+                    "Llama Guard not available: no API key configured "
                     "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
                 )
-        return self._openai_provider
+        return self._llama_guard_provider
 
     def _full_keyword_fallback(
         self, text: str, language: str, start: float
@@ -234,62 +234,62 @@ class ContentSafetyService:
 
         return None
 
-    async def _check_stage2_openai(
+    async def _check_stage2_llama_guard(
         self, text: str, language: str, start: float
     ) -> ContentSafetyCheckResult | None:
         """
-        Stage 2: OpenAI Moderation API check.
+        Stage 2: Llama Guard 3 via OpenRouter check.
 
         Returns ContentSafetyCheckResult if decision made, None if should continue to Stage 3.
         """
-        openai_provider = self._get_openai_provider()
-        if not openai_provider:
+        llama_guard_provider = self._get_llama_guard_provider()
+        if not llama_guard_provider:
             return None
 
         try:
-            openai_result = await openai_provider.analyze_text(text, language)
+            llama_guard_result = await llama_guard_provider.analyze_text(text, language)
             total_ms = (time.monotonic() - start) * 1000
 
             text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
             logger.info(
-                "OpenAI Moderation check complete",
+                "Llama Guard check complete",
                 extra={
                     "text_hash": text_hash,
                     "language": language,
-                    "allowed": openai_result.allowed,
-                    "reason": openai_result.reason,
-                    "is_help_seeking": openai_result.is_help_seeking,
+                    "allowed": llama_guard_result.allowed,
+                    "reason": llama_guard_result.reason,
+                    "is_help_seeking": llama_guard_result.is_help_seeking,
                     "duration_ms": f"{total_ms:.1f}",
                 },
             )
 
-            # If ml_only mode, return OpenAI result directly (skip Azure)
+            # If ml_only mode, return Llama Guard result directly (skip Azure)
             if settings.content_safety_mode == "ml_only":
                 return ContentSafetyCheckResult(
-                    allowed=openai_result.allowed,
-                    reason=openai_result.reason,
-                    categories=openai_result.categories,
-                    is_help_seeking=openai_result.is_help_seeking,
-                    compassionate_response_needed=openai_result.compassionate_response_needed,
+                    allowed=llama_guard_result.allowed,
+                    reason=llama_guard_result.reason,
+                    categories=llama_guard_result.categories,
+                    is_help_seeking=llama_guard_result.is_help_seeking,
+                    compassionate_response_needed=llama_guard_result.compassionate_response_needed,
                     check_duration_ms=total_ms,
                 )
 
             # For keyword_only and hybrid modes:
-            # If OpenAI blocks, block immediately
-            if not openai_result.allowed:
+            # If Llama Guard blocks, block immediately
+            if not llama_guard_result.allowed:
                 return ContentSafetyCheckResult(
                     allowed=False,
-                    reason=openai_result.reason,
-                    categories=openai_result.categories,
+                    reason=llama_guard_result.reason,
+                    categories=llama_guard_result.categories,
                     check_duration_ms=total_ms,
                 )
 
-            # If OpenAI allows but flags help-seeking (and not hybrid mode), return it
-            if openai_result.is_help_seeking and settings.content_safety_mode != "hybrid":
+            # If Llama Guard allows but flags help-seeking (and not hybrid mode), return it
+            if llama_guard_result.is_help_seeking and settings.content_safety_mode != "hybrid":
                 return ContentSafetyCheckResult(
                     allowed=True,
-                    reason=openai_result.reason,
-                    categories=openai_result.categories,
+                    reason=llama_guard_result.reason,
+                    categories=llama_guard_result.categories,
                     is_help_seeking=True,
                     compassionate_response_needed=True,
                     check_duration_ms=total_ms,
@@ -299,7 +299,7 @@ class ContentSafetyService:
             return None
 
         except Exception as e:
-            logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
+            logger.warning("Llama Guard API unavailable, falling back: %s", e)
             # Fallback to full keyword filter
             return self._full_keyword_fallback(text, language, start)
 
@@ -326,9 +326,9 @@ class ContentSafetyService:
         if stage1_result:
             return stage1_result
 
-        # Stage 2: OpenAI Moderation (for all modes)
+        # Stage 2: Llama Guard (for all modes)
         if settings.content_safety_mode in ("keyword_only", "hybrid", "ml_only"):
-            stage2_result = await self._check_stage2_openai(text, language, start)
+            stage2_result = await self._check_stage2_llama_guard(text, language, start)
             if stage2_result:
                 return stage2_result
 

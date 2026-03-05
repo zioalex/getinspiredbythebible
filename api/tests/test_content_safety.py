@@ -60,17 +60,17 @@ def content_filter():
 
 
 def test_violence_detection_english(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I want to build a bomb", "en"
     )
-    # Violence patterns now handled by OpenAI Moderation (Stage 2), not keyword filter
+    # Violence patterns now handled by Llama Guard (Stage 2), not keyword filter
     assert blocked is False
     assert violation_type is None
 
 
 def test_violence_detection_italian(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Voglio costruire una bomba", "it"
     )
@@ -79,7 +79,7 @@ def test_violence_detection_italian(content_filter):
 
 
 def test_violence_detection_german(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Ich will eine Bombe bauen", "de"
     )
@@ -88,7 +88,7 @@ def test_violence_detection_german(content_filter):
 
 
 def test_violence_detection_spanish(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Quiero construir una bomba", "es"
     )
@@ -97,7 +97,7 @@ def test_violence_detection_spanish(content_filter):
 
 
 def test_violence_detection_french(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Je veux construire une bombe", "fr"
     )
@@ -106,7 +106,7 @@ def test_violence_detection_french(content_filter):
 
 
 def test_violence_detection_portuguese(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Quero construir uma bomba", "pt"
     )
@@ -115,7 +115,7 @@ def test_violence_detection_portuguese(content_filter):
 
 
 def test_violence_detection_arabic(content_filter):
-    """Violence keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Violence keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "أريد بناء قنبلة", "ar"
     )
@@ -124,7 +124,7 @@ def test_violence_detection_arabic(content_filter):
 
 
 def test_self_harm_help_seeking_english(content_filter):
-    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I feel like I want to die, can you help?", "en"
     )
@@ -133,7 +133,7 @@ def test_self_harm_help_seeking_english(content_filter):
 
 
 def test_self_harm_help_seeking_italian(content_filter):
-    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Voglio morire", "it"
     )
@@ -142,7 +142,7 @@ def test_self_harm_help_seeking_italian(content_filter):
 
 
 def test_self_harm_help_seeking_german(content_filter):
-    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to OpenAI Moderation Stage 2)."""
+    """Self-harm keywords are NO LONGER checked in Stage 1 (moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "Ich will sterben", "de"
     )
@@ -190,7 +190,7 @@ def test_clean_message_allowed(content_filter):
 
 
 def test_unicode_evasion_detected(content_filter):
-    """Unicode evasion no longer detected in Stage 1 (violence moved to OpenAI Stage 2)."""
+    """Unicode evasion no longer detected in Stage 1 (violence moved to Llama Guard Stage 2)."""
     # Zero-width space evasion
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I want to build a b\u200bomb", "en"
@@ -199,7 +199,7 @@ def test_unicode_evasion_detected(content_filter):
 
 
 def test_leet_speak_evasion_detected(content_filter):
-    """Leet-speak evasion no longer detected in Stage 1 (violence moved to OpenAI Stage 2)."""
+    """Leet-speak evasion no longer detected in Stage 1 (violence moved to Llama Guard Stage 2)."""
     blocked, confidence, violation_type, pattern = content_filter.check_multilingual(
         "I want to build a b0mb", "en"
     )
@@ -213,7 +213,7 @@ def test_leet_speak_evasion_detected(content_filter):
 
 @pytest.fixture
 def safety_service_enabled(monkeypatch):
-    """Create ContentSafetyService with content safety enabled and OpenAI available."""
+    """Create ContentSafetyService with content safety enabled and Llama Guard available."""
     from providers.azure_content_safety import ContentSafetyResult
 
     # Mock settings
@@ -228,19 +228,19 @@ def safety_service_enabled(monkeypatch):
             azure_content_safety_threshold=4,
             openai_api_key="test-key",  # pragma: allowlist secret
             openrouter_api_key=None,
-            openai_moderation_threshold=0.5,
-            openai_moderation_timeout=3,
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
         ),
     )
 
     service = ContentSafetyService()
 
-    # Mock OpenAI provider to return appropriate responses
+    # Mock Llama Guard provider to return appropriate responses
     async def mock_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
-        """Mock OpenAI Moderation API responses based on text content."""
+        """Mock Llama Guard API responses based on text content."""
         text_lower = text.lower()
 
-        # Check for violence keywords (would be blocked by OpenAI)
+        # Check for violence keywords (would be blocked by Llama Guard)
         if any(
             word in text_lower
             for word in ["bomb", "bomba", "bombe", "gun", "weapon", "kill", "murder"]
@@ -256,7 +256,7 @@ def safety_service_enabled(monkeypatch):
                 allowed=False, reason="violence_or_threat_detected", categories={"violence": 9}
             )
 
-        # Check for self-harm (would be flagged as help-seeking by OpenAI)
+        # Check for self-harm (would be flagged as help-seeking by Llama Guard)
         if any(word in text_lower for word in ["die", "death", "suicide", "morire", "sterben"]):
             return ContentSafetyResult(
                 allowed=True,
@@ -269,15 +269,15 @@ def safety_service_enabled(monkeypatch):
         # Clean message
         return ContentSafetyResult(allowed=True, reason="clean", categories={})
 
-    # Patch the _get_openai_provider method to return a mock
-    def mock_get_openai():
-        if not hasattr(service, "_mock_openai_provider"):
+    # Patch the _get_llama_guard_provider method to return a mock
+    def mock_get_llama_guard():
+        if not hasattr(service, "_mock_llama_guard_provider"):
             mock_provider = MagicMock()
             mock_provider.analyze_text = mock_analyze_text
-            service._mock_openai_provider = mock_provider
-        return service._mock_openai_provider
+            service._mock_llama_guard_provider = mock_provider
+        return service._mock_llama_guard_provider
 
-    service._get_openai_provider = mock_get_openai
+    service._get_llama_guard_provider = mock_get_llama_guard
 
     return service
 
@@ -322,14 +322,14 @@ async def test_blocks_directed_harm(safety_service_enabled):
 
 
 async def test_blocks_violence(safety_service_enabled):
-    """Test violence is blocked (by OpenAI Moderation Stage 2)."""
+    """Test violence is blocked (by Llama Guard Stage 2)."""
     result = await safety_service_enabled.check("I want to build a bomb", "en")
     assert result.allowed is False
     assert result.reason == "violence_or_threat_detected"
 
 
 async def test_blocks_italian_violence(safety_service_enabled):
-    """Test Italian violence is blocked (by OpenAI Moderation Stage 2)."""
+    """Test Italian violence is blocked (by Llama Guard Stage 2)."""
     result = await safety_service_enabled.check("Voglio costruire una bomba", "it")
     assert result.allowed is False
     assert result.reason == "violence_or_threat_detected"
@@ -377,7 +377,7 @@ async def test_performance_keyword_under_50ms(safety_service_enabled):
 
 @pytest.fixture
 def safety_service_hybrid(monkeypatch):
-    """Create ContentSafetyService with hybrid mode (mocked OpenAI and Azure)."""
+    """Create ContentSafetyService with hybrid mode (mocked Llama Guard and Azure)."""
     from providers.azure_content_safety import ContentSafetyResult
 
     monkeypatch.setattr(
@@ -391,16 +391,16 @@ def safety_service_hybrid(monkeypatch):
             azure_content_safety_threshold=4,
             openai_api_key="test-key",  # pragma: allowlist secret
             openrouter_api_key=None,
-            openai_moderation_threshold=0.5,
-            openai_moderation_timeout=3,
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
         ),
     )
 
     service = ContentSafetyService()
 
-    # Mock OpenAI provider (same logic as safety_service_enabled)
-    async def mock_openai_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
-        """Mock OpenAI Moderation API responses."""
+    # Mock Llama Guard provider (same logic as safety_service_enabled)
+    async def mock_llama_guard_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
+        """Mock Llama Guard API responses."""
         text_lower = text.lower()
 
         # Violence detection
@@ -421,30 +421,34 @@ def safety_service_hybrid(monkeypatch):
 
         return ContentSafetyResult(allowed=True, reason="clean", categories={})
 
-    def mock_get_openai():
-        if not hasattr(service, "_mock_openai_provider"):
+    def mock_get_llama_guard():
+        if not hasattr(service, "_mock_llama_guard_provider"):
             mock_provider = MagicMock()
-            mock_provider.analyze_text = mock_openai_analyze_text
-            service._mock_openai_provider = mock_provider
-        return service._mock_openai_provider
+            mock_provider.analyze_text = mock_llama_guard_analyze_text
+            service._mock_llama_guard_provider = mock_provider
+        return service._mock_llama_guard_provider
 
-    service._get_openai_provider = mock_get_openai
+    service._get_llama_guard_provider = mock_get_llama_guard
 
     return service
 
 
 async def test_fallback_to_keyword_when_azure_unavailable(safety_service_hybrid, monkeypatch):
-    """Test fallback when both OpenAI and Azure are unavailable."""
-    # Mock OpenAI provider to raise exception
-    mock_openai_provider = MagicMock()
-    mock_openai_provider.analyze_text = AsyncMock(side_effect=RuntimeError("OpenAI unavailable"))
+    """Test fallback when both Llama Guard and Azure are unavailable."""
+    # Mock Llama Guard provider to raise exception
+    mock_llama_guard_provider = MagicMock()
+    mock_llama_guard_provider.analyze_text = AsyncMock(
+        side_effect=RuntimeError("Llama Guard unavailable")
+    )
 
     # Mock Azure provider to also raise exception
     mock_azure_provider = MagicMock()
     mock_azure_provider.analyze_text = AsyncMock(side_effect=RuntimeError("Azure unavailable"))
 
     # Patch both providers
-    monkeypatch.setattr(safety_service_hybrid, "_get_openai_provider", lambda: mock_openai_provider)
+    monkeypatch.setattr(
+        safety_service_hybrid, "_get_llama_guard_provider", lambda: mock_llama_guard_provider
+    )
     monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
 
     # Should fall back to full keyword filter (violence patterns)
@@ -500,14 +504,16 @@ async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
 
     monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
 
-    # OpenAI will block first, so Azure won't be reached
-    # Use a message that OpenAI would allow but Azure would block
-    # Mock OpenAI to allow
-    mock_openai_provider = MagicMock()
-    mock_openai_provider.analyze_text = AsyncMock(
+    # Llama Guard will block first, so Azure won't be reached
+    # Use a message that Llama Guard would allow but Azure would block
+    # Mock Llama Guard to allow
+    mock_llama_guard_provider = MagicMock()
+    mock_llama_guard_provider.analyze_text = AsyncMock(
         return_value=ContentSafetyResult(allowed=True, reason="clean", categories={})
     )
-    monkeypatch.setattr(safety_service_hybrid, "_get_openai_provider", lambda: mock_openai_provider)
+    monkeypatch.setattr(
+        safety_service_hybrid, "_get_llama_guard_provider", lambda: mock_llama_guard_provider
+    )
 
     # High severity violence should be blocked by Azure
     result = await safety_service_hybrid.check("borderline violent message", "en")

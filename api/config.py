@@ -130,9 +130,9 @@ class Settings(BaseSettings):
     content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "keyword_only"
 
-    # OpenAI Moderation Settings
-    openai_moderation_threshold: float = 0.5  # Block if score >= threshold (0.0-1.0)
-    openai_moderation_timeout: int = 3  # Timeout in seconds before fallback
+    # Llama Guard Settings
+    llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency
+    llama_guard_timeout: int = 10  # LLM inference timeout (seconds)
 
     @field_validator("database_url")
     @classmethod
