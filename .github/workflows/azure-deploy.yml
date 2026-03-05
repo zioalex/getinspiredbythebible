@@ -523,6 +523,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          # Disable the wrapper so terraform's real exit code is not masked.
+          # The wrapper uses its own internal pipe which captures tee's exit code (0)
+          # instead of terraform's -detailed-exitcode value (2 = changes present).
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: |
@@ -539,8 +543,8 @@ jobs:
         id: plan
         run: |
           # Exit codes: 0=no changes (skip apply), 1=error (fail), 2=changes (run apply)
-          # NOTE: $? captures tee's exit code (always 0), not terraform's.
-          # Use PIPESTATUS[0] to get terraform's actual exit code through the pipe.
+          # terraform_wrapper is disabled above so $PIPESTATUS[0] captures the real
+          # terraform exit code (not the wrapper's, which always exits 0 via its own pipe).
           terraform plan \
             -var-file="terraform.tfvars" \
             -var="backend_image=${{ steps.image-tags.outputs.backend_image }}" \
