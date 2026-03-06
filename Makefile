@@ -2,7 +2,7 @@
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	android-test android-build android-lint android-clean android-security-check \
+	android-test android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
@@ -149,10 +149,16 @@ android-test: ## Run Android unit tests (requires JDK 17)
 	@cd android && ./gradlew testDebugUnitTest --no-daemon
 	@echo "$(GREEN)✓ Android unit tests complete$(NC)"
 
-android-build: ## Build Android debug APK (requires JDK 17)
-	@echo "$(BLUE)Building Android debug APK...$(NC)"
+android-build: ## Build Android debug APK pointing at local dev backend (requires JDK 17)
+	@echo "$(BLUE)Building Android debug APK (local backend: http://10.0.2.2:8000/)...$(NC)"
 	@cd android && ./gradlew assembleDebug --no-daemon
 	@echo "$(GREEN)✓ Android debug APK: android/app/build/outputs/apk/debug/app-debug.apk$(NC)"
+
+android-build-prod: ## Build Android debug APK pointing at the production backend (requires JDK 17)
+	@echo "$(BLUE)Building Android debug APK (prod backend)...$(NC)"
+	@cd android && ./gradlew assembleDebug --no-daemon \
+		-PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+	@echo "$(GREEN)✓ Android prod APK: android/app/build/outputs/apk/debug/app-debug.apk$(NC)"
 
 android-lint: ## Run Android lint checks
 	@echo "$(BLUE)Running Android lint...$(NC)"
