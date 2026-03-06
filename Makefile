@@ -119,8 +119,10 @@ test-backend: install-deps ## Run backend tests
 	@cd api && $(CURDIR)/$(PYTHON) -m black --check --diff . || true
 	@echo "$(YELLOW)Type check with MyPy...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m mypy . --ignore-missing-imports --no-strict-optional || true
-	@echo "$(YELLOW)Running pytest...$(NC)"
+	@echo "$(YELLOW)Running pytest (api tests)...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m pytest -v --tb=short || true
+	@echo "$(YELLOW)Running pytest (migration tests)...$(NC)"
+	@cd scripts/migrations && DATABASE_URL="postgresql://test:test@localhost/test" $(CURDIR)/$(PYTHON) -m pytest test_run_migrations.py -v --tb=short || true  # pragma: allowlist secret
 	@echo "$(YELLOW)Testing API syntax and imports...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -c "import main; import config; print('✓ Core modules import successfully')"
 	@cd api && $(CURDIR)/$(PYTHON) -c "from routes import chat, scripture; print('✓ Route modules import successfully')"
