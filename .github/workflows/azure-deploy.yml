@@ -1099,20 +1099,15 @@ jobs:
         run: |
           export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
           cd scripts/migrations
-          echo "Running database migrations..."
-          for script in $(ls [0-9][0-9][0-9]_*.py | sort); do
-            echo "▶ Running $script..."
-            python "$script"
-            echo "✅ $script completed"
-          done
-          echo "All migrations completed."
+          python run_migrations.py
 
       - name: Post Migration Summary
         if: always()
         run: |
           echo "## Database Migration Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Ran all numbered migration scripts from \`scripts/migrations/\`." >> $GITHUB_STEP_SUMMARY
+          echo "Ran pending migrations via run_migrations.py —" \
+            "already-applied migrations are skipped automatically." >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered with seed enabled)
