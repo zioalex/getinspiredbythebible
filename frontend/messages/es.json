@@ -25,7 +25,8 @@
     "loadingSearch": "Buscando en las Escrituras y reflexionando...",
     "backendWarmingUp": "El servidor se está iniciando, puedes empezar a escribir...",
     "errorColdStart": "Todavía me estoy preparando y está tomando más tiempo de lo esperado. Por favor, inténtalo de nuevo en un momento. ¡Estaré listo pronto!",
-    "errorConnection": "Lo siento, estoy teniendo problemas de conexión en este momento. Podría ser un problema temporal: inténtalo de nuevo en un momento. Si el problema persiste, puedes contactarnos en getinspiredbythebible@ai4you.sh"
+    "errorConnection": "Lo siento, estoy teniendo problemas de conexión en este momento. Podría ser un problema temporal: inténtalo de nuevo en un momento. Si el problema persiste, puedes contactarnos en getinspiredbythebible@ai4you.sh",
+    "startNewSession": "Iniciar Nueva Sesión"
   },
   "Verses": {
     "scriptureReferences": "Referencias Bíblicas",

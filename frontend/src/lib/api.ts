@@ -28,6 +28,16 @@ export class ColdStartError extends Error {
 }
 
 /**
+ * Error thrown when session lifetime limit is reached (10 messages)
+ */
+export class SessionLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SessionLimitError";
+  }
+}
+
+/**
  * Check if the backend is ready
  */
 export async function checkBackendReady(): Promise<boolean> {
@@ -291,6 +301,16 @@ export async function sendMessage(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // Handle 429 rate limit errors
+      if (response.status === 429) {
+        const data = await response.json().catch(() => ({}));
+        if (data.error === "session_lifetime_limit") {
+          throw new SessionLimitError(
+            data.message ||
+              "Session limit reached. Start a new session to continue.",
+          );
+        }
+      }
       // 503 Service Unavailable often indicates cold start
       if (response.status === 503 || response.status === 502) {
         throw new ColdStartError("Backend is starting up");
@@ -363,6 +383,16 @@ export async function* streamMessage(
   });
 
   if (!response.ok) {
+    // Handle 429 rate limit errors
+    if (response.status === 429) {
+      const data = await response.json().catch(() => ({}));
+      if (data.error === "session_lifetime_limit") {
+        throw new SessionLimitError(
+          data.message ||
+            "Session limit reached. Start a new session to continue.",
+        );
+      }
+    }
     throw new Error(`API error: ${response.status}`);
   }
 

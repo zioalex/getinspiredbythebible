@@ -113,6 +113,9 @@ locals {
       "RATE_LIMIT_REQUESTS_PER_MINUTE" = {
         value = tostring(var.rate_limit_requests_per_minute)
       }
+      "RATE_LIMIT_SESSION_MAX_REQUESTS" = {
+        value = tostring(var.rate_limit_session_max_requests)
+      }
     },
 
     # Claude provider configuration

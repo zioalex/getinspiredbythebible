@@ -216,6 +216,18 @@ async def require_rate_limit(request: Request) -> None:
             details=reason,
         )
 
+        # Friendly message for session lifetime limit
+        if violation_type == ViolationType.RATE_LIMIT_LIFETIME:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "session_lifetime_limit",
+                    "message": "You've had 10 messages in this session! Why not take a break and enjoy God's creation outside? 🌳",
+                    "retry_after": None,  # No retry - must start new session
+                },
+            )
+
+        # Generic error for IP and per-minute session limits
         raise HTTPException(
             status_code=429,
             detail={"error": "Rate limit exceeded", "retry_after": 60},
