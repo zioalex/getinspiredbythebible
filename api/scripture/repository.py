@@ -42,7 +42,19 @@ def _record_duration(
     span.set_attribute("db.duration_ms", round(duration_ms, 2))
     span.set_attribute("db.results.count", result_count)
 
+    from utils.metrics import (
+        db_query_duration_histogram,
+        db_search_duration_histogram,
+        db_slow_queries_counter,
+    )
+
+    if "semantic_search" in operation:
+        db_search_duration_histogram.record(duration_ms)
+    else:
+        db_query_duration_histogram.record(duration_ms)
+
     if duration_ms > settings.slow_query_threshold_ms:
+        db_slow_queries_counter.add(1)
         request_id = REQUEST_ID_CTX_VAR.get("")
         logger.warning(
             "Slow query detected",

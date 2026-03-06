@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Get Inspired by the Bible.
 
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-06
 
 ---
 
@@ -85,6 +85,42 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-021: Instrument LLM and Database Performance Metrics
+
+**Status:** 🎯 Todo
+**Size:** M (4-6 hours)
+**Created:** 2026-03-06
+
+**As a** site reliability engineer monitoring the Bible app in production,
+**I want** the Performance Dashboard to display real-time LLM and database metrics,
+**so that** I can detect performance degradation, identify bottlenecks (slow queries, high TTFT, rate limit
+exhaustion), and correlate errors with infrastructure health.
+
+**Why P1:** The Azure Monitor Performance Dashboard was deployed but shows "No data" because the backend doesn't emit
+the specific custom metrics (`llm.ttft_ms`, `db.search.duration_ms`, etc.) that the dashboard queries expect. This
+story adds the missing instrumentation so the dashboard becomes functional.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-021-instrument-performance-metrics.md`):**
+
+- [ ] LLM metrics emitted: `llm.ttft_ms`, `llm.total_duration_ms`, `llm.fallback_count`, `llm.rate_limit_hits`, `llm.tokens_per_second`
+- [ ] Database metrics emitted: `db.search.duration_ms`, `db.query.duration_ms`, `db.slow_queries`
+- [ ] Metrics instrumented in `OpenRouterProvider`, `ClaudeProvider`, `OllamaProvider`, and `ScriptureRepository`
+- [ ] Performance Dashboard shows real data in all LLM and Database panels after deployment
+- [ ] Full test suite passes (1,033+ tests)
+
+**Tech Constraints:**
+
+- Must not break existing OpenTelemetry tracing or logging
+- Must use OpenTelemetry metrics API (already configured in `main.py`)
+- Must follow OTel semantic conventions (counter for monotonic, histogram for distributions)
+- Metrics automatically exported to Application Insights (no additional config needed)
+
+**Dependencies:** PRs B1-B5 merged ✅, Application Insights configured ✅, Dashboard deployed ✅
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-021-instrument-performance-metrics.md`
+
+---
 
 ### 🚧 BITB-002: Sync Conflicted PRs with Main
 

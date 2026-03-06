@@ -77,3 +77,83 @@ class TestMetrics:
         with patch.object(contact_form_counter, "add") as mock_add:
             contact_form_counter.add(1, {"subject": "bug"})
             mock_add.assert_called_once_with(1, {"subject": "bug"})
+
+    def test_new_llm_metrics_defined(self):
+        """Ensure all new LLM performance metrics are initialized."""
+        from utils.metrics import (
+            llm_fallback_counter,
+            llm_rate_limit_counter,
+            llm_tokens_per_second_histogram,
+            llm_total_duration_histogram,
+            llm_ttft_histogram,
+        )
+
+        assert llm_ttft_histogram is not None
+        assert llm_total_duration_histogram is not None
+        assert llm_fallback_counter is not None
+        assert llm_rate_limit_counter is not None
+        assert llm_tokens_per_second_histogram is not None
+
+    def test_new_db_metrics_defined(self):
+        """Ensure all new database performance metrics are initialized."""
+        from utils.metrics import (
+            db_query_duration_histogram,
+            db_search_duration_histogram,
+            db_slow_queries_counter,
+        )
+
+        assert db_search_duration_histogram is not None
+        assert db_query_duration_histogram is not None
+        assert db_slow_queries_counter is not None
+
+    def test_llm_metrics_recording(self):
+        """Test recording LLM performance metrics."""
+        from utils.metrics import (
+            llm_fallback_counter,
+            llm_rate_limit_counter,
+            llm_tokens_per_second_histogram,
+            llm_total_duration_histogram,
+            llm_ttft_histogram,
+        )
+
+        with patch.object(llm_ttft_histogram, "record") as mock_record:
+            llm_ttft_histogram.record(42.5, {"provider": "openrouter", "model": "test"})
+            mock_record.assert_called_once_with(42.5, {"provider": "openrouter", "model": "test"})
+
+        with patch.object(llm_total_duration_histogram, "record") as mock_record:
+            llm_total_duration_histogram.record(1200.0, {"provider": "claude", "model": "test"})
+            mock_record.assert_called_once_with(1200.0, {"provider": "claude", "model": "test"})
+
+        with patch.object(llm_tokens_per_second_histogram, "record") as mock_record:
+            llm_tokens_per_second_histogram.record(35.0, {"provider": "ollama", "model": "test"})
+            mock_record.assert_called_once_with(35.0, {"provider": "ollama", "model": "test"})
+
+        with patch.object(llm_fallback_counter, "add") as mock_add:
+            llm_fallback_counter.add(1, {"provider": "openrouter", "model": "fallback-model"})
+            mock_add.assert_called_once_with(
+                1, {"provider": "openrouter", "model": "fallback-model"}
+            )
+
+        with patch.object(llm_rate_limit_counter, "add") as mock_add:
+            llm_rate_limit_counter.add(1, {"provider": "openrouter"})
+            mock_add.assert_called_once_with(1, {"provider": "openrouter"})
+
+    def test_db_metrics_recording(self):
+        """Test recording database performance metrics."""
+        from utils.metrics import (
+            db_query_duration_histogram,
+            db_search_duration_histogram,
+            db_slow_queries_counter,
+        )
+
+        with patch.object(db_search_duration_histogram, "record") as mock_record:
+            db_search_duration_histogram.record(85.2)
+            mock_record.assert_called_once_with(85.2)
+
+        with patch.object(db_query_duration_histogram, "record") as mock_record:
+            db_query_duration_histogram.record(12.3)
+            mock_record.assert_called_once_with(12.3)
+
+        with patch.object(db_slow_queries_counter, "add") as mock_add:
+            db_slow_queries_counter.add(1)
+            mock_add.assert_called_once_with(1)

@@ -4,9 +4,16 @@ Connects to a local or remote Ollama instance.
 """
 
 import json
+import time
 from typing import AsyncIterator
 
 import httpx
+
+from utils.metrics import (
+    llm_tokens_per_second_histogram,
+    llm_total_duration_histogram,
+    llm_ttft_histogram,
+)
 
 from .base import (
     ChatMessage,
@@ -93,6 +100,10 @@ class OllamaProvider(LLMProvider):
         kwargs.pop("model_override", None)  # Not supported, ignore
         client = await self._get_client()
 
+        stream_start = time.perf_counter()
+        first_chunk = True
+        total_chars = 0
+
         async with client.stream(
             "POST",
             f"{self.host}/api/chat",
@@ -111,7 +122,26 @@ class OllamaProvider(LLMProvider):
                 if line:
                     data = json.loads(line)
                     if "message" in data and "content" in data["message"]:
-                        yield data["message"]["content"]
+                        content_text = data["message"]["content"]
+                        if first_chunk:
+                            ttft_ms = (time.perf_counter() - stream_start) * 1000
+                            llm_ttft_histogram.record(
+                                ttft_ms, {"provider": "ollama", "model": self.model}
+                            )
+                            first_chunk = False
+                        total_chars += len(content_text)
+                        yield content_text
+
+        total_duration_ms = (time.perf_counter() - stream_start) * 1000
+        llm_total_duration_histogram.record(
+            total_duration_ms, {"provider": "ollama", "model": self.model}
+        )
+        if total_duration_ms > 0 and total_chars > 0:
+            approx_tokens = total_chars / 4
+            tokens_per_sec = approx_tokens / (total_duration_ms / 1000)
+            llm_tokens_per_second_histogram.record(
+                tokens_per_sec, {"provider": "ollama", "model": self.model}
+            )
 
     async def health_check(self) -> bool:
         """Check if Ollama is running and model is available."""
