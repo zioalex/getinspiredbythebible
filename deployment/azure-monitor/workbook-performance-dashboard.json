@@ -55,7 +55,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize total = count(), errors = countif(toint(resultCode) >= 500)\n| extend ErrorRate = iff(total > 0, round((errors * 100.0) / total, 2), 0.0)\n| project [\"Total Requests\"] = total, [\"5xx Errors\"] = errors, [\"Error Rate %\"] = ErrorRate",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize total = count(), errors = countif(toint(resultCode) >= 500)\n| union (print total = 0, errors = 0)\n| summarize total = max(total), errors = max(errors)\n| extend ErrorRate = iff(total > 0, round((errors * 100.0) / total, 2), 0.0)\n| project [\"Total Requests\"] = total, [\"5xx Errors\"] = errors, [\"Error Rate %\"] = ErrorRate",
               "size": 4,
               "title": "Request Volume & Error Rate",
               "timeContext": { "durationMs": 0 },
@@ -73,7 +73,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize P50 = percentile(duration, 50), P95 = percentile(duration, 95), P99 = percentile(duration, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"P50 (ms)\"] = round(P50, 0), [\"P95 (ms)\"] = round(P95, 0), [\"P99 (ms)\"] = round(P99, 0)",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize P50 = percentile(duration, 50), P95 = percentile(duration, 95), P99 = percentile(duration, 99)\n| union (print P50 = real(null), P95 = real(null), P99 = real(null))\n| summarize P50 = max(P50), P95 = max(P95), P99 = max(P99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"P50 (ms)\"] = round(P50, 0), [\"P95 (ms)\"] = round(P95, 0), [\"P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Response Time Percentiles",
               "timeContext": { "durationMs": 0 },
@@ -91,7 +91,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "availabilityResults\n| where timestamp > ago(7d)\n| summarize\n    [\"Last 1h\"] = round(100.0 * countif(success == true and timestamp > ago(1h)) / max(1, countif(timestamp > ago(1h))), 1),\n    [\"Last 24h\"] = round(100.0 * countif(success == true and timestamp > ago(24h)) / max(1, countif(timestamp > ago(24h))), 1),\n    [\"Last 7d\"] = round(100.0 * countif(success == true) / max(1, count()), 1)",
+              "query": "availabilityResults\n| where timestamp > ago(7d)\n| extend in1h = timestamp > ago(1h), in24h = timestamp > ago(24h)\n| summarize\n    hits1h   = countif(success == true and in1h),\n    total1h  = countif(in1h),\n    hits24h  = countif(success == true and in24h),\n    total24h = countif(in24h),\n    hits7d   = countif(success == true),\n    total7d  = count()\n| union (print hits1h = 0, total1h = 1, hits24h = 0, total24h = 1, hits7d = 0, total7d = 1)\n| summarize hits1h = max(hits1h), total1h = max(total1h), hits24h = max(hits24h), total24h = max(total24h), hits7d = max(hits7d), total7d = max(total7d)\n| project\n    [\"Last 1h\"]  = round(100.0 * hits1h  / max(1, total1h),  1),\n    [\"Last 24h\"] = round(100.0 * hits24h / max(1, total24h), 1),\n    [\"Last 7d\"]  = round(100.0 * hits7d  / max(1, total7d),  1)",
               "size": 4,
               "title": "Availability (health probe)",
               "timeContext": { "durationMs": 604800000 },
@@ -140,7 +140,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.ttft_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"TTFT P50 (ms)\"] = round(P50, 0), [\"TTFT P95 (ms)\"] = round(P95, 0), [\"TTFT P99 (ms)\"] = round(P99, 0)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.ttft_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| union (print P50 = real(null), P95 = real(null), P99 = real(null))\n| summarize P50 = max(P50), P95 = max(P95), P99 = max(P99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"TTFT P50 (ms)\"] = round(P50, 0), [\"TTFT P95 (ms)\"] = round(P95, 0), [\"TTFT P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Time to First Token (TTFT)",
               "timeContext": { "durationMs": 0 },
@@ -158,7 +158,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.total_duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Duration P50 (ms)\"] = round(P50, 0), [\"Duration P95 (ms)\"] = round(P95, 0), [\"Duration P99 (ms)\"] = round(P99, 0)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.total_duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| union (print P50 = real(null), P95 = real(null), P99 = real(null))\n| summarize P50 = max(P50), P95 = max(P95), P99 = max(P99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Duration P50 (ms)\"] = round(P50, 0), [\"Duration P95 (ms)\"] = round(P95, 0), [\"Duration P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Total LLM Duration",
               "timeContext": { "durationMs": 0 },
@@ -176,7 +176,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name in (\"llm.fallback_count\", \"llm.ttft_ms\")\n| summarize Fallbacks = sumif(value, name == \"llm.fallback_count\"), Requests = countif(name == \"llm.ttft_ms\")\n| extend FallbackRate = iff(Requests > 0, round((Fallbacks * 100.0) / Requests, 1), 0.0)\n| project [\"Fallback Count\"] = toint(Fallbacks), [\"Total LLM Requests\"] = Requests, [\"Fallback Rate %\"] = FallbackRate",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name in (\"llm.fallback_count\", \"llm.ttft_ms\")\n| summarize Fallbacks = sumif(value, name == \"llm.fallback_count\"), Requests = countif(name == \"llm.ttft_ms\")\n| union (print Fallbacks = real(0), Requests = 0)\n| summarize Fallbacks = max(Fallbacks), Requests = max(Requests)\n| extend FallbackRate = iff(Requests > 0, round((Fallbacks * 100.0) / Requests, 1), 0.0)\n| project [\"Fallback Count\"] = toint(Fallbacks), [\"Total LLM Requests\"] = Requests, [\"Fallback Rate %\"] = FallbackRate",
               "size": 4,
               "title": "Fallback Rate",
               "timeContext": { "durationMs": 0 },
@@ -194,7 +194,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > ago(1h)\n| where name == \"llm.rate_limit_hits\"\n| summarize [\"Rate Limit Hits (last 1h)\"] = toint(sum(value))",
+              "query": "customMetrics\n| where timestamp > ago(1h)\n| where name == \"llm.rate_limit_hits\"\n| summarize Total = toint(sum(value))\n| union (print Total = 0)\n| summarize [\"Rate Limit Hits (last 1h)\"] = max(Total)",
               "size": 4,
               "title": "Rate Limit Hits",
               "timeContext": { "durationMs": 3600000 },
@@ -242,7 +242,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.search.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Search P50 (ms)\"] = round(P50, 1), [\"Search P95 (ms)\"] = round(P95, 1), [\"Search P99 (ms)\"] = round(P99, 1)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.search.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| union (print P50 = real(null), P95 = real(null), P99 = real(null))\n| summarize P50 = max(P50), P95 = max(P95), P99 = max(P99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Search P50 (ms)\"] = round(P50, 1), [\"Search P95 (ms)\"] = round(P95, 1), [\"Search P99 (ms)\"] = round(P99, 1)",
               "size": 4,
               "title": "Semantic Search Duration",
               "timeContext": { "durationMs": 0 },
@@ -260,7 +260,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.query.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Query P50 (ms)\"] = round(P50, 1), [\"Query P95 (ms)\"] = round(P95, 1), [\"Query P99 (ms)\"] = round(P99, 1)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.query.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| union (print P50 = real(null), P95 = real(null), P99 = real(null))\n| summarize P50 = max(P50), P95 = max(P95), P99 = max(P99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Query P50 (ms)\"] = round(P50, 1), [\"Query P95 (ms)\"] = round(P95, 1), [\"Query P99 (ms)\"] = round(P99, 1)",
               "size": 4,
               "title": "General Query Duration",
               "timeContext": { "durationMs": 0 },
@@ -371,7 +371,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "exceptions\n| where timestamp > {timeRange:start}\n| summarize Count = count() by ExceptionType = type, [\"Message Sample\"] = any(outerMessage)\n| order by Count desc\n| take 10",
+              "query": "exceptions\n| where timestamp > {timeRange:start}\n| summarize Count = count(), MessageSample = min(outerMessage) by ExceptionType = type\n| project ExceptionType, Count, [\"Message Sample\"] = MessageSample\n| order by Count desc\n| take 10",
               "size": 0,
               "title": "Exception Summary (top 10 types)",
               "timeContext": { "durationMs": 0 },
@@ -417,7 +417,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customEvents\n| where timestamp > ago(1h)\n| where name == \"container_restart\" or name startswith \"startup\"\n| summarize [\"Restarts (last 1h)\"] = count()",
+              "query": "customEvents\n| where timestamp > ago(1h)\n| where name == \"container_restart\" or name startswith \"startup\"\n| summarize Total = count()\n| union (print Total = 0)\n| summarize [\"Restarts (last 1h)\"] = max(Total)",
               "size": 4,
               "title": "Container Restart Events",
               "timeContext": { "durationMs": 3600000 },

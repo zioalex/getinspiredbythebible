@@ -16,6 +16,44 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 
 ## P0 - Critical (Ship Now)
 
+### 🎯 BITB-022: Fix Remaining Empty Panels in Performance Dashboard
+
+**Status:** 🎯 Todo
+**Size:** M (4-6 hours)
+**Created:** 2026-03-06
+
+**As a** site reliability engineer using the Performance Dashboard,
+**I want** all dashboard panels to display real data (not "No data"),
+**so that** I can monitor application health, detect performance issues, and troubleshoot errors effectively.
+
+**Why P0:** Dashboard is partially broken in production. After BITB-021 (metrics instrumentation) and
+source_id fix were deployed, most panels still show "No data". Only 3 panels work (Request Rate Over
+Time, Tokens per Second Trend, Container CPU & Memory). This indicates a KQL query syntax issue,
+metric name mismatch, or data availability problem that needs immediate investigation and fix.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-022-fix-dashboard-empty-panels.md`):**
+
+- [ ] Root cause identified (KQL syntax error? Metric name mismatch? Data not emitted?)
+- [ ] Fix implemented (workbook queries updated OR backend code fixed OR both)
+- [ ] All Overview panels show data (Request Volume, Error Rate, Response Time, Availability)
+- [ ] All LLM Performance panels show data or "No user traffic yet" message (not query error)
+- [ ] All Database Performance panels show data (Search Duration, Query Duration, Slow Queries)
+- [ ] All Error Analysis panels show data or "No errors in time range" (not query error)
+- [ ] All Infrastructure panels show data (CPU/Memory, Container Restarts)
+
+**Tech Constraints:**
+
+- Must use existing Application Insights data (cannot change ingestion pipeline)
+- KQL queries must reference correct tables and metric names (case-sensitive)
+- Cannot break the 3 panels that currently work
+- Queries must handle empty data gracefully (show 0 or "No data", not error)
+
+**Dependencies:** BITB-021 merged ✅, source_id fix merged ✅, Application Insights configured ✅
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-022-fix-dashboard-empty-panels.md`
+
+---
+
 ### 🎯 BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
 
 **Status:** 🎯 Todo
