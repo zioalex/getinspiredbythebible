@@ -29,13 +29,13 @@ DROP INDEX IF EXISTS idx_passage_embedding;
 
 -- Verses table HNSW index (31K rows × 1024 dims)
 -- Build time: ~3-5 minutes
-CREATE INDEX idx_verse_embedding_hnsw ON verses
+CREATE INDEX IF NOT EXISTS idx_verse_embedding_hnsw ON verses
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
 -- Passages table HNSW index (fewer rows, faster build)
 -- Build time: ~30 seconds
-CREATE INDEX idx_passage_embedding_hnsw ON passages
+CREATE INDEX IF NOT EXISTS idx_passage_embedding_hnsw ON passages
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
