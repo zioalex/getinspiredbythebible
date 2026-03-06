@@ -16,11 +16,12 @@ Prioritized list of user stories and features for Get Inspired by the Bible.
 
 ## P0 - Critical (Ship Now)
 
-### 🎯 BITB-022: Fix Remaining Empty Panels in Performance Dashboard
+### ✅ BITB-022: Fix Remaining Empty Panels in Performance Dashboard
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #243 merged 2026-03-06)
 **Size:** M (4-6 hours)
 **Created:** 2026-03-06
+**Completed:** 2026-03-06
 
 **As a** site reliability engineer using the Performance Dashboard,
 **I want** all dashboard panels to display real data (not "No data"),
@@ -31,24 +32,22 @@ source_id fix were deployed, most panels still show "No data". Only 3 panels wor
 Time, Tokens per Second Trend, Container CPU & Memory). This indicates a KQL query syntax issue,
 metric name mismatch, or data availability problem that needs immediate investigation and fix.
 
-**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-022-fix-dashboard-empty-panels.md`):**
+**Acceptance Criteria:**
 
-- [ ] Root cause identified (KQL syntax error? Metric name mismatch? Data not emitted?)
-- [ ] Fix implemented (workbook queries updated OR backend code fixed OR both)
-- [ ] All Overview panels show data (Request Volume, Error Rate, Response Time, Availability)
-- [ ] All LLM Performance panels show data or "No user traffic yet" message (not query error)
-- [ ] All Database Performance panels show data (Search Duration, Query Duration, Slow Queries)
-- [ ] All Error Analysis panels show data or "No errors in time range" (not query error)
-- [ ] All Infrastructure panels show data (CPU/Memory, Container Restarts)
+- [x] Root cause identified: 3 KQL issues — empty-row tile crash, invalid `countif` compound
+  predicate, restricted `any()` aggregation
+- [x] Fix implemented: workbook queries updated (PR #243)
+- [x] All Overview panels fixed (Request Volume, Error Rate, Response Time, Availability)
+- [x] All LLM Performance panels fixed (tiles use union/summarize pattern to guarantee rows)
+- [x] All Database Performance panels fixed (Search Duration, Query Duration, Slow Queries)
+- [x] All Error Analysis panels fixed (Exception Summary uses `min()` instead of `any()`)
+- [x] All Infrastructure panels show data (CPU/Memory, Container Restarts)
 
-**Tech Constraints:**
+**Also fixed (migration pipeline, PR #244, #245, #247):**
 
-- Must use existing Application Insights data (cannot change ingestion pipeline)
-- KQL queries must reference correct tables and metric names (case-sensitive)
-- Cannot break the 3 panels that currently work
-- Queries must handle empty data gracefully (show 0 or "No data", not error)
-
-**Dependencies:** BITB-021 merged ✅, source_id fix merged ✅, Application Insights configured ✅
+- [x] `002_add_hnsw_indexes.sql` — added `IF NOT EXISTS` to `CREATE INDEX` statements
+- [x] `003_tune_postgresql_config.sql` — commented out reference-only verification queries
+- [x] `run_migrations.py` — handles reference-only SQL files with no executable statements
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-022-fix-dashboard-empty-panels.md`
 
