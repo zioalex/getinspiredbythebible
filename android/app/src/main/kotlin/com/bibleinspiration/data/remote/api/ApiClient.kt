@@ -1,6 +1,7 @@
 package com.bibleinspiration.data.remote.api
 
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -15,7 +16,11 @@ object ApiClient {
         isLenient = true
     }
 
-    fun create(baseUrl: String, debug: Boolean = false): BibleApiService {
+    fun create(
+        baseUrl: String,
+        debug: Boolean = false,
+        turnstileInterceptor: Interceptor? = null,
+    ): BibleApiService {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (debug) {
                 HttpLoggingInterceptor.Level.BODY
@@ -24,12 +29,15 @@ object ApiClient {
             }
         }
 
-        val client = OkHttpClient.Builder()
+        val clientBuilder = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             // Streaming responses can take a while — generous read timeout.
             .readTimeout(120, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
-            .build()
+
+        turnstileInterceptor?.let { clientBuilder.addInterceptor(it) }
+
+        val client = clientBuilder.build()
 
         return Retrofit.Builder()
             .baseUrl(baseUrl)

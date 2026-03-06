@@ -38,7 +38,7 @@ android {
             buildConfigField(
                 "String",
                 "BASE_URL",
-                "\"${project.findProperty("baseUrl") ?: "https://api.getinspiredbythebible.com/"}\""
+                "\"${project.findProperty("baseUrl") ?: "https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/"}\""
             )
         }
     }

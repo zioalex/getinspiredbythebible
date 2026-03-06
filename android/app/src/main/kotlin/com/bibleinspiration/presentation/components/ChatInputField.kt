@@ -31,12 +31,14 @@ import com.bibleinspiration.R
 fun ChatInputField(
     onSend: (String) -> Unit,
     isLoading: Boolean = false,
+    isTurnstileReady: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var text by remember { mutableStateOf("") }
+    val isEnabled = !isLoading && isTurnstileReady
 
     fun submit() {
-        if (text.isNotBlank() && !isLoading) {
+        if (text.isNotBlank() && isEnabled) {
             onSend(text)
             text = ""
         }
@@ -57,19 +59,19 @@ fun ChatInputField(
             maxLines = 5,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { submit() }),
-            enabled = !isLoading,
+            enabled = isEnabled,
         )
 
         Spacer(Modifier.width(8.dp))
 
         IconButton(
             onClick = { submit() },
-            enabled = text.isNotBlank() && !isLoading,
+            enabled = text.isNotBlank() && isEnabled,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = stringResource(R.string.chat_send_button),
-                tint = if (text.isNotBlank() && !isLoading) {
+                tint = if (text.isNotBlank() && isEnabled) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.outline
