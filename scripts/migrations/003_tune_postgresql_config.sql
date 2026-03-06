@@ -79,6 +79,7 @@ SELECT pg_reload_conf();
 -- Verification Queries (run these AFTER Terraform apply)
 -- =================================================================
 
+/*
 -- Check current PostgreSQL configuration
 SELECT
     name,
@@ -97,6 +98,7 @@ WHERE name IN (
     'log_connections'
 )
 ORDER BY name;
+*/
 
 -- Expected output (after Terraform apply):
 --
@@ -115,6 +117,7 @@ ORDER BY name;
 -- Performance Testing (run these to validate improvements)
 -- =================================================================
 
+/*
 -- Test HNSW index performance (should be < 50ms)
 EXPLAIN ANALYZE
 SELECT
@@ -144,6 +147,7 @@ WHERE indexname IN ('idx_verse_embedding_hnsw', 'idx_passage_embedding_hnsw')
 ORDER BY tablename;
 
 -- Expected: idx_scan should be increasing with each semantic search query
+*/
 
 -- =================================================================
 -- Rollback Instructions
