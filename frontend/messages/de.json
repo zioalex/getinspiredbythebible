@@ -25,7 +25,8 @@
     "loadingSearch": "Durchsuche die Heilige Schrift und reflektiere...",
     "backendWarmingUp": "Der Server startet gerade, du kannst schon anfangen zu schreiben...",
     "errorColdStart": "Ich wärme mich noch auf und es dauert länger als erwartet. Bitte versuche es gleich noch einmal – ich bin bald bereit!",
-    "errorConnection": "Es tut mir leid, ich habe gerade Verbindungsprobleme. Dies könnte ein vorübergehendes Problem sein – bitte versuche es gleich noch einmal. Wenn das Problem weiterhin besteht, erreichst du uns unter getinspiredbythebible@ai4you.sh"
+    "errorConnection": "Es tut mir leid, ich habe gerade Verbindungsprobleme. Dies könnte ein vorübergehendes Problem sein – bitte versuche es gleich noch einmal. Wenn das Problem weiterhin besteht, erreichst du uns unter getinspiredbythebible@ai4you.sh",
+    "startNewSession": "Neue Sitzung starten"
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",

@@ -311,6 +311,12 @@ variable "rate_limit_requests_per_minute" {
   default     = 20
 }
 
+variable "rate_limit_session_max_requests" {
+  description = "Maximum total requests per session (lifetime limit, encourages breaks)"
+  type        = number
+  default     = 10
+}
+
 variable "content_filter_enabled" {
   description = "Enable content filtering for chat messages"
   type        = bool

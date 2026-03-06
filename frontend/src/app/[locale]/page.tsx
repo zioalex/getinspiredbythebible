@@ -33,6 +33,7 @@ import {
   generateSessionId,
   getOrCreateSessionId,
   ColdStartError,
+  SessionLimitError,
   checkBackendReady,
   warmupBackend,
   StreamChunk,
@@ -125,6 +126,9 @@ export default function Home() {
 
   // Mobile verses panel
   const [mobileVersesOpen, setMobileVersesOpen] = useState(false);
+
+  // Session limit state
+  const [showSessionLimitButton, setShowSessionLimitButton] = useState(false);
 
   // Persistent session ID for DAU/MAU tracking (survives page refreshes)
   const [sessionId] = useState<string>(() => getOrCreateSessionId());
@@ -427,6 +431,18 @@ export default function Home() {
       console.error("Failed to send message:", error);
       setIsWarmingUp(false);
 
+      // Handle session limit error specifically
+      if (error instanceof SessionLimitError) {
+        const errorMessage: ChatMessage = {
+          role: "assistant",
+          content: error.message,
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+        setShowSessionLimitButton(true);
+        setIsLoading(false);
+        return;
+      }
+
       const errorMessage: ChatMessage = {
         role: "assistant",
         content: tChat("errorConnection"),
@@ -453,7 +469,24 @@ export default function Home() {
     setFeedbackGiven({});
     setFeedbackError(null);
     setMobileVersesOpen(false);
+    setShowSessionLimitButton(false);
     setConversationId(generateSessionId()); // New conversation, same persistent session
+  };
+
+  const handleNewSession = () => {
+    setMessages([]);
+    setRelevantVerses([]);
+    setDetectedTranslation(null);
+    setInteractionCount(0);
+    setChurchFinderDismissed(false);
+    setInlinePromptShown(false);
+    setInlinePromptDismissed(false);
+    setInlinePromptIndex(null);
+    setFeedbackGiven({});
+    setFeedbackError(null);
+    setMobileVersesOpen(false);
+    setShowSessionLimitButton(false);
+    setConversationId(generateSessionId()); // Reset conversation and session
   };
 
   // Handle feedback button click
@@ -682,6 +715,19 @@ export default function Home() {
 
         {/* Input Area */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
+          {/* Session Limit Button */}
+          {showSessionLimitButton && (
+            <div className="mb-4 flex justify-center">
+              <button
+                onClick={handleNewSession}
+                className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="w-5 h-5" />
+                {tChat("startNewSession")}
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="text"
@@ -689,13 +735,14 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={tChat("inputPlaceholder")}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled={isLoading}
+              disabled={isLoading || showSessionLimitButton}
             />
             <button
               type="submit"
               disabled={
                 isLoading ||
                 !input.trim() ||
+                showSessionLimitButton ||
                 (turnstileEnabled && !turnstileReady)
               }
               className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
