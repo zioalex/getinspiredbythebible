@@ -53,6 +53,43 @@ metric name mismatch, or data availability problem that needs immediate investig
 
 ---
 
+### ✅ BITB-023: Session Lifetime Limit with Friendly "Take a Break" Message
+
+**Status:** ✅ Done (PR #250 merged 2026-03-06)
+**Size:** M (4-6 hours)
+**Created:** 2026-03-06
+**Completed:** 2026-03-06
+
+**As a** user who has been chatting for a while,
+**I want** to be gently reminded to take a break after 10 messages,
+**so that** I don't spend too much time on the app and can go enjoy God's creation outside.
+
+**Why P0:** Current rate limiting (10 requests/minute) silently blocks users with a generic
+"connection error". Users don't understand why they're blocked and there's no encouragement
+to take a break. This creates a poor user experience and frustration.
+
+**Acceptance Criteria:**
+
+- [x] Session lifetime limit set to 10 messages (not per-minute, lifetime per session)
+- [x] When limit is hit, user sees friendly message: "You've had 10 messages in this session!
+  Why not take a break and enjoy God's creation outside? 🌳"
+- [x] "Start New Session" button appears when limit is reached
+- [x] Backend returns HTTP 429 with distinguishable error type (`session_lifetime_limit`)
+- [x] Frontend handles 429 specifically and shows the friendly message
+- [x] Rate limit is per-session (browser tab), not per-user
+- [x] New session resets the counter (user can continue chatting)
+
+**Implementation Notes:**
+
+- Backend: Changed `rate_limit_session_max_requests` default from 100 to 10 in `api/config.py`
+- Backend: Added friendly error message in `api/utils/security.py` for session lifetime limit
+- Terraform: Added `rate_limit_session_max_requests` variable in `deployment/variables.tf`
+- Frontend: Added `SessionLimitError` class in `frontend/src/lib/api.ts`
+- Frontend: Added "Start New Session" button in `frontend/src/app/[locale]/page.tsx`
+- i18n: Added `startNewSession` translation to all 7 locales (en, es, de, fr, it, pt, ar)
+
+---
+
 ### ✅ BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
 
 **Status:** ✅ Done (PR #229, #233, #236, #237 merged 2026-03-06)
