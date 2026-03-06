@@ -55,7 +55,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize total = count(), errors = countif(resultCode >= 500)\n| extend ErrorRate = iff(total > 0, round((errors * 100.0) / total, 2), 0.0)\n| project [\"Total Requests\"] = total, [\"5xx Errors\"] = errors, [\"Error Rate %\"] = ErrorRate",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize total = count(), errors = countif(toint(resultCode) >= 500)\n| extend ErrorRate = iff(total > 0, round((errors * 100.0) / total, 2), 0.0)\n| project [\"Total Requests\"] = total, [\"5xx Errors\"] = errors, [\"Error Rate %\"] = ErrorRate",
               "size": 4,
               "title": "Request Volume & Error Rate",
               "timeContext": { "durationMs": 0 },
@@ -64,38 +64,7 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
-              },
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "Error Rate %",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 1,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "green" },
-                        { "threshold": 5, "color": "yellow" },
-                        { "threshold": 10, "color": "red" }
-                      ]
-                    }
-                  }
-                ]
               },
               "conditionalVisibility": null
             }
@@ -104,7 +73,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize P50 = percentile(duration, 50), P95 = percentile(duration, 95), P99 = percentile(duration, 99)\n| project [\"P50 (ms)\"] = round(P50, 0), [\"P95 (ms)\"] = round(P95, 0), [\"P99 (ms)\"] = round(P99, 0)",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| summarize P50 = percentile(duration, 50), P95 = percentile(duration, 95), P99 = percentile(duration, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"P50 (ms)\"] = round(P50, 0), [\"P95 (ms)\"] = round(P95, 0), [\"P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Response Time Percentiles",
               "timeContext": { "durationMs": 0 },
@@ -113,18 +82,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
@@ -134,7 +91,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "availabilityResults\n| where timestamp > ago(7d)\n| summarize\n    [\"Last 1h\"] = round(100.0 * countif(success == 1 and timestamp > ago(1h)) / max(1, countif(timestamp > ago(1h))), 1),\n    [\"Last 24h\"] = round(100.0 * countif(success == 1 and timestamp > ago(24h)) / max(1, countif(timestamp > ago(24h))), 1),\n    [\"Last 7d\"] = round(100.0 * countif(success == 1) / count(), 1)",
+              "query": "availabilityResults\n| where timestamp > ago(7d)\n| summarize\n    [\"Last 1h\"] = round(100.0 * countif(success == true and timestamp > ago(1h)) / max(1, countif(timestamp > ago(1h))), 1),\n    [\"Last 24h\"] = round(100.0 * countif(success == true and timestamp > ago(24h)) / max(1, countif(timestamp > ago(24h))), 1),\n    [\"Last 7d\"] = round(100.0 * countif(success == true) / max(1, count()), 1)",
               "size": 4,
               "title": "Availability (health probe)",
               "timeContext": { "durationMs": 604800000 },
@@ -142,68 +99,7 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
-              },
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "Last 1h",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 1,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "red" },
-                        { "threshold": 95, "color": "yellow" },
-                        { "threshold": 99, "color": "green" }
-                      ]
-                    }
-                  },
-                  {
-                    "columnMatch": "Last 24h",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 1,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "red" },
-                        { "threshold": 95, "color": "yellow" },
-                        { "threshold": 99, "color": "green" }
-                      ]
-                    }
-                  },
-                  {
-                    "columnMatch": "Last 7d",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 1,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "red" },
-                        { "threshold": 95, "color": "yellow" },
-                        { "threshold": 99, "color": "green" }
-                      ]
-                    }
-                  }
-                ]
               },
               "conditionalVisibility": null
             }
@@ -244,7 +140,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.ttft_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"TTFT P50 (ms)\"] = round(P50, 0), [\"TTFT P95 (ms)\"] = round(P95, 0), [\"TTFT P99 (ms)\"] = round(P99, 0)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.ttft_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"TTFT P50 (ms)\"] = round(P50, 0), [\"TTFT P95 (ms)\"] = round(P95, 0), [\"TTFT P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Time to First Token (TTFT)",
               "timeContext": { "durationMs": 0 },
@@ -253,38 +149,7 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
-              },
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "TTFT P95 (ms)",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 0,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "green" },
-                        { "threshold": 3000, "color": "yellow" },
-                        { "threshold": 10000, "color": "red" }
-                      ]
-                    }
-                  }
-                ]
               },
               "conditionalVisibility": null
             }
@@ -293,7 +158,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.total_duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Duration P50 (ms)\"] = round(P50, 0), [\"Duration P95 (ms)\"] = round(P95, 0), [\"Duration P99 (ms)\"] = round(P99, 0)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"llm.total_duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Duration P50 (ms)\"] = round(P50, 0), [\"Duration P95 (ms)\"] = round(P95, 0), [\"Duration P99 (ms)\"] = round(P99, 0)",
               "size": 4,
               "title": "Total LLM Duration",
               "timeContext": { "durationMs": 0 },
@@ -302,18 +167,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
@@ -332,38 +185,7 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
-              },
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "Fallback Rate %",
-                    "formatter": 18,
-                    "numberFormat": {
-                      "unit": 1,
-                      "options": { "style": "decimal" }
-                    },
-                    "thresholdsSettings": {
-                      "steps": [
-                        { "threshold": null, "color": "green" },
-                        { "threshold": 5, "color": "orange" },
-                        { "threshold": 10, "color": "red" }
-                      ]
-                    }
-                  }
-                ]
               },
               "conditionalVisibility": null
             }
@@ -380,18 +202,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
@@ -432,7 +242,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.search.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Search P50 (ms)\"] = round(P50, 1), [\"Search P95 (ms)\"] = round(P95, 1), [\"Search P99 (ms)\"] = round(P99, 1)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.search.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Search P50 (ms)\"] = round(P50, 1), [\"Search P95 (ms)\"] = round(P95, 1), [\"Search P99 (ms)\"] = round(P99, 1)",
               "size": 4,
               "title": "Semantic Search Duration",
               "timeContext": { "durationMs": 0 },
@@ -441,18 +251,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
@@ -462,7 +260,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.query.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| project [\"Query P50 (ms)\"] = round(P50, 1), [\"Query P95 (ms)\"] = round(P95, 1), [\"Query P99 (ms)\"] = round(P99, 1)",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"db.query.duration_ms\"\n| summarize P50 = percentile(value, 50), P95 = percentile(value, 95), P99 = percentile(value, 99)\n| extend P50 = iff(isnull(P50), 0.0, P50), P95 = iff(isnull(P95), 0.0, P95), P99 = iff(isnull(P99), 0.0, P99)\n| project [\"Query P50 (ms)\"] = round(P50, 1), [\"Query P95 (ms)\"] = round(P95, 1), [\"Query P99 (ms)\"] = round(P99, 1)",
               "size": 4,
               "title": "General Query Duration",
               "timeContext": { "durationMs": 0 },
@@ -471,18 +269,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
@@ -524,7 +310,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| where resultCode >= 400\n| summarize Count = count() by ErrorType = case(\n    resultCode >= 500, \"5xx Server Error\",\n    resultCode == 408 or resultCode == 504, \"Timeout\",\n    resultCode >= 400, \"4xx Client Error\",\n    \"Other\"\n  )\n| order by Count desc",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| where toint(resultCode) >= 400\n| summarize Count = count() by ErrorType = case(\n    toint(resultCode) >= 500, \"5xx Server Error\",\n    toint(resultCode) == 408 or toint(resultCode) == 504, \"Timeout\",\n    toint(resultCode) >= 400, \"4xx Client Error\",\n    \"Other\"\n  )\n| order by Count desc",
               "size": 3,
               "title": "Error Count by Type",
               "timeContext": { "durationMs": 0 },
@@ -571,7 +357,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "requests\n| where timestamp > {timeRange:start}\n| where success == false or resultCode >= 500\n| project\n    Timestamp = timestamp,\n    [\"Request\"] = name,\n    [\"Status\"] = resultCode,\n    [\"Duration (ms)\"] = round(duration, 0),\n    [\"Correlation ID\"] = tostring(customDimensions[\"correlation_id\"]),\n    [\"Operation ID\"] = operation_Id,\n    [\"Error\"] = tostring(customDimensions[\"error\"])\n| order by Timestamp desc\n| take 50",
+              "query": "requests\n| where timestamp > {timeRange:start}\n| where success == false or toint(resultCode) >= 500\n| project\n    Timestamp = timestamp,\n    [\"Request\"] = name,\n    [\"Status\"] = resultCode,\n    [\"Duration (ms)\"] = round(duration, 0),\n    [\"Correlation ID\"] = tostring(customDimensions[\"correlation_id\"]),\n    [\"Operation ID\"] = operation_Id,\n    [\"Error\"] = tostring(customDimensions[\"error\"])\n| order by Timestamp desc\n| take 50",
               "size": 0,
               "title": "Failed Requests with Details (last 50)",
               "timeContext": { "durationMs": 0 },
@@ -639,18 +425,6 @@
               "resourceType": "microsoft.insights/components",
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {
-                  "columnMatch": "metric_name",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "value_col",
-                  "formatter": 12,
-                  "numberFormat": {
-                    "unit": 0,
-                    "options": { "maximumSignificantDigits": 3 }
-                  }
-                },
                 "showBorder": true
               },
               "conditionalVisibility": null
