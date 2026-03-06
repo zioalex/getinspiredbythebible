@@ -7,6 +7,7 @@ import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
+import com.bibleinspiration.security.TurnstileManager
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -31,13 +32,15 @@ class ChatViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChatRepository
+    private lateinit var turnstileManager: TurnstileManager
     private lateinit var viewModel: ChatViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repository = mockk()
-        viewModel = ChatViewModel(repository)
+        turnstileManager = TurnstileManager()
+        viewModel = ChatViewModel(repository, turnstileManager)
     }
 
     @After
@@ -51,6 +54,7 @@ class ChatViewModelTest {
         assertTrue(state.messages.isEmpty())
         assertNull(state.error)
         assertFalse(state.isLoading)
+        assertFalse(state.isTurnstileReady)
     }
 
     @Test

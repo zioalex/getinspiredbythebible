@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.bibleinspiration.R
 import com.bibleinspiration.presentation.components.ChatInputField
 import com.bibleinspiration.presentation.components.ChatMessageItem
+import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.WelcomeBanner
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 
@@ -124,9 +125,12 @@ fun ChatScreen(
 
             HorizontalDivider()
 
+            TurnstileWebView(turnstileManager = viewModel.turnstileManager)
+
             ChatInputField(
                 onSend = viewModel::sendMessage,
                 isLoading = uiState.isLoading,
+                isTurnstileReady = uiState.isTurnstileReady,
             )
         }
     }

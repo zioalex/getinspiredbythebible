@@ -6,6 +6,7 @@ import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
+import com.bibleinspiration.security.TurnstileManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,15 +24,25 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val currentLocale: String = "en",
+    val isTurnstileReady: Boolean = false,
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    val turnstileManager: TurnstileManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            turnstileManager.tokenFlow.collect { token ->
+                _uiState.update { it.copy(isTurnstileReady = token != null) }
+            }
+        }
+    }
 
     fun sendMessage(text: String) {
         val trimmed = text.trim()
