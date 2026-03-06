@@ -823,15 +823,22 @@ class TestOpenRouterProviderAdditional:
         assert extra_body is None
 
     def test_get_model_with_fallbacks(self):
-        """With fallbacks, should return auto-router config."""
+        """With fallbacks, should return primary model with models array and provider preferences."""
         provider = self._make_provider(
             fallback_models=["fallback1"],
             allow_fallbacks=True,
         )
         model, extra_body = provider._get_model_and_extra_body()
-        assert model == "openrouter/auto"
+        # Should return the primary model, not 'openrouter/auto'
+        assert model == "test-model"
         assert extra_body is not None
-        assert "plugins" in extra_body
+        # Should have models array with fallback list
+        assert "models" in extra_body
+        assert extra_body["models"] == ["test-model", "fallback1"]
+        # Should have provider preferences for throughput-based routing
+        assert "provider" in extra_body
+        assert extra_body["provider"]["sort"]["by"] == "throughput"
+        assert "preferred_min_throughput" in extra_body["provider"]
 
     def test_get_model_fallbacks_disabled(self):
         """With fallbacks disabled, should return direct model."""
@@ -1257,7 +1264,7 @@ class TestOpenRouterModelOverride:
 
     @pytest.mark.asyncio
     async def test_chat_without_override_uses_default(self):
-        """chat() without model_override should use the auto-router default."""
+        """chat() without model_override should use the primary model with fallback config."""
         provider = self._make_provider()
 
         mock_choice = MagicMock()
@@ -1265,7 +1272,7 @@ class TestOpenRouterModelOverride:
         mock_choice.finish_reason = "stop"
         mock_response = MagicMock()
         mock_response.choices = [mock_choice]
-        mock_response.model = "openrouter/auto"
+        mock_response.model = "default-model"
         mock_response.usage = None
 
         with patch.object(
@@ -1277,7 +1284,13 @@ class TestOpenRouterModelOverride:
             await provider.chat([ChatMessage(role="user", content="Hi")])
 
         call_kwargs = mock_create.call_args
-        assert call_kwargs.kwargs["model"] == "openrouter/auto"
+        # Should use the primary model, not 'openrouter/auto'
+        assert call_kwargs.kwargs["model"] == "default-model"
+        # Should have extra_body with models array and provider preferences
+        assert "extra_body" in call_kwargs.kwargs
+        extra_body = call_kwargs.kwargs["extra_body"]
+        assert "models" in extra_body
+        assert "provider" in extra_body
 
     @pytest.mark.asyncio
     async def test_chat_stream_uses_model_override(self):
