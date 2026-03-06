@@ -28,7 +28,12 @@ android {
         debug {
             isMinifyEnabled = false
             isDebuggable = true
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/\"")
+            // Default: emulator localhost for local dev. Override with -PbaseUrl=... to hit prod.
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"${project.findProperty("baseUrl") ?: "http://10.0.2.2:8000/"}\""
+            )
         }
         release {
             isMinifyEnabled = true
