@@ -139,7 +139,7 @@ class Settings(BaseSettings):
     #   hybrid       — Stage 1 + Stage 2 + Stage 3 (Azure Content Safety, additional layer).
     #                  Maximum accuracy, requires Azure Content Safety resource.
     content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
-    content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "keyword_only"
+    content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
 
     # Llama Guard Settings
     # Note: These settings only apply when content_safety_mode is ml_only or hybrid.
