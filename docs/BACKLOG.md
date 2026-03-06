@@ -54,11 +54,12 @@ metric name mismatch, or data availability problem that needs immediate investig
 
 ---
 
-### 🎯 BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
+### ✅ BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #229, #233, #236, #237 merged 2026-03-06)
 **Size:** M (5-6 hours)
 **Created:** 2026-03-04
+**Completed:** 2026-03-06
 
 **As a** user asking about Bible stories involving violence,
 **I want** the content safety filter to understand biblical context vs. harmful intent,
@@ -69,12 +70,21 @@ positives on Bible queries. This unblocks it.
 
 **Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-020-openai-moderation-content-safety.md`):**
 
-- [ ] OpenAI Moderation API (`omni-moderation-latest`, free) replaces broad violence keywords in Stage 2
-- [ ] Stage 1 retains only directed-harm + hate-speech patterns (unambiguous, never biblical)
-- [ ] False positive tests all pass: "David killed Goliath" → HTTP 200
-- [ ] True positive tests all pass: "I want to build a bomb" → HTTP 400
-- [ ] Fallback to existing keyword filter if API unavailable
-- [ ] `CONTENT_SAFETY_ENABLED=true` safely enabled in production after merge
+- [x] ~~OpenAI Moderation API (`omni-moderation-latest`, free) replaces broad violence keywords~~
+  → Replaced with Llama Guard 3 via OpenRouter (PR #233)
+- [x] Stage 1 retains only directed-harm + hate-speech patterns (unambiguous, never biblical)
+- [x] False positive tests all pass: "David killed Goliath" → HTTP 200
+- [x] True positive tests all pass: "I want to build a bomb" → HTTP 400
+- [x] Fallback to existing keyword filter if API unavailable
+- [x] `CONTENT_SAFETY_ENABLED=true` safely enabled in production after merge
+
+**Implementation Notes:**
+
+- PR #229: Initial OpenAI Moderation implementation (superseded)
+- PR #233: Replaced with Llama Guard 3 via OpenRouter (BITB-021)
+- PR #236: Fixed OpenRouter fallback to use native `models` array + throughput-based routing
+- PR #237: Fixed `keyword_only` mode to truly skip ML, `ml_only` is now default
+- PR #238: Added `CONTENT_SAFETY_ENABLED` and `CONTENT_SAFETY_MODE` to Terraform config
 
 **Tech Constraints:**
 
@@ -124,11 +134,12 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-021: Instrument LLM and Database Performance Metrics
+### ✅ BITB-021: Instrument LLM and Database Performance Metrics
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #229, #233, #236, #237, #242 merged 2026-03-06)
 **Size:** M (4-6 hours)
 **Created:** 2026-03-06
+**Completed:** 2026-03-06
 
 **As a** site reliability engineer monitoring the Bible app in production,
 **I want** the Performance Dashboard to display real-time LLM and database metrics,
@@ -141,11 +152,17 @@ story adds the missing instrumentation so the dashboard becomes functional.
 
 **Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-021-instrument-performance-metrics.md`):**
 
-- [ ] LLM metrics emitted: `llm.ttft_ms`, `llm.total_duration_ms`, `llm.fallback_count`, `llm.rate_limit_hits`, `llm.tokens_per_second`
-- [ ] Database metrics emitted: `db.search.duration_ms`, `db.query.duration_ms`, `db.slow_queries`
-- [ ] Metrics instrumented in `OpenRouterProvider`, `ClaudeProvider`, `OllamaProvider`, and `ScriptureRepository`
-- [ ] Performance Dashboard shows real data in all LLM and Database panels after deployment
-- [ ] Full test suite passes (1,033+ tests)
+- [x] LLM metrics emitted: `llm.ttft_ms`, `llm.total_duration_ms`, `llm.fallback_count`, `llm.rate_limit_hits`, `llm.tokens_per_second`
+- [x] Database metrics emitted: `db.search.duration_ms`, `db.query.duration_ms`, `db.slow_queries`
+- [x] Metrics instrumented in `OpenRouterProvider`, `ClaudeProvider`, `OllamaProvider`, and `ScriptureRepository`
+- [x] Performance Dashboard shows real data in all LLM and Database panels after deployment
+- [x] Full test suite passes (1,033+ tests)
+
+**Implementation Notes:**
+
+- PR #240: Workbook scoped to Application Insights (fixed "No data" panels)
+- PR #242: Added `schema_migrations` tracking table and smart migration runner
+- PR #243: Fixed broken KQL queries in all tiles panels (zero-row-safe pattern)
 
 **Tech Constraints:**
 
