@@ -113,8 +113,26 @@ async def run_python_migration(file_path: Path) -> None:
 
 
 async def run_sql_migration(conn: asyncpg.Connection, file_path: Path) -> None:
-    """Read and execute a SQL migration file."""
+    """Read and execute a SQL migration file.
+
+    If the file contains no executable statements (e.g. it is reference-only
+    documentation with all SQL wrapped in block comments), the migration is
+    recorded as successfully applied without executing anything.
+    """
+    import re
+
     sql = file_path.read_text()
+
+    # Strip block comments (/* ... */) and line comments (-- ...) then check
+    # whether any non-whitespace remains.  If not, treat the file as a no-op.
+    without_block_comments = re.sub(r"/\*.*?\*/", "", sql, flags=re.DOTALL)
+    without_comments = re.sub(r"--[^\n]*", "", without_block_comments)
+    has_statements = bool(without_comments.strip())
+
+    if not has_statements:
+        print(f"   (no executable SQL — reference-only file, recording as applied)")
+        return
+
     await conn.execute(sql)
 
 
