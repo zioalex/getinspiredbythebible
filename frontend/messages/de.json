@@ -75,7 +75,6 @@
     "searching": "Suche nach Kirchen...",
     "errorSearch": "Kirchensuche fehlgeschlagen. Bitte versuche es erneut.",
     "errorConnection": "Bitte überprüfe deine Verbindung und versuche es erneut.",
-    "startNewSession": "Neue Sitzung starten",
     "foundCount": "{count, plural, =1 {1 Kirche gefunden} other {# Kirchen gefunden}}",
     "noChurchesFound": "Keine Kirchen gefunden",
     "noChurchesHint": "Versuche es mit einem anderen Ort oder einem breiteren Suchbegriff.",
