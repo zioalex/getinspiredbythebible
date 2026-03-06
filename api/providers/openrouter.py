@@ -3,12 +3,20 @@ OpenRouter LLM Provider implementation.
 OpenRouter provides access to various LLMs including free models via an OpenAI-compatible API.
 """
 
+import time
 from typing import AsyncIterator, cast
 
 from openai import APIStatusError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
 from utils.logging_config import get_logger
+from utils.metrics import (
+    llm_fallback_counter,
+    llm_rate_limit_counter,
+    llm_tokens_per_second_histogram,
+    llm_total_duration_histogram,
+    llm_ttft_histogram,
+)
 
 from .base import ChatMessage, LLMProvider, LLMResponse
 
@@ -125,9 +133,11 @@ class OpenRouterProvider(LLMProvider):
         """Check if an exception is a rate limit error and log it."""
         if isinstance(e, RateLimitError):
             logger.warning(f"RateLimitError from OpenRouter: {e}")
+            llm_rate_limit_counter.add(1, {"provider": "openrouter"})
             return True
         if isinstance(e, APIStatusError) and e.status_code == 429:
             logger.warning(f"APIStatusError 429 from OpenRouter: {e}")
+            llm_rate_limit_counter.add(1, {"provider": "openrouter"})
             return True
         return False
 
@@ -277,7 +287,7 @@ class OpenRouterProvider(LLMProvider):
         )
         return stream
 
-    async def chat_stream(  # type: ignore[override]
+    async def chat_stream(  # type: ignore[override]  # noqa: C901
         self,
         messages: list[ChatMessage],
         temperature: float = 0.7,
@@ -319,9 +329,36 @@ class OpenRouterProvider(LLMProvider):
                     ),
                 )
 
+                stream_start = time.perf_counter()
+                first_chunk = True
+                total_chars = 0
+                used_fallback = current_model != model_to_use
+
                 async for chunk in stream:
                     if chunk.choices and chunk.choices[0].delta.content:
-                        yield chunk.choices[0].delta.content
+                        content_text = chunk.choices[0].delta.content
+                        if first_chunk:
+                            ttft_ms = (time.perf_counter() - stream_start) * 1000
+                            llm_ttft_histogram.record(
+                                ttft_ms, {"provider": "openrouter", "model": current_model}
+                            )
+                            first_chunk = False
+                        total_chars += len(content_text)
+                        yield content_text
+
+                total_duration_ms = (time.perf_counter() - stream_start) * 1000
+                llm_total_duration_histogram.record(
+                    total_duration_ms, {"provider": "openrouter", "model": current_model}
+                )
+                if total_duration_ms > 0 and total_chars > 0:
+                    approx_tokens = total_chars / 4
+                    tokens_per_sec = approx_tokens / (total_duration_ms / 1000)
+                    llm_tokens_per_second_histogram.record(
+                        tokens_per_sec, {"provider": "openrouter", "model": current_model}
+                    )
+                if used_fallback:
+                    llm_fallback_counter.add(1, {"provider": "openrouter", "model": current_model})
+
                 return  # Success, exit the generator
 
             except (RateLimitError, APIStatusError) as e:

@@ -67,3 +67,53 @@ contact_form_counter = meter.create_counter(
     description="Total contact form submissions",
     unit="1",
 )
+
+# ── LLM performance metrics ───────────────────────────────────────────────
+llm_ttft_histogram = meter.create_histogram(
+    name="llm.ttft_ms",
+    description="Time to first token (TTFT) in milliseconds",
+    unit="ms",
+)
+
+llm_total_duration_histogram = meter.create_histogram(
+    name="llm.total_duration_ms",
+    description="Total LLM generation duration in milliseconds",
+    unit="ms",
+)
+
+llm_fallback_counter = meter.create_counter(
+    name="llm.fallback_count",
+    description="Count of LLM fallback invocations",
+    unit="1",
+)
+
+llm_rate_limit_counter = meter.create_counter(
+    name="llm.rate_limit_hits",
+    description="Count of HTTP 429 rate limit responses from LLM provider",
+    unit="1",
+)
+
+llm_tokens_per_second_histogram = meter.create_histogram(
+    name="llm.tokens_per_second",
+    description="Token generation throughput (tokens/sec)",
+    unit="1",
+)
+
+# ── Database performance metrics ──────────────────────────────────────────
+db_search_duration_histogram = meter.create_histogram(
+    name="db.search.duration_ms",
+    description="Semantic search (pgvector cosine similarity) duration in milliseconds",
+    unit="ms",
+)
+
+db_query_duration_histogram = meter.create_histogram(
+    name="db.query.duration_ms",
+    description="General SQL query duration in milliseconds",
+    unit="ms",
+)
+
+db_slow_queries_counter = meter.create_counter(
+    name="db.slow_queries",
+    description="Count of queries exceeding slow query threshold (default 100ms)",
+    unit="1",
+)
