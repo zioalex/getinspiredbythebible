@@ -80,6 +80,12 @@ locals {
       "CONTENT_FILTER_ENABLED" = {
         value = tostring(var.content_filter_enabled)
       }
+      "CONTENT_SAFETY_ENABLED" = {
+        value = tostring(var.content_safety_enabled)
+      }
+      "CONTENT_SAFETY_MODE" = {
+        value = var.content_safety_mode
+      }
       "CORS_ORIGINS" = {
         value = local.cors_origins_value
       }

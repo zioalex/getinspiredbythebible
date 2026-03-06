@@ -323,6 +323,23 @@ variable "max_message_length" {
   default     = 200
 }
 
+variable "content_safety_enabled" {
+  description = "Enable ML-backed content safety pipeline (Llama Guard 3 via OpenRouter)"
+  type        = bool
+  default     = true
+}
+
+variable "content_safety_mode" {
+  description = "Content safety pipeline mode: keyword_only (fast, no external call), ml_only (keyword + Llama Guard ~270ms), hybrid (keyword + Llama Guard + Azure Content Safety)"
+  type        = string
+  default     = "ml_only"
+
+  validation {
+    condition     = contains(["keyword_only", "ml_only", "hybrid"], var.content_safety_mode)
+    error_message = "content_safety_mode must be one of: keyword_only, ml_only, hybrid."
+  }
+}
+
 # -----------------------------------------------------------------------------
 # OpenRouter Fallback Configuration
 # -----------------------------------------------------------------------------
