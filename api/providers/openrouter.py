@@ -24,7 +24,7 @@ class OpenRouterProvider(LLMProvider):
     - google/gemma-2-9b-it:free
 
     Uses OpenAI-compatible API for easy integration.
-    Supports automatic fallback to paid models via auto-router plugin.
+    Supports automatic fallback to paid models via native models array and provider preferences.
     """
 
     def __init__(
@@ -34,6 +34,7 @@ class OpenRouterProvider(LLMProvider):
         base_url: str = "https://openrouter.ai/api/v1",
         fallback_models: list[str] | None = None,
         allow_fallbacks: bool = True,
+        preferred_min_throughput_p50: int = 50,
     ):
         """
         Initialize OpenRouter provider.
@@ -44,10 +45,12 @@ class OpenRouterProvider(LLMProvider):
             base_url: OpenRouter API base URL (default: https://openrouter.ai/api/v1)
             fallback_models: List of fallback models to try if primary fails
             allow_fallbacks: Whether to allow automatic fallback (default: True)
+            preferred_min_throughput_p50: Minimum preferred throughput in tokens/sec at p50
         """
         self.model = model
         self.fallback_models = fallback_models or []
         self.allow_fallbacks = allow_fallbacks
+        self.preferred_min_throughput_p50 = preferred_min_throughput_p50
         # Disable SDK auto-retry for rate limits - we handle fallbacks ourselves
         self._client = AsyncOpenAI(
             api_key=api_key,
@@ -56,7 +59,8 @@ class OpenRouterProvider(LLMProvider):
         )
         logger.info(
             f"OpenRouterProvider initialized: model={model}, "
-            f"fallbacks={self.fallback_models}, allow_fallbacks={allow_fallbacks}"
+            f"fallbacks={self.fallback_models}, allow_fallbacks={allow_fallbacks}, "
+            f"preferred_min_throughput_p50={preferred_min_throughput_p50}"
         )
 
     @property
@@ -75,8 +79,18 @@ class OpenRouterProvider(LLMProvider):
         """
         Get model name and extra_body for OpenRouter request.
 
-        When fallback models are configured, uses openrouter/auto with the
-        auto-router plugin to enable automatic model selection and failover.
+        WHY: OpenRouter's auto-router plugin (NotDiamond) is designed for quality/prompt
+        routing — it picks the "best model for the prompt". We don't want that; we want
+        cost-first routing with performance-aware fallback to the paid tier.
+
+        The native `models` array + `provider.preferred_min_throughput` approach lets
+        OpenRouter's real-time infrastructure handle the routing decision server-side,
+        using a 5-minute rolling throughput window. This means a slow free-tier response
+        causes proactive routing to the paid model — without any client-side timeout
+        or error-handling logic.
+
+        Reference: https://openrouter.ai/docs/guides/routing/provider-selection
+        Reference: https://openrouter.ai/docs/guides/routing/model-fallbacks
 
         Returns:
             Tuple of (model_name, extra_body) where extra_body may be None
@@ -85,21 +99,27 @@ class OpenRouterProvider(LLMProvider):
             # No fallback configured, use direct model
             return self.model, None
 
-        # Use auto-router with allowed models for automatic failover
-        # Primary model listed first, then fallbacks
-        allowed_models = [self.model] + self.fallback_models
-        logger.info(f"Using auto-router with allowed models: {allowed_models}")
+        # Use native models array with provider preferences for performance-aware routing
+        # Primary model listed first, then fallbacks (OpenRouter tries in order)
+        models_array = [self.model] + self.fallback_models
+        logger.info(f"Using native models array with throughput routing: {models_array}")
 
-        extra_body = {
-            "plugins": [
-                {
-                    "id": "auto-router",
-                    "allowed_models": allowed_models,
-                }
-            ]
+        extra_body: dict = {
+            "models": models_array,
         }
 
-        return "openrouter/auto", extra_body
+        # Add provider preferences for throughput-based routing if configured
+        if self.preferred_min_throughput_p50 > 0:
+            extra_body["provider"] = {
+                "sort": {"by": "throughput", "partition": "none"},
+                "preferred_min_throughput": {"p50": self.preferred_min_throughput_p50},
+            }
+            logger.info(
+                f"Throughput-based routing enabled: "
+                f"preferred_min_throughput.p50={self.preferred_min_throughput_p50}"
+            )
+
+        return self.model, extra_body
 
     def _is_rate_limit_error(self, e: Exception) -> bool:
         """Check if an exception is a rate limit error and log it."""
@@ -137,12 +157,18 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1024,
         **kwargs,
     ) -> LLMResponse:
-        """Send a chat completion request to OpenRouter with explicit 429 fallback."""
+        """
+        Send a chat completion request to OpenRouter.
+
+        Most fallback handling is done server-side by OpenRouter via the models array
+        and provider preferences. Client-side fallback is kept as a safety net for
+        errors that OpenRouter doesn't handle automatically.
+        """
         converted_messages = self._convert_messages(messages)
         model_override = kwargs.pop("model_override", None)
         if model_override:
             model_to_use = model_override
-            extra_body = None  # No auto-router for overrides
+            extra_body = None  # No routing config for overrides
             logger.info(f"Using language-based model override: {model_override}")
         else:
             model_to_use, extra_body = self._get_model_and_extra_body()
@@ -156,23 +182,29 @@ class OpenRouterProvider(LLMProvider):
                 extra_body=extra_body,
             )
         except (RateLimitError, APIStatusError) as e:
+            # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
             should_fallback = self._should_try_fallback(e)
 
-            if should_fallback and self.fallback_models and self.allow_fallbacks:
+            if (
+                should_fallback
+                and self.fallback_models
+                and self.allow_fallbacks
+                and not model_override
+            ):
                 logger.warning(
-                    f"Primary model failed (model={model_to_use}, primary={self.model}), "
-                    f"attempting fallback to: {self.fallback_models}"
+                    f"Server-side routing failed, trying client-side fallback. "
+                    f"Model={model_to_use}, Error: {e}"
                 )
                 for fallback_model in self.fallback_models:
                     try:
-                        logger.info(f"Trying fallback model: {fallback_model}")
+                        logger.info(f"Client-side fallback to: {fallback_model}")
                         response = await self._client.chat.completions.create(
                             model=fallback_model,
                             messages=converted_messages,  # type: ignore[arg-type]
                             temperature=temperature,
                             max_tokens=max_tokens,
                         )
-                        logger.info(f"Fallback to {fallback_model} succeeded")
+                        logger.info(f"Client-side fallback to {fallback_model} succeeded")
                         # Return response with the fallback model name
                         content = response.choices[0].message.content or ""
                         return LLMResponse(
@@ -185,16 +217,10 @@ class OpenRouterProvider(LLMProvider):
                             ),
                             finish_reason=response.choices[0].finish_reason,
                         )
-                    except (RateLimitError, APIStatusError) as fallback_e:
-                        if self._should_try_fallback(fallback_e):
-                            logger.warning(
-                                f"Fallback model {fallback_model} also failed: {fallback_e}"
-                            )
-                        else:
-                            logger.error(f"Fallback model {fallback_model} failed: {fallback_e}")
-                        continue
                     except Exception as fallback_error:
-                        logger.error(f"Fallback model {fallback_model} failed: {fallback_error}")
+                        logger.warning(
+                            f"Client-side fallback {fallback_model} failed: {fallback_error}"
+                        )
                         continue
                 # All fallbacks exhausted
                 raise RuntimeError(
@@ -205,11 +231,6 @@ class OpenRouterProvider(LLMProvider):
                 ) from e
             else:
                 # No fallbacks configured or not a recoverable error
-                if should_fallback:
-                    logger.error(
-                        f"Model failed but no fallbacks available: "
-                        f"fallback_models={self.fallback_models}, allow_fallbacks={self.allow_fallbacks}"
-                    )
                 raise
 
         # Handle cases where response might be malformed
@@ -263,12 +284,18 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1024,
         **kwargs,
     ) -> AsyncIterator[str]:
-        """Stream chat completion from OpenRouter with explicit 429 fallback."""
+        """
+        Stream chat completion from OpenRouter.
+
+        Most fallback handling is done server-side by OpenRouter via the models array
+        and provider preferences. Client-side fallback is kept as a safety net for
+        errors that OpenRouter doesn't handle automatically.
+        """
         converted_messages = self._convert_messages(messages)
         model_override = kwargs.pop("model_override", None)
         if model_override:
             model_to_use = model_override
-            extra_body = None  # No auto-router for overrides
+            extra_body = None  # No routing config for overrides
             logger.info(f"Using language-based model override: {model_override}")
         else:
             model_to_use, extra_body = self._get_model_and_extra_body()
@@ -298,25 +325,26 @@ class OpenRouterProvider(LLMProvider):
                 return  # Success, exit the generator
 
             except (RateLimitError, APIStatusError) as e:
-                # Check if this error should trigger fallback
+                # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
                 should_fallback = self._should_try_fallback(e)
 
                 if not should_fallback:
                     # Not a recoverable error, re-raise
                     raise
 
-                logger.warning(f"Model {current_model} failed in streaming: {e}")
+                logger.warning(f"Server-side routing failed in streaming: {e}")
 
                 # Try next fallback model
                 if (
                     self.fallback_models
                     and self.allow_fallbacks
+                    and not model_override
                     and fallback_index < len(self.fallback_models)
                 ):
                     current_model = self.fallback_models[fallback_index]
                     fallback_index += 1
-                    extra_body = None  # Don't use auto-router for direct fallback
-                    logger.info(f"Streaming fallback to: {current_model}")
+                    extra_body = None  # Don't use routing config for direct fallback
+                    logger.info(f"Client-side streaming fallback to: {current_model}")
                     continue
                 else:
                     # No more fallbacks
@@ -381,7 +409,7 @@ class OpenRouterProvider(LLMProvider):
         Check if OpenRouter API is accessible.
 
         Note: This makes a minimal API call to verify connectivity.
-        Uses auto-router with fallback models if configured.
+        Uses native models array with provider preferences if configured.
         """
         try:
             model_to_use, extra_body = self._get_model_and_extra_body()
