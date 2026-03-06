@@ -940,6 +940,14 @@ resource "azurerm_application_insights_workbook" "performance_dashboard" {
   location            = azurerm_resource_group.main.location
   display_name        = "${local.name_prefix} - Performance Dashboard"
 
+  # CRITICAL: scope the workbook to the Application Insights resource.
+  # Without source_id the workbook is created under "azure monitor" scope,
+  # which means every KQL query panel shows "No data" because the workbook
+  # has no resource context and cannot resolve the correct Log Analytics
+  # workspace. Setting this to the Application Insights resource ID causes
+  # the portal to pin all panels to bible-app-insights automatically.
+  source_id = lower(azurerm_application_insights.main[0].id)
+
   data_json = file("${path.module}/azure-monitor/workbook-performance-dashboard.json")
 
   tags = local.tags
