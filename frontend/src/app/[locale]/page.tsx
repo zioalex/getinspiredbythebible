@@ -49,6 +49,13 @@ import { useTurnstile } from "@/lib/turnstile";
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  messageId?: string; // Only present for assistant messages
+  userMessage?: string; // User message that prompted this response
+  versesCited?: string[];
+  model?: string;
+}
 
 export default function Home() {
   const tHeader = useTranslations("Header");
