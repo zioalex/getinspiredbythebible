@@ -39,17 +39,21 @@ stuck until hard-reloading the page.
 ## Changes Made
 
 ### frontend/src/lib/api.ts
+
 - Added `resetSessionId()` — generates new ID, persists to localStorage, returns it
 
 ### frontend/src/app/[locale]/page.tsx
+
 - `sessionId` changed from immutable to mutable state (`const [sessionId, setSessionId]`)
 - `handleNewSession()` now calls `resetSessionId()` and `setSessionId(newId)` first
 - Session limit chat bubble uses `tChat("sessionLimitMessage")` instead of `error.message`
 
-### frontend/messages/*.json (all 7 locales)
+### frontend/messages/`*.json` (all 7 locales)
+
 - Added `sessionLimitMessage` key to `Chat` namespace in en, de, it, es, fr, pt, ar
 
 ### api/utils/security.py
+
 - Removed hardcoded English prose from 429 response body
 - Response now returns only the machine-readable `"error": "session_lifetime_limit"`
 
