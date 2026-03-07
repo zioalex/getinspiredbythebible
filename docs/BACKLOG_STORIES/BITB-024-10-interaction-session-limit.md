@@ -48,7 +48,7 @@ stuck until hard-reloading the page.
 - `handleNewSession()` now calls `resetSessionId()` and `setSessionId(newId)` first
 - Session limit chat bubble uses `tChat("sessionLimitMessage")` instead of `error.message`
 
-### frontend/messages/`*.json` (all 7 locales)
+### frontend/messages/*.json (all 7 locales)
 
 - Added `sessionLimitMessage` key to `Chat` namespace in en, de, it, es, fr, pt, ar
 
@@ -77,5 +77,3 @@ stuck until hard-reloading the page.
 - Hard paywall / account creation gate (soft encouragement by design)
 - Android app session limit (separate story)
 - Preventing repeated session rotations (soft limit, by design)
-
-<!-- CI rerun trigger: 1772892676 -->
