@@ -77,3 +77,5 @@ stuck until hard-reloading the page.
 - Hard paywall / account creation gate (soft encouragement by design)
 - Android app session limit (separate story)
 - Preventing repeated session rotations (soft limit, by design)
+
+<!-- CI rerun trigger: 1772892676 -->
