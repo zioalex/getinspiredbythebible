@@ -132,6 +132,21 @@ export function getOrCreateSessionId(): string {
   return id;
 }
 
+/**
+ * Clear the stored session ID and generate + store a new one.
+ * Call this when the user explicitly starts a new session after hitting the limit.
+ * Returns the new session ID.
+ */
+export function resetSessionId(): string {
+  const newId = generateSessionId();
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, newId);
+  } catch {
+    // ignore write failures (privacy mode etc.)
+  }
+  return newId;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
