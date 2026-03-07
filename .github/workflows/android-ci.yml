@@ -111,7 +111,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build prod APK (debuggable, points to production backend)
-        run: ./gradlew assembleDebug --no-daemon -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+        run: |
+          ./gradlew assembleDebug --no-daemon \
+            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
         working-directory: android
 
       - name: Upload prod APK
@@ -193,7 +195,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build prod APK (debuggable, points to production backend)
-        run: ./gradlew assembleDebug --no-daemon -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+        run: |
+          ./gradlew assembleDebug --no-daemon \
+            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
         working-directory: android
 
       - name: Check AndroidManifest security flags
