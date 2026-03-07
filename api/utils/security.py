@@ -216,14 +216,13 @@ async def require_rate_limit(request: Request) -> None:
             details=reason,
         )
 
-        # Friendly message for session lifetime limit
+        # Session lifetime limit - frontend handles the user-facing message (i18n)
         if violation_type == ViolationType.RATE_LIMIT_LIFETIME:
             raise HTTPException(
                 status_code=429,
                 detail={
                     "error": "session_lifetime_limit",
-                    "message": "You've had 10 messages in this session! Why not take a break and enjoy God's creation outside? 🌳",
-                    "retry_after": None,  # No retry - must start new session
+                    "retry_after": None,
                 },
             )
 
