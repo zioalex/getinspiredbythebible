@@ -26,7 +26,8 @@
     "backendWarmingUp": "Il server si sta avviando, puoi iniziare a scrivere...",
     "errorColdStart": "Mi sto ancora preparando e ci sta mettendo più tempo del previsto. Riprova tra un momento, sarò pronto a breve!",
     "errorConnection": "Mi dispiace, ho problemi di connessione. Potrebbe essere un problema temporaneo: riprova tra un momento. Se il problema persiste, puoi contattarci a getinspiredbythebible@ai4you.sh",
-    "startNewSession": "Avvia nuova sessione"
+    "startNewSession": "Avvia nuova sessione",
+    "sessionLimitMessage": "Hai inviato 10 messaggi in questa sessione! Perché non ti prendi un momento per riflettere su ciò che hai ricevuto e goderti il creato di Dio? 🌳 Quando sei pronto, avvia una nuova sessione qui sotto."
   },
   "Verses": {
     "scriptureReferences": "Riferimenti Scritturali",

@@ -32,6 +32,7 @@ import {
   FeedbackRequest,
   generateSessionId,
   getOrCreateSessionId,
+  resetSessionId,
   ColdStartError,
   SessionLimitError,
   checkBackendReady,
@@ -39,6 +40,12 @@ import {
   StreamChunk,
   StreamMetadata,
 } from "@/lib/api";
+
+import {
+  extractVerseReferences,
+  isVerseReferenced,
+} from "@/lib/verseExtraction";
+import { useTurnstile } from "@/lib/turnstile";
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
@@ -49,11 +56,6 @@ interface ChatMessage {
   versesCited?: string[];
   model?: string;
 }
-import {
-  extractVerseReferences,
-  isVerseReferenced,
-} from "@/lib/verseExtraction";
-import { useTurnstile } from "@/lib/turnstile";
 
 export default function Home() {
   const tHeader = useTranslations("Header");
@@ -131,7 +133,9 @@ export default function Home() {
   const [showSessionLimitButton, setShowSessionLimitButton] = useState(false);
 
   // Persistent session ID for DAU/MAU tracking (survives page refreshes)
-  const [sessionId] = useState<string>(() => getOrCreateSessionId());
+  const [sessionId, setSessionId] = useState<string>(() =>
+    getOrCreateSessionId(),
+  );
   // Conversation ID resets on "New Chat" for per-conversation tracking
   const [conversationId, setConversationId] = useState<string>(() =>
     generateSessionId(),
@@ -435,7 +439,7 @@ export default function Home() {
       if (error instanceof SessionLimitError) {
         const errorMessage: ChatMessage = {
           role: "assistant",
-          content: error.message,
+          content: tChat("sessionLimitMessage"),
         };
         setMessages((prev) => [...prev, errorMessage]);
         setShowSessionLimitButton(true);
@@ -474,6 +478,8 @@ export default function Home() {
   };
 
   const handleNewSession = () => {
+    const newSessionId = resetSessionId(); // generate + persist new ID
+    setSessionId(newSessionId); // update state so next API call uses it
     setMessages([]);
     setRelevantVerses([]);
     setDetectedTranslation(null);

@@ -26,7 +26,8 @@
     "backendWarmingUp": "O servidor está a acordar, pode começar a escrever...",
     "errorColdStart": "Ainda estou a preparar-me e está a demorar mais do que o esperado. Por favor, tente novamente em breve — estarei pronto em breve!",
     "errorConnection": "Lamento, estou com dificuldades de ligação neste momento. Pode ser um problema temporário — tente novamente em breve. Se o problema persistir, pode contactar-nos em getinspiredbythebible@ai4you.sh",
-    "startNewSession": "Iniciar Nova Sessão"
+    "startNewSession": "Iniciar Nova Sessão",
+    "sessionLimitMessage": "Você enviou 10 mensagens nesta sessão! Que tal tirar um momento para refletir sobre o que recebeu e aproveitar a criação de Deus? 🌳 Quando estiver pronto, inicie uma nova sessão abaixo."
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",
