@@ -99,9 +99,9 @@ a combination of global reach and persecution-region relevance.
 
 **Phase 1 -- High Impact (large speaker base + persecution relevance):**
 
-- Arabic (ar), Spanish (es), French (fr), Portuguese (pt)
+- Arabic (ar), Spanish (es), French (fr), Portuguese (pt) ✅ **Implemented** (shipped with initial i18n rollout)
 
-**Phase 2 -- Major World Languages:**
+**Phase 2 -- Major World Languages:** ✅ **Implemented** (PR #258, awaiting merge)
 
 - Mandarin Chinese (zh), Hindi (hi), Russian (ru), Korean (ko)
 

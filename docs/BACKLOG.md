@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Get Inspired by the Bible.
 
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-03-08
 
 ---
 
@@ -761,6 +761,42 @@ Testing & Documentation:
 ---
 
 ## Done (Recent Completions)
+
+### ✅ BITB-024: Add Phase 2 Language Support (Russian, Chinese, Hindi, Korean)
+
+**Status:** ✅ Done (PR #258 — awaiting merge)
+**Size:** L (3-5 days)
+**Created:** 2026-03-08
+**Completed:** 2026-03-08
+
+**As a** non-English speaker,
+**I want** the app's UI and Bible responses in my native language (Russian, Chinese, Hindi, or Korean),
+**so that** I can engage with scripture in the language closest to my heart.
+
+**Acceptance Criteria:**
+
+- [x] Russian (ru), Chinese Simplified (zh), Hindi (hi), Korean (ko) UI translations added (`frontend/messages/`)
+- [x] Frontend routing updated: all 4 locales added to `routing.ts` locale list
+- [x] Language switcher labels added to `LanguageSwitcher.tsx` for all 4 locales
+- [x] `hreflang` alternate links added in `layout.tsx` `generateMetadata()` for all 4 locales
+- [x] Backend `SUPPORTED_LANGUAGES` and `LANGUAGE_TRANSLATIONS` extended for ru, zh, hi, ko
+- [x] `TRANSLATION_INFO` metadata (native names, locale codes) added for all 4 languages
+- [x] 4 × 66 Bible book name maps added (ru, zh, hi, ko)
+- [x] `lingua` language detector `lang_map` extended to recognise all 4 new languages
+- [x] LLM prompt `LANGUAGE_NAMES` and `SOURCE_ATTRIBUTION_EXAMPLES` updated for all 4 languages
+- [x] Tests cover all new translation keys, book maps, detector mappings, and prompt constants
+- [x] Full CI suite passes (all tests green)
+
+**Implementation Notes:**
+
+- Frontend: 4 new `frontend/messages/{ru,zh,hi,ko}.json` files; all translation keys match `en.json`
+- Backend: `api/translations/` extended with book name maps and language metadata
+- Language detection: `lingua-language-detector` already installed; only `lang_map` entries needed
+- No new dependencies introduced (frontend or backend)
+
+**PR:** [#258](https://github.com/zioalex/getinspiredbythebible/pull/258) (`feat/bitb-024-phase2-languages`)
+
+---
 
 ### ✅ BITB-000: Bootstrap Android App
 
