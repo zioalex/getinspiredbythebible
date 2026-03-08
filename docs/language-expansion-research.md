@@ -22,17 +22,17 @@ Ranked by total number of speakers (native + L2), based on Ethnologue (2024 edit
 and other linguistic sources.
 
 | Rank | Language            | ISO 639-1 | Approximate Total Speakers |
-|------|---------------------|-----------|---------------------------|
-| 1    | English             | en        | 1.5 billion               |
-| 2    | Mandarin Chinese    | zh        | 1.1 billion               |
-| 3    | Hindi               | hi        | 600 million               |
-| 4    | Spanish             | es        | 560 million               |
-| 5    | French              | fr        | 310 million               |
-| 6    | Arabic (Standard)   | ar        | 310 million               |
-| 7    | Bengali             | bn        | 270 million               |
-| 8    | Portuguese          | pt        | 260 million               |
-| 9    | Russian             | ru        | 255 million               |
-| 10   | Urdu                | ur        | 230 million               |
+| ---- | ------------------- | --------- | -------------------------- |
+| 1    | English             | en        | 1.5 billion                |
+| 2    | Mandarin Chinese    | zh        | 1.1 billion                |
+| 3    | Hindi               | hi        | 600 million                |
+| 4    | Spanish             | es        | 560 million                |
+| 5    | French              | fr        | 310 million                |
+| 6    | Arabic (Standard)   | ar        | 310 million                |
+| 7    | Bengali             | bn        | 270 million                |
+| 8    | Portuguese          | pt        | 260 million                |
+| 9    | Russian             | ru        | 255 million                |
+| 10   | Urdu                | ur        | 230 million                |
 
 **Notes:**
 
@@ -49,13 +49,13 @@ Based on the Open Doors World Watch List (2025), which ranks countries by the se
 persecution faced by Christians.
 
 | Rank | Country              | Primary Language(s)             | ISO 639-1 Code(s) |
-|------|----------------------|---------------------------------|--------------------|
+| ---- | -------------------- | ------------------------------- | ------------------ |
 | 1    | North Korea          | Korean                          | ko                 |
 | 2    | Somalia              | Somali, Arabic                  | so, ar             |
 | 3    | Yemen                | Arabic                          | ar                 |
 | 4    | Libya                | Arabic                          | ar                 |
 | 5    | Eritrea              | Tigrinya, Arabic                | ti, ar             |
-| 6    | Nigeria              | English, Hausa, Yoruba, Igbo   | en, ha, yo, ig     |
+| 6    | Nigeria              | English, Hausa, Yoruba, Igbo    | en, ha, yo, ig     |
 | 7    | Pakistan             | Urdu, Punjabi, Sindhi           | ur, pa, sd         |
 | 8    | Sudan                | Arabic                          | ar                 |
 | 9    | Iran                 | Persian (Farsi)                 | fa                 |
@@ -77,23 +77,23 @@ The following is a deduplicated list of languages derived from both tables above
 **excluding** the three already supported (en, it, de). Languages are ordered by
 a combination of global reach and persecution-region relevance.
 
-| Language         | ISO 639-1 | Rationale                                                    |
-|------------------|-----------|--------------------------------------------------------------|
+| Language         | ISO 639-1 | Rationale                                                          |
+| ---------------- | --------- | ------------------------------------------------------------------ |
 | Arabic           | ar        | 310M speakers; primary language in 5 of top 10 persecuted countries |
-| Spanish          | es        | 560M speakers; large Christian population in Latin America   |
-| French           | fr        | 310M speakers; widely spoken in persecuted regions of Africa |
-| Portuguese       | pt        | 260M speakers; Brazil is the largest Catholic country        |
-| Mandarin Chinese | zh        | 1.1B speakers; growing underground church in China           |
-| Hindi            | hi        | 600M speakers; India has rising persecution concerns         |
-| Urdu             | ur        | 230M speakers; Pakistan is #7 on persecution list            |
+| Spanish          | es        | 560M speakers; large Christian population in Latin America         |
+| French           | fr        | 310M speakers; widely spoken in persecuted regions of Africa       |
+| Portuguese       | pt        | 260M speakers; Brazil is the largest Catholic country              |
+| Mandarin Chinese | zh        | 1.1B speakers; growing underground church in China                 |
+| Hindi            | hi        | 600M speakers; India has rising persecution concerns               |
+| Urdu             | ur        | 230M speakers; Pakistan is #7 on persecution list                  |
 | Persian (Farsi)  | fa        | Spoken in Iran (#9) and Afghanistan (#10); fast-growing underground church |
-| Bengali          | bn        | 270M speakers; Bangladesh has minority Christian communities |
-| Russian          | ru        | 255M speakers; restrictions on religious minorities increasing |
+| Bengali          | bn        | 270M speakers; Bangladesh has minority Christian communities       |
+| Russian          | ru        | 255M speakers; restrictions on religious minorities increasing     |
 | Korean           | ko        | North Korea is #1 most persecuted; South Korea has large Christian population |
 | Hausa            | ha        | Major language in northern Nigeria (#6 persecuted); 80M+ speakers |
-| Tigrinya         | ti        | Primary language in Eritrea (#5 persecuted)                  |
-| Somali           | so        | Primary language in Somalia (#2 persecuted)                  |
-| Pashto           | ps        | Major language in Afghanistan (#10 persecuted)               |
+| Tigrinya         | ti        | Primary language in Eritrea (#5 persecuted)                        |
+| Somali           | so        | Primary language in Somalia (#2 persecuted)                        |
+| Pashto           | ps        | Major language in Afghanistan (#10 persecuted)                     |
 
 ### Suggested Implementation Phases
 
@@ -119,12 +119,12 @@ a combination of global reach and persecution-region relevance.
 
 Several of the recommended languages use right-to-left scripts:
 
-| Language       | ISO 639-1 | Script Direction |
-|----------------|-----------|------------------|
-| Arabic         | ar        | RTL              |
-| Urdu           | ur        | RTL (Nastaliq)   |
-| Persian (Farsi)| fa        | RTL              |
-| Pashto         | ps        | RTL              |
+| Language        | ISO 639-1 | Script Direction |
+| --------------- | --------- | ---------------- |
+| Arabic          | ar        | RTL              |
+| Urdu            | ur        | RTL (Nastaliq)   |
+| Persian (Farsi) | fa        | RTL              |
+| Pashto          | ps        | RTL              |
 
 ### Technical Requirements for RTL Support
 
@@ -160,34 +160,34 @@ This model's officially supported languages must be considered when expanding i1
 
 ### Llama 3.3 70B — Officially Supported Languages
 
-| Language   | ISO 639-1 | Supported | In Our App |
-|------------|-----------|-----------|------------|
-| English    | en        | Yes       | Yes        |
-| German     | de        | Yes       | Yes        |
-| French     | fr        | Yes       | Yes        |
-| Italian    | it        | Yes       | Yes        |
-| Portuguese | pt        | Yes       | Yes        |
-| Spanish    | es        | Yes       | Yes        |
+| Language   | ISO 639-1 | Supported | In Our App   |
+| ---------- | --------- | --------- | ------------ |
+| English    | en        | Yes       | Yes          |
+| German     | de        | Yes       | Yes          |
+| French     | fr        | Yes       | Yes          |
+| Italian    | it        | Yes       | Yes          |
+| Portuguese | pt        | Yes       | Yes          |
+| Spanish    | es        | Yes       | Yes          |
 | Hindi      | hi        | Yes       | No (Phase 2) |
-| Thai       | th        | Yes       | No         |
+| Thai       | th        | Yes       | No           |
 
 ### Languages NOT Officially Supported by Llama 3.3
 
 The following Phase 1-4 languages are **not** in Llama 3.3's official list:
 
-| Language        | ISO 639-1 | Phase | Risk Level |
-|-----------------|-----------|-------|------------|
+| Language        | ISO 639-1 | Phase | Risk Level                                                   |
+| --------------- | --------- | ----- | ------------------------------------------------------------ |
 | **Arabic**      | ar        | 1     | Medium — widely present in training data, may work acceptably |
-| Mandarin Chinese| zh        | 2     | Medium     |
-| Russian         | ru        | 2     | Low-Medium — Cyrillic well-represented in training |
-| Korean          | ko        | 2     | Medium     |
-| Urdu            | ur        | 3     | High — limited training data |
-| Persian (Farsi) | fa        | 3     | High       |
-| Bengali         | bn        | 3     | High       |
-| Hausa           | ha        | 4     | Very High  |
-| Tigrinya        | ti        | 4     | Very High  |
-| Somali          | so        | 4     | Very High  |
-| Pashto          | ps        | 4     | Very High  |
+| Mandarin Chinese | zh       | 2     | Medium                                                       |
+| Russian         | ru        | 2     | Low-Medium — Cyrillic well-represented in training           |
+| Korean          | ko        | 2     | Medium                                                       |
+| Urdu            | ur        | 3     | High — limited training data                                 |
+| Persian (Farsi) | fa        | 3     | High                                                         |
+| Bengali         | bn        | 3     | High                                                         |
+| Hausa           | ha        | 4     | Very High                                                    |
+| Tigrinya        | ti        | 4     | Very High                                                    |
+| Somali          | so        | 4     | Very High                                                    |
+| Pashto          | ps        | 4     | Very High                                                    |
 
 ### Mitigation Strategies
 
@@ -206,13 +206,13 @@ For unsupported languages (especially Arabic in Phase 1):
 
 Investigated Feb 2026. Pricing is per 1M tokens on OpenRouter.
 
-| Model | Arabic Support | Input Cost | Output Cost | Free Tier | Recommendation |
-|-------|---------------|------------|-------------|-----------|----------------|
-| Llama 3.3 70B (current) | Not official | Free | Free | Yes | Keep for es/fr/pt |
-| **Qwen 2.5 72B Instruct** | **Official (29+ langs)** | **$0.04** | **$0.10** | No | **Best for Arabic** |
-| Mistral Saba 24B | Official (Arabic focus) | Low | Low | No | Smaller, less capable |
-| Mistral Large 2 | Official | ~$2.00 | ~$6.00 | No | Expensive |
-| Command R+ (Cohere) | Official (10 langs) | $2.50 | $10.00 | No | Very expensive |
+| Model                           | Arabic Support             | Input Cost | Output Cost | Free Tier | Recommendation        |
+| ------------------------------- | -------------------------- | ---------- | ----------- | --------- | --------------------- |
+| Llama 3.3 70B (current)         | Not official               | Free       | Free        | Yes       | Keep for es/fr/pt     |
+| **Qwen 2.5 72B Instruct**       | **Official (29+ langs)**   | **$0.04**  | **$0.10**   | No        | **Best for Arabic**   |
+| Mistral Saba 24B                | Official (Arabic focus)    | Low        | Low         | No        | Smaller, less capable |
+| Mistral Large 2                 | Official                   | ~$2.00     | ~$6.00      | No        | Expensive             |
+| Command R+ (Cohere)             | Official (10 langs)        | $2.50      | $10.00      | No        | Very expensive        |
 
 **Recommendation**: Use **Qwen 2.5 72B Instruct** (`qwen/qwen-2.5-72b-instruct` on OpenRouter)
 for Arabic requests. At $0.04/$0.10 per 1M tokens, it's essentially the same cost as paid

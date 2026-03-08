@@ -510,7 +510,7 @@ Testing & Documentation:
 **Expected Impact:**
 
 | Metric | Before | After (Actual) | Improvement |
-|--------|--------|---------------|-------------|
+| ------ | ------ | ------------- | ----------- |
 | Semantic search | 200-2000ms | **10-50ms** (HNSW deployed) | **40-200x faster** ✅ |
 | LLM TTFT | Unknown | **1-3s** (streaming deployed) | **10x UX improvement** ✅ |
 | Total response | 10-30s perceived | **1-3s perceived** (streaming) | **Streaming = instant** ✅ |
@@ -796,13 +796,19 @@ Testing & Documentation:
 - Backend: `api/utils/language.py` extended with book name maps and language metadata
 - Language detection: `lingua-language-detector` already installed; only `lang_map` entries needed
 - No new dependencies introduced (frontend or backend)
-- getBible API codes differ from internal codes for Chinese (`cuv` internal → `cus` URL) and Korean (`krv` internal → `korean` URL)
-- Hindi has no free getBible source; `url=None`, `source="manual"` — data must be loaded separately if needed
-- `scripts/translations.py` now contains a full **ADDING A NEW LANGUAGE** checklist in the module docstring
+- getBible API codes differ from internal codes for Chinese (`cuv` internal → `cus` URL)
+  and Korean (`krv` internal → `korean` URL)
+- Hindi has no free getBible source; `url=None`, `source="manual"` — data must be loaded
+  separately if needed
+- `scripts/translations.py` now contains a full **ADDING A NEW LANGUAGE** checklist in the
+  module docstring
 
 **PRs:**
-- [#258](https://github.com/zioalex/getinspiredbythebible/pull/258) (`feat/bitb-024-phase2-languages`) — API/UI layer ✅ merged
-- [#261](https://github.com/zioalex/getinspiredbythebible/pull/261) (`feat/bitb-024-bible-data-loading`) — data loading scripts ✅ CI green, awaiting merge
+
+- [#258](https://github.com/zioalex/getinspiredbythebible/pull/258)
+  (`feat/bitb-024-phase2-languages`) — API/UI layer ✅ merged
+- [#261](https://github.com/zioalex/getinspiredbythebible/pull/261)
+  (`feat/bitb-024-bible-data-loading`) — data loading scripts ✅ CI green, awaiting merge
 
 ---
 
