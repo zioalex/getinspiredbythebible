@@ -63,9 +63,10 @@ describe("Translation file consistency", () => {
     for (const [locale, messages] of Object.entries(locales)) {
       if (locale === "en") continue;
       const localeKeys = getKeys(messages as Record<string, unknown>);
-      expect(localeKeys.sort(), `${locale} key structure should match en`).toEqual(
-        enKeys.sort(),
-      );
+      expect(
+        localeKeys.sort(),
+        `${locale} key structure should match en`,
+      ).toEqual(enKeys.sort());
     }
   });
 
