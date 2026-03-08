@@ -159,9 +159,9 @@ class ChatViewModel @Inject constructor(
         if (existing != null) return existing
 
         val newId = UUID.randomUUID().toString()
-        repository.createConversation(id = newId, title = firstMessageText)
-        _uiState.update { it.copy(currentConversationId = newId) }
-        return newId
+        val conversation = repository.createConversation(id = newId, title = firstMessageText)
+        _uiState.update { it.copy(currentConversationId = conversation.id) }
+        return conversation.id
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
