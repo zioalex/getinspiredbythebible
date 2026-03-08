@@ -326,7 +326,7 @@ class TestTranslationMapping:
 
     def test_unknown_language_maps_to_default(self):
         """Unknown language should map to default translation."""
-        assert get_translation_for_language("zh") == DEFAULT_TRANSLATION
+        assert get_translation_for_language("xx") == DEFAULT_TRANSLATION
         assert get_translation_for_language("unknown") == DEFAULT_TRANSLATION
 
     def test_detect_translation_english(self):
@@ -369,7 +369,7 @@ class TestTranslationInfo:
     def test_get_all_translations(self):
         """get_all_translations should return all translations."""
         translations = get_all_translations()
-        assert len(translations) == 8
+        assert len(translations) == 12
         codes = [t["code"] for t in translations]
         assert "kjv" in codes
         assert "web" in codes
@@ -379,6 +379,10 @@ class TestTranslationInfo:
         assert "ls1910" in codes
         assert "almeida" in codes
         assert "arabicsv" in codes
+        assert "synodal" in codes
+        assert "cuv" in codes
+        assert "hindi" in codes
+        assert "krv" in codes
 
     def test_get_translations_for_language_english(self):
         """get_translations_for_language should return English translations."""
