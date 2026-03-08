@@ -38,9 +38,13 @@ Implement persistent conversation history using Room database.
 ## Architecture Decisions
 1. **SerializableVerse DTO**: Keep domain Verse clean; use separate data-layer DTO for kotlinx.serialization
 2. **touchConversation()**: Added to ChatRepository to update `updatedAt` on conversations when new messages arrive
-3. **Import aliasing**: Both `data.local.mappers.toDomain` and `data.remote.mappers.toDomain` coexist — Kotlin resolves by receiver type
-4. **SharingStarted.WhileSubscribed(5000)**: Standard pattern for ViewModels to avoid keeping DB connections alive when no UI is observing
+3. **Import aliasing**: Both `data.local.mappers.toDomain` and `data.remote.mappers.toDomain`
+   coexist — Kotlin resolves by receiver type
+4. **SharingStarted.WhileSubscribed(5000)**: Standard pattern for ViewModels to avoid keeping
+   DB connections alive when no UI is observing
 
 ## Known Issues / Limitations
+
 - No network access in dev environment — tests must be verified in CI
-- `loadConversation()` in ChatViewModel uses `collect` which stays active; in production this should be a one-shot query after initial load
+- `loadConversation()` in ChatViewModel uses `collect` which stays active; in production
+  this should be a one-shot query after initial load
