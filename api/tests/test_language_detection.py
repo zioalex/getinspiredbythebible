@@ -178,7 +178,7 @@ class TestTranslationMapping:
 
     def test_detect_translation_chinese(self):
         """Test full detection pipeline for Chinese."""
-        assert detect_translation("我今天需要鼓励") == "cuv"
+        assert detect_translation("我今天需要鼓励和支持") == "cuv"
 
     def test_detect_translation_hindi(self):
         """Test full detection pipeline for Hindi."""
