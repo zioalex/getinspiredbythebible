@@ -1,26 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import {
-  Send,
-  Book,
-  Loader2,
-  RefreshCw,
-  Filter,
-  BookOpen,
-  X,
-  ChevronDown,
-} from "lucide-react";
-import { useTranslations } from "next-intl";
-import ChatMessage from "@/components/ChatMessage";
-import VerseCard from "@/components/VerseCard";
-import ChapterModal from "@/components/ChapterModal";
-import ChurchFinderBanner from "@/components/ChurchFinderBanner";
-import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
-import ChurchFinderModal from "@/components/ChurchFinderModal";
-import FeedbackModal from "@/components/FeedbackModal";
-import ContactForm from "@/components/ContactForm";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Send, Book, Loader2, RefreshCw, Filter, BookOpen, X, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import ChatMessage from '@/components/ChatMessage';
+import VerseCard from '@/components/VerseCard';
+import ChapterModal from '@/components/ChapterModal';
+import ChurchFinderBanner from '@/components/ChurchFinderBanner';
+import ChurchFinderInlinePrompt from '@/components/ChurchFinderInlinePrompt';
+import ChurchFinderModal from '@/components/ChurchFinderModal';
+import FeedbackModal from '@/components/FeedbackModal';
+import ContactForm from '@/components/ContactForm';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
   streamMessage,
   Message,
@@ -39,17 +30,14 @@ import {
   warmupBackend,
   StreamChunk,
   StreamMetadata,
-} from "@/lib/api";
+} from '@/lib/api';
 
-import {
-  extractVerseReferences,
-  isVerseReferenced,
-} from "@/lib/verseExtraction";
-import { useTurnstile } from "@/lib/turnstile";
+import { extractVerseReferences, isVerseReferenced } from '@/lib/verseExtraction';
+import { useTurnstile } from '@/lib/turnstile';
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
@@ -58,16 +46,15 @@ interface ChatMessage {
 }
 
 export default function Home() {
-  const tHeader = useTranslations("Header");
-  const tWelcome = useTranslations("Welcome");
-  const tChat = useTranslations("Chat");
-  const tVerses = useTranslations("Verses");
-  const tFeedback = useTranslations("Feedback");
-  const { isReady: turnstileReady, isEnabled: turnstileEnabled } =
-    useTurnstile();
+  const tHeader = useTranslations('Header');
+  const tWelcome = useTranslations('Welcome');
+  const tChat = useTranslations('Chat');
+  const tVerses = useTranslations('Verses');
+  const tFeedback = useTranslations('Feedback');
+  const { isReady: turnstileReady, isEnabled: turnstileEnabled } = useTurnstile();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isWarmingUp, setIsWarmingUp] = useState(false);
   // null = checking, true = ready, false = warming up
@@ -84,16 +71,12 @@ export default function Home() {
   const SCROLL_BUTTON_THRESHOLD = 200; // px from bottom to show scroll button
 
   // Feedback state
-  const [feedbackGiven, setFeedbackGiven] = useState<
-    Record<string, "positive" | "negative">
-  >({});
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'positive' | 'negative'>>({});
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [feedbackModalRating, setFeedbackModalRating] = useState<
-    "positive" | "negative"
-  >("positive");
-  const [feedbackModalMessageId, setFeedbackModalMessageId] = useState<
-    string | null
-  >(null);
+  const [feedbackModalRating, setFeedbackModalRating] = useState<'positive' | 'negative'>(
+    'positive'
+  );
+  const [feedbackModalMessageId, setFeedbackModalMessageId] = useState<string | null>(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
@@ -111,9 +94,7 @@ export default function Home() {
   const [modalLoading, setModalLoading] = useState(false);
 
   // Track detected translation from chat
-  const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
-    null,
-  );
+  const [detectedTranslation, setDetectedTranslation] = useState<string | null>(null);
 
   // Church finder state
   const [interactionCount, setInteractionCount] = useState(0);
@@ -122,9 +103,7 @@ export default function Home() {
   const [inlinePromptShown, setInlinePromptShown] = useState(false);
   const [inlinePromptDismissed, setInlinePromptDismissed] = useState(false);
   // Track at which message index the inline prompt should appear (randomly decided)
-  const [inlinePromptIndex, setInlinePromptIndex] = useState<number | null>(
-    null,
-  );
+  const [inlinePromptIndex, setInlinePromptIndex] = useState<number | null>(null);
 
   // Mobile verses panel
   const [mobileVersesOpen, setMobileVersesOpen] = useState(false);
@@ -135,9 +114,7 @@ export default function Home() {
   // Persistent session ID for DAU/MAU tracking (survives page refreshes)
   const [sessionId, setSessionId] = useState<string>(() => getOrCreateSessionId());
   // Conversation ID resets on "New Chat" for per-conversation tracking
-  const [conversationId, setConversationId] = useState<string>(() =>
-    generateSessionId(),
-  );
+  const [conversationId, setConversationId] = useState<string>(() => generateSessionId());
 
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
@@ -145,7 +122,7 @@ export default function Home() {
 
   // Translation preference
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
-  const [selectedTranslation, setSelectedTranslation] = useState<string>("");
+  const [selectedTranslation, setSelectedTranslation] = useState<string>('');
 
   // Load translations and saved preference on mount
   useEffect(() => {
@@ -155,12 +132,12 @@ export default function Home() {
         setTranslations(availableTranslations);
 
         // Load saved preference from localStorage
-        const saved = localStorage.getItem("preferredTranslation");
-        if (saved && availableTranslations.some((t) => t.code === saved)) {
+        const saved = localStorage.getItem('preferredTranslation');
+        if (saved && availableTranslations.some(t => t.code === saved)) {
           setSelectedTranslation(saved);
         }
       } catch (error) {
-        console.error("Failed to load translations:", error);
+        console.error('Failed to load translations:', error);
       }
     };
     loadTranslations();
@@ -170,7 +147,7 @@ export default function Home() {
   useEffect(() => {
     warmupBackend(
       () => setBackendReady(true),
-      () => setBackendReady(false),
+      () => setBackendReady(false)
     );
   }, []);
 
@@ -178,23 +155,23 @@ export default function Home() {
   const handleTranslationChange = (code: string) => {
     setSelectedTranslation(code);
     if (code) {
-      localStorage.setItem("preferredTranslation", code);
+      localStorage.setItem('preferredTranslation', code);
     } else {
-      localStorage.removeItem("preferredTranslation");
+      localStorage.removeItem('preferredTranslation');
     }
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleScrollToBottomClick = () => {
     setIsUserNearBottom(true);
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const scrollVersesToBottom = () => {
-    versesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    versesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   // Scroll detection - track if user is near bottom
@@ -208,8 +185,8 @@ export default function Home() {
       setIsUserNearBottom(distanceFromBottom < SCROLL_THRESHOLD);
     };
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -227,8 +204,8 @@ export default function Home() {
   // otherwise fall back to extracting from content for backwards compatibility
   const referencedVerses = useMemo(() => {
     const allRefs = messages
-      .filter((m) => m.role === "assistant")
-      .flatMap((m) => {
+      .filter(m => m.role === 'assistant')
+      .flatMap(m => {
         // Prefer pre-computed versesCited (more reliable after streaming)
         if (m.versesCited && m.versesCited.length > 0) {
           return m.versesCited;
@@ -246,20 +223,17 @@ export default function Home() {
       return relevantVerses;
     }
 
-    return relevantVerses.filter((verse) =>
-      isVerseReferenced(verse, referencedVerses),
-    );
+    return relevantVerses.filter(verse => isVerseReferenced(verse, referencedVerses));
   }, [relevantVerses, referencedVerses, showOnlyReferenced]);
 
   const handleVerseClick = async (
     book: string,
     chapter: number,
     verse: number,
-    translation?: string,
+    translation?: string
   ) => {
     // Priority: provided > user preference > detected > auto
-    const useTranslation =
-      translation || selectedTranslation || detectedTranslation || undefined;
+    const useTranslation = translation || selectedTranslation || detectedTranslation || undefined;
 
     setModalOpen(true);
     setModalLoading(true);
@@ -277,7 +251,7 @@ export default function Home() {
         translationName: chapterData.translation_name,
       });
     } catch (error) {
-      console.error("Failed to fetch chapter:", error);
+      console.error('Failed to fetch chapter:', error);
     } finally {
       setModalLoading(false);
     }
@@ -293,37 +267,37 @@ export default function Home() {
 
     const userMessageContent = content.trim();
     const userMessage: ChatMessage = {
-      role: "user",
+      role: 'user',
       content: userMessageContent,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setIsLoading(true);
     setIsWarmingUp(false);
     setBackendReady(true); // Streaming doesn't have cold start issues with min_replicas=1
 
     try {
       // Convert messages to the API format (without extra fields)
-      const apiMessages: Message[] = messages.map((m) => ({
+      const apiMessages: Message[] = messages.map(m => ({
         role: m.role,
         content: m.content,
       }));
 
       // Streaming metadata and content
       let metadata: StreamMetadata | null = null;
-      let streamedContent = "";
+      let streamedContent = '';
       let assistantMessageIndex = -1;
 
       // Create a placeholder assistant message that will be updated as content streams
       const placeholderMessage: ChatMessage = {
-        role: "assistant",
-        content: "",
+        role: 'assistant',
+        content: '',
         userMessage: userMessageContent,
       };
 
       // Add placeholder to messages immediately
-      setMessages((prev) => {
+      setMessages(prev => {
         assistantMessageIndex = prev.length; // Will be the index of the new message
         return [...prev, placeholderMessage];
       });
@@ -333,13 +307,13 @@ export default function Home() {
         userMessageContent,
         apiMessages,
         selectedTranslation || undefined,
-        sessionId,
+        sessionId
       )) {
-        if (chunk.type === "error") {
-          throw new Error(chunk.error || "Stream error");
+        if (chunk.type === 'error') {
+          throw new Error(chunk.error || 'Stream error');
         }
 
-        if (chunk.type === "metadata") {
+        if (chunk.type === 'metadata') {
           // Received metadata - update state with verses and message_id
           metadata = {
             message_id: chunk.message_id!,
@@ -357,17 +331,14 @@ export default function Home() {
 
           // Append relevant verses immediately (verses appear before text starts)
           if (chunk.scripture_context?.verses) {
-            setRelevantVerses((prev) => [
-              ...prev,
-              ...(chunk.scripture_context?.verses || []),
-            ]);
+            setRelevantVerses(prev => [...prev, ...(chunk.scripture_context?.verses || [])]);
           }
 
           // Update the placeholder message with metadata (immutable update)
-          setMessages((prev) => {
+          setMessages(prev => {
             const updated = [...prev];
             const msg = updated[assistantMessageIndex];
-            if (msg && msg.role === "assistant") {
+            if (msg && msg.role === 'assistant') {
               updated[assistantMessageIndex] = {
                 ...msg,
                 messageId: metadata!.message_id,
@@ -376,16 +347,16 @@ export default function Home() {
             }
             return updated;
           });
-        } else if (chunk.type === "content") {
+        } else if (chunk.type === 'content') {
           // Received content chunk - append to streaming message
-          streamedContent += chunk.content || "";
+          streamedContent += chunk.content || '';
 
           // Update the message content in real-time using immutable update
           // so React detects the change and referencedVerses useMemo re-runs
-          setMessages((prev) => {
+          setMessages(prev => {
             const updated = [...prev];
             const msg = updated[assistantMessageIndex];
-            if (msg && msg.role === "assistant") {
+            if (msg && msg.role === 'assistant') {
               updated[assistantMessageIndex] = {
                 ...msg,
                 content: streamedContent,
@@ -400,17 +371,17 @@ export default function Home() {
       // (not from search results metadata — those are all semantically relevant verses,
       // not necessarily the ones the assistant actually cited in its response)
       const citedRefs = Array.from(extractVerseReferences(streamedContent));
-      setMessages((prev) => {
+      setMessages(prev => {
         const updated = [...prev];
         const msg = updated[assistantMessageIndex];
-        if (msg && msg.role === "assistant") {
+        if (msg && msg.role === 'assistant') {
           updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
         }
         return updated;
       });
 
       // Stream complete - increment interaction count for church finder
-      setInteractionCount((prev) => {
+      setInteractionCount(prev => {
         const newCount = prev + 1;
         // After 3-5 exchanges, randomly decide to show inline prompt
         if (
@@ -430,26 +401,26 @@ export default function Home() {
 
       setIsLoading(false);
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error('Failed to send message:', error);
       setIsWarmingUp(false);
 
       // Handle session limit error specifically
       if (error instanceof SessionLimitError) {
         const errorMessage: ChatMessage = {
-          role: "assistant",
-          content: tChat("sessionLimitMessage"),
+          role: 'assistant',
+          content: tChat('sessionLimitMessage'),
         };
-        setMessages((prev) => [...prev, errorMessage]);
+        setMessages(prev => [...prev, errorMessage]);
         setShowSessionLimitButton(true);
         setIsLoading(false);
         return;
       }
 
       const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: tChat("errorConnection"),
+        role: 'assistant',
+        content: tChat('errorConnection'),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
       setIsLoading(false);
     }
   };
@@ -494,10 +465,7 @@ export default function Home() {
   };
 
   // Handle feedback button click
-  const handleFeedbackClick = (
-    messageId: string,
-    rating: "positive" | "negative",
-  ) => {
+  const handleFeedbackClick = (messageId: string, rating: 'positive' | 'negative') => {
     setFeedbackModalMessageId(messageId);
     setFeedbackModalRating(rating);
     setFeedbackModalOpen(true);
@@ -507,10 +475,8 @@ export default function Home() {
   const handleFeedbackSubmit = async (comment: string) => {
     if (!feedbackModalMessageId) return;
 
-    const message = messages.find(
-      (m) => m.messageId === feedbackModalMessageId,
-    );
-    if (!message || message.role !== "assistant") return;
+    const message = messages.find(m => m.messageId === feedbackModalMessageId);
+    if (!message || message.role !== 'assistant') return;
 
     setFeedbackSubmitting(true);
 
@@ -519,7 +485,7 @@ export default function Home() {
         message_id: feedbackModalMessageId,
         rating: feedbackModalRating,
         comment: comment || undefined,
-        user_message: message.userMessage || "",
+        user_message: message.userMessage || '',
         assistant_response: message.content,
         verses_cited: message.versesCited,
         model_used: message.model,
@@ -528,15 +494,15 @@ export default function Home() {
       await submitFeedback(feedbackRequest);
 
       // Mark feedback as given for this message
-      setFeedbackGiven((prev) => ({
+      setFeedbackGiven(prev => ({
         ...prev,
         [feedbackModalMessageId]: feedbackModalRating,
       }));
     } catch (error) {
-      console.error("Failed to submit feedback:", error);
+      console.error('Failed to submit feedback:', error);
       // Show error but still mark as given to prevent duplicate attempts
-      setFeedbackError(tFeedback("toastError"));
-      setFeedbackGiven((prev) => ({
+      setFeedbackError(tFeedback('toastError'));
+      setFeedbackGiven(prev => ({
         ...prev,
         [feedbackModalMessageId]: feedbackModalRating,
       }));
@@ -561,15 +527,13 @@ export default function Home() {
 
   // Determine if inline prompt should be visible
   const showInlinePrompt =
-    inlinePromptIndex !== null &&
-    !inlinePromptDismissed &&
-    messages.length >= inlinePromptIndex;
+    inlinePromptIndex !== null && !inlinePromptDismissed && messages.length >= inlinePromptIndex;
 
   const suggestedPrompts = [
-    tWelcome("prompt1"),
-    tWelcome("prompt2"),
-    tWelcome("prompt3"),
-    tWelcome("prompt4"),
+    tWelcome('prompt1'),
+    tWelcome('prompt2'),
+    tWelcome('prompt3'),
+    tWelcome('prompt4'),
   ];
 
   return (
@@ -582,12 +546,8 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <Book className="w-8 h-8 text-primary-600" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-800">
-                  {tHeader("title")}
-                </h1>
-                <p className="text-sm text-gray-500 hidden sm:block">
-                  {tHeader("subtitle")}
-                </p>
+                <h1 className="text-xl font-semibold text-gray-800">{tHeader('title')}</h1>
+                <p className="text-sm text-gray-500 hidden sm:block">{tHeader('subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
@@ -598,15 +558,15 @@ export default function Home() {
               {translations.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="hidden md:inline text-xs text-gray-500">
-                    {tHeader("bibleVersion")}
+                    {tHeader('bibleVersion')}
                   </span>
                   <select
                     value={selectedTranslation}
-                    onChange={(e) => handleTranslationChange(e.target.value)}
+                    onChange={e => handleTranslationChange(e.target.value)}
                     className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="">{tHeader("autoDetect")}</option>
-                    {translations.map((t) => (
+                    <option value="">{tHeader('autoDetect')}</option>
+                    {translations.map(t => (
                       <option key={t.code} value={t.code}>
                         {t.language} - {t.short_name}
                       </option>
@@ -619,7 +579,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span className="hidden md:inline">{tHeader("newChat")}</span>
+                <span className="hidden md:inline">{tHeader('newChat')}</span>
               </button>
             </div>
           </div>
@@ -629,7 +589,7 @@ export default function Home() {
         {backendReady === false && (
           <div className="mx-3 sm:mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-            <span className="text-sm">{tChat("backendWarmingUp")}</span>
+            <span className="text-sm">{tChat('backendWarmingUp')}</span>
           </div>
         )}
 
@@ -641,12 +601,8 @@ export default function Home() {
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Book className="w-16 h-16 text-primary-300 mb-4" />
-              <h2 className="text-2xl font-serif text-gray-700 mb-2">
-                {tWelcome("heading")}
-              </h2>
-              <p className="text-gray-500 max-w-md mb-8">
-                {tWelcome("description")}
-              </p>
+              <h2 className="text-2xl font-serif text-gray-700 mb-2">{tWelcome('heading')}</h2>
+              <p className="text-gray-500 max-w-md mb-8">{tWelcome('description')}</p>
 
               {/* Security check loading indicator */}
               {turnstileEnabled && !turnstileReady && (
@@ -681,14 +637,11 @@ export default function Home() {
                     onVerseClick={handleVerseClick}
                     onFeedback={
                       message.messageId
-                        ? (rating) =>
-                            handleFeedbackClick(message.messageId!, rating)
+                        ? rating => handleFeedbackClick(message.messageId!, rating)
                         : undefined
                     }
                     feedbackGiven={
-                      message.messageId
-                        ? feedbackGiven[message.messageId] || null
-                        : null
+                      message.messageId ? feedbackGiven[message.messageId] || null : null
                     }
                   />
                   {/* Show inline church finder prompt after the designated message */}
@@ -704,11 +657,7 @@ export default function Home() {
               {isLoading && (
                 <div className="flex items-center gap-3 text-gray-500">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>
-                    {isWarmingUp
-                      ? tChat("loadingWarmup")
-                      : tChat("loadingSearch")}
-                  </span>
+                  <span>{isWarmingUp ? tChat('loadingWarmup') : tChat('loadingSearch')}</span>
                 </div>
               )}
 
@@ -727,7 +676,7 @@ export default function Home() {
                 className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="w-5 h-5" />
-                {tChat("startNewSession")}
+                {tChat('startNewSession')}
               </button>
             </div>
           )}
@@ -736,8 +685,8 @@ export default function Home() {
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={tChat("inputPlaceholder")}
+              onChange={e => setInput(e.target.value)}
+              placeholder={tChat('inputPlaceholder')}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               disabled={isLoading || showSessionLimitButton}
             />
@@ -754,9 +703,7 @@ export default function Home() {
               <Send className="w-5 h-5" />
             </button>
           </form>
-          <p className="text-xs text-gray-400 mt-2 text-center">
-            {tChat("disclaimer")}
-          </p>
+          <p className="text-xs text-gray-400 mt-2 text-center">{tChat('disclaimer')}</p>
 
           {/* Church Finder Banner */}
           {showChurchFinderBanner && (
@@ -776,11 +723,9 @@ export default function Home() {
         <aside className="hidden lg:flex lg:flex-col w-80 border-l border-gray-200 bg-white/50">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-700">
-                {tVerses("scriptureReferences")}
-              </h3>
+              <h3 className="font-semibold text-gray-700">{tVerses('scriptureReferences')}</h3>
               <span className="text-xs text-gray-400">
-                {tVerses("verseCount", { count: displayedVerses.length })}
+                {tVerses('verseCount', { count: displayedVerses.length })}
               </span>
             </div>
             {/* Filter Toggle */}
@@ -789,21 +734,21 @@ export default function Home() {
                 onClick={() => setShowOnlyReferenced(true)}
                 className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
                   showOnlyReferenced
-                    ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
-                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                    ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                {tVerses("referenced")}
+                {tVerses('referenced')}
               </button>
               <button
                 onClick={() => setShowOnlyReferenced(false)}
                 className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
                   !showOnlyReferenced
-                    ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
-                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                    ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                {tVerses("allRelated", { count: relevantVerses.length })}
+                {tVerses('allRelated', { count: relevantVerses.length })}
               </button>
             </div>
           </div>
@@ -815,12 +760,7 @@ export default function Home() {
                     key={index}
                     verse={verse}
                     onClick={() =>
-                      handleVerseClick(
-                        verse.book,
-                        verse.chapter,
-                        verse.verse,
-                        verse.translation,
-                      )
+                      handleVerseClick(verse.book, verse.chapter, verse.verse, verse.translation)
                     }
                   />
                 ))}
@@ -829,10 +769,8 @@ export default function Home() {
             ) : (
               <div className="text-center text-gray-500 text-sm py-8">
                 <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p>{tVerses("noVersesReferenced")}</p>
-                <p className="text-xs mt-1">
-                  {tVerses("noVersesReferencedHint")}
-                </p>
+                <p>{tVerses('noVersesReferenced')}</p>
+                <p className="text-xs mt-1">{tVerses('noVersesReferencedHint')}</p>
               </div>
             )}
           </div>
@@ -856,7 +794,7 @@ export default function Home() {
         <button
           onClick={() => setMobileVersesOpen(true)}
           className="lg:hidden fixed top-20 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
-          aria-label={tVerses("showScriptureReferences")}
+          aria-label={tVerses('showScriptureReferences')}
         >
           <BookOpen className="w-5 h-5" />
           <span className="text-sm font-medium">{displayedVerses.length}</span>
@@ -875,19 +813,17 @@ export default function Home() {
           <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-700">
-                  {tVerses("scriptureReferences")}
-                </h3>
+                <h3 className="font-semibold text-gray-700">{tVerses('scriptureReferences')}</h3>
                 <button
                   onClick={() => setMobileVersesOpen(false)}
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  aria-label={tVerses("close")}
+                  aria-label={tVerses('close')}
                 >
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
               <span className="text-xs text-gray-400">
-                {tVerses("verseCount", { count: displayedVerses.length })}
+                {tVerses('verseCount', { count: displayedVerses.length })}
               </span>
               {/* Filter Toggle */}
               <div className="flex items-center gap-2 mt-2">
@@ -895,21 +831,21 @@ export default function Home() {
                   onClick={() => setShowOnlyReferenced(true)}
                   className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
                     showOnlyReferenced
-                      ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
-                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                      : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  {tVerses("referenced")}
+                  {tVerses('referenced')}
                 </button>
                 <button
                   onClick={() => setShowOnlyReferenced(false)}
                   className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
                     !showOnlyReferenced
-                      ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
-                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+                      : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  {tVerses("allRelated", { count: relevantVerses.length })}
+                  {tVerses('allRelated', { count: relevantVerses.length })}
                 </button>
               </div>
             </div>
@@ -921,12 +857,7 @@ export default function Home() {
                       key={index}
                       verse={verse}
                       onClick={() => {
-                        handleVerseClick(
-                          verse.book,
-                          verse.chapter,
-                          verse.verse,
-                          verse.translation,
-                        );
+                        handleVerseClick(verse.book, verse.chapter, verse.verse, verse.translation);
                         setMobileVersesOpen(false);
                       }}
                     />
@@ -935,10 +866,8 @@ export default function Home() {
               ) : (
                 <div className="text-center text-gray-500 text-sm py-8">
                   <Filter className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p>{tVerses("noVersesReferenced")}</p>
-                  <p className="text-xs mt-1">
-                    {tVerses("noVersesReferencedHint")}
-                  </p>
+                  <p>{tVerses('noVersesReferenced')}</p>
+                  <p className="text-xs mt-1">{tVerses('noVersesReferencedHint')}</p>
                 </div>
               )}
             </div>
