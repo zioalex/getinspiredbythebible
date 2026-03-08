@@ -174,9 +174,9 @@ def test_all_translations_public_domain():
     for code, config in TRANSLATIONS.items():
         if code in manual_license_translations:
             continue
-        assert config.get("license", "Public Domain") == "Public Domain", (
-            f"Translation {code} is not Public Domain: {config.get('license')}"
-        )
+        assert (
+            config.get("license", "Public Domain") == "Public Domain"
+        ), f"Translation {code} is not Public Domain: {config.get('license')}"
 
 
 def test_translation_model_repr():
