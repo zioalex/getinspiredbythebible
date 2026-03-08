@@ -2,6 +2,7 @@ package com.bibleinspiration.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
@@ -33,6 +34,7 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     val turnstileManager: TurnstileManager,
+    private val languagePreferences: LanguagePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -42,6 +44,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             turnstileManager.tokenFlow.collect { token ->
                 _uiState.update { it.copy(isTurnstileReady = token != null) }
+            }
+        }
+        // Restore persisted locale on startup.
+        viewModelScope.launch {
+            languagePreferences.languageFlow.collect { code ->
+                _uiState.update { it.copy(currentLocale = code) }
             }
         }
     }
@@ -185,8 +193,14 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Updates the language locale in-memory and persists it via DataStore.
+     */
     fun setLocale(locale: String) {
         _uiState.update { it.copy(currentLocale = locale) }
+        viewModelScope.launch {
+            languagePreferences.setLanguage(locale)
+        }
     }
 
     fun clearError() {

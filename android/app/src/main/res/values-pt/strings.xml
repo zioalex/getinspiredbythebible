@@ -8,4 +8,22 @@
     <string name="welcome_subtitle">Compartilhe o que você está passando e receba encorajamento baseado na Palavra de Deus.</string>
     <string name="error_network">Erro de rede. Verifique sua conexão.</string>
     <string name="error_generic">Algo deu errado. Tente novamente.</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">Conversas</string>
+    <string name="conversations_empty_headline">Comece sua primeira conversa</string>
+    <string name="conversations_empty_subtitle">Toque em + para iniciar uma nova conversa inspirada na Bíblia</string>
+    <string name="conversations_clear_all_title">Apagar todas as conversas?</string>
+    <string name="conversations_clear_all_message">Isso excluirá permanentemente todo o histórico de conversas.</string>
+    <string name="conversations_clear_all_confirm">Apagar tudo</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_new_conversation">Nova conversa</string>
+    <string name="action_clear_all_conversations">Apagar todas as conversas</string>
+    <string name="action_delete_conversation">Excluir conversa</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Configurações</string>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_language_subtitle">Selecione o idioma para os versículos bíblicos</string>
+    <string name="action_open_settings">Configurações</string>
 </resources>

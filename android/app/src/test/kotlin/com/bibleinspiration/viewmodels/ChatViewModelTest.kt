@@ -1,6 +1,6 @@
 package com.bibleinspiration.viewmodels
 
-import com.bibleinspiration.domain.models.ChatRequest
+import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
@@ -33,6 +33,7 @@ class ChatViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChatRepository
     private lateinit var turnstileManager: TurnstileManager
+    private lateinit var languagePreferences: LanguagePreferences
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -52,7 +53,9 @@ class ChatViewModelTest {
         coEvery { repository.touchConversation(any()) } returns Unit
         coEvery { repository.deleteConversation(any()) } returns Unit
         turnstileManager = TurnstileManager()
-        viewModel = ChatViewModel(repository, turnstileManager)
+        languagePreferences = mockk(relaxed = true)
+        every { languagePreferences.languageFlow } returns flowOf("en")
+        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences)
     }
 
     @After
@@ -180,5 +183,12 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(stubConversation.id, viewModel.uiState.value.currentConversationId)
+    }
+
+    @Test
+    fun `setLocale persists to language preferences`() = runTest {
+        viewModel.setLocale("it")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("it", viewModel.uiState.value.currentLocale)
     }
 }

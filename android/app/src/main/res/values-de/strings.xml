@@ -8,4 +8,22 @@
     <string name="welcome_subtitle">Erzähle, was du durchmachst, und erhalte Ermutigung, die in Gottes Wort verwurzelt ist.</string>
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">Gespräche</string>
+    <string name="conversations_empty_headline">Beginne dein erstes Gespräch</string>
+    <string name="conversations_empty_subtitle">Tippe auf +, um ein neues bibelinspiriertes Gespräch zu starten</string>
+    <string name="conversations_clear_all_title">Alle Gespräche löschen?</string>
+    <string name="conversations_clear_all_message">Dadurch wird der gesamte Gesprächsverlauf dauerhaft gelöscht.</string>
+    <string name="conversations_clear_all_confirm">Alle löschen</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_new_conversation">Neues Gespräch</string>
+    <string name="action_clear_all_conversations">Alle Gespräche löschen</string>
+    <string name="action_delete_conversation">Gespräch löschen</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_language_title">Sprache</string>
+    <string name="settings_language_subtitle">Wähle die Sprache für Bibelverse</string>
+    <string name="action_open_settings">Einstellungen</string>
 </resources>

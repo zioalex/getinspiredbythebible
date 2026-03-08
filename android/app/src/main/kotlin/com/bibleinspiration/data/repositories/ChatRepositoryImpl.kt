@@ -9,7 +9,6 @@ import com.bibleinspiration.data.remote.mappers.toDomain
 import com.bibleinspiration.data.remote.mappers.toDto
 import com.bibleinspiration.data.streaming.toChunkFlow
 import com.bibleinspiration.domain.models.ChatRequest
-import com.bibleinspiration.domain.models.ChatResponse
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
@@ -25,9 +24,6 @@ class ChatRepositoryImpl @Inject constructor(
 ) : ChatRepository {
 
     // ── Network ───────────────────────────────────────────────────────────────
-
-    override suspend fun chat(request: ChatRequest): ChatResponse =
-        api.chat(request.toDto()).toDomain()
 
     override fun chatStream(request: ChatRequest): Flow<StreamChunk> = flow {
         // api.chatStream is a suspend function; call it inside a flow builder so it
@@ -54,12 +50,24 @@ class ChatRepositoryImpl @Inject constructor(
         val now = System.currentTimeMillis()
         val entity = ConversationEntity(
             id = id,
-            title = title.take(60),
+            title = truncateTitle(title),
             createdAt = now,
             updatedAt = now,
         )
         db.conversationDao().upsert(entity)
         return entity.toDomain()
+    }
+
+    /**
+     * Truncates [text] at the nearest word boundary before [maxLength] characters,
+     * appending an ellipsis when truncation occurs.
+     */
+    private fun truncateTitle(text: String, maxLength: Int = 60): String {
+        if (text.length <= maxLength) return text
+        val truncated = text.take(maxLength)
+        val lastSpace = truncated.lastIndexOf(' ')
+        return if (lastSpace > maxLength / 2) truncated.substring(0, lastSpace) + "…"
+        else truncated + "…"
     }
 
     override suspend fun touchConversation(conversationId: String) {

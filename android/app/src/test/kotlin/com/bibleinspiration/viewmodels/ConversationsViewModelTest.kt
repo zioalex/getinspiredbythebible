@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -41,6 +42,12 @@ class ConversationsViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `isLoading starts true before first emission`() {
+        // isLoading starts true because no emission has happened yet
+        assertTrue(viewModel.isLoading.value)
     }
 
     @Test

@@ -20,6 +20,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): BibleInspirationDatabase =
         Room.databaseBuilder(ctx, BibleInspirationDatabase::class.java, "bible_inspiration.db")
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides

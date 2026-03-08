@@ -96,6 +96,9 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
 
+    // DataStore
+    implementation(libs.datastore.preferences)
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)

@@ -14,7 +14,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -38,8 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.presentation.viewmodels.ConversationsViewModel
 import java.text.SimpleDateFormat
@@ -51,27 +55,29 @@ import java.util.Locale
 fun ConversationsScreen(
     onNewConversation: () -> Unit,
     onSelectConversation: (String) -> Unit,
+    onOpenSettings: () -> Unit = {},
     viewModel: ConversationsViewModel = hiltViewModel(),
 ) {
     val conversations by viewModel.conversations.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var showClearAllDialog by remember { mutableStateOf(false) }
 
     if (showClearAllDialog) {
         AlertDialog(
             onDismissRequest = { showClearAllDialog = false },
-            title = { Text("Clear all conversations?") },
-            text = { Text("This will permanently delete all conversation history.") },
+            title = { Text(stringResource(R.string.conversations_clear_all_title)) },
+            text = { Text(stringResource(R.string.conversations_clear_all_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearAll()
                     showClearAllDialog = false
                 }) {
-                    Text("Clear all")
+                    Text(stringResource(R.string.conversations_clear_all_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearAllDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
         )
@@ -80,15 +86,21 @@ fun ConversationsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Conversations", style = MaterialTheme.typography.titleMedium) },
+                title = { Text(stringResource(R.string.conversations_title), style = MaterialTheme.typography.titleMedium) },
                 actions = {
                     if (conversations.isNotEmpty()) {
                         IconButton(onClick = { showClearAllDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Clear all conversations",
+                                contentDescription = stringResource(R.string.action_clear_all_conversations),
                             )
                         }
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.action_open_settings),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -98,32 +110,48 @@ fun ConversationsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewConversation) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "New conversation")
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.action_new_conversation),
+                )
             }
         },
     ) { innerPadding ->
-        if (conversations.isEmpty()) {
-            EmptyConversationsState(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            ) {
-                items(
-                    items = conversations,
-                    key = { it.id },
-                ) { conversation ->
-                    SwipeableConversationItem(
-                        conversation = conversation,
-                        onSelect = { onSelectConversation(conversation.id) },
-                        onDelete = { viewModel.deleteConversation(conversation) },
-                    )
-                    HorizontalDivider()
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            conversations.isEmpty() -> {
+                EmptyConversationsState(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                )
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                ) {
+                    items(
+                        items = conversations,
+                        key = { it.id },
+                    ) { conversation ->
+                        SwipeableConversationItem(
+                            conversation = conversation,
+                            onSelect = { onSelectConversation(conversation.id) },
+                            onDelete = { viewModel.deleteConversation(conversation) },
+                        )
+                        HorizontalDivider()
+                    }
                 }
             }
         }
@@ -161,7 +189,7 @@ private fun SwipeableConversationItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete conversation",
+                    contentDescription = stringResource(R.string.action_delete_conversation),
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
@@ -198,13 +226,13 @@ private fun EmptyConversationsState(modifier: Modifier = Modifier) {
     ) {
         Spacer(modifier = Modifier.height(120.dp))
         Text(
-            text = "Start your first conversation",
+            text = stringResource(R.string.conversations_empty_headline),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Tap + to begin a new Bible-inspired chat",
+            text = stringResource(R.string.conversations_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
