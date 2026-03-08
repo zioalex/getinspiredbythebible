@@ -1148,7 +1148,7 @@ jobs:
     environment: production
     timeout-minutes: 30
     strategy:
-      fail-fast: false  # one slow translation should not cancel the others
+      fail-fast: false # one slow translation should not cancel the others
       matrix:
         translation:
           - kjv
