@@ -44,4 +44,3 @@ interface ChatRepository {
     /** Delete every conversation and all messages. */
     suspend fun clearAllConversations()
 }
-
