@@ -44,11 +44,20 @@ import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
+    conversationId: String? = null,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Load existing conversation when navigated to a specific one.
+    LaunchedEffect(conversationId) {
+        when {
+            conversationId == null || conversationId == "new" -> viewModel.startNewConversation()
+            else -> viewModel.loadConversation(conversationId)
+        }
+    }
 
     // Auto-scroll to bottom when messages change
     LaunchedEffect(uiState.messages.size) {

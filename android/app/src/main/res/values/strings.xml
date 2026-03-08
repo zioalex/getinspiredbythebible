@@ -11,6 +11,24 @@
     <string name="welcome_title">Find Inspiration in Scripture</string>
     <string name="welcome_subtitle">Share what you\'re going through and receive encouragement grounded in God\'s Word.</string>
 
+    <!-- Conversations screen -->
+    <string name="conversations_title">Conversations</string>
+    <string name="conversations_empty_headline">Start your first conversation</string>
+    <string name="conversations_empty_subtitle">Tap + to begin a new Bible-inspired chat</string>
+    <string name="conversations_clear_all_title">Clear all conversations?</string>
+    <string name="conversations_clear_all_message">This will permanently delete all conversation history.</string>
+    <string name="conversations_clear_all_confirm">Clear all</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_new_conversation">New conversation</string>
+    <string name="action_clear_all_conversations">Clear all conversations</string>
+    <string name="action_delete_conversation">Delete conversation</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_subtitle">Select the language for Bible verses</string>
+    <string name="action_open_settings">Settings</string>
+
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>

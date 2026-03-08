@@ -1,7 +1,7 @@
 package com.bibleinspiration.viewmodels
 
-import com.bibleinspiration.domain.models.ChatRequest
-import com.bibleinspiration.domain.models.ChatResponse
+import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
@@ -33,14 +33,29 @@ class ChatViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChatRepository
     private lateinit var turnstileManager: TurnstileManager
+    private lateinit var languagePreferences: LanguagePreferences
     private lateinit var viewModel: ChatViewModel
+
+    private val stubConversation = Conversation(
+        id = "test-conv-id",
+        title = "Test",
+        createdAt = 1000L,
+        updatedAt = 1000L,
+    )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        repository = mockk()
+        repository = mockk(relaxed = true)
+        // Stub persistence methods used by sendMessage
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+        coEvery { repository.saveMessage(any(), any()) } returns Unit
+        coEvery { repository.touchConversation(any()) } returns Unit
+        coEvery { repository.deleteConversation(any()) } returns Unit
         turnstileManager = TurnstileManager()
-        viewModel = ChatViewModel(repository, turnstileManager)
+        languagePreferences = mockk(relaxed = true)
+        every { languagePreferences.languageFlow } returns flowOf("en")
+        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences)
     }
 
     @After
@@ -140,5 +155,40 @@ class ChatViewModelTest {
     fun `setLocale updates currentLocale`() {
         viewModel.setLocale("ar")
         assertEquals("ar", viewModel.uiState.value.currentLocale)
+    }
+
+    @Test
+    fun `startNewConversation resets messages and conversationId`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hello!", done = true),
+        )
+        viewModel.sendMessage("First message")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.startNewConversation()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.messages.isEmpty())
+        assertNull(state.currentConversationId)
+    }
+
+    @Test
+    fun `sendMessage creates conversation on first message`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("First message")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(stubConversation.id, viewModel.uiState.value.currentConversationId)
+    }
+
+    @Test
+    fun `setLocale persists to language preferences`() = runTest {
+        viewModel.setLocale("it")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("it", viewModel.uiState.value.currentLocale)
     }
 }

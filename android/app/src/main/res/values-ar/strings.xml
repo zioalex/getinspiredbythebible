@@ -8,4 +8,22 @@
     <string name="welcome_subtitle">شارك ما تمر به واحصل على تشجيع مستمد من كلمة الله.</string>
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">المحادثات</string>
+    <string name="conversations_empty_headline">ابدأ محادثتك الأولى</string>
+    <string name="conversations_empty_subtitle">اضغط + لبدء محادثة جديدة مستوحاة من الكتاب المقدس</string>
+    <string name="conversations_clear_all_title">مسح جميع المحادثات؟</string>
+    <string name="conversations_clear_all_message">سيؤدي هذا إلى حذف محفوظات المحادثة بالكامل نهائيًا.</string>
+    <string name="conversations_clear_all_confirm">مسح الكل</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_new_conversation">محادثة جديدة</string>
+    <string name="action_clear_all_conversations">مسح جميع المحادثات</string>
+    <string name="action_delete_conversation">حذف المحادثة</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_language_title">اللغة</string>
+    <string name="settings_language_subtitle">اختر لغة آيات الكتاب المقدس</string>
+    <string name="action_open_settings">الإعدادات</string>
 </resources>

@@ -8,4 +8,22 @@
     <string name="welcome_subtitle">Racconta cosa stai attraversando e ricevi incoraggiamento radicato nella Parola di Dio.</string>
     <string name="error_network">Errore di rete. Controlla la connessione.</string>
     <string name="error_generic">Qualcosa è andato storto. Riprova.</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">Conversazioni</string>
+    <string name="conversations_empty_headline">Inizia la tua prima conversazione</string>
+    <string name="conversations_empty_subtitle">Tocca + per iniziare una nuova chat ispirata alla Bibbia</string>
+    <string name="conversations_clear_all_title">Cancellare tutte le conversazioni?</string>
+    <string name="conversations_clear_all_message">Questo eliminerà definitivamente tutta la cronologia delle conversazioni.</string>
+    <string name="conversations_clear_all_confirm">Cancella tutto</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_new_conversation">Nuova conversazione</string>
+    <string name="action_clear_all_conversations">Cancella tutte le conversazioni</string>
+    <string name="action_delete_conversation">Elimina conversazione</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_language_title">Lingua</string>
+    <string name="settings_language_subtitle">Seleziona la lingua per i versetti biblici</string>
+    <string name="action_open_settings">Impostazioni</string>
 </resources>

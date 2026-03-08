@@ -2,6 +2,7 @@ package com.bibleinspiration.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
@@ -25,12 +26,15 @@ data class ChatUiState(
     val error: String? = null,
     val currentLocale: String = "en",
     val isTurnstileReady: Boolean = false,
+    /** ID of the currently active conversation; null when no conversation has started. */
+    val currentConversationId: String? = null,
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     val turnstileManager: TurnstileManager,
+    private val languagePreferences: LanguagePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -40,6 +44,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             turnstileManager.tokenFlow.collect { token ->
                 _uiState.update { it.copy(isTurnstileReady = token != null) }
+            }
+        }
+        // Restore persisted locale on startup.
+        viewModelScope.launch {
+            languagePreferences.languageFlow.collect { code ->
+                _uiState.update { it.copy(currentLocale = code) }
             }
         }
     }
@@ -70,6 +80,12 @@ class ChatViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // Ensure a conversation row exists before persisting messages.
+            val conversationId = ensureConversation(trimmed)
+
+            // Persist the user message immediately.
+            repository.saveMessage(conversationId, userMessage)
+
             val history = _uiState.value.messages
                 .filter { !it.isStreaming }
                 .dropLast(1) // exclude placeholder
@@ -104,16 +120,21 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .onCompletion {
+                    val finalAssistant = Message(
+                        id = assistantId,
+                        role = Message.Role.ASSISTANT,
+                        content = accumulatedContent,
+                        verses = finalVerses,
+                        isStreaming = false,
+                    )
+                    // Persist finished assistant message and bump conversation timestamp.
+                    repository.saveMessage(conversationId, finalAssistant)
+                    repository.touchConversation(conversationId)
+
                     _uiState.update { state ->
                         state.copy(
                             messages = state.messages.map { msg ->
-                                if (msg.id == assistantId) {
-                                    msg.copy(
-                                        content = accumulatedContent,
-                                        verses = finalVerses,
-                                        isStreaming = false,
-                                    )
-                                } else msg
+                                if (msg.id == assistantId) finalAssistant else msg
                             },
                             isLoading = false,
                         )
@@ -123,29 +144,77 @@ class ChatViewModel @Inject constructor(
                     accumulatedContent += chunk.content
                     if (chunk.done) finalVerses = chunk.verses
 
-                    // Update the streaming message in-place on every chunk
+                    // Update the streaming message in-place on every chunk.
                     _uiState.update { state ->
                         state.copy(
                             messages = state.messages.map { msg ->
                                 if (msg.id == assistantId) {
                                     msg.copy(content = accumulatedContent)
                                 } else msg
-                            }
+                            },
                         )
                     }
                 }
         }
     }
 
+    /**
+     * Returns the current conversation ID, creating a new conversation in Room
+     * if one doesn't exist yet. Should be called on the first message of a session.
+     */
+    private suspend fun ensureConversation(firstMessageText: String): String {
+        val existing = _uiState.value.currentConversationId
+        if (existing != null) return existing
+
+        val newId = UUID.randomUUID().toString()
+        val conversation = repository.createConversation(id = newId, title = firstMessageText)
+        _uiState.update { it.copy(currentConversationId = conversation.id) }
+        return conversation.id
+    }
+
+    /** Load a previously saved conversation by ID and replace in-memory messages. */
+    fun loadConversation(conversationId: String) {
+        viewModelScope.launch {
+            repository.observeMessages(conversationId).collect { messages ->
+                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId) }
+            }
+        }
+    }
+
+    /** Reset in-memory state and clear the active conversation ID (starts a new session). */
+    fun startNewConversation() {
+        _uiState.update {
+            it.copy(
+                messages = emptyList(),
+                error = null,
+                isLoading = false,
+                currentConversationId = null,
+            )
+        }
+    }
+
+    /**
+     * Updates the language locale in-memory and persists it via DataStore.
+     */
     fun setLocale(locale: String) {
         _uiState.update { it.copy(currentLocale = locale) }
+        viewModelScope.launch {
+            languagePreferences.setLanguage(locale)
+        }
     }
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
 
+    /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
-        _uiState.update { it.copy(messages = emptyList(), error = null) }
+        val conversationId = _uiState.value.currentConversationId
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null) }
+        if (conversationId != null) {
+            viewModelScope.launch {
+                repository.deleteConversation(conversationId)
+            }
+        }
     }
 }
