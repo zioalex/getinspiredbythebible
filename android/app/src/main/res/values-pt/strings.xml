@@ -28,6 +28,10 @@
     <string name="settings_language_title">Idioma</string>
     <string name="settings_language_subtitle">Selecione o idioma para os versículos bíblicos</string>
     <string name="action_open_settings">Configurações</string>
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Escuro</string>
+    <string name="settings_theme_system">Padrão do sistema</string>
 
     <!-- Actions -->
     <string name="action_retry">Tentar novamente</string>

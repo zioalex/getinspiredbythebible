@@ -3,6 +3,7 @@ package com.bibleinspiration.viewmodels
 import android.content.Context
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
@@ -41,6 +42,7 @@ class ChatViewModelTest {
     private lateinit var turnstileManager: TurnstileManager
     private lateinit var languagePreferences: LanguagePreferences
     private lateinit var context: Context
+    private lateinit var themePreferences: ThemePreferences
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -68,7 +70,9 @@ class ChatViewModelTest {
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
         }
-        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences, context)
+        themePreferences = mockk(relaxed = true)
+        every { themePreferences.themeModeFlow } returns flowOf("system")
+        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences, context, themePreferences)
     }
 
     @After
@@ -317,5 +321,22 @@ class ChatViewModelTest {
         viewModel.setLocale("it")
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals("it", viewModel.uiState.value.currentLocale)
+    }
+
+    @Test
+    fun `initial themeMode defaults to system`() {
+        assertEquals("system", viewModel.uiState.value.themeMode)
+    }
+
+    @Test
+    fun `setThemeMode dark updates themeMode in state`() {
+        viewModel.setThemeMode("dark")
+        assertEquals("dark", viewModel.uiState.value.themeMode)
+    }
+
+    @Test
+    fun `setThemeMode light updates themeMode in state`() {
+        viewModel.setThemeMode("light")
+        assertEquals("light", viewModel.uiState.value.themeMode)
     }
 }

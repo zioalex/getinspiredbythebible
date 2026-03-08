@@ -11,6 +11,7 @@
     <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
 
+<<<<<<< HEAD
     <!-- Conversations screen -->
     <string name="conversations_title">المحادثات</string>
     <string name="conversations_empty_headline">ابدأ محادثتك الأولى</string>
@@ -23,12 +24,22 @@
     <string name="action_clear_all_conversations">مسح جميع المحادثات</string>
     <string name="action_delete_conversation">حذف المحادثة</string>
 
+=======
+>>>>>>> f3766f7 (feat(android): add dark mode support with system/light/dark toggle (BITB-AND-001))
     <!-- Settings screen -->
     <string name="settings_title">الإعدادات</string>
     <string name="settings_language_title">اللغة</string>
     <string name="settings_language_subtitle">اختر لغة آيات الكتاب المقدس</string>
     <string name="action_open_settings">الإعدادات</string>
+<<<<<<< HEAD
 
     <!-- Actions -->
     <string name="action_retry">إعادة المحاولة</string>
+=======
+    <string name="action_cancel">إلغاء</string>
+    <string name="settings_theme_title">السمة</string>
+    <string name="settings_theme_light">فاتح</string>
+    <string name="settings_theme_dark">داكن</string>
+    <string name="settings_theme_system">إعداد النظام</string>
+>>>>>>> f3766f7 (feat(android): add dark mode support with system/light/dark toggle (BITB-AND-001))
 </resources>

@@ -11,6 +11,7 @@
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
 
+<<<<<<< HEAD
     <!-- Conversations screen -->
     <string name="conversations_title">Gespräche</string>
     <string name="conversations_empty_headline">Beginne dein erstes Gespräch</string>
@@ -23,12 +24,22 @@
     <string name="action_clear_all_conversations">Alle Gespräche löschen</string>
     <string name="action_delete_conversation">Gespräch löschen</string>
 
+=======
+>>>>>>> f3766f7 (feat(android): add dark mode support with system/light/dark toggle (BITB-AND-001))
     <!-- Settings screen -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_language_title">Sprache</string>
     <string name="settings_language_subtitle">Wähle die Sprache für Bibelverse</string>
     <string name="action_open_settings">Einstellungen</string>
+<<<<<<< HEAD
 
     <!-- Actions -->
     <string name="action_retry">Wiederholen</string>
+=======
+    <string name="action_cancel">Abbrechen</string>
+    <string name="settings_theme_title">Design</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_theme_system">Systemstandard</string>
+>>>>>>> f3766f7 (feat(android): add dark mode support with system/light/dark toggle (BITB-AND-001))
 </resources>
