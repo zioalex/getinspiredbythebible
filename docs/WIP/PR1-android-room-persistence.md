@@ -3,11 +3,13 @@
 ## Status: In Progress
 
 ## Summary
+
 Implement persistent conversation history using Room database.
 
 ## Files Changed
 
 ### New Files
+
 - `data/local/ConversationEntity.kt` — Room entity for conversations
 - `data/local/MessageEntity.kt` — Room entity for messages (with FK cascade to conversations)
 - `data/local/ConversationDao.kt` — DAO with Flow-based observation and CRUD
@@ -23,6 +25,7 @@ Implement persistent conversation history using Room database.
 - `android/app/schemas/` — Room schema export directory
 
 ### Modified Files
+
 - `domain/repositories/ChatRepository.kt` — Added persistence methods
 - `data/repositories/ChatRepositoryImpl.kt` — Implemented new persistence methods
 - `presentation/viewmodels/ChatViewModel.kt` — Persistence integration + loadConversation
@@ -31,13 +34,17 @@ Implement persistent conversation history using Room database.
 - `app/build.gradle.kts` — Added KSP room.schemaLocation arg
 
 ### Test Files
+
 - `test/.../database/MessageEntityMapperTest.kt` — JSON round-trip for verses
 - `test/.../viewmodels/ConversationsViewModelTest.kt` — deleteConversation, clearAll
 - `test/.../viewmodels/ChatViewModelTest.kt` — Updated stubs for new repository methods
 
 ## Architecture Decisions
-1. **SerializableVerse DTO**: Keep domain Verse clean; use separate data-layer DTO for kotlinx.serialization
-2. **touchConversation()**: Added to ChatRepository to update `updatedAt` on conversations when new messages arrive
+
+1. **SerializableVerse DTO**: Keep domain Verse clean; use separate data-layer DTO for
+   kotlinx.serialization
+2. **touchConversation()**: Added to ChatRepository to update `updatedAt` on conversations
+   when new messages arrive
 3. **Import aliasing**: Both `data.local.mappers.toDomain` and `data.remote.mappers.toDomain`
    coexist — Kotlin resolves by receiver type
 4. **SharingStarted.WhileSubscribed(5000)**: Standard pattern for ViewModels to avoid keeping
