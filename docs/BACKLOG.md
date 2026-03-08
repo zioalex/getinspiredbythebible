@@ -764,7 +764,7 @@ Testing & Documentation:
 
 ### ✅ BITB-024: Add Phase 2 Language Support (Russian, Chinese, Hindi, Korean)
 
-**Status:** ✅ Done (PR #258 — awaiting merge)
+**Status:** ✅ Done (PR #258 merged; PR #261 open for Bible data loading)
 **Size:** L (3-5 days)
 **Created:** 2026-03-08
 **Completed:** 2026-03-08
@@ -784,17 +784,25 @@ Testing & Documentation:
 - [x] 4 × 66 Bible book name maps added (ru, zh, hi, ko)
 - [x] `lingua` language detector `lang_map` extended to recognise all 4 new languages
 - [x] LLM prompt `LANGUAGE_NAMES` and `SOURCE_ATTRIBUTION_EXAMPLES` updated for all 4 languages
+- [x] `scripts/translations.py` updated with synodal/cuv/hindi/krv entries and book name dicts
+- [x] `scripts/init.sql` seeded with Phase 2 translation rows
+- [x] `scripts/load_bible.py` handles `url=None` for manual-source translations gracefully
 - [x] Tests cover all new translation keys, book maps, detector mappings, and prompt constants
 - [x] Full CI suite passes (all tests green)
 
 **Implementation Notes:**
 
 - Frontend: 4 new `frontend/messages/{ru,zh,hi,ko}.json` files; all translation keys match `en.json`
-- Backend: `api/translations/` extended with book name maps and language metadata
+- Backend: `api/utils/language.py` extended with book name maps and language metadata
 - Language detection: `lingua-language-detector` already installed; only `lang_map` entries needed
 - No new dependencies introduced (frontend or backend)
+- getBible API codes differ from internal codes for Chinese (`cuv` internal → `cus` URL) and Korean (`krv` internal → `korean` URL)
+- Hindi has no free getBible source; `url=None`, `source="manual"` — data must be loaded separately if needed
+- `scripts/translations.py` now contains a full **ADDING A NEW LANGUAGE** checklist in the module docstring
 
-**PR:** [#258](https://github.com/zioalex/getinspiredbythebible/pull/258) (`feat/bitb-024-phase2-languages`)
+**PRs:**
+- [#258](https://github.com/zioalex/getinspiredbythebible/pull/258) (`feat/bitb-024-phase2-languages`) — API/UI layer ✅ merged
+- [#261](https://github.com/zioalex/getinspiredbythebible/pull/261) (`feat/bitb-024-bible-data-loading`) — data loading scripts ✅ CI green, awaiting merge
 
 ---
 

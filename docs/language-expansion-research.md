@@ -101,7 +101,7 @@ a combination of global reach and persecution-region relevance.
 
 - Arabic (ar), Spanish (es), French (fr), Portuguese (pt) ✅ **Implemented** (shipped with initial i18n rollout)
 
-**Phase 2 -- Major World Languages:** ✅ **Implemented** (PR #258, awaiting merge)
+**Phase 2 -- Major World Languages:** ✅ **Implemented** (PR #258 merged; PR #261 open for data loading)
 
 - Mandarin Chinese (zh), Hindi (hi), Russian (ru), Korean (ko)
 
