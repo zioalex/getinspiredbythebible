@@ -91,8 +91,11 @@ def test_all_configured_translations_have_valid_metadata():
     for code, config in TRANSLATIONS.items():
         for field in required_fields:
             assert field in config, f"Translation {code} missing field: {field}"
-            assert config[field] is not None
-            assert config[field] != ""
+            # url may be None for manual-load-only translations (e.g. hindi has no getBible source)
+            if field == "url" and config.get("source") == "manual":
+                continue
+            assert config[field] is not None, f"Translation {code} has None for field: {field}"
+            assert config[field] != "", f"Translation {code} has empty string for field: {field}"
 
 
 def test_translation_language_codes_valid():
@@ -165,10 +168,15 @@ def test_translation_code_matches_config_key():
 
 
 def test_all_translations_public_domain():
-    """Test that all configured translations are public domain"""
+    """Test that all configured translations are public domain or have a known license"""
+    # hindi is copyright IRV (no free getBible source); all others are Public Domain
+    manual_license_translations = {"hindi"}
     for code, config in TRANSLATIONS.items():
-        # All our translations should be public domain
-        assert config.get("license", "Public Domain") == "Public Domain"
+        if code in manual_license_translations:
+            continue
+        assert (
+            config.get("license", "Public Domain") == "Public Domain"
+        ), f"Translation {code} is not Public Domain: {config.get('license')}"
 
 
 def test_translation_model_repr():

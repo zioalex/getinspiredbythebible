@@ -296,7 +296,9 @@ def test_arabic_translation_config():
 def test_list_available_translations():
     """Test list_available_translations function"""
     translations = list_available_translations()
-    assert len(translations) == 8
+    # Phase 1 (8): kjv, web, ita1927, schlachter, valera, ls1910, almeida, arabicsv
+    # Phase 2 (4): synodal, cuv, hindi, krv
+    assert len(translations) == 12
 
     # Check structure
     assert all("code" in t for t in translations)
@@ -376,20 +378,35 @@ def test_all_german_books_unique():
 
 
 def test_translation_urls_valid():
-    """Test that all translation configs have valid URLs"""
+    """Test that all translation configs have valid URLs.
+
+    Translations with source='manual' have no download URL (url=None) because
+    no free public source exists; they require manual data loading.
+    """
     for code, config in TRANSLATIONS.items():
-        assert "url" in config
-        assert config["url"].startswith("http")
-        # Check URL format
-        assert "://" in config["url"]
+        assert "url" in config, f"Translation {code} missing 'url' key"
+        if config.get("source") == "manual":
+            # Manual-load translations intentionally have no download URL
+            assert config["url"] is None, f"Translation {code} (manual) should have url=None"
+            continue
+        assert config["url"] is not None, f"Translation {code} has None url"
+        assert config["url"].startswith("http"), f"Translation {code} url should start with http"
+        assert "://" in config["url"], f"Translation {code} url malformed"
 
 
 def test_translation_sources():
-    """Test that translations have valid source specifications"""
-    valid_sources = ["thiagobodruk", "getbible", "scrollmapper"]
+    """Test that translations have valid source specifications.
+
+    'manual' is a valid source for translations that have no free public
+    download URL and must be loaded manually (e.g. hindi / IRV).
+    """
+    valid_sources = ["thiagobodruk", "getbible", "scrollmapper", "manual"]
     for code, config in TRANSLATIONS.items():
-        assert "source" in config
-        assert config["source"] in valid_sources
+        assert "source" in config, f"Translation {code} missing 'source' key"
+        assert config["source"] in valid_sources, (
+            f"Translation {code} has unknown source: {config['source']}. "
+            f"Valid sources: {valid_sources}"
+        )
 
 
 @pytest.mark.network
@@ -401,11 +418,17 @@ def test_translation_urls_accessible():
     are valid. Transient timeouts are retried up to 3 times with backoff.
     Run with: pytest -m network
     Skip with: pytest -m "not network"
+
+    Translations with source='manual' (url=None) are skipped — they have no
+    public download URL and are loaded by other means.
     """
     failed_urls = []
 
     for code, config in TRANSLATIONS.items():
         url = config["url"]
+        if url is None:
+            # manual-source translations have no download URL — skip
+            continue
         try:
             response = _fetch_with_retry(url, method="head")
             if response.status_code != 200:
@@ -427,9 +450,15 @@ def test_translation_urls_return_valid_json():
 
     This test downloads a small portion of each Bible to verify the format.
     Run with: pytest -m network
+
+    Translations with source='manual' (url=None) are skipped — they have no
+    public download URL and are loaded by other means.
     """
     for code, config in TRANSLATIONS.items():
         url = config["url"]
+        if url is None:
+            # manual-source translations have no download URL — skip
+            continue
         response = _fetch_with_retry(url, method="get", timeout=60.0)
         assert response.status_code == 200, f"{code}: Failed to fetch {url}"
 

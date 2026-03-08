@@ -3,8 +3,68 @@ Translation configurations and book name mappings for multilingual Bible support
 
 This module contains:
 - Translation metadata (language, source URLs, etc.)
-- Book name mappings (Italian/German/Spanish/French/Portuguese/Arabic → English)
+- Book name mappings (Italian/German/Spanish/French/Portuguese/Arabic/Russian/Chinese/Hindi/Korean → English)
 - Data source configurations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADDING A NEW LANGUAGE — CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When adding a new language/translation, you must update ALL of the following
+or the app will silently fall back to English for that language:
+
+ 1. scripts/translations.py (THIS FILE)
+    a. Add a <LANGUAGE>_BOOK_NAMES dict  (localized name → English name, 66 books)
+    b. Add an entry to TRANSLATIONS dict with keys:
+         code, name, language, language_code, description, source, url,
+         book_names, license, is_default
+    c. source must be one of: "getbible", "thiagobodruk", "scrollmapper", "manual"
+    d. url=None is allowed ONLY when source="manual" (no free download source exists)
+
+ 2. scripts/init.sql
+    Add an INSERT row for the translation so the DB is seeded on fresh deploy.
+    Or regenerate via:
+      python -c "from translations import generate_translations_sql; print(generate_translations_sql())"
+
+ 3. api/utils/language.py
+    a. Add ISO code to SUPPORTED_LANGUAGES list
+    b. Add entry to LANGUAGE_TRANSLATIONS dict  (e.g. "ru": ["synodal"])
+    c. Add entry to TRANSLATION_INFO dict
+    d. Add ENGLISH_TO_<LANGUAGE>_BOOKS dict (English → localized, for display)
+    e. Add to get_localized_book_name() book_map dict
+
+ 4. frontend/messages/<locale>.json
+    Create the UI translation file for the new locale.
+
+ 5. frontend/src/i18n/routing.ts
+    Add the locale code to the locales array.
+
+ 6. frontend/src/components/LanguageSwitcher.tsx
+    Add the locale label.
+
+ 7. frontend/src/app/[locale]/layout.tsx
+    Add an hreflang alternate entry.
+
+ 8. api/chat/prompts.py
+    Add to LANGUAGE_NAMES and SOURCE_ATTRIBUTION_EXAMPLES.
+
+ 9. Run all tests:
+      cd api && pytest -m "not network" -q
+    And check specifically:
+      pytest tests/test_translations.py tests/test_multilingual_integration.py -q -m "not network"
+
+10. Count check — update the assertion in:
+      api/tests/test_translations.py::test_list_available_translations
+    (change the expected count from N to N+1)
+
+NOTES:
+- getBible codes sometimes differ from internal codes.
+  Always verify at: https://api.getbible.net/v2/<code>.json
+  Internal code = what language.py uses; getBible code = what goes in the URL.
+  Example: internal "cuv" → URL uses "cus"; internal "krv" → URL uses "korean".
+- If no free source exists, use source="manual", url=None and document how to
+  load the data manually.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 # Italian book names (Riveduta 1927) → Standard English names
@@ -443,6 +503,286 @@ ARABIC_BOOK_NAMES = {
     "الرؤيا": "Revelation",
 }
 
+# Russian book names (Synodal Translation) → Standard English names
+RUSSIAN_BOOK_NAMES = {
+    "Бытие": "Genesis",
+    "Исход": "Exodus",
+    "Левит": "Leviticus",
+    "Числа": "Numbers",
+    "Второзаконие": "Deuteronomy",
+    "Иисус Навин": "Joshua",
+    "Судьи": "Judges",
+    "Руфь": "Ruth",
+    "1 Царств": "1 Samuel",
+    "2 Царств": "2 Samuel",
+    "3 Царств": "1 Kings",
+    "4 Царств": "2 Kings",
+    "1 Паралипоменон": "1 Chronicles",
+    "2 Паралипоменон": "2 Chronicles",
+    "Ездра": "Ezra",
+    "Неемия": "Nehemiah",
+    "Есфирь": "Esther",
+    "Иов": "Job",
+    "Псалтирь": "Psalms",
+    "Притчи": "Proverbs",
+    "Екклесиаст": "Ecclesiastes",
+    "Песня Песней": "Song of Solomon",
+    "Исаия": "Isaiah",
+    "Иеремия": "Jeremiah",
+    "Плач Иеремии": "Lamentations",
+    "Иезекиль": "Ezekiel",
+    "Даниил": "Daniel",
+    "Осия": "Hosea",
+    "Иоиль": "Joel",
+    "Амос": "Amos",
+    "Авдий": "Obadiah",
+    "Иона": "Jonah",
+    "Михей": "Micah",
+    "Наум": "Nahum",
+    "Аввакум": "Habakkuk",
+    "Софония": "Zephaniah",
+    "Аггей": "Haggai",
+    "Захария": "Zechariah",
+    "Малахия": "Malachi",
+    "Матфей": "Matthew",
+    "Марк": "Mark",
+    "Лука": "Luke",
+    "Иоанн": "John",
+    "Деяния апостолов": "Acts",
+    "Римлянам": "Romans",
+    "1 Коринфянам": "1 Corinthians",
+    "2 Коринфянам": "2 Corinthians",
+    "Галатам": "Galatians",
+    "Ефесянам": "Ephesians",
+    "Филиппийцам": "Philippians",
+    "Колоссянам": "Colossians",
+    "1 Фессалоникийцам": "1 Thessalonians",
+    "2 Фессалоникийцам": "2 Thessalonians",
+    "1 Тимофею": "1 Timothy",
+    "2 Тимофею": "2 Timothy",
+    "Титу": "Titus",
+    "Филимону": "Philemon",
+    "Евреям": "Hebrews",
+    "Иаков": "James",
+    "1 Петра": "1 Peter",
+    "2 Петра": "2 Peter",
+    "1 Иоанна": "1 John",
+    "2 Иоанна": "2 John",
+    "3 Иоанна": "3 John",
+    "Иуда": "Jude",
+    "Откровение": "Revelation",
+}
+
+# Chinese book names (Union Version Simplified) → Standard English names
+CHINESE_BOOK_NAMES = {
+    "创世记": "Genesis",
+    "出埃及记": "Exodus",
+    "利未记": "Leviticus",
+    "民数记": "Numbers",
+    "申命记": "Deuteronomy",
+    "约书亚记": "Joshua",
+    "士师记": "Judges",
+    "路得记": "Ruth",
+    "撒母耳记上": "1 Samuel",
+    "撒母耳记下": "2 Samuel",
+    "列王纪上": "1 Kings",
+    "列王纪下": "2 Kings",
+    "历代志上": "1 Chronicles",
+    "历代志下": "2 Chronicles",
+    "以斯拉记": "Ezra",
+    "尼希米记": "Nehemiah",
+    "以斯帖记": "Esther",
+    "约伯记": "Job",
+    "诗篇": "Psalms",
+    "箴言": "Proverbs",
+    "传道书": "Ecclesiastes",
+    "雅歌": "Song of Solomon",
+    "以赛亚书": "Isaiah",
+    "耶利米书": "Jeremiah",
+    "耶利米哀歌": "Lamentations",
+    "以西结书": "Ezekiel",
+    "但以理书": "Daniel",
+    "何西阿书": "Hosea",
+    "约珥书": "Joel",
+    "阿摩司书": "Amos",
+    "俄巴底亚书": "Obadiah",
+    "约拿书": "Jonah",
+    "弥迦书": "Micah",
+    "那鸿书": "Nahum",
+    "哈巴谷书": "Habakkuk",
+    "西番雅书": "Zephaniah",
+    "哈该书": "Haggai",
+    "撒迦利亚书": "Zechariah",
+    "玛拉基书": "Malachi",
+    "马太福音": "Matthew",
+    "马可福音": "Mark",
+    "路加福音": "Luke",
+    "约翰福音": "John",
+    "使徒行传": "Acts",
+    "罗马书": "Romans",
+    "哥林多前书": "1 Corinthians",
+    "哥林多后书": "2 Corinthians",
+    "加拉太书": "Galatians",
+    "以弗所书": "Ephesians",
+    "腓立比书": "Philippians",
+    "歌罗西书": "Colossians",
+    "帖撒罗尼迦前书": "1 Thessalonians",
+    "帖撒罗尼迦后书": "2 Thessalonians",
+    "提摩太前书": "1 Timothy",
+    "提摩太后书": "2 Timothy",
+    "提多书": "Titus",
+    "腓利门书": "Philemon",
+    "希伯来书": "Hebrews",
+    "雅各书": "James",
+    "彼得前书": "1 Peter",
+    "彼得后书": "2 Peter",
+    "约翰一书": "1 John",
+    "约翰二书": "2 John",
+    "约翰三书": "3 John",
+    "犹大书": "Jude",
+    "启示录": "Revelation",
+}
+
+# Hindi book names (IRV Bible) → Standard English names
+HINDI_BOOK_NAMES = {
+    "उत्पत्ति": "Genesis",
+    "निर्गमन": "Exodus",
+    "लैव्यव्यवस्था": "Leviticus",
+    "गिनती": "Numbers",
+    "व्यवस्थाविवरण": "Deuteronomy",
+    "यहोशू": "Joshua",
+    "न्यायियों": "Judges",
+    "रूत": "Ruth",
+    "1 शमूएल": "1 Samuel",
+    "2 शमूएल": "2 Samuel",
+    "1 राजाओं": "1 Kings",
+    "2 राजाओं": "2 Kings",
+    "1 इतिहास": "1 Chronicles",
+    "2 इतिहास": "2 Chronicles",
+    "एज्रा": "Ezra",
+    "नहेम्याह": "Nehemiah",
+    "एस्तेर": "Esther",
+    "अय्यूब": "Job",
+    "भजन संहिता": "Psalms",
+    "नीतिवचन": "Proverbs",
+    "सभोपदेशक": "Ecclesiastes",
+    "श्रेष्ठगीत": "Song of Solomon",
+    "यशायाह": "Isaiah",
+    "यिर्मयाह": "Jeremiah",
+    "विलापगीत": "Lamentations",
+    "यहेजकेल": "Ezekiel",
+    "दानिय्येल": "Daniel",
+    "होशे": "Hosea",
+    "योएल": "Joel",
+    "आमोस": "Amos",
+    "ओबद्याह": "Obadiah",
+    "योना": "Jonah",
+    "मीका": "Micah",
+    "नहूम": "Nahum",
+    "हबक्कूक": "Habakkuk",
+    "सपन्याह": "Zephaniah",
+    "हाग्गै": "Haggai",
+    "जकर्याह": "Zechariah",
+    "मलाकी": "Malachi",
+    "मत्ती": "Matthew",
+    "मरकुस": "Mark",
+    "लूका": "Luke",
+    "यूहन्ना": "John",
+    "प्रेरितों के काम": "Acts",
+    "रोमियों": "Romans",
+    "1 कुरिन्थियों": "1 Corinthians",
+    "2 कुरिन्थियों": "2 Corinthians",
+    "गलातियों": "Galatians",
+    "इफिसियों": "Ephesians",
+    "फिलिप्पियों": "Philippians",
+    "कुलुस्सियों": "Colossians",
+    "1 थिस्सलुनीकियों": "1 Thessalonians",
+    "2 थिस्सलुनीकियों": "2 Thessalonians",
+    "1 तीमुथियुस": "1 Timothy",
+    "2 तीमुथियुस": "2 Timothy",
+    "तीतुस": "Titus",
+    "फिलेमोन": "Philemon",
+    "इब्रानियों": "Hebrews",
+    "याकूब": "James",
+    "1 पतरस": "1 Peter",
+    "2 पतरस": "2 Peter",
+    "1 यूहन्ना": "1 John",
+    "2 यूहन्ना": "2 John",
+    "3 यूहन्ना": "3 John",
+    "यहूदा": "Jude",
+    "प्रकाशितवाक्य": "Revelation",
+}
+
+# Korean book names (Korean Revised Version) → Standard English names
+KOREAN_BOOK_NAMES = {
+    "창세기": "Genesis",
+    "출애굽기": "Exodus",
+    "레위기": "Leviticus",
+    "민수기": "Numbers",
+    "신명기": "Deuteronomy",
+    "여호수아": "Joshua",
+    "사사기": "Judges",
+    "룻기": "Ruth",
+    "사무엘상": "1 Samuel",
+    "사무엘하": "2 Samuel",
+    "열왕기상": "1 Kings",
+    "열왕기하": "2 Kings",
+    "역대상": "1 Chronicles",
+    "역대하": "2 Chronicles",
+    "에스라": "Ezra",
+    "느헤미야": "Nehemiah",
+    "에스더": "Esther",
+    "욥기": "Job",
+    "시편": "Psalms",
+    "잠언": "Proverbs",
+    "전도서": "Ecclesiastes",
+    "아가": "Song of Solomon",
+    "이사야": "Isaiah",
+    "예레미야": "Jeremiah",
+    "예레미야애가": "Lamentations",
+    "에스겔": "Ezekiel",
+    "다니엘": "Daniel",
+    "호세아": "Hosea",
+    "요엘": "Joel",
+    "아모스": "Amos",
+    "오바댜": "Obadiah",
+    "요나": "Jonah",
+    "미가": "Micah",
+    "나훔": "Nahum",
+    "하박국": "Habakkuk",
+    "스바냐": "Zephaniah",
+    "학개": "Haggai",
+    "스가랴": "Zechariah",
+    "말라기": "Malachi",
+    "마태복음": "Matthew",
+    "마가복음": "Mark",
+    "누가복음": "Luke",
+    "요한복음": "John",
+    "사도행전": "Acts",
+    "로마서": "Romans",
+    "고린도전서": "1 Corinthians",
+    "고린도후서": "2 Corinthians",
+    "갈라디아서": "Galatians",
+    "에베소서": "Ephesians",
+    "빌립보서": "Philippians",
+    "골로새서": "Colossians",
+    "데살로니가전서": "1 Thessalonians",
+    "데살로니가후서": "2 Thessalonians",
+    "디모데전서": "1 Timothy",
+    "디모데후서": "2 Timothy",
+    "디도서": "Titus",
+    "빌레몬서": "Philemon",
+    "히브리서": "Hebrews",
+    "야고보서": "James",
+    "베드로전서": "1 Peter",
+    "베드로후서": "2 Peter",
+    "요한일서": "1 John",
+    "요한이서": "2 John",
+    "요한삼서": "3 John",
+    "유다서": "Jude",
+    "요한계시록": "Revelation",
+}
+
 # Translation configurations
 TRANSLATIONS = {
     "kjv": {
@@ -541,6 +881,54 @@ TRANSLATIONS = {
         "license": "Public Domain",
         "is_default": False,
     },
+    "synodal": {
+        "code": "synodal",
+        "name": "Синодальный перевод",
+        "language": "Russian",
+        "language_code": "ru",
+        "description": "Russian Synodal Translation (1876)",
+        "source": "getbible",
+        "url": "https://api.getbible.net/v2/synodal.json",
+        "book_names": RUSSIAN_BOOK_NAMES,
+        "license": "Public Domain",
+        "is_default": False,
+    },
+    "cuv": {
+        "code": "cuv",
+        "name": "中文和合本",
+        "language": "Chinese",
+        "language_code": "zh",
+        "description": "Chinese Union Version (Simplified)",
+        "source": "getbible",
+        "url": "https://api.getbible.net/v2/cus.json",
+        "book_names": CHINESE_BOOK_NAMES,
+        "license": "Public Domain",
+        "is_default": False,
+    },
+    "hindi": {
+        "code": "hindi",
+        "name": "Hindi IRV Bible",
+        "language": "Hindi",
+        "language_code": "hi",
+        "description": "Hindi IRV Bible (Indian Revised Version)",
+        "source": "manual",
+        "url": None,
+        "book_names": HINDI_BOOK_NAMES,
+        "license": "Copyright IRV",
+        "is_default": False,
+    },
+    "krv": {
+        "code": "krv",
+        "name": "개역개정",
+        "language": "Korean",
+        "language_code": "ko",
+        "description": "Korean Revised Version",
+        "source": "getbible",
+        "url": "https://api.getbible.net/v2/korean.json",
+        "book_names": KOREAN_BOOK_NAMES,
+        "license": "Public Domain",
+        "is_default": False,
+    },
 }
 
 
@@ -553,8 +941,8 @@ def generate_translations_sql() -> str:
     """
     lines = [
         "-- Auto-generated from scripts/translations.py",
-        "-- Run: python -c \"from translations import generate_translations_sql; print(generate_translations_sql())\"",
-        "INSERT INTO translations (code, name, language, language_code, is_default, description) VALUES"
+        '-- Run: python -c "from translations import generate_translations_sql; print(generate_translations_sql())"',
+        "INSERT INTO translations (code, name, language, language_code, is_default, description) VALUES",
     ]
 
     values = []

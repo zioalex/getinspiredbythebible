@@ -33,7 +33,11 @@ INSERT INTO translations (code, name, language, language_code, is_default, descr
     ('valera', 'Reina Valera 1909', 'Spanish', 'es', FALSE, 'Spanish Reina Valera translation from 1909'),
     ('ls1910', 'Louis Segond 1910', 'French', 'fr', FALSE, 'French Louis Segond translation from 1910'),
     ('almeida', 'Almeida Atualizada', 'Portuguese', 'pt', FALSE, 'Portuguese Almeida Atualizada translation'),
-    ('arabicsv', 'Smith & Van Dyke', 'Arabic', 'ar', FALSE, 'Arabic Smith and Van Dyke translation')
+    ('arabicsv', 'Smith & Van Dyke', 'Arabic', 'ar', FALSE, 'Arabic Smith and Van Dyke translation'),
+    ('synodal', 'Синодальный перевод', 'Russian', 'ru', FALSE, 'Russian Synodal Translation (1876)'),
+    ('cuv', '中文和合本', 'Chinese', 'zh', FALSE, 'Chinese Union Version (Simplified)'),
+    ('hindi', 'Hindi IRV Bible', 'Hindi', 'hi', FALSE, 'Hindi IRV Bible (Indian Revised Version)'),
+    ('krv', '개역개정', 'Korean', 'ko', FALSE, 'Korean Revised Version')
 ON CONFLICT (code) DO NOTHING;
 -- END_TRANSLATIONS_INSERT (marker for test parsing)
 

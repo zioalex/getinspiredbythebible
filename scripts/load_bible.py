@@ -129,6 +129,14 @@ async def download_translation(translation_code: str, output_path: Path) -> dict
         with open(output_path, encoding="utf-8") as f:
             return json.load(f)
 
+    # Guard: translations with no URL (e.g. manually-supplied data) cannot be downloaded
+    if config.get("url") is None:
+        log(
+            f"⚠️  Skipping download for {config['name']} ({translation_code}): no source URL configured"
+        )
+        log(f"    This translation (source='{config['source']}') must be loaded manually.")
+        return {}
+
     log(f"📥 Downloading {config['name']} ({config['language']}) from {config['source']}")
     log(f"    URL: {config['url']}")
 
@@ -150,7 +158,7 @@ async def download_translation(translation_code: str, output_path: Path) -> dict
     return data
 
 
-def normalize_bible_data(data: dict|list, source: str) -> list:
+def normalize_bible_data(data: dict | list, source: str) -> list:
     """
     Normalize different JSON formats to common structure.
 
@@ -166,10 +174,7 @@ def normalize_bible_data(data: dict|list, source: str) -> list:
         if isinstance(data, dict) and "books" in data:
             normalized = []
             for book in data.get("books", []):
-                book_data = {
-                    "name": book.get("name", ""),
-                    "chapters": []
-                }
+                book_data = {"name": book.get("name", ""), "chapters": []}
                 for chapter in book.get("chapters", []):
                     # Extract verse texts in order
                     verses = [v.get("text", "") for v in chapter.get("verses", [])]
@@ -325,7 +330,7 @@ async def load_translation_metadata(session, translation_code: str):
             "lang_code": config["language_code"],
             "description": config.get("description"),
             "is_default": config.get("is_default", False),
-        }
+        },
     )
     await session.commit()
     log(f"✅ Loaded translation metadata: {config['name']} ({config['code']})")
@@ -361,8 +366,8 @@ async def ensure_books_and_chapters(session) -> dict:
                 "name": book_meta["name"],
                 "abbr": book_meta["abbr"],
                 "testament": book_meta["testament"],
-                "position": book_meta["position"]
-            }
+                "position": book_meta["position"],
+            },
         )
         book_ids[book_meta["name"]] = result.scalar_one()
 
@@ -371,20 +376,72 @@ async def ensure_books_and_chapters(session) -> dict:
     # Insert chapters for each book (Bible structure is constant)
     # We know chapter counts from standard Bible structure
     chapter_counts = {
-        "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
-        "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
-        "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36, "Ezra": 10,
-        "Nehemiah": 13, "Esther": 10, "Job": 42, "Psalms": 150, "Proverbs": 31,
-        "Ecclesiastes": 12, "Song of Solomon": 8, "Isaiah": 66, "Jeremiah": 52, "Lamentations": 5,
-        "Ezekiel": 48, "Daniel": 12, "Hosea": 14, "Joel": 3, "Amos": 9,
-        "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3, "Habakkuk": 3,
-        "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 4,
-        "Matthew": 28, "Mark": 16, "Luke": 24, "John": 21, "Acts": 28,
-        "Romans": 16, "1 Corinthians": 16, "2 Corinthians": 13, "Galatians": 6, "Ephesians": 6,
-        "Philippians": 4, "Colossians": 4, "1 Thessalonians": 5, "2 Thessalonians": 3, "1 Timothy": 6,
-        "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13, "James": 5,
-        "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1, "3 John": 1,
-        "Jude": 1, "Revelation": 22
+        "Genesis": 50,
+        "Exodus": 40,
+        "Leviticus": 27,
+        "Numbers": 36,
+        "Deuteronomy": 34,
+        "Joshua": 24,
+        "Judges": 21,
+        "Ruth": 4,
+        "1 Samuel": 31,
+        "2 Samuel": 24,
+        "1 Kings": 22,
+        "2 Kings": 25,
+        "1 Chronicles": 29,
+        "2 Chronicles": 36,
+        "Ezra": 10,
+        "Nehemiah": 13,
+        "Esther": 10,
+        "Job": 42,
+        "Psalms": 150,
+        "Proverbs": 31,
+        "Ecclesiastes": 12,
+        "Song of Solomon": 8,
+        "Isaiah": 66,
+        "Jeremiah": 52,
+        "Lamentations": 5,
+        "Ezekiel": 48,
+        "Daniel": 12,
+        "Hosea": 14,
+        "Joel": 3,
+        "Amos": 9,
+        "Obadiah": 1,
+        "Jonah": 4,
+        "Micah": 7,
+        "Nahum": 3,
+        "Habakkuk": 3,
+        "Zephaniah": 3,
+        "Haggai": 2,
+        "Zechariah": 14,
+        "Malachi": 4,
+        "Matthew": 28,
+        "Mark": 16,
+        "Luke": 24,
+        "John": 21,
+        "Acts": 28,
+        "Romans": 16,
+        "1 Corinthians": 16,
+        "2 Corinthians": 13,
+        "Galatians": 6,
+        "Ephesians": 6,
+        "Philippians": 4,
+        "Colossians": 4,
+        "1 Thessalonians": 5,
+        "2 Thessalonians": 3,
+        "1 Timothy": 6,
+        "2 Timothy": 4,
+        "Titus": 3,
+        "Philemon": 1,
+        "Hebrews": 13,
+        "James": 5,
+        "1 Peter": 5,
+        "2 Peter": 3,
+        "1 John": 5,
+        "2 John": 1,
+        "3 John": 1,
+        "Jude": 1,
+        "Revelation": 22,
     }
 
     for book_name, book_id in book_ids.items():
@@ -396,7 +453,7 @@ async def ensure_books_and_chapters(session) -> dict:
                     VALUES (:book_id, :number)
                     ON CONFLICT (book_id, number) DO NOTHING
                 """),
-                {"book_id": book_id, "number": chapter_num}
+                {"book_id": book_id, "number": chapter_num},
             )
 
     await session.commit()
@@ -463,8 +520,7 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
 
         # Get chapter IDs for this book
         chapter_result = await session.execute(
-            text("SELECT id, number FROM chapters WHERE book_id = :book_id"),
-            {"book_id": book_id}
+            text("SELECT id, number FROM chapters WHERE book_id = :book_id"), {"book_id": book_id}
         )
         chapter_ids = {row[1]: row[0] for row in chapter_result.fetchall()}
 
@@ -495,7 +551,7 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
                         "verse_num": verse_num,
                         "text": verse_text,
                         "translation": translation_code,
-                    }
+                    },
                 )
                 verse_count += 1
                 book_verse_count += 1
@@ -534,7 +590,7 @@ async def check_translation_loaded(session, translation_code: str) -> tuple[bool
     try:
         result = await session.execute(
             text("SELECT COUNT(*) FROM verses WHERE translation = :code"),
-            {"code": translation_code}
+            {"code": translation_code},
         )
         count = result.scalar() or 0
         # Consider loaded if we have at least 30,000 verses (full Bible has ~31,000)
@@ -577,7 +633,9 @@ async def load_translation_to_db(
         if not force and not books_filter:
             is_loaded, existing_count = await check_translation_loaded(session, translation_code)
             if is_loaded:
-                log(f"⏭️  Skipping {TRANSLATIONS[translation_code]['name']} - already loaded ({existing_count:,} verses)")
+                log(
+                    f"⏭️  Skipping {TRANSLATIONS[translation_code]['name']} - already loaded ({existing_count:,} verses)"
+                )
                 await engine.dispose()
                 return
 
@@ -588,12 +646,28 @@ async def load_translation_to_db(
         book_ids = await ensure_books_and_chapters(session)
 
         # Download translation data
-        bible_path = Path(__file__).parent.parent / "data" / "bible" / "translations" / f"{translation_code}.json"
+        bible_path = (
+            Path(__file__).parent.parent
+            / "data"
+            / "bible"
+            / "translations"
+            / f"{translation_code}.json"
+        )
         bible_data = await download_translation(translation_code, bible_path)
+
+        # Skip verse loading if no data available (e.g. manual-only translations with no URL)
+        if not bible_data:
+            log(
+                f"⏭️  No verse data available for {translation_code} — metadata registered but no verses loaded."
+            )
+            await engine.dispose()
+            return
 
         # Load verses
         if books_filter:
-            log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})...")
+            log(
+                f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})..."
+            )
         else:
             log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
         verse_count = await load_verses(session, translation_code, bible_data, books_filter)
@@ -609,34 +683,29 @@ async def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Load Bible translations into database")
     parser.add_argument(
-        "--translation", "-t",
+        "--translation",
+        "-t",
         type=str,
-        help="Translation code to load (kjv, ita1927, deu1912, web)"
+        help="Translation code to load (kjv, ita1927, deu1912, web)",
     )
+    parser.add_argument("--list", "-l", action="store_true", help="List available translations")
+    parser.add_argument("--all", "-a", action="store_true", help="Load all translations")
     parser.add_argument(
-        "--list", "-l",
-        action="store_true",
-        help="List available translations"
-    )
-    parser.add_argument(
-        "--all", "-a",
-        action="store_true",
-        help="Load all translations"
-    )
-    parser.add_argument(
-        "--dimensions", "-d",
+        "--dimensions",
+        "-d",
         type=int,
-        help="Embedding dimensions (1024 for Ollama, 1536 for Azure OpenAI)"
+        help="Embedding dimensions (1024 for Ollama, 1536 for Azure OpenAI)",
     )
     parser.add_argument(
         "--ci",
         action="store_true",
-        help="CI mode: load only 1 Corinthians (minimal data for testing semantic search)"
+        help="CI mode: load only 1 Corinthians (minimal data for testing semantic search)",
     )
     parser.add_argument(
-        "--force", "-f",
+        "--force",
+        "-f",
         action="store_true",
-        help="Force reload translations even if already loaded"
+        help="Force reload translations even if already loaded",
     )
 
     args = parser.parse_args()
@@ -651,7 +720,7 @@ async def main():
     # Get database URL
     database_url = os.getenv(
         "DATABASE_URL",
-        "postgresql://bible:bible123@localhost:5432/bibledb"  # pragma: allowlist secret
+        "postgresql://bible:bible123@localhost:5432/bibledb",  # pragma: allowlist secret
     )
 
     # Get embedding dimensions (CLI arg > env var > default)
@@ -687,12 +756,18 @@ async def main():
     overall_start = time.time()
     for idx, trans_code in enumerate(translations_to_load, 1):
         log(f"\n{'='*60}")
-        log(f"[{idx}/{total_translations}] Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})")
+        log(
+            f"[{idx}/{total_translations}] Loading: {TRANSLATIONS[trans_code]['name']} ({trans_code})"
+        )
         log(f"{'='*60}")
-        await load_translation_to_db(database_url, trans_code, embedding_dimensions, books_filter, args.force)
+        await load_translation_to_db(
+            database_url, trans_code, embedding_dimensions, books_filter, args.force
+        )
 
     overall_elapsed = time.time() - overall_start
-    log(f"\n🎉 All {total_translations} translations loaded successfully in {overall_elapsed:.1f}s!")
+    log(
+        f"\n🎉 All {total_translations} translations loaded successfully in {overall_elapsed:.1f}s!"
+    )
     log("\nNext step: Run create_embeddings.py to generate semantic search vectors")
     log("Example: python create_embeddings.py --translation ita1927")
     if embedding_dimensions == 1536:
