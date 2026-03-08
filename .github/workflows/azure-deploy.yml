@@ -1137,13 +1137,13 @@ jobs:
     # 2. Not a PR (no DB access from PR branches)
     # 3. Deploy didn't fail (success or skipped is OK)
     # 4. Bible scripts changed OR manual workflow_dispatch with seeding enabled
-    # 5. Matrix: only run this translation if no specific one requested, or it matches
+    # Note: per-translation filtering (when bible_translation input is set) is handled
+    # inside the "Load Bible Data" step via a shell early-exit, because matrix context
+    # is not reliably available in job-level if conditions on workflow_run events.
     if: >-
       always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
       'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
-       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false)) &&
-      (inputs.bible_translation == '' || inputs.bible_translation == null ||
-       inputs.bible_translation == matrix.translation)
+       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
@@ -1208,6 +1208,13 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
+          # When a specific translation is requested, skip all others
+          REQUESTED="${{ inputs.bible_translation }}"
+          if [ -n "$REQUESTED" ] && [ "$REQUESTED" != "${{ matrix.translation }}" ]; then
+            echo "Skipping ${{ matrix.translation }} (requested: $REQUESTED)"
+            exit 0
+          fi
+
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
 
