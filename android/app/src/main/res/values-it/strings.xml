@@ -7,6 +7,8 @@
     <string name="welcome_title">Trova Ispirazione nella Scrittura</string>
     <string name="welcome_subtitle">Racconta cosa stai attraversando e ricevi incoraggiamento radicato nella Parola di Dio.</string>
     <string name="error_network">Errore di rete. Controlla la connessione.</string>
+    <string name="error_timeout">Richiesta scaduta. Riprova.</string>
+    <string name="error_server">Errore del server. Riprova più tardi.</string>
     <string name="error_generic">Qualcosa è andato storto. Riprova.</string>
 
     <!-- Conversations screen -->
@@ -26,4 +28,7 @@
     <string name="settings_language_title">Lingua</string>
     <string name="settings_language_subtitle">Seleziona la lingua per i versetti biblici</string>
     <string name="action_open_settings">Impostazioni</string>
+
+    <!-- Actions -->
+    <string name="action_retry">Riprova</string>
 </resources>

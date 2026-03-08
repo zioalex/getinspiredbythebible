@@ -8,6 +8,7 @@ package com.bibleinspiration.domain.models
  * @param content Full text content.
  * @param verses Scripture verses referenced in this message (assistant only).
  * @param isStreaming True while the assistant is still generating this message.
+ * @param isError True when the message represents a failed streaming attempt.
  */
 data class Message(
     val id: String,
@@ -15,6 +16,7 @@ data class Message(
     val content: String,
     val verses: List<Verse> = emptyList(),
     val isStreaming: Boolean = false,
+    val isError: Boolean = false,
 ) {
     enum class Role { USER, ASSISTANT }
 }

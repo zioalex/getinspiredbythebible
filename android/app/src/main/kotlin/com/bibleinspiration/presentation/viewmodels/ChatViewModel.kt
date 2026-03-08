@@ -1,7 +1,9 @@
 package com.bibleinspiration.presentation.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
@@ -9,6 +11,7 @@ import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.security.TurnstileManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +19,12 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import timber.log.Timber
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.UUID
 import javax.inject.Inject
 
@@ -35,6 +43,7 @@ class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     val turnstileManager: TurnstileManager,
     private val languagePreferences: LanguagePreferences,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -99,45 +108,51 @@ class ChatViewModel @Inject constructor(
 
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
+            var didError = false
 
             repository
                 .chatStream(request)
                 .catch { e ->
                     Timber.e(e, "chatStream error")
+                    didError = true
+                    val errorMessage = mapExceptionToMessage(e)
                     _uiState.update { state ->
                         state.copy(
                             messages = state.messages.map { msg ->
                                 if (msg.id == assistantId) {
                                     msg.copy(
-                                        content = accumulatedContent.ifBlank { "An error occurred. Please try again." },
+                                        content = "",
                                         isStreaming = false,
+                                        isError = true,
                                     )
                                 } else msg
                             },
                             isLoading = false,
-                            error = e.message,
+                            error = errorMessage,
                         )
                     }
                 }
                 .onCompletion {
-                    val finalAssistant = Message(
-                        id = assistantId,
-                        role = Message.Role.ASSISTANT,
-                        content = accumulatedContent,
-                        verses = finalVerses,
-                        isStreaming = false,
-                    )
-                    // Persist finished assistant message and bump conversation timestamp.
-                    repository.saveMessage(conversationId, finalAssistant)
-                    repository.touchConversation(conversationId)
-
-                    _uiState.update { state ->
-                        state.copy(
-                            messages = state.messages.map { msg ->
-                                if (msg.id == assistantId) finalAssistant else msg
-                            },
-                            isLoading = false,
+                    if (!didError) {
+                        val finalAssistant = Message(
+                            id = assistantId,
+                            role = Message.Role.ASSISTANT,
+                            content = accumulatedContent,
+                            verses = finalVerses,
+                            isStreaming = false,
                         )
+                        // Persist finished assistant message and bump conversation timestamp.
+                        repository.saveMessage(conversationId, finalAssistant)
+                        repository.touchConversation(conversationId)
+
+                        _uiState.update { state ->
+                            state.copy(
+                                messages = state.messages.map { msg ->
+                                    if (msg.id == assistantId) finalAssistant else msg
+                                },
+                                isLoading = false,
+                            )
+                        }
                     }
                 }
                 .collect { chunk ->
@@ -194,6 +209,23 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
+     * Re-sends the last user message, discarding the empty/error assistant placeholder.
+     * No-op if there is no prior user message or if the app is currently loading.
+     */
+    fun retryLastMessage() {
+        if (_uiState.value.isLoading) return
+
+        val messages = _uiState.value.messages
+        val lastUserMessage = messages.lastOrNull { it.role == Message.Role.USER } ?: return
+
+        // Remove the trailing assistant placeholder (error or blank) if present
+        val trimmedMessages = messages.dropLastWhile { it.role == Message.Role.ASSISTANT }
+
+        _uiState.update { it.copy(messages = trimmedMessages, error = null) }
+        sendMessage(lastUserMessage.content)
+    }
+
+    /**
      * Updates the language locale in-memory and persists it via DataStore.
      */
     fun setLocale(locale: String) {
@@ -216,5 +248,22 @@ class ChatViewModel @Inject constructor(
                 repository.deleteConversation(conversationId)
             }
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Private helpers
+    // ---------------------------------------------------------------------------
+
+    private fun mapExceptionToMessage(e: Throwable): String = when {
+        e is UnknownHostException || e is ConnectException ->
+            context.getString(R.string.error_network)
+        e is SocketTimeoutException ->
+            context.getString(R.string.error_timeout)
+        e is HttpException ->
+            context.getString(R.string.error_server)
+        e is IOException ->
+            context.getString(R.string.error_network)
+        else ->
+            context.getString(R.string.error_generic)
     }
 }
