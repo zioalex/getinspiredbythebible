@@ -5,6 +5,66 @@ This module contains:
 - Translation metadata (language, source URLs, etc.)
 - Book name mappings (Italian/German/Spanish/French/Portuguese/Arabic/Russian/Chinese/Hindi/Korean → English)
 - Data source configurations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADDING A NEW LANGUAGE — CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When adding a new language/translation, you must update ALL of the following
+or the app will silently fall back to English for that language:
+
+ 1. scripts/translations.py (THIS FILE)
+    a. Add a <LANGUAGE>_BOOK_NAMES dict  (localized name → English name, 66 books)
+    b. Add an entry to TRANSLATIONS dict with keys:
+         code, name, language, language_code, description, source, url,
+         book_names, license, is_default
+    c. source must be one of: "getbible", "thiagobodruk", "scrollmapper", "manual"
+    d. url=None is allowed ONLY when source="manual" (no free download source exists)
+
+ 2. scripts/init.sql
+    Add an INSERT row for the translation so the DB is seeded on fresh deploy.
+    Or regenerate via:
+      python -c "from translations import generate_translations_sql; print(generate_translations_sql())"
+
+ 3. api/utils/language.py
+    a. Add ISO code to SUPPORTED_LANGUAGES list
+    b. Add entry to LANGUAGE_TRANSLATIONS dict  (e.g. "ru": ["synodal"])
+    c. Add entry to TRANSLATION_INFO dict
+    d. Add ENGLISH_TO_<LANGUAGE>_BOOKS dict (English → localized, for display)
+    e. Add to get_localized_book_name() book_map dict
+
+ 4. frontend/messages/<locale>.json
+    Create the UI translation file for the new locale.
+
+ 5. frontend/src/i18n/routing.ts
+    Add the locale code to the locales array.
+
+ 6. frontend/src/components/LanguageSwitcher.tsx
+    Add the locale label.
+
+ 7. frontend/src/app/[locale]/layout.tsx
+    Add an hreflang alternate entry.
+
+ 8. api/chat/prompts.py
+    Add to LANGUAGE_NAMES and SOURCE_ATTRIBUTION_EXAMPLES.
+
+ 9. Run all tests:
+      cd api && pytest -m "not network" -q
+    And check specifically:
+      pytest tests/test_translations.py tests/test_multilingual_integration.py -q -m "not network"
+
+10. Count check — update the assertion in:
+      api/tests/test_translations.py::test_list_available_translations
+    (change the expected count from N to N+1)
+
+NOTES:
+- getBible codes sometimes differ from internal codes.
+  Always verify at: https://api.getbible.net/v2/<code>.json
+  Internal code = what language.py uses; getBible code = what goes in the URL.
+  Example: internal "cuv" → URL uses "cus"; internal "krv" → URL uses "korean".
+- If no free source exists, use source="manual", url=None and document how to
+  load the data manually.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 # Italian book names (Riveduta 1927) → Standard English names
