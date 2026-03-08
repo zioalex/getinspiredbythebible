@@ -28,6 +28,8 @@ data class ChatUiState(
     val isTurnstileReady: Boolean = false,
     /** ID of the currently active conversation; null when no conversation has started. */
     val currentConversationId: String? = null,
+    /** Display title of the current conversation; null for a new (unsaved) conversation. */
+    val conversationTitle: String? = null,
 )
 
 @HiltViewModel
@@ -161,6 +163,7 @@ class ChatViewModel @Inject constructor(
     /**
      * Returns the current conversation ID, creating a new conversation in Room
      * if one doesn't exist yet. Should be called on the first message of a session.
+     * Also sets [ChatUiState.conversationTitle] to the first-message text.
      */
     private suspend fun ensureConversation(firstMessageText: String): String {
         val existing = _uiState.value.currentConversationId
@@ -168,13 +171,22 @@ class ChatViewModel @Inject constructor(
 
         val newId = UUID.randomUUID().toString()
         val conversation = repository.createConversation(id = newId, title = firstMessageText)
-        _uiState.update { it.copy(currentConversationId = conversation.id) }
+        _uiState.update {
+            it.copy(
+                currentConversationId = conversation.id,
+                conversationTitle = conversation.title,
+            )
+        }
         return conversation.id
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
     fun loadConversation(conversationId: String) {
         viewModelScope.launch {
+            // Fetch the conversation title once before observing messages.
+            val title = repository.getConversation(conversationId)?.title
+            _uiState.update { it.copy(conversationTitle = title) }
+
             repository.observeMessages(conversationId).collect { messages ->
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId) }
             }
@@ -189,6 +201,7 @@ class ChatViewModel @Inject constructor(
                 error = null,
                 isLoading = false,
                 currentConversationId = null,
+                conversationTitle = null,
             )
         }
     }
@@ -210,7 +223,14 @@ class ChatViewModel @Inject constructor(
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null) }
+        _uiState.update {
+            it.copy(
+                messages = emptyList(),
+                error = null,
+                currentConversationId = null,
+                conversationTitle = null,
+            )
+        }
         if (conversationId != null) {
             viewModelScope.launch {
                 repository.deleteConversation(conversationId)

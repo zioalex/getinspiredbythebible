@@ -5,7 +5,9 @@
     <!-- Chat screen -->
     <string name="chat_input_hint">Share what\'s on your heart…</string>
     <string name="chat_send_button">Send</string>
+    <string name="chat_new_conversation_title">New Conversation</string>
     <string name="action_clear_conversation">Clear conversation</string>
+    <string name="action_navigate_back">Navigate back</string>
 
     <!-- Welcome banner -->
     <string name="welcome_title">Find Inspiration in Scripture</string>

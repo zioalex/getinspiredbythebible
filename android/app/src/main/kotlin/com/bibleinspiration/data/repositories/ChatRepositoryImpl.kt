@@ -84,4 +84,7 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun clearAllConversations() {
         db.conversationDao().deleteAll()
     }
+
+    override suspend fun getConversation(id: String): Conversation? =
+        db.conversationDao().getById(id)?.toDomain()
 }

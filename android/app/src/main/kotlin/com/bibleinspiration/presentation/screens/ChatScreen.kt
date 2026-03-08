@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +46,7 @@ import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 @Composable
 fun ChatScreen(
     conversationId: String? = null,
+    onNavigateBack: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -74,14 +76,29 @@ fun ChatScreen(
         }
     }
 
+    val newConversationTitle = stringResource(R.string.chat_new_conversation_title)
+    val appBarTitle = when {
+        uiState.currentConversationId == null -> newConversationTitle
+        uiState.conversationTitle != null -> uiState.conversationTitle
+        else -> newConversationTitle
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.app_name),
+                        text = appBarTitle,
                         style = MaterialTheme.typography.titleMedium,
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_navigate_back),
+                        )
+                    }
                 },
                 actions = {
                     if (uiState.messages.isNotEmpty()) {

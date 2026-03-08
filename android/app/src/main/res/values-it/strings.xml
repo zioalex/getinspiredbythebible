@@ -3,7 +3,9 @@
     <string name="app_name">Ispirazione Biblica</string>
     <string name="chat_input_hint">Condividi cosa hai nel cuore…</string>
     <string name="chat_send_button">Invia</string>
+    <string name="chat_new_conversation_title">Nuova conversazione</string>
     <string name="action_clear_conversation">Cancella conversazione</string>
+    <string name="action_navigate_back">Torna indietro</string>
     <string name="welcome_title">Trova Ispirazione nella Scrittura</string>
     <string name="welcome_subtitle">Racconta cosa stai attraversando e ricevi incoraggiamento radicato nella Parola di Dio.</string>
     <string name="error_network">Errore di rete. Controlla la connessione.</string>

@@ -52,6 +52,7 @@ class ChatViewModelTest {
         coEvery { repository.saveMessage(any(), any()) } returns Unit
         coEvery { repository.touchConversation(any()) } returns Unit
         coEvery { repository.deleteConversation(any()) } returns Unit
+        coEvery { repository.getConversation(any()) } returns null
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
@@ -70,6 +71,11 @@ class ChatViewModelTest {
         assertNull(state.error)
         assertFalse(state.isLoading)
         assertFalse(state.isTurnstileReady)
+    }
+
+    @Test
+    fun `initial state has null conversationTitle`() {
+        assertNull(viewModel.uiState.value.conversationTitle)
     }
 
     @Test
@@ -152,6 +158,21 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `clearConversation clears conversationTitle`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hi", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("Hello world")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.clearConversation()
+
+        assertNull(viewModel.uiState.value.conversationTitle)
+    }
+
+    @Test
     fun `setLocale updates currentLocale`() {
         viewModel.setLocale("ar")
         assertEquals("ar", viewModel.uiState.value.currentLocale)
@@ -173,6 +194,21 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `startNewConversation clears conversationTitle`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hello!", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("First message")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.startNewConversation()
+
+        assertNull(viewModel.uiState.value.conversationTitle)
+    }
+
+    @Test
     fun `sendMessage creates conversation on first message`() = runTest {
         every { repository.chatStream(any()) } returns flowOf(
             StreamChunk(content = "Reply", done = true),
@@ -183,6 +219,53 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(stubConversation.id, viewModel.uiState.value.currentConversationId)
+    }
+
+    @Test
+    fun `ensureConversation sets conversationTitle from created conversation`() = runTest {
+        val conversation = Conversation(
+            id = "new-id",
+            title = "What is the meaning of life",
+            createdAt = 2000L,
+            updatedAt = 2000L,
+        )
+        coEvery { repository.createConversation(any(), any()) } returns conversation
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "42", done = true),
+        )
+
+        viewModel.sendMessage("What is the meaning of life")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("What is the meaning of life", viewModel.uiState.value.conversationTitle)
+    }
+
+    @Test
+    fun `loadConversation sets conversationTitle from repository`() = runTest {
+        val existingConversation = Conversation(
+            id = "existing-id",
+            title = "My saved chat",
+            createdAt = 500L,
+            updatedAt = 500L,
+        )
+        coEvery { repository.getConversation("existing-id") } returns existingConversation
+        every { repository.observeMessages("existing-id") } returns flowOf(emptyList())
+
+        viewModel.loadConversation("existing-id")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("My saved chat", viewModel.uiState.value.conversationTitle)
+    }
+
+    @Test
+    fun `loadConversation sets null title when conversation not found`() = runTest {
+        coEvery { repository.getConversation("missing-id") } returns null
+        every { repository.observeMessages("missing-id") } returns flowOf(emptyList())
+
+        viewModel.loadConversation("missing-id")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.conversationTitle)
     }
 
     @Test

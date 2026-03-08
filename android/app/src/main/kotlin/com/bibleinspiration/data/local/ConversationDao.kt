@@ -24,4 +24,7 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversations")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): ConversationEntity?
 }
