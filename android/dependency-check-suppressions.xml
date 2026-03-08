@@ -288,4 +288,25 @@
     CVE-2023-7104 suppressed above (global). CVE-2025-6965 suppressed above (global).
   -->
 
+  <!--
+    kotlin-android-extensions-runtime-1.9.22.jar / kotlin-parcelize-runtime-1.9.22.jar
+    — CVE-2025-29903 (CVSS 7.8, Kotlin IDE plugin vulnerability).
+    These JARs are build-time transitive artifacts pulled in by the Android Gradle Plugin (AGP).
+    They are NOT packaged into the APK and do not run on end-user devices.
+    CVE-2025-29903 affects the Kotlin IDE plugin (IntelliJ/Android Studio plugin machinery),
+    not the Android runtime libraries. OWASP incorrectly matches the version string "1.9.22"
+    in the jar filename to the Kotlin CPE. The project's own Kotlin version is 2.0.21 (unaffected).
+    This is a CPE false-positive: the vulnerable component is the IDE plugin, not these runtime jars.
+  -->
+  <suppress>
+    <notes>CVE-2025-29903: False positive. kotlin-android-extensions-runtime-1.9.22.jar and
+      kotlin-parcelize-runtime-1.9.22.jar are build-time transitive artifacts pulled in by AGP.
+      They are NOT shipped in the APK and do not run on end-user devices.
+      CVE-2025-29903 affects the Kotlin IDE plugin, not Android runtime libraries.
+      OWASP incorrectly matches the "1.9.22" version string to the Kotlin CPE.
+      Project Kotlin version is 2.0.21 (unaffected).
+    </notes>
+    <cve>CVE-2025-29903</cve>
+  </suppress>
+
 </suppressions>
