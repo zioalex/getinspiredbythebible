@@ -172,6 +172,22 @@ class TestTranslationMapping:
         """Test full detection pipeline for German."""
         assert detect_translation("Ich brauche heute Ermutigung") == "schlachter"
 
+    def test_detect_translation_russian(self):
+        """Test full detection pipeline for Russian."""
+        assert detect_translation("Мне нужно ободрение сегодня") == "synodal"
+
+    def test_detect_translation_chinese(self):
+        """Test full detection pipeline for Chinese."""
+        assert detect_translation("我今天需要鼓励") == "cuv"
+
+    def test_detect_translation_hindi(self):
+        """Test full detection pipeline for Hindi."""
+        assert detect_translation("मुझे आज प्रोत्साहन चाहिए") == "hindi"
+
+    def test_detect_translation_korean(self):
+        """Test full detection pipeline for Korean."""
+        assert detect_translation("나는 오늘 격려가 필요합니다") == "krv"
+
 
 class TestTranslationInfo:
     """Tests for translation info retrieval."""
