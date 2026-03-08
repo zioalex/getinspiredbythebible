@@ -504,29 +504,57 @@ ARABIC_BOOK_NAMES = {
 }
 
 # Russian book names (Synodal Translation) → Standard English names
+#
+# The Synodal API (api.getbible.net/v2/synodal.json) uses genitive/abbreviated
+# Russian forms for several books that differ from the plain nominative forms.
+# Both the API form (primary) and the nominative alternate are listed so the
+# map works regardless of which form appears in a given data source.
+#
+# The Synodal canon also contains deuterocanonical/apocryphal books not present
+# in the Protestant 66-book canon (e.g. Товит, Юдифь, Сирах, Премудрость
+# Соломона, Молитва Манассии, 1-я Ездры). Those are intentionally absent here;
+# the loader will emit "Unknown book" warnings for them and skip them, which is
+# the correct behaviour — they have no matching entry in BIBLE_BOOKS.
 RUSSIAN_BOOK_NAMES = {
     "Бытие": "Genesis",
     "Исход": "Exodus",
     "Левит": "Leviticus",
     "Числа": "Numbers",
     "Второзаконие": "Deuteronomy",
-    "Иисус Навин": "Joshua",
-    "Судьи": "Judges",
+    # Joshua — API returns genitive "Иисуса Навина", nominative kept as alternate
+    "Иисуса Навина": "Joshua",
+    "Иисус Навин": "Joshua",  # alternate (nominative)
+    # Judges — API returns genitive "Судей", nominative kept as alternate
+    "Судей": "Judges",
+    "Судьи": "Judges",  # alternate (nominative)
     "Руфь": "Ruth",
-    "1 Царств": "1 Samuel",
-    "2 Царств": "2 Samuel",
-    "3 Царств": "1 Kings",
-    "4 Царств": "2 Kings",
-    "1 Паралипоменон": "1 Chronicles",
-    "2 Паралипоменон": "2 Chronicles",
-    "Ездра": "Ezra",
-    "Неемия": "Nehemiah",
+    # Samuel/Kings — API uses "N-я" ordinal prefix, not plain "N "
+    "1-я Царств": "1 Samuel",
+    "1 Царств": "1 Samuel",  # alternate
+    "2-я Царств": "2 Samuel",
+    "2 Царств": "2 Samuel",  # alternate
+    "3-я Царств": "1 Kings",
+    "3 Царств": "1 Kings",  # alternate
+    "4-я Царств": "2 Kings",
+    "4 Царств": "2 Kings",  # alternate
+    # Chronicles — API uses "N-я" ordinal prefix
+    "1-я Паралипоменон": "1 Chronicles",
+    "1 Паралипоменон": "1 Chronicles",  # alternate
+    "2-я Паралипоменон": "2 Chronicles",
+    "2 Паралипоменон": "2 Chronicles",  # alternate
+    # Ezra/Nehemiah — API returns genitive forms
+    "Ездры": "Ezra",
+    "Ездра": "Ezra",  # alternate (nominative)
+    "Неемии": "Nehemiah",
+    "Неемия": "Nehemiah",  # alternate (nominative)
     "Есфирь": "Esther",
     "Иов": "Job",
     "Псалтирь": "Psalms",
     "Притчи": "Proverbs",
     "Екклесиаст": "Ecclesiastes",
-    "Песня Песней": "Song of Solomon",
+    # Song of Solomon — API uses "Песнь Песней" (not "Песня Песней")
+    "Песнь Песней": "Song of Solomon",
+    "Песня Песней": "Song of Solomon",  # alternate
     "Исаия": "Isaiah",
     "Иеремия": "Jeremiah",
     "Плач Иеремии": "Lamentations",
