@@ -1235,8 +1235,7 @@ jobs:
     # Mirror the seed-database trigger conditions
     if: >-
       always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
-      'skipped') && needs.seed-database.result != 'skipped' &&
-      ((needs.changes.outputs.bible_scripts == 'true') ||
+      'skipped') && needs.seed-database.result != 'skipped' && ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
