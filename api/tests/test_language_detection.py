@@ -4,8 +4,12 @@ Tests for the language detection and translation mapping utilities.
 
 from utils.language import (
     DEFAULT_TRANSLATION,
+    ENGLISH_TO_CHINESE_BOOKS,
     ENGLISH_TO_GERMAN_BOOKS,
+    ENGLISH_TO_HINDI_BOOKS,
     ENGLISH_TO_ITALIAN_BOOKS,
+    ENGLISH_TO_KOREAN_BOOKS,
+    ENGLISH_TO_RUSSIAN_BOOKS,
     LANGUAGE_TO_TRANSLATION,
     LANGUAGE_TRANSLATIONS,
     TRANSLATION_INFO,
@@ -64,6 +68,46 @@ class TestLanguageDetection:
         """Test that None-like text defaults to English."""
         assert detect_language("") == "en"
 
+    def test_detect_russian(self):
+        """Test detection of Russian text."""
+        texts = [
+            "Привет, мне нужна помощь с моей жизнью",
+            "Я беспокоюсь о своём будущем",
+            "Что Библия говорит о прощении и благодати?",
+        ]
+        for text in texts:
+            assert detect_language(text) == "ru"
+
+    def test_detect_chinese(self):
+        """Test detection of Chinese text."""
+        texts = [
+            "你好，我需要生活方面的帮助",
+            "我对未来感到焦虑和不安",
+            "圣经对宽恕有什么看法？",
+        ]
+        for text in texts:
+            assert detect_language(text) == "zh"
+
+    def test_detect_hindi(self):
+        """Test detection of Hindi text."""
+        texts = [
+            "नमस्ते, मुझे अपने जीवन में मदद चाहिए",
+            "मैं अपने भविष्य को लेकर चिंतित हूं",
+            "बाइबिल क्षमा के बारे में क्या कहती है?",
+        ]
+        for text in texts:
+            assert detect_language(text) == "hi"
+
+    def test_detect_korean(self):
+        """Test detection of Korean text."""
+        texts = [
+            "안녕하세요, 제 삶에 대한 도움이 필요합니다",
+            "저는 미래에 대해 불안합니다",
+            "성경은 용서에 대해 무엇을 말하나요?",
+        ]
+        for text in texts:
+            assert detect_language(text) == "ko"
+
 
 class TestTranslationMapping:
     """Tests for translation mapping."""
@@ -98,8 +142,23 @@ class TestTranslationMapping:
 
     def test_get_translation_for_unknown_language(self):
         """Test unknown language defaults to WEB."""
-        assert get_translation_for_language("zh") == DEFAULT_TRANSLATION
         assert get_translation_for_language("xx") == DEFAULT_TRANSLATION
+
+    def test_get_translation_for_russian(self):
+        """Test Russian maps to Synodal."""
+        assert get_translation_for_language("ru") == "synodal"
+
+    def test_get_translation_for_chinese(self):
+        """Test Chinese maps to CUV."""
+        assert get_translation_for_language("zh") == "cuv"
+
+    def test_get_translation_for_hindi(self):
+        """Test Hindi maps to IRV Hindi."""
+        assert get_translation_for_language("hi") == "hindi"
+
+    def test_get_translation_for_korean(self):
+        """Test Korean maps to Korean Revised Version."""
+        assert get_translation_for_language("ko") == "krv"
 
     def test_detect_translation_english(self):
         """Test full detection pipeline for English."""
@@ -235,13 +294,61 @@ class TestBookNameLocalization:
         for book in standard_books:
             assert book in ENGLISH_TO_GERMAN_BOOKS
 
+    def test_all_66_books_have_russian_translation(self):
+        """Test all 66 Bible books have Russian translations."""
+        assert len(ENGLISH_TO_RUSSIAN_BOOKS) == 66
+
+    def test_all_66_books_have_chinese_translation(self):
+        """Test all 66 Bible books have Chinese translations."""
+        assert len(ENGLISH_TO_CHINESE_BOOKS) == 66
+
+    def test_all_66_books_have_hindi_translation(self):
+        """Test all 66 Bible books have Hindi translations."""
+        assert len(ENGLISH_TO_HINDI_BOOKS) == 66
+
+    def test_all_66_books_have_korean_translation(self):
+        """Test all 66 Bible books have Korean translations."""
+        assert len(ENGLISH_TO_KOREAN_BOOKS) == 66
+
+    def test_localize_genesis_russian(self):
+        """Test Genesis localizes to Russian."""
+        assert get_localized_book_name("Genesis", "synodal") == "Бытие"
+
+    def test_localize_genesis_chinese(self):
+        """Test Genesis localizes to Chinese."""
+        assert get_localized_book_name("Genesis", "cuv") == "创世记"
+
+    def test_localize_genesis_hindi(self):
+        """Test Genesis localizes to Hindi."""
+        assert get_localized_book_name("Genesis", "hindi") == "उत्पत्ति"
+
+    def test_localize_genesis_korean(self):
+        """Test Genesis localizes to Korean."""
+        assert get_localized_book_name("Genesis", "krv") == "창세기"
+
+    def test_localize_john_russian(self):
+        """Test John localizes to Russian."""
+        assert get_localized_book_name("John", "synodal") == "Иоанн"
+
+    def test_localize_revelation_chinese(self):
+        """Test Revelation localizes to Chinese."""
+        assert get_localized_book_name("Revelation", "cuv") == "启示录"
+
+    def test_localize_psalms_hindi(self):
+        """Test Psalms localizes to Hindi."""
+        assert get_localized_book_name("Psalms", "hindi") == "भजन संहिता"
+
+    def test_localize_revelation_korean(self):
+        """Test Revelation localizes to Korean."""
+        assert get_localized_book_name("Revelation", "krv") == "요한계시록"
+
 
 class TestLanguageToTranslationMapping:
     """Tests for the language to translation mapping."""
 
     def test_all_supported_languages_have_mappings(self):
         """Test all supported languages have translation mappings."""
-        supported = ["en", "it", "de", "es", "fr", "pt", "ar"]
+        supported = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
         for lang in supported:
             assert lang in LANGUAGE_TO_TRANSLATION
 
@@ -300,8 +407,32 @@ class TestGetTranslationsForLanguage:
 
     def test_unknown_language_returns_empty(self):
         """Test unknown language returns empty list."""
-        result = get_translations_for_language("zh")
+        result = get_translations_for_language("xx")
         assert result == []
+
+    def test_russian_returns_one(self):
+        """Test Russian has one translation."""
+        result = get_translations_for_language("ru")
+        assert len(result) == 1
+        assert result[0]["code"] == "synodal"
+
+    def test_chinese_returns_one(self):
+        """Test Chinese has one translation."""
+        result = get_translations_for_language("zh")
+        assert len(result) == 1
+        assert result[0]["code"] == "cuv"
+
+    def test_hindi_returns_one(self):
+        """Test Hindi has one translation."""
+        result = get_translations_for_language("hi")
+        assert len(result) == 1
+        assert result[0]["code"] == "hindi"
+
+    def test_korean_returns_one(self):
+        """Test Korean has one translation."""
+        result = get_translations_for_language("ko")
+        assert len(result) == 1
+        assert result[0]["code"] == "krv"
 
 
 class TestIsValidTranslation:

@@ -184,3 +184,85 @@ def test_translation_model_repr():
     assert "kjv" in repr_str
     assert "King James Version" in repr_str
     assert "English" in repr_str
+
+
+def test_phase2_language_translation_mapping():
+    """Test Phase 2 languages map to correct translation codes."""
+    from utils.language import get_translation_for_language
+
+    assert get_translation_for_language("ru") == "synodal"
+    assert get_translation_for_language("zh") == "cuv"
+    assert get_translation_for_language("hi") == "hindi"
+    assert get_translation_for_language("ko") == "krv"
+
+
+def test_phase2_translation_info_complete():
+    """Test Phase 2 translations have complete metadata."""
+    from utils.language import get_translation_info
+
+    ru_info = get_translation_info("synodal")
+    assert ru_info["code"] == "synodal"
+    assert ru_info["language_code"] == "ru"
+    assert ru_info["language"] == "Russian"
+
+    zh_info = get_translation_info("cuv")
+    assert zh_info["code"] == "cuv"
+    assert zh_info["language_code"] == "zh"
+    assert zh_info["language"] == "Chinese"
+
+    hi_info = get_translation_info("hindi")
+    assert hi_info["code"] == "hindi"
+    assert hi_info["language_code"] == "hi"
+    assert hi_info["language"] == "Hindi"
+
+    ko_info = get_translation_info("krv")
+    assert ko_info["code"] == "krv"
+    assert ko_info["language_code"] == "ko"
+    assert ko_info["language"] == "Korean"
+
+
+def test_phase2_book_name_localization():
+    """Test Phase 2 language book name localization."""
+    from utils.language import get_localized_book_name
+
+    # Russian
+    assert get_localized_book_name("Genesis", "synodal") == "Бытие"
+    assert get_localized_book_name("Revelation", "synodal") == "Откровение"
+    assert get_localized_book_name("John", "synodal") == "Иоанн"
+
+    # Chinese
+    assert get_localized_book_name("Genesis", "cuv") == "创世记"
+    assert get_localized_book_name("Revelation", "cuv") == "启示录"
+    assert get_localized_book_name("John", "cuv") == "约翰福音"
+
+    # Hindi
+    assert get_localized_book_name("Genesis", "hindi") == "उत्पत्ति"
+    assert get_localized_book_name("Revelation", "hindi") == "प्रकाशितवाक्य"
+    assert get_localized_book_name("John", "hindi") == "यूहन्ना"
+
+    # Korean
+    assert get_localized_book_name("Genesis", "krv") == "창세기"
+    assert get_localized_book_name("Revelation", "krv") == "요한계시록"
+    assert get_localized_book_name("John", "krv") == "요한복음"
+
+
+def test_phase2_supported_languages_list():
+    """Test that Phase 2 languages are in SUPPORTED_LANGUAGES."""
+    from utils.language import SUPPORTED_LANGUAGES
+
+    for lang in ["ru", "zh", "hi", "ko"]:
+        assert lang in SUPPORTED_LANGUAGES, f"{lang} missing from SUPPORTED_LANGUAGES"
+
+
+def test_phase2_prompts_have_language_names():
+    """Test that Phase 2 languages are in LANGUAGE_NAMES prompt dict."""
+    from chat.prompts import LANGUAGE_NAMES, SOURCE_ATTRIBUTION_EXAMPLES
+
+    for lang in ["ru", "zh", "hi", "ko"]:
+        assert lang in LANGUAGE_NAMES, f"{lang} missing from LANGUAGE_NAMES"
+        assert (
+            lang in SOURCE_ATTRIBUTION_EXAMPLES
+        ), f"{lang} missing from SOURCE_ATTRIBUTION_EXAMPLES"
+        # Each entry should be a tuple of two strings
+        examples = SOURCE_ATTRIBUTION_EXAMPLES[lang]
+        assert isinstance(examples, tuple) and len(examples) == 2

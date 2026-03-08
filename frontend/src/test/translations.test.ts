@@ -6,6 +6,10 @@ import esMessages from "../../messages/es.json";
 import frMessages from "../../messages/fr.json";
 import ptMessages from "../../messages/pt.json";
 import arMessages from "../../messages/ar.json";
+import ruMessages from "../../messages/ru.json";
+import zhMessages from "../../messages/zh.json";
+import hiMessages from "../../messages/hi.json";
+import koMessages from "../../messages/ko.json";
 import IntlMessageFormat from "intl-messageformat";
 
 const locales: Record<string, typeof enMessages> = {
@@ -16,7 +20,15 @@ const locales: Record<string, typeof enMessages> = {
   fr: frMessages,
   pt: ptMessages,
   ar: arMessages,
+  ru: ruMessages,
+  zh: zhMessages,
+  hi: hiMessages,
+  ko: koMessages,
 };
+
+// Locales where plural forms don't grammatically distinguish singular/plural
+// (ICU "other" form covers all numbers, so result1 === result5 is expected)
+const skipDiffCheck = new Set(["zh", "ko"]);
 
 function getKeys(obj: Record<string, unknown>, prefix = ""): string[] {
   return Object.entries(obj).flatMap(([key, value]) => {
@@ -46,12 +58,15 @@ function getValue(obj: Record<string, unknown>, path: string): unknown {
 
 describe("Translation file consistency", () => {
   const enKeys = getKeys(enMessages);
-  const itKeys = getKeys(itMessages);
-  const deKeys = getKeys(deMessages);
 
   it("all locales have identical key structure", () => {
-    expect(itKeys.sort()).toEqual(enKeys.sort());
-    expect(deKeys.sort()).toEqual(enKeys.sort());
+    for (const [locale, messages] of Object.entries(locales)) {
+      if (locale === "en") continue;
+      const localeKeys = getKeys(messages as Record<string, unknown>);
+      expect(localeKeys.sort(), `${locale} key structure should match en`).toEqual(
+        enKeys.sort(),
+      );
+    }
   });
 
   it("no empty string values in any locale", () => {
@@ -106,13 +121,16 @@ describe("Translation file consistency", () => {
     }
   });
 
-  it("no extraneous keys in it or de that en does not have", () => {
+  it("no extraneous keys in any locale that en does not have", () => {
     const enKeySet = new Set(enKeys);
-    for (const key of itKeys) {
-      expect(enKeySet.has(key), `Extraneous key in it: ${key}`).toBe(true);
-    }
-    for (const key of deKeys) {
-      expect(enKeySet.has(key), `Extraneous key in de: ${key}`).toBe(true);
+    for (const [locale, messages] of Object.entries(locales)) {
+      if (locale === "en") continue;
+      const localeKeys = getKeys(messages as Record<string, unknown>);
+      for (const key of localeKeys) {
+        expect(enKeySet.has(key), `Extraneous key in ${locale}: ${key}`).toBe(
+          true,
+        );
+      }
     }
   });
 
@@ -138,11 +156,16 @@ describe("Translation file consistency", () => {
         expect(result1, `${key} in ${locale} singular`).toContain("1");
         // Plural form should contain "5"
         expect(result5, `${key} in ${locale} plural`).toContain("5");
-        // Singular and plural should differ
-        expect(
-          result1,
-          `${key} in ${locale} singular vs plural should differ`,
-        ).not.toBe(result5);
+
+        // Singular and plural should differ — except for languages that use
+        // only the "other" form (e.g. Chinese, Korean) where 1 and 5 produce
+        // the same template with different numbers substituted.
+        if (!skipDiffCheck.has(locale)) {
+          expect(
+            result1,
+            `${key} in ${locale} singular vs plural should differ`,
+          ).not.toBe(result5);
+        }
       }
     }
   });

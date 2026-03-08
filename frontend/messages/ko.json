@@ -1,0 +1,126 @@
+{
+  "Metadata": {
+    "title": "성경 영감 채팅",
+    "description": "성경을 통해 영적 격려와 인도하심을 찾으세요"
+  },
+  "Header": {
+    "title": "성경 영감",
+    "subtitle": "성경을 통해 격려를 찾으세요",
+    "bibleVersion": "성경 버전:",
+    "autoDetect": "자동 감지",
+    "newChat": "새 대화"
+  },
+  "Welcome": {
+    "heading": "환영합니다",
+    "description": "마음속에 있는 것을 나누고, 성경에 관한 질문을 하거나, 단순히 격려를 구하세요. 신학적 주제를 탐구하는 데 도움을 드릴 수 있지만, 훈련된 신학자나 목회적 지도의 대체물은 아닙니다.",
+    "prompt1": "미래에 대해 불안합니다",
+    "prompt2": "성경은 용서에 대해 무엇을 말하나요?",
+    "prompt3": "오늘 격려가 필요합니다",
+    "prompt4": "요한복음 3:16을 이해하도록 도와주세요"
+  },
+  "Chat": {
+    "inputPlaceholder": "마음속에 있는 것을 나누세요...",
+    "disclaimer": "AI가 생성한 응답에는 오류가 포함될 수 있습니다. 신학이나 목회 상담의 대체물이 아닙니다.",
+    "loadingWarmup": "준비 중입니다. 잠시 기다려 주세요...",
+    "loadingSearch": "성경을 검색하고 묵상하는 중...",
+    "backendWarmingUp": "서버가 시작 중입니다, 입력을 시작할 수 있습니다...",
+    "errorColdStart": "아직 준비 중이며 예상보다 오래 걸리고 있습니다. 잠시 후 다시 시도해 주세요 - 곧 준비될 것입니다!",
+    "errorConnection": "죄송합니다, 지금 연결에 문제가 있습니다. 일시적인 문제일 수 있습니다 - 잠시 후 다시 시도해 주세요. 문제가 지속되면 getinspiredbythebible@ai4you.sh로 연락하실 수 있습니다",
+    "startNewSession": "새 세션 시작"
+  },
+  "Verses": {
+    "scriptureReferences": "성경 참조",
+    "verseCount": "{count, plural, other {# 절}}",
+    "referenced": "인용됨",
+    "allRelated": "모든 관련 항목 ({count})",
+    "noVersesReferenced": "아직 인용된 구절이 없습니다.",
+    "noVersesReferencedHint": "채팅에서 언급될 때 구절이 여기에 표시됩니다.",
+    "readFullChapter": "전체 장 읽기",
+    "showScriptureReferences": "성경 참조 표시",
+    "close": "닫기"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, other {# 절}}",
+    "defaultTranslation": "개역개정"
+  },
+  "Feedback": {
+    "wasHelpful": "도움이 되었나요?",
+    "thumbsUp": "좋아요",
+    "thumbsDown": "별로예요",
+    "helpfulTitle": "도움이 되었습니다",
+    "improveTitle": "개선이 필요합니다",
+    "thanks": "피드백 감사합니다!",
+    "positiveHeading": "무엇이 도움이 되었나요?",
+    "negativeHeading": "무엇을 개선할 수 있나요?",
+    "positiveDescription": "피드백을 통해 무엇이 잘 작동하는지 이해하는 데 도움이 됩니다.",
+    "negativeDescription": "더 나아질 수 있는 방법을 알려주세요.",
+    "positivePlaceholder": "구절 제안이 제 질문과 관련이 있었습니다...",
+    "negativePlaceholder": "응답이 제 특정 우려를 해결하지 못했습니다...",
+    "privacyNotice": "피드백을 제출하면 서비스 개선을 위해 메시지와 AI 응답이 기록됩니다.",
+    "skip": "건너뛰기",
+    "submit": "피드백 제출",
+    "submitting": "제출 중...",
+    "close": "닫기",
+    "toastError": "지금은 피드백을 저장할 수 없지만 시도해 주셔서 감사합니다!"
+  },
+  "ChurchFinder": {
+    "bannerText": "신앙 공동체를 찾고 계신가요?",
+    "findChurch": "교회 찾기",
+    "dismiss": "닫기",
+    "inlineText": "기도 공동체나 교회를 찾고 계신가요?",
+    "inlineCta": "근처에서 찾기",
+    "modalTitle": "교회 찾기",
+    "modalSubtitle": "가까운 신앙 공동체와 연결하세요",
+    "searchPlaceholder": "영어로 도시 입력 (예: Rome, Munich, Zurich)",
+    "searching": "교회를 검색하는 중...",
+    "errorSearch": "교회 검색에 실패했습니다. 다시 시도해 주세요.",
+    "errorConnection": "연결을 확인하고 다시 시도해 주세요.",
+    "foundCount": "{count, plural, other {# 개의 교회를 찾았습니다}}",
+    "noChurchesFound": "교회를 찾을 수 없습니다",
+    "noChurchesHint": "다른 위치나 더 넓은 검색어를 시도해 보세요.",
+    "enterLocation": "검색할 위치를 입력하세요",
+    "enterLocationHint": "영어 도시 이름 사용 (예: Rome, Munich, Vienna)",
+    "website": "웹사이트",
+    "email": "이메일",
+    "churchData": "교회 데이터 제공",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "공유",
+    "copyToClipboard": "클립보드에 복사",
+    "copied": "복사됨!",
+    "shareOnWhatsApp": "WhatsApp으로 공유",
+    "shareOnTwitter": "X로 공유",
+    "shareOnFacebook": "Facebook으로 공유",
+    "shareOnBluesky": "Bluesky로 공유",
+    "sharePrefix": "이 영감적인 성경 통찰을 발견했습니다:",
+    "shareVia": "성경 영감 채팅"
+  },
+  "Contact": {
+    "getInTouch": "문의하기",
+    "emailUs": "이메일 보내기:",
+    "emailLabel": "이메일 (선택 사항, 답변용)",
+    "emailPlaceholder": "you@example.com",
+    "subjectLabel": "제목",
+    "subjectSpiritual": "영적 또는 성경적 질문에 대해 더 깊이 이야기하고 싶으신가요?",
+    "subjectFeedback": "일반 피드백",
+    "subjectBug": "버그 신고",
+    "subjectFeature": "기능 요청",
+    "subjectOther": "기타",
+    "messageLabel": "메시지",
+    "messagePlaceholder": "생각을 나누고, 문제를 신고하거나, 개선 사항을 제안해 주세요...",
+    "privacyNote": "서비스 개선을 위해 메시지가 저장됩니다.",
+    "sending": "전송 중...",
+    "sendMessage": "메시지 보내기",
+    "successTitle": "메시지가 성공적으로 전송되었습니다!",
+    "successDescription": "연락해 주셔서 감사합니다. 곧 메시지를 검토하겠습니다.",
+    "sendAnother": "다른 메시지 보내기",
+    "errorSend": "메시지 전송에 실패했습니다. 다시 시도하거나 직접 이메일을 보내주세요."
+  },
+  "ErrorBoundary": {
+    "title": "문제가 발생했습니다",
+    "message": "예상치 못한 오류가 발생했습니다. 페이지를 다시 로드해 보세요. 문제가 지속되면 지원팀에 문의하세요.",
+    "reloadButton": "페이지 새로고침",
+    "reportIssue": "이 문제 보고"
+  }
+}
