@@ -89,10 +89,10 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # Debug APK build (validates the project compiles)
+  # Prod APK build (debuggable, points to production backend)
   # ---------------------------------------------------------------------------
   build:
-    name: Build Debug APK
+    name: Build Prod APK
     runs-on: ubuntu-latest
     needs: [unit-tests, lint]
 
@@ -110,14 +110,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build prod APK (debuggable, points to production backend)
+        run: |
+          ./gradlew assembleDebug --no-daemon \
+            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
         working-directory: android
 
-      - name: Upload debug APK
+      - name: Upload prod APK
         uses: actions/upload-artifact@v7
         with:
-          name: debug-apk
+          name: android-prod-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
@@ -192,8 +194,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build prod APK (debuggable, points to production backend)
+        run: |
+          ./gradlew assembleDebug --no-daemon \
+            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
         working-directory: android
 
       - name: Check AndroidManifest security flags

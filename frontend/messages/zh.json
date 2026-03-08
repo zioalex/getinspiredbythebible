@@ -1,0 +1,126 @@
+{
+  "Metadata": {
+    "title": "圣经灵感聊天",
+    "description": "通过圣经寻找属灵鼓励和指引"
+  },
+  "Header": {
+    "title": "圣经灵感",
+    "subtitle": "通过圣经寻找鼓励",
+    "bibleVersion": "圣经版本：",
+    "autoDetect": "自动检测",
+    "newChat": "新对话"
+  },
+  "Welcome": {
+    "heading": "欢迎",
+    "description": "分享您心中所想，提问关于圣经的问题，或寻求鼓励。我可以帮助探索神学主题，但我不能替代专业神学家或牧灵辅导。",
+    "prompt1": "我对未来感到焦虑",
+    "prompt2": "圣经对宽恕有什么说法？",
+    "prompt3": "我今天需要鼓励",
+    "prompt4": "帮我理解约翰福音3:16"
+  },
+  "Chat": {
+    "inputPlaceholder": "分享您心中所想...",
+    "disclaimer": "人工智能生成的回复可能包含错误。不能替代神学或牧灵辅导。",
+    "loadingWarmup": "我正在准备中，请稍候...",
+    "loadingSearch": "正在搜索圣经并思考...",
+    "backendWarmingUp": "服务器正在启动，您可以开始输入...",
+    "errorColdStart": "我还在准备中，比预期花的时间更长。请稍后再试——我很快就会准备好！",
+    "errorConnection": "很抱歉，我目前连接遇到问题。这可能是暂时的问题——请稍后再试。如果问题持续，请联系我们：getinspiredbythebible@ai4you.sh",
+    "startNewSession": "开始新会话"
+  },
+  "Verses": {
+    "scriptureReferences": "圣经参考",
+    "verseCount": "{count, plural, other {# 节}}",
+    "referenced": "已引用",
+    "allRelated": "所有相关（{count}）",
+    "noVersesReferenced": "尚未引用经文。",
+    "noVersesReferencedHint": "当聊天中提到经文时，它们将显示在此处。",
+    "readFullChapter": "阅读整章",
+    "showScriptureReferences": "显示圣经参考",
+    "close": "关闭"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, other {# 节}}",
+    "defaultTranslation": "中文和合本"
+  },
+  "Feedback": {
+    "wasHelpful": "这有帮助吗？",
+    "thumbsUp": "赞",
+    "thumbsDown": "踩",
+    "helpfulTitle": "这很有帮助",
+    "improveTitle": "这可以改进",
+    "thanks": "感谢您的反馈！",
+    "positiveHeading": "什么是有帮助的？",
+    "negativeHeading": "什么可以改进？",
+    "positiveDescription": "您的反馈帮助我们了解什么有效。",
+    "negativeDescription": "让我们知道如何做得更好。",
+    "positivePlaceholder": "经文建议与我的问题相关...",
+    "negativePlaceholder": "回复没有解决我的具体问题...",
+    "privacyNotice": "提交反馈即表示您的消息和人工智能回复将被记录以帮助我们改进服务。",
+    "skip": "跳过",
+    "submit": "提交反馈",
+    "submitting": "提交中...",
+    "close": "关闭",
+    "toastError": "目前无法保存您的反馈，但感谢您的尝试！"
+  },
+  "ChurchFinder": {
+    "bannerText": "正在寻找信仰社区？",
+    "findChurch": "查找教会",
+    "dismiss": "关闭",
+    "inlineText": "正在寻找祈祷社区或教会？",
+    "inlineCta": "查找附近",
+    "modalTitle": "查找教会",
+    "modalSubtitle": "在您附近找到一个信仰社区",
+    "searchPlaceholder": "用英文输入城市（例如：Rome, Munich, Zurich）",
+    "searching": "正在搜索教会...",
+    "errorSearch": "搜索教会失败。请再试一次。",
+    "errorConnection": "请检查您的连接并再试一次。",
+    "foundCount": "{count, plural, other {找到 # 个教会}}",
+    "noChurchesFound": "未找到教会",
+    "noChurchesHint": "尝试不同的地点或更广泛的搜索词。",
+    "enterLocation": "输入搜索地点",
+    "enterLocationHint": "使用英文城市名称（例如：Rome, Munich, Vienna）",
+    "website": "网站",
+    "email": "电子邮件",
+    "churchData": "教会数据由以下提供",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "分享",
+    "copyToClipboard": "复制到剪贴板",
+    "copied": "已复制！",
+    "shareOnWhatsApp": "分享到WhatsApp",
+    "shareOnTwitter": "分享到X",
+    "shareOnFacebook": "分享到Facebook",
+    "shareOnBluesky": "分享到Bluesky",
+    "sharePrefix": "我找到了这个令人振奋的圣经启示：",
+    "shareVia": "圣经灵感聊天"
+  },
+  "Contact": {
+    "getInTouch": "联系我们",
+    "emailUs": "发邮件给我们：",
+    "emailLabel": "您的邮箱（可选，用于回复）",
+    "emailPlaceholder": "you@example.com",
+    "subjectLabel": "主题",
+    "subjectSpiritual": "您想深入探讨某个属灵或圣经问题吗？",
+    "subjectFeedback": "一般反馈",
+    "subjectBug": "错误报告",
+    "subjectFeature": "功能请求",
+    "subjectOther": "其他",
+    "messageLabel": "消息",
+    "messagePlaceholder": "分享您的想法，报告问题，或建议改进...",
+    "privacyNote": "您的消息将被存储以帮助我们改进服务。",
+    "sending": "发送中...",
+    "sendMessage": "发送消息",
+    "successTitle": "消息发送成功！",
+    "successDescription": "感谢您的联系。我们将很快查看您的消息。",
+    "sendAnother": "发送另一条",
+    "errorSend": "发送消息失败。请再试一次或直接发邮件给我们。"
+  },
+  "ErrorBoundary": {
+    "title": "出错了",
+    "message": "发生意外错误。请尝试重新加载页面。如果问题持续，请联系支持。",
+    "reloadButton": "重新加载页面",
+    "reportIssue": "报告此问题"
+  }
+}

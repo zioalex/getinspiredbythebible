@@ -8,8 +8,20 @@ describe("i18n routing configuration", () => {
     expect(routing.defaultLocale).toBe("en");
   });
 
-  it("supports en, it, de, es, fr, pt, and ar locales", () => {
-    expect(routing.locales).toEqual(["en", "it", "de", "es", "fr", "pt", "ar"]);
+  it("supports en, it, de, es, fr, pt, ar, ru, zh, hi, and ko locales", () => {
+    expect(routing.locales).toEqual([
+      "en",
+      "it",
+      "de",
+      "es",
+      "fr",
+      "pt",
+      "ar",
+      "ru",
+      "zh",
+      "hi",
+      "ko",
+    ]);
   });
 
   it("uses localePrefix always", () => {
