@@ -524,14 +524,14 @@ RUSSIAN_BOOK_NAMES = {
     "Второзаконие": "Deuteronomy",
     # Joshua — genitive form used in getbible feed
     "Иисуса Навина": "Joshua",
-    "Иисус Навин": "Joshua",          # nominative alias
+    "Иисус Навин": "Joshua",  # nominative alias
     # Judges — genitive form used in getbible feed
     "Судей": "Judges",
-    "Судьи": "Judges",                # nominative alias
+    "Судьи": "Judges",  # nominative alias
     "Руфь": "Ruth",
     # Samuel / Kings — getbible uses "-я" ordinal suffix
     "1-я Царств": "1 Samuel",
-    "1 Царств": "1 Samuel",           # alternate form
+    "1 Царств": "1 Samuel",  # alternate form
     "2-я Царств": "2 Samuel",
     "2 Царств": "2 Samuel",
     "3-я Царств": "1 Kings",
@@ -545,10 +545,10 @@ RUSSIAN_BOOK_NAMES = {
     "2 Паралипоменон": "2 Chronicles",
     # Ezra — genitive in feed
     "Ездры": "Ezra",
-    "Ездра": "Ezra",                  # nominative alias
+    "Ездра": "Ezra",  # nominative alias
     # Nehemiah — genitive in feed
     "Неемии": "Nehemiah",
-    "Неемия": "Nehemiah",             # nominative alias
+    "Неемия": "Nehemiah",  # nominative alias
     "Есфирь": "Esther",
     "Иов": "Job",
     "Псалтирь": "Psalms",
@@ -556,13 +556,13 @@ RUSSIAN_BOOK_NAMES = {
     "Екклесиаст": "Ecclesiastes",
     # Song of Songs — getbible uses "Песнь Песней"
     "Песнь Песней": "Song of Solomon",
-    "Песня Песней": "Song of Solomon", # alternate nominative form
+    "Песня Песней": "Song of Solomon",  # alternate nominative form
     "Исаия": "Isaiah",
     "Иеремия": "Jeremiah",
     "Плач Иеремии": "Lamentations",
     # Ezekiel — getbible uses "Иезекииль" (two и)
     "Иезекииль": "Ezekiel",
-    "Иезекиль": "Ezekiel",            # one-и variant (kept for robustness)
+    "Иезекиль": "Ezekiel",  # one-и variant (kept for robustness)
     "Даниил": "Daniel",
     "Осия": "Hosea",
     "Иоиль": "Joel",
@@ -583,7 +583,7 @@ RUSSIAN_BOOK_NAMES = {
     "Иоанн": "John",
     # Acts — getbible uses short form "Деяния"
     "Деяния": "Acts",
-    "Деяния апостолов": "Acts",        # full form alias
+    "Деяния апостолов": "Acts",  # full form alias
     "Римлянам": "Romans",
     # Corinthians — getbible uses "-е" ordinal suffix
     "1-е Коринфянам": "1 Corinthians",
@@ -609,10 +609,10 @@ RUSSIAN_BOOK_NAMES = {
     "Евреям": "Hebrews",
     # James — getbible uses dative "Иакову"
     "Иакову": "James",
-    "Иаков": "James",                 # nominative alias
+    "Иаков": "James",  # nominative alias
     # Peter — dative form in getbible feed
     "1-е Петру": "1 Peter",
-    "1 Петра": "1 Peter",             # genitive alias
+    "1 Петра": "1 Peter",  # genitive alias
     "2-е Петру": "2 Peter",
     "2 Петра": "2 Peter",
     # John epistles — dative form in getbible feed
@@ -624,7 +624,7 @@ RUSSIAN_BOOK_NAMES = {
     "3 Иоанна": "3 John",
     # Jude — dative "Иуде" in getbible feed
     "Иуде": "Jude",
-    "Иуда": "Jude",                   # nominative alias
+    "Иуда": "Jude",  # nominative alias
     "Откровение": "Revelation",
 }
 
@@ -801,8 +801,8 @@ KOREAN_BOOK_NAMES = {
     "아가": "Song of Solomon",
     "이사야": "Isaiah",
     "예레미야": "Jeremiah",
-    "예레미야 애가": "Lamentations",   # actual getbible API name (with space)
-    "예레미야애가": "Lamentations",   # alternate form without space (kept for robustness)
+    "예레미야 애가": "Lamentations",  # actual getbible API name (with space)
+    "예레미야애가": "Lamentations",  # alternate form without space (kept for robustness)
     "에스겔": "Ezekiel",
     "다니엘": "Daniel",
     "호세아": "Hosea",
