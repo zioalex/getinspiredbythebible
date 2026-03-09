@@ -42,7 +42,7 @@ export function extractVerseReferences(text: string): Set<string> {
  */
 export function isVerseReferenced(
   verse: { book: string; chapter: number; verse: number; reference: string },
-  references: Set<string>,
+  references: Set<string>
 ): boolean {
   // Normalize the verse reference for comparison
   const normalizedRef = verse.reference.toLowerCase();
@@ -73,7 +73,7 @@ export function isVerseReferenced(
         verseBook === refBook ||
         verseBook.startsWith(refBook) ||
         refBook.startsWith(verseBook) ||
-        verseBook.replace(/s$/, "") === refBook.replace(/s$/, ""); // Handle Psalm/Psalms
+        verseBook.replace(/s$/, '') === refBook.replace(/s$/, ''); // Handle Psalm/Psalms
 
       if (
         bookMatches &&
