@@ -13,14 +13,20 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from utils.book_names import (
+    CHINESE_TO_ENGLISH,
+    ENGLISH_TO_CHINESE,
     ENGLISH_TO_FRENCH,
     ENGLISH_TO_GERMAN,
     ENGLISH_TO_ITALIAN,
+    ENGLISH_TO_KOREAN,
+    ENGLISH_TO_RUSSIAN,
     ENGLISH_TO_SPANISH,
     FRENCH_TO_ENGLISH,
     GERMAN_TO_ENGLISH,
     ITALIAN_TO_ENGLISH,
+    KOREAN_TO_ENGLISH,
     LOCALIZED_TO_ENGLISH,
+    RUSSIAN_TO_ENGLISH,
     SPANISH_TO_ENGLISH,
     TRANSLATION_BOOK_NAMES,
     get_localized_book_name,
@@ -359,12 +365,45 @@ class TestBookNames:
         assert FRENCH_TO_ENGLISH["Jean"] == "John"
         assert FRENCH_TO_ENGLISH["Psaumes"] == "Psalms"
 
+    def test_russian_reverse_mapping(self):
+        """Russian reverse mapping should cover canonical and alias forms."""
+        assert RUSSIAN_TO_ENGLISH["Бытие"] == "Genesis"
+        assert RUSSIAN_TO_ENGLISH["Иоанн"] == "John"
+        assert RUSSIAN_TO_ENGLISH["Псалтирь"] == "Psalms"
+        # Alias forms
+        assert RUSSIAN_TO_ENGLISH["Иисус Навин"] == "Joshua"
+        assert RUSSIAN_TO_ENGLISH["1 Царств"] == "1 Samuel"
+        assert RUSSIAN_TO_ENGLISH["3 Царств"] == "1 Kings"
+        assert RUSSIAN_TO_ENGLISH["Деяния апостолов"] == "Acts"
+        assert RUSSIAN_TO_ENGLISH["1 Коринфянам"] == "1 Corinthians"
+
+    def test_chinese_reverse_mapping(self):
+        """Chinese reverse mapping should cover canonical and BOM/alias forms."""
+        assert CHINESE_TO_ENGLISH["创世记"] == "Genesis"
+        assert CHINESE_TO_ENGLISH["约翰福音"] == "John"
+        assert CHINESE_TO_ENGLISH["诗篇"] == "Psalms"
+        # BOM variant
+        assert CHINESE_TO_ENGLISH["\ufeff创世记"] == "Genesis"
+        # Simplified alias for Revelation
+        assert CHINESE_TO_ENGLISH["启示录"] == "Revelation"
+
+    def test_korean_reverse_mapping(self):
+        """Korean reverse mapping should cover canonical and no-space alias."""
+        assert KOREAN_TO_ENGLISH["창세기"] == "Genesis"
+        assert KOREAN_TO_ENGLISH["요한복음"] == "John"
+        assert KOREAN_TO_ENGLISH["시편"] == "Psalms"
+        # Alternate form for Lamentations (no space)
+        assert KOREAN_TO_ENGLISH["예레미야애가"] == "Lamentations"
+
     def test_localized_to_english_combined(self):
         """Combined mapping should contain all supported languages."""
         assert "Genesi" in LOCALIZED_TO_ENGLISH  # Italian
         assert "1. Mose" in LOCALIZED_TO_ENGLISH  # German
         assert "Juan" in LOCALIZED_TO_ENGLISH  # Spanish
         assert "Jean" in LOCALIZED_TO_ENGLISH  # French
+        assert "Бытие" in LOCALIZED_TO_ENGLISH  # Russian
+        assert "创世记" in LOCALIZED_TO_ENGLISH  # Chinese
+        assert "창세기" in LOCALIZED_TO_ENGLISH  # Korean
 
     def test_translation_book_names_mapping(self):
         """TRANSLATION_BOOK_NAMES should map translation codes to book maps."""
@@ -372,6 +411,9 @@ class TestBookNames:
         assert TRANSLATION_BOOK_NAMES["schlachter"] is ENGLISH_TO_GERMAN
         assert TRANSLATION_BOOK_NAMES["valera"] is ENGLISH_TO_SPANISH
         assert TRANSLATION_BOOK_NAMES["ls1910"] is ENGLISH_TO_FRENCH
+        assert TRANSLATION_BOOK_NAMES["synodal"] is ENGLISH_TO_RUSSIAN
+        assert TRANSLATION_BOOK_NAMES["cuv"] is ENGLISH_TO_CHINESE
+        assert TRANSLATION_BOOK_NAMES["krv"] is ENGLISH_TO_KOREAN
         assert TRANSLATION_BOOK_NAMES["kjv"] is None
         assert TRANSLATION_BOOK_NAMES["web"] is None
 
@@ -398,6 +440,25 @@ class TestGetLocalizedBookName:
         assert get_localized_book_name("John", "ls1910") == "Jean"
         assert get_localized_book_name("Psalms", "ls1910") == "Psaumes"
         assert get_localized_book_name("2 Corinthians", "ls1910") == "2 Corinthiens"
+
+    def test_russian_translation(self):
+        assert get_localized_book_name("Genesis", "synodal") == "Бытие"
+        assert get_localized_book_name("John", "synodal") == "Иоанн"
+        assert get_localized_book_name("Psalms", "synodal") == "Псалтирь"
+        assert get_localized_book_name("1 Corinthians", "synodal") == "1-е Коринфянам"
+        assert get_localized_book_name("Revelation", "synodal") == "Откровение"
+
+    def test_chinese_translation(self):
+        assert get_localized_book_name("Genesis", "cuv") == "创世记"
+        assert get_localized_book_name("John", "cuv") == "约翰福音"
+        assert get_localized_book_name("Psalms", "cuv") == "诗篇"
+        assert get_localized_book_name("Revelation", "cuv") == "啟示錄"
+
+    def test_korean_translation(self):
+        assert get_localized_book_name("Genesis", "krv") == "창세기"
+        assert get_localized_book_name("John", "krv") == "요한복음"
+        assert get_localized_book_name("Psalms", "krv") == "시편"
+        assert get_localized_book_name("Lamentations", "krv") == "예레미야 애가"
 
     def test_english_translations_return_english(self):
         assert get_localized_book_name("Genesis", "kjv") == "Genesis"
@@ -442,6 +503,41 @@ class TestNormalizeBookName:
         assert normalize_book_name("Jean") == "John"
         assert normalize_book_name("Psaumes") == "Psalms"
         assert normalize_book_name("2 Corinthiens") == "2 Corinthians"
+
+    def test_russian_to_english(self):
+        """normalize_book_name should handle Russian canonical and alias forms."""
+        assert normalize_book_name("Бытие") == "Genesis"
+        assert normalize_book_name("Иоанн") == "John"
+        assert normalize_book_name("Псалтирь") == "Psalms"
+        assert normalize_book_name("1-е Коринфянам") == "1 Corinthians"
+        # Alias forms
+        assert normalize_book_name("Иисус Навин") == "Joshua"
+        assert normalize_book_name("1 Царств") == "1 Samuel"
+        assert normalize_book_name("3 Царств") == "1 Kings"
+        assert normalize_book_name("Деяния апостолов") == "Acts"
+        assert normalize_book_name("Откровение") == "Revelation"
+
+    def test_chinese_to_english(self):
+        """normalize_book_name should handle Chinese canonical and alias forms."""
+        assert normalize_book_name("创世记") == "Genesis"
+        assert normalize_book_name("约翰福音") == "John"
+        assert normalize_book_name("诗篇") == "Psalms"
+        assert normalize_book_name("哥林多前书") == "1 Corinthians"
+        assert normalize_book_name("啟示錄") == "Revelation"
+        # BOM variant
+        assert normalize_book_name("\ufeff创世记") == "Genesis"
+        # Simplified alias
+        assert normalize_book_name("启示录") == "Revelation"
+
+    def test_korean_to_english(self):
+        """normalize_book_name should handle Korean canonical and alias forms."""
+        assert normalize_book_name("창세기") == "Genesis"
+        assert normalize_book_name("요한복음") == "John"
+        assert normalize_book_name("시편") == "Psalms"
+        assert normalize_book_name("고린도전서") == "1 Corinthians"
+        assert normalize_book_name("요한계시록") == "Revelation"
+        # Alternate Lamentations form (no space)
+        assert normalize_book_name("예레미야애가") == "Lamentations"
 
     def test_unknown_name_returned_as_is(self):
         assert normalize_book_name("UnknownBook") == "UnknownBook"

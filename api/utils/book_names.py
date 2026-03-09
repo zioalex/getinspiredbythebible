@@ -3,7 +3,8 @@ Book name localization utilities.
 
 Maps English book names to localized versions for different translations.
 Supports: Italian (ita1927), German (schlachter), Spanish (valera),
-          French (ls1910), Portuguese (almeida), Arabic (arabicsv).
+          French (ls1910), Portuguese (almeida), Arabic (arabicsv),
+          Russian (synodal), Chinese (cuv), Korean (krv).
 """
 
 # Italian book names (Riveduta 1927) - reverse mapping from English
@@ -426,6 +427,217 @@ ENGLISH_TO_ARABIC = {
     "Revelation": "الرؤيا",
 }
 
+# Russian book names (Synodal Translation) - canonical form (English → primary Russian)
+# Aliases (genitive/dative forms) are added to RUSSIAN_TO_ENGLISH below for reverse lookup.
+ENGLISH_TO_RUSSIAN = {
+    "Genesis": "Бытие",
+    "Exodus": "Исход",
+    "Leviticus": "Левит",
+    "Numbers": "Числа",
+    "Deuteronomy": "Второзаконие",
+    "Joshua": "Иисуса Навина",
+    "Judges": "Судей",
+    "Ruth": "Руфь",
+    "1 Samuel": "1-я Царств",
+    "2 Samuel": "2-я Царств",
+    "1 Kings": "3-я Царств",
+    "2 Kings": "4-я Царств",
+    "1 Chronicles": "1-я Паралипоменон",
+    "2 Chronicles": "2-я Паралипоменон",
+    "Ezra": "Ездры",
+    "Nehemiah": "Неемии",
+    "Esther": "Есфирь",
+    "Job": "Иов",
+    "Psalms": "Псалтирь",
+    "Proverbs": "Притчи",
+    "Ecclesiastes": "Екклесиаст",
+    "Song of Solomon": "Песнь Песней",
+    "Isaiah": "Исаия",
+    "Jeremiah": "Иеремия",
+    "Lamentations": "Плач Иеремии",
+    "Ezekiel": "Иезекииль",
+    "Daniel": "Даниил",
+    "Hosea": "Осия",
+    "Joel": "Иоиль",
+    "Amos": "Амос",
+    "Obadiah": "Авдий",
+    "Jonah": "Иона",
+    "Micah": "Михей",
+    "Nahum": "Наум",
+    "Habakkuk": "Аввакум",
+    "Zephaniah": "Софония",
+    "Haggai": "Аггей",
+    "Zechariah": "Захария",
+    "Malachi": "Малахия",
+    "Matthew": "Матфей",
+    "Mark": "Марк",
+    "Luke": "Лука",
+    "John": "Иоанн",
+    "Acts": "Деяния",
+    "Romans": "Римлянам",
+    "1 Corinthians": "1-е Коринфянам",
+    "2 Corinthians": "2-е Коринфянам",
+    "Galatians": "Галатам",
+    "Ephesians": "Ефесянам",
+    "Philippians": "Филиппийцам",
+    "Colossians": "Колоссянам",
+    "1 Thessalonians": "1-е Фессалоникийцам",
+    "2 Thessalonians": "2-е Фессалоникийцам",
+    "1 Timothy": "1-е Тимофею",
+    "2 Timothy": "2-е Тимофею",
+    "Titus": "Титу",
+    "Philemon": "Филимону",
+    "Hebrews": "Евреям",
+    "James": "Иакову",
+    "1 Peter": "1-е Петру",
+    "2 Peter": "2-е Петру",
+    "1 John": "1-е Иоанну",
+    "2 John": "2-е Иоанну",
+    "3 John": "3-е Иоанну",
+    "Jude": "Иуде",
+    "Revelation": "Откровение",
+}
+
+# Chinese book names (Union Version Simplified/CUS)
+ENGLISH_TO_CHINESE = {
+    "Genesis": "创世记",
+    "Exodus": "出埃及记",
+    "Leviticus": "利未记",
+    "Numbers": "民数记",
+    "Deuteronomy": "申命记",
+    "Joshua": "约书亚记",
+    "Judges": "士师记",
+    "Ruth": "路得记",
+    "1 Samuel": "撒母耳记上",
+    "2 Samuel": "撒母耳记下",
+    "1 Kings": "列王纪上",
+    "2 Kings": "列王纪下",
+    "1 Chronicles": "历代志上",
+    "2 Chronicles": "历代志下",
+    "Ezra": "以斯拉记",
+    "Nehemiah": "尼希米记",
+    "Esther": "以斯帖记",
+    "Job": "约伯记",
+    "Psalms": "诗篇",
+    "Proverbs": "箴言",
+    "Ecclesiastes": "传道书",
+    "Song of Solomon": "雅歌",
+    "Isaiah": "以赛亚书",
+    "Jeremiah": "耶利米书",
+    "Lamentations": "耶利米哀歌",
+    "Ezekiel": "以西结书",
+    "Daniel": "但以理书",
+    "Hosea": "何西阿书",
+    "Joel": "约珥书",
+    "Amos": "阿摩司书",
+    "Obadiah": "俄巴底亚书",
+    "Jonah": "约拿书",
+    "Micah": "弥迦书",
+    "Nahum": "那鸿书",
+    "Habakkuk": "哈巴谷书",
+    "Zephaniah": "西番雅书",
+    "Haggai": "哈该书",
+    "Zechariah": "撒迦利亚书",
+    "Malachi": "玛拉基书",
+    "Matthew": "马太福音",
+    "Mark": "马可福音",
+    "Luke": "路加福音",
+    "John": "约翰福音",
+    "Acts": "使徒行传",
+    "Romans": "罗马书",
+    "1 Corinthians": "哥林多前书",
+    "2 Corinthians": "哥林多后书",
+    "Galatians": "加拉太书",
+    "Ephesians": "以弗所书",
+    "Philippians": "腓立比书",
+    "Colossians": "歌罗西书",
+    "1 Thessalonians": "帖撒罗尼迦前书",
+    "2 Thessalonians": "帖撒罗尼迦后书",
+    "1 Timothy": "提摩太前书",
+    "2 Timothy": "提摩太后书",
+    "Titus": "提多书",
+    "Philemon": "腓利门书",
+    "Hebrews": "希伯来书",
+    "James": "雅各书",
+    "1 Peter": "彼得前书",
+    "2 Peter": "彼得后书",
+    "1 John": "约翰一书",
+    "2 John": "约翰二书",
+    "3 John": "约翰三书",
+    "Jude": "犹大书",
+    "Revelation": "啟示錄",  # Traditional characters — actual name in getbible CUS feed
+}
+
+# Korean book names (Korean Revised Version)
+ENGLISH_TO_KOREAN = {
+    "Genesis": "창세기",
+    "Exodus": "출애굽기",
+    "Leviticus": "레위기",
+    "Numbers": "민수기",
+    "Deuteronomy": "신명기",
+    "Joshua": "여호수아",
+    "Judges": "사사기",
+    "Ruth": "룻기",
+    "1 Samuel": "사무엘상",
+    "2 Samuel": "사무엘하",
+    "1 Kings": "열왕기상",
+    "2 Kings": "열왕기하",
+    "1 Chronicles": "역대상",
+    "2 Chronicles": "역대하",
+    "Ezra": "에스라",
+    "Nehemiah": "느헤미야",
+    "Esther": "에스더",
+    "Job": "욥기",
+    "Psalms": "시편",
+    "Proverbs": "잠언",
+    "Ecclesiastes": "전도서",
+    "Song of Solomon": "아가",
+    "Isaiah": "이사야",
+    "Jeremiah": "예레미야",
+    "Lamentations": "예레미야 애가",
+    "Ezekiel": "에스겔",
+    "Daniel": "다니엘",
+    "Hosea": "호세아",
+    "Joel": "요엘",
+    "Amos": "아모스",
+    "Obadiah": "오바댜",
+    "Jonah": "요나",
+    "Micah": "미가",
+    "Nahum": "나훔",
+    "Habakkuk": "하박국",
+    "Zephaniah": "스바냐",
+    "Haggai": "학개",
+    "Zechariah": "스가랴",
+    "Malachi": "말라기",
+    "Matthew": "마태복음",
+    "Mark": "마가복음",
+    "Luke": "누가복음",
+    "John": "요한복음",
+    "Acts": "사도행전",
+    "Romans": "로마서",
+    "1 Corinthians": "고린도전서",
+    "2 Corinthians": "고린도후서",
+    "Galatians": "갈라디아서",
+    "Ephesians": "에베소서",
+    "Philippians": "빌립보서",
+    "Colossians": "골로새서",
+    "1 Thessalonians": "데살로니가전서",
+    "2 Thessalonians": "데살로니가후서",
+    "1 Timothy": "디모데전서",
+    "2 Timothy": "디모데후서",
+    "Titus": "디도서",
+    "Philemon": "빌레몬서",
+    "Hebrews": "히브리서",
+    "James": "야고보서",
+    "1 Peter": "베드로전서",
+    "2 Peter": "베드로후서",
+    "1 John": "요한일서",
+    "2 John": "요한이서",
+    "3 John": "요한삼서",
+    "Jude": "유다서",
+    "Revelation": "요한계시록",
+}
+
 # Mapping of translation codes to their book name mappings
 TRANSLATION_BOOK_NAMES = {
     "ita1927": ENGLISH_TO_ITALIAN,
@@ -434,6 +646,9 @@ TRANSLATION_BOOK_NAMES = {
     "ls1910": ENGLISH_TO_FRENCH,
     "almeida": ENGLISH_TO_PORTUGUESE,
     "arabicsv": ENGLISH_TO_ARABIC,
+    "synodal": ENGLISH_TO_RUSSIAN,
+    "cuv": ENGLISH_TO_CHINESE,
+    "krv": ENGLISH_TO_KOREAN,
     # English translations don't need mapping
     "kjv": None,
     "web": None,
@@ -447,6 +662,72 @@ FRENCH_TO_ENGLISH = {v: k for k, v in ENGLISH_TO_FRENCH.items()}
 PORTUGUESE_TO_ENGLISH = {v: k for k, v in ENGLISH_TO_PORTUGUESE.items()}
 ARABIC_TO_ENGLISH = {v: k for k, v in ENGLISH_TO_ARABIC.items()}
 
+# Russian reverse mapping — includes canonical forms from ENGLISH_TO_RUSSIAN plus
+# all aliases (alternate grammatical forms) present in the Synodal getbible feed.
+RUSSIAN_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_RUSSIAN.items()}
+RUSSIAN_TO_ENGLISH.update(
+    {
+        # Joshua: nominative alias
+        "Иисус Навин": "Joshua",
+        # Judges: nominative alias
+        "Судьи": "Judges",
+        # Ezra: nominative alias
+        "Ездра": "Ezra",
+        # Nehemiah: nominative alias
+        "Неемия": "Nehemiah",
+        # Samuel / Kings: alternate forms without ordinal dash
+        "1 Царств": "1 Samuel",
+        "2 Царств": "2 Samuel",
+        "3 Царств": "1 Kings",
+        "4 Царств": "2 Kings",
+        "1 Паралипоменон": "1 Chronicles",
+        "2 Паралипоменон": "2 Chronicles",
+        # Song of Songs: alternate nominative form
+        "Песня Песней": "Song of Solomon",
+        # Ezekiel: one-и variant
+        "Иезекиль": "Ezekiel",
+        # Acts: full form alias
+        "Деяния апостолов": "Acts",
+        # Corinthians: alternate forms without ordinal dash
+        "1 Коринфянам": "1 Corinthians",
+        "2 Коринфянам": "2 Corinthians",
+        # Thessalonians: alternate forms without ordinal dash
+        "1 Фессалоникийцам": "1 Thessalonians",
+        "2 Фессалоникийцам": "2 Thessalonians",
+        # Timothy: alternate forms without ordinal dash
+        "1 Тимофею": "1 Timothy",
+        "2 Тимофею": "2 Timothy",
+        # James: nominative alias
+        "Иаков": "James",
+        # Peter: genitive aliases
+        "1 Петра": "1 Peter",
+        "2 Петра": "2 Peter",
+        # John epistles: genitive aliases
+        "1 Иоанна": "1 John",
+        "2 Иоанна": "2 John",
+        "3 Иоанна": "3 John",
+        # Jude: nominative alias
+        "Иуда": "Jude",
+    }
+)
+
+# Chinese reverse mapping — includes BOM variant for Genesis
+CHINESE_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_CHINESE.items()}
+CHINESE_TO_ENGLISH.update(
+    {
+        "\ufeff创世记": "Genesis",  # BOM variant from getbible API feed
+        "启示录": "Revelation",  # Simplified alias for Revelation
+    }
+)
+
+# Korean reverse mapping — includes alternate form for Lamentations (no space)
+KOREAN_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_KOREAN.items()}
+KOREAN_TO_ENGLISH.update(
+    {
+        "예레미야애가": "Lamentations",  # alternate form without space
+    }
+)
+
 # Combined reverse mapping for all languages
 LOCALIZED_TO_ENGLISH = {
     **ITALIAN_TO_ENGLISH,
@@ -455,6 +736,9 @@ LOCALIZED_TO_ENGLISH = {
     **FRENCH_TO_ENGLISH,
     **PORTUGUESE_TO_ENGLISH,
     **ARABIC_TO_ENGLISH,
+    **RUSSIAN_TO_ENGLISH,
+    **CHINESE_TO_ENGLISH,
+    **KOREAN_TO_ENGLISH,
 }
 
 
