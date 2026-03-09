@@ -78,6 +78,7 @@ NOTES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -89,6 +90,15 @@ from pathlib import Path
 _API_UTILS_DIR = Path(__file__).parent.parent / "api" / "utils"
 if str(_API_UTILS_DIR) not in sys.path:
     sys.path.insert(0, str(_API_UTILS_DIR))
+
+_registry_module = importlib.import_module("translation_registry")
+# Register the module under both its bare name AND its fully-qualified package
+# name so that pytest test suites that import both scripts/translations.py
+# (which uses the bare name) and utils/book_names.py (which uses the qualified
+# name) share a single module instance.  Without this, Python loads two
+# separate copies of translation_registry, and `is`-identity checks between
+# objects from the two copies fail even though the data is identical.
+sys.modules.setdefault("utils.translation_registry", _registry_module)
 
 from translation_registry import (  # noqa: E402
     ENGLISH_TO_ARABIC,
