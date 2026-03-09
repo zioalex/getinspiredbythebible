@@ -8,13 +8,23 @@ to enable direct lookup instead of relying solely on semantic search.
 import re
 from dataclasses import dataclass
 
-from utils.book_names import ENGLISH_TO_GERMAN, ENGLISH_TO_ITALIAN, normalize_book_name
+from utils.book_names import (
+    ENGLISH_TO_CHINESE,
+    ENGLISH_TO_GERMAN,
+    ENGLISH_TO_ITALIAN,
+    ENGLISH_TO_KOREAN,
+    ENGLISH_TO_RUSSIAN,
+    normalize_book_name,
+)
 
 # All book names in all languages (for pattern matching)
 ALL_BOOK_NAMES: set[str] = set()
 ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.keys())  # English
 ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.values())  # Italian
 ALL_BOOK_NAMES.update(ENGLISH_TO_GERMAN.values())  # German
+ALL_BOOK_NAMES.update(ENGLISH_TO_RUSSIAN.values())  # Russian
+ALL_BOOK_NAMES.update(ENGLISH_TO_CHINESE.values())  # Chinese
+ALL_BOOK_NAMES.update(ENGLISH_TO_KOREAN.values())  # Korean
 
 # Common abbreviations for book names
 BOOK_ABBREVIATIONS = {
