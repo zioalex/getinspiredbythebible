@@ -17,12 +17,14 @@ from utils.book_names import (
     ENGLISH_TO_CHINESE,
     ENGLISH_TO_FRENCH,
     ENGLISH_TO_GERMAN,
+    ENGLISH_TO_HINDI,
     ENGLISH_TO_ITALIAN,
     ENGLISH_TO_KOREAN,
     ENGLISH_TO_RUSSIAN,
     ENGLISH_TO_SPANISH,
     FRENCH_TO_ENGLISH,
     GERMAN_TO_ENGLISH,
+    HINDI_TO_ENGLISH,
     ITALIAN_TO_ENGLISH,
     KOREAN_TO_ENGLISH,
     LOCALIZED_TO_ENGLISH,
@@ -395,6 +397,19 @@ class TestBookNames:
         # Alternate form for Lamentations (no space)
         assert KOREAN_TO_ENGLISH["예레미야애가"] == "Lamentations"
 
+    def test_hindi_reverse_mapping(self):
+        """Hindi reverse mapping should cover all 66 canonical forms."""
+        assert HINDI_TO_ENGLISH["उत्पत्ति"] == "Genesis"
+        assert HINDI_TO_ENGLISH["यूहन्ना"] == "John"
+        assert HINDI_TO_ENGLISH["भजन संहिता"] == "Psalms"
+        assert HINDI_TO_ENGLISH["प्रकाशितवाक्य"] == "Revelation"
+
+    def test_hindi_forward_mapping(self):
+        """Hindi forward mapping should have 66 entries."""
+        assert len(ENGLISH_TO_HINDI) == 66
+        assert ENGLISH_TO_HINDI["Genesis"] == "उत्पत्ति"
+        assert ENGLISH_TO_HINDI["John"] == "यूहन्ना"
+
     def test_localized_to_english_combined(self):
         """Combined mapping should contain all supported languages."""
         assert "Genesi" in LOCALIZED_TO_ENGLISH  # Italian
@@ -404,6 +419,7 @@ class TestBookNames:
         assert "Бытие" in LOCALIZED_TO_ENGLISH  # Russian
         assert "创世记" in LOCALIZED_TO_ENGLISH  # Chinese
         assert "창세기" in LOCALIZED_TO_ENGLISH  # Korean
+        assert "उत्पत्ति" in LOCALIZED_TO_ENGLISH  # Hindi
 
     def test_translation_book_names_mapping(self):
         """TRANSLATION_BOOK_NAMES should map translation codes to book maps."""
@@ -414,6 +430,7 @@ class TestBookNames:
         assert TRANSLATION_BOOK_NAMES["synodal"] is ENGLISH_TO_RUSSIAN
         assert TRANSLATION_BOOK_NAMES["cuv"] is ENGLISH_TO_CHINESE
         assert TRANSLATION_BOOK_NAMES["krv"] is ENGLISH_TO_KOREAN
+        assert TRANSLATION_BOOK_NAMES["hindi"] is ENGLISH_TO_HINDI
         assert TRANSLATION_BOOK_NAMES["kjv"] is None
         assert TRANSLATION_BOOK_NAMES["web"] is None
 
@@ -459,6 +476,12 @@ class TestGetLocalizedBookName:
         assert get_localized_book_name("John", "krv") == "요한복음"
         assert get_localized_book_name("Psalms", "krv") == "시편"
         assert get_localized_book_name("Lamentations", "krv") == "예레미야 애가"
+
+    def test_hindi_translation(self):
+        assert get_localized_book_name("Genesis", "hindi") == "उत्पत्ति"
+        assert get_localized_book_name("John", "hindi") == "यूहन्ना"
+        assert get_localized_book_name("Psalms", "hindi") == "भजन संहिता"
+        assert get_localized_book_name("Revelation", "hindi") == "प्रकाशितवाक्य"
 
     def test_english_translations_return_english(self):
         assert get_localized_book_name("Genesis", "kjv") == "Genesis"
@@ -538,6 +561,13 @@ class TestNormalizeBookName:
         assert normalize_book_name("요한계시록") == "Revelation"
         # Alternate Lamentations form (no space)
         assert normalize_book_name("예레미야애가") == "Lamentations"
+
+    def test_hindi_to_english(self):
+        """normalize_book_name should handle Hindi canonical forms."""
+        assert normalize_book_name("उत्पत्ति") == "Genesis"
+        assert normalize_book_name("यूहन्ना") == "John"
+        assert normalize_book_name("भजन संहिता") == "Psalms"
+        assert normalize_book_name("प्रकाशितवाक्य") == "Revelation"
 
     def test_unknown_name_returned_as_is(self):
         assert normalize_book_name("UnknownBook") == "UnknownBook"

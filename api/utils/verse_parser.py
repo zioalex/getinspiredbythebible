@@ -8,23 +8,17 @@ to enable direct lookup instead of relying solely on semantic search.
 import re
 from dataclasses import dataclass
 
-from utils.book_names import (
-    ENGLISH_TO_CHINESE,
-    ENGLISH_TO_GERMAN,
-    ENGLISH_TO_ITALIAN,
-    ENGLISH_TO_KOREAN,
-    ENGLISH_TO_RUSSIAN,
-    normalize_book_name,
-)
+from utils.book_names import normalize_book_name
+from utils.translation_registry import TRANSLATION_REGISTRY
 
-# All book names in all languages (for pattern matching)
+# All book names in all languages (for pattern matching).
+# Built dynamically from TRANSLATION_REGISTRY — adding a new translation to
+# translation_registry.py automatically includes it here.
 ALL_BOOK_NAMES: set[str] = set()
-ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.keys())  # English
-ALL_BOOK_NAMES.update(ENGLISH_TO_ITALIAN.values())  # Italian
-ALL_BOOK_NAMES.update(ENGLISH_TO_GERMAN.values())  # German
-ALL_BOOK_NAMES.update(ENGLISH_TO_RUSSIAN.values())  # Russian
-ALL_BOOK_NAMES.update(ENGLISH_TO_CHINESE.values())  # Chinese
-ALL_BOOK_NAMES.update(ENGLISH_TO_KOREAN.values())  # Korean
+for _book_map in TRANSLATION_REGISTRY.values():
+    if _book_map is not None:
+        ALL_BOOK_NAMES.update(_book_map.keys())  # English (same keys in every map)
+        ALL_BOOK_NAMES.update(_book_map.values())  # localized names
 
 # Common abbreviations for book names
 BOOK_ABBREVIATIONS = {
