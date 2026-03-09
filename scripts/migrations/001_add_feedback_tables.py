@@ -12,6 +12,7 @@ Run with: python scripts/migrations/001_add_feedback_tables.py
 import asyncio
 import os
 import sys
+from datetime import datetime
 
 import asyncpg
 
@@ -26,9 +27,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from utils import get_migration_connection_params  # noqa: E402
 
 
+def log(message: str) -> None:
+    """Print timestamped log message, flushed immediately for CI visibility."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=True)
+
+
 async def run_migration():
     """Run the migration to create feedback tables."""
-    print("Connecting to database...")
+    log("Connecting to database...")
 
     # Parse connection string - handle both local and Azure formats
     database_url = settings.database_url
@@ -36,7 +43,7 @@ async def run_migration():
     conn = await asyncpg.connect(clean_url, **conn_kwargs)
 
     try:
-        print("Creating feedback table...")
+        log("Creating feedback table...")
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS feedback (
                 id SERIAL PRIMARY KEY,
@@ -53,7 +60,7 @@ async def run_migration():
             );
         """)
 
-        print("Creating feedback indexes...")
+        log("Creating feedback indexes...")
         await conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at);
         """)
@@ -64,7 +71,7 @@ async def run_migration():
             CREATE INDEX IF NOT EXISTS idx_feedback_message_id ON feedback(message_id);
         """)
 
-        print("Creating contact_submissions table...")
+        log("Creating contact_submissions table...")
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS contact_submissions (
                 id SERIAL PRIMARY KEY,
@@ -82,7 +89,7 @@ async def run_migration():
             );
         """)
 
-        print("Creating contact_submissions indexes...")
+        log("Creating contact_submissions indexes...")
         await conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_contact_created_at ON contact_submissions(created_at);
         """)
@@ -90,7 +97,7 @@ async def run_migration():
             CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions(status);
         """)
 
-        print("Migration completed successfully!")
+        log("Migration completed successfully!")
 
     finally:
         await conn.close()

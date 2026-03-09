@@ -24,6 +24,9 @@ import hashlib
 import importlib.util
 import os
 import sys
+import time
+import traceback
+from datetime import datetime
 from pathlib import Path
 
 import asyncpg
@@ -37,6 +40,40 @@ from config import settings  # noqa: E402
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from utils import get_migration_connection_params  # noqa: E402
+
+
+def log(message: str) -> None:
+    """Print timestamped log message, flushed immediately for CI visibility."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=True)
+
+
+def get_migration_description(file_path: Path) -> str:
+    """Extract a one-line description from the migration file.
+
+    For .py files: returns the module docstring first line.
+    For .sql files: returns the first non-empty comment line (-- or /* content).
+    Returns empty string if nothing found.
+    """
+    try:
+        content = file_path.read_text(encoding="utf-8")
+        if file_path.suffix == ".py":
+            import ast
+
+            tree = ast.parse(content)
+            docstring = ast.get_docstring(tree)
+            if docstring:
+                return docstring.splitlines()[0].strip()
+        elif file_path.suffix == ".sql":
+            for line in content.splitlines():
+                line = line.strip()
+                if line.startswith("--"):
+                    desc = line.lstrip("-").strip()
+                    if desc:
+                        return desc
+    except Exception:
+        pass
+    return ""
 
 
 async def ensure_schema_migrations_table(conn: asyncpg.Connection) -> None:
@@ -79,9 +116,7 @@ def discover_migrations(migrations_dir: Path) -> list[Path]:
 
 async def is_migration_applied(conn: asyncpg.Connection, version: str) -> bool:
     """Check if a migration version has already been applied."""
-    result = await conn.fetchval(
-        "SELECT 1 FROM schema_migrations WHERE version = $1", version
-    )
+    result = await conn.fetchval("SELECT 1 FROM schema_migrations WHERE version = $1", version)
     return result is not None
 
 
@@ -130,7 +165,7 @@ async def run_sql_migration(conn: asyncpg.Connection, file_path: Path) -> None:
     has_statements = bool(without_comments.strip())
 
     if not has_statements:
-        print(f"   (no executable SQL — reference-only file, recording as applied)")
+        log(f"   (no executable SQL — reference-only file, recording as applied)")
         return
 
     await conn.execute(sql)
@@ -138,9 +173,9 @@ async def run_sql_migration(conn: asyncpg.Connection, file_path: Path) -> None:
 
 async def main() -> int:
     """Main migration runner."""
-    print("=" * 80)
-    print("Database Migration Runner")
-    print("=" * 80)
+    log("=" * 80)
+    log("Database Migration Runner")
+    log("=" * 80)
 
     # Get database connection
     database_url = settings.database_url
@@ -149,26 +184,42 @@ async def main() -> int:
     try:
         conn = await asyncpg.connect(clean_url, **conn_kwargs)
     except Exception as e:
-        print(f"❌ Failed to connect to database: {e}")
+        log(f"❌ Failed to connect to database: {e}")
         return 1
 
     try:
         # Ensure tracking table exists
         await ensure_schema_migrations_table(conn)
 
+        # Dump already-applied migrations at startup
+        rows = await conn.fetch(
+            "SELECT version, applied_at FROM schema_migrations ORDER BY applied_at"
+        )
+        if rows:
+            log(f"\nAlready applied ({len(rows)} migrations):")
+            for row in rows:
+                log(
+                    f"  ✓ {row['version']}  "
+                    f"(applied {row['applied_at'].strftime('%Y-%m-%d %H:%M UTC')})"
+                )
+        else:
+            log("No migrations applied yet (fresh database).")
+        log("")
+
         # Discover all migrations
         migrations_dir = Path(__file__).parent
         migrations = discover_migrations(migrations_dir)
 
         if not migrations:
-            print("\nℹ️  No migration files found.")
+            log("\nℹ️  No migration files found.")
             return 0
 
-        print(f"\nFound {len(migrations)} migration files")
-        print("-" * 80)
+        log(f"Found {len(migrations)} migration files")
+        log("-" * 80)
 
         skipped_count = 0
         applied_count = 0
+        newly_applied: list[str] = []
 
         for migration_file in migrations:
             version = migration_file.stem  # filename without extension
@@ -176,39 +227,64 @@ async def main() -> int:
 
             # Check if already applied
             if await is_migration_applied(conn, version):
-                print(f"⏭  Skipping {version} (already applied)")
+                log(f"⏭  Skipping {version} (already applied)")
                 skipped_count += 1
                 continue
 
             # Apply the migration
-            print(f"▶  Running {migration_file.name}...")
+            log(f"▶  Running {migration_file.name}")
+            log(f"   Path:     {migration_file.resolve()}")
+            log(f"   Checksum: {checksum[:16]}...")
+            desc = get_migration_description(migration_file)
+            if desc:
+                log(f"   Description: {desc}")
 
+            start = time.time()
             try:
                 if migration_file.suffix == ".py":
                     await run_python_migration(migration_file)
                 elif migration_file.suffix == ".sql":
                     await run_sql_migration(conn, migration_file)
                 else:
-                    print(f"⚠️  Unknown file type: {migration_file.name}")
+                    log(f"⚠️  Unknown file type: {migration_file.name}")
                     continue
 
                 # Record successful migration
                 await record_migration(conn, version, checksum)
-                print(f"✅ {version} completed")
+                elapsed = time.time() - start
+                log(f"✅ {version} completed in {elapsed:.1f}s")
                 applied_count += 1
+                newly_applied.append(version)
 
             except Exception as e:
-                print(f"❌ Migration {version} failed: {e}")
-                print("\n⚠️  Migration stopped. Fix the error and re-run.")
-                print(f"   Failed migration NOT recorded (will retry on next run)")
+                elapsed = time.time() - start
+                log(f"❌ Migration {version} failed after {elapsed:.1f}s: {e}")
+                log(traceback.format_exc())
+                log("\n⚠️  Migration stopped. Fix the error and re-run.")
+                log(f"   Failed migration NOT recorded (will retry on next run)")
                 return 1
 
         # Summary
-        print("-" * 80)
-        print(f"\n📊 Summary:")
-        print(f"   Skipped (already applied): {skipped_count}")
-        print(f"   Applied (new):             {applied_count}")
-        print(f"\n✅ All migrations completed successfully!")
+        log("-" * 80)
+        log(f"\n📊 Summary:")
+        log(f"   Skipped (already applied): {skipped_count}")
+        log(f"   Applied (new):             {applied_count}")
+        log(f"\n✅ All migrations completed successfully!")
+
+        # Write GitHub Actions step summary
+        summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary_path:
+            with open(summary_path, "a") as f:
+                f.write("## Database Migration Summary\n\n")
+                f.write(f"- **Total migration files found:** {len(migrations)}\n")
+                f.write(f"- **Skipped (already applied):** {skipped_count}\n")
+                f.write(f"- **Applied (new this run):** {applied_count}\n\n")
+                if applied_count > 0:
+                    f.write("### Newly Applied\n\n")
+                    for v in newly_applied:
+                        f.write(f"- `{v}`\n")
+                else:
+                    f.write("_No new migrations — database schema is up to date._\n")
 
         return 0
 
