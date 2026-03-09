@@ -215,7 +215,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.ACR_NAME }}.azurecr.io/bible-backend
           tags: |
@@ -278,7 +278,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.ACR_NAME }}.azurecr.io/bible-frontend
           tags: |
