@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { extractVerseReferences, isVerseReferenced } from "./verseExtraction";
+import {
+  extractVerseReferences,
+  isVerseReferenced,
+  LOCALIZED_BOOK_TO_ENGLISH,
+} from "./verseExtraction";
 
 describe("extractVerseReferences", () => {
   it("should extract simple book references", () => {
@@ -130,8 +134,8 @@ describe("extractVerseReferences", () => {
     // "Плач Иеремии" = Lamentations in Russian (two-word book name)
     const text = "В Плач Иеремии 3:3 написано о страдании";
     const refs = extractVerseReferences(text);
-    // Must capture the two-word book name, not just one word
-    expect(refs.has("плач иеремии 3:3")).toBe(true);
+    // Must capture the two-word book name, normalized to English
+    expect(refs.has("lamentations 3:3")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -140,15 +144,115 @@ describe("extractVerseReferences", () => {
     const text = "В Плач Иеремии 3:3 написано";
     const refs = extractVerseReferences(text);
     expect(refs.has("в плач иеремии 3:3")).toBe(false);
-    expect(refs.has("плач иеремии 3:3")).toBe(true);
+    expect(refs.has("lamentations 3:3")).toBe(true);
   });
 
   it("should extract Russian single-word book names", () => {
     // "Бытие" = Genesis, "Иоанна" = John
     const text = "Читайте Бытие 1:1 и Иоанна 3:16";
     const refs = extractVerseReferences(text);
-    expect(refs.has("бытие 1:1")).toBe(true);
-    expect(refs.has("иоанна 3:16")).toBe(true);
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  // ── Russian citation tests ──────────────────────────────────────────────
+
+  it("should normalize Russian genitive 'Иоанна 3:16' to 'john 3:16'", () => {
+    const text = "Иоанна 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian nominative 'Иоанн 3:16' to 'john 3:16'", () => {
+    const text = "Иоанн 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian genitive 'Псалтири 23:1' to 'psalms 23:1'", () => {
+    const text = "Псалтири 23:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian nominative 'Псалтирь 23:1' to 'psalms 23:1'", () => {
+    const text = "Псалтирь 23:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian genitive 'Бытия 1:1' to 'genesis 1:1'", () => {
+    const text = "Бытия 1:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian nominative 'Матфея 5:3' to 'matthew 5:3'", () => {
+    const text = "Матфея 5:3";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("matthew 5:3")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian 'Откровения 21:4' to 'revelation 21:4'", () => {
+    const text = "Откровения 21:4";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("revelation 21:4")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Russian 'Деяния 2:38' to 'acts 2:38'", () => {
+    const text = "Деяния 2:38";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("acts 2:38")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  // ── Chinese citation tests ───────────────────────────────────────────────
+
+  it("should normalize Chinese '约翰福音 3:16' to 'john 3:16'", () => {
+    const text = "约翰福音 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Chinese '诗篇 23:1' to 'psalms 23:1'", () => {
+    const text = "诗篇 23:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  // ── Korean citation tests ────────────────────────────────────────────────
+
+  it("should normalize Korean '요한복음 3:16' to 'john 3:16'", () => {
+    const text = "요한복음 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should normalize Korean '시편 23:1' to 'psalms 23:1'", () => {
+    const text = "시편 23:1";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  // ── LOCALIZED_BOOK_TO_ENGLISH table test ─────────────────────────────────
+
+  it("should export LOCALIZED_BOOK_TO_ENGLISH with correct entries", () => {
+    expect(LOCALIZED_BOOK_TO_ENGLISH["иоанна"]).toBe("john");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["псалтири"]).toBe("psalms");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["бытия"]).toBe("genesis");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["约翰福音"]).toBe("john");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["요한복음"]).toBe("john");
   });
 
   it("should not cause recursion error on large text", () => {
@@ -242,5 +346,65 @@ describe("isVerseReferenced", () => {
       reference: "John 3:16",
     };
     expect(isVerseReferenced(verse, references)).toBe(false);
+  });
+
+  // ── Cross-language matching tests ─────────────────────────────────────────
+
+  it("should return true for English verse when message contained Russian genitive 'Иоанна 3:16'", () => {
+    // Simulate: message text → extractVerseReferences → normalized Set
+    const refs = extractVerseReferences(
+      "Как сказано в Иоанна 3:16 о любви Бога",
+    );
+    const verse = {
+      book: "John",
+      chapter: 3,
+      verse: 16,
+      reference: "John 3:16",
+    };
+    expect(isVerseReferenced(verse, refs)).toBe(true);
+  });
+
+  it("should return true for English Psalms verse when message contained Russian 'Псалтири 23:1'", () => {
+    const refs = extractVerseReferences("Псалтири 23:1 — утешение");
+    const verse = {
+      book: "Psalms",
+      chapter: 23,
+      verse: 1,
+      reference: "Psalms 23:1",
+    };
+    expect(isVerseReferenced(verse, refs)).toBe(true);
+  });
+
+  it("should return true for English Genesis verse when message contained Russian 'Бытия 1:1'", () => {
+    const refs = extractVerseReferences("В начале — Бытия 1:1");
+    const verse = {
+      book: "Genesis",
+      chapter: 1,
+      verse: 1,
+      reference: "Genesis 1:1",
+    };
+    expect(isVerseReferenced(verse, refs)).toBe(true);
+  });
+
+  it("should return true for English John verse when message contained Chinese '约翰福音 3:16'", () => {
+    const refs = extractVerseReferences("约翰福音 3:16");
+    const verse = {
+      book: "John",
+      chapter: 3,
+      verse: 16,
+      reference: "John 3:16",
+    };
+    expect(isVerseReferenced(verse, refs)).toBe(true);
+  });
+
+  it("should return true for English John verse when message contained Korean '요한복음 3:16'", () => {
+    const refs = extractVerseReferences("요한복음 3:16");
+    const verse = {
+      book: "John",
+      chapter: 3,
+      verse: 16,
+      reference: "John 3:16",
+    };
+    expect(isVerseReferenced(verse, refs)).toBe(true);
   });
 });
