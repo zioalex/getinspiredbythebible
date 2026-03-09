@@ -26,9 +26,17 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 
 venv: ## Create virtual environment
-	@if [ ! -f "$(PYTHON)" ]; then \
+	@# Recreate if: python missing, pip missing, or venv owned by a different uid
+	@VENV_OK=1; \
+	[ ! -f "$(PYTHON)" ] && VENV_OK=0; \
+	[ ! -f "$(PIP)" ] && VENV_OK=0; \
+	if [ -e "$(VENV)" ] && [ "$$(stat -c '%u' $(VENV) 2>/dev/null || stat -f '%u' $(VENV) 2>/dev/null)" != "$$(id -u)" ]; then \
+		echo "$(YELLOW)⚠ $(VENV) owned by a different uid — will recreate$(NC)"; \
+		VENV_OK=0; \
+	fi; \
+	if [ "$$VENV_OK" = "0" ]; then \
 		echo "$(BLUE)Creating virtual environment...$(NC)"; \
-		rm -rf $(VENV); \
+		rm -rf $(VENV) 2>/dev/null || { echo "$(YELLOW)Cannot remove $(VENV) (permission denied). Run: sudo rm -rf $(VENV)$(NC)"; exit 1; }; \
 		$(PYTHON_VERSION) -m venv $(VENV); \
 		echo "$(GREEN)✓ Virtual environment created at $(VENV)$(NC)"; \
 	else \
