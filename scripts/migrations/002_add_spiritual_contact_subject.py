@@ -16,6 +16,7 @@ Run with: python scripts/migrations/002_add_spiritual_contact_subject.py
 import asyncio
 import os
 import sys
+from datetime import datetime
 
 import asyncpg
 
@@ -30,9 +31,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from utils import get_migration_connection_params  # noqa: E402
 
 
+def log(message: str) -> None:
+    """Print timestamped log message, flushed immediately for CI visibility."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=True)
+
+
 async def run_migration():
     """Run the migration to add 'spiritual' to contact_submissions subject constraint."""
-    print("Connecting to database...")
+    log("Connecting to database...")
 
     # Parse connection string - handle both local and Azure formats
     database_url = settings.database_url
@@ -49,7 +56,7 @@ async def run_migration():
         """)
 
         if not table_exists:
-            print("Table contact_submissions does not exist — skipping (run 001 first).")
+            log("Table contact_submissions does not exist — skipping (run 001 first).")
             return
 
         # Find the existing subject CHECK constraint name
@@ -63,21 +70,21 @@ async def run_migration():
         """)
 
         if constraint_name:
-            print(f"Dropping old constraint: {constraint_name}")
+            log(f"Dropping old constraint: {constraint_name}")
             await conn.execute(
                 f"ALTER TABLE contact_submissions DROP CONSTRAINT {constraint_name};"
             )
         else:
-            print("No existing subject CHECK constraint found — will add a new one.")
+            log("No existing subject CHECK constraint found — will add a new one.")
 
-        print("Adding updated subject CHECK constraint (includes 'spiritual')...")
+        log("Adding updated subject CHECK constraint (includes 'spiritual')...")
         await conn.execute("""
             ALTER TABLE contact_submissions
             ADD CONSTRAINT contact_submissions_subject_check
             CHECK (subject IN ('spiritual', 'bug', 'feature', 'feedback', 'other'));
         """)
 
-        print("Migration completed successfully!")
+        log("Migration completed successfully!")
 
     finally:
         await conn.close()

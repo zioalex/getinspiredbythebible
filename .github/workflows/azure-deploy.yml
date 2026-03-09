@@ -1055,6 +1055,7 @@ jobs:
       'skipped') && (needs.changes.outputs.migration_scripts == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
 
     steps:
@@ -1100,14 +1101,6 @@ jobs:
           export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
           cd scripts/migrations
           python run_migrations.py
-
-      - name: Post Migration Summary
-        if: always()
-        run: |
-          echo "## Database Migration Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Ran pending migrations via run_migrations.py —" \
-            "already-applied migrations are skipped automatically." >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered with seed enabled)
