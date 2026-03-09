@@ -81,13 +81,16 @@ NOTES:
 import sys
 from pathlib import Path
 
-# Allow importing from api/utils when running as a standalone script
-# (e.g. python scripts/translations.py or pytest from project root)
-_API_UTILS = Path(__file__).parent.parent / "api"
-if str(_API_UTILS) not in sys.path:
-    sys.path.insert(0, str(_API_UTILS))
+# Allow importing translation_registry directly from api/utils when running
+# as a standalone script or from tests.
+# We add api/utils/ (not api/) to sys.path so that Python imports
+# translation_registry.py as a plain module, avoiding the api/utils/__init__.py
+# which has heavy API-only dependencies (httpx etc.) not installed in scripts env.
+_API_UTILS_DIR = Path(__file__).parent.parent / "api" / "utils"
+if str(_API_UTILS_DIR) not in sys.path:
+    sys.path.insert(0, str(_API_UTILS_DIR))
 
-from utils.translation_registry import (  # noqa: E402
+from translation_registry import (  # noqa: E402
     ENGLISH_TO_ARABIC,
     ENGLISH_TO_CHINESE,
     ENGLISH_TO_FRENCH,
