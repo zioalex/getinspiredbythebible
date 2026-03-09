@@ -21,6 +21,7 @@ import argparse
 import asyncio
 import json
 import os
+import traceback
 import httpx
 from pathlib import Path
 import sys
@@ -465,6 +466,9 @@ async def ensure_books_and_chapters(session) -> dict:
 async def load_verses(session, translation_code: str, bible_data: list, books_filter: list = None):
     """Load verses for a specific translation.
 
+    Uses per-book batch inserts (executemany) to minimise round-trips:
+    one INSERT … VALUES call per book instead of one per verse.
+
     Args:
         session: Database session
         translation_code: Translation code (e.g., 'kjv')
@@ -515,6 +519,7 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
         books_loaded += 1
         book_verse_count = 0
         num_chapters = len(chapters)
+        book_start = time.time()
 
         log(f"  📖 [{books_loaded}/{total_books}] {standard_name} ({num_chapters} chapters)...")
 
@@ -524,6 +529,10 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
         )
         chapter_ids = {row[1]: row[0] for row in chapter_result.fetchall()}
 
+        # Accumulate all verse rows for this book then insert in a single executemany call.
+        # This turns ~500 individual round-trips (for an average OT book) into one,
+        # reducing the ~31 k per-translation round-trips to ~66 (one per book).
+        batch = []
         for chapter_idx, chapter_verses in enumerate(chapters):
             chapter_num = chapter_idx + 1
             chapter_id = chapter_ids.get(chapter_num)
@@ -533,8 +542,19 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
 
             for verse_idx, verse_text in enumerate(chapter_verses):
                 verse_num = verse_idx + 1
+                batch.append(
+                    {
+                        "book_id": book_id,
+                        "chapter_id": chapter_id,
+                        "chapter_num": chapter_num,
+                        "verse_num": verse_num,
+                        "text": verse_text,
+                        "translation": translation_code,
+                    }
+                )
 
-                # Insert or update verse
+        try:
+            if batch:
                 await session.execute(
                     text("""
                         INSERT INTO verses
@@ -544,20 +564,19 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
                         ON CONFLICT (book_id, chapter_number, verse_number, translation)
                         DO UPDATE SET text = :text
                     """),
-                    {
-                        "book_id": book_id,
-                        "chapter_id": chapter_id,
-                        "chapter_num": chapter_num,
-                        "verse_num": verse_num,
-                        "text": verse_text,
-                        "translation": translation_code,
-                    },
+                    batch,
                 )
-                verse_count += 1
-                book_verse_count += 1
+                book_verse_count = len(batch)
+                verse_count += book_verse_count
 
-        await session.commit()
-        log(f"      ✓ {standard_name}: {book_verse_count:,} verses loaded")
+            await session.commit()
+            book_elapsed = time.time() - book_start
+            log(f"      ✓ {standard_name}: {book_verse_count:,} verses in {book_elapsed:.1f}s")
+
+        except Exception:
+            log(f"  ❌ Error inserting verses for {standard_name} — rolling back and continuing")
+            traceback.print_exc()
+            await session.rollback()
 
     elapsed = time.time() - start_time
     log(f"  ⏱️  Completed in {elapsed:.1f}s ({verse_count:,} total verses)")
@@ -616,65 +635,73 @@ async def load_translation_to_db(
         force: Force reload even if translation already exists
     """
 
-    database_url = convert_db_url_for_asyncpg(database_url)
+    try:
+        database_url = convert_db_url_for_asyncpg(database_url)
 
-    engine = create_async_engine(database_url)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        engine = create_async_engine(database_url)
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    async with engine.begin() as conn:
-        # Create vector extension
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        async with engine.begin() as conn:
+            # Create vector extension
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-    async with async_session() as session:
-        # Ensure schema exists with correct embedding dimensions
-        await ensure_schema(session, embedding_dimensions)
+        async with async_session() as session:
+            # Ensure schema exists with correct embedding dimensions
+            await ensure_schema(session, embedding_dimensions)
 
-        # Check if translation is already loaded (skip check in CI mode with filter)
-        if not force and not books_filter:
-            is_loaded, existing_count = await check_translation_loaded(session, translation_code)
-            if is_loaded:
+            # Check if translation is already loaded (skip check in CI mode with filter)
+            if not force and not books_filter:
+                is_loaded, existing_count = await check_translation_loaded(
+                    session, translation_code
+                )
+                if is_loaded:
+                    log(
+                        f"⏭️  Skipping {TRANSLATIONS[translation_code]['name']} - already loaded ({existing_count:,} verses)"
+                    )
+                    await engine.dispose()
+                    return
+
+            # Load translation metadata
+            await load_translation_metadata(session, translation_code)
+
+            # Ensure books and chapters exist
+            book_ids = await ensure_books_and_chapters(session)
+
+            # Download translation data
+            bible_path = (
+                Path(__file__).parent.parent
+                / "data"
+                / "bible"
+                / "translations"
+                / f"{translation_code}.json"
+            )
+            bible_data = await download_translation(translation_code, bible_path)
+
+            # Skip verse loading if no data available (e.g. manual-only translations with no URL)
+            if not bible_data:
                 log(
-                    f"⏭️  Skipping {TRANSLATIONS[translation_code]['name']} - already loaded ({existing_count:,} verses)"
+                    f"⏭️  No verse data available for {translation_code} — metadata registered but no verses loaded."
                 )
                 await engine.dispose()
                 return
 
-        # Load translation metadata
-        await load_translation_metadata(session, translation_code)
+            # Load verses
+            if books_filter:
+                log(
+                    f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})..."
+                )
+            else:
+                log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
+            verse_count = await load_verses(session, translation_code, bible_data, books_filter)
 
-        # Ensure books and chapters exist
-        book_ids = await ensure_books_and_chapters(session)
+            log(f"✅ Loaded {verse_count:,} verses for {translation_code}")
 
-        # Download translation data
-        bible_path = (
-            Path(__file__).parent.parent
-            / "data"
-            / "bible"
-            / "translations"
-            / f"{translation_code}.json"
-        )
-        bible_data = await download_translation(translation_code, bible_path)
+        await engine.dispose()
 
-        # Skip verse loading if no data available (e.g. manual-only translations with no URL)
-        if not bible_data:
-            log(
-                f"⏭️  No verse data available for {translation_code} — metadata registered but no verses loaded."
-            )
-            await engine.dispose()
-            return
-
-        # Load verses
-        if books_filter:
-            log(
-                f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']} (filtered: {', '.join(books_filter)})..."
-            )
-        else:
-            log(f"📝 Loading verses for {TRANSLATIONS[translation_code]['name']}...")
-        verse_count = await load_verses(session, translation_code, bible_data, books_filter)
-
-        log(f"✅ Loaded {verse_count:,} verses for {translation_code}")
-
-    await engine.dispose()
+    except Exception:
+        log(f"❌ Fatal error loading translation '{translation_code}':")
+        log(traceback.format_exc())
+        raise
 
 
 async def main():
