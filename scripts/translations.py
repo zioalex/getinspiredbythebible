@@ -3,7 +3,7 @@ Translation configurations and book name mappings for multilingual Bible support
 
 This module contains:
 - Translation metadata (language, source URLs, etc.)
-- Book name mappings (Italian/German/Spanish/French/Portuguese/Arabic/Russian/Chinese/Hindi/Korean → English)
+- Book name mappings (derived from api/utils/translation_registry.py)
 - Data source configurations
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -13,47 +13,58 @@ ADDING A NEW LANGUAGE — CHECKLIST
 When adding a new language/translation, you must update ALL of the following
 or the app will silently fall back to English for that language:
 
- 1. scripts/translations.py (THIS FILE)
-    a. Add a <LANGUAGE>_BOOK_NAMES dict  (localized name → English name, 66 books)
-    b. Add an entry to TRANSLATIONS dict with keys:
+ 1. api/utils/translation_registry.py  ← SINGLE SOURCE OF TRUTH FOR BOOK NAMES
+    a. Add an ENGLISH_TO_<LANGUAGE> dict (English → localized, 66 books)
+       Use the primary form that appears in the source feed as the value.
+    b. If the feed uses alias forms (alternate grammar, BOM, no-space etc.),
+       add them to EXTRA_REVERSE_MAPPINGS.
+    c. Register the translation: add "my_code": ENGLISH_TO_MY_LANGUAGE
+       to TRANSLATION_REGISTRY.
+    → This automatically updates book_names.py, verse_parser.py, AND
+      this file (scripts/translations.py) — no further edits needed there.
+
+ 2. scripts/translations.py  (THIS FILE)
+    a. Add an entry to TRANSLATIONS dict with keys:
          code, name, language, language_code, description, source, url,
          book_names, license, is_default
-    c. source must be one of: "getbible", "thiagobodruk", "scrollmapper", "manual"
-    d. url=None is allowed ONLY when source="manual" (no free download source exists)
+       For book_names, use the auto-generated <LANGUAGE>_BOOK_NAMES variable
+       defined below (it is derived from translation_registry.py).
+    b. source must be one of: "getbible", "thiagobodruk", "scrollmapper", "manual"
+    c. url=None is allowed ONLY when source="manual" (no free download source exists)
 
- 2. scripts/init.sql
+ 3. scripts/init.sql
     Add an INSERT row for the translation so the DB is seeded on fresh deploy.
     Or regenerate via:
       python -c "from translations import generate_translations_sql; print(generate_translations_sql())"
 
- 3. api/utils/language.py
+ 4. api/utils/language.py
     a. Add ISO code to SUPPORTED_LANGUAGES list
     b. Add entry to LANGUAGE_TRANSLATIONS dict  (e.g. "ru": ["synodal"])
     c. Add entry to TRANSLATION_INFO dict
-    d. Add ENGLISH_TO_<LANGUAGE>_BOOKS dict (English → localized, for display)
+    d. Add ENGLISH_TO_<LANGUAGE>_BOOKS dict — import from translation_registry.py
     e. Add to get_localized_book_name() book_map dict
 
- 4. frontend/messages/<locale>.json
+ 5. frontend/messages/<locale>.json
     Create the UI translation file for the new locale.
 
- 5. frontend/src/i18n/routing.ts
+ 6. frontend/src/i18n/routing.ts
     Add the locale code to the locales array.
 
- 6. frontend/src/components/LanguageSwitcher.tsx
+ 7. frontend/src/components/LanguageSwitcher.tsx
     Add the locale label.
 
- 7. frontend/src/app/[locale]/layout.tsx
+ 8. frontend/src/app/[locale]/layout.tsx
     Add an hreflang alternate entry.
 
- 8. api/chat/prompts.py
+ 9. api/chat/prompts.py
     Add to LANGUAGE_NAMES and SOURCE_ATTRIBUTION_EXAMPLES.
 
- 9. Run all tests:
+10. Run all tests:
       cd api && pytest -m "not network" -q
     And check specifically:
       pytest tests/test_translations.py tests/test_multilingual_integration.py -q -m "not network"
 
-10. Count check — update the assertion in:
+11. Count check — update the assertion in:
       api/tests/test_translations.py::test_list_available_translations
     (change the expected count from N to N+1)
 
@@ -67,567 +78,109 @@ NOTES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
-# Italian book names (Riveduta 1927) → Standard English names
-ITALIAN_BOOK_NAMES = {
-    # Old Testament
-    "Genesi": "Genesis",
-    "Esodo": "Exodus",
-    "Levitico": "Leviticus",
-    "Numeri": "Numbers",
-    "Deuteronomio": "Deuteronomy",
-    "Giosuè": "Joshua",
-    "Giudici": "Judges",
-    "Rut": "Ruth",
-    "1 Samuele": "1 Samuel",
-    "2 Samuele": "2 Samuel",
-    "1 Re": "1 Kings",
-    "2 Re": "2 Kings",
-    "1 Cronache": "1 Chronicles",
-    "2 Cronache": "2 Chronicles",
-    "Esdra": "Ezra",
-    "Neemia": "Nehemiah",
-    "Ester": "Esther",
-    "Giobbe": "Job",
-    "Salmi": "Psalms",
-    "Proverbi": "Proverbs",
-    "Ecclesiaste": "Ecclesiastes",
-    "Cantico dei Cantici": "Song of Solomon",
-    "Isaia": "Isaiah",
-    "Geremia": "Jeremiah",
-    "Lamentazioni": "Lamentations",
-    "Ezechiele": "Ezekiel",
-    "Daniele": "Daniel",
-    "Osea": "Hosea",
-    "Gioele": "Joel",
-    "Amos": "Amos",
-    "Abdia": "Obadiah",
-    "Giona": "Jonah",
-    "Michea": "Micah",
-    "Naum": "Nahum",
-    "Abacuc": "Habakkuk",
-    "Sofonia": "Zephaniah",
-    "Aggeo": "Haggai",
-    "Zaccaria": "Zechariah",
-    "Malachia": "Malachi",
-    # New Testament
-    "Matteo": "Matthew",
-    "Marco": "Mark",
-    "Luca": "Luke",
-    "Giovanni": "John",
-    "Atti": "Acts",
-    "Romani": "Romans",
-    "1 Corinzi": "1 Corinthians",
-    "2 Corinzi": "2 Corinthians",
-    "Galati": "Galatians",
-    "Efesini": "Ephesians",
-    "Filippesi": "Philippians",
-    "Colossesi": "Colossians",
-    "1 Tessalonicesi": "1 Thessalonians",
-    "2 Tessalonicesi": "2 Thessalonians",
-    "1 Timoteo": "1 Timothy",
-    "2 Timoteo": "2 Timothy",
-    "Tito": "Titus",
-    "Filemone": "Philemon",
-    "Ebrei": "Hebrews",
-    "Giacomo": "James",
-    "1 Pietro": "1 Peter",
-    "2 Pietro": "2 Peter",
-    "1 Giovanni": "1 John",
-    "2 Giovanni": "2 John",
-    "3 Giovanni": "3 John",
-    "Giuda": "Jude",
-    "Apocalisse": "Revelation",
-}
+import importlib
+import sys
+from pathlib import Path
 
-# German book names (Luther 1912 / Schlachter) → Standard English names
-GERMAN_BOOK_NAMES = {
-    # Old Testament
-    "1. Mose": "Genesis",
-    "2. Mose": "Exodus",
-    "3. Mose": "Leviticus",
-    "4. Mose": "Numbers",
-    "5. Mose": "Deuteronomy",
-    "Josua": "Joshua",
-    "Richter": "Judges",
-    "Ruth": "Ruth",
-    "Rut": "Ruth",  # Alternate spelling (Schlachter)
-    "1. Samuel": "1 Samuel",
-    "2. Samuel": "2 Samuel",
-    "1. Könige": "1 Kings",
-    "2. Könige": "2 Kings",
-    "1. Chronik": "1 Chronicles",
-    "2. Chronik": "2 Chronicles",
-    "Esra": "Ezra",
-    "Nehemia": "Nehemiah",
-    "Esther": "Esther",
-    "Ester": "Esther",  # Alternate spelling (Schlachter)
-    "Hiob": "Job",
-    "Psalmen": "Psalms",
-    "Sprüche": "Proverbs",
-    "Prediger": "Ecclesiastes",
-    "Hohelied": "Song of Solomon",
-    "Hohes Lied": "Song of Solomon",  # Alternate spelling (Schlachter)
-    "Jesaja": "Isaiah",
-    "Jeremia": "Jeremiah",
-    "Klagelieder": "Lamentations",
-    "Hesekiel": "Ezekiel",
-    "Daniel": "Daniel",
-    "Hosea": "Hosea",
-    "Joel": "Joel",
-    "Amos": "Amos",
-    "Obadja": "Obadiah",
-    "Jona": "Jonah",
-    "Micha": "Micah",
-    "Nahum": "Nahum",
-    "Habakuk": "Habakkuk",
-    "Zephanja": "Zephaniah",
-    "Zefanja": "Zephaniah",  # Alternate spelling (Schlachter)
-    "Haggai": "Haggai",
-    "Sacharja": "Zechariah",
-    "Maleachi": "Malachi",
-    # New Testament
-    "Matthäus": "Matthew",
-    "Markus": "Mark",
-    "Lukas": "Luke",
-    "Johannes": "John",
-    "Apostelgeschichte": "Acts",
-    "Römer": "Romans",
-    "1. Korinther": "1 Corinthians",
-    "2. Korinther": "2 Corinthians",
-    "Galater": "Galatians",
-    "Epheser": "Ephesians",
-    "Philipper": "Philippians",
-    "Kolosser": "Colossians",
-    "1. Thessalonicher": "1 Thessalonians",
-    "2. Thessalonicher": "2 Thessalonians",
-    "1. Timotheus": "1 Timothy",
-    "2. Timotheus": "2 Timothy",
-    "Titus": "Titus",
-    "Philemon": "Philemon",
-    "Hebräer": "Hebrews",
-    "Jakobus": "James",
-    "1. Petrus": "1 Peter",
-    "2. Petrus": "2 Peter",
-    "1. Johannes": "1 John",
-    "2. Johannes": "2 John",
-    "3. Johannes": "3 John",
-    "Judas": "Jude",
-    "Offenbarung": "Revelation",
-}
+# Allow importing translation_registry directly from api/utils when running
+# as a standalone script or from tests.
+# We add api/utils/ (not api/) to sys.path so that Python imports
+# translation_registry.py as a plain module, avoiding the api/utils/__init__.py
+# which has heavy API-only dependencies (httpx etc.) not installed in scripts env.
+_API_UTILS_DIR = Path(__file__).parent.parent / "api" / "utils"
+if str(_API_UTILS_DIR) not in sys.path:
+    sys.path.insert(0, str(_API_UTILS_DIR))
 
-# Spanish book names (Reina Valera 1909) → Standard English names
-SPANISH_BOOK_NAMES = {
-    # Old Testament
-    "Génesis": "Genesis",
-    "Éxodo": "Exodus",
-    "Levítico": "Leviticus",
-    "Números": "Numbers",
-    "Deuteronomio": "Deuteronomy",
-    "Josué": "Joshua",
-    "Jueces": "Judges",
-    "Rut": "Ruth",
-    "1 Samuel": "1 Samuel",
-    "2 Samuel": "2 Samuel",
-    "1 Reyes": "1 Kings",
-    "2 Reyes": "2 Kings",
-    "1 Crónicas": "1 Chronicles",
-    "2 Crónicas": "2 Chronicles",
-    "Esdras": "Ezra",
-    "Nehemías": "Nehemiah",
-    "Ester": "Esther",
-    "Job": "Job",
-    "Salmos": "Psalms",
-    "Proverbios": "Proverbs",
-    "Eclesiastés": "Ecclesiastes",
-    "Cantares": "Song of Solomon",
-    "Isaías": "Isaiah",
-    "Jeremías": "Jeremiah",
-    "Lamentaciones": "Lamentations",
-    "Ezequiel": "Ezekiel",
-    "Daniel": "Daniel",
-    "Oseas": "Hosea",
-    "Joel": "Joel",
-    "Amós": "Amos",
-    "Abdías": "Obadiah",
-    "Jonás": "Jonah",
-    "Miqueas": "Micah",
-    "Nahúm": "Nahum",
-    "Habacuc": "Habakkuk",
-    "Sofonías": "Zephaniah",
-    "Hageo": "Haggai",
-    "Zacarías": "Zechariah",
-    "Malaquías": "Malachi",
-    # New Testament
-    "Mateo": "Matthew",
-    "Marcos": "Mark",
-    "Lucas": "Luke",
-    "Juan": "John",
-    "Hechos": "Acts",
-    "Romanos": "Romans",
-    "1 Corintios": "1 Corinthians",
-    "2 Corintios": "2 Corinthians",
-    "Gálatas": "Galatians",
-    "Efesios": "Ephesians",
-    "Filipenses": "Philippians",
-    "Colosenses": "Colossians",
-    "1 Tesalonicenses": "1 Thessalonians",
-    "2 Tesalonicenses": "2 Thessalonians",
-    "1 Timoteo": "1 Timothy",
-    "2 Timoteo": "2 Timothy",
-    "Tito": "Titus",
-    "Filemón": "Philemon",
-    "Hebreos": "Hebrews",
-    "Santiago": "James",
-    "1 Pedro": "1 Peter",
-    "2 Pedro": "2 Peter",
-    "1 Juan": "1 John",
-    "2 Juan": "2 John",
-    "3 Juan": "3 John",
-    "Judas": "Jude",
-    "Apocalipsis": "Revelation",
-}
+# Ensure a single module instance is shared between the bare name
+# ("translation_registry") and the fully-qualified package name
+# ("utils.translation_registry").  When pytest runs both test_translations.py
+# (which triggers this file and uses the bare name) and test_utils_coverage.py
+# (which imports utils.book_names and uses the qualified name), whichever test
+# file is *collected first* determines which copy lands in sys.modules first.
+# We therefore sync both directions before doing any imports:
+#   • If utils.translation_registry is already cached (test_utils_coverage.py
+#     was collected first), reuse it under the bare name too.
+#   • Otherwise, load the bare module and register it under the qualified name.
+if "utils.translation_registry" in sys.modules:
+    # Reuse the already-loaded qualified module; expose it under the bare name
+    # so the `from translation_registry import …` below resolves to it.
+    sys.modules.setdefault("translation_registry", sys.modules["utils.translation_registry"])
+else:
+    # Load via bare name, then register under the qualified name so that
+    # any subsequent `from utils.translation_registry import …` reuses it.
+    _registry_module = importlib.import_module("translation_registry")
+    sys.modules.setdefault("utils.translation_registry", _registry_module)
 
-# French book names (Louis Segond 1910) → Standard English names
-FRENCH_BOOK_NAMES = {
-    # Old Testament
-    "Genèse": "Genesis",
-    "Exode": "Exodus",
-    "Lévitique": "Leviticus",
-    "Nombres": "Numbers",
-    "Deutéronome": "Deuteronomy",
-    "Josué": "Joshua",
-    "Juges": "Judges",
-    "Ruth": "Ruth",
-    "1 Samuel": "1 Samuel",
-    "2 Samuel": "2 Samuel",
-    "1 Rois": "1 Kings",
-    "2 Rois": "2 Kings",
-    "1 Chroniques": "1 Chronicles",
-    "2 Chroniques": "2 Chronicles",
-    "Esdras": "Ezra",
-    "Néhémie": "Nehemiah",
-    "Esther": "Esther",
-    "Job": "Job",
-    "Psaumes": "Psalms",
-    "Proverbes": "Proverbs",
-    "Ecclésiaste": "Ecclesiastes",
-    "Cantique des Cantiques": "Song of Solomon",
-    "Ésaïe": "Isaiah",
-    "Jérémie": "Jeremiah",
-    "Lamentations": "Lamentations",
-    "Ézéchiel": "Ezekiel",
-    "Daniel": "Daniel",
-    "Osée": "Hosea",
-    "Joël": "Joel",
-    "Amos": "Amos",
-    "Abdias": "Obadiah",
-    "Jonas": "Jonah",
-    "Michée": "Micah",
-    "Nahum": "Nahum",
-    "Habacuc": "Habakkuk",
-    "Sophonie": "Zephaniah",
-    "Aggée": "Haggai",
-    "Zacharie": "Zechariah",
-    "Malachie": "Malachi",
-    # New Testament
-    "Matthieu": "Matthew",
-    "Marc": "Mark",
-    "Luc": "Luke",
-    "Jean": "John",
-    "Actes des Apôtres": "Acts",
-    "Romains": "Romans",
-    "1 Corinthiens": "1 Corinthians",
-    "2 Corinthiens": "2 Corinthians",
-    "Galates": "Galatians",
-    "Éphésiens": "Ephesians",
-    "Philippiens": "Philippians",
-    "Colossiens": "Colossians",
-    "1 Thessaloniciens": "1 Thessalonians",
-    "2 Thessaloniciens": "2 Thessalonians",
-    "1 Timothée": "1 Timothy",
-    "2 Timothée": "2 Timothy",
-    "Tite": "Titus",
-    "Philémon": "Philemon",
-    "Hébreux": "Hebrews",
-    "Jacques": "James",
-    "1 Pierre": "1 Peter",
-    "2 Pierre": "2 Peter",
-    "1 Jean": "1 John",
-    "2 Jean": "2 John",
-    "3 Jean": "3 John",
-    "Jude": "Jude",
-    "Apocalypse": "Revelation",
-}
+from translation_registry import (  # noqa: E402
+    ENGLISH_TO_ARABIC,
+    ENGLISH_TO_CHINESE,
+    ENGLISH_TO_FRENCH,
+    ENGLISH_TO_GERMAN,
+    ENGLISH_TO_HINDI,
+    ENGLISH_TO_ITALIAN,
+    ENGLISH_TO_KOREAN,
+    ENGLISH_TO_PORTUGUESE,
+    ENGLISH_TO_RUSSIAN,
+    ENGLISH_TO_SPANISH,
+    EXTRA_REVERSE_MAPPINGS,
+)
 
-# Portuguese book names (Almeida Atualizada) → Standard English names
-PORTUGUESE_BOOK_NAMES = {
-    # Old Testament
-    "Gênesis": "Genesis",
-    "Êxodo": "Exodus",
-    "Levítico": "Leviticus",
-    "Números": "Numbers",
-    "Deuteronômio": "Deuteronomy",
-    "Josué": "Joshua",
-    "Juízes": "Judges",
-    "Rute": "Ruth",
-    "1 Samuel": "1 Samuel",
-    "2 Samuel": "2 Samuel",
-    "1 Reis": "1 Kings",
-    "2 Reis": "2 Kings",
-    "1 Crônicas": "1 Chronicles",
-    "2 Crônicas": "2 Chronicles",
-    "Esdras": "Ezra",
-    "Neemias": "Nehemiah",
-    "Ester": "Esther",
-    "Jó": "Job",
-    "Salmos": "Psalms",
-    "Provérbios": "Proverbs",
-    "Eclesiastes": "Ecclesiastes",
-    "Cântico dos Cânticos": "Song of Solomon",
-    "Isaías": "Isaiah",
-    "Jeremias": "Jeremiah",
-    "Lamentações": "Lamentations",
-    "Ezequiel": "Ezekiel",
-    "Daniel": "Daniel",
-    "Oseias": "Hosea",
-    "Joel": "Joel",
-    "Amós": "Amos",
-    "Obadias": "Obadiah",
-    "Jonas": "Jonah",
-    "Miquéias": "Micah",
-    "Naum": "Nahum",
-    "Habacuque": "Habakkuk",
-    "Sofonias": "Zephaniah",
-    "Ageu": "Haggai",
-    "Zacarias": "Zechariah",
-    "Malaquias": "Malachi",
-    # New Testament
-    "Mateus": "Matthew",
-    "Marcos": "Mark",
-    "Lucas": "Luke",
-    "João": "John",
-    "Atos": "Acts",
-    "Romanos": "Romans",
-    "1 Coríntios": "1 Corinthians",
-    "2 Coríntios": "2 Corinthians",
-    "Gálatas": "Galatians",
-    "Efésios": "Ephesians",
-    "Filipenses": "Philippians",
-    "Colossenses": "Colossians",
-    "1 Tessalonicenses": "1 Thessalonians",
-    "2 Tessalonicenses": "2 Thessalonians",
-    "1 Timóteo": "1 Timothy",
-    "2 Timóteo": "2 Timothy",
-    "Tito": "Titus",
-    "Filemom": "Philemon",
-    "Hebreus": "Hebrews",
-    "Tiago": "James",
-    "1 Pedro": "1 Peter",
-    "2 Pedro": "2 Peter",
-    "1 João": "1 John",
-    "2 João": "2 John",
-    "3 João": "3 John",
-    "Judas": "Jude",
-    "Apocalipse": "Revelation",
-}
+# ---------------------------------------------------------------------------
+# localized → English  dicts used by load_bible.py and map_book_name()
+# Derived automatically — no manual maintenance needed.
+# ---------------------------------------------------------------------------
 
-# Arabic book names (Smith & Van Dyke) → Standard English names
-ARABIC_BOOK_NAMES = {
-    # Old Testament
-    "تكوين": "Genesis",
-    "خروج": "Exodus",
-    "لاويين": "Leviticus",
-    "عدد": "Numbers",
-    "تثنية": "Deuteronomy",
-    "يشوع": "Joshua",
-    "القضاة": "Judges",
-    "راعوث": "Ruth",
-    "1 صموئيل": "1 Samuel",
-    "2 صموئيل": "2 Samuel",
-    "1 الملوك": "1 Kings",
-    "2 الملوك": "2 Kings",
-    "1 أخبار الأيام": "1 Chronicles",
-    "2 أخبار الأيام": "2 Chronicles",
-    "عزرا": "Ezra",
-    "نحميا": "Nehemiah",
-    "أستير": "Esther",
-    "أيوب": "Job",
-    "المزامير": "Psalms",
-    "الأمثال": "Proverbs",
-    "الجامعة": "Ecclesiastes",
-    "نشيد الأنشاد": "Song of Solomon",
-    "إشعياء": "Isaiah",
-    "إرميا": "Jeremiah",
-    "مراثي إرميا": "Lamentations",
-    "حزقيال": "Ezekiel",
-    "دانيال": "Daniel",
-    "هوشع": "Hosea",
-    "يوئيل": "Joel",
-    "عاموس": "Amos",
-    "عوبديا": "Obadiah",
-    "يونان": "Jonah",
-    "ميخا": "Micah",
-    "ناحوم": "Nahum",
-    "حبقوق": "Habakkuk",
-    "صفنيا": "Zephaniah",
-    "حجي": "Haggai",
-    "زكريا": "Zechariah",
-    "ملاخي": "Malachi",
-    # New Testament
-    "متى": "Matthew",
-    "مرقس": "Mark",
-    "لوقا": "Luke",
-    "يوحنا": "John",
-    "أعمال الرسل": "Acts",
-    "رومية": "Romans",
-    "1 كورنثوس": "1 Corinthians",
-    "2 كورنثوس": "2 Corinthians",
-    "غلاطية": "Galatians",
-    "أفسس": "Ephesians",
-    "فيليبي": "Philippians",
-    "كولوسي": "Colossians",
-    "1 تسالونيكي": "1 Thessalonians",
-    "2 تسالونيكي": "2 Thessalonians",
-    "1 تيموثاوس": "1 Timothy",
-    "2 تيموثاوس": "2 Timothy",
-    "تيطس": "Titus",
-    "فليمون": "Philemon",
-    "عبرانيين": "Hebrews",
-    "يعقوب": "James",
-    "1 بطرس": "1 Peter",
-    "2 بطرس": "2 Peter",
-    "1 يوحنا": "1 John",
-    "2 يوحنا": "2 John",
-    "3 يوحنا": "3 John",
-    "يهوذا": "Jude",
-    "الرؤيا": "Revelation",
-}
+ITALIAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_ITALIAN.items()}
 
-# Russian book names (Synodal Translation) → Standard English names
-# Notes:
-#   - The getbible "synodal" feed uses genitive/dative forms for book titles
-#     (e.g. "Иисуса Навина", "Судей", "1-я Царств") rather than the
-#     nominative headings used in many print Bibles.  Both forms are mapped
-#     so the loader is robust to either representation.
-#   - The feed includes deuterocanonical / apocryphal books not present in the
-#     canonical 66-book Protestant Bible (Tobit, Judith, Maccabees, etc.).
-#     Those names have no mapping here; they are listed in DEUTEROCANONICAL_BOOK_NAMES
-#     (defined after this dict) so the loader emits a clean ℹ️ skip message
-#     instead of a misleading ⚠️ Unknown book warning.
-#   - NT epistles use short dative forms in the feed: "Иакову", "1-е Петру",
-#     "Римлянам", "1-е Коринфянам", "Иуде", "Деяния", etc.
-RUSSIAN_BOOK_NAMES = {
-    # ── Old Testament ────────────────────────────────────────────────────────
-    "Бытие": "Genesis",
-    "Исход": "Exodus",
-    "Левит": "Leviticus",
-    "Числа": "Numbers",
-    "Второзаконие": "Deuteronomy",
-    # Joshua — genitive form used in getbible feed
-    "Иисуса Навина": "Joshua",
-    "Иисус Навин": "Joshua",  # nominative alias
-    # Judges — genitive form used in getbible feed
-    "Судей": "Judges",
-    "Судьи": "Judges",  # nominative alias
-    "Руфь": "Ruth",
-    # Samuel / Kings — getbible uses "-я" ordinal suffix
-    "1-я Царств": "1 Samuel",
-    "1 Царств": "1 Samuel",  # alternate form
-    "2-я Царств": "2 Samuel",
-    "2 Царств": "2 Samuel",
-    "3-я Царств": "1 Kings",
-    "3 Царств": "1 Kings",
-    "4-я Царств": "2 Kings",
-    "4 Царств": "2 Kings",
-    # Chronicles — "-я" ordinal form
-    "1-я Паралипоменон": "1 Chronicles",
-    "1 Паралипоменон": "1 Chronicles",
-    "2-я Паралипоменон": "2 Chronicles",
-    "2 Паралипоменон": "2 Chronicles",
-    # Ezra — genitive in feed
-    "Ездры": "Ezra",
-    "Ездра": "Ezra",  # nominative alias
-    # Nehemiah — genitive in feed
-    "Неемии": "Nehemiah",
-    "Неемия": "Nehemiah",  # nominative alias
-    "Есфирь": "Esther",
-    "Иов": "Job",
-    "Псалтирь": "Psalms",
-    "Притчи": "Proverbs",
-    "Екклесиаст": "Ecclesiastes",
-    # Song of Songs — getbible uses "Песнь Песней"
-    "Песнь Песней": "Song of Solomon",
-    "Песня Песней": "Song of Solomon",  # alternate nominative form
-    "Исаия": "Isaiah",
-    "Иеремия": "Jeremiah",
-    "Плач Иеремии": "Lamentations",
-    # Ezekiel — getbible uses "Иезекииль" (two и)
-    "Иезекииль": "Ezekiel",
-    "Иезекиль": "Ezekiel",  # one-и variant (kept for robustness)
-    "Даниил": "Daniel",
-    "Осия": "Hosea",
-    "Иоиль": "Joel",
-    "Амос": "Amos",
-    "Авдий": "Obadiah",
-    "Иона": "Jonah",
-    "Михей": "Micah",
-    "Наум": "Nahum",
-    "Аввакум": "Habakkuk",
-    "Софония": "Zephaniah",
-    "Аггей": "Haggai",
-    "Захария": "Zechariah",
-    "Малахия": "Malachi",
-    # ── New Testament ─────────────────────────────────────────────────────────
-    "Матфей": "Matthew",
-    "Марк": "Mark",
-    "Лука": "Luke",
-    "Иоанн": "John",
-    # Acts — getbible uses short form "Деяния"
-    "Деяния": "Acts",
-    "Деяния апостолов": "Acts",  # full form alias
-    "Римлянам": "Romans",
-    # Corinthians — getbible uses "-е" ordinal suffix
-    "1-е Коринфянам": "1 Corinthians",
-    "1 Коринфянам": "1 Corinthians",
-    "2-е Коринфянам": "2 Corinthians",
-    "2 Коринфянам": "2 Corinthians",
-    "Галатам": "Galatians",
-    "Ефесянам": "Ephesians",
-    "Филиппийцам": "Philippians",
-    "Колоссянам": "Colossians",
-    # Thessalonians — "-е" ordinal suffix
-    "1-е Фессалоникийцам": "1 Thessalonians",
-    "1 Фессалоникийцам": "1 Thessalonians",
-    "2-е Фессалоникийцам": "2 Thessalonians",
-    "2 Фессалоникийцам": "2 Thessalonians",
-    # Timothy — "-е" ordinal suffix
-    "1-е Тимофею": "1 Timothy",
-    "1 Тимофею": "1 Timothy",
-    "2-е Тимофею": "2 Timothy",
-    "2 Тимофею": "2 Timothy",
-    "Титу": "Titus",
-    "Филимону": "Philemon",
-    "Евреям": "Hebrews",
-    # James — getbible uses dative "Иакову"
-    "Иакову": "James",
-    "Иаков": "James",  # nominative alias
-    # Peter — dative form in getbible feed
-    "1-е Петру": "1 Peter",
-    "1 Петра": "1 Peter",  # genitive alias
-    "2-е Петру": "2 Peter",
-    "2 Петра": "2 Peter",
-    # John epistles — dative form in getbible feed
-    "1-е Иоанну": "1 John",
-    "1 Иоанна": "1 John",
-    "2-е Иоанну": "2 John",
-    "2 Иоанна": "2 John",
-    "3-е Иоанну": "3 John",
-    "3 Иоанна": "3 John",
-    # Jude — dative "Иуде" in getbible feed
-    "Иуде": "Jude",
-    "Иуда": "Jude",  # nominative alias
-    "Откровение": "Revelation",
-}
+# German — canonical forms + Schlachter orthography alternates (Rut, Ester, Hohes Lied, Zefanja)
+_GERMAN_ALTERNATES = {"Rut", "Ester", "Hohes Lied", "Zefanja"}
+GERMAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_GERMAN.items()}
+GERMAN_BOOK_NAMES.update(
+    {alias: eng for alias, eng in EXTRA_REVERSE_MAPPINGS.items() if alias in _GERMAN_ALTERNATES}
+)
+
+SPANISH_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_SPANISH.items()}
+FRENCH_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_FRENCH.items()}
+PORTUGUESE_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_PORTUGUESE.items()}
+ARABIC_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_ARABIC.items()}
+HINDI_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_HINDI.items()}
+
+# Russian — canonical forms + aliases (genitive/dative ordinal variants)
+RUSSIAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_RUSSIAN.items()}
+RUSSIAN_BOOK_NAMES.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if alias[0] in "БбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя"
+    }
+)
+
+# Chinese — canonical forms + BOM variant + Simplified Revelation alias
+CHINESE_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_CHINESE.items()}
+CHINESE_BOOK_NAMES.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(
+            # CJK Unified Ideographs (main + Extension A + Compatibility)
+            (0x4E00 <= ord(c) <= 0x9FFF)
+            or (0x3400 <= ord(c) <= 0x4DBF)
+            or (0xF900 <= ord(c) <= 0xFAFF)
+            or c == "\ufeff"  # BOM prefix used in some getbible feeds
+            for c in alias
+        )
+    }
+)
+
+# Korean — canonical forms + no-space Lamentations alias
+KOREAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_KOREAN.items()}
+KOREAN_BOOK_NAMES.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(0xAC00 <= ord(c) <= 0xD7A3 for c in alias)
+    }
+)
 
 # Deuterocanonical / apocryphal book names present in the Synodal feed
 # (api.getbible.net/v2/synodal.json) that are NOT part of the 66-book
@@ -635,236 +188,18 @@ RUSSIAN_BOOK_NAMES = {
 # The loader uses this set to emit an informational skip message instead
 # of a misleading ⚠️ Unknown book warning.
 DEUTEROCANONICAL_BOOK_NAMES: set[str] = {
-    "Молитва Манассии",     # Prayer of Manasseh
-    "1-я Ездры",            # 1 Esdras
-    "2-я Ездры",            # 2 Esdras
-    "Товит",                # Tobit
-    "Юдифь",               # Judith
-    "Премудрость Соломона", # Wisdom of Solomon
-    "Сирах",                # Sirach / Ecclesiasticus
-    "Варух",                # Baruch
+    "Молитва Манассии",  # Prayer of Manasseh
+    "1-я Ездры",  # 1 Esdras
+    "2-я Ездры",  # 2 Esdras
+    "Товит",  # Tobit
+    "Юдифь",  # Judith
+    "Премудрость Соломона",  # Wisdom of Solomon
+    "Сирах",  # Sirach / Ecclesiasticus
+    "Варух",  # Baruch
     "Epistle of Jeremiah",  # Epistle of Jeremiah
-    "1-я Маккавеев",        # 1 Maccabees
-    "2-я Маккавеев",        # 2 Maccabees
-    "3-я Маккавеев",        # 3 Maccabees
-}
-
-# Chinese book names (Union Version Simplified) → Standard English names
-# Notes:
-#   - Genesis may arrive with a UTF-8 BOM (\ufeff) prefix from the getbible API feed;
-#     both forms are mapped to handle this gracefully.
-#   - Revelation: the getbible CUS feed uses Traditional characters (啟示錄);
-#     the Simplified form (启示录) is kept as an alias for robustness.
-CHINESE_BOOK_NAMES = {
-    "创世记": "Genesis",
-    "\ufeff创世记": "Genesis",  # BOM variant from getbible API feed
-    "出埃及记": "Exodus",
-    "利未记": "Leviticus",
-    "民数记": "Numbers",
-    "申命记": "Deuteronomy",
-    "约书亚记": "Joshua",
-    "士师记": "Judges",
-    "路得记": "Ruth",
-    "撒母耳记上": "1 Samuel",
-    "撒母耳记下": "2 Samuel",
-    "列王纪上": "1 Kings",
-    "列王纪下": "2 Kings",
-    "历代志上": "1 Chronicles",
-    "历代志下": "2 Chronicles",
-    "以斯拉记": "Ezra",
-    "尼希米记": "Nehemiah",
-    "以斯帖记": "Esther",
-    "约伯记": "Job",
-    "诗篇": "Psalms",
-    "箴言": "Proverbs",
-    "传道书": "Ecclesiastes",
-    "雅歌": "Song of Solomon",
-    "以赛亚书": "Isaiah",
-    "耶利米书": "Jeremiah",
-    "耶利米哀歌": "Lamentations",
-    "以西结书": "Ezekiel",
-    "但以理书": "Daniel",
-    "何西阿书": "Hosea",
-    "约珥书": "Joel",
-    "阿摩司书": "Amos",
-    "俄巴底亚书": "Obadiah",
-    "约拿书": "Jonah",
-    "弥迦书": "Micah",
-    "那鸿书": "Nahum",
-    "哈巴谷书": "Habakkuk",
-    "西番雅书": "Zephaniah",
-    "哈该书": "Haggai",
-    "撒迦利亚书": "Zechariah",
-    "玛拉基书": "Malachi",
-    "马太福音": "Matthew",
-    "马可福音": "Mark",
-    "路加福音": "Luke",
-    "约翰福音": "John",
-    "使徒行传": "Acts",
-    "罗马书": "Romans",
-    "哥林多前书": "1 Corinthians",
-    "哥林多后书": "2 Corinthians",
-    "加拉太书": "Galatians",
-    "以弗所书": "Ephesians",
-    "腓立比书": "Philippians",
-    "歌罗西书": "Colossians",
-    "帖撒罗尼迦前书": "1 Thessalonians",
-    "帖撒罗尼迦后书": "2 Thessalonians",
-    "提摩太前书": "1 Timothy",
-    "提摩太后书": "2 Timothy",
-    "提多书": "Titus",
-    "腓利门书": "Philemon",
-    "希伯来书": "Hebrews",
-    "雅各书": "James",
-    "彼得前书": "1 Peter",
-    "彼得后书": "2 Peter",
-    "约翰一书": "1 John",
-    "约翰二书": "2 John",
-    "约翰三书": "3 John",
-    "犹大书": "Jude",
-    "啟示錄": "Revelation",  # Traditional characters — actual name in getbible CUS feed
-    "启示录": "Revelation",  # Simplified alias for robustness
-}
-
-# Hindi book names (IRV Bible) → Standard English names
-HINDI_BOOK_NAMES = {
-    "उत्पत्ति": "Genesis",
-    "निर्गमन": "Exodus",
-    "लैव्यव्यवस्था": "Leviticus",
-    "गिनती": "Numbers",
-    "व्यवस्थाविवरण": "Deuteronomy",
-    "यहोशू": "Joshua",
-    "न्यायियों": "Judges",
-    "रूत": "Ruth",
-    "1 शमूएल": "1 Samuel",
-    "2 शमूएल": "2 Samuel",
-    "1 राजाओं": "1 Kings",
-    "2 राजाओं": "2 Kings",
-    "1 इतिहास": "1 Chronicles",
-    "2 इतिहास": "2 Chronicles",
-    "एज्रा": "Ezra",
-    "नहेम्याह": "Nehemiah",
-    "एस्तेर": "Esther",
-    "अय्यूब": "Job",
-    "भजन संहिता": "Psalms",
-    "नीतिवचन": "Proverbs",
-    "सभोपदेशक": "Ecclesiastes",
-    "श्रेष्ठगीत": "Song of Solomon",
-    "यशायाह": "Isaiah",
-    "यिर्मयाह": "Jeremiah",
-    "विलापगीत": "Lamentations",
-    "यहेजकेल": "Ezekiel",
-    "दानिय्येल": "Daniel",
-    "होशे": "Hosea",
-    "योएल": "Joel",
-    "आमोस": "Amos",
-    "ओबद्याह": "Obadiah",
-    "योना": "Jonah",
-    "मीका": "Micah",
-    "नहूम": "Nahum",
-    "हबक्कूक": "Habakkuk",
-    "सपन्याह": "Zephaniah",
-    "हाग्गै": "Haggai",
-    "जकर्याह": "Zechariah",
-    "मलाकी": "Malachi",
-    "मत्ती": "Matthew",
-    "मरकुस": "Mark",
-    "लूका": "Luke",
-    "यूहन्ना": "John",
-    "प्रेरितों के काम": "Acts",
-    "रोमियों": "Romans",
-    "1 कुरिन्थियों": "1 Corinthians",
-    "2 कुरिन्थियों": "2 Corinthians",
-    "गलातियों": "Galatians",
-    "इफिसियों": "Ephesians",
-    "फिलिप्पियों": "Philippians",
-    "कुलुस्सियों": "Colossians",
-    "1 थिस्सलुनीकियों": "1 Thessalonians",
-    "2 थिस्सलुनीकियों": "2 Thessalonians",
-    "1 तीमुथियुस": "1 Timothy",
-    "2 तीमुथियुस": "2 Timothy",
-    "तीतुस": "Titus",
-    "फिलेमोन": "Philemon",
-    "इब्रानियों": "Hebrews",
-    "याकूब": "James",
-    "1 पतरस": "1 Peter",
-    "2 पतरस": "2 Peter",
-    "1 यूहन्ना": "1 John",
-    "2 यूहन्ना": "2 John",
-    "3 यूहन्ना": "3 John",
-    "यहूदा": "Jude",
-    "प्रकाशितवाक्य": "Revelation",
-}
-
-# Korean book names (Korean Revised Version) → Standard English names
-KOREAN_BOOK_NAMES = {
-    "창세기": "Genesis",
-    "출애굽기": "Exodus",
-    "레위기": "Leviticus",
-    "민수기": "Numbers",
-    "신명기": "Deuteronomy",
-    "여호수아": "Joshua",
-    "사사기": "Judges",
-    "룻기": "Ruth",
-    "사무엘상": "1 Samuel",
-    "사무엘하": "2 Samuel",
-    "열왕기상": "1 Kings",
-    "열왕기하": "2 Kings",
-    "역대상": "1 Chronicles",
-    "역대하": "2 Chronicles",
-    "에스라": "Ezra",
-    "느헤미야": "Nehemiah",
-    "에스더": "Esther",
-    "욥기": "Job",
-    "시편": "Psalms",
-    "잠언": "Proverbs",
-    "전도서": "Ecclesiastes",
-    "아가": "Song of Solomon",
-    "이사야": "Isaiah",
-    "예레미야": "Jeremiah",
-    "예레미야 애가": "Lamentations",  # actual getbible API name (with space)
-    "예레미야애가": "Lamentations",  # alternate form without space (kept for robustness)
-    "에스겔": "Ezekiel",
-    "다니엘": "Daniel",
-    "호세아": "Hosea",
-    "요엘": "Joel",
-    "아모스": "Amos",
-    "오바댜": "Obadiah",
-    "요나": "Jonah",
-    "미가": "Micah",
-    "나훔": "Nahum",
-    "하박국": "Habakkuk",
-    "스바냐": "Zephaniah",
-    "학개": "Haggai",
-    "스가랴": "Zechariah",
-    "말라기": "Malachi",
-    "마태복음": "Matthew",
-    "마가복음": "Mark",
-    "누가복음": "Luke",
-    "요한복음": "John",
-    "사도행전": "Acts",
-    "로마서": "Romans",
-    "고린도전서": "1 Corinthians",
-    "고린도후서": "2 Corinthians",
-    "갈라디아서": "Galatians",
-    "에베소서": "Ephesians",
-    "빌립보서": "Philippians",
-    "골로새서": "Colossians",
-    "데살로니가전서": "1 Thessalonians",
-    "데살로니가후서": "2 Thessalonians",
-    "디모데전서": "1 Timothy",
-    "디모데후서": "2 Timothy",
-    "디도서": "Titus",
-    "빌레몬서": "Philemon",
-    "히브리서": "Hebrews",
-    "야고보서": "James",
-    "베드로전서": "1 Peter",
-    "베드로후서": "2 Peter",
-    "요한일서": "1 John",
-    "요한이서": "2 John",
-    "요한삼서": "3 John",
-    "유다서": "Jude",
-    "요한계시록": "Revelation",
+    "1-я Маккавеев",  # 1 Maccabees
+    "2-я Маккавеев",  # 2 Maccabees
+    "3-я Маккавеев",  # 3 Maccabees
 }
 
 # Translation configurations
