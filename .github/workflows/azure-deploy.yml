@@ -1123,9 +1123,10 @@ jobs:
   # When `bible_translation` input is provided, only that one matrix job runs
   # (others are filtered out by the per-job `if` condition).
   #
-  # Timeout: 30 minutes per translation. Loading one translation from the
-  # getBible API + inserting ~31k verses takes under 5 minutes on a good day;
-  # 30 min gives plenty of headroom without risking a 6-hour stuck job.
+  # Timeout: 90 minutes per translation. With batch inserts (~66 executemany calls
+  # per translation instead of ~31k individual round-trips), loading one translation
+  # should complete in well under 15 minutes; 90 min gives ample headroom without
+  # risking the 6-hour default GitHub Actions timeout on a stuck job.
   seed-database:
     needs: [changes, deploy]
     # Run if:
@@ -1146,7 +1147,7 @@ jobs:
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       fail-fast: false # one slow translation should not cancel the others
       matrix:
