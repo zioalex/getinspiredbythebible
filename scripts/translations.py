@@ -511,8 +511,9 @@ ARABIC_BOOK_NAMES = {
 #     so the loader is robust to either representation.
 #   - The feed includes deuterocanonical / apocryphal books not present in the
 #     canonical 66-book Protestant Bible (Tobit, Judith, Maccabees, etc.).
-#     Those names intentionally have no mapping and will be logged as
-#     "Unknown book" and skipped, which is the desired behaviour.
+#     Those names have no mapping here; they are listed in DEUTEROCANONICAL_BOOK_NAMES
+#     (defined after this dict) so the loader emits a clean ℹ️ skip message
+#     instead of a misleading ⚠️ Unknown book warning.
 #   - NT epistles use short dative forms in the feed: "Иакову", "1-е Петру",
 #     "Римлянам", "1-е Коринфянам", "Иуде", "Деяния", etc.
 RUSSIAN_BOOK_NAMES = {
@@ -626,6 +627,26 @@ RUSSIAN_BOOK_NAMES = {
     "Иуде": "Jude",
     "Иуда": "Jude",  # nominative alias
     "Откровение": "Revelation",
+}
+
+# Deuterocanonical / apocryphal book names present in the Synodal feed
+# (api.getbible.net/v2/synodal.json) that are NOT part of the 66-book
+# Protestant canon and therefore have no entry in our database.
+# The loader uses this set to emit an informational skip message instead
+# of a misleading ⚠️ Unknown book warning.
+DEUTEROCANONICAL_BOOK_NAMES: set[str] = {
+    "Молитва Манассии",     # Prayer of Manasseh
+    "1-я Ездры",            # 1 Esdras
+    "2-я Ездры",            # 2 Esdras
+    "Товит",                # Tobit
+    "Юдифь",               # Judith
+    "Премудрость Соломона", # Wisdom of Solomon
+    "Сирах",                # Sirach / Ecclesiasticus
+    "Варух",                # Baruch
+    "Epistle of Jeremiah",  # Epistle of Jeremiah
+    "1-я Маккавеев",        # 1 Maccabees
+    "2-я Маккавеев",        # 2 Maccabees
+    "3-я Маккавеев",        # 3 Maccabees
 }
 
 # Chinese book names (Union Version Simplified) → Standard English names
