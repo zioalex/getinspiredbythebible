@@ -91,14 +91,25 @@ _API_UTILS_DIR = Path(__file__).parent.parent / "api" / "utils"
 if str(_API_UTILS_DIR) not in sys.path:
     sys.path.insert(0, str(_API_UTILS_DIR))
 
-_registry_module = importlib.import_module("translation_registry")
-# Register the module under both its bare name AND its fully-qualified package
-# name so that pytest test suites that import both scripts/translations.py
-# (which uses the bare name) and utils/book_names.py (which uses the qualified
-# name) share a single module instance.  Without this, Python loads two
-# separate copies of translation_registry, and `is`-identity checks between
-# objects from the two copies fail even though the data is identical.
-sys.modules.setdefault("utils.translation_registry", _registry_module)
+# Ensure a single module instance is shared between the bare name
+# ("translation_registry") and the fully-qualified package name
+# ("utils.translation_registry").  When pytest runs both test_translations.py
+# (which triggers this file and uses the bare name) and test_utils_coverage.py
+# (which imports utils.book_names and uses the qualified name), whichever test
+# file is *collected first* determines which copy lands in sys.modules first.
+# We therefore sync both directions before doing any imports:
+#   • If utils.translation_registry is already cached (test_utils_coverage.py
+#     was collected first), reuse it under the bare name too.
+#   • Otherwise, load the bare module and register it under the qualified name.
+if "utils.translation_registry" in sys.modules:
+    # Reuse the already-loaded qualified module; expose it under the bare name
+    # so the `from translation_registry import …` below resolves to it.
+    sys.modules.setdefault("translation_registry", sys.modules["utils.translation_registry"])
+else:
+    # Load via bare name, then register under the qualified name so that
+    # any subsequent `from utils.translation_registry import …` reuses it.
+    _registry_module = importlib.import_module("translation_registry")
+    sys.modules.setdefault("utils.translation_registry", _registry_module)
 
 from translation_registry import (  # noqa: E402
     ENGLISH_TO_ARABIC,
