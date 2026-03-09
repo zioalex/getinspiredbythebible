@@ -37,6 +37,7 @@ from utils.book_names import (
 from utils.local_only import get_client_ip, is_local_ip
 from utils.logging_config import LogContext, get_logger, setup_logging
 from utils.rate_limiter import RateLimitEntry, RateLimiter
+from utils.translation_registry import EXTRA_REVERSE_MAPPINGS
 
 # =============================================================================
 # Local Only Access Tests
@@ -571,6 +572,88 @@ class TestNormalizeBookName:
 
     def test_unknown_name_returned_as_is(self):
         assert normalize_book_name("UnknownBook") == "UnknownBook"
+
+    def test_russian_genitive_to_english(self):
+        """Russian genitive citation forms should normalize to English book names."""
+        assert normalize_book_name("Иоанна") == "John"
+        assert normalize_book_name("Матфея") == "Matthew"
+        assert normalize_book_name("Луки") == "Luke"
+        assert normalize_book_name("Псалтири") == "Psalms"
+        assert normalize_book_name("Бытия") == "Genesis"
+
+    def test_russian_genitive_additional(self):
+        """Additional Russian genitive forms should normalize correctly."""
+        assert normalize_book_name("Марка") == "Mark"
+        assert normalize_book_name("Деяний") == "Acts"
+        assert normalize_book_name("Откровения") == "Revelation"
+        assert normalize_book_name("Притч") == "Proverbs"
+        assert normalize_book_name("Екклесиаста") == "Ecclesiastes"
+        assert normalize_book_name("Исаии") == "Isaiah"
+        assert normalize_book_name("Иеремии") == "Jeremiah"
+        assert normalize_book_name("Исхода") == "Exodus"
+        assert normalize_book_name("Левита") == "Leviticus"
+        assert normalize_book_name("Числ") == "Numbers"
+        assert normalize_book_name("Второзакония") == "Deuteronomy"
+        assert normalize_book_name("Руфи") == "Ruth"
+        assert normalize_book_name("Иакова") == "James"
+
+
+class TestRussianGenitiveMappings:
+    """Tests that Russian genitive citation forms are in EXTRA_REVERSE_MAPPINGS."""
+
+    # The 18 unambiguous genitive forms that were added to EXTRA_REVERSE_MAPPINGS
+    GENITIVE_FORMS = {
+        "Иоанна": "John",
+        "Матфея": "Matthew",
+        "Луки": "Luke",
+        "Марка": "Mark",
+        "Деяний": "Acts",
+        "Откровения": "Revelation",
+        "Бытия": "Genesis",
+        "Псалтири": "Psalms",
+        "Притч": "Proverbs",
+        "Екклесиаста": "Ecclesiastes",
+        "Исаии": "Isaiah",
+        "Иеремии": "Jeremiah",
+        "Исхода": "Exodus",
+        "Левита": "Leviticus",
+        "Числ": "Numbers",
+        "Второзакония": "Deuteronomy",
+        "Руфи": "Ruth",
+        "Иакова": "James",
+    }
+
+    def test_genitive_forms_in_extra_reverse_mappings(self):
+        """All Russian genitive forms should be present in EXTRA_REVERSE_MAPPINGS."""
+        for genitive, english in self.GENITIVE_FORMS.items():
+            assert (
+                genitive in EXTRA_REVERSE_MAPPINGS
+            ), f"Russian genitive '{genitive}' missing from EXTRA_REVERSE_MAPPINGS"
+            assert EXTRA_REVERSE_MAPPINGS[genitive] == english
+
+    def test_all_values_are_valid_english_book_names(self):
+        """All values in the Russian genitive mapping should be valid English book names."""
+        for genitive, english in self.GENITIVE_FORMS.items():
+            assert (
+                english in ENGLISH_TO_ITALIAN
+            ), f"'{english}' (from Russian '{genitive}') is not a valid English book name"
+
+    def test_genitive_forms_in_localized_to_english(self):
+        """All Russian genitive forms should appear in the combined LOCALIZED_TO_ENGLISH map."""
+        for genitive, english in self.GENITIVE_FORMS.items():
+            assert (
+                genitive in LOCALIZED_TO_ENGLISH
+            ), f"Russian genitive '{genitive}' missing from LOCALIZED_TO_ENGLISH"
+            assert LOCALIZED_TO_ENGLISH[genitive] == english
+
+    def test_ambiguous_forms_not_present(self):
+        """Ambiguous forms that map to multiple books should NOT be in the unambiguous set."""
+        # "Петра" could be 1 Peter or 2 Peter — must not be in GENITIVE_FORMS
+        assert "Петра" not in self.GENITIVE_FORMS
+        # "Коринфянам" could be 1 or 2 Corinthians — must not be in GENITIVE_FORMS
+        assert "Коринфянам" not in self.GENITIVE_FORMS
+        # "Фессалоникийцам" could be 1 or 2 Thessalonians — must not be in GENITIVE_FORMS
+        assert "Фессалоникийцам" not in self.GENITIVE_FORMS
 
 
 # =============================================================================
