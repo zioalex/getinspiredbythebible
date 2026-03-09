@@ -107,7 +107,14 @@ from utils.translation_registry import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 ITALIAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_ITALIAN.items()}
+
+# German — canonical forms + Schlachter orthography alternates (Rut, Ester, Hohes Lied, Zefanja)
+_GERMAN_ALTERNATES = {"Rut", "Ester", "Hohes Lied", "Zefanja"}
 GERMAN_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_GERMAN.items()}
+GERMAN_BOOK_NAMES.update(
+    {alias: eng for alias, eng in EXTRA_REVERSE_MAPPINGS.items() if alias in _GERMAN_ALTERNATES}
+)
+
 SPANISH_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_SPANISH.items()}
 FRENCH_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_FRENCH.items()}
 PORTUGUESE_BOOK_NAMES: dict[str, str] = {v: k for k, v in ENGLISH_TO_PORTUGUESE.items()}

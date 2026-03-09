@@ -812,4 +812,9 @@ EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     "启示录": "Revelation",
     # Korean — Lamentations without space
     "예레미야애가": "Lamentations",
+    # German — Schlachter alternate spellings (Schlachter vs Luther orthography)
+    "Rut": "Ruth",  # alternate for "Ruth"
+    "Ester": "Esther",  # alternate for "Esther"
+    "Hohes Lied": "Song of Solomon",  # alternate for "Hohelied"
+    "Zefanja": "Zephaniah",  # alternate for "Zephanja"
 }
