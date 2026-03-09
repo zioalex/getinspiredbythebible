@@ -43,9 +43,39 @@ FRENCH_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_FRENCH.items()}
 PORTUGUESE_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_PORTUGUESE.items()}
 ARABIC_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_ARABIC.items()}
 RUSSIAN_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_RUSSIAN.items()}
+RUSSIAN_TO_ENGLISH.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(0x0400 <= ord(c) <= 0x04FF for c in alias)  # Cyrillic Unicode block
+    }
+)
+
 CHINESE_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_CHINESE.items()}
+CHINESE_TO_ENGLISH.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(
+            (0x4E00 <= ord(c) <= 0x9FFF)
+            or (0x3400 <= ord(c) <= 0x4DBF)
+            or (0xF900 <= ord(c) <= 0xFAFF)
+            or c == "\ufeff"
+            for c in alias
+        )
+    }
+)
+
 HINDI_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_HINDI.items()}
+
 KOREAN_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_KOREAN.items()}
+KOREAN_TO_ENGLISH.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(0xAC00 <= ord(c) <= 0xD7A3 for c in alias)
+    }
+)
 
 # Combined reverse mapping for all languages (canonical forms + all aliases)
 LOCALIZED_TO_ENGLISH: dict[str, str] = {}
