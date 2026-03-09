@@ -36,9 +36,11 @@ export default function ChatMessage({
     const target = e.target as HTMLElement;
     const text = target.textContent || "";
 
-    // Match patterns like "John 3:16", "1 John 2:3", "Giovanni 3:16", "1. Mose 1:1"
-    // Supports Unicode letters for localized book names (Italian, German, etc.)
-    const versePattern = /(\d+\.?\s?[\p{L}]+|[\p{L}]+)\s+(\d+):(\d+)/u;
+    // Match multi-word book names (Russian Плач Иеремии, Song of Solomon, 1. Mose…).
+    // Explicit alternates for multi-word non-English names prevent false positives
+    // (e.g. "Читайте Бытие" must yield "Бытие", not "Читайте Бытие").
+    const versePattern =
+      /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)/u;
     const match = text.match(versePattern);
 
     if (match) {
@@ -51,11 +53,10 @@ export default function ChatMessage({
 
   // Helper function to highlight ALL verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
-    // Pattern to match verse references anywhere in text
-    // Examples: "John 3:16", "1 John 2:3", "Giovanni 3:16", "1. Mose 1:1", "Psalms 23:1-6"
-    // Supports Unicode letters for localized book names
+    // Pattern to match verse references anywhere in text.
+    // Same alternates as handleTextClick / verseExtraction.ts — see comments there.
     const verseRefPattern =
-      /(\d+\.?\s?[\p{L}]+(?:\s+[\p{L}]+)*|\p{L}+(?:\s+[\p{L}]+)*)\s+(\d+):(\d+)(?:-\d+)?/gu;
+      /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)(?:-\d+)?/gu;
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;

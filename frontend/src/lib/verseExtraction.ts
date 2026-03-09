@@ -1,17 +1,26 @@
 /**
  * Extracts verse references from text
  * Matches formats like: "John 3:16", "1 John 2:3", "Song of Solomon 1:1", etc.
- * Also supports localized formats: "Giovanni 3:16" (Italian), "1. Mose 1:1" (German)
+ * Also supports localized formats: "Giovanni 3:16" (Italian), "1. Mose 1:1" (German),
+ * "Плач Иеремии 3:3" (Russian), "耶利米哀歌 3:3" (Chinese), "예레미야 애가 3:3" (Korean).
  */
 export function extractVerseReferences(text: string): Set<string> {
-  // Pattern to match verse references in multiple languages
-  // Supports:
-  // - English: "John 3:16", "1 John 2:3", "Song of Solomon 1:1"
-  // - Italian: "Giovanni 3:16", "Salmi 23:1"
-  // - German: "1. Mose 1:1", "Römer 8:28", "Johannes 3:16"
-  // Uses Unicode letter classes to match accented characters
+  // Pattern to match verse references in multiple languages.
+  //
+  // Alternatives (tried in order):
+  //  1. Explicit multi-word non-English book names that have no connector word
+  //     (Russian: Плач Иеремии, Песня Песней; Korean: 예레미야 애가; Arabic: مراثي إرميا)
+  //  2. Multi-word books joined by a connector word (Song of Solomon, Cantico dei Cantici…)
+  //  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
+  //  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
+  //  5. Any single Unicode word >=2 chars (covers all remaining single-word book names)
+  //
+  // The Unicode-aware lookbehind (?<!\p{L}) prevents matching mid-word.
+  // Enumerating multi-word non-Latin names (alternatives 1) is necessary because a
+  // purely greedy pattern cannot distinguish "Читайте Бытие" (sentence + book) from
+  // "Плач Иеремии" (two-word book name) without a known-word list.
   const versePattern =
-    /(?<![A-Za-zÀ-ÿ])((?:\d+\.?\s+[\p{L}][\p{L}]*(?:\s+[\p{L}][\p{L}]*)?|[\p{L}][\p{L}]*(?:\s+(?:of|dei|des|der)\s+[\p{L}][\p{L}]*)+|[\p{L}][\p{L}]*))\s+(\d+):(\d+)(?:-\d+)?/gu;
+    /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)(?:-\d+)?/gu;
 
   const references = new Set<string>();
   const matches = Array.from(text.matchAll(versePattern));
