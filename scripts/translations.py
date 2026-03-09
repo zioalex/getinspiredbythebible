@@ -140,7 +140,14 @@ CHINESE_BOOK_NAMES.update(
     {
         alias: eng
         for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
-        if any(ord(c) > 0x2E80 for c in alias)
+        if any(
+            # CJK Unified Ideographs (main + Extension A + Compatibility)
+            (0x4E00 <= ord(c) <= 0x9FFF)
+            or (0x3400 <= ord(c) <= 0x4DBF)
+            or (0xF900 <= ord(c) <= 0xFAFF)
+            or c == "\ufeff"  # BOM prefix used in some getbible feeds
+            for c in alias
+        )
     }
 )
 
