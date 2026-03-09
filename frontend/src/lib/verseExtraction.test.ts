@@ -126,6 +126,31 @@ describe("extractVerseReferences", () => {
     expect(refs.size).toBe(1);
   });
 
+  it("should extract Russian two-word book names", () => {
+    // "Плач Иеремии" = Lamentations in Russian (two-word book name)
+    const text = "В Плач Иеремии 3:3 написано о страдании";
+    const refs = extractVerseReferences(text);
+    // Must capture the two-word book name, not just one word
+    expect(refs.has("плач иеремии 3:3")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should not include Russian prepositions in book names", () => {
+    // "В" is a Russian preposition meaning "In" — must not be part of the book name
+    const text = "В Плач Иеремии 3:3 написано";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("в плач иеремии 3:3")).toBe(false);
+    expect(refs.has("плач иеремии 3:3")).toBe(true);
+  });
+
+  it("should extract Russian single-word book names", () => {
+    // "Бытие" = Genesis, "Иоанна" = John
+    const text = "Читайте Бытие 1:1 и Иоанна 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("бытие 1:1")).toBe(true);
+    expect(refs.has("иоанна 3:16")).toBe(true);
+  });
+
   it("should not cause recursion error on large text", () => {
     // This is a regression test for the catastrophic backtracking bug
     const largeText = "John 3:16 and Romans 8:28 ".repeat(1000);
