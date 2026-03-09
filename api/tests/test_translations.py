@@ -14,10 +14,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
 
 from translations import (
     ARABIC_BOOK_NAMES,
+    CHINESE_BOOK_NAMES,
     FRENCH_BOOK_NAMES,
     GERMAN_BOOK_NAMES,
     ITALIAN_BOOK_NAMES,
+    KOREAN_BOOK_NAMES,
     PORTUGUESE_BOOK_NAMES,
+    RUSSIAN_BOOK_NAMES,
     SPANISH_BOOK_NAMES,
     TRANSLATIONS,
     get_translation_config,
@@ -186,6 +189,298 @@ def test_all_arabic_books_unique():
     """Test that all Arabic book names map to unique English names"""
     english_names = list(ARABIC_BOOK_NAMES.values())
     assert len(english_names) == len(set(english_names))
+
+
+def test_chinese_book_names_complete():
+    """Test that all 66 Bible books have Chinese mappings (plus BOM and alias variants)"""
+    # 66 canonical books + BOM variant for Genesis + Simplified alias for Revelation = 68
+    assert len(CHINESE_BOOK_NAMES) == 68
+    # Verify exactly 66 unique English book names are covered
+    unique_english_names = set(CHINESE_BOOK_NAMES.values())
+    assert len(unique_english_names) == 66
+    # Check key books
+    assert CHINESE_BOOK_NAMES["创世记"] == "Genesis"
+    assert CHINESE_BOOK_NAMES["\ufeff创世记"] == "Genesis"  # BOM variant from getbible API
+    assert CHINESE_BOOK_NAMES["马太福音"] == "Matthew"
+    assert CHINESE_BOOK_NAMES["啟示錄"] == "Revelation"  # Traditional — actual API name
+    assert CHINESE_BOOK_NAMES["启示录"] == "Revelation"  # Simplified alias
+
+
+def test_chinese_all_books_unique_english():
+    """Test that all Chinese book names map to the 66 unique English book names"""
+    unique_english_names = set(CHINESE_BOOK_NAMES.values())
+    assert len(unique_english_names) == 66
+
+
+def test_chinese_api_book_names():
+    """Test that the exact names returned by the getbible CUS API all resolve correctly.
+
+    These are the names actually returned by https://api.getbible.net/v2/cus.json
+    as of March 2026.  The first entry has a BOM; Revelation uses Traditional characters.
+    """
+    getbible_cus_names = [
+        "\ufeff创世记",
+        "出埃及记",
+        "利未记",
+        "民数记",
+        "申命记",
+        "约书亚记",
+        "士师记",
+        "路得记",
+        "撒母耳记上",
+        "撒母耳记下",
+        "列王纪上",
+        "列王纪下",
+        "历代志上",
+        "历代志下",
+        "以斯拉记",
+        "尼希米记",
+        "以斯帖记",
+        "约伯记",
+        "诗篇",
+        "箴言",
+        "传道书",
+        "雅歌",
+        "以赛亚书",
+        "耶利米书",
+        "耶利米哀歌",
+        "以西结书",
+        "但以理书",
+        "何西阿书",
+        "约珥书",
+        "阿摩司书",
+        "俄巴底亚书",
+        "约拿书",
+        "弥迦书",
+        "那鸿书",
+        "哈巴谷书",
+        "西番雅书",
+        "哈该书",
+        "撒迦利亚书",
+        "玛拉基书",
+        "马太福音",
+        "马可福音",
+        "路加福音",
+        "约翰福音",
+        "使徒行传",
+        "罗马书",
+        "哥林多前书",
+        "哥林多后书",
+        "加拉太书",
+        "以弗所书",
+        "腓立比书",
+        "歌罗西书",
+        "帖撒罗尼迦前书",
+        "帖撒罗尼迦后书",
+        "提摩太前书",
+        "提摩太后书",
+        "提多书",
+        "腓利门书",
+        "希伯来书",
+        "雅各书",
+        "彼得前书",
+        "彼得后书",
+        "约翰一书",
+        "约翰二书",
+        "约翰三书",
+        "犹大书",
+        "啟示錄",
+    ]
+    missing = [name for name in getbible_cus_names if name not in CHINESE_BOOK_NAMES]
+    assert not missing, f"Missing Chinese book names from getbible CUS API: {missing}"
+    assert len(getbible_cus_names) == 66
+
+
+def test_korean_book_names_complete():
+    """Test that all 66 Bible books have Korean mappings (plus alternate Lamentations form)"""
+    # 66 canonical books + alternate form for Lamentations without space = 67
+    assert len(KOREAN_BOOK_NAMES) == 67
+    unique_english_names = set(KOREAN_BOOK_NAMES.values())
+    assert len(unique_english_names) == 66
+    # Check key books
+    assert KOREAN_BOOK_NAMES["창세기"] == "Genesis"
+    assert KOREAN_BOOK_NAMES["마태복음"] == "Matthew"
+    assert KOREAN_BOOK_NAMES["요한계시록"] == "Revelation"
+    # Lamentations: API uses form WITH space
+    assert KOREAN_BOOK_NAMES["예레미야 애가"] == "Lamentations"
+    assert KOREAN_BOOK_NAMES["예레미야애가"] == "Lamentations"  # alternate without space
+
+
+def test_korean_api_book_names():
+    """Test that the exact names returned by the getbible korean API all resolve correctly.
+
+    These are the names actually returned by https://api.getbible.net/v2/korean.json
+    as of March 2026.  Lamentations is '예레미야 애가' (with space).
+    """
+    getbible_korean_names = [
+        "창세기",
+        "출애굽기",
+        "레위기",
+        "민수기",
+        "신명기",
+        "여호수아",
+        "사사기",
+        "룻기",
+        "사무엘상",
+        "사무엘하",
+        "열왕기상",
+        "열왕기하",
+        "역대상",
+        "역대하",
+        "에스라",
+        "느헤미야",
+        "에스더",
+        "욥기",
+        "시편",
+        "잠언",
+        "전도서",
+        "아가",
+        "이사야",
+        "예레미야",
+        "예레미야 애가",
+        "에스겔",
+        "다니엘",
+        "호세아",
+        "요엘",
+        "아모스",
+        "오바댜",
+        "요나",
+        "미가",
+        "나훔",
+        "하박국",
+        "스바냐",
+        "학개",
+        "스가랴",
+        "말라기",
+        "마태복음",
+        "마가복음",
+        "누가복음",
+        "요한복음",
+        "사도행전",
+        "로마서",
+        "고린도전서",
+        "고린도후서",
+        "갈라디아서",
+        "에베소서",
+        "빌립보서",
+        "골로새서",
+        "데살로니가전서",
+        "데살로니가후서",
+        "디모데전서",
+        "디모데후서",
+        "디도서",
+        "빌레몬서",
+        "히브리서",
+        "야고보서",
+        "베드로전서",
+        "베드로후서",
+        "요한일서",
+        "요한이서",
+        "요한삼서",
+        "유다서",
+        "요한계시록",
+    ]
+    missing = [name for name in getbible_korean_names if name not in KOREAN_BOOK_NAMES]
+    assert not missing, f"Missing Korean book names from getbible korean API: {missing}"
+    assert len(getbible_korean_names) == 66
+
+
+def test_russian_book_names_complete():
+    """Test that RUSSIAN_BOOK_NAMES covers all 66 canonical Bible books.
+
+    The Synodal getbible feed uses genitive/dative forms AND includes apocryphal
+    books that are intentionally unmapped.  We therefore cannot assert a fixed
+    count, but we verify that exactly 66 unique English names are covered.
+    """
+    unique_english_names = set(RUSSIAN_BOOK_NAMES.values())
+    assert len(unique_english_names) == 66
+    # Spot-check key books
+    assert RUSSIAN_BOOK_NAMES["Бытие"] == "Genesis"
+    assert RUSSIAN_BOOK_NAMES["Матфей"] == "Matthew"
+    assert RUSSIAN_BOOK_NAMES["Откровение"] == "Revelation"
+
+
+def test_russian_api_canonical_book_names():
+    """Test that the canonical 66-book names from the getbible synodal API resolve.
+
+    The synodal feed returns books in genitive/dative forms plus apocryphal books.
+    Only the 66 Protestant-canon books are expected to map; apocrypha are skipped.
+    These are the exact canonical names from https://api.getbible.net/v2/synodal.json
+    as of March 2026.
+    """
+    synodal_canonical_names = [
+        # OT
+        "Бытие",
+        "Исход",
+        "Левит",
+        "Числа",
+        "Второзаконие",
+        "Иисуса Навина",
+        "Судей",
+        "Руфь",
+        "1-я Царств",
+        "2-я Царств",
+        "3-я Царств",
+        "4-я Царств",
+        "1-я Паралипоменон",
+        "2-я Паралипоменон",
+        "Ездры",
+        "Неемии",
+        "Есфирь",
+        "Иов",
+        "Псалтирь",
+        "Притчи",
+        "Екклесиаст",
+        "Песнь Песней",
+        "Исаия",
+        "Иеремия",
+        "Плач Иеремии",
+        "Иезекииль",
+        "Даниил",
+        "Осия",
+        "Иоиль",
+        "Амос",
+        "Авдий",
+        "Иона",
+        "Михей",
+        "Наум",
+        "Аввакум",
+        "Софония",
+        "Аггей",
+        "Захария",
+        "Малахия",
+        # NT
+        "Матфей",
+        "Марк",
+        "Лука",
+        "Иоанн",
+        "Деяния",
+        "Иакову",
+        "1-е Петру",
+        "2-е Петру",
+        "1-е Иоанну",
+        "2-е Иоанну",
+        "3-е Иоанну",
+        "Иуде",
+        "Римлянам",
+        "1-е Коринфянам",
+        "2-е Коринфянам",
+        "Галатам",
+        "Ефесянам",
+        "Филиппийцам",
+        "Колоссянам",
+        "1-е Фессалоникийцам",
+        "2-е Фессалоникийцам",
+        "1-е Тимофею",
+        "2-е Тимофею",
+        "Титу",
+        "Филимону",
+        "Евреям",
+        "Откровение",
+    ]
+    missing = [name for name in synodal_canonical_names if name not in RUSSIAN_BOOK_NAMES]
+    assert not missing, f"Missing Russian book names from getbible synodal API: {missing}"
+    assert len(synodal_canonical_names) == 66
 
 
 def test_translations_config_exists():

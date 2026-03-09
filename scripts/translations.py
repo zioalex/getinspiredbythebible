@@ -504,61 +504,65 @@ ARABIC_BOOK_NAMES = {
 }
 
 # Russian book names (Synodal Translation) → Standard English names
-#
-# The Synodal API (api.getbible.net/v2/synodal.json) uses genitive/abbreviated
-# Russian forms for several books that differ from the plain nominative forms.
-# Both the API form (primary) and the nominative alternate are listed so the
-# map works regardless of which form appears in a given data source.
-#
-# The Synodal canon also contains deuterocanonical/apocryphal books not present
-# in the Protestant 66-book canon (e.g. Товит, Юдифь, Сирах, Премудрость
-# Соломона, Молитва Манассии, 1-я Ездры). Those are intentionally absent here;
-# the loader will emit "Unknown book" warnings for them and skip them, which is
-# the correct behaviour — they have no matching entry in BIBLE_BOOKS.
+# Notes:
+#   - The getbible "synodal" feed uses genitive/dative forms for book titles
+#     (e.g. "Иисуса Навина", "Судей", "1-я Царств") rather than the
+#     nominative headings used in many print Bibles.  Both forms are mapped
+#     so the loader is robust to either representation.
+#   - The feed includes deuterocanonical / apocryphal books not present in the
+#     canonical 66-book Protestant Bible (Tobit, Judith, Maccabees, etc.).
+#     Those names intentionally have no mapping and will be logged as
+#     "Unknown book" and skipped, which is the desired behaviour.
+#   - NT epistles use short dative forms in the feed: "Иакову", "1-е Петру",
+#     "Римлянам", "1-е Коринфянам", "Иуде", "Деяния", etc.
 RUSSIAN_BOOK_NAMES = {
+    # ── Old Testament ────────────────────────────────────────────────────────
     "Бытие": "Genesis",
     "Исход": "Exodus",
     "Левит": "Leviticus",
     "Числа": "Numbers",
     "Второзаконие": "Deuteronomy",
-    # Joshua — API returns genitive "Иисуса Навина", nominative kept as alternate
+    # Joshua — genitive form used in getbible feed
     "Иисуса Навина": "Joshua",
-    "Иисус Навин": "Joshua",  # alternate (nominative)
-    # Judges — API returns genitive "Судей", nominative kept as alternate
+    "Иисус Навин": "Joshua",  # nominative alias
+    # Judges — genitive form used in getbible feed
     "Судей": "Judges",
-    "Судьи": "Judges",  # alternate (nominative)
+    "Судьи": "Judges",  # nominative alias
     "Руфь": "Ruth",
-    # Samuel/Kings — API uses "N-я" ordinal prefix, not plain "N "
+    # Samuel / Kings — getbible uses "-я" ordinal suffix
     "1-я Царств": "1 Samuel",
-    "1 Царств": "1 Samuel",  # alternate
+    "1 Царств": "1 Samuel",  # alternate form
     "2-я Царств": "2 Samuel",
-    "2 Царств": "2 Samuel",  # alternate
+    "2 Царств": "2 Samuel",
     "3-я Царств": "1 Kings",
-    "3 Царств": "1 Kings",  # alternate
+    "3 Царств": "1 Kings",
     "4-я Царств": "2 Kings",
-    "4 Царств": "2 Kings",  # alternate
-    # Chronicles — API uses "N-я" ordinal prefix
+    "4 Царств": "2 Kings",
+    # Chronicles — "-я" ordinal form
     "1-я Паралипоменон": "1 Chronicles",
-    "1 Паралипоменон": "1 Chronicles",  # alternate
+    "1 Паралипоменон": "1 Chronicles",
     "2-я Паралипоменон": "2 Chronicles",
-    "2 Паралипоменон": "2 Chronicles",  # alternate
-    # Ezra/Nehemiah — API returns genitive forms
+    "2 Паралипоменон": "2 Chronicles",
+    # Ezra — genitive in feed
     "Ездры": "Ezra",
-    "Ездра": "Ezra",  # alternate (nominative)
+    "Ездра": "Ezra",  # nominative alias
+    # Nehemiah — genitive in feed
     "Неемии": "Nehemiah",
-    "Неемия": "Nehemiah",  # alternate (nominative)
+    "Неемия": "Nehemiah",  # nominative alias
     "Есфирь": "Esther",
     "Иов": "Job",
     "Псалтирь": "Psalms",
     "Притчи": "Proverbs",
     "Екклесиаст": "Ecclesiastes",
-    # Song of Solomon — API uses "Песнь Песней" (not "Песня Песней")
+    # Song of Songs — getbible uses "Песнь Песней"
     "Песнь Песней": "Song of Solomon",
-    "Песня Песней": "Song of Solomon",  # alternate
+    "Песня Песней": "Song of Solomon",  # alternate nominative form
     "Исаия": "Isaiah",
     "Иеремия": "Jeremiah",
     "Плач Иеремии": "Lamentations",
-    "Иезекиль": "Ezekiel",
+    # Ezekiel — getbible uses "Иезекииль" (two и)
+    "Иезекииль": "Ezekiel",
+    "Иезекиль": "Ezekiel",  # one-и variant (kept for robustness)
     "Даниил": "Daniel",
     "Осия": "Hosea",
     "Иоиль": "Joel",
@@ -572,38 +576,67 @@ RUSSIAN_BOOK_NAMES = {
     "Аггей": "Haggai",
     "Захария": "Zechariah",
     "Малахия": "Malachi",
+    # ── New Testament ─────────────────────────────────────────────────────────
     "Матфей": "Matthew",
     "Марк": "Mark",
     "Лука": "Luke",
     "Иоанн": "John",
-    "Деяния апостолов": "Acts",
+    # Acts — getbible uses short form "Деяния"
+    "Деяния": "Acts",
+    "Деяния апостолов": "Acts",  # full form alias
     "Римлянам": "Romans",
+    # Corinthians — getbible uses "-е" ordinal suffix
+    "1-е Коринфянам": "1 Corinthians",
     "1 Коринфянам": "1 Corinthians",
+    "2-е Коринфянам": "2 Corinthians",
     "2 Коринфянам": "2 Corinthians",
     "Галатам": "Galatians",
     "Ефесянам": "Ephesians",
     "Филиппийцам": "Philippians",
     "Колоссянам": "Colossians",
+    # Thessalonians — "-е" ordinal suffix
+    "1-е Фессалоникийцам": "1 Thessalonians",
     "1 Фессалоникийцам": "1 Thessalonians",
+    "2-е Фессалоникийцам": "2 Thessalonians",
     "2 Фессалоникийцам": "2 Thessalonians",
+    # Timothy — "-е" ordinal suffix
+    "1-е Тимофею": "1 Timothy",
     "1 Тимофею": "1 Timothy",
+    "2-е Тимофею": "2 Timothy",
     "2 Тимофею": "2 Timothy",
     "Титу": "Titus",
     "Филимону": "Philemon",
     "Евреям": "Hebrews",
-    "Иаков": "James",
-    "1 Петра": "1 Peter",
+    # James — getbible uses dative "Иакову"
+    "Иакову": "James",
+    "Иаков": "James",  # nominative alias
+    # Peter — dative form in getbible feed
+    "1-е Петру": "1 Peter",
+    "1 Петра": "1 Peter",  # genitive alias
+    "2-е Петру": "2 Peter",
     "2 Петра": "2 Peter",
+    # John epistles — dative form in getbible feed
+    "1-е Иоанну": "1 John",
     "1 Иоанна": "1 John",
+    "2-е Иоанну": "2 John",
     "2 Иоанна": "2 John",
+    "3-е Иоанну": "3 John",
     "3 Иоанна": "3 John",
-    "Иуда": "Jude",
+    # Jude — dative "Иуде" in getbible feed
+    "Иуде": "Jude",
+    "Иуда": "Jude",  # nominative alias
     "Откровение": "Revelation",
 }
 
 # Chinese book names (Union Version Simplified) → Standard English names
+# Notes:
+#   - Genesis may arrive with a UTF-8 BOM (\ufeff) prefix from the getbible API feed;
+#     both forms are mapped to handle this gracefully.
+#   - Revelation: the getbible CUS feed uses Traditional characters (啟示錄);
+#     the Simplified form (启示录) is kept as an alias for robustness.
 CHINESE_BOOK_NAMES = {
     "创世记": "Genesis",
+    "\ufeff创世记": "Genesis",  # BOM variant from getbible API feed
     "出埃及记": "Exodus",
     "利未记": "Leviticus",
     "民数记": "Numbers",
@@ -668,7 +701,8 @@ CHINESE_BOOK_NAMES = {
     "约翰二书": "2 John",
     "约翰三书": "3 John",
     "犹大书": "Jude",
-    "启示录": "Revelation",
+    "啟示錄": "Revelation",  # Traditional characters — actual name in getbible CUS feed
+    "启示录": "Revelation",  # Simplified alias for robustness
 }
 
 # Hindi book names (IRV Bible) → Standard English names
@@ -767,7 +801,8 @@ KOREAN_BOOK_NAMES = {
     "아가": "Song of Solomon",
     "이사야": "Isaiah",
     "예레미야": "Jeremiah",
-    "예레미야애가": "Lamentations",
+    "예레미야 애가": "Lamentations",  # actual getbible API name (with space)
+    "예레미야애가": "Lamentations",  # alternate form without space (kept for robustness)
     "에스겔": "Ezekiel",
     "다니엘": "Daniel",
     "호세아": "Hosea",
