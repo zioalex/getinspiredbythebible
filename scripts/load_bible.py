@@ -36,7 +36,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 # Import translation configurations
-from translations import TRANSLATIONS, map_book_name, list_available_translations
+from translations import TRANSLATIONS, DEUTEROCANONICAL_BOOK_NAMES, map_book_name, list_available_translations
 
 # Bible books metadata (standard English names)
 BIBLE_BOOKS = [
@@ -509,7 +509,10 @@ async def load_verses(session, translation_code: str, bible_data: list, books_fi
 
         book_id = book_ids.get(standard_name)
         if not book_id:
-            log(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
+            if local_name in DEUTEROCANONICAL_BOOK_NAMES:
+                log(f"  ℹ️  Skipping deuterocanonical book: {local_name}")
+            else:
+                log(f"  ⚠️ Unknown book: {local_name} -> {standard_name}")
             continue
 
         # Skip if not in filter (when filter is specified)
