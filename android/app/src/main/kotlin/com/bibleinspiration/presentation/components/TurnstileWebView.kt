@@ -6,6 +6,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +23,17 @@ fun TurnstileWebView(
     val context = LocalContext.current
     val htmlContent = remember {
         context.assets.open("turnstile.html").bufferedReader().use { it.readText() }
+    }
+
+    // Hold a reference to the WebView so the LaunchedEffect can reach it.
+    val webViewRef = remember { androidx.compose.runtime.mutableStateOf<WebView?>(null) }
+
+    // Whenever TurnstileManager signals that the token was consumed, reset the
+    // Cloudflare widget so a fresh single-use token is generated.
+    LaunchedEffect(turnstileManager) {
+        turnstileManager.resetTrigger.collect {
+            webViewRef.value?.evaluateJavascript("window.resetWidget()", null)
+        }
     }
 
     AndroidView(
@@ -57,6 +69,7 @@ fun TurnstileWebView(
                     "UTF-8",
                     null,
                 )
+                webViewRef.value = this
             }
         },
     )

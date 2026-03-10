@@ -22,6 +22,10 @@
           Android.onError(String(code));
         }
       });
+
+      window.resetWidget = function() {
+        turnstile.reset('#cf-turnstile');
+      };
     }
   </script>
 </body>

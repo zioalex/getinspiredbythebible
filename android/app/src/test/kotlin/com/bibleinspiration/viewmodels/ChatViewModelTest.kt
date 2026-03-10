@@ -346,4 +346,38 @@ class ChatViewModelTest {
         viewModel.setThemeMode("light")
         assertEquals("light", viewModel.uiState.value.themeMode)
     }
+
+    // -------------------------------------------------------------------------
+    // Turnstile single-use token reset tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `sendMessage resets turnstile token after successful stream`() = runTest {
+        turnstileManager.onTokenReceived("initial-token")
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hello!", done = true),
+        )
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Token should be cleared (consumed) so the next message gets a fresh one.
+        assertNull(turnstileManager.currentToken())
+        assertFalse(viewModel.uiState.value.isTurnstileReady)
+    }
+
+    @Test
+    fun `sendMessage resets turnstile token after stream error`() = runTest {
+        turnstileManager.onTokenReceived("initial-token")
+        every { repository.chatStream(any()) } returns flow {
+            throw IOException("network failure")
+        }
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Token must also be cleared on the error path.
+        assertNull(turnstileManager.currentToken())
+        assertFalse(viewModel.uiState.value.isTurnstileReady)
+    }
 }
