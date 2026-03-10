@@ -68,6 +68,9 @@ class TurnstileManagerTest {
         val job = launch {
             manager.resetTrigger.collect { emissionCount++ }
         }
+        // Advance so the collector coroutine starts and subscribes to the SharedFlow
+        // before we emit, otherwise replay=0 means the emission is dropped.
+        testScheduler.advanceUntilIdle()
 
         manager.requestReset()
         // Allow the coroutine to process the emission.
@@ -92,6 +95,9 @@ class TurnstileManagerTest {
         val job = launch {
             manager.resetTrigger.collect { emissionCount++ }
         }
+        // Advance so the collector coroutine starts and subscribes to the SharedFlow
+        // before we emit, otherwise replay=0 means the emission is dropped.
+        testScheduler.advanceUntilIdle()
 
         manager.onTokenConsumed()
         testScheduler.advanceUntilIdle()
@@ -106,6 +112,9 @@ class TurnstileManagerTest {
         val job = launch {
             manager.resetTrigger.collect { emissionCount++ }
         }
+        // Advance so the collector coroutine starts and subscribes to the SharedFlow
+        // before we emit, otherwise replay=0 means all emissions are dropped.
+        testScheduler.advanceUntilIdle()
 
         manager.requestReset()
         manager.requestReset()
