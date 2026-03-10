@@ -569,6 +569,17 @@ resource "azurerm_container_app" "backend" {
     value = azurerm_container_registry.main.admin_password
   }
 
+  lifecycle {
+    # The Azure Container Apps API never returns secret values in plain text,
+    # so the azurerm provider (v3.x) always reports secrets as "changed" even
+    # when the value is identical.  This causes a phantom "2 to change" on
+    # every terraform plan/apply with zero actual effect in Azure.
+    # ignore_changes = [secret] prevents this false drift.
+    # NOTE: to rotate a secret (ACR password, API key, etc.) run:
+    #   terraform apply -replace=azurerm_container_app.backend
+    ignore_changes = [secret]
+  }
+
   tags = local.tags
 
   depends_on = [
@@ -635,6 +646,17 @@ resource "azurerm_container_app" "frontend" {
   secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
+  }
+
+  lifecycle {
+    # The Azure Container Apps API never returns secret values in plain text,
+    # so the azurerm provider (v3.x) always reports secrets as "changed" even
+    # when the value is identical.  This causes a phantom "2 to change" on
+    # every terraform plan/apply with zero actual effect in Azure.
+    # ignore_changes = [secret] prevents this false drift.
+    # NOTE: to rotate a secret (ACR password, API key, etc.) run:
+    #   terraform apply -replace=azurerm_container_app.frontend
+    ignore_changes = [secret]
   }
 
   tags = local.tags
