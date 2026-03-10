@@ -100,7 +100,7 @@ class ScriptureSearchService:
 
         verses = [
             VerseResult(
-                reference=self._get_localized_reference(verse),
+                reference=verse.reference,  # always English: "John 3:16"
                 text=verse.text,
                 book=verse.book.name,
                 localized_book=get_localized_book_name(verse.book.name, verse.translation),
@@ -144,6 +144,7 @@ class ScriptureSearchService:
             reference=result.reference,
             text=result.text,
             book=result.book.name,
+            localized_book=get_localized_book_name(result.book.name, result.translation),
             chapter=result.chapter_number,
             verse=result.verse_number,
             translation=result.translation,
@@ -167,6 +168,7 @@ class ScriptureSearchService:
                 reference=v.reference,
                 text=v.text,
                 book=v.book.name,
+                localized_book=get_localized_book_name(v.book.name, v.translation),
                 chapter=v.chapter_number,
                 verse=v.verse_number,
                 translation=v.translation,
@@ -203,6 +205,9 @@ class ScriptureSearchService:
                 reference=v.reference,
                 text=v.text,
                 book=v.book.name,
+                localized_book=get_localized_book_name(
+                    v.book.name, getattr(v, "translation", None)
+                ),
                 chapter=v.chapter_number,
                 verse=v.verse_number,
             )

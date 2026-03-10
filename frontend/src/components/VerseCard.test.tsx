@@ -67,4 +67,43 @@ describe("VerseCard", () => {
     renderWithIntl(<VerseCard verse={baseVerse} />);
     expect(screen.queryByText("Read full chapter")).toBeNull();
   });
+
+  it("builds localized reference from parts, not string replacement", () => {
+    // Regression test: the old replace() approach was fragile.
+    // If reference already contains the localized book (search path used to
+    // return localized references), replace() would silently fail.
+    // The new approach builds from localized_book + chapter + verse directly.
+    const verse: Verse = {
+      reference: "John 3:16", // English reference (canonical backend format)
+      text: "For God so loved the world...",
+      book: "John",
+      localized_book: "Иоанн",
+      chapter: 3,
+      verse: 16,
+    };
+    renderWithIntl(<VerseCard verse={verse} />);
+    expect(screen.getByText("Иоанн 3:16")).toBeDefined();
+    expect(screen.queryByText("John 3:16")).toBeNull();
+  });
+
+  it("shows translation badge separated from reference — not concatenated", () => {
+    // Regression test for the visual bug "John 3:16SYNODAL".
+    // The reference and translation must be separate text nodes.
+    const verse: Verse = {
+      reference: "John 3:16",
+      text: "For God so loved the world...",
+      book: "John",
+      localized_book: "Иоанн",
+      chapter: 3,
+      verse: 16,
+      translation: "synodal",
+    };
+    renderWithIntl(<VerseCard verse={verse} />);
+    // Each piece must exist as its own text node
+    expect(screen.getByText("Иоанн 3:16")).toBeDefined();
+    expect(screen.getByText("SYNODAL")).toBeDefined();
+    // The combined string must NOT appear anywhere in the rendered output
+    expect(screen.queryByText(/John 3:16SYNODAL/)).toBeNull();
+    expect(screen.queryByText(/Иоанн 3:16SYNODAL/)).toBeNull();
+  });
 });

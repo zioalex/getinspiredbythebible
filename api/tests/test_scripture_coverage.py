@@ -32,7 +32,11 @@ def _make_mock_session():
 
 
 def _make_mock_verse(
-    book_name="John", chapter=3, verse=16, text="For God so loved...", translation="kjv"
+    book_name="John",
+    chapter=3,
+    verse=16,
+    text="For God so loved...",
+    translation: str | None = "kjv",
 ):
     """Create a mock Verse object."""
     mock_verse = MagicMock()
@@ -743,6 +747,35 @@ class TestScriptureSearchServiceGetVerse:
         assert result is not None
         assert result.translation == "ita1927"
 
+    @pytest.mark.asyncio
+    async def test_localized_book_synodal(self):
+        """get_verse() must populate localized_book for non-English translations."""
+        service, _ = _make_search_service()
+        mock_verse = _make_mock_verse(book_name="John", translation="synodal")
+
+        service.repo = AsyncMock()
+        service.repo.get_verse = AsyncMock(return_value=mock_verse)
+
+        result = await service.get_verse("John", 3, 16, translation="synodal")
+
+        assert result is not None
+        assert result.localized_book is not None
+        assert result.localized_book == "Иоанн"
+
+    @pytest.mark.asyncio
+    async def test_localized_book_kjv_returns_english(self):
+        """get_verse() localized_book falls back to English for KJV (no mapping)."""
+        service, _ = _make_search_service()
+        mock_verse = _make_mock_verse(book_name="John", translation="kjv")
+
+        service.repo = AsyncMock()
+        service.repo.get_verse = AsyncMock(return_value=mock_verse)
+
+        result = await service.get_verse("John", 3, 16, translation="kjv")
+
+        assert result is not None
+        assert result.localized_book == "John"
+
 
 class TestScriptureSearchServiceGetVerseRange:
     """Tests for ScriptureSearchService.get_verse_range()."""
@@ -770,6 +803,38 @@ class TestScriptureSearchServiceGetVerseRange:
         results = await service.get_verse_range("NotABook", 1, 1, 5)
 
         assert results == []
+
+    @pytest.mark.asyncio
+    async def test_localized_book_synodal(self):
+        """get_verse_range() must populate localized_book for non-English translations."""
+        service, _ = _make_search_service()
+        mock_verses = [
+            _make_mock_verse(book_name="John", verse=i, translation="synodal")
+            for i in range(16, 19)
+        ]
+
+        service.repo = AsyncMock()
+        service.repo.get_verses_in_range = AsyncMock(return_value=mock_verses)
+
+        results = await service.get_verse_range("John", 3, 16, 18, translation="synodal")
+
+        assert len(results) == 3
+        assert all(r.localized_book == "Иоанн" for r in results)
+
+    @pytest.mark.asyncio
+    async def test_localized_book_kjv_returns_english(self):
+        """get_verse_range() localized_book is English for KJV (no mapping)."""
+        service, _ = _make_search_service()
+        mock_verses = [
+            _make_mock_verse(book_name="John", verse=i, translation="kjv") for i in range(1, 3)
+        ]
+
+        service.repo = AsyncMock()
+        service.repo.get_verses_in_range = AsyncMock(return_value=mock_verses)
+
+        results = await service.get_verse_range("John", 1, 1, 2, translation="kjv")
+
+        assert all(r.localized_book == "John" for r in results)
 
 
 class TestScriptureSearchServiceGetContext:
@@ -829,6 +894,35 @@ class TestScriptureSearchServiceTextSearch:
         results = await service.text_search("xyznonexistent")
 
         assert results == []
+
+    @pytest.mark.asyncio
+    async def test_localized_book_synodal(self):
+        """text_search() must populate localized_book for non-English translations."""
+        service, _ = _make_search_service()
+        mock_verse = _make_mock_verse(book_name="John", translation="synodal")
+
+        service.repo = AsyncMock()
+        service.repo.search_verses_text = AsyncMock(return_value=[mock_verse])
+
+        results = await service.text_search("возлюбил")
+
+        assert len(results) == 1
+        assert results[0].localized_book == "Иоанн"
+
+    @pytest.mark.asyncio
+    async def test_localized_book_no_translation_returns_english(self):
+        """text_search() localized_book returns English when no translation set."""
+        service, _ = _make_search_service()
+        mock_verse = _make_mock_verse(book_name="John", translation=None)
+        mock_verse.translation = None
+
+        service.repo = AsyncMock()
+        service.repo.search_verses_text = AsyncMock(return_value=[mock_verse])
+
+        results = await service.text_search("love")
+
+        assert len(results) == 1
+        assert results[0].localized_book == "John"
 
 
 # ==================== Pydantic Model Tests ====================
