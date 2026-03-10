@@ -14,10 +14,13 @@ import com.bibleinspiration.security.TurnstileManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -52,6 +55,18 @@ class ChatViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    /**
+     * Exposes the currently selected BCP-47 language code as a [StateFlow].
+     * Derived from [uiState] so callers don't need to map themselves.
+     */
+    val selectedLanguage: StateFlow<String> = _uiState
+        .map { it.currentLocale }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = _uiState.value.currentLocale,
+        )
 
     init {
         viewModelScope.launch {
@@ -112,7 +127,6 @@ class ChatViewModel @Inject constructor(
 
             val request = ChatRequest(
                 message = trimmed,
-                language = _uiState.value.currentLocale,
                 conversationHistory = history,
             )
 

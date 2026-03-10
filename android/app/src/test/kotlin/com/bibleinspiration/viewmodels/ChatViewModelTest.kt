@@ -289,6 +289,13 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `setLocale updates selectedLanguage StateFlow`() = runTest {
+        viewModel.setLocale("de")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("de", viewModel.selectedLanguage.value)
+    }
+
+    @Test
     fun `startNewConversation resets messages and conversationId`() = runTest {
         every { repository.chatStream(any()) } returns flowOf(
             StreamChunk(content = "Hello!", done = true),
