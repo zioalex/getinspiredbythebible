@@ -817,4 +817,23 @@ EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     "Ester": "Esther",  # alternate for "Esther"
     "Hohes Lied": "Song of Solomon",  # alternate for "Hohelied"
     "Zefanja": "Zephaniah",  # alternate for "Zephanja"
+    # Russian — genitive citation forms (LLM writes "Иоанна 3:16", nominative is "Иоанн")
+    "Иоанна": "John",
+    "Матфея": "Matthew",
+    "Луки": "Luke",
+    "Марка": "Mark",
+    "Деяний": "Acts",
+    "Откровения": "Revelation",
+    "Бытия": "Genesis",
+    "Псалтири": "Psalms",
+    "Притч": "Proverbs",
+    "Екклесиаста": "Ecclesiastes",
+    "Исаии": "Isaiah",
+    "Иеремии": "Jeremiah",
+    "Исхода": "Exodus",
+    "Левита": "Leviticus",
+    "Числ": "Numbers",
+    "Второзакония": "Deuteronomy",
+    "Руфи": "Ruth",
+    "Иакова": "James",
 }

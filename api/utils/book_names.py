@@ -117,7 +117,8 @@ def normalize_book_name(book_name: str) -> str:
     French, Portuguese, Arabic, Russian, Chinese, Korean, English).
 
     Args:
-        book_name: Book name in any language (e.g., "Giovanni", "Jean", "Juan", "John")
+        book_name: Book name in any language (e.g., "Giovanni", "Jean", "Juan",
+                   "Иоанна", "John")
 
     Returns:
         Standard English book name (e.g., "John")

@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 
 from utils.book_names import normalize_book_name
-from utils.translation_registry import TRANSLATION_REGISTRY
+from utils.translation_registry import EXTRA_REVERSE_MAPPINGS, TRANSLATION_REGISTRY
 
 # All book names in all languages (for pattern matching).
 # Built dynamically from TRANSLATION_REGISTRY — adding a new translation to
@@ -19,6 +19,8 @@ for _book_map in TRANSLATION_REGISTRY.values():
     if _book_map is not None:
         ALL_BOOK_NAMES.update(_book_map.keys())  # English (same keys in every map)
         ALL_BOOK_NAMES.update(_book_map.values())  # localized names
+# Also include alias/variant forms (e.g. Russian genitive citation forms)
+ALL_BOOK_NAMES.update(EXTRA_REVERSE_MAPPINGS.keys())
 
 # Common abbreviations for book names
 BOOK_ABBREVIATIONS = {
