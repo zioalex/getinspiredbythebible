@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
@@ -36,6 +37,8 @@ data class ChatUiState(
     val isTurnstileReady: Boolean = false,
     /** ID of the currently active conversation; null when no conversation has started. */
     val currentConversationId: String? = null,
+    /** The user's persisted theme preference: "light", "dark", or "system". */
+    val themeMode: String = "system",
 )
 
 @HiltViewModel
@@ -44,6 +47,7 @@ class ChatViewModel @Inject constructor(
     val turnstileManager: TurnstileManager,
     private val languagePreferences: LanguagePreferences,
     @ApplicationContext private val context: Context,
+    private val themePreferences: ThemePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -59,6 +63,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             languagePreferences.languageFlow.collect { code ->
                 _uiState.update { it.copy(currentLocale = code) }
+            }
+        }
+        // Restore persisted theme mode on startup.
+        viewModelScope.launch {
+            themePreferences.themeModeFlow.collect { mode ->
+                _uiState.update { it.copy(themeMode = mode) }
             }
         }
     }
@@ -232,6 +242,18 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(currentLocale = locale) }
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
+        }
+    }
+
+    /**
+     * Updates the theme mode in-memory and persists it via DataStore.
+     *
+     * @param mode One of "light", "dark", or "system".
+     */
+    fun setThemeMode(mode: String) {
+        _uiState.update { it.copy(themeMode = mode) }
+        viewModelScope.launch {
+            themePreferences.setThemeMode(mode)
         }
     }
 

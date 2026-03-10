@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 @Composable
 fun ChatScreen(
     conversationId: String? = null,
+    onOpenSettings: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -99,6 +101,12 @@ fun ChatScreen(
                                 contentDescription = stringResource(R.string.action_clear_conversation),
                             )
                         }
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.action_open_settings),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

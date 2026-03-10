@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +45,18 @@ private val languageOptions = listOf(
     LanguageOption("pt", "🇧🇷 Português"),
 )
 
+/** Theme option shown in the settings section. */
+private data class ThemeOption(
+    val mode: String,
+    val labelRes: Int,
+)
+
+private val themeOptions = listOf(
+    ThemeOption("light", R.string.settings_theme_light),
+    ThemeOption("dark", R.string.settings_theme_dark),
+    ThemeOption("system", R.string.settings_theme_system),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -55,6 +65,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentLocale = uiState.currentLocale
+    val currentThemeMode = uiState.themeMode
 
     Scaffold(
         topBar = {
@@ -85,6 +96,7 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
+            // ── Language section ──────────────────────────────────────────────
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.settings_language_title),
@@ -97,14 +109,28 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            LazyColumn {
-                items(languageOptions) { option ->
-                    LanguageRow(
-                        option = option,
-                        selected = option.code == currentLocale,
-                        onSelect = { viewModel.setLocale(option.code) },
-                    )
-                }
+            languageOptions.forEach { option ->
+                LanguageRow(
+                    option = option,
+                    selected = option.code == currentLocale,
+                    onSelect = { viewModel.setLocale(option.code) },
+                )
+            }
+
+            // ── Theme section ─────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.settings_theme_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            themeOptions.forEach { option ->
+                ThemeRow(
+                    labelRes = option.labelRes,
+                    selected = option.mode == currentThemeMode,
+                    onSelect = { viewModel.setThemeMode(option.mode) },
+                )
             }
         }
     }
@@ -128,6 +154,30 @@ private fun LanguageRow(
         )
         Text(
             text = option.displayName,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun ThemeRow(
+    labelRes: Int,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onSelect,
+        )
+        Text(
+            text = stringResource(labelRes),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = 8.dp),
         )

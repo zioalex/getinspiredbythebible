@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,7 +31,13 @@ class MainActivity : ComponentActivity() {
             val uiState by chatViewModel.uiState.collectAsState()
             val layoutDirection = LocaleHelper.layoutDirectionFor(uiState.currentLocale)
 
-            BibleInspirationTheme {
+            val darkTheme = when (uiState.themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
+
+            BibleInspirationTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     val navController = rememberNavController()
                     NavHost(

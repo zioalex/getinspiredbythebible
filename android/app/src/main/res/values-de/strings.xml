@@ -28,6 +28,10 @@
     <string name="settings_language_title">Sprache</string>
     <string name="settings_language_subtitle">Wähle die Sprache für Bibelverse</string>
     <string name="action_open_settings">Einstellungen</string>
+    <string name="settings_theme_title">Design</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_theme_system">Systemstandard</string>
 
     <!-- Actions -->
     <string name="action_retry">Wiederholen</string>

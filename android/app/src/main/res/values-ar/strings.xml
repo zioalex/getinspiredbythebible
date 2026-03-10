@@ -28,6 +28,10 @@
     <string name="settings_language_title">اللغة</string>
     <string name="settings_language_subtitle">اختر لغة آيات الكتاب المقدس</string>
     <string name="action_open_settings">الإعدادات</string>
+    <string name="settings_theme_title">السمة</string>
+    <string name="settings_theme_light">فاتح</string>
+    <string name="settings_theme_dark">داكن</string>
+    <string name="settings_theme_system">إعداد النظام</string>
 
     <!-- Actions -->
     <string name="action_retry">إعادة المحاولة</string>
