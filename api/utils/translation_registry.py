@@ -12,13 +12,24 @@ ADDING A NEW TRANSLATION — WHAT TO DO HERE
    Use the *primary* (canonical) localized form as the value — i.e. the form
    that actually appears as the book name in the translation's source feed.
 
-2. If the feed uses *alias* forms (alternate grammar, BOM prefix, no-space
-   variant, etc.) that differ from the canonical value, add them to the
-   ``EXTRA_REVERSE_MAPPINGS`` dict at the bottom of this file so that
-   ``normalize_book_name`` can still reverse-map them to English.
+2. If the language uses grammatical case inflection or definite-article prefixes
+   on book names (e.g. Russian, Arabic, Ukrainian), add a ``<LANGUAGE>_CITATION_FORMS``
+   dict immediately after the ``ENGLISH_TO_*`` dict.  Citation forms are the
+   inflected versions an LLM naturally produces when citing a verse
+   (e.g. Russian genitive "Иоанна 3:16" vs nominative canonical "Иоанн").
+   See RUSSIAN_CITATION_FORMS below for the pattern to follow.
 
-3. Register the translation in ``TRANSLATION_REGISTRY``:
+3. If the feed uses *alias* forms (alternate grammar, BOM prefix, no-space
+   variant, etc.) that differ from the canonical value, add a ``<LANGUAGE>_ALIASES``
+   dict immediately after the ``ENGLISH_TO_*`` dict (and after any
+   ``*_CITATION_FORMS`` dict) so that ``normalize_book_name`` can still
+   reverse-map them to English.
+
+4. Register the translation in ``TRANSLATION_REGISTRY``:
        "my_code": ENGLISH_TO_MY_LANGUAGE
+
+5. Add your new ``*_CITATION_FORMS`` and/or ``*_ALIASES`` dicts to the
+   ``EXTRA_REVERSE_MAPPINGS`` merge at the bottom of this file.
 
 That's it. The following update automatically:
   • ``api/utils/book_names.py``   — reverse dicts, LOCALIZED_TO_ENGLISH
@@ -169,6 +180,14 @@ ENGLISH_TO_GERMAN: dict[str, str] = {
     "3 John": "3. Johannes",
     "Jude": "Judas",
     "Revelation": "Offenbarung",
+}
+
+# German aliases (common alternate spellings found in German Bibles / LLM output)
+GERMAN_ALIASES: dict[str, str] = {
+    "Rut": "Ruth",  # alternate for "Ruth"
+    "Ester": "Esther",  # alternate for "Esther"
+    "Hohes Lied": "Song of Solomon",  # alternate for "Hohelied"
+    "Zefanja": "Zephaniah",  # alternate for "Zephanja" (Luther vs Schlachter orthography)
 }
 
 # Spanish (Reina Valera 1909 / valera)
@@ -382,6 +401,9 @@ ENGLISH_TO_PORTUGUESE: dict[str, str] = {
 }
 
 # Arabic (Smith & Van Dyke / arabicsv)
+# Note: Arabic uses definite-article prefixes (ال) on some book names in the feed.
+# If an LLM produces forms without the prefix (e.g. "مزامير" vs "المزامير"),
+# add an ARABIC_CITATION_FORMS dict here following the RUSSIAN_CITATION_FORMS pattern.
 ENGLISH_TO_ARABIC: dict[str, str] = {
     "Genesis": "تكوين",
     "Exodus": "خروج",
@@ -453,7 +475,7 @@ ENGLISH_TO_ARABIC: dict[str, str] = {
 
 # Russian (Synodal Translation 1876 / synodal)
 # Canonical forms match the primary book name used in the getbible Synodal feed.
-# Alias forms (genitive/dative variants, alternate ordinals) are in EXTRA_REVERSE_MAPPINGS.
+# Citation forms (genitive case) and alias forms are in the dicts below.
 ENGLISH_TO_RUSSIAN: dict[str, str] = {
     "Genesis": "Бытие",
     "Exodus": "Исход",
@@ -523,9 +545,83 @@ ENGLISH_TO_RUSSIAN: dict[str, str] = {
     "Revelation": "Откровение",
 }
 
+# Russian genitive citation forms — the inflected forms an LLM naturally produces
+# when citing a verse in Russian (genitive case: "Иоанна 3:16", not nominative "Иоанн").
+# Russian grammar requires the genitive case for book names used in citations, so
+# LLM output will almost always use these forms rather than the Synodal canonical names.
+# Only unambiguous single-book genitives are included here; numbered-book genitives
+# (e.g. "1 Петра", "1 Иоанна") live in RUSSIAN_ALIASES since they carry the number.
+RUSSIAN_CITATION_FORMS: dict[str, str] = {
+    "Иоанна": "John",
+    "Матфея": "Matthew",
+    "Луки": "Luke",
+    "Марка": "Mark",
+    "Деяний": "Acts",
+    "Откровения": "Revelation",
+    "Бытия": "Genesis",
+    "Псалтири": "Psalms",
+    "Притч": "Proverbs",
+    "Екклесиаста": "Ecclesiastes",
+    "Исаии": "Isaiah",
+    "Иеремии": "Jeremiah",
+    "Исхода": "Exodus",
+    "Левита": "Leviticus",
+    "Числ": "Numbers",
+    "Второзакония": "Deuteronomy",
+    "Руфи": "Ruth",
+    "Иакова": "James",
+}
+
+# Russian alternate names / aliases (book names that differ from the canonical
+# Synodal feed forms — alternate ordinal styles, alternate naming traditions,
+# spelling variants, and numbered-book genitive forms).
+RUSSIAN_ALIASES: dict[str, str] = {
+    # Joshua — traditional nominative name (feed uses genitive "Иисуса Навина")
+    "Иисус Навин": "Joshua",
+    # Judges — nominative form (feed uses genitive "Судей")
+    "Судьи": "Judges",
+    # Ezra — nominative form (feed uses genitive "Ездры")
+    "Ездра": "Ezra",
+    # Nehemiah — nominative form (feed uses genitive "Неемии")
+    "Неемия": "Nehemiah",
+    # Samuel / Kings — alternate ordinal forms without dash (feed uses "1-я Царств" etc.)
+    "1 Царств": "1 Samuel",
+    "2 Царств": "2 Samuel",
+    "3 Царств": "1 Kings",
+    "4 Царств": "2 Kings",
+    "1 Паралипоменон": "1 Chronicles",
+    "2 Паралипоменон": "2 Chronicles",
+    # Song of Solomon — alternate name
+    "Песня Песней": "Song of Solomon",
+    # Ezekiel — one-и spelling variant
+    "Иезекиль": "Ezekiel",
+    # Acts — full form with "apostles"
+    "Деяния апостолов": "Acts",
+    # Corinthians — no-dash ordinal forms
+    "1 Коринфянам": "1 Corinthians",
+    "2 Коринфянам": "2 Corinthians",
+    # Thessalonians — no-dash ordinal forms
+    "1 Фессалоникийцам": "1 Thessalonians",
+    "2 Фессалоникийцам": "2 Thessalonians",
+    # Timothy — no-dash ordinal forms
+    "1 Тимофею": "1 Timothy",
+    "2 Тимофею": "2 Timothy",
+    # James — nominative alias (feed uses dative "Иакову")
+    "Иаков": "James",
+    # Peter — numbered genitive forms (unambiguous because number is present)
+    "1 Петра": "1 Peter",
+    "2 Петра": "2 Peter",
+    # John epistles — numbered genitive forms
+    "1 Иоанна": "1 John",
+    "2 Иоанна": "2 John",
+    "3 Иоанна": "3 John",
+    # Jude — nominative alias (feed uses dative "Иуде")
+    "Иуда": "Jude",
+}
+
 # Chinese Union Version Simplified (CUS / cuv)
 # Revelation uses Traditional characters in the actual getbible CUS feed.
-# Simplified alias and BOM variant are in EXTRA_REVERSE_MAPPINGS.
+# Simplified alias and BOM variant are in CHINESE_ALIASES below.
 ENGLISH_TO_CHINESE: dict[str, str] = {
     "Genesis": "创世记",
     "Exodus": "出埃及记",
@@ -595,8 +691,14 @@ ENGLISH_TO_CHINESE: dict[str, str] = {
     "Revelation": "啟示錄",  # Traditional characters — actual name in getbible CUS feed
 }
 
+# Chinese aliases (encoding variants and simplified/traditional script variants)
+CHINESE_ALIASES: dict[str, str] = {
+    "\ufeff创世记": "Genesis",  # Genesis with UTF-8 BOM (getbible API feed artifact)
+    "启示录": "Revelation",  # Revelation in Simplified characters (feed uses Traditional "啟示錄")
+}
+
 # Korean Revised Version (개역개정 / krv)
-# Lamentations with-space is the canonical API form; no-space alias is in EXTRA_REVERSE_MAPPINGS.
+# Lamentations with-space is the canonical API form; no-space alias is in KOREAN_ALIASES.
 ENGLISH_TO_KOREAN: dict[str, str] = {
     "Genesis": "창세기",
     "Exodus": "출애굽기",
@@ -664,6 +766,11 @@ ENGLISH_TO_KOREAN: dict[str, str] = {
     "3 John": "요한삼서",
     "Jude": "유다서",
     "Revelation": "요한계시록",
+}
+
+# Korean aliases (spacing/orthographic variants)
+KOREAN_ALIASES: dict[str, str] = {
+    "예레미야애가": "Lamentations",  # Lamentations without space (LLM and some sources omit it)
 }
 
 # Hindi (IRV Bible / hindi)
@@ -757,83 +864,36 @@ TRANSLATION_REGISTRY: dict[str, dict[str, str] | None] = {
 }
 
 # ---------------------------------------------------------------------------
-# Extra reverse-only mappings (alias / variant forms not in the forward dicts)
+# Citation forms and aliases — merged into a single reverse-lookup dict.
 #
-# These are localized forms that appear in getbible feeds but differ from the
-# canonical value stored in the ENGLISH_TO_* dict above.  They are merged into
-# the combined LOCALIZED_TO_ENGLISH reverse map by book_names.py.
+# WHAT ARE CITATION FORMS?
+# ────────────────────────
+# In inflecting languages (Russian, Ukrainian, Arabic, etc.) book names change
+# their ending depending on grammatical case.  When an LLM cites a verse it
+# naturally uses the *genitive* case (e.g. Russian "Иоанна 3:16"), not the
+# nominative form stored in the ENGLISH_TO_* dict ("Иоанн").  Without these
+# mappings, verse-reference parsing silently fails for those languages.
+#
+# WHICH LANGUAGES CURRENTLY HAVE CITATION FORMS?
+# ───────────────────────────────────────────────
+# • Russian — RUSSIAN_CITATION_FORMS (18 unambiguous genitive forms)
+#   Ambiguous forms ("Петра" = 1 Peter or 2 Peter) are intentionally excluded.
+#
+# ADDING A NEW INFLECTING LANGUAGE?
+# ──────────────────────────────────
+# 1. Collect the genitive (citation) forms an LLM produces for that language.
+# 2. Create a  <LANGUAGE>_CITATION_FORMS  dict immediately after the
+#    ENGLISH_TO_<LANGUAGE> dict in this file.
+# 3. Add  **<LANGUAGE>_CITATION_FORMS  to the merge below.
+# 4. Exclude forms that are ambiguous across books (e.g. a suffix shared by
+#    multiple books without a disambiguating number prefix).
 # ---------------------------------------------------------------------------
 
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
-    # Russian — Joshua nominative alias
-    "Иисус Навин": "Joshua",
-    # Russian — Judges nominative alias
-    "Судьи": "Judges",
-    # Russian — Ezra nominative alias
-    "Ездра": "Ezra",
-    # Russian — Nehemiah nominative alias
-    "Неемия": "Nehemiah",
-    # Russian — Samuel / Kings alternate ordinal forms (no dash)
-    "1 Царств": "1 Samuel",
-    "2 Царств": "2 Samuel",
-    "3 Царств": "1 Kings",
-    "4 Царств": "2 Kings",
-    "1 Паралипоменон": "1 Chronicles",
-    "2 Паралипоменон": "2 Chronicles",
-    # Russian — Song of Songs alternate nominative
-    "Песня Песней": "Song of Solomon",
-    # Russian — Ezekiel one-и variant
-    "Иезекиль": "Ezekiel",
-    # Russian — Acts full form
-    "Деяния апостолов": "Acts",
-    # Russian — Corinthians alternate forms (no dash)
-    "1 Коринфянам": "1 Corinthians",
-    "2 Коринфянам": "2 Corinthians",
-    # Russian — Thessalonians alternate forms (no dash)
-    "1 Фессалоникийцам": "1 Thessalonians",
-    "2 Фессалоникийцам": "2 Thessalonians",
-    # Russian — Timothy alternate forms (no dash)
-    "1 Тимофею": "1 Timothy",
-    "2 Тимофею": "2 Timothy",
-    # Russian — James nominative alias
-    "Иаков": "James",
-    # Russian — Peter genitive aliases
-    "1 Петра": "1 Peter",
-    "2 Петра": "2 Peter",
-    # Russian — John epistles genitive aliases
-    "1 Иоанна": "1 John",
-    "2 Иоанна": "2 John",
-    "3 Иоанна": "3 John",
-    # Russian — Jude nominative alias
-    "Иуда": "Jude",
-    # Chinese — Genesis with UTF-8 BOM (getbible API feed artifact)
-    "\ufeff创世记": "Genesis",
-    # Chinese — Revelation Simplified alias
-    "启示录": "Revelation",
-    # Korean — Lamentations without space
-    "예레미야애가": "Lamentations",
-    # German — Schlachter alternate spellings (Schlachter vs Luther orthography)
-    "Rut": "Ruth",  # alternate for "Ruth"
-    "Ester": "Esther",  # alternate for "Esther"
-    "Hohes Lied": "Song of Solomon",  # alternate for "Hohelied"
-    "Zefanja": "Zephaniah",  # alternate for "Zephanja"
-    # Russian — genitive citation forms (LLM writes "Иоанна 3:16", nominative is "Иоанн")
-    "Иоанна": "John",
-    "Матфея": "Matthew",
-    "Луки": "Luke",
-    "Марка": "Mark",
-    "Деяний": "Acts",
-    "Откровения": "Revelation",
-    "Бытия": "Genesis",
-    "Псалтири": "Psalms",
-    "Притч": "Proverbs",
-    "Екклесиаста": "Ecclesiastes",
-    "Исаии": "Isaiah",
-    "Иеремии": "Jeremiah",
-    "Исхода": "Exodus",
-    "Левита": "Leviticus",
-    "Числ": "Numbers",
-    "Второзакония": "Deuteronomy",
-    "Руфи": "Ruth",
-    "Иакова": "James",
+    **RUSSIAN_CITATION_FORMS,
+    **RUSSIAN_ALIASES,
+    **CHINESE_ALIASES,
+    **KOREAN_ALIASES,
+    **GERMAN_ALIASES,
+    # add new language citation forms and aliases here
 }
