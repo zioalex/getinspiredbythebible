@@ -266,3 +266,383 @@ class TestVerseReferenceStr:
         """Test string representation of verse range."""
         ref = VerseReference(book="Romans", chapter=8, verse_start=28, verse_end=30)
         assert str(ref) == "Romans 8:28-30"
+
+
+class TestParseVerseReferenceNonEnglish:
+    """End-to-end parse_verse_reference() tests for non-English book names.
+
+    Values are taken directly from the canonical translation_registry.py dicts
+    and EXTRA_REVERSE_MAPPINGS, so any regression in those dicts will be caught.
+    """
+
+    # ── Russian ──────────────────────────────────────────────────────────────
+
+    def test_russian_genitive_john(self):
+        """Russian genitive citation form 'Иоанна 3:16' → John."""
+        result = parse_verse_reference("Иоанна 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_russian_nominative_john(self):
+        """Russian nominative canonical form 'Иоанн 3:16' → John."""
+        result = parse_verse_reference("Иоанн 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_russian_nominative_psaltir(self):
+        """Russian Psalms nominative 'Псалтирь 23:1' → Psalms."""
+        result = parse_verse_reference("Псалтирь 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+        assert result.chapter == 23
+        assert result.verse_start == 1
+
+    def test_russian_genitive_psaltiri(self):
+        """Russian Psalms genitive 'Псалтири 23:1' → Psalms."""
+        result = parse_verse_reference("Псалтири 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+        assert result.chapter == 23
+        assert result.verse_start == 1
+
+    def test_russian_genesis_nominative(self):
+        """Russian Genesis nominative 'Бытие 1:1' → Genesis."""
+        result = parse_verse_reference("Бытие 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
+    def test_russian_genesis_genitive(self):
+        """Russian Genesis genitive 'Бытия 1:1' → Genesis."""
+        result = parse_verse_reference("Бытия 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
+    def test_russian_matthew_genitive(self):
+        """Russian Matthew genitive 'Матфея 5:3' → Matthew."""
+        result = parse_verse_reference("Матфея 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+        assert result.chapter == 5
+        assert result.verse_start == 3
+
+    def test_russian_revelation_genitive(self):
+        """Russian Revelation genitive 'Откровения 21:4' → Revelation."""
+        result = parse_verse_reference("Откровения 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_russian_revelation_nominative(self):
+        """Russian Revelation nominative 'Откровение 21:4' → Revelation."""
+        result = parse_verse_reference("Откровение 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_russian_acts_short(self):
+        """Russian Acts short 'Деяния 2:38' → Acts."""
+        result = parse_verse_reference("Деяния 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_russian_acts_genitive(self):
+        """Russian Acts genitive 'Деяний 2:38' → Acts."""
+        result = parse_verse_reference("Деяний 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_russian_lamentations_two_words(self):
+        """Russian Lamentations 'Плач Иеремии 3:3' → Lamentations."""
+        result = parse_verse_reference("Плач Иеремии 3:3")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_russian_corinthians_no_dash_alias(self):
+        """Russian '1 Коринфянам 13:4' (no-dash alias) → 1 Corinthians."""
+        result = parse_verse_reference("1 Коринфянам 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+        assert result.chapter == 13
+        assert result.verse_start == 4
+
+    def test_russian_1_samuel_synodal_canonical(self):
+        """Russian Synodal '1-я Царств 3:1' → 1 Samuel."""
+        result = parse_verse_reference("1-я Царств 3:1")
+        assert result is not None
+        assert result.book == "1 Samuel"
+
+    def test_russian_1_kings_synodal_canonical(self):
+        """Russian Synodal '3-я Царств 18:1' → 1 Kings."""
+        result = parse_verse_reference("3-я Царств 18:1")
+        assert result is not None
+        assert result.book == "1 Kings"
+
+    # ── Chinese ───────────────────────────────────────────────────────────────
+
+    def test_chinese_john(self):
+        """Chinese John '约翰福音 3:16' → John."""
+        # ENGLISH_TO_CHINESE["John"] = "约翰福音"
+        result = parse_verse_reference("约翰福音 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_chinese_genesis(self):
+        """Chinese Genesis '创世记 1:1' → Genesis."""
+        result = parse_verse_reference("创世记 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_chinese_psalms(self):
+        """Chinese Psalms '诗篇 23:1' → Psalms."""
+        result = parse_verse_reference("诗篇 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_chinese_1_corinthians(self):
+        """Chinese 1 Corinthians '哥林多前书 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("哥林多前书 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_chinese_revelation_traditional(self):
+        """Chinese Revelation traditional '啟示錄 21:4' → Revelation."""
+        result = parse_verse_reference("啟示錄 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_chinese_revelation_simplified_alias(self):
+        """Chinese Revelation simplified alias '启示录 21:4' → Revelation."""
+        result = parse_verse_reference("启示录 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    # ── Korean ────────────────────────────────────────────────────────────────
+
+    def test_korean_john(self):
+        """Korean John '요한복음 3:16' → John."""
+        # ENGLISH_TO_KOREAN["John"] = "요한복음"
+        result = parse_verse_reference("요한복음 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_korean_genesis(self):
+        """Korean Genesis '창세기 1:1' → Genesis."""
+        result = parse_verse_reference("창세기 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_korean_psalms(self):
+        """Korean Psalms '시편 23:1' → Psalms."""
+        result = parse_verse_reference("시편 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_korean_1_corinthians(self):
+        """Korean 1 Corinthians '고린도전서 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("고린도전서 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_korean_revelation(self):
+        """Korean Revelation '요한계시록 21:4' → Revelation."""
+        result = parse_verse_reference("요한계시록 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_korean_lamentations_with_space(self):
+        """Korean Lamentations with space '예레미야 애가 3:3' → Lamentations."""
+        result = parse_verse_reference("예레미야 애가 3:3")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_korean_lamentations_no_space_alias(self):
+        """Korean Lamentations no-space alias '예레미야애가 3:3' → Lamentations."""
+        result = parse_verse_reference("예레미야애가 3:3")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    # ── Italian ───────────────────────────────────────────────────────────────
+
+    def test_italian_john(self):
+        """Italian John 'Giovanni 3:16' → John."""
+        result = parse_verse_reference("Giovanni 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_italian_genesis(self):
+        """Italian Genesis 'Genesi 1:1' → Genesis."""
+        result = parse_verse_reference("Genesi 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_italian_psalms(self):
+        """Italian Psalms 'Salmi 23:1' → Psalms."""
+        result = parse_verse_reference("Salmi 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_italian_1_corinthians(self):
+        """Italian 1 Corinthians '1 Corinzi 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 Corinzi 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_italian_revelation(self):
+        """Italian Revelation 'Apocalisse 21:4' → Revelation."""
+        result = parse_verse_reference("Apocalisse 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    # ── German ────────────────────────────────────────────────────────────────
+
+    def test_german_john(self):
+        """German John 'Johannes 3:16' → John."""
+        result = parse_verse_reference("Johannes 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_german_john_comma_separator(self):
+        """German John with comma separator 'Johannes 3,16' → John."""
+        result = parse_verse_reference("Johannes 3,16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_german_genesis_numbered(self):
+        """German Genesis '1. Mose 1:1' → Genesis."""
+        result = parse_verse_reference("1. Mose 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_german_psalms(self):
+        """German Psalms 'Psalmen 23:1' → Psalms."""
+        result = parse_verse_reference("Psalmen 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_german_1_corinthians(self):
+        """German 1 Corinthians '1. Korinther 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1. Korinther 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_german_revelation(self):
+        """German Revelation 'Offenbarung 21:4' → Revelation."""
+        result = parse_verse_reference("Offenbarung 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    # ── Spanish ───────────────────────────────────────────────────────────────
+
+    def test_spanish_john(self):
+        """Spanish John 'Juan 3:16' → John."""
+        result = parse_verse_reference("Juan 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_spanish_genesis(self):
+        """Spanish Genesis 'Génesis 1:1' → Genesis."""
+        result = parse_verse_reference("Génesis 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_spanish_psalms(self):
+        """Spanish Psalms 'Salmos 23:1' → Psalms."""
+        result = parse_verse_reference("Salmos 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_spanish_1_corinthians(self):
+        """Spanish 1 Corinthians '1 Corintios 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 Corintios 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    # ── French ────────────────────────────────────────────────────────────────
+
+    def test_french_john(self):
+        """French John 'Jean 3:16' → John."""
+        result = parse_verse_reference("Jean 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_french_genesis(self):
+        """French Genesis 'Genèse 1:1' → Genesis."""
+        result = parse_verse_reference("Genèse 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_french_psalms(self):
+        """French Psalms 'Psaumes 23:1' → Psalms."""
+        result = parse_verse_reference("Psaumes 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_french_1_corinthians(self):
+        """French 1 Corinthians '1 Corinthiens 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 Corinthiens 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    # ── Portuguese ────────────────────────────────────────────────────────────
+
+    def test_portuguese_john(self):
+        """Portuguese John 'João 3:16' → John."""
+        result = parse_verse_reference("João 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_portuguese_genesis(self):
+        """Portuguese Genesis 'Gênesis 1:1' → Genesis."""
+        result = parse_verse_reference("Gênesis 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_portuguese_psalms(self):
+        """Portuguese Psalms 'Salmos 23:1' → Psalms."""
+        result = parse_verse_reference("Salmos 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_portuguese_1_corinthians(self):
+        """Portuguese 1 Corinthians '1 Coríntios 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 Coríntios 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    # ── Verse-in-sentence tests ───────────────────────────────────────────────
+
+    def test_russian_in_sentence(self):
+        """Russian verse reference within a longer sentence."""
+        result = parse_verse_reference("Как сказано в Иоанна 3:16 о любви Бога")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_chinese_in_sentence(self):
+        """Chinese verse reference within a longer sentence."""
+        result = parse_verse_reference("经文 约翰福音 3:16 所说")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_korean_in_sentence(self):
+        """Korean verse reference within a longer sentence."""
+        result = parse_verse_reference("성경 요한복음 3:16 말씀")
+        assert result is not None
+        assert result.book == "John"
