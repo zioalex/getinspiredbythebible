@@ -143,6 +143,11 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .onCompletion {
+                    // Turnstile tokens are single-use: the server consumes the token on the
+                    // first validated request. Always reset after every stream attempt
+                    // (success or error) so the next message obtains a fresh token.
+                    turnstileManager.onTokenConsumed()
+
                     if (!didError) {
                         val finalAssistant = Message(
                             id = assistantId,

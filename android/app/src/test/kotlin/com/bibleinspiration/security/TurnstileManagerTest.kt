@@ -1,6 +1,7 @@
 package com.bibleinspiration.security
 
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -46,5 +47,85 @@ class TurnstileManagerTest {
 
         assertNull(manager.currentToken())
         assertNull(manager.tokenFlow.first())
+    }
+
+    // -------------------------------------------------------------------------
+    // Single-use token reset tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `requestReset clears the token immediately`() = runTest {
+        manager.onTokenReceived("live-token")
+        manager.requestReset()
+
+        assertNull(manager.currentToken())
+        assertNull(manager.tokenFlow.first())
+    }
+
+    @Test
+    fun `requestReset emits on resetTrigger`() = runTest {
+        var emissionCount = 0
+        val job = launch {
+            manager.resetTrigger.collect { emissionCount++ }
+        }
+
+        manager.requestReset()
+        // Allow the coroutine to process the emission.
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(1, emissionCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `onTokenConsumed clears the token`() = runTest {
+        manager.onTokenReceived("spent-token")
+        manager.onTokenConsumed()
+
+        assertNull(manager.currentToken())
+        assertNull(manager.tokenFlow.first())
+    }
+
+    @Test
+    fun `onTokenConsumed emits on resetTrigger`() = runTest {
+        var emissionCount = 0
+        val job = launch {
+            manager.resetTrigger.collect { emissionCount++ }
+        }
+
+        manager.onTokenConsumed()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(1, emissionCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `requestReset emits once per call`() = runTest {
+        var emissionCount = 0
+        val job = launch {
+            manager.resetTrigger.collect { emissionCount++ }
+        }
+
+        manager.requestReset()
+        manager.requestReset()
+        manager.requestReset()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(3, emissionCount)
+        job.cancel()
+    }
+
+    @Test
+    fun `new token can be received after reset`() = runTest {
+        manager.onTokenReceived("old-token")
+        manager.onTokenConsumed()
+
+        assertNull(manager.currentToken())
+
+        manager.onTokenReceived("fresh-token")
+
+        assertEquals("fresh-token", manager.currentToken())
+        assertEquals("fresh-token", manager.tokenFlow.first())
     }
 }
