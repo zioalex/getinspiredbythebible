@@ -1,5 +1,10 @@
 package com.bibleinspiration.presentation.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,14 +18,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.bibleinspiration.R
@@ -51,6 +57,18 @@ fun ChatMessageItem(
     //  - it was flagged as an error (blank content + error flag)
     val showRetry = !isUser && !message.isStreaming && message.isError
 
+    // Blinking cursor alpha — only computed when actually needed (streaming + content present).
+    val infiniteTransition = rememberInfiniteTransition(label = "cursor_blink")
+    val cursorAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 500),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "cursor_alpha",
+    )
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -75,18 +93,37 @@ fun ChatMessageItem(
                         )
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
-                    if (message.isStreaming && message.content.isEmpty()) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(4.dp),
-                            strokeWidth = 2.dp,
-                            color = textColor,
-                        )
-                    } else {
-                        Text(
-                            text = message.content,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = textColor,
-                        )
+                    when {
+                        // (a) Waiting for the first chunk — show animated typing dots
+                        !isUser && message.isStreaming && message.content.isEmpty() -> {
+                            TypingIndicator()
+                        }
+
+                        // (b) Streaming with partial content — show text + blinking cursor
+                        !isUser && message.isStreaming && message.content.isNotEmpty() -> {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = message.content,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = textColor,
+                                )
+                                Text(
+                                    text = "▌",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = textColor,
+                                    modifier = Modifier.alpha(cursorAlpha),
+                                )
+                            }
+                        }
+
+                        // Default — plain text bubble (user messages or finished assistant messages)
+                        else -> {
+                            Text(
+                                text = message.content,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = textColor,
+                            )
+                        }
                     }
                 }
             }
