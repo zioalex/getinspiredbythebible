@@ -33,9 +33,9 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-primary-500" />
           <span className="font-bold text-primary-700 text-sm">
-            {/* Show localized book name if available in the reference */}
+            {/* Build reference from parts to avoid fragile string replacement */}
             {verse.localized_book
-              ? verse.reference.replace(verse.book, verse.localized_book)
+              ? `${verse.localized_book} ${verse.chapter}:${verse.verse}`
               : verse.reference}
           </span>
           {verse.translation && (
