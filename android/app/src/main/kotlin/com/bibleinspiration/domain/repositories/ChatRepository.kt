@@ -43,4 +43,9 @@ interface ChatRepository {
 
     /** Delete every conversation and all messages. */
     suspend fun clearAllConversations()
+
+    /**
+     * Fetch a single conversation by [id], or null if it does not exist.
+     */
+    suspend fun getConversation(id: String): Conversation?
 }

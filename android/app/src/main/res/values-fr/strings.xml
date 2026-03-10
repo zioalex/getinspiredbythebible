@@ -3,7 +3,9 @@
     <string name="app_name">Inspiration Biblique</string>
     <string name="chat_input_hint">Partagez ce qui est sur votre cœur…</string>
     <string name="chat_send_button">Envoyer</string>
+    <string name="chat_new_conversation_title">Nouvelle conversation</string>
     <string name="action_clear_conversation">Effacer la conversation</string>
+    <string name="action_navigate_back">Retour</string>
     <string name="welcome_title">Trouvez l\'Inspiration dans les Écritures</string>
     <string name="welcome_subtitle">Partagez ce que vous traversez et recevez des encouragements fondés sur la Parole de Dieu.</string>
     <string name="error_network">Erreur réseau. Vérifiez votre connexion.</string>
