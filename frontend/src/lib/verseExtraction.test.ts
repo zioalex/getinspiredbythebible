@@ -339,8 +339,12 @@ describe("LOCALIZED_BOOK_TO_ENGLISH table integrity", () => {
     expect(LOCALIZED_BOOK_TO_ENGLISH["2 паралипоменон"]).toBe("2 chronicles");
     expect(LOCALIZED_BOOK_TO_ENGLISH["1 коринфянам"]).toBe("1 corinthians");
     expect(LOCALIZED_BOOK_TO_ENGLISH["2 коринфянам"]).toBe("2 corinthians");
-    expect(LOCALIZED_BOOK_TO_ENGLISH["1 фессалоникийцам"]).toBe("1 thessalonians");
-    expect(LOCALIZED_BOOK_TO_ENGLISH["2 фессалоникийцам"]).toBe("2 thessalonians");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["1 фессалоникийцам"]).toBe(
+      "1 thessalonians",
+    );
+    expect(LOCALIZED_BOOK_TO_ENGLISH["2 фессалоникийцам"]).toBe(
+      "2 thessalonians",
+    );
     expect(LOCALIZED_BOOK_TO_ENGLISH["1 тимофею"]).toBe("1 timothy");
     expect(LOCALIZED_BOOK_TO_ENGLISH["2 тимофею"]).toBe("2 timothy");
     expect(LOCALIZED_BOOK_TO_ENGLISH["1 петра"]).toBe("1 peter");
