@@ -6,6 +6,13 @@
     <string name="action_clear_conversation">Gespräch löschen</string>
     <string name="welcome_title">Finde Inspiration in der Schrift</string>
     <string name="welcome_subtitle">Erzähle, was du durchmachst, und erhalte Ermutigung, die in Gottes Wort verwurzelt ist.</string>
+
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">Was sagt die Bibel über Hoffnung?</string>
+    <string name="prompt_suggestion_2">Verse über Vergebung finden</string>
+    <string name="prompt_suggestion_3">Was bedeutet Johannes 3:16?</string>
+    <string name="prompt_suggestion_4">Zeig mir Psalmen über den Frieden</string>
+
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>

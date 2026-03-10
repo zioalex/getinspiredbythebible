@@ -6,6 +6,13 @@
     <string name="action_clear_conversation">Effacer la conversation</string>
     <string name="welcome_title">Trouvez l\'Inspiration dans les Écritures</string>
     <string name="welcome_subtitle">Partagez ce que vous traversez et recevez des encouragements fondés sur la Parole de Dieu.</string>
+
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">Que dit la Bible sur l\'espoir?</string>
+    <string name="prompt_suggestion_2">Trouver des versets sur le pardon</string>
+    <string name="prompt_suggestion_3">Quelle est la signification de Jean 3:16?</string>
+    <string name="prompt_suggestion_4">Montrez-moi des Psaumes sur la paix</string>
+
     <string name="error_network">Erreur réseau. Vérifiez votre connexion.</string>
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>
     <string name="error_server">Erreur serveur. Veuillez réessayer plus tard.</string>
