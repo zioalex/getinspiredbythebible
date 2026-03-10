@@ -6,6 +6,13 @@
     <string name="action_clear_conversation">Cancella conversazione</string>
     <string name="welcome_title">Trova Ispirazione nella Scrittura</string>
     <string name="welcome_subtitle">Racconta cosa stai attraversando e ricevi incoraggiamento radicato nella Parola di Dio.</string>
+
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">Cosa dice la Bibbia sulla speranza?</string>
+    <string name="prompt_suggestion_2">Trova versetti sul perdono</string>
+    <string name="prompt_suggestion_3">Qual è il significato di Giovanni 3:16?</string>
+    <string name="prompt_suggestion_4">Mostrami i Salmi sulla pace</string>
+
     <string name="error_network">Errore di rete. Controlla la connessione.</string>
     <string name="error_timeout">Richiesta scaduta. Riprova.</string>
     <string name="error_server">Errore del server. Riprova più tardi.</string>

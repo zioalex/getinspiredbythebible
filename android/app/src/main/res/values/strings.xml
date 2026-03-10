@@ -11,6 +11,12 @@
     <string name="welcome_title">Find Inspiration in Scripture</string>
     <string name="welcome_subtitle">Share what you\'re going through and receive encouragement grounded in God\'s Word.</string>
 
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">What does the Bible say about hope?</string>
+    <string name="prompt_suggestion_2">Find verses about forgiveness</string>
+    <string name="prompt_suggestion_3">What is the meaning of John 3:16?</string>
+    <string name="prompt_suggestion_4">Show me Psalms about peace</string>
+
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>
     <string name="conversations_empty_headline">Start your first conversation</string>
