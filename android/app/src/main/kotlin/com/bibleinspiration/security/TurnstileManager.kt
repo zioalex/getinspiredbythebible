@@ -1,5 +1,6 @@
 package com.bibleinspiration.security
 
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -15,7 +16,7 @@ class TurnstileManager @Inject constructor() {
     private val _tokenFlow = MutableStateFlow<String?>(null)
     val tokenFlow: StateFlow<String?> = _tokenFlow.asStateFlow()
 
-    private val _resetTrigger = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+    private val _resetTrigger = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = Channel.UNLIMITED)
     val resetTrigger: SharedFlow<Unit> = _resetTrigger.asSharedFlow()
 
     fun onTokenReceived(token: String) {
