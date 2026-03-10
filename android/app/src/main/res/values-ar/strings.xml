@@ -7,6 +7,8 @@
     <string name="welcome_title">اعثر على الإلهام في الكتاب المقدس</string>
     <string name="welcome_subtitle">شارك ما تمر به واحصل على تشجيع مستمد من كلمة الله.</string>
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
+    <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>
+    <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
 
     <!-- Conversations screen -->
@@ -26,4 +28,7 @@
     <string name="settings_language_title">اللغة</string>
     <string name="settings_language_subtitle">اختر لغة آيات الكتاب المقدس</string>
     <string name="action_open_settings">الإعدادات</string>
+
+    <!-- Actions -->
+    <string name="action_retry">إعادة المحاولة</string>
 </resources>

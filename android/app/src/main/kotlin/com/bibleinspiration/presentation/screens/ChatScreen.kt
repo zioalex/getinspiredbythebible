@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bibleinspiration.R
+import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.components.ChatInputField
 import com.bibleinspiration.presentation.components.ChatMessageItem
 import com.bibleinspiration.presentation.components.TurnstileWebView
@@ -66,10 +67,17 @@ fun ChatScreen(
         }
     }
 
-    // Show errors in snackbar
+    // Show errors in snackbar only when there is no inline retry available.
+    // Inline retry is shown when the last assistant message is in an error state.
+    val hasInlineRetry = uiState.messages.lastOrNull()
+        ?.let { it.role == Message.Role.ASSISTANT && it.isError }
+        ?: false
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(error)
+            if (!hasInlineRetry) {
+                snackbarHostState.showSnackbar(error)
+            }
             viewModel.clearError()
         }
     }
@@ -127,7 +135,10 @@ fun ChatScreen(
                     items = uiState.messages,
                     key = { it.id },
                 ) { message ->
-                    ChatMessageItem(message = message)
+                    ChatMessageItem(
+                        message = message,
+                        onRetry = if (message.isError) viewModel::retryLastMessage else null,
+                    )
                     Spacer(modifier = Modifier.height(2.dp))
                 }
             }

@@ -31,5 +31,10 @@
 
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_timeout">Request timed out. Please try again.</string>
+    <string name="error_server">Server error. Please try again later.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
+
+    <!-- Actions -->
+    <string name="action_retry">Retry</string>
 </resources>

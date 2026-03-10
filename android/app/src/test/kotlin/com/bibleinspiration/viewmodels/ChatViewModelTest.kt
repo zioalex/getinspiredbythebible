@@ -1,5 +1,7 @@
 package com.bibleinspiration.viewmodels
 
+import android.content.Context
+import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
@@ -26,6 +28,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
@@ -34,6 +40,7 @@ class ChatViewModelTest {
     private lateinit var repository: ChatRepository
     private lateinit var turnstileManager: TurnstileManager
     private lateinit var languagePreferences: LanguagePreferences
+    private lateinit var context: Context
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -55,7 +62,13 @@ class ChatViewModelTest {
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
-        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences)
+        context = mockk {
+            every { getString(R.string.error_network) } returns "Network error. Please check your connection."
+            every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
+            every { getString(R.string.error_server) } returns "Server error. Please try again later."
+            every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
+        }
+        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences, context)
     }
 
     @After
@@ -126,8 +139,122 @@ class ChatViewModelTest {
         viewModel.sendMessage("Hi")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("Network error", viewModel.uiState.value.error)
+        // RuntimeException maps to error_generic
+        assertEquals(
+            "Something went wrong. Please try again.",
+            viewModel.uiState.value.error,
+        )
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `IOException maps to network error message`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw IOException("socket closed")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Network error. Please check your connection.",
+            viewModel.uiState.value.error,
+        )
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `UnknownHostException maps to network error message`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw UnknownHostException("Unable to resolve host")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Network error. Please check your connection.",
+            viewModel.uiState.value.error,
+        )
+    }
+
+    @Test
+    fun `ConnectException maps to network error message`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw ConnectException("Connection refused")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Network error. Please check your connection.",
+            viewModel.uiState.value.error,
+        )
+    }
+
+    @Test
+    fun `SocketTimeoutException maps to timeout error message`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw SocketTimeoutException("Read timed out")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Request timed out. Please try again.",
+            viewModel.uiState.value.error,
+        )
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `stream error marks assistant message as isError`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw IOException("no network")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val lastMessage = viewModel.uiState.value.messages.last()
+        assertEquals(Message.Role.ASSISTANT, lastMessage.role)
+        assertTrue(lastMessage.isError)
+        assertFalse(lastMessage.isStreaming)
+        assertEquals("", lastMessage.content)
+    }
+
+    @Test
+    fun `retryLastMessage re-sends last user message`() = runTest {
+        // First call throws, second call succeeds
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flow { throw IOException("no network") },
+            flowOf(StreamChunk(content = "Success!", done = true)),
+        )
+
+        viewModel.sendMessage("Can you help?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // State should have an error and an error-flagged assistant message
+        assertTrue(viewModel.uiState.value.error != null || viewModel.uiState.value.messages.any { it.isError })
+
+        viewModel.retryLastMessage()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val messages = viewModel.uiState.value.messages
+        val assistantMsg = messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Success!", assistantMsg.content)
+        assertFalse(assistantMsg.isError)
+        assertFalse(assistantMsg.isStreaming)
+    }
+
+    @Test
+    fun `retryLastMessage is no-op when no user message exists`() = runTest {
+        viewModel.retryLastMessage()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
     }
 
     @Test
