@@ -44,4 +44,8 @@
 
     <!-- Actions -->
     <string name="action_retry">Réessayer</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">Lire le chapitre complet</string>
+    <string name="loading_chapter">Chargement du chapitre…</string>
 </resources>

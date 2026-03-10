@@ -1,11 +1,14 @@
 package com.bibleinspiration.data.remote.api
 
+import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.ChatRequestDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.Streaming
 
 interface BibleApiService {
@@ -23,4 +26,14 @@ interface BibleApiService {
      */
     @GET("api/v1/translations")
     suspend fun getTranslations(): TranslationsResponseDto
+
+    /**
+     * Fetches all verses for a given book and chapter.
+     */
+    @GET("api/v1/scripture/chapter/{book}/{chapter}")
+    suspend fun getChapter(
+        @Path("book") book: String,
+        @Path("chapter") chapter: Int,
+        @Query("translation") translation: String? = null,
+    ): ChapterResponseDto
 }

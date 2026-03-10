@@ -31,10 +31,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
+import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 
 @Composable
 fun ChatMessageItem(
     message: Message,
+    chapterSheetState: ChapterSheetState,
+    preferredTranslation: String?,
+    onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
+    onDismissSheet: () -> Unit,
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
 ) {
@@ -150,7 +155,13 @@ fun ChatMessageItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     message.verses.forEach { verse ->
-                        VerseChip(verse = verse)
+                        VerseChip(
+                            verse = verse,
+                            preferredTranslation = preferredTranslation,
+                            chapterState = chapterSheetState,
+                            onLoadChapter = onLoadChapter,
+                            onDismissSheet = onDismissSheet,
+                        )
                     }
                 }
             }
