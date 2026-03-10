@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ChatRequestDto(
     @SerialName("message") val message: String,
-    @SerialName("language") val language: String = "en",
     @SerialName("conversation_history") val conversationHistory: List<ConversationMessageDto> = emptyList(),
 )
 

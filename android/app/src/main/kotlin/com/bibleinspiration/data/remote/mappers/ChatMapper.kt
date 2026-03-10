@@ -13,7 +13,6 @@ import com.bibleinspiration.domain.models.Verse
 
 fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     message = message,
-    language = language,
     conversationHistory = conversationHistory.map { it.toConversationMessageDto() },
 )
 

@@ -13,10 +13,9 @@ import org.junit.Test
 class ChatMapperTest {
 
     @Test
-    fun `ChatRequest toDto maps fields correctly`() {
+    fun `ChatRequest toDto maps message and conversationHistory`() {
         val request = ChatRequest(
             message = "Hello",
-            language = "it",
             conversationHistory = listOf(
                 Message(id = "1", role = Message.Role.USER, content = "Hi"),
             ),
@@ -24,7 +23,6 @@ class ChatMapperTest {
         val dto = request.toDto()
 
         assertEquals("Hello", dto.message)
-        assertEquals("it", dto.language)
         assertEquals(1, dto.conversationHistory.size)
         assertEquals("user", dto.conversationHistory[0].role)
         assertEquals("Hi", dto.conversationHistory[0].content)
