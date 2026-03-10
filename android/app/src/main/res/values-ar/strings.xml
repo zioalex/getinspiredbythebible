@@ -39,6 +39,8 @@
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>
     <string name="settings_theme_system">إعداد النظام</string>
+    <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
+    <string name="bible_translation_default">افتراضية</string>
 
     <!-- Actions -->
     <string name="action_retry">إعادة المحاولة</string>

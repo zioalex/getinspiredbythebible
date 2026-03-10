@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
+import com.bibleinspiration.data.preferences.TranslationPreferences
+import com.bibleinspiration.data.remote.api.BibleApiService
+import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
@@ -51,6 +54,8 @@ class ChatViewModel @Inject constructor(
     private val languagePreferences: LanguagePreferences,
     @ApplicationContext private val context: Context,
     private val themePreferences: ThemePreferences,
+    private val translationPreferences: TranslationPreferences,
+    private val bibleApiService: BibleApiService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -66,6 +71,18 @@ class ChatViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = _uiState.value.currentLocale,
+        )
+
+    /** Available Bible translations fetched from the backend. Empty while loading or on error. */
+    private val _availableTranslations = MutableStateFlow<List<TranslationDto>>(emptyList())
+    val availableTranslations: StateFlow<List<TranslationDto>> = _availableTranslations.asStateFlow()
+
+    /** The user's currently preferred translation ID (empty string = no preference). */
+    val preferredTranslation: StateFlow<String> = translationPreferences.preferredTranslationFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = TranslationPreferences.DEFAULT_TRANSLATION,
         )
 
     init {
@@ -84,6 +101,16 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             themePreferences.themeModeFlow.collect { mode ->
                 _uiState.update { it.copy(themeMode = mode) }
+            }
+        }
+        // Fetch available translations from the backend.
+        viewModelScope.launch {
+            try {
+                val response = bibleApiService.getTranslations()
+                _availableTranslations.value = response.translations
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to fetch translations; defaulting to empty list")
+                _availableTranslations.value = emptyList()
             }
         }
     }
@@ -125,9 +152,13 @@ class ChatViewModel @Inject constructor(
                 .dropLast(1) // exclude placeholder
                 .takeLast(20) // cap history
 
+            val translation = preferredTranslation.value.ifBlank { null }
+
             val request = ChatRequest(
                 message = trimmed,
+                language = _uiState.value.currentLocale,
                 conversationHistory = history,
+                preferredTranslation = translation,
             )
 
             var accumulatedContent = ""
@@ -273,6 +304,17 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(themeMode = mode) }
         viewModelScope.launch {
             themePreferences.setThemeMode(mode)
+        }
+    }
+
+    /**
+     * Persists the user's preferred Bible translation ID via DataStore.
+     *
+     * @param id Translation ID (e.g. "KJV"), or "" to clear the preference.
+     */
+    fun setPreferredTranslation(id: String) {
+        viewModelScope.launch {
+            translationPreferences.setPreferredTranslation(id)
         }
     }
 
