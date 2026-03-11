@@ -32,6 +32,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,6 +41,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -81,6 +85,7 @@ class ChatViewModelTest {
             every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
+            every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
         }
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
@@ -566,5 +571,79 @@ class ChatViewModelTest {
         viewModel.clearChapterSheet()
 
         assertTrue(viewModel.chapterSheetState.value is ChapterSheetState.Idle)
+    }
+
+    // ── Story A: Session-limit (HTTP 429) tests ───────────────────────────────
+
+    private fun make429Exception(body: String): HttpException {
+        val errorBody = body.toResponseBody("application/json".toMediaType())
+        val response = Response.error<Any>(429, errorBody)
+        return HttpException(response)
+    }
+
+    @Test
+    fun `HTTP 429 with session_lifetime_limit sets isSessionLimitReached true`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: You've had 10 messages in this session!"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+        assertEquals("You've had 10 messages...", viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
+        // The assistant message must be marked as error
+        val lastMsg = viewModel.uiState.value.messages.last()
+        assertEquals(Message.Role.ASSISTANT, lastMsg.role)
+        assertTrue(lastMsg.isError)
+    }
+
+    @Test
+    fun `HTTP 429 without session_lifetime_limit does not set isSessionLimitReached`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "rate_limit_exceeded: Too many requests"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+        assertEquals("Server error. Please try again later.", viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `startNewConversation resets isSessionLimitReached`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: limit hit"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+
+        viewModel.startNewConversation()
+
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+        assertNull(viewModel.uiState.value.currentConversationId)
+    }
+
+    @Test
+    fun `dismissSessionLimit clears isSessionLimitReached`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: limit hit"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+
+        viewModel.dismissSessionLimit()
+
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,6 +72,7 @@ fun SettingsScreen(
     val currentThemeMode = uiState.themeMode
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -170,6 +173,22 @@ fun SettingsScreen(
                         onSelect = { viewModel.setPreferredTranslation(translation.id) },
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Debug section ──────────────────────────────────────────────────
+            Text(
+                text = stringResource(R.string.settings_debug_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { viewModel.shareDebugLogs(context) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.action_export_debug_logs))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
