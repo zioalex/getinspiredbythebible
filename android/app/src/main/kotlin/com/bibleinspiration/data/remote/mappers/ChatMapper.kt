@@ -14,6 +14,7 @@ import com.bibleinspiration.domain.models.Verse
 fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     message = message,
     conversationHistory = conversationHistory.map { it.toConversationMessageDto() },
+    preferredTranslation = preferredTranslation?.ifBlank { null },
 )
 
 fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMessageDto(

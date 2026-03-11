@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +68,8 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val currentLocale = uiState.currentLocale
     val currentThemeMode = uiState.themeMode
+    val availableTranslations by viewModel.availableTranslations.collectAsState()
+    val preferredTranslation by viewModel.preferredTranslation.collectAsState()
 
     Scaffold(
         topBar = {
@@ -94,7 +98,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
             // ── Language section ──────────────────────────────────────────────
             Spacer(modifier = Modifier.height(16.dp))
@@ -132,6 +137,42 @@ fun SettingsScreen(
                     onSelect = { viewModel.setThemeMode(option.mode) },
                 )
             }
+
+            // ── Bible Translation section ──────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.bible_translation_section),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (availableTranslations.isEmpty()) {
+                // Loading or error state — show a single "Default" option selected.
+                TranslationRow(
+                    label = stringResource(R.string.bible_translation_default),
+                    sublabel = null,
+                    selected = true,
+                    onSelect = { viewModel.setPreferredTranslation("") },
+                )
+            } else {
+                // "Default" (no preference) row first.
+                TranslationRow(
+                    label = stringResource(R.string.bible_translation_default),
+                    sublabel = null,
+                    selected = preferredTranslation.isBlank(),
+                    onSelect = { viewModel.setPreferredTranslation("") },
+                )
+                availableTranslations.forEach { translation ->
+                    TranslationRow(
+                        label = translation.name,
+                        sublabel = translation.language.uppercase(),
+                        selected = translation.id == preferredTranslation,
+                        onSelect = { viewModel.setPreferredTranslation(translation.id) },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -181,5 +222,38 @@ private fun ThemeRow(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = 8.dp),
         )
+    }
+}
+
+@Composable
+private fun TranslationRow(
+    label: String,
+    sublabel: String?,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onSelect,
+        )
+        Column(modifier = Modifier.padding(start = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            if (sublabel != null) {
+                Text(
+                    text = sublabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

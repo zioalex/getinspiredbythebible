@@ -39,6 +39,8 @@
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_theme_system">Predeterminado del sistema</string>
+    <string name="bible_translation_section">Traducción Bíblica</string>
+    <string name="bible_translation_default">Predeterminada</string>
 
     <!-- Actions -->
     <string name="action_retry">Reintentar</string>

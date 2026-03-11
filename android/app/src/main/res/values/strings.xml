@@ -38,6 +38,8 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_system">System default</string>
+    <string name="bible_translation_section">Bible Translation</string>
+    <string name="bible_translation_default">Default</string>
 
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>

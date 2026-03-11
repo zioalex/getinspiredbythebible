@@ -8,6 +8,7 @@ import com.bibleinspiration.data.remote.models.VerseDto
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ChatMapperTest {
@@ -26,6 +27,39 @@ class ChatMapperTest {
         assertEquals(1, dto.conversationHistory.size)
         assertEquals("user", dto.conversationHistory[0].role)
         assertEquals("Hi", dto.conversationHistory[0].content)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps preferred translation when set`() {
+        val request = ChatRequest(
+            message = "Hello",
+            preferredTranslation = "KJV",
+        )
+        val dto = request.toDto()
+
+        assertEquals("KJV", dto.preferredTranslation)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps null preferred translation when not set`() {
+        val request = ChatRequest(
+            message = "Hello",
+            preferredTranslation = null,
+        )
+        val dto = request.toDto()
+
+        assertNull(dto.preferredTranslation)
+    }
+
+    @Test
+    fun `ChatRequest toDto converts blank preferred translation to null`() {
+        val request = ChatRequest(
+            message = "Hello",
+            preferredTranslation = "",
+        )
+        val dto = request.toDto()
+
+        assertNull(dto.preferredTranslation)
     }
 
     @Test

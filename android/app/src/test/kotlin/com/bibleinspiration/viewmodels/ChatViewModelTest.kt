@@ -4,6 +4,11 @@ import android.content.Context
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
+import com.bibleinspiration.data.preferences.TranslationPreferences
+import com.bibleinspiration.data.remote.api.BibleApiService
+import com.bibleinspiration.data.remote.models.TranslationDto
+import com.bibleinspiration.data.remote.models.TranslationsResponseDto
+import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
@@ -12,8 +17,10 @@ import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.security.TurnstileManager
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
@@ -43,6 +50,8 @@ class ChatViewModelTest {
     private lateinit var languagePreferences: LanguagePreferences
     private lateinit var context: Context
     private lateinit var themePreferences: ThemePreferences
+    private lateinit var translationPreferences: TranslationPreferences
+    private lateinit var bibleApiService: BibleApiService
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -72,7 +81,19 @@ class ChatViewModelTest {
         }
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
-        viewModel = ChatViewModel(repository, turnstileManager, languagePreferences, context, themePreferences)
+        translationPreferences = mockk(relaxed = true)
+        every { translationPreferences.preferredTranslationFlow } returns flowOf("")
+        bibleApiService = mockk(relaxed = true)
+        coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        viewModel = ChatViewModel(
+            repository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            bibleApiService,
+        )
     }
 
     @After
@@ -379,5 +400,107 @@ class ChatViewModelTest {
         // Token must also be cleared on the error path.
         assertNull(turnstileManager.currentToken())
         assertFalse(viewModel.uiState.value.isTurnstileReady)
+    }
+
+    // ── Translation tests ─────────────────────────────────────────────────────
+
+    @Test
+    fun `availableTranslations is populated from backend on init`() = runTest {
+        val translations = listOf(
+            TranslationDto(id = "KJV", name = "King James Version", language = "en"),
+            TranslationDto(id = "NIV", name = "New International Version", language = "en"),
+        )
+        coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(translations)
+
+        val vm = ChatViewModel(
+            repository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(2, vm.availableTranslations.value.size)
+        assertEquals("KJV", vm.availableTranslations.value[0].id)
+        assertEquals("NIV", vm.availableTranslations.value[1].id)
+    }
+
+    @Test
+    fun `availableTranslations is empty when backend call fails`() = runTest {
+        coEvery { bibleApiService.getTranslations() } throws IOException("no network")
+
+        val vm = ChatViewModel(
+            repository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.availableTranslations.value.isEmpty())
+    }
+
+    @Test
+    fun `setPreferredTranslation persists id via TranslationPreferences`() = runTest {
+        viewModel.setPreferredTranslation("KJV")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { translationPreferences.setPreferredTranslation("KJV") }
+    }
+
+    @Test
+    fun `sendMessage includes preferred translation in ChatRequest`() = runTest {
+        every { translationPreferences.preferredTranslationFlow } returns flowOf("KJV")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("KJV", requestSlot.captured.preferredTranslation)
+    }
+
+    @Test
+    fun `sendMessage sends null preferred translation when preference is blank`() = runTest {
+        every { translationPreferences.preferredTranslationFlow } returns flowOf("")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(requestSlot.captured.preferredTranslation)
     }
 }
