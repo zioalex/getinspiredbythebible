@@ -33,7 +33,6 @@ class ChatMapperTest {
     fun `ChatRequest toDto maps preferred translation when set`() {
         val request = ChatRequest(
             message = "Hello",
-            language = "en",
             preferredTranslation = "KJV",
         )
         val dto = request.toDto()
@@ -45,7 +44,6 @@ class ChatMapperTest {
     fun `ChatRequest toDto maps null preferred translation when not set`() {
         val request = ChatRequest(
             message = "Hello",
-            language = "en",
             preferredTranslation = null,
         )
         val dto = request.toDto()
@@ -57,7 +55,6 @@ class ChatMapperTest {
     fun `ChatRequest toDto converts blank preferred translation to null`() {
         val request = ChatRequest(
             message = "Hello",
-            language = "en",
             preferredTranslation = "",
         )
         val dto = request.toDto()
