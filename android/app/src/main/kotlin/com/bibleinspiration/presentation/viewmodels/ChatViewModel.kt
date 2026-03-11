@@ -156,7 +156,6 @@ class ChatViewModel @Inject constructor(
 
             val request = ChatRequest(
                 message = trimmed,
-                language = _uiState.value.currentLocale,
                 conversationHistory = history,
                 preferredTranslation = translation,
             )
