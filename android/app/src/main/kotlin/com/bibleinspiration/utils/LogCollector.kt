@@ -1,22 +1,31 @@
 package com.bibleinspiration.utils
 
-import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * A Timber Tree that keeps the last [maxEntries] log lines in memory.
- * Plant it once in [com.bibleinspiration.BibleInspirationApp.onCreate] (both debug AND release
- * builds, since we want logs available for bug reports in release too).
+ * Pure-Kotlin in-memory log ring-buffer.
  *
- * Priority int values match android.util.Log constants (avoid importing Log to satisfy UseTimber lint rule):
+ * Keeps the last [maxEntries] log lines so they can be exported for bug reports.
+ * Deliberately has no dependency on Timber or android.util.Log so it is safe
+ * to use in JVM unit tests without testOptions.unitTests.returnDefaultValues.
+ *
+ * Plant it as a Timber tree from [com.bibleinspiration.BibleInspirationApp.onCreate]:
+ * ```
+ * Timber.plant(object : Timber.Tree() {
+ *     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) =
+ *         LogCollector.log(priority, tag, message, t)
+ * })
+ * ```
+ *
+ * Priority int values match android.util.Log constants:
  *   VERBOSE=2, DEBUG=3, INFO=4, WARN=5, ERROR=6
  */
-object LogCollector : Timber.Tree() {
+object LogCollector {
 
     private const val maxEntries = 500
     private val entries = CopyOnWriteArrayList<String>()
 
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         val priorityChar = when (priority) {
             2    -> 'V' // VERBOSE
             3    -> 'D' // DEBUG
