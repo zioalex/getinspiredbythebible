@@ -42,7 +42,15 @@
     <string name="bible_translation_section">Bibelübersetzung</string>
     <string name="bible_translation_default">Standard</string>
 
+    <!-- Settings debug section -->
+    <string name="settings_debug_title">Debug</string>
+    <string name="action_export_debug_logs">Debug-Protokolle exportieren</string>
+
+    <!-- Session limit error -->
+    <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>
+
     <!-- Actions -->
+    <string name="action_start_new_session">Neue Sitzung</string>
     <string name="action_retry">Wiederholen</string>
 
     <!-- Verse detail bottom sheet -->

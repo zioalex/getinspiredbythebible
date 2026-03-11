@@ -42,7 +42,15 @@
     <string name="bible_translation_section">Traduction Biblique</string>
     <string name="bible_translation_default">Par défaut</string>
 
+    <!-- Settings debug section -->
+    <string name="settings_debug_title">Debug</string>
+    <string name="action_export_debug_logs">Exporter les journaux de débogage</string>
+
+    <!-- Session limit error -->
+    <string name="error_session_limit">Vous avez eu 10 messages dans cette session ! Pourquoi ne pas faire une pause et profiter de la création de Dieu en plein air ? 🌳</string>
+
     <!-- Actions -->
+    <string name="action_start_new_session">Nouvelle session</string>
     <string name="action_retry">Réessayer</string>
 
     <!-- Verse detail bottom sheet -->
