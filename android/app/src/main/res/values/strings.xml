@@ -49,4 +49,8 @@
 
     <!-- Actions -->
     <string name="action_retry">Retry</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">Read full chapter</string>
+    <string name="loading_chapter">Loading chapter…</string>
 </resources>

@@ -44,4 +44,8 @@
 
     <!-- Actions -->
     <string name="action_retry">Wiederholen</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">Ganzes Kapitel lesen</string>
+    <string name="loading_chapter">Kapitel wird geladen…</string>
 </resources>

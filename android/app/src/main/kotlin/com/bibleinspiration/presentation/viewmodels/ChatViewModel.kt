@@ -8,6 +8,7 @@ import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
+import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
@@ -34,6 +35,14 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.UUID
 import javax.inject.Inject
+
+/** State of the chapter bottom sheet. */
+sealed class ChapterSheetState {
+    object Idle : ChapterSheetState()
+    object Loading : ChapterSheetState()
+    data class Success(val response: ChapterResponseDto) : ChapterSheetState()
+    data class Error(val message: String) : ChapterSheetState()
+}
 
 data class ChatUiState(
     val messages: List<Message> = emptyList(),
@@ -84,6 +93,9 @@ class ChatViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = TranslationPreferences.DEFAULT_TRANSLATION,
         )
+
+    private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
+    val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -330,6 +342,31 @@ class ChatViewModel @Inject constructor(
                 repository.deleteConversation(conversationId)
             }
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Chapter sheet
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Loads all verses for [book] and [chapter] from the API and updates [chapterSheetState].
+     */
+    fun loadChapter(book: String, chapter: Int, translation: String?) {
+        _chapterSheetState.value = ChapterSheetState.Loading
+        viewModelScope.launch {
+            try {
+                val response = bibleApiService.getChapter(book, chapter, translation)
+                _chapterSheetState.value = ChapterSheetState.Success(response)
+            } catch (e: Exception) {
+                Timber.e(e, "loadChapter error: $book $chapter")
+                _chapterSheetState.value = ChapterSheetState.Error(mapExceptionToMessage(e))
+            }
+        }
+    }
+
+    /** Resets the chapter sheet state back to [ChapterSheetState.Idle]. */
+    fun clearChapterSheet() {
+        _chapterSheetState.value = ChapterSheetState.Idle
     }
 
     // ---------------------------------------------------------------------------

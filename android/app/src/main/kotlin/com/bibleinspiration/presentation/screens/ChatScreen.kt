@@ -54,6 +54,7 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val chapterSheetState by viewModel.chapterSheetState.collectAsState()
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var inputText by rememberSaveable { mutableStateOf("") }
@@ -152,6 +153,10 @@ fun ChatScreen(
                 ) { message ->
                     ChatMessageItem(
                         message = message,
+                        chapterSheetState = chapterSheetState,
+                        preferredTranslation = uiState.currentLocale.takeIf { it != "en" },
+                        onLoadChapter = viewModel::loadChapter,
+                        onDismissSheet = viewModel::clearChapterSheet,
                         onRetry = if (message.isError) viewModel::retryLastMessage else null,
                     )
                     Spacer(modifier = Modifier.height(2.dp))

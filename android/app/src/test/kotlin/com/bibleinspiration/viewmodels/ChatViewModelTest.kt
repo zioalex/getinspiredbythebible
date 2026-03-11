@@ -6,6 +6,8 @@ import com.bibleinspiration.data.preferences.LanguagePreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
+import com.bibleinspiration.data.remote.models.ChapterResponseDto
+import com.bibleinspiration.data.remote.models.ChapterVerseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import com.bibleinspiration.domain.models.ChatRequest
@@ -14,6 +16,7 @@ import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
+import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.security.TurnstileManager
 import io.mockk.coEvery
@@ -502,5 +505,66 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(requestSlot.captured.preferredTranslation)
+    }
+
+    // ── Chapter sheet tests ──────────────────────────────────────────────────
+
+    @Test
+    fun `initial chapterSheetState is Idle`() {
+        assertTrue(viewModel.chapterSheetState.value is ChapterSheetState.Idle)
+    }
+
+    @Test
+    fun `loadChapter transitions through Loading then Success`() = runTest {
+        val stubResponse = ChapterResponseDto(
+            book = "John",
+            chapter = 3,
+            verses = listOf(
+                ChapterVerseDto(verseNumber = 16, text = "For God so loved the world…"),
+            ),
+        )
+        coEvery { bibleApiService.getChapter("John", 3, "kjv") } returns stubResponse
+
+        viewModel.loadChapter("John", 3, "kjv")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Success)
+        assertEquals("John", (state as ChapterSheetState.Success).response.book)
+        assertEquals(1, state.response.verses.size)
+    }
+
+    @Test
+    fun `loadChapter sets Error state when API throws`() = runTest {
+        coEvery { bibleApiService.getChapter(any(), any(), any()) } throws IOException("timeout")
+
+        viewModel.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Error)
+        assertEquals(
+            "Network error. Please check your connection.",
+            (state as ChapterSheetState.Error).message,
+        )
+    }
+
+    @Test
+    fun `clearChapterSheet resets state to Idle`() = runTest {
+        val stubResponse = ChapterResponseDto(
+            book = "Psalms",
+            chapter = 23,
+            verses = listOf(ChapterVerseDto(verseNumber = 1, text = "The Lord is my shepherd…")),
+        )
+        coEvery { bibleApiService.getChapter(any(), any(), any()) } returns stubResponse
+
+        viewModel.loadChapter("Psalms", 23, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.chapterSheetState.value is ChapterSheetState.Success)
+
+        viewModel.clearChapterSheet()
+
+        assertTrue(viewModel.chapterSheetState.value is ChapterSheetState.Idle)
     }
 }

@@ -44,4 +44,8 @@
 
     <!-- Actions -->
     <string name="action_retry">إعادة المحاولة</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">اقرأ الفصل الكامل</string>
+    <string name="loading_chapter">جارٍ تحميل الفصل…</string>
 </resources>
