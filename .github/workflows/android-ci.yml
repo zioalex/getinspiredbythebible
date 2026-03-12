@@ -122,12 +122,68 @@ jobs:
         working-directory: android
 
   # ---------------------------------------------------------------------------
+  # Instrumented UI Tests — runs on Android emulator, catches Hilt/Compose
+  # wiring bugs that JVM unit tests cannot see (e.g. wrong LocalContext type)
+  # ---------------------------------------------------------------------------
+  instrumented-tests:
+    name: Instrumented UI Tests
+    runs-on: ubuntu-latest
+    needs: [compile-check]
+    # Emulator tests are slow; give them plenty of time
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Enable KVM group for emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumented tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          avd-name: test-avd
+          emulator-options: >-
+            -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --no-daemon
+          working-directory: android
+
+      - name: Upload instrumented test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: instrumented-test-results
+          path: android/app/build/outputs/androidTest-results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
   # Prod APK build (debuggable, points to production backend)
   # ---------------------------------------------------------------------------
   build:
     name: Build Prod APK
     runs-on: ubuntu-latest
-    needs: [unit-tests, lint, compile-check]
+    # secrets-scan and dependency-check must pass before we ship an APK.
+    # Without this gate both scans were advisory-only: a build containing a
+    # leaked secret or a critical CVE would still produce a downloadable APK.
+    needs: [unit-tests, lint, compile-check, secrets-scan, dependency-check]
 
     steps:
       - name: Checkout
@@ -278,9 +334,13 @@ jobs:
   dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
-    continue-on-error: true
-    # NVD data download without an API key is rate-limited (~30-60 min).
-    # Add NIST_API_KEY secret to speed up: https://nvd.nist.gov/developers/request-an-api-key
+    # NOTE: do NOT add continue-on-error: true here — this job is in the
+    # critical path of `build` (via needs:). Making it advisory-only defeats
+    # the gate: a dependency with a critical CVE would still produce an APK.
+    #
+    # NVD data download is rate-limited without an API key (~30-60 min).
+    # Add NIST_API_KEY repository secret to speed this up:
+    #   https://nvd.nist.gov/developers/request-an-api-key
     timeout-minutes: 90
 
     steps:
