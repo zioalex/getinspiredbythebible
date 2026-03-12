@@ -1,5 +1,7 @@
 package com.bibleinspiration.presentation.screens
 
+import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,11 +15,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,12 +36,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +56,7 @@ import com.bibleinspiration.presentation.components.ChatMessageItem
 import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.WelcomeBanner
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,8 +68,15 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val chapterSheetState by viewModel.chapterSheetState.collectAsState()
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var inputText by rememberSaveable { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // Show FAB when there are messages below the visible area (user has scrolled up).
+    val showScrollToBottom by remember {
+        derivedStateOf { listState.canScrollForward }
+    }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -135,34 +151,72 @@ fun ChatScreen(
                 .imePadding()
                 .navigationBarsPadding(),
         ) {
-            LazyColumn(
+            // Box wraps the message list so the scroll-to-bottom FAB can be
+            // overlaid in the bottom-end corner using Alignment.BottomEnd.
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                state = listState,
             ) {
-                if (uiState.messages.isEmpty()) {
-                    item {
-                        WelcomeBanner(
-                            onPromptSelected = { prompt -> inputText = prompt },
-                            modifier = Modifier.padding(24.dp),
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                ) {
+                    if (uiState.messages.isEmpty()) {
+                        item {
+                            WelcomeBanner(
+                                onPromptSelected = { prompt -> inputText = prompt },
+                                modifier = Modifier.padding(24.dp),
+                            )
+                        }
+                    }
+
+                    items(
+                        items = uiState.messages,
+                        key = { it.id },
+                    ) { message ->
+                        ChatMessageItem(
+                            message = message,
+                            chapterSheetState = chapterSheetState,
+                            preferredTranslation = uiState.currentLocale.takeIf { it != "en" },
+                            onLoadChapter = viewModel::loadChapter,
+                            onDismissSheet = viewModel::clearChapterSheet,
+                            onRetry = if (message.isError) viewModel::retryLastMessage else null,
+                            onShareMessage = { text ->
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                }
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        intent,
+                                        context.getString(R.string.share_message_title),
+                                    ),
+                                )
+                            },
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
                 }
 
-                items(
-                    items = uiState.messages,
-                    key = { it.id },
-                ) { message ->
-                    ChatMessageItem(
-                        message = message,
-                        chapterSheetState = chapterSheetState,
-                        preferredTranslation = uiState.currentLocale.takeIf { it != "en" },
-                        onLoadChapter = viewModel::loadChapter,
-                        onDismissSheet = viewModel::clearChapterSheet,
-                        onRetry = if (message.isError) viewModel::retryLastMessage else null,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
+                // GAP-007: Scroll-to-bottom FAB — visible when the user has scrolled up.
+                if (showScrollToBottom) {
+                    FloatingActionButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(uiState.messages.size - 1)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.scroll_to_bottom),
+                        )
+                    }
                 }
             }
 

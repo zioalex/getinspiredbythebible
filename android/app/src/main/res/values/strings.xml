@@ -54,6 +54,9 @@
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
     <string name="action_share_message">Share message</string>
+    <string name="action_share">Share</string>
+    <string name="share_message_title">Share message</string>
+    <string name="scroll_to_bottom">Scroll to bottom</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Read full chapter</string>
