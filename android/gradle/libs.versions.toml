@@ -22,6 +22,8 @@ espressoCore = "3.6.1"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"
 owaspDepCheck = "12.1.0"
+hiltTesting = "2.51.1"          # same as hilt version
+androidxTestRunner = "1.6.2"
 
 [libraries]
 # AndroidX Core
@@ -79,6 +81,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hiltTesting" }
+hilt-android-compiler-test = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hiltTesting" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
