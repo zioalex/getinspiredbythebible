@@ -1,11 +1,13 @@
 package com.bibleinspiration.database
 
+import com.bibleinspiration.data.local.MessageEntity
 import com.bibleinspiration.data.local.mappers.toDomain
 import com.bibleinspiration.data.local.mappers.toEntity
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MessageEntityMapperTest {
@@ -142,5 +144,58 @@ class MessageEntityMapperTest {
         assertEquals("John", roundTripped.verses[0].book)
         assertEquals("Romans", roundTripped.verses[1].book)
         assertEquals("Psalm", roundTripped.verses[2].book)
+    }
+
+    // ── Crash-safety: malformed versesJson ───────────────────────────────────
+
+    @Test
+    fun `toDomain returns empty verses for empty versesJson instead of crashing`() {
+        val entity = MessageEntity(
+            id = "m11",
+            conversationId = conversationId,
+            role = "assistant",
+            content = "Stored message",
+            versesJson = "",   // empty string — would previously throw JsonDecodingException
+            createdAt = 1000L,
+        )
+
+        val domain = entity.toDomain()
+
+        assertTrue("Expected empty verses list", domain.verses.isEmpty())
+        assertEquals("m11", domain.id)
+        assertEquals("Stored message", domain.content)
+    }
+
+    @Test
+    fun `toDomain returns empty verses for malformed versesJson instead of crashing`() {
+        val entity = MessageEntity(
+            id = "m12",
+            conversationId = conversationId,
+            role = "user",
+            content = "Old message",
+            versesJson = "NOT_VALID_JSON{{",  // corrupted — would previously crash
+            createdAt = 2000L,
+        )
+
+        val domain = entity.toDomain()
+
+        assertTrue("Expected empty verses list for corrupted JSON", domain.verses.isEmpty())
+        assertEquals("m12", domain.id)
+    }
+
+    @Test
+    fun `toDomain returns empty verses for null-equivalent versesJson instead of crashing`() {
+        val entity = MessageEntity(
+            id = "m13",
+            conversationId = conversationId,
+            role = "assistant",
+            content = "Legacy message",
+            versesJson = "null",  // some serializers write "null" as the literal string
+            createdAt = 3000L,
+        )
+
+        val domain = entity.toDomain()
+
+        assertTrue("Expected empty verses list for 'null' string JSON", domain.verses.isEmpty())
     }
 }

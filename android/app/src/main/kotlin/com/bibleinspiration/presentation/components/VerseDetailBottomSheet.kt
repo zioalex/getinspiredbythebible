@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -48,7 +49,7 @@ fun VerseDetailBottomSheet(
     chapterState: ChapterSheetState,
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
     onDismiss: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     // Scroll chapter list to the target verse once it loads.
     val listState = rememberLazyListState()
@@ -66,12 +67,16 @@ fun VerseDetailBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
+        // Use fillMaxHeight(0.65f) so the Column has a bounded height, which lets
+        // the LazyColumn inside use weight(1f) without triggering a Compose
+        // measurement crash ("Nesting scrollable in same direction layouts").
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight()
+                .fillMaxHeight(0.65f)
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ── Header ──────────────────────────────────────────────────────────
@@ -160,7 +165,7 @@ fun VerseDetailBottomSheet(
                         state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(320.dp),
+                            .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         items(response.verses) { chapterVerse ->
