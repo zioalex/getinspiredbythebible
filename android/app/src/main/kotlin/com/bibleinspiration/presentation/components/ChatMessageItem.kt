@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,11 +30,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun ChatMessageItem(
@@ -62,6 +68,9 @@ fun ChatMessageItem(
     //  - it was flagged as an error (blank content + error flag)
     val showRetry = !isUser && !message.isStreaming && message.isError
 
+    // Show the share button only for finished (non-streaming) assistant messages with content.
+    val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
+
     // Blinking cursor alpha — only computed when actually needed (streaming + content present).
     val infiniteTransition = rememberInfiniteTransition(label = "cursor_blink")
     val cursorAlpha by infiniteTransition.animateFloat(
@@ -73,6 +82,8 @@ fun ChatMessageItem(
         ),
         label = "cursor_alpha",
     )
+
+    val context = LocalContext.current
 
     Row(
         modifier = modifier
@@ -121,7 +132,16 @@ fun ChatMessageItem(
                             }
                         }
 
-                        // Default — plain text bubble (user messages or finished assistant messages)
+                        // (c) Finished assistant message — render as Markdown
+                        !isUser -> {
+                            MarkdownText(
+                                markdown = message.content,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+
+                        // (d) User message — plain text bubble
                         else -> {
                             Text(
                                 text = message.content,
@@ -130,6 +150,26 @@ fun ChatMessageItem(
                             )
                         }
                     }
+                }
+            }
+
+            // Share button — shown below finished assistant message bubbles.
+            if (showShare) {
+                IconButton(
+                    onClick = {
+                        ShareCompat.IntentBuilder(context)
+                            .setType("text/plain")
+                            .setText(message.content)
+                            .startChooser()
+                    },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = stringResource(R.string.action_share_message),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
