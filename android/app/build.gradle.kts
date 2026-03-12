@@ -61,6 +61,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        checkDependencies = false
+        abortOnError = true
+    }
 }
 
 ksp {

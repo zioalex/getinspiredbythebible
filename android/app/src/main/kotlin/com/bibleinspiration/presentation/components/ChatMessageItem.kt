@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
@@ -139,14 +138,10 @@ fun ChatMessageItem(
                         // (c) Finished assistant message — render as Markdown.
                         // Use the non-deprecated MarkdownText overload: pass color via style.
                         !isUser -> {
+                            val bodyMedium = MaterialTheme.typography.bodyMedium
                             MarkdownText(
                                 markdown = message.content,
-                                style = TextStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
-                                    fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
-                                ),
+                                style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                             )
                         }
 
@@ -171,7 +166,6 @@ fun ChatMessageItem(
                             .setText(message.content)
                             .startChooser()
                     },
-                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
