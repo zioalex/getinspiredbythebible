@@ -8,6 +8,8 @@ data class ChatRequestDto(
     @SerialName("message") val message: String,
     @SerialName("conversation_history") val conversationHistory: List<ConversationMessageDto> = emptyList(),
     @SerialName("preferred_translation") val preferredTranslation: String? = null,
+    @SerialName("include_search") val includeSearch: Boolean = true,
+    @SerialName("session_id") val sessionId: String,
 )
 
 @Serializable

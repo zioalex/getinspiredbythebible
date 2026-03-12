@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.data.preferences.SessionPreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
@@ -71,6 +72,7 @@ class ChatViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val themePreferences: ThemePreferences,
     private val translationPreferences: TranslationPreferences,
+    private val sessionPreferences: SessionPreferences,
     private val bibleApiService: BibleApiService,
 ) : ViewModel() {
 
@@ -172,11 +174,13 @@ class ChatViewModel @Inject constructor(
                 .takeLast(20) // cap history
 
             val translation = preferredTranslation.value.ifBlank { null }
+            val sessionId = sessionPreferences.getOrCreateSessionId()
 
             val request = ChatRequest(
                 message = trimmed,
                 conversationHistory = history,
                 preferredTranslation = translation,
+                sessionId = sessionId,
             )
 
             var accumulatedContent = ""
