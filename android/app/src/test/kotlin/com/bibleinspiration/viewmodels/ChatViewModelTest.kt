@@ -13,6 +13,8 @@ import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
+import com.bibleinspiration.domain.models.ScriptureContext
+import com.bibleinspiration.domain.models.ScriptureVerse
 import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
@@ -37,6 +39,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -646,4 +649,110 @@ class ChatViewModelTest {
 
         assertFalse(viewModel.uiState.value.isSessionLimitReached)
     }
+
+    // ── GAP-002: SSE metadata chunk handling ──────────────────────────────────
+
+    @Test
+    fun `metadata chunk stores messageId and model on assistant message`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "srv-msg-123", model = "gpt-4o"),
+            StreamChunk(type = "content", content = "Hello from the model"),
+        )
+
+        viewModel.sendMessage("Tell me about faith")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Hello from the model", assistant.content)
+        assertEquals("srv-msg-123", assistant.messageId)
+        assertEquals("gpt-4o", assistant.model)
+    }
+
+    @Test
+    fun `metadata chunk with scripture_context populates verses on assistant message`() = runTest {
+        val scriptureContext = ScriptureContext(
+            query = "love",
+            verses = listOf(
+                ScriptureVerse(
+                    book = "John",
+                    chapter = 3,
+                    verse = 16,
+                    text = "For God so loved the world...",
+                    translation = "NIV",
+                    reference = "John 3:16",
+                    similarity = 0.95f,
+                ),
+            ),
+        )
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "m-1", model = "gpt-4o", scriptureContext = scriptureContext),
+            StreamChunk(type = "content", content = "God loves you"),
+        )
+
+        viewModel.sendMessage("Does God love me?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals("God loves you", assistant.content)
+        assertEquals("m-1", assistant.messageId)
+        assertEquals(1, assistant.verses.size)
+        assertEquals("John", assistant.verses[0].book)
+        assertEquals(3, assistant.verses[0].chapter)
+        assertEquals(16, assistant.verses[0].verse)
+        // scriptureContext is also stored directly
+        assertNotNull(assistant.scriptureContext)
+        assertEquals("love", assistant.scriptureContext!!.query)
+    }
+
+    @Test
+    fun `metadata chunk without scripture_context does not overwrite verses`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "m-2", model = "claude-3", scriptureContext = null),
+            StreamChunk(type = "content", content = "Response text"),
+        )
+
+        viewModel.sendMessage("What is grace?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Response text", assistant.content)
+        assertEquals("m-2", assistant.messageId)
+        assertEquals("claude-3", assistant.model)
+        // No scripture context → verses remain empty
+        assertTrue(assistant.verses.isEmpty())
+    }
+
+    @Test
+    fun `metadata chunk content field is not accumulated into message text`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "m-3", model = "gpt-4", content = ""),
+            StreamChunk(type = "content", content = "Actual response"),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        // Metadata chunk content ("") must NOT be prepended or appended to the response
+        assertEquals("Actual response", assistant.content)
+    }
+
+    @Test
+    fun `mixed metadata and content chunks accumulate text correctly`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "m-4", model = "gpt-4o"),
+            StreamChunk(type = "content", content = "Part 1 "),
+            StreamChunk(type = "content", content = "Part 2 "),
+            StreamChunk(type = "content", content = "Part 3"),
+        )
+
+        viewModel.sendMessage("Give me a long answer")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Part 1 Part 2 Part 3", assistant.content)
+        assertEquals("m-4", assistant.messageId)
+        assertEquals("gpt-4o", assistant.model)
+    }
 }
+

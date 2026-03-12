@@ -7,6 +7,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -156,4 +158,198 @@ class EventSourceParserTest {
 
         assertTrue(chunks.isEmpty())
     }
+
+    // ── GAP-002: metadata chunk tests ────────────────────────────────────────
+
+    /**
+     * 8. Metadata chunk — a data line with type=metadata is emitted with all
+     *    metadata fields populated and does NOT break the flow.
+     */
+    @Test
+    fun `metadata chunk is parsed and emitted correctly`() = runTest {
+        val metadataJson = """{"type":"metadata","message_id":"abc-123","model":"gpt-4o","scripture_context":null}"""
+        val body = bodyOf(
+            "data: $metadataJson\n" +
+                "data: {\"type\":\"content\",\"content\":\"Hello\"}\n" +
+                "data: [DONE]\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(2, chunks.size)
+
+        val metadata = chunks[0]
+        assertEquals("metadata", metadata.type)
+        assertEquals("abc-123", metadata.messageId)
+        assertEquals("gpt-4o", metadata.model)
+        assertNull(metadata.scriptureContext)
+
+        val content = chunks[1]
+        assertEquals("content", content.type)
+        assertEquals("Hello", content.content)
+    }
+
+    /**
+     * 9. Metadata chunk with scripture_context — scripture verses are deserialized
+     *    inside the metadata chunk.
+     */
+    @Test
+    fun `metadata chunk with scripture_context parses nested verses`() = runTest {
+        val metadataJson = """
+            {
+              "type": "metadata",
+              "message_id": "msg-1",
+              "model": "claude-3-5-sonnet",
+              "scripture_context": {
+                "query": "love",
+                "verses": [
+                  {
+                    "book": "John",
+                    "chapter": 3,
+                    "verse": 16,
+                    "text": "For God so loved the world...",
+                    "translation": "NIV",
+                    "reference": "John 3:16",
+                    "similarity": 0.95
+                  }
+                ]
+              }
+            }
+        """.trimIndent().replace("\n", "")
+        val body = bodyOf("data: $metadataJson\n")
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        val metadata = chunks[0]
+        assertEquals("metadata", metadata.type)
+
+        val ctx = metadata.scriptureContext
+        assertNotNull(ctx)
+        assertEquals("love", ctx!!.query)
+        assertEquals(1, ctx.verses.size)
+        assertEquals("John", ctx.verses[0].book)
+        assertEquals(3, ctx.verses[0].chapter)
+        assertEquals(16, ctx.verses[0].verse)
+        assertEquals("NIV", ctx.verses[0].translation)
+    }
+
+    /**
+     * 10. Error chunk — a data line with type=error is emitted and does not crash
+     *     the parser.
+     */
+    @Test
+    fun `error chunk is parsed without crashing`() = runTest {
+        val body = bodyOf(
+            "data: {\"type\":\"error\",\"error\":\"Service unavailable\",\"error_code\":\"503\"}\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("error", chunks[0].type)
+        assertEquals("Service unavailable", chunks[0].error)
+        assertEquals("503", chunks[0].errorCode)
+    }
+
+    /**
+     * 11. Content chunk with type field — the new typed content format is handled.
+     */
+    @Test
+    fun `typed content chunk is parsed with type=content`() = runTest {
+        val body = bodyOf("data: {\"type\":\"content\",\"content\":\"streaming text\"}\n")
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("content", chunks[0].type)
+        assertEquals("streaming text", chunks[0].content)
+    }
+
+    // ── GAP-002: spec-mandated test cases (A, B, C) ───────────────────────────
+
+    /**
+     * Test A (GAP-002): metadata chunk with scripture_context and message_id.
+     *
+     * The `event: metadata` line is silently dropped; the actual payload is on
+     * the subsequent `data:` line. Asserts type, messageId, and verse count.
+     */
+    @Test
+    fun `metadata chunk is parsed correctly`() = runTest {
+        val body = bodyOf(
+            "event: metadata\n" +
+                "data: {\"type\":\"metadata\",\"message_id\":\"abc-123\"," +
+                "\"scripture_context\":{\"verses\":[{\"book\":\"John\",\"chapter\":3," +
+                "\"verse\":16,\"text\":\"For God so loved...\",\"translation\":\"KJV\"," +
+                "\"relevance_score\":0.9}],\"passages\":[]}," +
+                "\"provider\":\"ollama\",\"model\":\"llama3\",\"detected_translation\":\"KJV\"}\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals("abc-123", chunks[0].messageId)
+        assertEquals(1, chunks[0].scriptureContext?.verses?.size)
+    }
+
+    /**
+     * Test B (GAP-002): content chunks accumulate correctly in the new format.
+     *
+     * Feed: 1 metadata chunk + 2 content chunks + [DONE] sentinel.
+     * Expect: exactly 3 chunks emitted; [DONE] stops the flow.
+     */
+    @Test
+    fun `content chunks accumulate correctly in new format`() = runTest {
+        val body = bodyOf(
+            "event: metadata\n" +
+                "data: {\"type\":\"metadata\",\"message_id\":\"msg-1\"," +
+                "\"provider\":\"ollama\",\"model\":\"llama3\"}\n" +
+                "event: content\n" +
+                "data: {\"type\":\"content\",\"content\":\"Hello \"}\n" +
+                "event: content\n" +
+                "data: {\"type\":\"content\",\"content\":\"world\"}\n" +
+                "data: [DONE]\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(3, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals("content", chunks[1].type)
+        assertEquals("Hello ", chunks[1].content)
+        assertEquals("content", chunks[2].type)
+        assertEquals("world", chunks[2].content)
+    }
+
+    /**
+     * Test C (GAP-002): legacy format (no type field) still works.
+     *
+     * The old backend emits `{"content":"...","done":false/true}` chunks.
+     * Both chunks should be emitted; the second has `done=true`.
+     */
+    @Test
+    fun `legacy format with no type field still works`() = runTest {
+        val body = bodyOf(
+            "data: {\"content\":\"hello\",\"done\":false}\n" +
+                "data: {\"content\":\"\",\"done\":true}\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(2, chunks.size)
+        assertNull(chunks[0].type)
+        assertEquals("hello", chunks[0].content)
+        assertFalse(chunks[0].done)
+        assertNull(chunks[1].type)
+        assertTrue(chunks[1].done)
+    }
 }
+

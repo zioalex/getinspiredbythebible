@@ -14,6 +14,7 @@ import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
+import com.bibleinspiration.domain.models.ScriptureContext
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.security.TurnstileManager
@@ -182,6 +183,10 @@ class ChatViewModel @Inject constructor(
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var didError = false
+            // Metadata received from the SSE metadata chunk
+            var metadataMessageId: String? = null
+            var metadataModel: String? = null
+            var metadataScriptureContext: ScriptureContext? = null
 
             repository
                 .chatStream(request)
@@ -218,6 +223,9 @@ class ChatViewModel @Inject constructor(
                             content = accumulatedContent,
                             verses = finalVerses,
                             isStreaming = false,
+                            messageId = metadataMessageId,
+                            model = metadataModel,
+                            scriptureContext = metadataScriptureContext,
                         )
                         // Persist finished assistant message and bump conversation timestamp.
                         repository.saveMessage(conversationId, finalAssistant)
@@ -234,18 +242,52 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .collect { chunk ->
-                    accumulatedContent += chunk.content
-                    if (chunk.done) finalVerses = chunk.verses
+                    when (chunk.type) {
+                        "metadata" -> {
+                            // Store metadata fields; do NOT append to content
+                            metadataMessageId = chunk.messageId
+                            metadataModel = chunk.model
+                            metadataScriptureContext = chunk.scriptureContext
+                            // Derive verses from scripture_context for display
+                            if (chunk.scriptureContext != null) {
+                                finalVerses = chunk.scriptureContext.verses.map { sv ->
+                                    Verse(
+                                        book = sv.book,
+                                        chapter = sv.chapter,
+                                        verse = sv.verse,
+                                        text = sv.text,
+                                        translation = sv.translation ?: "kjv",
+                                        relevanceScore = sv.similarity ?: 0f,
+                                    )
+                                }
+                            }
+                            Timber.d(
+                                "SSE metadata: message_id=%s model=%s verses=%d",
+                                metadataMessageId,
+                                metadataModel,
+                                finalVerses.size,
+                            )
+                        }
+                        "error" -> {
+                            // Surface error chunks as an inline error message
+                            Timber.w("SSE error chunk: %s (code=%s)", chunk.content, chunk.type)
+                        }
+                        else -> {
+                            // "content" type or legacy chunks with no type — accumulate text
+                            accumulatedContent += chunk.content
+                            if (chunk.done) finalVerses = chunk.verses
 
-                    // Update the streaming message in-place on every chunk.
-                    _uiState.update { state ->
-                        state.copy(
-                            messages = state.messages.map { msg ->
-                                if (msg.id == assistantId) {
-                                    msg.copy(content = accumulatedContent)
-                                } else msg
-                            },
-                        )
+                            // Update the streaming message in-place on every chunk.
+                            _uiState.update { state ->
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) {
+                                            msg.copy(content = accumulatedContent)
+                                        } else msg
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
         }

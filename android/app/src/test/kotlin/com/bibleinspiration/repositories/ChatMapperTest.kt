@@ -3,6 +3,8 @@ package com.bibleinspiration.repositories
 import com.bibleinspiration.data.remote.mappers.toDomain
 import com.bibleinspiration.data.remote.mappers.toDto
 import com.bibleinspiration.data.remote.models.ChatResponseDto
+import com.bibleinspiration.data.remote.models.ScriptureContextDto
+import com.bibleinspiration.data.remote.models.ScriptureVerseDto
 import com.bibleinspiration.data.remote.models.StreamChunkDto
 import com.bibleinspiration.data.remote.models.VerseDto
 import com.bibleinspiration.domain.models.ChatRequest
@@ -93,5 +95,122 @@ class ChatMapperTest {
         val verse = dto.toDomain()
 
         assertEquals("Genesis 1:1", verse.reference)
+    }
+
+    // ── GAP-002: metadata chunk mapper tests ─────────────────────────────────
+
+    @Test
+    fun `StreamChunkDto toDomain maps metadata type fields`() {
+        val dto = StreamChunkDto(
+            type = "metadata",
+            messageId = "abc-123",
+            model = "gpt-4o",
+        )
+        val domain = dto.toDomain()
+
+        assertEquals("metadata", domain.type)
+        assertEquals("abc-123", domain.messageId)
+        assertEquals("gpt-4o", domain.model)
+        assertNull(domain.scriptureContext)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain maps scripture_context with verses`() {
+        val dto = StreamChunkDto(
+            type = "metadata",
+            messageId = "msg-1",
+            model = "claude-3-5-sonnet",
+            scriptureContext = ScriptureContextDto(
+                query = "love",
+                verses = listOf(
+                    ScriptureVerseDto(
+                        book = "John",
+                        chapter = 3,
+                        verse = 16,
+                        text = "For God so loved the world...",
+                        translation = "NIV",
+                        reference = "John 3:16",
+                        similarity = 0.95f,
+                    ),
+                ),
+            ),
+        )
+        val domain = dto.toDomain()
+
+        assertEquals("metadata", domain.type)
+        assertEquals("msg-1", domain.messageId)
+        assertEquals("claude-3-5-sonnet", domain.model)
+
+        val ctx = domain.scriptureContext!!
+        assertEquals("love", ctx.query)
+        assertEquals(1, ctx.verses.size)
+
+        val verse = ctx.verses[0]
+        assertEquals("John", verse.book)
+        assertEquals(3, verse.chapter)
+        assertEquals(16, verse.verse)
+        assertEquals("For God so loved the world...", verse.text)
+        assertEquals("NIV", verse.translation)
+        assertEquals("John 3:16", verse.reference)
+        assertEquals(0.95f, verse.similarity)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain maps content chunk type`() {
+        val dto = StreamChunkDto(
+            type = "content",
+            content = "Hello, world!",
+        )
+        val domain = dto.toDomain()
+
+        assertEquals("content", domain.type)
+        assertEquals("Hello, world!", domain.content)
+        assertNull(domain.scriptureContext)
+        assertNull(domain.messageId)
+        assertNull(domain.model)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain maps null type for legacy chunks`() {
+        val dto = StreamChunkDto(
+            content = "legacy content",
+            done = true,
+        )
+        val domain = dto.toDomain()
+
+        assertNull(domain.type)
+        assertEquals("legacy content", domain.content)
+        assertTrue(domain.done)
+    }
+
+    @Test
+    fun `ScriptureContextDto toDomain with empty verses returns empty list`() {
+        val dto = ScriptureContextDto(query = "hope", verses = emptyList())
+        val domain = dto.toDomain()
+
+        assertEquals("hope", domain.query)
+        assertTrue(domain.verses.isEmpty())
+    }
+
+    @Test
+    fun `ScriptureVerseDto toDomain maps all fields`() {
+        val dto = ScriptureVerseDto(
+            book = "Psalms",
+            chapter = 23,
+            verse = 1,
+            text = "The Lord is my shepherd",
+            translation = "KJV",
+            reference = "Psalms 23:1",
+            similarity = 0.88f,
+        )
+        val domain = dto.toDomain()
+
+        assertEquals("Psalms", domain.book)
+        assertEquals(23, domain.chapter)
+        assertEquals(1, domain.verse)
+        assertEquals("The Lord is my shepherd", domain.text)
+        assertEquals("KJV", domain.translation)
+        assertEquals("Psalms 23:1", domain.reference)
+        assertEquals(0.88f, domain.similarity)
     }
 }
