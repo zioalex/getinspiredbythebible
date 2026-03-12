@@ -104,6 +104,13 @@ class ChatViewModel @Inject constructor(
     private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
     val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
 
+    /**
+     * UUID that groups all messages in the current conversation for backend context continuity.
+     * A new value is generated when the ViewModel is created and whenever [startNewConversation]
+     * is called.
+     */
+    private var sessionId: String = UUID.randomUUID().toString()
+
     init {
         viewModelScope.launch {
             turnstileManager.tokenFlow.collect { token ->
@@ -177,6 +184,7 @@ class ChatViewModel @Inject constructor(
                 message = trimmed,
                 conversationHistory = history,
                 preferredTranslation = translation,
+                sessionId = sessionId,
             )
 
             var accumulatedContent = ""
@@ -276,6 +284,7 @@ class ChatViewModel @Inject constructor(
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
     fun startNewConversation() {
+        sessionId = UUID.randomUUID().toString()
         _uiState.update {
             it.copy(
                 messages = emptyList(),

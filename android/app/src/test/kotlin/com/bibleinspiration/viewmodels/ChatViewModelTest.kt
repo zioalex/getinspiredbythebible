@@ -646,4 +646,76 @@ class ChatViewModelTest {
 
         assertFalse(viewModel.uiState.value.isSessionLimitReached)
     }
+
+    // ── Session ID (GAP-001) tests ────────────────────────────────────────────
+
+    @Test
+    fun `sendMessage includes a non-null sessionId in ChatRequest`() = runTest {
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Hello!", done = true),
+        )
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(requestSlot.captured.sessionId.isNullOrBlank())
+    }
+
+    @Test
+    fun `sendMessage sends same sessionId for consecutive messages in same conversation`() = runTest {
+        val capturedRequests = mutableListOf<ChatRequest>()
+        every { repository.chatStream(capture(slot<ChatRequest>().also { capturedRequests.clear() })) } answers {
+            capturedRequests.add(firstArg())
+            flowOf(StreamChunk(content = "Reply", done = true))
+        }
+
+        viewModel.sendMessage("First")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val firstSessionId = capturedRequests.last().sessionId
+
+        viewModel.sendMessage("Second")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val secondSessionId = capturedRequests.last().sessionId
+
+        assertEquals(firstSessionId, secondSessionId)
+    }
+
+    @Test
+    fun `startNewConversation causes next sendMessage to use a different sessionId`() = runTest {
+        val capturedRequests = mutableListOf<ChatRequest>()
+        every { repository.chatStream(capture(slot<ChatRequest>().also { capturedRequests.clear() })) } answers {
+            capturedRequests.add(firstArg())
+            flowOf(StreamChunk(content = "Reply", done = true))
+        }
+
+        viewModel.sendMessage("Before reset")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val beforeSessionId = capturedRequests.last().sessionId
+
+        viewModel.startNewConversation()
+
+        viewModel.sendMessage("After reset")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val afterSessionId = capturedRequests.last().sessionId
+
+        assertFalse(afterSessionId.isNullOrBlank())
+        assertTrue(
+            "Session ID should change after startNewConversation",
+            beforeSessionId != afterSessionId,
+        )
+    }
+
+    @Test
+    fun `sendMessage includes includeSearch true in ChatRequest`() = runTest {
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Hello!", done = true),
+        )
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(requestSlot.captured.includeSearch)
+    }
 }

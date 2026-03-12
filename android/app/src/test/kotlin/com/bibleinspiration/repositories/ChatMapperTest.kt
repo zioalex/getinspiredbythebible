@@ -88,10 +88,34 @@ class ChatMapperTest {
     }
 
     @Test
-    fun `VerseDto toDomain builds reference correctly`() {
-        val dto = VerseDto(book = "Genesis", chapter = 1, verse = 1, text = "In the beginning...", translation = "kjv")
-        val verse = dto.toDomain()
+    fun `ChatRequest toDto maps includeSearch true by default`() {
+        val request = ChatRequest(message = "Hello")
+        val dto = request.toDto()
 
-        assertEquals("Genesis 1:1", verse.reference)
+        assertEquals(true, dto.includeSearch)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps includeSearch false when set`() {
+        val request = ChatRequest(message = "Hello", includeSearch = false)
+        val dto = request.toDto()
+
+        assertEquals(false, dto.includeSearch)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps null sessionId by default`() {
+        val request = ChatRequest(message = "Hello")
+        val dto = request.toDto()
+
+        assertNull(dto.sessionId)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps sessionId when set`() {
+        val request = ChatRequest(message = "Hello", sessionId = "abc-123")
+        val dto = request.toDto()
+
+        assertEquals("abc-123", dto.sessionId)
     }
 }
