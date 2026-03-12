@@ -128,6 +128,33 @@ class ChatMapperTest {
         assertEquals(false, domain.done)
     }
 
+    // ── GAP-002 tests ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `StreamChunkDto toDomain maps messageId and model fields`() {
+        val dto = StreamChunkDto(
+            type = "metadata",
+            content = "",
+            done = false,
+            messageId = "msg-uuid-001",
+            model = "llama3.2",
+        )
+        val domain = dto.toDomain()
+
+        assertEquals("msg-uuid-001", domain.messageId)
+        assertEquals("llama3.2", domain.model)
+        assertEquals("", domain.content)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain defaults messageId and model to empty string`() {
+        val dto = StreamChunkDto(content = "hello", done = false)
+        val domain = dto.toDomain()
+
+        assertEquals("", domain.messageId)
+        assertEquals("", domain.model)
+    }
+
     @Test
     fun `VerseDto toDomain builds reference correctly`() {
         val dto = VerseDto(book = "Genesis", chapter = 1, verse = 1, text = "In the beginning...", translation = "kjv")

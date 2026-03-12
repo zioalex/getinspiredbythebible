@@ -186,6 +186,7 @@ class ChatViewModel @Inject constructor(
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var didError = false
+            var metadataMessageId = ""
 
             repository
                 .chatStream(request)
@@ -222,6 +223,7 @@ class ChatViewModel @Inject constructor(
                             content = accumulatedContent,
                             verses = finalVerses,
                             isStreaming = false,
+                            messageId = metadataMessageId,
                         )
                         // Persist finished assistant message and bump conversation timestamp.
                         repository.saveMessage(conversationId, finalAssistant)
@@ -238,6 +240,22 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .collect { chunk ->
+                    // Handle metadata events (sent before content chunks).
+                    if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
+                        metadataMessageId = chunk.messageId
+                        // Update the in-progress assistant message with the backend message_id.
+                        _uiState.update { state ->
+                            state.copy(
+                                messages = state.messages.map { msg ->
+                                    if (msg.id == assistantId) {
+                                        msg.copy(messageId = chunk.messageId)
+                                    } else msg
+                                },
+                            )
+                        }
+                        return@collect
+                    }
+
                     accumulatedContent += chunk.content
                     if (chunk.done) finalVerses = chunk.verses
 

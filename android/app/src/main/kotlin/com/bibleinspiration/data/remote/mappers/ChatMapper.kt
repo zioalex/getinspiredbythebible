@@ -45,4 +45,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     content = content,
     done = done,
     verses = verses.map { it.toDomain() },
+    messageId = messageId,
+    model = model,
 )
