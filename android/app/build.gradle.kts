@@ -114,6 +114,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
+    // Markdown rendering
+    implementation(libs.compose.markdown)
+
     // --- Testing ---
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

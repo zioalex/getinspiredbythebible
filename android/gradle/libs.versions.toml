@@ -22,6 +22,7 @@ espressoCore = "3.6.1"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"
 owaspDepCheck = "12.1.0"
+composeMarkdown = "0.5.0"
 
 [libraries]
 # AndroidX Core
@@ -70,6 +71,9 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Markdown rendering
+compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
