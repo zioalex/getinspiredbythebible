@@ -42,7 +42,15 @@
     <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
     <string name="bible_translation_default">افتراضية</string>
 
+    <!-- Settings debug section -->
+    <string name="settings_debug_title">تصحيح</string>
+    <string name="action_export_debug_logs">تصدير سجلات التصحيح</string>
+
+    <!-- Session limit error -->
+    <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
+
     <!-- Actions -->
+    <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
 
     <!-- Verse detail bottom sheet -->

@@ -1,6 +1,8 @@
 package com.bibleinspiration.presentation.viewmodels
 
 import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bibleinspiration.R
@@ -15,8 +17,10 @@ import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.security.TurnstileManager
+import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import timber.log.Timber
+import java.io.File
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -54,6 +59,8 @@ data class ChatUiState(
     val currentConversationId: String? = null,
     /** The user's persisted theme preference: "light", "dark", or "system". */
     val themeMode: String = "system",
+    /** True when the backend returns HTTP 429 with a session_lifetime_limit error. */
+    val isSessionLimitReached: Boolean = false,
 )
 
 @HiltViewModel
@@ -275,6 +282,7 @@ class ChatViewModel @Inject constructor(
                 error = null,
                 isLoading = false,
                 currentConversationId = null,
+                isSessionLimitReached = false,
             )
         }
     }
@@ -333,6 +341,11 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
+    /** Clears the session-limit flag without starting a new conversation. */
+    fun dismissSessionLimit() {
+        _uiState.update { it.copy(isSessionLimitReached = false) }
+    }
+
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
         val conversationId = _uiState.value.currentConversationId
@@ -370,6 +383,43 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
+    // Debug log export
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Collects in-memory logs from [LogCollector], writes them to a cache file,
+     * and launches the system share sheet so the user can send the log file.
+     */
+    fun shareDebugLogs(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val log = LogCollector.getLog()
+                val file = File(context.cacheDir, "bible_inspiration_debug.log")
+                file.writeText(log)
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file,
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, "Bible Inspiration Debug Log")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(
+                    Intent.createChooser(intent, "Share debug log").apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    },
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to share debug logs")
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
     // Private helpers
     // ---------------------------------------------------------------------------
 
@@ -378,6 +428,15 @@ class ChatViewModel @Inject constructor(
             context.getString(R.string.error_network)
         e is SocketTimeoutException ->
             context.getString(R.string.error_timeout)
+        e is HttpException && e.code() == 429 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            if (body.contains("session_lifetime_limit")) {
+                _uiState.update { it.copy(isSessionLimitReached = true, isLoading = false) }
+                context.getString(R.string.error_session_limit)
+            } else {
+                context.getString(R.string.error_server)
+            }
+        }
         e is HttpException ->
             context.getString(R.string.error_server)
         e is IOException ->

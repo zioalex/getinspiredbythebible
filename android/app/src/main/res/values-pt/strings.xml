@@ -42,8 +42,16 @@
     <string name="bible_translation_section">Tradução Bíblica</string>
     <string name="bible_translation_default">Padrão</string>
 
+    <!-- Settings debug section -->
+    <string name="settings_debug_title">Debug</string>
+    <string name="action_export_debug_logs">Exportar registros de depuração</string>
+
+    <!-- Errors -->
+    <string name="error_session_limit">Você teve 10 mensagens nesta sessão! Que tal fazer uma pausa e apreciar a criação de Deus ao ar livre? 🌳</string>
+
     <!-- Actions -->
     <string name="action_retry">Tentar novamente</string>
+    <string name="action_start_new_session">Nova sessão</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Leia o capítulo completo</string>

@@ -14,6 +14,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -82,7 +85,7 @@ fun ChatScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            if (!hasInlineRetry) {
+            if (!hasInlineRetry && !uiState.isSessionLimitReached) {
                 snackbarHostState.showSnackbar(error)
             }
             viewModel.clearError()
@@ -165,6 +168,34 @@ fun ChatScreen(
 
             HorizontalDivider()
 
+            // "Take a Break" session-limit banner — shown when the backend returns HTTP 429
+            // with a session_lifetime_limit detail.
+            if (uiState.isSessionLimitReached) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.error_session_limit),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.startNewConversation() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.action_start_new_session))
+                        }
+                    }
+                }
+            }
+
             TurnstileWebView(turnstileManager = viewModel.turnstileManager)
 
             ChatInputField(
@@ -176,6 +207,7 @@ fun ChatScreen(
                 },
                 isLoading = uiState.isLoading,
                 isTurnstileReady = uiState.isTurnstileReady,
+                isSessionLimitReached = uiState.isSessionLimitReached,
             )
         }
     }
