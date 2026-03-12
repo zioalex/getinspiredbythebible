@@ -53,6 +53,7 @@
     <!-- Actions -->
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
+    <string name="action_share_message">Share message</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Read full chapter</string>
