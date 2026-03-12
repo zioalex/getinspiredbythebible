@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
-import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -149,12 +148,12 @@ fun ChatMessageItem(
                                 }
                             }
 
-                            // (c) Finished assistant message — render as Markdown
+                            // (c) Finished assistant message — plain text (Markdown is in a separate PR)
                             !isUser -> {
-                                MarkdownText(
-                                    markdown = message.content,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                Text(
+                                    text = message.content,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = textColor,
                                 )
                             }
 
