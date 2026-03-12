@@ -9,6 +9,7 @@ import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Message
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatMapperTest {
@@ -20,6 +21,7 @@ class ChatMapperTest {
             conversationHistory = listOf(
                 Message(id = "1", role = Message.Role.USER, content = "Hi"),
             ),
+            sessionId = "test-session-id",
         )
         val dto = request.toDto()
 
@@ -34,6 +36,7 @@ class ChatMapperTest {
         val request = ChatRequest(
             message = "Hello",
             preferredTranslation = "KJV",
+            sessionId = "test-session-id",
         )
         val dto = request.toDto()
 
@@ -45,6 +48,7 @@ class ChatMapperTest {
         val request = ChatRequest(
             message = "Hello",
             preferredTranslation = null,
+            sessionId = "test-session-id",
         )
         val dto = request.toDto()
 
@@ -56,11 +60,48 @@ class ChatMapperTest {
         val request = ChatRequest(
             message = "Hello",
             preferredTranslation = "",
+            sessionId = "test-session-id",
         )
         val dto = request.toDto()
 
         assertNull(dto.preferredTranslation)
     }
+
+    // ── GAP-001 tests ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `ChatRequestDto includes include_search true by default`() {
+        val dto = com.bibleinspiration.data.remote.models.ChatRequestDto(
+            message = "hi",
+            sessionId = "test-uuid",
+        )
+        assertTrue(dto.includeSearch)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps session_id correctly`() {
+        val request = ChatRequest(
+            message = "hi",
+            sessionId = "my-session-id",
+        )
+        val dto = request.toDto()
+
+        assertEquals("my-session-id", dto.sessionId)
+        assertTrue(dto.includeSearch)
+    }
+
+    @Test
+    fun `ChatRequest toDto always sets includeSearch to true`() {
+        val request = ChatRequest(
+            message = "Hello",
+            sessionId = "any-uuid",
+        )
+        val dto = request.toDto()
+
+        assertTrue(dto.includeSearch)
+    }
+
+    // ── Existing domain mapper tests ──────────────────────────────────────────
 
     @Test
     fun `ChatResponseDto toDomain maps verses`() {
@@ -95,3 +136,4 @@ class ChatMapperTest {
         assertEquals("Genesis 1:1", verse.reference)
     }
 }
+

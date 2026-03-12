@@ -3,6 +3,7 @@ package com.bibleinspiration.viewmodels
 import android.content.Context
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.data.preferences.SessionPreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
@@ -58,6 +59,7 @@ class ChatViewModelTest {
     private lateinit var context: Context
     private lateinit var themePreferences: ThemePreferences
     private lateinit var translationPreferences: TranslationPreferences
+    private lateinit var sessionPreferences: SessionPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var viewModel: ChatViewModel
 
@@ -91,6 +93,8 @@ class ChatViewModelTest {
         every { themePreferences.themeModeFlow } returns flowOf("system")
         translationPreferences = mockk(relaxed = true)
         every { translationPreferences.preferredTranslationFlow } returns flowOf("")
+        sessionPreferences = mockk(relaxed = true)
+        coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
         bibleApiService = mockk(relaxed = true)
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
         viewModel = ChatViewModel(
@@ -100,6 +104,7 @@ class ChatViewModelTest {
             context,
             themePreferences,
             translationPreferences,
+            sessionPreferences,
             bibleApiService,
         )
     }
@@ -427,6 +432,7 @@ class ChatViewModelTest {
             context,
             themePreferences,
             translationPreferences,
+            sessionPreferences,
             bibleApiService,
         )
         testDispatcher.scheduler.advanceUntilIdle()
@@ -447,6 +453,7 @@ class ChatViewModelTest {
             context,
             themePreferences,
             translationPreferences,
+            sessionPreferences,
             bibleApiService,
         )
         testDispatcher.scheduler.advanceUntilIdle()
@@ -477,6 +484,7 @@ class ChatViewModelTest {
             context,
             themePreferences,
             translationPreferences,
+            sessionPreferences,
             bibleApiService,
         )
         testDispatcher.scheduler.advanceUntilIdle()
@@ -502,6 +510,7 @@ class ChatViewModelTest {
             context,
             themePreferences,
             translationPreferences,
+            sessionPreferences,
             bibleApiService,
         )
         testDispatcher.scheduler.advanceUntilIdle()
