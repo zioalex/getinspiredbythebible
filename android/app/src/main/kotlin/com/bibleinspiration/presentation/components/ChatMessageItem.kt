@@ -37,7 +37,9 @@ import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
-import dev.jeziellago.compose.markdowntext.MarkdownText
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
 
 @Composable
 fun ChatMessageItem(
@@ -134,10 +136,18 @@ fun ChatMessageItem(
 
                         // (c) Finished assistant message — render as Markdown
                         !isUser -> {
-                            MarkdownText(
-                                markdown = message.content,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
+                            Markdown(
+                                content = message.content,
+                                colors = markdownColor(
+                                    text = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    codeText = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    codeBackground = MaterialTheme.colorScheme.surface,
+                                ),
+                                typography = markdownTypography(
+                                    text = MaterialTheme.typography.bodyMedium,
+                                    paragraph = MaterialTheme.typography.bodyMedium,
+                                    code = MaterialTheme.typography.bodySmall,
+                                ),
                             )
                         }
 

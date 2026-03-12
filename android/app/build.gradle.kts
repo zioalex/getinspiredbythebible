@@ -114,8 +114,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
-    // Markdown rendering
-    implementation(libs.compose.markdown)
+    // Markdown rendering — mikepenz multiplatform-markdown-renderer (pure Compose, no WebView)
+    implementation(libs.markdown.renderer.android)
+    implementation(libs.markdown.renderer.m3)
 
     // --- Testing ---
     testImplementation(libs.junit)
