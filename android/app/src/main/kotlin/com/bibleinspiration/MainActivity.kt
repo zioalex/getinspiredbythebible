@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,21 +45,25 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            // Build a locale-aware Context so all stringResource() calls inside the
+            // Build a locale-aware Configuration so all stringResource() calls inside the
             // composition tree resolve strings from the correct locale's strings.xml
             // without requiring an Activity restart.
+            //
+            // IMPORTANT: we override LocalConfiguration (not LocalContext) so that
+            // hiltViewModel() downstream continues to receive an Activity context.
+            // Replacing LocalContext with createConfigurationContext() returns an
+            // ApplicationContext wrapper, which causes HiltViewModelFactory to crash
+            // with "Expected an activity context".
             val context = LocalContext.current
-            val localizedContext = remember(languageCode) {
+            val localizedConfiguration = remember(languageCode) {
                 val locale = Locale(languageCode)
-                val config = Configuration(context.resources.configuration)
-                config.setLocale(locale)
-                context.createConfigurationContext(config)
+                Configuration(context.resources.configuration).also { it.setLocale(locale) }
             }
 
             BibleInspirationTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides layoutDirection,
-                    LocalContext provides localizedContext,
+                    LocalConfiguration provides localizedConfiguration,
                 ) {
                     val navController = rememberNavController()
                     NavHost(
