@@ -334,9 +334,13 @@ jobs:
   dependency-check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
-    continue-on-error: true
-    # NVD data download without an API key is rate-limited (~30-60 min).
-    # Add NIST_API_KEY secret to speed up: https://nvd.nist.gov/developers/request-an-api-key
+    # NOTE: do NOT add continue-on-error: true here — this job is in the
+    # critical path of `build` (via needs:). Making it advisory-only defeats
+    # the gate: a dependency with a critical CVE would still produce an APK.
+    #
+    # NVD data download is rate-limited without an API key (~30-60 min).
+    # Add NIST_API_KEY repository secret to speed this up:
+    #   https://nvd.nist.gov/developers/request-an-api-key
     timeout-minutes: 90
 
     steps:
