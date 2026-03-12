@@ -22,6 +22,7 @@ import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +63,8 @@ data class ChatUiState(
     val themeMode: String = "system",
     /** True when the backend returns HTTP 429 with a session_lifetime_limit error. */
     val isSessionLimitReached: Boolean = false,
+    /** True when loading has been in-progress for >3 s with no chunk received yet. */
+    val isBackendWarming: Boolean = false,
 )
 
 @HiltViewModel
@@ -183,6 +186,14 @@ class ChatViewModel @Inject constructor(
                 sessionId = sessionId,
             )
 
+            // Show warm-up hint if the backend hasn't responded within 3 seconds.
+            val warmUpJob = launch {
+                delay(3_000L)
+                if (_uiState.value.isLoading) {
+                    _uiState.update { it.copy(isBackendWarming = true) }
+                }
+            }
+
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var didError = false
@@ -193,6 +204,7 @@ class ChatViewModel @Inject constructor(
                 .catch { e ->
                     Timber.e(e, "chatStream error")
                     didError = true
+                    warmUpJob.cancel()
                     val errorMessage = mapExceptionToMessage(e)
                     _uiState.update { state ->
                         state.copy(
@@ -206,6 +218,7 @@ class ChatViewModel @Inject constructor(
                                 } else msg
                             },
                             isLoading = false,
+                            isBackendWarming = false,
                             error = errorMessage,
                         )
                     }
@@ -215,6 +228,7 @@ class ChatViewModel @Inject constructor(
                     // first validated request. Always reset after every stream attempt
                     // (success or error) so the next message obtains a fresh token.
                     turnstileManager.onTokenConsumed()
+                    warmUpJob.cancel()
 
                     if (!didError) {
                         val finalAssistant = Message(
@@ -235,11 +249,18 @@ class ChatViewModel @Inject constructor(
                                     if (msg.id == assistantId) finalAssistant else msg
                                 },
                                 isLoading = false,
+                                isBackendWarming = false,
                             )
                         }
                     }
                 }
                 .collect { chunk ->
+                    // First content chunk received — cancel the warm-up hint.
+                    if (accumulatedContent.isEmpty() && chunk.content.isNotEmpty()) {
+                        warmUpJob.cancel()
+                        _uiState.update { it.copy(isBackendWarming = false) }
+                    }
+
                     // Handle metadata events (sent before content chunks).
                     if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
                         metadataMessageId = chunk.messageId
@@ -303,6 +324,7 @@ class ChatViewModel @Inject constructor(
                 messages = emptyList(),
                 error = null,
                 isLoading = false,
+                isBackendWarming = false,
                 currentConversationId = null,
                 isSessionLimitReached = false,
             )
