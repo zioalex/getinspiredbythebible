@@ -163,4 +163,3 @@ class ChatMapperTest {
         assertEquals("Genesis 1:1", verse.reference)
     }
 }
-

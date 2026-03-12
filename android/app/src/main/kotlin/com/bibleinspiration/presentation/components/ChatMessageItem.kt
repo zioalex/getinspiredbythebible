@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
@@ -71,7 +72,12 @@ fun ChatMessageItem(
     // Show the share button only for finished (non-streaming) assistant messages with content.
     val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
 
-    // Blinking cursor alpha — only computed when actually needed (streaming + content present).
+    val context = LocalContext.current
+
+    // Blinking cursor alpha — always created to respect Composable call order.
+    // The value is only read inside the streaming branch (case b), but the
+    // rememberInfiniteTransition + animateFloat calls must remain unconditional
+    // so the Compose runtime can track them across recompositions.
     val infiniteTransition = rememberInfiniteTransition(label = "cursor_blink")
     val cursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -82,8 +88,6 @@ fun ChatMessageItem(
         ),
         label = "cursor_alpha",
     )
-
-    val context = LocalContext.current
 
     Row(
         modifier = modifier
@@ -132,12 +136,17 @@ fun ChatMessageItem(
                             }
                         }
 
-                        // (c) Finished assistant message — render as Markdown
+                        // (c) Finished assistant message — render as Markdown.
+                        // Use the non-deprecated MarkdownText overload: pass color via style.
                         !isUser -> {
                             MarkdownText(
                                 markdown = message.content,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                style = TextStyle(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
+                                    fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
+                                ),
                             )
                         }
 
