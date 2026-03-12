@@ -74,7 +74,10 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("chat/{conversationId}") { backStackEntry ->
                             val conversationId = backStackEntry.arguments?.getString("conversationId")
-                            ChatScreen(conversationId = conversationId)
+                            ChatScreen(
+                                conversationId = conversationId,
+                                onOpenSettings = { navController.navigate("settings") },
+                            )
                         }
                         composable("settings") {
                             SettingsScreen(
