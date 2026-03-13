@@ -51,13 +51,12 @@ import java.net.URLEncoder
  *
  * Examples matched: "John 3:16", "1 Corinthians 13:4", "Song of Solomon 2:1", "Rev 22:21-22"
  *
- * We exclude references already inside a markdown link ([...](...)  ) to avoid double-linking.
+ * We exclude references already inside a markdown link by checking the character before the
+ * match in the replace lambda (if preceded by '[', the ref is already a link display text).
  */
 private val VERSE_REF_REGEX = Regex(
-    // Negative look-behind: skip if preceded by ]( (already a markdown link target)
-    "(?<!\\]\\()\\b" +
-        // Optional numeric prefix: "1 ", "2 ", "3 "
-        "((?:[1-3]\\s)?" +
+    // Optional numeric prefix: "1 ", "2 ", "3 "
+    "((?:[1-3]\\s)?" +
         // Book name: one or two capitalised words
         "[A-Z][a-zA-Z]+(?:\\s[A-Z][a-zA-Z]+)*)\\s" +
         // Chapter:verse (with optional verse range)
@@ -69,19 +68,27 @@ private const val VERSE_SCHEME = "verse://"
 /**
  * Rewrites verse references in [markdown] as markdown links using the `verse://` scheme.
  *
- * E.g. "John 3:16" → "[John 3:16](verse://John%203/3/16)"
+ * E.g. "John 3:16" → "[John 3:16](verse://John/3/16)"
  *
  * The book name is URL-encoded so that spaces survive the round-trip through the Markwon
- * link renderer (Markwon splits the URL on the first `/`).
+ * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
+ * are left unchanged by checking that the character before the match is not `[`.
  */
 internal fun injectVerseLinks(markdown: String): String =
     VERSE_REF_REGEX.replace(markdown) { result ->
-        val book = result.groupValues[1]
-        val chapter = result.groupValues[2]
-        val verse = result.groupValues[3]
-        val encodedBook = URLEncoder.encode(book, "UTF-8")
-        val display = "$book $chapter:$verse"
-        "[$display]($VERSE_SCHEME$encodedBook/$chapter/$verse)"
+        // If the match is immediately preceded by '[', it is already the display text of a
+        // markdown link — skip it to avoid double-wrapping.
+        val before = if (result.range.first > 0) markdown[result.range.first - 1] else '\u0000'
+        if (before == '[') {
+            result.value
+        } else {
+            val book = result.groupValues[1]
+            val chapter = result.groupValues[2]
+            val verse = result.groupValues[3]
+            val encodedBook = URLEncoder.encode(book, "UTF-8")
+            val display = "$book $chapter:$verse"
+            "[$display]($VERSE_SCHEME$encodedBook/$chapter/$verse)"
+        }
     }
 
 /**
