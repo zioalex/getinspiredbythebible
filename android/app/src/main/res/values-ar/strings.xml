@@ -56,4 +56,21 @@
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">اقرأ الفصل الكامل</string>
     <string name="loading_chapter">جارٍ تحميل الفصل…</string>
+
+    <!-- Church Finder -->
+    <string name="church_finder_banner_text">هل تبحث عن مجتمع إيماني؟</string>
+    <string name="church_finder_find_church">ابحث عن كنيسة</string>
+    <string name="church_finder_dismiss">تجاهل</string>
+    <string name="church_finder_modal_title">ابحث عن كنيسة</string>
+    <string name="church_finder_modal_subtitle">تواصل مع مجتمع إيماني بالقرب منك</string>
+    <string name="church_finder_search_placeholder">مدينة بالإنجليزية (مثل: Rome, Munich, Zurich)</string>
+    <string name="church_finder_search_button">بحث</string>
+    <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>
+    <string name="church_finder_enter_location">أدخل موقعاً للبحث</string>
+    <string name="church_finder_found_count">تم العثور على %d كنيسة</string>
+    <string name="church_finder_no_churches_found">لم يتم العثور على كنائس</string>
+    <string name="church_finder_no_churches_hint">جرّب موقعاً مختلفاً أو مصطلح بحث أوسع.</string>
+    <string name="church_finder_website">الموقع الإلكتروني</string>
+    <string name="church_finder_email">البريد الإلكتروني</string>
+    <string name="church_finder_data_credit">بيانات الكنائس مقدمة من DisciplesToday.org</string>
 </resources>

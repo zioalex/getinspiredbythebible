@@ -2,6 +2,8 @@ package com.bibleinspiration.data.remote.api
 
 import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.ChatRequestDto
+import com.bibleinspiration.data.remote.models.ChurchSearchRequestDto
+import com.bibleinspiration.data.remote.models.ChurchSearchResponseDto
 import com.bibleinspiration.data.remote.models.FeedbackRequestDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import okhttp3.ResponseBody
@@ -45,4 +47,11 @@ interface BibleApiService {
      */
     @POST("api/v1/feedback")
     suspend fun submitFeedback(@Body body: FeedbackRequestDto): Response<Unit>
+
+    /**
+     * Searches for churches near the given location.
+     * Returns a list of churches with name, address, and contact details.
+     */
+    @POST("api/v1/church/search")
+    suspend fun searchChurches(@Body body: ChurchSearchRequestDto): ChurchSearchResponseDto
 }

@@ -14,10 +14,12 @@ import com.bibleinspiration.data.remote.api.BibleApiService
 import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
+import com.bibleinspiration.domain.models.Church
 import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
+import com.bibleinspiration.domain.repositories.ChurchRepository
 import com.bibleinspiration.security.TurnstileManager
 import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,6 +54,14 @@ sealed class ChapterSheetState {
     data class Error(val message: String) : ChapterSheetState()
 }
 
+/** State of the church-finder bottom sheet. */
+sealed class ChurchFinderSheetState {
+    object Idle : ChurchFinderSheetState()
+    object Loading : ChurchFinderSheetState()
+    data class Success(val churches: List<Church>, val location: String) : ChurchFinderSheetState()
+    data class Error(val message: String) : ChurchFinderSheetState()
+}
+
 data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
@@ -70,11 +80,30 @@ data class ChatUiState(
     val feedbackGiven: Map<String, String> = emptyMap(),
     /** True while a feedback submission is in flight. */
     val isFeedbackSubmitting: Boolean = false,
+    /**
+     * Number of completed user↔assistant exchange rounds.
+     * Incremented each time an assistant message finishes streaming without error.
+     * Used to trigger the church-finder prompt at the right moment.
+     */
+    val interactionCount: Int = 0,
+    /**
+     * True once [interactionCount] reaches exactly 3 and the user hasn't
+     * dismissed the church-finder banner yet. Uses == 3 (not >= 3) so the
+     * banner is not re-shown after being dismissed.
+     */
+    val showChurchFinderBanner: Boolean = false,
+    /**
+     * True when the inline church-finder card should appear in the message list
+     * (after 5 interactions, or immediately after the banner is dismissed via
+     * "Find a Church").
+     */
+    val showChurchFinderInlineCard: Boolean = false,
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val churchRepository: ChurchRepository,
     val turnstileManager: TurnstileManager,
     private val languagePreferences: LanguagePreferences,
     @ApplicationContext private val context: Context,
@@ -113,6 +142,9 @@ class ChatViewModel @Inject constructor(
 
     private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
     val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
+
+    private val _churchFinderSheetState = MutableStateFlow<ChurchFinderSheetState>(ChurchFinderSheetState.Idle)
+    val churchFinderSheetState: StateFlow<ChurchFinderSheetState> = _churchFinderSheetState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -249,12 +281,24 @@ class ChatViewModel @Inject constructor(
                         repository.touchConversation(conversationId)
 
                         _uiState.update { state ->
+                            val newCount = state.interactionCount + 1
                             state.copy(
                                 messages = state.messages.map { msg ->
                                     if (msg.id == assistantId) finalAssistant else msg
                                 },
                                 isLoading = false,
                                 isBackendWarming = false,
+                                interactionCount = newCount,
+                                // Show the banner exactly once, at interaction 3.
+                                // Using == rather than >= prevents re-showing the banner
+                                // after it has been dismissed (banner=false, inline=false).
+                                showChurchFinderBanner = !state.showChurchFinderBanner &&
+                                    !state.showChurchFinderInlineCard &&
+                                    newCount == 3,
+                                // Show the inline card after 5 interactions if the banner
+                                // was already dismissed without opening the sheet.
+                                showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
+                                    (newCount >= 5 && !state.showChurchFinderBanner),
                             )
                         }
                     }
@@ -332,8 +376,12 @@ class ChatViewModel @Inject constructor(
                 isBackendWarming = false,
                 currentConversationId = null,
                 isSessionLimitReached = false,
+                interactionCount = 0,
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = false,
             )
         }
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
     }
 
     /**
@@ -471,6 +519,69 @@ class ChatViewModel @Inject constructor(
     /** Resets the chapter sheet state back to [ChapterSheetState.Idle]. */
     fun clearChapterSheet() {
         _chapterSheetState.value = ChapterSheetState.Idle
+    }
+
+    // ---------------------------------------------------------------------------
+    // Church Finder
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Dismisses the church-finder banner without opening the sheet.
+     * Also hides the inline card if it was already shown.
+     */
+    fun dismissChurchFinderBanner() {
+        _uiState.update {
+            it.copy(
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = false,
+            )
+        }
+    }
+
+    /**
+     * Called when the user taps "Find a Church" — dismisses the banner, shows
+     * the inline card, and triggers the bottom sheet to open (caller observes
+     * [churchFinderSheetState] transitioning away from Idle).
+     *
+     * The bottom sheet itself calls [searchChurches] with the user-supplied location.
+     */
+    fun openChurchFinder() {
+        _uiState.update {
+            it.copy(
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = true,
+            )
+        }
+        // Reset to Idle so ChatScreen knows to open the sheet.
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
+    }
+
+    /**
+     * Searches for churches near [location] (English city name).
+     * Updates [churchFinderSheetState] from Loading → Success / Error.
+     */
+    fun searchChurches(location: String) {
+        if (location.isBlank()) return
+        _churchFinderSheetState.value = ChurchFinderSheetState.Loading
+        viewModelScope.launch {
+            try {
+                val churches = churchRepository.searchChurches(location.trim())
+                _churchFinderSheetState.value = ChurchFinderSheetState.Success(
+                    churches = churches,
+                    location = location.trim(),
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "searchChurches error for location=$location")
+                _churchFinderSheetState.value = ChurchFinderSheetState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the church-finder sheet state back to [ChurchFinderSheetState.Idle]. */
+    fun clearChurchFinderSheet() {
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
     }
 
     // ---------------------------------------------------------------------------
