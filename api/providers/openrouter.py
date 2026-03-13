@@ -3,15 +3,16 @@ OpenRouter LLM Provider implementation.
 OpenRouter provides access to various LLMs including free models via an OpenAI-compatible API.
 """
 
-import logging
 from typing import AsyncIterator, cast
 
 from openai import APIStatusError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
+from utils.logging_config import get_logger
+
 from .base import ChatMessage, LLMProvider, LLMResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class OpenRouterProvider(LLMProvider):

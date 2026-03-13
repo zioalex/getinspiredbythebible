@@ -3,6 +3,7 @@ Tests for translation configurations and book name mappings
 """
 
 import sys
+import time
 from pathlib import Path
 
 import httpx
@@ -19,6 +20,29 @@ from translations import (
     list_available_translations,
     map_book_name,
 )
+
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # seconds between retries
+
+
+def _fetch_with_retry(url: str, method: str = "head", timeout: float = 30.0) -> httpx.Response:
+    """Fetch a URL with retries to handle transient network failures in CI."""
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+                if method == "head":
+                    response = client.head(url)
+                    if response.status_code == 405:
+                        response = client.get(url)
+                else:
+                    response = client.get(url)
+                return response
+        except httpx.RequestError as e:
+            last_error = e
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY * (attempt + 1))
+    raise last_error  # type: ignore[misc]
 
 
 def test_italian_book_names_complete():
@@ -237,7 +261,8 @@ def test_translation_urls_accessible():
     """
     Test that all Bible translation URLs are accessible.
 
-    This test makes actual HTTP requests to verify the URLs are valid.
+    This test makes actual HTTP requests with retries to verify the URLs
+    are valid. Transient timeouts are retried up to 3 times with backoff.
     Run with: pytest -m network
     Skip with: pytest -m "not network"
     """
@@ -246,17 +271,11 @@ def test_translation_urls_accessible():
     for code, config in TRANSLATIONS.items():
         url = config["url"]
         try:
-            # Use HEAD request first (lightweight), fall back to GET if HEAD not supported
-            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
-                response = client.head(url)
-                # Some servers don't support HEAD, try GET if we get 405
-                if response.status_code == 405:
-                    response = client.get(url)
-
-                if response.status_code != 200:
-                    failed_urls.append(f"{code}: {url} returned status {response.status_code}")
+            response = _fetch_with_retry(url, method="head")
+            if response.status_code != 200:
+                failed_urls.append(f"{code}: {url} returned status {response.status_code}")
         except httpx.RequestError as e:
-            failed_urls.append(f"{code}: {url} failed with error: {e}")
+            failed_urls.append(f"{code}: {url} failed after {MAX_RETRIES} retries: {e}")
 
     if failed_urls:
         pytest.fail(
@@ -275,26 +294,25 @@ def test_translation_urls_return_valid_json():
     """
     for code, config in TRANSLATIONS.items():
         url = config["url"]
-        with httpx.Client(timeout=60.0, follow_redirects=True) as client:
-            response = client.get(url)
-            assert response.status_code == 200, f"{code}: Failed to fetch {url}"
+        response = _fetch_with_retry(url, method="get", timeout=60.0)
+        assert response.status_code == 200, f"{code}: Failed to fetch {url}"
 
-            data = response.json()
+        data = response.json()
 
-            # Check for expected structure based on source
-            if config["source"] == "getbible":
-                # getbible.net format has books as keys
-                assert isinstance(data, dict), f"{code}: Expected dict from getbible"
-                # Should have book data
-                assert len(data) > 0, f"{code}: Empty response from {url}"
-            elif config["source"] == "thiagobodruk":
-                # thiagobodruk format is a list of books
-                assert isinstance(data, list), f"{code}: Expected list from thiagobodruk"
-                assert len(data) == 66, f"{code}: Expected 66 books, got {len(data)}"
-                # Check first book has expected fields
-                first_book = data[0]
-                assert "name" in first_book, f"{code}: Missing 'name' field"
-                assert "chapters" in first_book, f"{code}: Missing 'chapters' field"
+        # Check for expected structure based on source
+        if config["source"] == "getbible":
+            # getbible.net format has books as keys
+            assert isinstance(data, dict), f"{code}: Expected dict from getbible"
+            # Should have book data
+            assert len(data) > 0, f"{code}: Empty response from {url}"
+        elif config["source"] == "thiagobodruk":
+            # thiagobodruk format is a list of books
+            assert isinstance(data, list), f"{code}: Expected list from thiagobodruk"
+            assert len(data) == 66, f"{code}: Expected 66 books, got {len(data)}"
+            # Check first book has expected fields
+            first_book = data[0]
+            assert "name" in first_book, f"{code}: Missing 'name' field"
+            assert "chapters" in first_book, f"{code}: Missing 'chapters' field"
 
 
 def test_init_sql_matches_translations_config():

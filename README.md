@@ -8,6 +8,7 @@ LLM backends.
 
 - **AI-Powered Conversations**: Natural dialogue grounded in Biblical text
 - **Semantic Scripture Search**: Find relevant verses based on meaning, not just keywords
+- **Multilingual Interface**: Available in English, Italian, and German with automatic browser language detection
 - **Configurable LLM Backend**: Start with Ollama (local), switch to Claude, OpenRouter, or OpenAI later
 - **REST API**: Ready for mobile app development
 - **Modern Web Interface**: Clean, responsive chat UI
@@ -270,6 +271,38 @@ EMBEDDING_PROVIDER=ollama
 - **Production (budget)**: Option B (pre-generated embeddings + OpenRouter)
 - **Production (best UX)**: Option A (hosted Ollama + OpenRouter) or full Ollama on adequate hardware
 
+## 🌍 Internationalization (i18n)
+
+The frontend supports multiple languages using [next-intl](https://next-intl.dev).
+
+**Supported Languages:**
+
+| Code | Language | URL |
+|------|----------|-----|
+| `en` | English (default) | `/en` |
+| `it` | Italian | `/it` |
+| `de` | German | `/de` |
+
+**How it works:**
+
+- All routes are locale-prefixed (e.g., `/en/`, `/it/`, `/de/`)
+- Visiting `/` automatically redirects to the best locale based on your browser's language settings
+- Users can switch languages at any time using the language selector in the header
+- Translation files are in `frontend/messages/` (one JSON file per locale)
+
+### Adding a New Language
+
+1. Copy `frontend/messages/en.json` to `frontend/messages/{locale}.json` and translate all values
+2. Add the locale to `frontend/src/i18n/routing.ts`:
+
+   ```ts
+   locales: ["en", "it", "de", "fr"],  // add new locale
+   ```
+
+3. Add the locale label to `frontend/src/components/LanguageSwitcher.tsx`
+4. Add `hreflang` in `frontend/src/app/[locale]/layout.tsx` `generateMetadata()`
+5. Run `npx vitest run` — tests automatically verify key consistency across all locales
+
 ## 🔌 API Reference
 
 ### Chat Endpoints
@@ -339,12 +372,13 @@ pytest
 - [ ] Reading plans integration
 - [ ] Audio Bible support
 - [ ] Multiple Bible translations
+- [x] Multilingual UI (English, Italian, German)
 - [ ] Community features (shared verses)
 
 ### Technical Improvements
 
 - [ ] Refactor SQLAlchemy models to use `Mapped[]` type annotations (see [docs/TECHNICAL_DEBT.md](docs/TECHNICAL_DEBT.md))
-- [ ] Add Jest/Vitest for frontend unit tests
+- [x] Add Vitest for frontend unit tests (186 tests across 17 suites)
 - [ ] Add Playwright/Cypress for E2E tests
 - [ ] Add code coverage reporting
 - [ ] Mock Ollama in tests for faster execution

@@ -118,21 +118,17 @@ repos:
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown, css]
         exclude: 'package-lock.json|\.next/'
 
-  # Frontend - ESLint
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.0.0-beta.0
+  # Frontend - ESLint (uses project-local eslint with flat config)
+  - repo: local
     hooks:
       - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && npx eslint --fix "${@/#frontend\//}"' --
+        language: system
         files: ^frontend/src/.*\.[jt]sx?$
         types: [file]
-        args: ["--fix"]
-        additional_dependencies:
-          - eslint@8.56.0
-          - eslint-config-next@14.1.0
-          - "@typescript-eslint/parser"
-          - "@typescript-eslint/eslint-plugin"
 
 # Default language version
 default_language_version:
   python: python3.12
-  node: 20.11.0
+  node: 22.22.0

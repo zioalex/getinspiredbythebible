@@ -3,7 +3,6 @@ Chat API routes.
 """
 
 import json
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,9 +11,11 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+from utils.logging_config import get_logger
 from utils.security import check_content_filter, require_rate_limit
+from utils.turnstile import require_turnstile
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -22,7 +23,11 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 @router.post(
     "",
     response_model=ChatResponse,
-    dependencies=[Depends(require_rate_limit), Depends(check_content_filter)],
+    dependencies=[
+        Depends(require_turnstile),
+        Depends(require_rate_limit),
+        Depends(check_content_filter),
+    ],
 )
 async def chat(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
@@ -58,7 +63,11 @@ async def chat(
 
 @router.post(
     "/stream",
-    dependencies=[Depends(require_rate_limit), Depends(check_content_filter)],
+    dependencies=[
+        Depends(require_turnstile),
+        Depends(require_rate_limit),
+        Depends(check_content_filter),
+    ],
 )
 async def chat_stream(
     request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep

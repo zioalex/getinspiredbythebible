@@ -7,7 +7,6 @@ Provides:
 - Security violation logging
 """
 
-import logging
 import re
 from enum import Enum
 from typing import Annotated
@@ -16,9 +15,10 @@ from fastapi import Depends, HTTPException, Request
 
 from config import settings
 
+from .logging_config import get_logger
 from .rate_limiter import get_rate_limiter
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ViolationType(str, Enum):

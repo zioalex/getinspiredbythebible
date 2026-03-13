@@ -1,7 +1,10 @@
 """Tests for the golden set testing system.
 
-Validates YAML data integrity, evaluator correctness, and loader functionality.
+Validates YAML data integrity, evaluator correctness, loader, runner, and reviewer.
 """
+
+import json
+from unittest.mock import patch
 
 import pytest
 
@@ -480,3 +483,237 @@ class TestModels:
         )
         assert score.passed
         assert score.failed_checks == []
+
+
+# ==================== Runner Tests ====================
+
+
+@pytest.mark.golden_set
+class TestMockRunner:
+    """Test the mock runner."""
+
+    @pytest.mark.asyncio
+    async def test_run_mock_returns_eval_run(self):
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+        assert run.mode == "mock"
+        assert run.provider == "mock"
+        assert len(run.results) > 0
+
+    @pytest.mark.asyncio
+    async def test_run_mock_produces_case_results(self):
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+        for result in run.results:
+            assert result.case_id
+            assert result.actual_response
+            assert result.automated_score is not None
+
+    @pytest.mark.asyncio
+    async def test_run_mock_with_specific_cases(self):
+        from golden_set.runner import run_mock
+
+        cases = load_test_cases()
+        subset = [c for c in cases if c.category == "verse_lookup"][:2]
+        run = await run_mock(cases=subset)
+        assert len(run.results) == 2
+
+    @pytest.mark.asyncio
+    async def test_mock_encouragement_passes(self):
+        """Mock encouragement response should pass encouragement checks."""
+        from golden_set.runner import run_mock
+
+        cases = load_test_cases()
+        enc_cases = [c for c in cases if c.category == "encouragement"][:1]
+        run = await run_mock(cases=enc_cases)
+        # Mock response has Philippians and Psalms refs + situation acknowledgment
+        assert run.results[0].automated_score.passed
+
+    @pytest.mark.asyncio
+    async def test_mock_verse_lookup_passes(self):
+        """Mock verse lookup response should pass verse lookup checks."""
+        from golden_set.runner import run_mock
+
+        cases = load_test_cases()
+        verse_cases = [c for c in cases if c.category == "verse_lookup"][:1]
+        run = await run_mock(cases=verse_cases)
+        assert run.results[0].automated_score.passed
+
+
+@pytest.mark.golden_set
+class TestRunnerPersistence:
+    """Test saving and loading runs."""
+
+    @pytest.mark.asyncio
+    async def test_save_and_load_run(self, tmp_path):
+        from golden_set.runner import load_run, run_mock, save_run
+
+        run = await run_mock()
+        path = save_run(run, directory=tmp_path)
+        assert path.exists()
+
+        loaded = load_run(path)
+        assert loaded.run_id == run.run_id
+        assert len(loaded.results) == len(run.results)
+
+    @pytest.mark.asyncio
+    async def test_save_creates_json(self, tmp_path):
+        from golden_set.runner import run_mock, save_run
+
+        run = await run_mock()
+        path = save_run(run, directory=tmp_path)
+        assert path.suffix == ".json"
+
+        with open(path) as f:
+            data = json.load(f)
+        assert data["run_id"] == run.run_id
+
+    @pytest.mark.asyncio
+    async def test_list_runs(self, tmp_path):
+        from golden_set.runner import list_runs, run_mock, save_run
+
+        run1 = await run_mock()
+        run2 = await run_mock()
+        save_run(run1, directory=tmp_path)
+        save_run(run2, directory=tmp_path)
+
+        runs = list_runs(directory=tmp_path)
+        assert len(runs) == 2
+
+    def test_list_runs_empty_dir(self, tmp_path):
+        from golden_set.runner import list_runs
+
+        runs = list_runs(directory=tmp_path)
+        assert runs == []
+
+    def test_list_runs_nonexistent_dir(self, tmp_path):
+        from golden_set.runner import list_runs
+
+        runs = list_runs(directory=tmp_path / "nonexistent")
+        assert runs == []
+
+    @pytest.mark.asyncio
+    async def test_get_latest_run(self, tmp_path):
+        import time
+
+        from golden_set.runner import get_latest_run, run_mock, save_run
+
+        run1 = await run_mock()
+        save_run(run1, directory=tmp_path)
+        time.sleep(0.1)  # Ensure different mtime
+        run2 = await run_mock()
+        save_run(run2, directory=tmp_path)
+
+        latest = get_latest_run(directory=tmp_path)
+        assert latest is not None
+        assert latest.run_id == run2.run_id
+
+    def test_get_latest_run_empty(self, tmp_path):
+        from golden_set.runner import get_latest_run
+
+        result = get_latest_run(directory=tmp_path)
+        assert result is None
+
+
+@pytest.mark.golden_set
+class TestPrintSummary:
+    """Test the summary printer."""
+
+    @pytest.mark.asyncio
+    async def test_print_summary_runs(self, capsys):
+        from golden_set.runner import print_summary, run_mock
+
+        run = await run_mock()
+        print_summary(run)
+        captured = capsys.readouterr()
+        assert "Golden Set Run" in captured.out
+        assert "mock" in captured.out
+
+
+# ==================== Reviewer Tests ====================
+
+
+@pytest.mark.golden_set
+class TestReviewer:
+    """Test reviewer utility functions."""
+
+    def test_prompt_score_with_default(self):
+        """Test _prompt_score returns default on empty input."""
+        from golden_set.reviewer import _prompt_score
+
+        with patch("builtins.input", return_value=""):
+            score = _prompt_score("Test", default=4)
+        assert score == 4
+
+    def test_prompt_score_with_value(self):
+        from golden_set.reviewer import _prompt_score
+
+        with patch("builtins.input", return_value="5"):
+            score = _prompt_score("Test")
+        assert score == 5
+
+    def test_prompt_score_retries_on_invalid(self):
+        from golden_set.reviewer import _prompt_score
+
+        with patch("builtins.input", side_effect=["abc", "7", "3"]):
+            score = _prompt_score("Test")
+        assert score == 3
+
+    @pytest.mark.asyncio
+    async def test_review_run_quit_immediately(self):
+        """Test that quit saves progress."""
+        from golden_set.reviewer import review_run
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+
+        with patch("builtins.input", return_value="q"):
+            updated = review_run(run)
+
+        # Should have no human scores since we quit immediately
+        scored = [r for r in updated.results if r.human_score is not None]
+        assert len(scored) == 0
+
+    @pytest.mark.asyncio
+    async def test_review_run_skip_cases(self):
+        """Test that skip works."""
+        from golden_set.reviewer import review_run
+        from golden_set.runner import run_mock
+
+        cases = load_test_cases()[:2]
+        run = await run_mock(cases=cases)
+
+        # Skip first, quit on second
+        with patch("builtins.input", side_effect=["s", "q"]):
+            updated = review_run(run)
+
+        scored = [r for r in updated.results if r.human_score is not None]
+        assert len(scored) == 0
+
+    @pytest.mark.asyncio
+    async def test_review_run_score_case(self):
+        """Test scoring a single case then quitting."""
+        from golden_set.reviewer import review_run
+        from golden_set.runner import run_mock
+
+        cases = load_test_cases()[:1]
+        run = await run_mock(cases=cases)
+
+        # Approve, enter all defaults, empty notes, then we're done (only 1 case)
+        inputs = ["a", "", "", "", "", "", ""]
+        with patch("builtins.input", side_effect=inputs):
+            updated = review_run(run)
+
+        scored = [r for r in updated.results if r.human_score is not None]
+        assert len(scored) == 1
+        assert scored[0].human_score.overall == 3  # default
+
+    def test_select_run_no_runs(self, tmp_path):
+        """Test select_run with no saved runs."""
+        from golden_set.reviewer import select_run
+
+        with patch("golden_set.reviewer.list_runs", return_value=[]):
+            result = select_run()
+        assert result is None

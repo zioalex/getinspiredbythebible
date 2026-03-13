@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   sendMessage,
   searchScripture,
@@ -7,6 +7,12 @@ import {
   getVerseContext,
   checkHealth,
   searchChurches,
+  checkBackendReady,
+  warmupBackend,
+  setTurnstileToken,
+  setOnTokenConsumed,
+  submitFeedback,
+  ColdStartError,
   type ChatResponse,
   type ScriptureContext,
   type Verse,
@@ -158,6 +164,7 @@ describe("searchScripture", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/search?q=peace&max_verses=5",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockContext);
   });
@@ -172,6 +179,7 @@ describe("searchScripture", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("max_verses=5"),
+      { headers: { "Content-Type": "application/json" } },
     );
   });
 
@@ -206,6 +214,7 @@ describe("getVerse", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/verse/John/3/16",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockVerse);
   });
@@ -226,6 +235,7 @@ describe("getVerse", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/verse/Song%20of%20Solomon/1/1",
+      { headers: { "Content-Type": "application/json" } },
     );
   });
 
@@ -273,6 +283,7 @@ describe("getChapter", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/scripture/chapter/Psalm/23",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockChapter);
     expect(result.verses).toHaveLength(2);
@@ -326,6 +337,7 @@ describe("getVerseContext", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/api/v1/chat/verse/John/3/16",
+      { headers: { "Content-Type": "application/json" } },
     );
     expect(result).toEqual(mockContext);
     expect(result.target_verse).toBe(16);
@@ -463,5 +475,330 @@ describe("searchChurches", () => {
     await expect(searchChurches("Switzerland")).rejects.toThrow(
       "API error: 504",
     );
+  });
+});
+
+describe("checkBackendReady", () => {
+  it("should return true when backend responds ok", async () => {
+    (global.fetch as any).mockResolvedValueOnce({ ok: true });
+
+    const result = await checkBackendReady();
+    expect(result).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/health/ready",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("should return false when backend responds not ok", async () => {
+    (global.fetch as any).mockResolvedValueOnce({ ok: false });
+
+    const result = await checkBackendReady();
+    expect(result).toBe(false);
+  });
+
+  it("should return false when fetch throws (network error)", async () => {
+    (global.fetch as any).mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    const result = await checkBackendReady();
+    expect(result).toBe(false);
+  });
+});
+
+describe("warmupBackend", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("should call onReady immediately when backend is already up", async () => {
+    (global.fetch as any).mockResolvedValueOnce({ ok: true });
+
+    const onReady = vi.fn();
+    const onWaiting = vi.fn();
+
+    await warmupBackend(onReady, onWaiting);
+
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(onWaiting).not.toHaveBeenCalled();
+  });
+
+  it("should call onWaiting then poll until ready", async () => {
+    // First check fails, second succeeds
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false }) // initial check
+      .mockResolvedValueOnce({ ok: true }); // first poll
+
+    const onReady = vi.fn();
+    const onWaiting = vi.fn();
+
+    const promise = warmupBackend(onReady, onWaiting, 30000);
+
+    // After initial check, onWaiting should be called
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onWaiting).toHaveBeenCalledTimes(1);
+    expect(onReady).not.toHaveBeenCalled();
+
+    // Advance past the 3s polling interval
+    await vi.advanceTimersByTimeAsync(3000);
+
+    await promise;
+
+    expect(onReady).toHaveBeenCalledTimes(1);
+  });
+
+  it("should stop polling after maxWaitMs without calling onReady", async () => {
+    // All checks fail
+    (global.fetch as any).mockResolvedValue({ ok: false });
+
+    const onReady = vi.fn();
+    const onWaiting = vi.fn();
+
+    // Use a short maxWaitMs for the test
+    const promise = warmupBackend(onReady, onWaiting, 5000);
+
+    // Advance through the entire wait period
+    await vi.advanceTimersByTimeAsync(6000);
+
+    await promise;
+
+    expect(onWaiting).toHaveBeenCalledTimes(1);
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
+  it("should work without onWaiting callback", async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true });
+
+    const onReady = vi.fn();
+
+    const promise = warmupBackend(onReady);
+
+    await vi.advanceTimersByTimeAsync(3000);
+    await promise;
+
+    expect(onReady).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("sendMessage with timeoutMs", () => {
+  it("should use custom timeout when provided", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello", [], undefined, undefined, 8000);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it("should throw ColdStartError on 503 response", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+    });
+
+    await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
+  });
+
+  it("should throw ColdStartError on 502 response", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+    });
+
+    await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
+  });
+
+  it("should throw ColdStartError on AbortError (timeout)", async () => {
+    const abortError = new DOMException(
+      "The operation was aborted",
+      "AbortError",
+    );
+    (global.fetch as any).mockRejectedValueOnce(abortError);
+
+    await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
+  });
+
+  it("should throw ColdStartError on TypeError (network failure)", async () => {
+    (global.fetch as any).mockRejectedValueOnce(
+      new TypeError("Failed to fetch"),
+    );
+
+    await expect(sendMessage("Test")).rejects.toThrow(ColdStartError);
+  });
+});
+
+describe("Turnstile token consumption", () => {
+  afterEach(() => {
+    setTurnstileToken(null);
+    setOnTokenConsumed(null);
+  });
+
+  it("should include Turnstile token in request headers when set", async () => {
+    setTurnstileToken("test-token-123");
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Turnstile-Token": "test-token-123",
+        }),
+      }),
+    );
+  });
+
+  it("should consume token after API call (not reuse it)", async () => {
+    setTurnstileToken("single-use-token");
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    // First call should include the token
+    await sendMessage("First message");
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Turnstile-Token": "single-use-token",
+        }),
+      }),
+    );
+
+    // Second call should NOT include the token (it was consumed)
+    await sendMessage("Second message");
+    const secondCallHeaders = (global.fetch as any).mock.calls[1][1].headers;
+    expect(secondCallHeaders["X-Turnstile-Token"]).toBeUndefined();
+  });
+
+  it("should call onTokenConsumed callback after using a token", async () => {
+    const onConsumed = vi.fn();
+    setTurnstileToken("token-to-consume");
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(onConsumed).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not call onTokenConsumed when no token is set", async () => {
+    const onConsumed = vi.fn();
+    setTurnstileToken(null);
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "Response",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(onConsumed).not.toHaveBeenCalled();
+  });
+
+  it("should consume token for all protected endpoints", async () => {
+    const onConsumed = vi.fn();
+    setOnTokenConsumed(onConsumed);
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    // Each call sets a fresh token and verifies consumption
+    setTurnstileToken("token-chat");
+    await sendMessage("msg");
+    expect(onConsumed).toHaveBeenCalledTimes(1);
+
+    setTurnstileToken("token-search");
+    await searchScripture("peace");
+    expect(onConsumed).toHaveBeenCalledTimes(2);
+
+    setTurnstileToken("token-verse");
+    await getVerse("John", 3, 16);
+    expect(onConsumed).toHaveBeenCalledTimes(3);
+
+    setTurnstileToken("token-chapter");
+    await getChapter("Psalm", 23);
+    expect(onConsumed).toHaveBeenCalledTimes(4);
+
+    setTurnstileToken("token-church");
+    await searchChurches("Zurich");
+    expect(onConsumed).toHaveBeenCalledTimes(5);
+
+    setTurnstileToken("token-feedback");
+    await submitFeedback({
+      message_id: "test",
+      rating: "positive",
+      user_message: "q",
+      assistant_response: "a",
+    });
+    expect(onConsumed).toHaveBeenCalledTimes(6);
+  });
+
+  it("should not send token for unprotected endpoints", async () => {
+    setTurnstileToken("should-not-be-sent");
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        target_verse: 16,
+        verses: [],
+      }),
+    });
+
+    await getVerseContext("John", 3, 16);
+
+    const headers = (global.fetch as any).mock.calls[0][1].headers;
+    expect(headers["X-Turnstile-Token"]).toBeUndefined();
+
+    // Token should still be available (not consumed by unprotected endpoint)
+    expect(
+      (global.fetch as any).mock.calls[0][1].headers["X-Turnstile-Token"],
+    ).toBeUndefined();
   });
 });

@@ -55,7 +55,7 @@ frontend_image = "bibleappacrmb0172.azurecr.io/bible-frontend:latest"
 # Backend (FastAPI)
 backend_cpu          = 0.5
 backend_memory       = "1Gi"
-backend_min_replicas = 0
+backend_min_replicas = 1
 backend_max_replicas = 2
 
 # Frontend (Next.js)
@@ -101,6 +101,12 @@ embedding_model_version = "1"
 embedding_capacity      = 120
 
 # -----------------------------------------------------------------------------
+# Application Insights (Monitoring)
+# -----------------------------------------------------------------------------
+
+enable_application_insights = true
+
+# -----------------------------------------------------------------------------
 # Budget Alerts
 # -----------------------------------------------------------------------------
 
@@ -115,7 +121,14 @@ budget_alert_emails = ["zioalex@gmail.com"]
 custom_domain_frontend = "getinspiredbythebible.ai4you.sh"
 
 # email settings
-smtp2go_enabled      = true
-smtp2go_sender_email = "noreply@getinspiredbythebible.ai4you.sh"
-smtp2go_sender_name  = "Bible Inspiration"
-contact_notification_email = "getinspiredbythebible@ai4you.sh"# SMTP2GO config
+smtp2go_enabled            = true
+smtp2go_sender_email       = "noreply@getinspiredbythebible.ai4you.sh"
+smtp2go_sender_name        = "Bible Inspiration"
+contact_notification_email = "getinspiredbythebible@ai4you.sh"
+
+# -----------------------------------------------------------------------------
+# Cloudflare Turnstile (Bot Protection)
+# -----------------------------------------------------------------------------
+
+turnstile_enabled  = true
+turnstile_site_key = "0x4AAAAAACaR4GHzrw8fgN5O"

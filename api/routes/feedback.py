@@ -2,8 +2,6 @@
 Feedback API routes - Endpoints for feedback and contact form submissions.
 """
 
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,8 +14,10 @@ from feedback.models import (
 )
 from scripture import get_db_session
 from utils.email_service import email_service
+from utils.logging_config import get_logger
+from utils.turnstile import require_turnstile
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
@@ -29,7 +29,7 @@ async def get_feedback_repository(
     return FeedbackRepository(db)
 
 
-@router.post("", response_model=FeedbackResponse)
+@router.post("", response_model=FeedbackResponse, dependencies=[Depends(require_turnstile)])
 async def submit_feedback(
     request: FeedbackRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),
@@ -94,7 +94,7 @@ async def submit_feedback(
         ) from e
 
 
-@router.post("/contact", response_model=ContactResponse)
+@router.post("/contact", response_model=ContactResponse, dependencies=[Depends(require_turnstile)])
 async def submit_contact(
     request: ContactRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),

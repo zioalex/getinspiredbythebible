@@ -2,6 +2,12 @@
 Logging configuration for the Bible Inspiration Chat API.
 
 Provides structured logging with consistent formatting across all modules.
+
+OpenTelemetry integration:
+    configure_azure_monitor(logger_name="bible_app") attaches an OpenTelemetry
+    LoggingHandler to the "bible_app" logger.  All application loggers that live
+    under this namespace (e.g. "bible_app.chat", "bible_app.routes") will
+    automatically export their records to Application Insights.
 """
 
 import logging
@@ -10,14 +16,18 @@ from typing import Any
 
 from config import settings
 
+# All application loggers should be children of this namespace so that the
+# OpenTelemetry handler (attached by configure_azure_monitor) captures them.
+APP_LOGGER_NAME = "bible_app"
+
 
 def setup_logging() -> None:
     """
     Configure application-wide logging.
 
     Sets up:
-    - Console handler with formatted output
-    - Appropriate log level from settings
+    - Console handler with formatted output on the root logger
+    - Application logger (bible_app) at the configured level
     - Consistent format across all loggers
     """
     log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
@@ -32,8 +42,11 @@ def setup_logging() -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
 
-    # Remove existing handlers to avoid duplicates
+    # Remove existing handlers to avoid duplicates, but preserve any
+    # OpenTelemetry handlers that were already attached.
     for handler in root_logger.handlers[:]:
+        if "opentelemetry" in type(handler).__module__:
+            continue
         root_logger.removeHandler(handler)
 
     # Console handler
@@ -42,16 +55,29 @@ def setup_logging() -> None:
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
+    # Ensure the application logger inherits from root and is at the right level.
+    # configure_azure_monitor(logger_name="bible_app") will later attach an
+    # OpenTelemetry handler here, exporting logs to Application Insights.
+    app_logger = logging.getLogger(APP_LOGGER_NAME)
+    app_logger.setLevel(log_level)
+
     # Set levels for noisy libraries
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # Azure Monitor SDK HTTP logging is extremely chatty at INFO level
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+    logging.getLogger("azure.monitor.opentelemetry.exporter").setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:
     """
-    Get a logger instance for a module.
+    Get a logger instance for a module under the app namespace.
+
+    Returns a logger named ``bible_app.<name>`` so that records are
+    captured by both the console handler and the OpenTelemetry handler
+    (when Application Insights is enabled).
 
     Args:
         name: Module name (typically __name__)
@@ -59,7 +85,7 @@ def get_logger(name: str) -> logging.Logger:
     Returns:
         Configured logger instance
     """
-    return logging.getLogger(name)
+    return logging.getLogger(f"{APP_LOGGER_NAME}.{name}")
 
 
 class LogContext:

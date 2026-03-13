@@ -1,0 +1,119 @@
+{
+  "Metadata": {
+    "title": "Bible Inspiration Chat",
+    "description": "Find spiritual encouragement and guidance through Scripture"
+  },
+  "Header": {
+    "title": "Bible Inspiration",
+    "subtitle": "Find encouragement through Scripture",
+    "bibleVersion": "Bible version:",
+    "autoDetect": "Auto-detect",
+    "newChat": "New Chat"
+  },
+  "Welcome": {
+    "heading": "Welcome",
+    "description": "Share what's on your heart, ask questions about Scripture, or simply seek encouragement. While I can help explore theological topics, I'm not a substitute for trained theologians or pastoral guidance.",
+    "prompt1": "I'm feeling anxious about the future",
+    "prompt2": "What does the Bible say about forgiveness?",
+    "prompt3": "I need encouragement today",
+    "prompt4": "Help me understand John 3:16"
+  },
+  "Chat": {
+    "inputPlaceholder": "Share what's on your heart...",
+    "disclaimer": "AI-generated responses may contain errors. Not a substitute for theology or pastoral counsel.",
+    "loadingWarmup": "I'm warming up. Be patient a moment...",
+    "loadingSearch": "Searching Scripture and reflecting...",
+    "backendWarmingUp": "Server is waking up, you can start typing...",
+    "errorColdStart": "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!",
+    "errorConnection": "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at getinspiredbythebible@ai4you.sh"
+  },
+  "Verses": {
+    "scriptureReferences": "Scripture References",
+    "verseCount": "{count, plural, =1 {1 verse} other {# verses}}",
+    "referenced": "Referenced",
+    "allRelated": "All Related ({count})",
+    "noVersesReferenced": "No verses referenced yet.",
+    "noVersesReferencedHint": "Verses will appear here when mentioned in the chat.",
+    "readFullChapter": "Read full chapter",
+    "showScriptureReferences": "Show scripture references",
+    "close": "Close"
+  },
+  "ChapterModal": {
+    "verseCount": "{count, plural, =1 {1 verse} other {# verses}}",
+    "defaultTranslation": "King James Version"
+  },
+  "Feedback": {
+    "wasHelpful": "Was this helpful?",
+    "thumbsUp": "Thumbs up",
+    "thumbsDown": "Thumbs down",
+    "helpfulTitle": "This was helpful",
+    "improveTitle": "This could be improved",
+    "thanks": "Thanks for your feedback!",
+    "positiveHeading": "What was helpful?",
+    "negativeHeading": "What could be improved?",
+    "positiveDescription": "Your feedback helps us understand what works well.",
+    "negativeDescription": "Let us know how we can do better.",
+    "positivePlaceholder": "The verse suggestions were relevant to my question...",
+    "negativePlaceholder": "The response didn't address my specific concern...",
+    "privacyNotice": "By submitting feedback, your message and the AI response will be logged to help us improve the service.",
+    "skip": "Skip",
+    "submit": "Submit Feedback",
+    "submitting": "Submitting...",
+    "close": "Close",
+    "toastError": "Couldn't save your feedback right now, but thank you for trying!"
+  },
+  "ChurchFinder": {
+    "bannerText": "Looking for a faith community?",
+    "findChurch": "Find a Church",
+    "dismiss": "Dismiss",
+    "inlineText": "Looking for a prayer community or church?",
+    "inlineCta": "Find one nearby",
+    "modalTitle": "Find a Church",
+    "modalSubtitle": "Connect with a faith community near you",
+    "searchPlaceholder": "City in English (e.g., Rome, Munich, Zurich)",
+    "searching": "Searching for churches...",
+    "errorSearch": "Failed to search for churches. Please try again.",
+    "errorConnection": "Please check your connection and try again.",
+    "foundCount": "{count, plural, =1 {Found 1 church} other {Found # churches}}",
+    "noChurchesFound": "No churches found",
+    "noChurchesHint": "Try a different location or broader search term.",
+    "enterLocation": "Enter a location to search",
+    "enterLocationHint": "Use English city names (e.g., Rome, Munich, Vienna)",
+    "website": "Website",
+    "email": "Email",
+    "churchData": "Church data provided by",
+    "churchDataLink": "DisciplesToday.org"
+  },
+  "Share": {
+    "share": "Share",
+    "copyToClipboard": "Copy to clipboard",
+    "copied": "Copied!",
+    "shareOnWhatsApp": "Share on WhatsApp",
+    "shareOnTwitter": "Share on X",
+    "shareOnFacebook": "Share on Facebook",
+    "shareOnBluesky": "Share on Bluesky",
+    "sharePrefix": "I found this inspiring biblical insight:",
+    "shareVia": "Bible Inspiration Chat"
+  },
+  "Contact": {
+    "getInTouch": "Get in Touch",
+    "emailUs": "Email us:",
+    "emailLabel": "Your email (optional, for reply)",
+    "emailPlaceholder": "you@example.com",
+    "subjectLabel": "Subject",
+    "subjectSpiritual": "Do you want to talk deeper about any spiritual or biblical question?",
+    "subjectFeedback": "General Feedback",
+    "subjectBug": "Bug Report",
+    "subjectFeature": "Feature Request",
+    "subjectOther": "Other",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Share your thoughts, report an issue, or suggest an improvement...",
+    "privacyNote": "Your message will be stored to help us improve the service.",
+    "sending": "Sending...",
+    "sendMessage": "Send Message",
+    "successTitle": "Message sent successfully!",
+    "successDescription": "Thank you for reaching out. We'll review your message soon.",
+    "sendAnother": "Send another",
+    "errorSend": "Failed to send message. Please try again or email us directly."
+  }
+}

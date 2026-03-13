@@ -154,6 +154,13 @@ locals {
       }
     } : {},
 
+    # Application Insights telemetry
+    var.enable_application_insights ? {
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = {
+        value = azurerm_application_insights.main[0].connection_string
+      }
+    } : {},
+
     # SMTP2GO email notification configuration
     var.smtp2go_enabled ? {
       "CONTACT_NOTIFICATION_EMAIL" = {
@@ -170,6 +177,19 @@ locals {
       }
       "SMTP2GO_SENDER_NAME" = {
         value = var.smtp2go_sender_name
+      }
+    } : {},
+
+    # Cloudflare Turnstile bot protection
+    var.turnstile_enabled ? {
+      "TURNSTILE_ENABLED" = {
+        value = "true"
+      }
+      "TURNSTILE_SECRET_KEY" = {
+        secret_name = "turnstile-secret-key" # pragma: allowlist secret
+      }
+      "TURNSTILE_SITE_KEY" = {
+        value = var.turnstile_site_key
       }
     } : {}
   )
@@ -209,6 +229,50 @@ resource "azurerm_log_analytics_workspace" "main" {
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Application Insights (optional - for monitoring and telemetry)
+# -----------------------------------------------------------------------------
+
+resource "azurerm_application_insights" "main" {
+  count               = var.enable_application_insights ? 1 : 0
+  name                = "${local.name_prefix}-insights"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  workspace_id        = azurerm_log_analytics_workspace.main.id
+  application_type    = "web"
+
+  tags = local.tags
+}
+
+# Standard availability test — pings the backend /health/ready endpoint every
+# 5 minutes from multiple Azure locations.  This populates the "Availability"
+# tab in Application Insights (which is 0% without an explicit test).
+resource "azurerm_application_insights_standard_web_test" "backend_availability" {
+  count                   = var.enable_application_insights ? 1 : 0
+  name                    = "${local.name_prefix}-availability"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  application_insights_id = azurerm_application_insights.main[0].id
+
+  geo_locations = [
+    "emea-nl-ams-azr", # West Europe
+    "emea-gb-db3-azr", # UK South
+    "us-va-ash-azr",   # East US
+  ]
+
+  frequency = 300 # every 5 minutes
+
+  request {
+    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/ready"
+  }
+
+  validation_rules {
+    expected_status_code = 200
+  }
 
   tags = local.tags
 }
@@ -358,6 +422,12 @@ resource "azurerm_container_app" "backend" {
         failure_count_threshold = 3
       }
     }
+
+    # Explicit HTTP scale rule with longer cooldown to avoid aggressive scale-to-zero
+    http_scale_rule {
+      name                = "http-requests"
+      concurrent_requests = 10
+    }
   }
 
   ingress {
@@ -404,6 +474,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "smtp2go-api-key"
       value = var.smtp2go_api_key
+    }
+  }
+
+  # Turnstile secret key (if bot protection enabled)
+  dynamic "secret" {
+    for_each = var.turnstile_enabled ? [1] : []
+    content {
+      name  = "turnstile-secret-key"
+      value = var.turnstile_secret_key
     }
   }
 
@@ -455,6 +534,12 @@ resource "azurerm_container_app" "frontend" {
           secret_name = lookup(env.value, "secret_name", null)
         }
       }
+    }
+
+    # Explicit HTTP scale rule with longer cooldown to avoid aggressive scale-to-zero
+    http_scale_rule {
+      name                = "http-requests"
+      concurrent_requests = 10
     }
   }
 

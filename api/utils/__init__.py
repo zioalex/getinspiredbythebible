@@ -11,6 +11,7 @@ from .language import (
     is_valid_translation,
     resolve_translation,
 )
+from .turnstile import TurnstileDep, get_turnstile_verifier, require_turnstile
 
 __all__ = [
     "detect_language",
@@ -22,4 +23,8 @@ __all__ = [
     "get_translations_for_language",
     "is_valid_translation",
     "resolve_translation",
+    # Turnstile
+    "TurnstileDep",
+    "get_turnstile_verifier",
+    "require_turnstile",
 ]

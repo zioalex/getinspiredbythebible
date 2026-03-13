@@ -45,6 +45,50 @@ export async function checkBackendReady(): Promise<boolean> {
   }
 }
 
+// Turnstile token for bot protection
+let turnstileToken: string | null = null;
+let onTokenConsumed: (() => void) | null = null;
+
+/**
+ * Set the Turnstile token for API requests
+ */
+export function setTurnstileToken(token: string | null): void {
+  turnstileToken = token;
+}
+
+/**
+ * Register a callback that fires after a token is used in an API request.
+ * This allows the Turnstile widget to refresh and generate a new token.
+ */
+export function setOnTokenConsumed(callback: (() => void) | null): void {
+  onTokenConsumed = callback;
+}
+
+/**
+ * Consume the current token (use it once then trigger refresh).
+ * Turnstile tokens are single-use — Cloudflare rejects reused tokens
+ * with "timeout-or-duplicate".
+ */
+function consumeToken(): void {
+  if (turnstileToken) {
+    turnstileToken = null;
+    onTokenConsumed?.();
+  }
+}
+
+/**
+ * Get headers with optional Turnstile token
+ */
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (turnstileToken) {
+    headers["X-Turnstile-Token"] = turnstileToken;
+  }
+  return headers;
+}
+
 /**
  * Generate a unique session ID for tracking user interactions
  */
@@ -159,6 +203,35 @@ export interface ChurchSearchResponse {
 }
 
 /**
+ * Pre-warm the backend by polling /health/ready.
+ * Calls onReady when the backend responds, or onWaiting on first failed check.
+ */
+export async function warmupBackend(
+  onReady: () => void,
+  onWaiting?: () => void,
+  maxWaitMs: number = 60000,
+): Promise<void> {
+  const start = Date.now();
+  const interval = 3000;
+
+  const ready = await checkBackendReady();
+  if (ready) {
+    onReady();
+    return;
+  }
+
+  onWaiting?.();
+
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, interval));
+    if (await checkBackendReady()) {
+      onReady();
+      return;
+    }
+  }
+}
+
+/**
  * Send a chat message and get a response
  */
 export async function sendMessage(
@@ -166,17 +239,19 @@ export async function sendMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
+  timeoutMs: number = 60000,
 ): Promise<ChatResponse> {
   try {
-    // Set a timeout for cold start detection (30 seconds)
+    // Set a timeout for cold start detection
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const headers = getHeaders();
+    consumeToken();
 
     const response = await fetch(`${API_URL}/api/v1/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         message,
         conversation_history: history,
@@ -220,11 +295,12 @@ export async function* streamMessage(
   message: string,
   history: Message[] = [],
 ): AsyncGenerator<string> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       message,
       conversation_history: history,
@@ -278,7 +354,12 @@ export async function searchScripture(
     max_verses: maxVerses.toString(),
   });
 
-  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`);
+  const headers = getHeaders();
+  consumeToken();
+
+  const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`, {
+    headers,
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
@@ -295,8 +376,12 @@ export async function getVerse(
   chapter: number,
   verse: number,
 ): Promise<Verse> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(
     `${API_URL}/api/v1/scripture/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers },
   );
 
   if (!response.ok) {
@@ -324,8 +409,12 @@ export async function getChapter(
   const params = translation
     ? `?translation=${encodeURIComponent(translation)}`
     : "";
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(
     `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
+    { headers },
   );
 
   if (!response.ok) {
@@ -345,6 +434,7 @@ export async function getVerseContext(
 ): Promise<{ target_verse: number; verses: Verse[] }> {
   const response = await fetch(
     `${API_URL}/api/v1/chat/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
+    { headers: { "Content-Type": "application/json" } },
   );
 
   if (!response.ok) {
@@ -371,7 +461,9 @@ export async function checkHealth(): Promise<HealthStatus> {
  * Get available translations
  */
 export async function getTranslations(): Promise<TranslationInfo[]> {
-  const response = await fetch(`${API_URL}/api/v1/scripture/translations`);
+  const response = await fetch(`${API_URL}/api/v1/scripture/translations`, {
+    headers: { "Content-Type": "application/json" },
+  });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
@@ -387,11 +479,12 @@ export async function getTranslations(): Promise<TranslationInfo[]> {
 export async function searchChurches(
   location: string,
 ): Promise<ChurchSearchResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(`${API_URL}/api/v1/church/search`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ location }),
   });
 
@@ -408,11 +501,12 @@ export async function searchChurches(
 export async function submitFeedback(
   feedback: FeedbackRequest,
 ): Promise<FeedbackResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(`${API_URL}/api/v1/feedback`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(feedback),
   });
 
@@ -429,11 +523,12 @@ export async function submitFeedback(
 export async function submitContactForm(
   contact: ContactRequest,
 ): Promise<ContactResponse> {
+  const headers = getHeaders();
+  consumeToken();
+
   const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(contact),
   });
 

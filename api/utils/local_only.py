@@ -6,13 +6,13 @@ localhost or internal networks (e.g., health details, debug endpoints).
 """
 
 import ipaddress
-import logging
 
 from fastapi import HTTPException, Request
 
 from config import settings
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Local/internal IP ranges
 LOCAL_NETWORKS = [

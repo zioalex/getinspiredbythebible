@@ -4,7 +4,7 @@ Bible Inspiration Chat API
 Main FastAPI application entry point.
 """
 
-import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -22,11 +22,30 @@ from routes import (
 )
 from scripture import close_db, init_db
 from utils.local_only import require_local_access
-from utils.logging_config import setup_logging
+from utils.logging_config import get_logger, setup_logging
 
 # Configure logging before anything else
 setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+# Configure Azure Monitor (Application Insights) if connection string is set.
+# Sets up OpenTelemetry exporters for traces, metrics, and logs.
+# NOTE: The FastAPI app must be explicitly instrumented after creation (below)
+# because `from fastapi import FastAPI` binds the local name before
+# configure_azure_monitor() can replace the class with an instrumented subclass.
+_appinsights_conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if _appinsights_conn:
+    try:
+        from azure.monitor.opentelemetry import configure_azure_monitor
+
+        configure_azure_monitor(
+            connection_string=_appinsights_conn,
+            # Scope to our app logger so Azure SDK internal logs are not exported
+            logger_name="bible_app",
+        )
+        logger.info("Application Insights telemetry enabled")
+    except Exception as e:
+        logger.warning("Failed to configure Application Insights: %s", e)
 
 
 @asynccontextmanager
@@ -97,6 +116,20 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down application")
     await close_db()
 
+    # Flush OpenTelemetry telemetry before container shuts down.
+    # Without this, the batch exporter may lose pending spans/logs
+    # when the container scales to zero.
+    if _appinsights_conn:
+        try:
+            from opentelemetry import trace  # type: ignore[attr-defined]
+            from opentelemetry.sdk.trace import TracerProvider
+
+            tp = trace.get_tracer_provider()
+            if isinstance(tp, TracerProvider):
+                tp.force_flush(timeout_millis=5000)
+        except Exception:
+            pass
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -140,6 +173,20 @@ def _get_cors_origins() -> list[str]:
         origins.extend(custom_origins)
     return origins
 
+
+# Explicitly instrument the FastAPI app for Application Insights request tracing.
+# configure_azure_monitor() replaces fastapi.FastAPI with an instrumented subclass,
+# but our `from fastapi import FastAPI` already bound the original class. So the app
+# created above is uninstrumented. instrument_app() adds the ASGI tracing middleware
+# directly, giving us server requests, response times, and dependency tracking.
+if _appinsights_conn:
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+        FastAPIInstrumentor.instrument_app(app)
+        logger.info("FastAPI request tracing instrumented")
+    except Exception as e:
+        logger.warning("Failed to instrument FastAPI app: %s", e)
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -202,6 +249,12 @@ async def get_config():
         "chat": {
             "max_context_verses": settings.max_context_verses,
             "max_conversation_history": settings.max_conversation_history,
+        },
+        "security": {
+            "turnstile_enabled": settings.turnstile_enabled,
+            "turnstile_site_key": (
+                settings.turnstile_site_key if settings.turnstile_enabled else None
+            ),
         },
     }
 
