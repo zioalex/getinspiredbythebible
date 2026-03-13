@@ -361,3 +361,73 @@ def test_valid_config_passes():
     assert settings.llm_provider == "ollama"
     assert settings.embedding_provider == "ollama"
     assert settings.turnstile_enabled is False
+
+
+class TestHybridWeightsValidation:
+    """Tests for hybrid search weight validation in Settings."""
+
+    def test_valid_weights_0_7_and_0_3(self):
+        """Default weights 0.7 + 0.3 are valid."""
+        from config import Settings
+
+        s = Settings(
+            hybrid_search_semantic_weight=0.7,
+            hybrid_search_keyword_weight=0.3,
+        )
+        assert abs(s.hybrid_search_semantic_weight + s.hybrid_search_keyword_weight - 1.0) < 0.01
+
+    def test_valid_weights_0_5_and_0_5(self):
+        """Equal split weights 0.5 + 0.5 are valid."""
+        from config import Settings
+
+        s = Settings(
+            hybrid_search_semantic_weight=0.5,
+            hybrid_search_keyword_weight=0.5,
+        )
+        assert s.hybrid_search_semantic_weight == 0.5
+
+    def test_valid_weights_0_9_and_0_1(self):
+        """Asymmetric weights 0.9 + 0.1 are valid."""
+        from config import Settings
+
+        s = Settings(
+            hybrid_search_semantic_weight=0.9,
+            hybrid_search_keyword_weight=0.1,
+        )
+        assert abs(s.hybrid_search_semantic_weight + s.hybrid_search_keyword_weight - 1.0) < 0.01
+
+    def test_invalid_weights_sum_to_1_6(self):
+        """Weights summing to 1.6 raise ValidationError."""
+        from config import Settings
+
+        try:
+            Settings(
+                hybrid_search_semantic_weight=0.8,
+                hybrid_search_keyword_weight=0.8,
+            )
+            pytest.fail("Expected ValidationError for weights summing to 1.6")
+        except Exception as e:
+            error_msg = str(e)
+            assert (
+                "sum" in error_msg.lower() or "1.0" in error_msg or "weights" in error_msg.lower()
+            )
+
+    def test_negative_weight_raises(self):
+        """Negative weight raises ValidationError."""
+        from config import Settings
+
+        try:
+            Settings(
+                hybrid_search_semantic_weight=-0.1,
+                hybrid_search_keyword_weight=1.1,
+            )
+            pytest.fail("Expected ValidationError for negative weight")
+        except Exception as e:
+            assert "0.0" in str(e) or "between" in str(e).lower()
+
+    def test_hybrid_search_disabled_by_default(self):
+        """Hybrid search feature flag defaults to False."""
+        from config import Settings
+
+        s = Settings()
+        assert s.hybrid_search_enabled is False

@@ -6,7 +6,7 @@ import time
 from typing import Sequence
 
 from opentelemetry.trace import Span
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -242,6 +242,105 @@ class ScriptureRepository:
             _record_duration(span, start, "semantic_search_verses", len(rows), translation)
             return rows
 
+    async def search_verses_hybrid(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        semantic_weight: float = 0.7,
+        keyword_weight: float = 0.3,
+        similarity_threshold: float = 0.35,
+        limit: int = 10,
+        translation: str | None = None,
+    ) -> list[tuple["Verse", float]]:
+        """
+        Hybrid search combining semantic similarity and keyword matching.
+
+        Args:
+            query_text: The raw text query (for full-text search)
+            query_embedding: The embedding vector of the search query
+            semantic_weight: Weight for semantic score (0-1)
+            keyword_weight: Weight for keyword score (0-1)
+            similarity_threshold: Minimum semantic similarity score (0-1)
+            limit: Maximum results to return
+            translation: Optional translation code to filter by
+
+        Returns:
+            List of (verse, hybrid_score) tuples
+        """
+        # Normalize weights to ensure they sum to 1
+        total_weight = semantic_weight + keyword_weight
+        if total_weight > 0:
+            semantic_weight /= total_weight
+            keyword_weight /= total_weight
+
+        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+
+        translation_filter = ""
+        params: dict = {
+            "embedding": embedding_str,
+            "query_text": query_text,
+            "threshold": similarity_threshold,
+            "semantic_weight": semantic_weight,
+            "keyword_weight": keyword_weight,
+            "limit": limit,
+        }
+
+        if translation:
+            translation_filter = "AND v.translation = :translation"
+            params["translation"] = translation
+
+        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+            WITH ranked AS (
+                SELECT
+                    v.id,
+                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    ts_rank(
+                        to_tsvector('simple', v.text),
+                        plainto_tsquery('simple', :query_text)
+                    ) AS keyword_score_raw
+                FROM verses v
+                WHERE v.embedding IS NOT NULL
+                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  {translation_filter}
+            ),
+            normalized AS (
+                SELECT
+                    id,
+                    semantic_score,
+                    keyword_score_raw,
+                    CASE
+                        WHEN MAX(keyword_score_raw) OVER () > 0
+                        THEN keyword_score_raw / MAX(keyword_score_raw) OVER ()
+                        ELSE 0.0
+                    END AS keyword_score
+                FROM ranked
+            )
+            SELECT
+                id,
+                (:semantic_weight * semantic_score) +
+                (:keyword_weight * keyword_score) AS hybrid_score
+            FROM normalized
+            ORDER BY hybrid_score DESC
+            LIMIT :limit
+        """
+
+        result = await self.session.execute(text(sql), params)
+        rows = result.fetchall()
+
+        if not rows:
+            return []
+
+        verse_ids = [row[0] for row in rows]
+        scores = {row[0]: row[1] for row in rows}
+
+        # Fetch full verse objects preserving order
+        verses_result = await self.session.execute(
+            select(Verse).where(Verse.id.in_(verse_ids)).options(selectinload(Verse.book))
+        )
+        verses_by_id = {v.id: v for v in verses_result.scalars().all()}
+
+        return [(verses_by_id[vid], float(scores[vid])) for vid in verse_ids if vid in verses_by_id]
+
     # ==================== Passages ====================
 
     async def get_passage_by_id(self, passage_id: int) -> Passage | None:
@@ -275,6 +374,100 @@ class ScriptureRepository:
             rows = [(row.Passage, row.similarity) for row in result.all()]
             _record_duration(span, start, "semantic_search_passages", len(rows), None)
             return rows
+
+    async def search_passages_hybrid(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        semantic_weight: float = 0.7,
+        keyword_weight: float = 0.3,
+        similarity_threshold: float = 0.35,
+        limit: int = 3,
+    ) -> list[tuple["Passage", float]]:
+        """
+        Hybrid search on passages combining semantic similarity and keyword matching.
+
+        Args:
+            query_text: The raw text query (for full-text search)
+            query_embedding: The embedding vector of the search query
+            semantic_weight: Weight for semantic score (0-1)
+            keyword_weight: Weight for keyword score (0-1)
+            similarity_threshold: Minimum semantic similarity score (0-1)
+            limit: Maximum results to return
+
+        Returns:
+            List of (passage, hybrid_score) tuples
+        """
+        # Normalize weights to ensure they sum to 1
+        total_weight = semantic_weight + keyword_weight
+        if total_weight > 0:
+            semantic_weight /= total_weight
+            keyword_weight /= total_weight
+
+        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+
+        params: dict = {
+            "embedding": embedding_str,
+            "query_text": query_text,
+            "threshold": similarity_threshold,
+            "semantic_weight": semantic_weight,
+            "keyword_weight": keyword_weight,
+            "limit": limit,
+        }
+
+        sql = """
+            WITH ranked AS (
+                SELECT
+                    p.id,
+                    (1 - (p.embedding <=> :embedding::vector)) AS semantic_score,
+                    ts_rank(
+                        to_tsvector('simple', p.text),
+                        plainto_tsquery('simple', :query_text)
+                    ) AS keyword_score_raw
+                FROM passages p
+                WHERE p.embedding IS NOT NULL
+                  AND (1 - (p.embedding <=> :embedding::vector)) >= :threshold
+            ),
+            normalized AS (
+                SELECT
+                    id,
+                    semantic_score,
+                    keyword_score_raw,
+                    CASE
+                        WHEN MAX(keyword_score_raw) OVER () > 0
+                        THEN keyword_score_raw / MAX(keyword_score_raw) OVER ()
+                        ELSE 0.0
+                    END AS keyword_score
+                FROM ranked
+            )
+            SELECT
+                id,
+                (:semantic_weight * semantic_score) +
+                (:keyword_weight * keyword_score) AS hybrid_score
+            FROM normalized
+            ORDER BY hybrid_score DESC
+            LIMIT :limit
+        """
+
+        result = await self.session.execute(text(sql), params)
+        rows = result.fetchall()
+
+        if not rows:
+            return []
+
+        passage_ids = [row[0] for row in rows]
+        scores = {row[0]: row[1] for row in rows}
+
+        passages_result = await self.session.execute(
+            select(Passage).where(Passage.id.in_(passage_ids)).options(selectinload(Passage.book))
+        )
+        passages_by_id = {p.id: p for p in passages_result.scalars().all()}
+
+        return [
+            (passages_by_id[pid], float(scores[pid]))
+            for pid in passage_ids
+            if pid in passages_by_id
+        ]
 
     # ==================== Topics ====================
 

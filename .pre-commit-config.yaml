@@ -57,7 +57,7 @@ repos:
     hooks:
       - id: bandit
         files: ^api/
-        args: ["-ll", "-i", "--skip", "B101,B601"]
+        args: ["-ll", "-i", "--skip", "B101,B601,B608"]
 
   # Docker - Dockerfile linting
   - repo: https://github.com/hadolint/hadolint

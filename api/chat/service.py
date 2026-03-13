@@ -455,15 +455,47 @@ Keep it under 100 words."""
                         extra={"num_extra_embeddings": len(extra_embeddings)},
                     )
 
-            # Semantic search for additional context
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-                translation=translation,
-                extra_embeddings=extra_embeddings,  # NEW
-            )
+            # Semantic or hybrid search for additional context
+            if settings.hybrid_search_enabled:
+                semantic_results = await self.search_service.search(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    extra_embeddings=extra_embeddings,
+                )
+                scripture_context = await self.search_service.search_hybrid(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    semantic_weight=settings.hybrid_search_semantic_weight,
+                    keyword_weight=settings.hybrid_search_keyword_weight,
+                )
+                # Log differences for monitoring
+                semantic_refs = {v.reference for v in semantic_results.verses}
+                hybrid_refs = {v.reference for v in scripture_context.verses}
+                new_in_hybrid = hybrid_refs - semantic_refs
+                dropped_in_hybrid = semantic_refs - hybrid_refs
+                if new_in_hybrid or dropped_in_hybrid:
+                    logger.info(
+                        "Hybrid search result differences",
+                        extra={
+                            "new_in_hybrid": list(new_in_hybrid),
+                            "dropped_in_hybrid": list(dropped_in_hybrid),
+                        },
+                    )
+            else:
+                scripture_context = await self.search_service.search(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    extra_embeddings=extra_embeddings,  # NEW
+                )
 
             # Merge direct lookup results with semantic search
             self._merge_direct_verses(scripture_context, direct_verses)
@@ -476,7 +508,8 @@ Keep it under 100 words."""
                     "verses_found": len(scripture_context.verses) if scripture_context else 0,
                     "passages_found": (len(scripture_context.passages) if scripture_context else 0),
                     "is_verse_lookup": is_verse_lookup,
-                    "query_expansion_used": extra_embeddings is not None,  # NEW
+                    "query_expansion_used": extra_embeddings is not None,
+                    "hybrid_search_used": settings.hybrid_search_enabled,
                 },
             )
         except Exception as e:

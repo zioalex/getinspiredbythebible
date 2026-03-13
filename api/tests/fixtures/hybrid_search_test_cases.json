@@ -1,0 +1,110 @@
+{
+  "description": "Golden test cases for hybrid search (BITB-018.2). These verify exact phrase and keyword queries find the correct verses.",
+  "test_cases": [
+    {
+      "id": "peace-be-still",
+      "query": "peace be still",
+      "expected_top_result": {
+        "book": "Mark",
+        "chapter": 4,
+        "verse": 39,
+        "notes": "Mark 4:39 - Jesus calms the storm: 'Peace, be still'"
+      },
+      "expected_in_top_n": 3,
+      "search_type": "hybrid"
+    },
+    {
+      "id": "lord-is-my-shepherd",
+      "query": "the Lord is my shepherd",
+      "expected_top_result": {
+        "book": "Psalms",
+        "chapter": 23,
+        "verse": 1,
+        "notes": "Psalm 23:1 - The Lord is my shepherd; I shall not want"
+      },
+      "expected_in_top_n": 3,
+      "search_type": "hybrid"
+    },
+    {
+      "id": "way-truth-life",
+      "query": "I am the way the truth and the life",
+      "expected_top_result": {
+        "book": "John",
+        "chapter": 14,
+        "verse": 6,
+        "notes": "John 14:6 - Jesus answered, I am the way, and the truth, and the life"
+      },
+      "expected_in_top_n": 3,
+      "search_type": "hybrid"
+    },
+    {
+      "id": "love-your-enemies",
+      "query": "love your enemies",
+      "expected_in_top_n": 5,
+      "expected_candidates": [
+        {"book": "Matthew", "chapter": 5, "verse": 44},
+        {"book": "Luke", "chapter": 6, "verse": 27}
+      ],
+      "notes": "Matthew 5:44 and Luke 6:27 both contain 'love your enemies'",
+      "search_type": "hybrid"
+    },
+    {
+      "id": "forgiveness-keyword",
+      "query": "forgiveness of sins",
+      "expected_in_top_n": 5,
+      "notes": "Multiple NT verses contain exact phrase 'forgiveness of sins'",
+      "search_type": "hybrid"
+    },
+    {
+      "id": "for-god-so-loved",
+      "query": "for God so loved the world",
+      "expected_top_result": {
+        "book": "John",
+        "chapter": 3,
+        "verse": 16,
+        "notes": "John 3:16 - For God so loved the world"
+      },
+      "expected_in_top_n": 1,
+      "search_type": "hybrid"
+    },
+    {
+      "id": "anxiety-emotional",
+      "query": "I am anxious and worried about my future",
+      "expected_in_top_n": 5,
+      "notes": "Emotional query - semantic search should dominate for this type",
+      "search_type": "both"
+    },
+    {
+      "id": "be-strong-courageous",
+      "query": "be strong and courageous",
+      "expected_in_top_n": 5,
+      "expected_candidates": [
+        {"book": "Joshua", "chapter": 1, "verse": 9},
+        {"book": "Deuteronomy", "chapter": 31, "verse": 6}
+      ],
+      "search_type": "hybrid"
+    },
+    {
+      "id": "all-things-possible",
+      "query": "all things are possible",
+      "expected_in_top_n": 5,
+      "expected_candidates": [
+        {"book": "Matthew", "chapter": 19, "verse": 26},
+        {"book": "Mark", "chapter": 10, "verse": 27}
+      ],
+      "search_type": "hybrid"
+    },
+    {
+      "id": "fruit-of-spirit",
+      "query": "fruit of the Spirit is love joy peace",
+      "expected_top_result": {
+        "book": "Galatians",
+        "chapter": 5,
+        "verse": 22,
+        "notes": "Galatians 5:22 - The fruit of the Spirit is love, joy, peace..."
+      },
+      "expected_in_top_n": 3,
+      "search_type": "hybrid"
+    }
+  ]
+}
