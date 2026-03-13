@@ -52,6 +52,10 @@ private val languageOptions = listOf(
     LanguageOption("fr", "🇫🇷 Français"),
     LanguageOption("ar", "🇸🇦 العربية"),
     LanguageOption("pt", "🇧🇷 Português"),
+    LanguageOption("ru", "🇷🇺 Русский"),
+    LanguageOption("zh", "🇨🇳 中文"),
+    LanguageOption("hi", "🇮🇳 हिन्दी"),
+    LanguageOption("ko", "🇰🇷 한국어"),
 )
 
 /** Theme option shown in the settings section. */

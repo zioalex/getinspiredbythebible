@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">बाइबिल प्रेरणा</string>
+    <string name="chat_input_hint">अपने दिल की बात साझा करें…</string>
+    <string name="chat_send_button">भेजें</string>
+    <string name="action_clear_conversation">बातचीत साफ करें</string>
+    <string name="welcome_title">शास्त्र में प्रेरणा खोजें</string>
+    <string name="welcome_subtitle">आप जो अनुभव कर रहे हैं उसे बताएं और परमेश्वर के वचन में निहित प्रोत्साहन पाएं।</string>
+
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">बाइबिल आशा के बारे में क्या कहती है?</string>
+    <string name="prompt_suggestion_2">क्षमा के बारे में पद खोजें</string>
+    <string name="prompt_suggestion_3">यूहन्ना 3:16 का क्या अर्थ है?</string>
+    <string name="prompt_suggestion_4">शांति पर भजन संहिता दिखाएं</string>
+
+    <string name="error_network">नेटवर्क त्रुटि। अपना कनेक्शन जांचें।</string>
+    <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>
+    <string name="error_server">सर्वर त्रुटि। बाद में पुनः प्रयास करें।</string>
+    <string name="error_generic">कुछ गलत हो गया। पुनः प्रयास करें।</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">बातचीत</string>
+    <string name="conversations_empty_headline">अपनी पहली बातचीत शुरू करें</string>
+    <string name="conversations_empty_subtitle">नई बाइबिल बातचीत शुरू करने के लिए + दबाएं</string>
+    <string name="conversations_clear_all_title">सभी बातचीत हटाएं?</string>
+    <string name="conversations_clear_all_message">यह सभी बातचीत इतिहास हमेशा के लिए हटा देगा।</string>
+    <string name="conversations_clear_all_confirm">सब हटाएं</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_new_conversation">नई बातचीत</string>
+    <string name="action_clear_all_conversations">सभी बातचीत साफ करें</string>
+    <string name="action_delete_conversation">बातचीत हटाएं</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">सेटिंग्स</string>
+    <string name="settings_language_title">भाषा</string>
+    <string name="settings_language_subtitle">बाइबिल पदों के लिए भाषा चुनें</string>
+    <string name="action_open_settings">सेटिंग्स</string>
+    <string name="settings_theme_title">थीम</string>
+    <string name="settings_theme_light">हल्का</string>
+    <string name="settings_theme_dark">गहरा</string>
+    <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
+    <string name="bible_translation_section">बाइबिल अनुवाद</string>
+    <string name="bible_translation_default">डिफ़ॉल्ट</string>
+
+    <!-- Settings debug section -->
+    <string name="settings_debug_title">डीबग</string>
+    <string name="action_export_debug_logs">डीबग लॉग निर्यात करें</string>
+
+    <!-- Errors -->
+    <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>
+
+    <!-- Actions -->
+    <string name="action_retry">पुनः प्रयास करें</string>
+    <string name="action_start_new_session">नया सत्र</string>
+    <string name="action_share_message">संदेश साझा करें</string>
+    <string name="action_feedback_helpful">यह उपयोगी था</string>
+    <string name="action_feedback_not_helpful">यह उपयोगी नहीं था</string>
+    <string name="feedback_thank_you">आपकी प्रतिक्रिया के लिए धन्यवाद!</string>
+    <string name="backend_warming_up">सर्वर से जुड़ रहे हैं… (पहले अनुरोध में 30 सेकंड तक लग सकते हैं)</string>
+    <string name="action_scroll_to_bottom">नीचे स्क्रॉल करें</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">पूरा अध्याय पढ़ें</string>
+    <string name="loading_chapter">अध्याय लोड हो रहा है…</string>
+
+    <!-- Church finder -->
+    <string name="church_finder_banner_text">एक विश्वास समुदाय खोज रहे हैं?</string>
+    <string name="church_finder_find_church">चर्च खोजें</string>
+    <string name="church_finder_dismiss">बंद करें</string>
+    <string name="church_finder_modal_title">चर्च खोजें</string>
+    <string name="church_finder_modal_subtitle">अपने पास के विश्वास समुदाय से जुड़ें</string>
+    <string name="church_finder_search_placeholder">शहर का अंग्रेजी नाम (जैसे Delhi, Mumbai)</string>
+    <string name="church_finder_search_button">खोजें</string>
+    <string name="church_finder_location_hint">शहरों के अंग्रेजी नामों का उपयोग करें</string>
+    <string name="church_finder_enter_location">खोजने के लिए स्थान दर्ज करें</string>
+    <string name="church_finder_found_count">%d चर्च मिले</string>
+    <string name="church_finder_no_churches_found">कोई चर्च नहीं मिला</string>
+    <string name="church_finder_no_churches_hint">कोई अन्य स्थान या व्यापक खोज शब्द आज़माएं।</string>
+    <string name="church_finder_website">वेबसाइट</string>
+    <string name="church_finder_email">ईमेल</string>
+    <string name="church_finder_data_credit">चर्च डेटा DisciplesToday.org द्वारा प्रदान किया गया</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">संपर्क</string>
+    <string name="contact_open_button">हमसे संपर्क करें</string>
+    <string name="contact_title">हमसे संपर्क करें</string>
+    <string name="contact_subtitle">अपने विचार साझा करें या कोई समस्या रिपोर्ट करें</string>
+    <string name="contact_subject_label">विषय</string>
+    <string name="contact_subject_spiritual">आध्यात्मिक / बाइबिल प्रश्न</string>
+    <string name="contact_subject_feedback">सामान्य प्रतिक्रिया</string>
+    <string name="contact_subject_bug">बग रिपोर्ट</string>
+    <string name="contact_subject_feature">फीचर अनुरोध</string>
+    <string name="contact_subject_other">अन्य</string>
+    <string name="contact_email_label">आपका ईमेल (वैकल्पिक, उत्तर के लिए)</string>
+    <string name="contact_email_placeholder">aap@udaharan.com</string>
+    <string name="contact_message_label">संदेश</string>
+    <string name="contact_message_placeholder">अपने विचार साझा करें, कोई समस्या रिपोर्ट करें या सुधार सुझाएं…</string>
+    <string name="contact_privacy_note">आपका संदेश सेवा सुधार के लिए संग्रहीत किया जाएगा।</string>
+    <string name="contact_send_button">संदेश भेजें</string>
+    <string name="contact_success_title">संदेश सफलतापूर्वक भेजा गया!</string>
+    <string name="contact_success_description">संपर्क करने के लिए धन्यवाद। हम जल्द ही आपके संदेश की समीक्षा करेंगे।</string>
+    <string name="contact_error_send">संदेश भेजने में विफल। पुनः प्रयास करें।</string>
+</resources>
