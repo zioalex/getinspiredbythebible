@@ -14,6 +14,11 @@ from config import settings
 from middleware.context import REQUEST_ID_CTX_VAR
 from utils.book_names import normalize_book_name
 from utils.logging_config import get_logger
+from utils.metrics import (
+    db_query_duration_histogram,
+    db_search_duration_histogram,
+    db_slow_queries_counter,
+)
 from utils.telemetry import tracer
 
 from .models import Book, Passage, Topic, Verse
@@ -42,19 +47,18 @@ def _record_duration(
     span.set_attribute("db.duration_ms", round(duration_ms, 2))
     span.set_attribute("db.results.count", result_count)
 
-    from utils.metrics import (
-        db_query_duration_histogram,
-        db_search_duration_histogram,
-        db_slow_queries_counter,
-    )
-
-    if "semantic_search" in operation:
-        db_search_duration_histogram.record(duration_ms)
+    if "search" in operation:
+        # Semantic search operations
+        db_search_duration_histogram.record(
+            duration_ms, {"operation": operation, "translation": translation or "all"}
+        )
     else:
-        db_query_duration_histogram.record(duration_ms)
+        # Other DB operations (get_verse, get_chapter, etc.)
+        db_query_duration_histogram.record(duration_ms, {"operation": operation})
 
+    # Record slow query counter if threshold exceeded
     if duration_ms > settings.slow_query_threshold_ms:
-        db_slow_queries_counter.add(1)
+        db_slow_queries_counter.add(1, {"operation": operation})
         request_id = REQUEST_ID_CTX_VAR.get("")
         logger.warning(
             "Slow query detected",
