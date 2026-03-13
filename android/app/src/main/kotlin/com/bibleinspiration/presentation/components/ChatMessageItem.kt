@@ -324,5 +324,3 @@ fun ChatMessageItem(
         }
     }
 }
-
-
