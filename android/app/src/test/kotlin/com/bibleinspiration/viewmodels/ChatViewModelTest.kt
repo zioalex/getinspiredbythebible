@@ -12,13 +12,16 @@ import com.bibleinspiration.data.remote.models.ChapterVerseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import com.bibleinspiration.domain.models.ChatRequest
+import com.bibleinspiration.domain.models.Church
 import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Conversation
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
+import com.bibleinspiration.domain.repositories.ChurchRepository
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
+import com.bibleinspiration.presentation.viewmodels.ChurchFinderSheetState
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.security.TurnstileManager
 import io.mockk.coEvery
@@ -55,6 +58,7 @@ class ChatViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChatRepository
+    private lateinit var churchRepository: ChurchRepository
     private lateinit var turnstileManager: TurnstileManager
     private lateinit var languagePreferences: LanguagePreferences
     private lateinit var context: Context
@@ -80,6 +84,7 @@ class ChatViewModelTest {
         coEvery { repository.saveMessage(any(), any()) } returns Unit
         coEvery { repository.touchConversation(any()) } returns Unit
         coEvery { repository.deleteConversation(any()) } returns Unit
+        churchRepository = mockk(relaxed = true)
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
@@ -100,6 +105,7 @@ class ChatViewModelTest {
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
         viewModel = ChatViewModel(
             repository,
+            churchRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -428,6 +434,7 @@ class ChatViewModelTest {
 
         val vm = ChatViewModel(
             repository,
+            churchRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -449,6 +456,7 @@ class ChatViewModelTest {
 
         val vm = ChatViewModel(
             repository,
+            churchRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -480,6 +488,7 @@ class ChatViewModelTest {
 
         val vm = ChatViewModel(
             repository,
+            churchRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -506,6 +515,7 @@ class ChatViewModelTest {
 
         val vm = ChatViewModel(
             repository,
+            churchRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -899,5 +909,232 @@ class ChatViewModelTest {
             repository.submitFeedback(any(), any(), any(), any())
         }
         assertTrue(viewModel.uiState.value.feedbackGiven.isEmpty())
+    }
+
+    // ── Church Finder tests ───────────────────────────────────────────────────
+
+    @Test
+    fun `initial church finder state has no banner and no inline card`() {
+        val state = viewModel.uiState.value
+        assertFalse(state.showChurchFinderBanner)
+        assertFalse(state.showChurchFinderInlineCard)
+        assertEquals(0, state.interactionCount)
+    }
+
+    @Test
+    fun `interactionCount increments after each completed stream`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Blessed are the peacemakers.", done = true),
+        )
+
+        viewModel.sendMessage("Message 1")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.interactionCount)
+
+        viewModel.sendMessage("Message 2")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, viewModel.uiState.value.interactionCount)
+    }
+
+    @Test
+    fun `showChurchFinderBanner becomes true after 3rd completed interaction`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        repeat(2) { i ->
+            viewModel.sendMessage("Message ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        assertFalse(viewModel.uiState.value.showChurchFinderBanner)
+
+        viewModel.sendMessage("Message 3")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showChurchFinderBanner)
+    }
+
+    @Test
+    fun `showChurchFinderBanner is not shown again once already dismissed`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        // Trigger banner at interaction 3.
+        repeat(3) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        assertTrue(viewModel.uiState.value.showChurchFinderBanner)
+
+        // Dismiss it.
+        viewModel.dismissChurchFinderBanner()
+        assertFalse(viewModel.uiState.value.showChurchFinderBanner)
+        assertFalse(viewModel.uiState.value.showChurchFinderInlineCard)
+
+        // Further interactions should not re-show the banner.
+        viewModel.sendMessage("Msg 4")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.showChurchFinderBanner)
+    }
+
+    @Test
+    fun `showChurchFinderInlineCard becomes true after 5th interaction when banner was dismissed`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        // Reach interaction 3 (banner appears), then dismiss.
+        repeat(3) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        viewModel.dismissChurchFinderBanner()
+
+        // 4th interaction — inline card not yet shown.
+        viewModel.sendMessage("Msg 4")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.showChurchFinderInlineCard)
+
+        // 5th interaction — inline card should appear.
+        viewModel.sendMessage("Msg 5")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showChurchFinderInlineCard)
+    }
+
+    @Test
+    fun `openChurchFinder dismisses banner and shows inline card`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        // Trigger banner at interaction 3.
+        repeat(3) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        assertTrue(viewModel.uiState.value.showChurchFinderBanner)
+
+        viewModel.openChurchFinder()
+
+        assertFalse(viewModel.uiState.value.showChurchFinderBanner)
+        assertTrue(viewModel.uiState.value.showChurchFinderInlineCard)
+    }
+
+    @Test
+    fun `openChurchFinder resets churchFinderSheetState to Idle`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+        repeat(3) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+
+        viewModel.openChurchFinder()
+
+        assertTrue(viewModel.churchFinderSheetState.value is ChurchFinderSheetState.Idle)
+    }
+
+    @Test
+    fun `searchChurches transitions through Loading then Success`() = runTest {
+        val stubChurches = listOf(
+            Church(
+                name = "Grace Church",
+                city = "Rome",
+                country = "Italy",
+                state = null,
+                address = "Via Roma 1",
+                phone = null,
+                email = null,
+                website = null,
+            ),
+        )
+        coEvery { churchRepository.searchChurches("Rome") } returns stubChurches
+
+        viewModel.searchChurches("Rome")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.churchFinderSheetState.value
+        assertTrue(state is ChurchFinderSheetState.Success)
+        assertEquals(1, (state as ChurchFinderSheetState.Success).churches.size)
+        assertEquals("Rome", state.location)
+        assertEquals("Grace Church", state.churches[0].name)
+    }
+
+    @Test
+    fun `searchChurches sets Error state when repository throws`() = runTest {
+        coEvery { churchRepository.searchChurches(any()) } throws IOException("no network")
+
+        viewModel.searchChurches("Berlin")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.churchFinderSheetState.value
+        assertTrue(state is ChurchFinderSheetState.Error)
+        assertEquals(
+            "Network error. Please check your connection.",
+            (state as ChurchFinderSheetState.Error).message,
+        )
+    }
+
+    @Test
+    fun `searchChurches with blank location is a no-op`() = runTest {
+        viewModel.searchChurches("   ")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // State stays Idle; repository never called.
+        assertTrue(viewModel.churchFinderSheetState.value is ChurchFinderSheetState.Idle)
+        coVerify(exactly = 0) { churchRepository.searchChurches(any()) }
+    }
+
+    @Test
+    fun `clearChurchFinderSheet resets state to Idle`() = runTest {
+        coEvery { churchRepository.searchChurches("Paris") } returns emptyList()
+
+        viewModel.searchChurches("Paris")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.churchFinderSheetState.value is ChurchFinderSheetState.Success)
+
+        viewModel.clearChurchFinderSheet()
+        assertTrue(viewModel.churchFinderSheetState.value is ChurchFinderSheetState.Idle)
+    }
+
+    @Test
+    fun `startNewConversation resets all church finder state`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+        coEvery { churchRepository.searchChurches(any()) } returns emptyList()
+
+        // Build up some church finder state.
+        repeat(3) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        assertTrue(viewModel.uiState.value.showChurchFinderBanner)
+        viewModel.openChurchFinder()
+        viewModel.searchChurches("London")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.startNewConversation()
+
+        val state = viewModel.uiState.value
+        assertEquals(0, state.interactionCount)
+        assertFalse(state.showChurchFinderBanner)
+        assertFalse(state.showChurchFinderInlineCard)
+        assertTrue(viewModel.churchFinderSheetState.value is ChurchFinderSheetState.Idle)
+    }
+
+    @Test
+    fun `interactionCount does not increment on stream error`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw IOException("network failure")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        assertFalse(viewModel.uiState.value.showChurchFinderBanner)
     }
 }

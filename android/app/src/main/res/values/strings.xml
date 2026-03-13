@@ -69,4 +69,21 @@
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Read full chapter</string>
     <string name="loading_chapter">Loading chapter…</string>
+
+    <!-- Church Finder -->
+    <string name="church_finder_banner_text">Looking for a faith community?</string>
+    <string name="church_finder_find_church">Find a Church</string>
+    <string name="church_finder_dismiss">Dismiss</string>
+    <string name="church_finder_modal_title">Find a Church</string>
+    <string name="church_finder_modal_subtitle">Connect with a faith community near you</string>
+    <string name="church_finder_search_placeholder">City in English (e.g., Rome, Munich, Zurich)</string>
+    <string name="church_finder_search_button">Search</string>
+    <string name="church_finder_location_hint">Use English city names (e.g., Rome, Munich, Vienna)</string>
+    <string name="church_finder_enter_location">Enter a location to search</string>
+    <string name="church_finder_found_count">Found %d churches</string>
+    <string name="church_finder_no_churches_found">No churches found</string>
+    <string name="church_finder_no_churches_hint">Try a different location or broader search term.</string>
+    <string name="church_finder_website">Website</string>
+    <string name="church_finder_email">Email</string>
+    <string name="church_finder_data_credit">Church data provided by DisciplesToday.org</string>
 </resources>

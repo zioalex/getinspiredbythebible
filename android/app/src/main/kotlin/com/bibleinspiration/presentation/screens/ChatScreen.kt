@@ -51,6 +51,8 @@ import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.components.ChatInputField
 import com.bibleinspiration.presentation.components.ChatMessageItem
+import com.bibleinspiration.presentation.components.ChurchFinderBanner
+import com.bibleinspiration.presentation.components.ChurchFinderBottomSheet
 import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.WelcomeBanner
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
@@ -65,6 +67,7 @@ fun ChatScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val chapterSheetState by viewModel.chapterSheetState.collectAsState()
+    val churchFinderSheetState by viewModel.churchFinderSheetState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -76,6 +79,9 @@ fun ChatScreen(
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
         }
     }
+
+    // Whether the church-finder bottom sheet should be open.
+    var showChurchFinderSheet by rememberSaveable { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -105,6 +111,18 @@ fun ChatScreen(
             }
             viewModel.clearError()
         }
+    }
+
+    // Church-finder bottom sheet
+    if (showChurchFinderSheet) {
+        ChurchFinderBottomSheet(
+            churchFinderState = churchFinderSheetState,
+            onSearch = viewModel::searchChurches,
+            onDismiss = {
+                showChurchFinderSheet = false
+                viewModel.clearChurchFinderSheet()
+            },
+        )
     }
 
     Scaffold(
@@ -184,6 +202,20 @@ fun ChatScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }
+
+                    // Church-finder inline card — appears in the message list after 5 interactions.
+                    if (uiState.showChurchFinderInlineCard) {
+                        item(key = "church_finder_inline") {
+                            ChurchFinderBanner(
+                                onFindChurch = {
+                                    showChurchFinderSheet = true
+                                    viewModel.openChurchFinder()
+                                },
+                                onDismiss = viewModel::dismissChurchFinderBanner,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
                 }
 
                 // Scroll-to-bottom FAB — visible when the user has scrolled up.
@@ -236,6 +268,17 @@ fun ChatScreen(
                         }
                     }
                 }
+            }
+
+            // Church-finder banner — shown above the input field after 3 interactions.
+            if (uiState.showChurchFinderBanner) {
+                ChurchFinderBanner(
+                    onFindChurch = {
+                        showChurchFinderSheet = true
+                        viewModel.openChurchFinder()
+                    },
+                    onDismiss = viewModel::dismissChurchFinderBanner,
+                )
             }
 
             TurnstileWebView(turnstileManager = viewModel.turnstileManager)
