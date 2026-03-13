@@ -1,7 +1,9 @@
 package com.bibleinspiration.data.remote.models
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class ChurchSearchRequestDto(
-    @SerializedName("location") val location: String,
+    @SerialName("location") val location: String,
 )
