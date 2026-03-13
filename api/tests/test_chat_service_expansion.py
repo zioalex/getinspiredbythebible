@@ -109,6 +109,7 @@ class TestQueryExpansionFeatureFlag:
         """When query_expansion_enabled=False, _expand_query should NOT be called."""
         mock_settings.query_expansion_enabled = False
         mock_settings.hybrid_search_enabled = False
+        mock_settings.topic_boosting_enabled = False
         mock_settings.content_filter_intent_detection = False
         mock_settings.max_context_verses = 10
         mock_settings.max_message_length = 200
@@ -159,6 +160,7 @@ class TestQueryExpansionFeatureFlag:
         """When query_expansion_enabled=True, _expand_query should be called."""
         mock_settings.query_expansion_enabled = True
         mock_settings.hybrid_search_enabled = False
+        mock_settings.topic_boosting_enabled = False
         mock_settings.content_filter_intent_detection = False
         mock_settings.max_context_verses = 10
         mock_settings.max_message_length = 200

@@ -34,6 +34,7 @@ from .prompts import (
     get_system_prompt,
     get_verse_lookup_prompt,
 )
+from .topics import detect_topics
 
 logger = get_logger(__name__)
 
@@ -231,6 +232,20 @@ Keep it under 100 words."""
             logger.warning("Query expansion failed, using original query: %s", e)
             return user_message
 
+    def _detect_topics(self, message: str) -> list[str]:
+        """
+        Detect biblical topics in user message using keyword-based mapping.
+
+        Fast keyword scan, no LLM call. Returns list of topic names.
+        """
+        topics = detect_topics(message)
+        if topics:
+            logger.info(
+                "Topics detected for boosting",
+                extra={"detected_topics": topics, "message_length": len(message)},
+            )
+        return topics
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -414,7 +429,7 @@ Keep it under 100 words."""
             translation_info=translation_info,
         )
 
-    async def _search_scripture(
+    async def _search_scripture(  # noqa: C901
         self,
         request: ChatRequest,
         translation: str,
@@ -455,25 +470,51 @@ Keep it under 100 words."""
                         extra={"num_extra_embeddings": len(extra_embeddings)},
                     )
 
-            # Semantic or hybrid search for additional context
+            # Topic detection for boosting (keyword-based, <10ms)
+            boost_topics: list[str] = []
+            if settings.topic_boosting_enabled:
+                boost_topics = self._detect_topics(request.message)
+
+            # Semantic or hybrid search (optionally with topic boosting)
             if settings.hybrid_search_enabled:
-                semantic_results = await self.search_service.search(
-                    query=request.message,
-                    max_verses=settings.max_context_verses,
-                    max_passages=2,
-                    similarity_threshold=0.35,
-                    translation=translation,
-                    extra_embeddings=extra_embeddings,
-                )
-                scripture_context = await self.search_service.search_hybrid(
-                    query=request.message,
-                    max_verses=settings.max_context_verses,
-                    max_passages=2,
-                    similarity_threshold=0.35,
-                    translation=translation,
-                    semantic_weight=settings.hybrid_search_semantic_weight,
-                    keyword_weight=settings.hybrid_search_keyword_weight,
-                )
+                if settings.topic_boosting_enabled and boost_topics:
+                    semantic_results = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
+                    scripture_context = await self.search_service.search_hybrid_boosted(
+                        query=request.message,
+                        boost_topics=boost_topics,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        semantic_weight=settings.hybrid_search_semantic_weight,
+                        keyword_weight=settings.hybrid_search_keyword_weight,
+                        topic_boost_factor=settings.topic_boost_factor,
+                    )
+                else:
+                    semantic_results = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
+                    scripture_context = await self.search_service.search_hybrid(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        semantic_weight=settings.hybrid_search_semantic_weight,
+                        keyword_weight=settings.hybrid_search_keyword_weight,
+                    )
                 # Log differences for monitoring
                 semantic_refs = {v.reference for v in semantic_results.verses}
                 hybrid_refs = {v.reference for v in scripture_context.verses}
@@ -488,14 +529,26 @@ Keep it under 100 words."""
                         },
                     )
             else:
-                scripture_context = await self.search_service.search(
-                    query=request.message,
-                    max_verses=settings.max_context_verses,
-                    max_passages=2,
-                    similarity_threshold=0.35,
-                    translation=translation,
-                    extra_embeddings=extra_embeddings,  # NEW
-                )
+                if settings.topic_boosting_enabled and boost_topics:
+                    scripture_context = await self.search_service.search_boosted(
+                        query=request.message,
+                        boost_topics=boost_topics,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        topic_boost_factor=settings.topic_boost_factor,
+                        extra_embeddings=extra_embeddings,
+                    )
+                else:
+                    scripture_context = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
 
             # Merge direct lookup results with semantic search
             self._merge_direct_verses(scripture_context, direct_verses)
@@ -510,6 +563,8 @@ Keep it under 100 words."""
                     "is_verse_lookup": is_verse_lookup,
                     "query_expansion_used": extra_embeddings is not None,
                     "hybrid_search_used": settings.hybrid_search_enabled,
+                    "topic_boosting_used": settings.topic_boosting_enabled and bool(boost_topics),
+                    "boost_topics": boost_topics if boost_topics else [],
                 },
             )
         except Exception as e:

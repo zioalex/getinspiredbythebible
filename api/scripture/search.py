@@ -272,6 +272,164 @@ class ScriptureSearchService:
 
         return SearchResults(query=query, verses=verses, passages=passages)
 
+    async def search_boosted(
+        self,
+        query: str,
+        boost_topics: list[str],
+        max_verses: int = 5,
+        max_passages: int = 2,
+        similarity_threshold: float = 0.35,
+        translation: str | None = None,
+        topic_boost_factor: float = 0.2,
+        extra_embeddings: list[list[float]] | None = None,
+    ) -> SearchResults:
+        """
+        Semantic search with topic-based boosting.
+
+        Args:
+            query: Natural language query
+            boost_topics: Topic names to boost in ranking
+            topic_boost_factor: Multiplicative boost per matching topic
+            ... (same as search())
+
+        Returns:
+            SearchResults with topic-boosted verse ranking
+        """
+        embedding_response = await self.embedding_provider.embed(query)
+        query_embedding = embedding_response.embedding
+
+        verse_results = await self.repo.search_verses_semantic_boosted(
+            query_embedding=query_embedding,
+            boost_topics=boost_topics,
+            topic_boost_factor=topic_boost_factor,
+            limit=max_verses,
+            similarity_threshold=similarity_threshold,
+            translation=translation,
+        )
+
+        logger.info(
+            "Topic-boosted semantic search completed",
+            extra={
+                "query": query[:100],
+                "boost_topics": boost_topics,
+                "verses_found": len(verse_results),
+                "topic_boost_factor": topic_boost_factor,
+            },
+        )
+
+        verses = [
+            VerseResult(
+                reference=self._get_localized_reference(verse),
+                text=verse.text,
+                book=verse.book.name,
+                localized_book=get_localized_book_name(verse.book.name, verse.translation),
+                chapter=verse.chapter_number,
+                verse=verse.verse_number,
+                translation=verse.translation,
+                similarity=round(score, 3),
+            )
+            for verse, score in verse_results
+        ]
+
+        # Passages use standard semantic search (no topic boosting for passages yet)
+        passage_results = await self.repo.search_passages_semantic(
+            query_embedding=query_embedding,
+            limit=max_passages,
+            similarity_threshold=similarity_threshold,
+        )
+
+        passages = [
+            PassageResult(
+                title=passage.title,
+                reference=passage.reference,
+                text=passage.text,
+                topics=passage.topics.split(",") if passage.topics else None,
+                similarity=round(similarity, 3),
+            )
+            for passage, similarity in passage_results
+        ]
+
+        return SearchResults(query=query, verses=verses, passages=passages)
+
+    async def search_hybrid_boosted(
+        self,
+        query: str,
+        boost_topics: list[str],
+        max_verses: int = 5,
+        max_passages: int = 2,
+        similarity_threshold: float = 0.35,
+        translation: str | None = None,
+        semantic_weight: float = 0.7,
+        keyword_weight: float = 0.3,
+        topic_boost_factor: float = 0.2,
+    ) -> SearchResults:
+        """
+        Hybrid search with topic-based boosting.
+        """
+        embedding_response = await self.embedding_provider.embed(query)
+        query_embedding = embedding_response.embedding
+
+        verse_results = await self.repo.search_verses_hybrid_boosted(
+            query_text=query,
+            query_embedding=query_embedding,
+            boost_topics=boost_topics,
+            topic_boost_factor=topic_boost_factor,
+            semantic_weight=semantic_weight,
+            keyword_weight=keyword_weight,
+            similarity_threshold=similarity_threshold,
+            limit=max_verses,
+            translation=translation,
+        )
+
+        logger.info(
+            "Topic-boosted hybrid search completed",
+            extra={
+                "query": query[:100],
+                "boost_topics": boost_topics,
+                "verses_found": len(verse_results),
+                "semantic_weight": semantic_weight,
+                "keyword_weight": keyword_weight,
+                "topic_boost_factor": topic_boost_factor,
+            },
+        )
+
+        verses = [
+            VerseResult(
+                reference=self._get_localized_reference(verse),
+                text=verse.text,
+                book=verse.book.name,
+                localized_book=get_localized_book_name(verse.book.name, verse.translation),
+                chapter=verse.chapter_number,
+                verse=verse.verse_number,
+                translation=verse.translation,
+                similarity=round(score, 3),
+            )
+            for verse, score in verse_results
+        ]
+
+        # Hybrid search passages
+        passage_results = await self.repo.search_passages_hybrid(
+            query_text=query,
+            query_embedding=query_embedding,
+            semantic_weight=semantic_weight,
+            keyword_weight=keyword_weight,
+            similarity_threshold=similarity_threshold,
+            limit=max_passages,
+        )
+
+        passages = [
+            PassageResult(
+                title=passage.title,
+                reference=passage.reference,
+                text=passage.text,
+                topics=passage.topics.split(",") if passage.topics else None,
+                similarity=round(score, 3),
+            )
+            for passage, score in passage_results
+        ]
+
+        return SearchResults(query=query, verses=verses, passages=passages)
+
     async def get_verse(
         self, book: str, chapter: int, verse: int, translation: str | None = None
     ) -> VerseResult | None:

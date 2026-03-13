@@ -78,3 +78,72 @@ DROP INDEX IF EXISTS idx_passages_fts_simple;
 - Index size: ~10-15 MB per index (~60 MB total for 4 indexes)
 - Query latency: +50-200ms for hybrid search (total <2s)
 - Safe to run multiple times (idempotent)
+
+---
+
+## Migration 004: Add verse_topics Junction Table for Topic Boosting
+
+**File:** `004_add_topic_boosting_schema.sql`
+**Date:** 2026-02-24
+**PR:** BITB-018.3
+**Purpose:** Enable topic-based score boosting for semantic/hybrid search
+
+### What This Migration Does
+
+1. Creates `verse_topics` junction table linking verses to topics
+2. Adds indexes on `verse_id` and `topic_id` for fast JOIN queries
+3. Seeds 13 initial biblical topics (peace, forgiveness, faith, etc.)
+
+### Prerequisites (Migration 004)
+
+- `topics` table must already exist (created in `scripts/init.sql`)
+- `verses` table must already exist
+
+### Run Migration (Migration 004)
+
+```bash
+psql $DATABASE_URL -f scripts/migrations/004_add_topic_boosting_schema.sql
+```
+
+### Verify (Migration 004)
+
+```sql
+-- Check tables exist
+SELECT tablename FROM pg_tables WHERE tablename IN ('topics', 'verse_topics');
+
+-- Check seeded topics
+SELECT name, description FROM topics ORDER BY name;
+
+-- Check indexes
+SELECT indexname FROM pg_indexes WHERE tablename = 'verse_topics';
+```
+
+### Rollback (Migration 004)
+
+```sql
+DROP TABLE IF EXISTS verse_topics;
+-- Topics table is kept (it existed before this migration)
+-- To remove seeded topics: DELETE FROM topics WHERE name IN ('anxiety', 'peace', ...);
+```
+
+### Performance Impact (Migration 004)
+
+- Table creation: instant
+- Index creation: instant (empty table)
+- `verse_topics` is initially empty — populate via curation scripts or manual tagging
+- Topic-boosted queries add ~1 LEFT JOIN: +50-100ms latency when topics match
+- No impact when `TOPIC_BOOSTING_ENABLED=false` (feature flag default)
+
+### Enabling Topic Boosting
+
+Set in `api/.env`:
+
+```env
+TOPIC_BOOSTING_ENABLED=true
+TOPIC_BOOST_FACTOR=0.2
+```
+
+The `TOPIC_BOOST_FACTOR` controls the multiplicative boost per matching topic:
+
+- `0.2` = 20% boost per topic (default)
+- Example: verse with 2 matching topics → `score * 1.4`
