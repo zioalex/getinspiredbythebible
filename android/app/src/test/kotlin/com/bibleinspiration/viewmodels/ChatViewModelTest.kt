@@ -688,7 +688,7 @@ class ChatViewModelTest {
 
     @Test
     fun `submitFeedback with blank messageId is ignored`() = runTest {
-        viewModel.submitFeedback("", FeedbackRating.POSITIVE)
+        viewModel.submitFeedback("", FeedbackRating.POSITIVE.name.lowercase())
         testDispatcher.scheduler.advanceUntilIdle()
 
         // No state change, no repository call
@@ -742,7 +742,7 @@ class ChatViewModelTest {
         assertEquals("", assistant.messageId)
 
         // Calling submitFeedback with a non-existent messageId → no state change
-        viewModel.submitFeedback("non-existent-id", FeedbackRating.POSITIVE)
+        viewModel.submitFeedback("non-existent-id", "positive")
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) {
@@ -752,7 +752,7 @@ class ChatViewModelTest {
 
     @Test
     fun `submitFeedback is no-op when message has no messageId (blank)`() = runTest {
-        viewModel.submitFeedback("", FeedbackRating.NEGATIVE)
+        viewModel.submitFeedback("", "negative")
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) {
@@ -782,7 +782,7 @@ class ChatViewModelTest {
 
         // We cannot inject messageId without going through the actual SSE path.
         // Verify the repository delegation contract by checking no call on blank id:
-        viewModel.submitFeedback(knownMessageId, FeedbackRating.POSITIVE)
+        viewModel.submitFeedback(knownMessageId, "positive")
         testDispatcher.scheduler.advanceUntilIdle()
 
         // The message with knownMessageId doesn't exist in state → no call (guard triggers).
@@ -800,7 +800,7 @@ class ChatViewModelTest {
         val stateBeforeFeedback = viewModel.uiState.value.messages.toList()
 
         // Submit feedback for a non-existent messageId
-        viewModel.submitFeedback("non-existent-uuid", FeedbackRating.NEGATIVE)
+        viewModel.submitFeedback("non-existent-uuid", "negative")
         testDispatcher.scheduler.advanceUntilIdle()
 
         val stateAfterFeedback = viewModel.uiState.value.messages.toList()
@@ -836,13 +836,68 @@ class ChatViewModelTest {
         // Since our stream mock yields no metadata chunk, messageId is always "".
         // We verify the happy-path contract by patching the _uiState via a test-only helper.
         // This is intentionally an integration-style test — the real guarantee is:
-        //   if a message with the given messageId IS in state, feedbackRating is updated.
+        //   if a message with the given messageId IS in state, feedbackGiven is updated.
         // We confirm the guard (messageId not found → no-op) covers the missing-id case.
-        viewModel.submitFeedback(knownMessageId, FeedbackRating.POSITIVE)
+        viewModel.submitFeedback(knownMessageId, "positive")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Since the message is not in state, feedbackRating should remain null on all messages.
-        val allMessages = viewModel.uiState.value.messages
-        assertTrue(allMessages.all { it.feedbackRating == null })
+        // Since the message is not in state, feedbackGiven should remain empty.
+        assertTrue(viewModel.uiState.value.feedbackGiven.isEmpty())
+    }
+
+    @Test
+    fun `submitFeedback updates feedbackGiven state on success`() = runTest {
+        val backendMessageId = "backend-uuid-1"
+
+        // Set up a successful chat stream that produces an assistant message.
+        // The stream emits a metadata chunk (with messageId) then a content chunk.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "", messageId = backendMessageId, done = false),
+            StreamChunk(content = "Here is some inspiration.", done = true),
+        )
+        coEvery {
+            repository.submitFeedback(
+                messageId = backendMessageId,
+                rating = FeedbackRating.POSITIVE,
+                userMessage = any(),
+                assistantResponse = any(),
+            )
+        } returns Unit
+
+        viewModel.sendMessage("Tell me something inspiring")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Get the local ID of the assistant message.
+        val assistantMsg = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals(backendMessageId, assistantMsg.messageId)
+
+        viewModel.submitFeedback(assistantMsg.id, "positive")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("positive", viewModel.uiState.value.feedbackGiven[assistantMsg.id])
+        assertFalse(viewModel.uiState.value.isFeedbackSubmitting)
+    }
+
+    @Test
+    fun `submitFeedback is no-op when messageId is blank`() = runTest {
+        // Stream a message that intentionally has no metadata event (blank messageId).
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Some content", done = true),
+        )
+
+        viewModel.sendMessage("Any question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistantMsg = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        // Verify the assistant has a blank messageId (no metadata chunk was emitted).
+        assertEquals("", assistantMsg.messageId)
+
+        viewModel.submitFeedback(assistantMsg.id, "positive")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) {
+            repository.submitFeedback(any(), any(), any(), any())
+        }
+        assertTrue(viewModel.uiState.value.feedbackGiven.isEmpty())
     }
 }

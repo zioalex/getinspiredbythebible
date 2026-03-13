@@ -54,8 +54,11 @@
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
     <string name="action_share_message">Share message</string>
-    <string name="action_feedback_positive">Helpful</string>
-    <string name="action_feedback_negative">Not helpful</string>
+
+    <!-- Feedback -->
+    <string name="action_feedback_helpful">This was helpful</string>
+    <string name="action_feedback_not_helpful">This was not helpful</string>
+    <string name="feedback_thank_you">Thank you for your feedback!</string>
 
     <!-- Backend warm-up -->
     <string name="backend_warming_up">Connecting to server… (first request may take up to 30 s)</string>
