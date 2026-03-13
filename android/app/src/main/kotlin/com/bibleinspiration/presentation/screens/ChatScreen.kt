@@ -342,4 +342,3 @@ fun ChatScreen(
         }
     }
 }
-
