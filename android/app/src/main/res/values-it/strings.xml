@@ -94,4 +94,11 @@
     <string name="contact_success_title">Messaggio inviato con successo!</string>
     <string name="contact_success_description">Grazie per averci contattato. Esamineremo il tuo messaggio a breve.</string>
     <string name="contact_error_send">Invio del messaggio non riuscito. Riprova.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Versetti correlati</string>
+    <string name="verses_panel_title">Versetti correlati</string>
+    <string name="verses_filter_referenced">Citati</string>
+    <string name="verses_filter_all_related">Tutti (%d)</string>
+    <string name="verses_panel_empty">Nessun versetto trovato per questo filtro.</string>
 </resources>

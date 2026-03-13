@@ -94,4 +94,11 @@
     <string name="contact_success_title">¡Mensaje enviado con éxito!</string>
     <string name="contact_success_description">Gracias por contactarnos. Revisaremos tu mensaje pronto.</string>
     <string name="contact_error_send">No se pudo enviar el mensaje. Por favor, inténtalo de nuevo.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Versículos relacionados</string>
+    <string name="verses_panel_title">Versículos relacionados</string>
+    <string name="verses_filter_referenced">Citados</string>
+    <string name="verses_filter_all_related">Todos (%d)</string>
+    <string name="verses_panel_empty">No se encontraron versículos para este filtro.</string>
 </resources>

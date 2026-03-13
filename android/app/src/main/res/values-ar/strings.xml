@@ -94,4 +94,11 @@
     <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>
     <string name="contact_success_description">شكراً لتواصلك معنا. سنراجع رسالتك قريباً.</string>
     <string name="contact_error_send">فشل إرسال الرسالة. يرجى المحاولة مجدداً.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">آيات ذات صلة</string>
+    <string name="verses_panel_title">الآيات ذات الصلة</string>
+    <string name="verses_filter_referenced">مذكورة</string>
+    <string name="verses_filter_all_related">الكل (%d)</string>
+    <string name="verses_panel_empty">لا توجد آيات لهذا الفلتر.</string>
 </resources>

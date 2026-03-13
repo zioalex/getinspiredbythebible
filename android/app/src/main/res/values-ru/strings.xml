@@ -100,4 +100,11 @@
     <string name="contact_success_title">Сообщение успешно отправлено!</string>
     <string name="contact_success_description">Спасибо за обращение. Мы рассмотрим ваше сообщение в ближайшее время.</string>
     <string name="contact_error_send">Не удалось отправить сообщение. Повторите попытку.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Связанные стихи</string>
+    <string name="verses_panel_title">Связанные стихи</string>
+    <string name="verses_filter_referenced">Упомянутые</string>
+    <string name="verses_filter_all_related">Все (%d)</string>
+    <string name="verses_panel_empty">Стихи для этого фильтра не найдены.</string>
 </resources>

@@ -100,4 +100,11 @@
     <string name="contact_success_title">संदेश सफलतापूर्वक भेजा गया!</string>
     <string name="contact_success_description">संपर्क करने के लिए धन्यवाद। हम जल्द ही आपके संदेश की समीक्षा करेंगे।</string>
     <string name="contact_error_send">संदेश भेजने में विफल। पुनः प्रयास करें।</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">संबंधित पद</string>
+    <string name="verses_panel_title">संबंधित पद</string>
+    <string name="verses_filter_referenced">उल्लिखित</string>
+    <string name="verses_filter_all_related">सभी (%d)</string>
+    <string name="verses_panel_empty">इस फ़िल्टर के लिए कोई पद नहीं मिला।</string>
 </resources>

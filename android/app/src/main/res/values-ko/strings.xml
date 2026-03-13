@@ -100,4 +100,11 @@
     <string name="contact_success_title">메시지가 성공적으로 전송되었습니다!</string>
     <string name="contact_success_description">문의해 주셔서 감사합니다. 곧 메시지를 검토하겠습니다.</string>
     <string name="contact_error_send">메시지 전송에 실패했습니다. 다시 시도하세요.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">관련 구절</string>
+    <string name="verses_panel_title">관련 구절</string>
+    <string name="verses_filter_referenced">인용된</string>
+    <string name="verses_filter_all_related">전체 (%d)</string>
+    <string name="verses_panel_empty">이 필터에 맞는 구절이 없습니다.</string>
 </resources>
