@@ -100,6 +100,12 @@ data class ChatUiState(
      * "Find a Church").
      */
     val showChurchFinderInlineCard: Boolean = false,
+    /**
+     * Flat, deduplicated list of all [Verse] objects across every finished assistant
+     * message in the current conversation.  Populated incrementally as each
+     * streaming response completes.  Used by the Verses sidebar panel.
+     */
+    val allVerses: List<Verse> = emptyList(),
 )
 
 @HiltViewModel
@@ -288,6 +294,11 @@ class ChatViewModel @Inject constructor(
 
                         _uiState.update { state ->
                             val newCount = state.interactionCount + 1
+                            // Append new verses, deduplicating by reference + translation.
+                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}${it.translation}" }.toHashSet()
+                            val dedupedNew = finalVerses.filterNot { v ->
+                                "${v.book}${v.chapter}:${v.verse}${v.translation}" in existingRefs
+                            }
                             state.copy(
                                 messages = state.messages.map { msg ->
                                     if (msg.id == assistantId) finalAssistant else msg
@@ -305,6 +316,7 @@ class ChatViewModel @Inject constructor(
                                 // was already dismissed without opening the sheet.
                                 showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
                                     (newCount >= 5 && !state.showChurchFinderBanner),
+                                allVerses = state.allVerses + dedupedNew,
                             )
                         }
                     }
@@ -364,10 +376,15 @@ class ChatViewModel @Inject constructor(
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
-    fun loadConversation(conversationId: String) {
+     fun loadConversation(conversationId: String) {
         viewModelScope.launch {
             repository.observeMessages(conversationId).collect { messages ->
-                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId) }
+                // Re-derive allVerses from loaded messages (deduplicated).
+                val allVerses = messages
+                    .filter { it.role == Message.Role.ASSISTANT }
+                    .flatMap { it.verses }
+                    .distinctBy { "${it.book}${it.chapter}:${it.verse}${it.translation}" }
+                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
     }
@@ -385,6 +402,7 @@ class ChatViewModel @Inject constructor(
                 interactionCount = 0,
                 showChurchFinderBanner = false,
                 showChurchFinderInlineCard = false,
+                allVerses = emptyList(),
             )
         }
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
@@ -494,7 +512,7 @@ class ChatViewModel @Inject constructor(
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
                 repository.deleteConversation(conversationId)

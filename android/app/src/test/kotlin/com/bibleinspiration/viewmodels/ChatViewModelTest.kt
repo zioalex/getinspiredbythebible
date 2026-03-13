@@ -1189,4 +1189,101 @@ class ChatViewModelTest {
         assertTrue(viewModel.contactFormState.value is ContactFormState.Idle)
         coVerify(exactly = 0) { contactRepository.submitContact(any(), any(), any(), any()) }
     }
+
+    // ── allVerses (GAP-011) ───────────────────────────────────────────────────
+
+    @Test
+    fun `allVerses populated after sendMessage completes with verses`() = runTest {
+        val verse = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "See John 3:16", done = true, verses = listOf(verse)),
+        )
+
+        viewModel.sendMessage("I need hope")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.allVerses.size)
+        assertEquals("John", viewModel.uiState.value.allVerses[0].book)
+        assertEquals(16, viewModel.uiState.value.allVerses[0].verse)
+    }
+
+    @Test
+    fun `allVerses deduplicates identical verses across multiple sendMessage calls`() = runTest {
+        val verse = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "John 3:16", done = true, verses = listOf(verse)),
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.sendMessage("Second question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Same verse in both responses — should appear only once.
+        assertEquals(1, viewModel.uiState.value.allVerses.size)
+    }
+
+    @Test
+    fun `allVerses accumulates distinct verses across multiple sendMessage calls`() = runTest {
+        val john316 = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
+        val psalms231 = Verse(book = "Psalms", chapter = 23, verse = 1, text = "The Lord is my shepherd...")
+
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flowOf(StreamChunk(content = "John 3:16", done = true, verses = listOf(john316))),
+            flowOf(StreamChunk(content = "Psalms 23:1", done = true, verses = listOf(psalms231))),
+        )
+
+        viewModel.sendMessage("Hope verse")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.sendMessage("Comfort verse")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(2, viewModel.uiState.value.allVerses.size)
+    }
+
+    @Test
+    fun `allVerses cleared on startNewConversation`() = runTest {
+        val verse = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "John 3:16", done = true, verses = listOf(verse)),
+        )
+
+        viewModel.sendMessage("Question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.allVerses.size)
+
+        viewModel.startNewConversation()
+
+        assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    @Test
+    fun `allVerses cleared on clearConversation`() = runTest {
+        val verse = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "John 3:16", done = true, verses = listOf(verse)),
+        )
+
+        viewModel.sendMessage("Question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.allVerses.size)
+
+        viewModel.clearConversation()
+
+        assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    @Test
+    fun `allVerses is empty when stream completes with no verses`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "No references here.", done = true),
+        )
+
+        viewModel.sendMessage("Generic question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
 }

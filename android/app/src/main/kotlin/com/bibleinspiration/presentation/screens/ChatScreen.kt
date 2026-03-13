@@ -15,7 +15,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +57,7 @@ import com.bibleinspiration.presentation.components.ChatMessageItem
 import com.bibleinspiration.presentation.components.ChurchFinderBanner
 import com.bibleinspiration.presentation.components.ChurchFinderBottomSheet
 import com.bibleinspiration.presentation.components.TurnstileWebView
+import com.bibleinspiration.presentation.components.VersesPanel
 import com.bibleinspiration.presentation.components.WelcomeBanner
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import kotlinx.coroutines.launch
@@ -82,6 +86,9 @@ fun ChatScreen(
 
     // Whether the church-finder bottom sheet should be open.
     var showChurchFinderSheet by rememberSaveable { mutableStateOf(false) }
+
+    // Whether the verses panel should be open.
+    var showVersesPanel by rememberSaveable { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -125,6 +132,19 @@ fun ChatScreen(
         )
     }
 
+    // Verses sidebar panel
+    if (showVersesPanel) {
+        VersesPanel(
+            allVerses = uiState.allVerses,
+            messages = uiState.messages,
+            chapterSheetState = chapterSheetState,
+            preferredTranslation = uiState.currentLocale.takeIf { it != "en" },
+            onLoadChapter = viewModel::loadChapter,
+            onDismissSheet = viewModel::clearChapterSheet,
+            onDismiss = { showVersesPanel = false },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -135,6 +155,21 @@ fun ChatScreen(
                     )
                 },
                 actions = {
+                    // Verses panel icon — shown when there are related verses.
+                    if (uiState.allVerses.isNotEmpty()) {
+                        IconButton(onClick = { showVersesPanel = true }) {
+                            BadgedBox(
+                                badge = {
+                                    Badge { Text(uiState.allVerses.size.toString()) }
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = stringResource(R.string.action_open_verses_panel),
+                                )
+                            }
+                        }
+                    }
                     if (uiState.messages.isNotEmpty()) {
                         IconButton(onClick = viewModel::clearConversation) {
                             Icon(
@@ -307,3 +342,4 @@ fun ChatScreen(
         }
     }
 }
+

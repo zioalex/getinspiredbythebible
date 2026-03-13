@@ -100,4 +100,11 @@
     <string name="contact_success_title">消息发送成功！</string>
     <string name="contact_success_description">感谢您的联系，我们将尽快查看您的消息。</string>
     <string name="contact_error_send">消息发送失败，请重试。</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">相关经文</string>
+    <string name="verses_panel_title">相关经文</string>
+    <string name="verses_filter_referenced">引用的</string>
+    <string name="verses_filter_all_related">全部 (%d)</string>
+    <string name="verses_panel_empty">此筛选条件下未找到经文。</string>
 </resources>
