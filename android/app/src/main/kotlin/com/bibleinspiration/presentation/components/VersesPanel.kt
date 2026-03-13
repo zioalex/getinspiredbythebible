@@ -38,7 +38,7 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  * we're matching plain text extracted from Message.content).
  */
 private val CITED_VERSE_REF_REGEX = Regex(
-    "((?:[1-3]\\s)?[A-Z][a-zA-Z]+(?:\\s[A-Z][a-zA-Z]+)?)\\s(\\d+):(\\d+(?:-\\d+)?)\\b",
+    "((?:[1-3]\\s)?[A-Z][a-zA-Z]+)\\s(\\d+):(\\d+(?:-\\d+)?)\\b",
 )
 
 /**
