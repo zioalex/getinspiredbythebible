@@ -42,6 +42,73 @@ import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
+import java.net.URLDecoder
+import java.net.URLEncoder
+
+/**
+ * Regex matching standalone Bible verse references in message text.
+ * Captures: group 1 = book name, group 2 = chapter number, group 3 = verse (may include range).
+ *
+ * Examples matched: "John 3:16", "1 Corinthians 13:4", "Song of Solomon 2:1", "Rev 22:21-22"
+ *
+ * We exclude references already inside a markdown link by checking the character before the
+ * match in the replace lambda (if preceded by '[', the ref is already a link display text).
+ */
+private val VERSE_REF_REGEX = Regex(
+    // Optional numeric prefix: "1 ", "2 ", "3 "
+    "((?:[1-3]\\s)?" +
+        // Book name: one or two capitalised words
+        "[A-Z][a-zA-Z]+(?:\\s[A-Z][a-zA-Z]+)*)\\s" +
+        // Chapter:verse (with optional verse range)
+        "(\\d+):(\\d+(?:-\\d+)?)\\b",
+)
+
+private const val VERSE_SCHEME = "verse://"
+
+/**
+ * Rewrites verse references in [markdown] as markdown links using the `verse://` scheme.
+ *
+ * E.g. "John 3:16" → "[John 3:16](verse://John/3/16)"
+ *
+ * The book name is URL-encoded so that spaces survive the round-trip through the Markwon
+ * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
+ * are left unchanged by checking that the character before the match is not `[`.
+ */
+internal fun injectVerseLinks(markdown: String): String =
+    VERSE_REF_REGEX.replace(markdown) { result ->
+        // If the match is immediately preceded by '[', it is already the display text of a
+        // markdown link — skip it to avoid double-wrapping.
+        val before = if (result.range.first > 0) markdown[result.range.first - 1] else '\u0000'
+        if (before == '[') {
+            result.value
+        } else {
+            val book = result.groupValues[1]
+            val chapter = result.groupValues[2]
+            val verse = result.groupValues[3]
+            val encodedBook = URLEncoder.encode(book, "UTF-8")
+            val display = "$book $chapter:$verse"
+            "[$display]($VERSE_SCHEME$encodedBook/$chapter/$verse)"
+        }
+    }
+
+/**
+ * Parses a `verse://` URL and calls [onLoadChapter] if the URL is well-formed.
+ *
+ * URL format: `verse://<encoded-book>/<chapter>/<verse>`
+ */
+internal fun handleVerseLink(
+    url: String,
+    preferredTranslation: String?,
+    onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
+) {
+    if (!url.startsWith(VERSE_SCHEME)) return
+    val path = url.removePrefix(VERSE_SCHEME)
+    val parts = path.split("/")
+    if (parts.size < 2) return
+    val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return
+    val chapter = parts[1].toIntOrNull() ?: return
+    onLoadChapter(book, chapter, preferredTranslation)
+}
 
 @Composable
 fun ChatMessageItem(
@@ -141,13 +208,19 @@ fun ChatMessageItem(
                             }
                         }
 
-                        // (c) Finished assistant message — render as Markdown.
-                        // Use the non-deprecated MarkdownText overload: pass color via style.
+                        // (c) Finished assistant message — render as Markdown with tappable verse refs.
+                        // Verse references (e.g. "John 3:16") are rewritten as verse:// links so
+                        // that tapping them opens the chapter bottom sheet directly.
                         !isUser -> {
                             val bodyMedium = MaterialTheme.typography.bodyMedium
+                            val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
-                                markdown = message.content,
+                                markdown = injectVerseLinks(message.content),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                                linkColor = amberColor,
+                                onLinkClicked = { url ->
+                                    handleVerseLink(url, preferredTranslation, onLoadChapter)
+                                },
                             )
                         }
 
