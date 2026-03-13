@@ -179,7 +179,8 @@ fun ChatScreen(
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
-                            onFeedback = viewModel::submitFeedback,
+                            onFeedback = { messageLocalId, rating -> viewModel.submitFeedback(messageLocalId, rating) },
+                            feedbackGiven = uiState.feedbackGiven[message.id],
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }

@@ -66,6 +66,10 @@ data class ChatUiState(
     val isSessionLimitReached: Boolean = false,
     /** True when loading has been in-progress for >3 s with no chunk received yet. */
     val isBackendWarming: Boolean = false,
+    /** Maps message ID (local UUID) to the rating given: "positive" or "negative". */
+    val feedbackGiven: Map<String, String> = emptyMap(),
+    /** True while a feedback submission is in flight. */
+    val isFeedbackSubmitting: Boolean = false,
 )
 
 @HiltViewModel
@@ -391,6 +395,48 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(isSessionLimitReached = false) }
     }
 
+    /**
+     * Submits thumbs-up or thumbs-down feedback for an assistant message.
+     *
+     * @param messageLocalId The local UUID of the assistant [Message] (its [Message.id]).
+     * @param rating "positive" or "negative".
+     * @param comment Optional free-text comment (reserved for future use).
+     */
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+        // Look up the message and its context (user message preceding it).
+        val messages = _uiState.value.messages
+        val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
+        if (assistantMsg.messageId.isBlank()) return // no backend message_id yet — skip
+
+        // Find the user message that immediately preceded this assistant message.
+        val assistantIndex = messages.indexOf(assistantMsg)
+        val userMessage = messages.subList(0, assistantIndex).lastOrNull { it.role == Message.Role.USER }
+
+        _uiState.update { it.copy(isFeedbackSubmitting = true) }
+
+        viewModelScope.launch {
+            try {
+                val feedbackRating = if (rating == "positive") FeedbackRating.POSITIVE else FeedbackRating.NEGATIVE
+                repository.submitFeedback(
+                    messageId = assistantMsg.messageId,
+                    rating = feedbackRating,
+                    userMessage = userMessage?.content ?: "",
+                    assistantResponse = assistantMsg.content,
+                )
+                _uiState.update { state ->
+                    state.copy(
+                        feedbackGiven = state.feedbackGiven + (messageLocalId to rating),
+                        isFeedbackSubmitting = false,
+                    )
+                }
+                Timber.i("Feedback submitted: messageId=%s rating=%s", assistantMsg.messageId, rating)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to submit feedback")
+                _uiState.update { it.copy(isFeedbackSubmitting = false) }
+            }
+        }
+    }
+
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
         val conversationId = _uiState.value.currentConversationId
@@ -399,60 +445,6 @@ class ChatViewModel @Inject constructor(
             viewModelScope.launch {
                 repository.deleteConversation(conversationId)
             }
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // Feedback
-    // ---------------------------------------------------------------------------
-
-    /**
-     * Records thumbs-up / thumbs-down feedback for a finished assistant message.
-     *
-     * Performs an **optimistic update**: the message's [Message.feedbackRating] is set
-     * immediately in [_uiState] so the UI reflects the selection without waiting for
-     * the network round-trip.  The actual API call is fire-and-forget; any network
-     * error is silently swallowed (best-effort feedback).
-     *
-     * Once feedback is recorded the buttons become disabled ([Message.feedbackRating] != null).
-     *
-     * @param messageId Backend-assigned UUID (from SSE metadata). Must not be blank.
-     * @param rating    [FeedbackRating.POSITIVE] (👍) or [FeedbackRating.NEGATIVE] (👎).
-     */
-    fun submitFeedback(messageId: String, rating: FeedbackRating) {
-        if (messageId.isBlank()) return
-
-        // Find the message and capture its content for context.
-        val messages = _uiState.value.messages
-        val targetMsg = messages.firstOrNull { it.messageId == messageId } ?: return
-
-        // Guard against double-submission (already rated).
-        if (targetMsg.feedbackRating != null) return
-
-        // Optimistic UI update — mark the message immediately.
-        _uiState.update { state ->
-            state.copy(
-                messages = state.messages.map { msg ->
-                    if (msg.messageId == messageId) msg.copy(feedbackRating = rating) else msg
-                },
-            )
-        }
-
-        // Resolve context: the user's question immediately precedes this assistant message.
-        val userMessage = messages
-            .takeWhile { it.messageId != messageId }
-            .lastOrNull { it.role == Message.Role.USER }
-            ?.content
-            .orEmpty()
-
-        // Fire-and-forget network call — errors are swallowed inside the repository.
-        viewModelScope.launch {
-            repository.submitFeedback(
-                messageId = messageId,
-                rating = rating,
-                userMessage = userMessage,
-                assistantResponse = targetMsg.content,
-            )
         }
     }
 

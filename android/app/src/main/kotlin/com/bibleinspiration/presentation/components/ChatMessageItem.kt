@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
-import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -52,7 +52,8 @@ fun ChatMessageItem(
     onDismissSheet: () -> Unit,
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
-    onFeedback: ((messageId: String, rating: FeedbackRating) -> Unit)? = null,
+    onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
+    feedbackGiven: String? = null,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -75,12 +76,6 @@ fun ChatMessageItem(
 
     // Show the share button only for finished (non-streaming) assistant messages with content.
     val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
-
-    // Show feedback buttons only when:
-    //  - it's a finished (non-streaming, non-error) assistant message with content
-    //  - the message has a backend-assigned messageId (can't link feedback without it)
-    //  - the onFeedback callback is wired (non-null)
-    val showFeedback = showShare && message.messageId.isNotBlank() && onFeedback != null
 
     val context = LocalContext.current
 
@@ -168,7 +163,7 @@ fun ChatMessageItem(
                 }
             }
 
-            // Share button + feedback buttons — shown below finished assistant message bubbles.
+            // Share button — shown below finished assistant message bubbles.
             if (showShare) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -188,51 +183,36 @@ fun ChatMessageItem(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+            }
 
-                    // Feedback buttons — only when messageId is available
-                    if (showFeedback) {
-                        val feedbackGiven = message.feedbackRating != null
+            // Feedback buttons — only for finished assistant messages with a backend message_id.
+            if (message.role == Message.Role.ASSISTANT
+                && !message.isStreaming
+                && message.messageId.isNotBlank()
+                && onFeedback != null
+            ) {
+                val alreadyVoted = feedbackGiven != null
 
-                        // 👍 Thumbs-up button
-                        IconButton(
-                            onClick = { onFeedback!!(message.messageId, FeedbackRating.POSITIVE) },
-                            enabled = !feedbackGiven,
-                        ) {
-                            Icon(
-                                imageVector = if (message.feedbackRating == FeedbackRating.POSITIVE) {
-                                    Icons.Filled.ThumbUp
-                                } else {
-                                    Icons.Outlined.ThumbUp
-                                },
-                                contentDescription = stringResource(R.string.action_feedback_positive),
-                                tint = if (message.feedbackRating == FeedbackRating.POSITIVE) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
-
-                        // 👎 Thumbs-down button
-                        IconButton(
-                            onClick = { onFeedback!!(message.messageId, FeedbackRating.NEGATIVE) },
-                            enabled = !feedbackGiven,
-                        ) {
-                            Icon(
-                                imageVector = if (message.feedbackRating == FeedbackRating.NEGATIVE) {
-                                    Icons.Filled.ThumbDown
-                                } else {
-                                    Icons.Outlined.ThumbDown
-                                },
-                                contentDescription = stringResource(R.string.action_feedback_negative),
-                                tint = if (message.feedbackRating == FeedbackRating.NEGATIVE) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
-                    }
+                IconButton(
+                    onClick = { if (!alreadyVoted) onFeedback(message.id, "positive") },
+                    enabled = !alreadyVoted,
+                ) {
+                    Icon(
+                        imageVector = if (feedbackGiven == "positive") Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                        contentDescription = stringResource(R.string.action_feedback_helpful),
+                        tint = if (feedbackGiven == "positive") MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    )
+                }
+                IconButton(
+                    onClick = { if (!alreadyVoted) onFeedback(message.id, "negative") },
+                    enabled = !alreadyVoted,
+                ) {
+                    Icon(
+                        imageVector = if (feedbackGiven == "negative") Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                        contentDescription = stringResource(R.string.action_feedback_not_helpful),
+                        tint = if (feedbackGiven == "negative") MaterialTheme.colorScheme.error else LocalContentColor.current,
+                    )
                 }
             }
 
