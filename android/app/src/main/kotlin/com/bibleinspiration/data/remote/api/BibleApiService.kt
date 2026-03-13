@@ -4,6 +4,8 @@ import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.ChatRequestDto
 import com.bibleinspiration.data.remote.models.ChurchSearchRequestDto
 import com.bibleinspiration.data.remote.models.ChurchSearchResponseDto
+import com.bibleinspiration.data.remote.models.ContactRequestDto
+import com.bibleinspiration.data.remote.models.ContactResponseDto
 import com.bibleinspiration.data.remote.models.FeedbackRequestDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import okhttp3.ResponseBody
@@ -54,4 +56,11 @@ interface BibleApiService {
      */
     @POST("api/v1/church/search")
     suspend fun searchChurches(@Body body: ChurchSearchRequestDto): ChurchSearchResponseDto
+
+    /**
+     * Submits a contact form message (subject + free-text, optional email).
+     * Returns the server-assigned record ID.
+     */
+    @POST("api/v1/feedback/contact")
+    suspend fun submitContact(@Body body: ContactRequestDto): ContactResponseDto
 }

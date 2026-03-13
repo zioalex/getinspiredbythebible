@@ -73,4 +73,25 @@
     <string name="church_finder_website">Site web</string>
     <string name="church_finder_email">E-mail</string>
     <string name="church_finder_data_credit">Données d\'église fournies par DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">Contact</string>
+    <string name="contact_open_button">Nous contacter</string>
+    <string name="contact_title">Nous contacter</string>
+    <string name="contact_subtitle">Partagez vos pensées ou signalez un problème</string>
+    <string name="contact_subject_label">Sujet</string>
+    <string name="contact_subject_spiritual">Question spirituelle / biblique</string>
+    <string name="contact_subject_feedback">Commentaires généraux</string>
+    <string name="contact_subject_bug">Rapport de bogue</string>
+    <string name="contact_subject_feature">Demande de fonctionnalité</string>
+    <string name="contact_subject_other">Autre</string>
+    <string name="contact_email_label">Votre e-mail (facultatif, pour réponse)</string>
+    <string name="contact_email_placeholder">vous@exemple.fr</string>
+    <string name="contact_message_label">Message</string>
+    <string name="contact_message_placeholder">Partagez vos pensées, signalez un problème ou suggérez une amélioration…</string>
+    <string name="contact_privacy_note">Votre message sera enregistré pour nous aider à améliorer le service.</string>
+    <string name="contact_send_button">Envoyer le message</string>
+    <string name="contact_success_title">Message envoyé avec succès !</string>
+    <string name="contact_success_description">Merci de nous avoir contactés. Nous examinerons votre message prochainement.</string>
+    <string name="contact_error_send">Échec de l\'envoi du message. Veuillez réessayer.</string>
 </resources>
