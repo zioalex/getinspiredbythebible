@@ -111,7 +111,7 @@ class VersesPanelTest {
     }
 
     @Test
-    fun `referencedVerses matches verse range reference eg John 3:16-17`() {
+    fun `referencedVerses matches verse range reference eg John 3 16-17`() {
         val john316 = verse("John", 3, 16)
         // The regex captures "John 3:16-17"; baseRef "John 3:16" should match via startsWith
         val messages = listOf(assistantMsg("Read John 3:16-17 carefully."))
