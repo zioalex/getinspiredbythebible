@@ -11,6 +11,8 @@ package com.bibleinspiration.domain.models
  * @param isError True when the message represents a failed streaming attempt.
  * @param messageId Backend-assigned UUID for the assistant response. In-memory only
  *   (not persisted to Room). Populated when the SSE metadata event is received.
+ * @param feedbackRating In-memory only (not persisted to Room). Set after the user
+ *   taps 👍 or 👎. Null means no feedback has been given yet.
  */
 data class Message(
     val id: String,
@@ -20,6 +22,7 @@ data class Message(
     val isStreaming: Boolean = false,
     val isError: Boolean = false,
     val messageId: String = "",
+    val feedbackRating: FeedbackRating? = null,
 ) {
     enum class Role { USER, ASSISTANT }
 }

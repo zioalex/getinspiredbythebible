@@ -14,6 +14,7 @@ import com.bibleinspiration.data.remote.api.BibleApiService
 import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
+import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
@@ -398,6 +399,60 @@ class ChatViewModel @Inject constructor(
             viewModelScope.launch {
                 repository.deleteConversation(conversationId)
             }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Feedback
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Records thumbs-up / thumbs-down feedback for a finished assistant message.
+     *
+     * Performs an **optimistic update**: the message's [Message.feedbackRating] is set
+     * immediately in [_uiState] so the UI reflects the selection without waiting for
+     * the network round-trip.  The actual API call is fire-and-forget; any network
+     * error is silently swallowed (best-effort feedback).
+     *
+     * Once feedback is recorded the buttons become disabled ([Message.feedbackRating] != null).
+     *
+     * @param messageId Backend-assigned UUID (from SSE metadata). Must not be blank.
+     * @param rating    [FeedbackRating.POSITIVE] (👍) or [FeedbackRating.NEGATIVE] (👎).
+     */
+    fun submitFeedback(messageId: String, rating: FeedbackRating) {
+        if (messageId.isBlank()) return
+
+        // Find the message and capture its content for context.
+        val messages = _uiState.value.messages
+        val targetMsg = messages.firstOrNull { it.messageId == messageId } ?: return
+
+        // Guard against double-submission (already rated).
+        if (targetMsg.feedbackRating != null) return
+
+        // Optimistic UI update — mark the message immediately.
+        _uiState.update { state ->
+            state.copy(
+                messages = state.messages.map { msg ->
+                    if (msg.messageId == messageId) msg.copy(feedbackRating = rating) else msg
+                },
+            )
+        }
+
+        // Resolve context: the user's question immediately precedes this assistant message.
+        val userMessage = messages
+            .takeWhile { it.messageId != messageId }
+            .lastOrNull { it.role == Message.Role.USER }
+            ?.content
+            .orEmpty()
+
+        // Fire-and-forget network call — errors are swallowed inside the repository.
+        viewModelScope.launch {
+            repository.submitFeedback(
+                messageId = messageId,
+                rating = rating,
+                userMessage = userMessage,
+                assistantResponse = targetMsg.content,
+            )
         }
     }
 
