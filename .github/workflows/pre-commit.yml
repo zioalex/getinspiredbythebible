@@ -44,6 +44,49 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
+      - name: Run pre-commit hooks individually (diagnosis)
+        if: always()
+        run: |
+          echo "=== Running hooks individually to identify failure ==="
+          HOOKS=(
+            trailing-whitespace
+            end-of-file-fixer
+            check-yaml
+            check-json
+            check-added-large-files
+            check-merge-conflict
+            check-case-conflict
+            mixed-line-ending
+            detect-private-key
+            black
+            ruff
+            mypy
+            bandit
+            hadolint-docker
+            prettier-yaml
+            yamllint
+            detect-secrets
+            shellcheck
+            markdownlint
+            prettier
+            eslint
+          )
+          ALL_PASS=true
+          for hook in "${HOOKS[@]}"; do
+            result=$(pre-commit run "$hook" --all-files 2>&1)
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "❌ FAILED: $hook"
+              echo "$result" | head -40
+              ALL_PASS=false
+            else
+              echo "✅ passed: $hook"
+            fi
+          done
+          if [ "$ALL_PASS" = false ]; then
+            echo "=== END DIAGNOSIS ==="
+          fi
+
       - name: Run pre-commit on all files
         run: pre-commit run --all-files --show-diff-on-failure
 
