@@ -2,6 +2,7 @@ package com.bibleinspiration.domain.repositories
 
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Conversation
+import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
 import kotlinx.coroutines.flow.Flow
@@ -43,4 +44,22 @@ interface ChatRepository {
 
     /** Delete every conversation and all messages. */
     suspend fun clearAllConversations()
+
+    /**
+     * Submit thumbs-up / thumbs-down feedback for a finished assistant message.
+     *
+     * Best-effort: network errors are silently swallowed so a transient failure
+     * never surfaces a disruptive error to the user.
+     *
+     * @param messageId Backend-assigned UUID from the SSE metadata event.
+     * @param rating    [FeedbackRating.POSITIVE] or [FeedbackRating.NEGATIVE].
+     * @param userMessage   The user's original question (provides context).
+     * @param assistantResponse The assistant's reply text (provides context).
+     */
+    suspend fun submitFeedback(
+        messageId: String,
+        rating: FeedbackRating,
+        userMessage: String = "",
+        assistantResponse: String = "",
+    )
 }
