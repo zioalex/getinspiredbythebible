@@ -717,3 +717,251 @@ class TestReviewer:
         with patch("golden_set.reviewer.list_runs", return_value=[]):
             result = select_run()
         assert result is None
+
+
+# ==================== Report Tests ====================
+
+
+@pytest.mark.golden_set
+class TestSingleRunReport:
+    """Test single run markdown report generation."""
+
+    @pytest.mark.asyncio
+    async def test_report_contains_header(self):
+        from golden_set.report import generate_report
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+        report = generate_report(run)
+        assert "# Golden Set Report:" in report
+        assert run.run_id in report
+
+    @pytest.mark.asyncio
+    async def test_report_contains_summary_table(self):
+        from golden_set.report import generate_report
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+        report = generate_report(run)
+        assert "## Summary" in report
+        assert "| Total Cases |" in report
+        assert "| Auto-Pass |" in report
+
+    @pytest.mark.asyncio
+    async def test_report_contains_category_breakdown(self):
+        from golden_set.report import generate_report
+        from golden_set.runner import run_mock
+
+        run = await run_mock()
+        report = generate_report(run)
+        assert "## By Category" in report
+        assert "| Category |" in report
+
+    @pytest.mark.asyncio
+    async def test_report_shows_failed_cases(self):
+        from datetime import datetime, timezone
+
+        from golden_set.models import AutomatedScore, CaseResult, EvalRun
+        from golden_set.report import generate_report
+
+        run = EvalRun(
+            run_id="fail-test",
+            timestamp=datetime.now(timezone.utc),
+            provider="test",
+            model="test-v1",
+            mode="mock",
+            results=[
+                CaseResult(
+                    run_id="fail-test",
+                    case_id="enc-001",
+                    timestamp=datetime.now(timezone.utc),
+                    provider="test",
+                    model="test-v1",
+                    input_message="test input",
+                    actual_response="no scripture here",
+                    automated_score=AutomatedScore(
+                        passed=False,
+                        total_checks=7,
+                        passed_checks=5,
+                        failed_checks=["scripture_presence", "forbidden_content"],
+                        details={
+                            "scripture_presence": "No verse references found",
+                            "forbidden_content": "Found: bad phrase",
+                        },
+                    ),
+                )
+            ],
+        )
+        report = generate_report(run)
+        assert "## Failed Cases" in report
+        assert "enc-001" in report
+        assert "scripture_presence" in report
+
+    @pytest.mark.asyncio
+    async def test_report_no_failed_cases(self):
+        """Report without failed cases omits Failed Cases section."""
+        from datetime import datetime, timezone
+
+        from golden_set.models import AutomatedScore, CaseResult, EvalRun
+        from golden_set.report import generate_report
+
+        run = EvalRun(
+            run_id="pass-test",
+            timestamp=datetime.now(timezone.utc),
+            provider="test",
+            model="test-v1",
+            mode="mock",
+            results=[
+                CaseResult(
+                    run_id="pass-test",
+                    case_id="enc-001",
+                    timestamp=datetime.now(timezone.utc),
+                    provider="test",
+                    model="test-v1",
+                    input_message="test",
+                    actual_response="test",
+                    automated_score=AutomatedScore(passed=True, total_checks=7, passed_checks=7),
+                )
+            ],
+        )
+        report = generate_report(run)
+        assert "## Failed Cases" not in report
+
+    @pytest.mark.asyncio
+    async def test_report_with_human_scores(self):
+        from datetime import datetime, timezone
+
+        from golden_set.models import (
+            AutomatedScore,
+            CaseResult,
+            EvalRun,
+            HumanScore,
+        )
+        from golden_set.report import generate_report
+
+        run = EvalRun(
+            run_id="human-test",
+            timestamp=datetime.now(timezone.utc),
+            provider="test",
+            model="test-v1",
+            mode="live",
+            results=[
+                CaseResult(
+                    run_id="human-test",
+                    case_id="enc-001",
+                    timestamp=datetime.now(timezone.utc),
+                    provider="test",
+                    model="test-v1",
+                    input_message="test",
+                    actual_response="test response",
+                    automated_score=AutomatedScore(passed=True, total_checks=7, passed_checks=7),
+                    human_score=HumanScore(
+                        relevance=4,
+                        scripture_accuracy=5,
+                        tone_quality=4,
+                        source_attribution=3,
+                        overall=4,
+                    ),
+                    response_time_ms=1200,
+                )
+            ],
+        )
+        report = generate_report(run)
+        assert "Avg Human Overall" in report
+        assert "4.0/5" in report
+        assert "1200ms" in report
+
+    @pytest.mark.asyncio
+    async def test_report_empty_results(self):
+        from datetime import datetime, timezone
+
+        from golden_set.models import EvalRun
+        from golden_set.report import generate_report
+
+        run = EvalRun(
+            run_id="empty",
+            timestamp=datetime.now(timezone.utc),
+            provider="test",
+            model="test-v1",
+            mode="mock",
+            results=[],
+        )
+        report = generate_report(run)
+        assert "# Golden Set Report:" in report
+        assert "| Total Cases | 0 |" in report
+
+
+@pytest.mark.golden_set
+class TestComparisonReport:
+    """Test multi-run comparison report generation."""
+
+    @pytest.mark.asyncio
+    async def test_comparison_two_runs(self):
+        from golden_set.report import generate_comparison
+        from golden_set.runner import run_mock
+
+        run1 = await run_mock()
+        run2 = await run_mock()
+        run2.provider = "other"
+        run2.model = "other-v1"
+
+        report = generate_comparison([run1, run2])
+        assert "# Golden Set Comparison" in report
+        assert "mock/mock-v1" in report
+        assert "other/other-v1" in report
+        assert "Auto-Pass Rate" in report
+
+    def test_comparison_empty_runs(self):
+        from golden_set.report import generate_comparison
+
+        report = generate_comparison([])
+        assert "No runs to compare" in report
+
+    @pytest.mark.asyncio
+    async def test_comparison_contains_category_breakdown(self):
+        from golden_set.report import generate_comparison
+        from golden_set.runner import run_mock
+
+        run1 = await run_mock()
+        run2 = await run_mock()
+        run2.provider = "provider2"
+        run2.model = "model2"
+
+        report = generate_comparison([run1, run2])
+        assert "## By Category" in report
+
+    @pytest.mark.asyncio
+    async def test_comparison_contains_run_details(self):
+        from golden_set.report import generate_comparison
+        from golden_set.runner import run_mock
+
+        run1 = await run_mock()
+        run2 = await run_mock()
+        run2.provider = "provider2"
+        run2.model = "model2"
+
+        report = generate_comparison([run1, run2])
+        assert "## Run Details" in report
+        assert run1.run_id in report
+        assert run2.run_id in report
+
+
+@pytest.mark.golden_set
+class TestSaveReport:
+    """Test report file saving."""
+
+    def test_save_report_creates_file(self, tmp_path):
+        from golden_set.report import save_report
+
+        content = "# Test Report\n\nSome content."
+        file_path = tmp_path / "reports" / "test.md"
+        result = save_report(content, file_path)
+        assert result.exists()
+        assert result.read_text() == content
+
+    def test_save_report_creates_directories(self, tmp_path):
+        from golden_set.report import save_report
+
+        file_path = tmp_path / "deep" / "nested" / "report.md"
+        save_report("content", file_path)
+        assert file_path.exists()

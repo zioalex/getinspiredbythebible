@@ -154,6 +154,20 @@ golden-review: install-deps ## Review golden set results (interactive human scor
 	@cd api && $(CURDIR)/$(PYTHON) -m golden_set.reviewer
 	@echo "$(GREEN)✓ Review session complete$(NC)"
 
+golden-report: install-deps ## Generate golden set markdown report from latest run
+	@echo "$(BLUE)Generating golden set report...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -c "\
+from golden_set.runner import get_latest_run; \
+from golden_set.report import generate_report, save_report; \
+from pathlib import Path; \
+run = get_latest_run(); \
+assert run, 'No saved runs found. Run golden-test-live first.'; \
+report = generate_report(run); \
+path = save_report(report, Path('golden_set/results') / f'{run.run_id}_report.md'); \
+print(report); \
+print(f'\nReport saved to: {path}')"
+	@echo "$(GREEN)✓ Report generated$(NC)"
+
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
