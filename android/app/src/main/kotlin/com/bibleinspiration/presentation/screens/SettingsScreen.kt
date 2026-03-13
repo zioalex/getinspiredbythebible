@@ -24,6 +24,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bibleinspiration.R
+import com.bibleinspiration.presentation.components.ContactFormBottomSheet
+import com.bibleinspiration.presentation.components.ContactFormState
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 
 /** Language option shown in the settings list. */
@@ -72,7 +77,9 @@ fun SettingsScreen(
     val currentThemeMode = uiState.themeMode
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
+    val contactFormState by viewModel.contactFormState.collectAsState()
     val context = LocalContext.current
+    var showContactSheet by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -191,7 +198,36 @@ fun SettingsScreen(
                 Text(stringResource(R.string.action_export_debug_logs))
             }
 
+            // ── Contact section ────────────────────────────────────────────────
             Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.contact_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { showContactSheet = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.contact_open_button))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // ── Contact Form bottom sheet ──────────────────────────────────────────
+        if (showContactSheet) {
+            ContactFormBottomSheet(
+                formState = contactFormState,
+                onSubmit = { subject, message, email ->
+                    viewModel.submitContact(subject, message, email)
+                },
+                onDismiss = {
+                    showContactSheet = false
+                    viewModel.resetContactForm()
+                },
+            )
         }
     }
 }

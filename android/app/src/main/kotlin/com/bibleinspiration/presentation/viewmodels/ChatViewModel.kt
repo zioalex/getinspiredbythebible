@@ -20,6 +20,8 @@ import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.domain.repositories.ChurchRepository
+import com.bibleinspiration.domain.repositories.ContactRepository
+import com.bibleinspiration.presentation.components.ContactFormState
 import com.bibleinspiration.security.TurnstileManager
 import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -104,6 +106,7 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     private val churchRepository: ChurchRepository,
+    private val contactRepository: ContactRepository,
     val turnstileManager: TurnstileManager,
     private val languagePreferences: LanguagePreferences,
     @ApplicationContext private val context: Context,
@@ -145,6 +148,9 @@ class ChatViewModel @Inject constructor(
 
     private val _churchFinderSheetState = MutableStateFlow<ChurchFinderSheetState>(ChurchFinderSheetState.Idle)
     val churchFinderSheetState: StateFlow<ChurchFinderSheetState> = _churchFinderSheetState.asStateFlow()
+
+    private val _contactFormState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
+    val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -582,6 +588,43 @@ class ChatViewModel @Inject constructor(
     /** Resets the church-finder sheet state back to [ChurchFinderSheetState.Idle]. */
     fun clearChurchFinderSheet() {
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
+    }
+
+    // ---------------------------------------------------------------------------
+    // Contact Form
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Submits the contact form to the backend.
+     *
+     * @param subject One of the [ContactSubject] constants.
+     * @param message The user's free-text message (non-blank).
+     * @param email   Optional reply-to email address.
+     */
+    fun submitContact(subject: String, message: String, email: String?) {
+        if (message.isBlank()) return
+        _contactFormState.value = ContactFormState.Submitting
+        viewModelScope.launch {
+            try {
+                contactRepository.submitContact(
+                    subject = subject,
+                    message = message,
+                    email = email,
+                )
+                _contactFormState.value = ContactFormState.Success
+                Timber.i("Contact submitted: subject=%s", subject)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to submit contact form")
+                _contactFormState.value = ContactFormState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the contact form state back to [ContactFormState.Idle]. */
+    fun resetContactForm() {
+        _contactFormState.value = ContactFormState.Idle
     }
 
     // ---------------------------------------------------------------------------

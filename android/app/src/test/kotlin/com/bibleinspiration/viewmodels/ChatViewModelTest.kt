@@ -20,6 +20,8 @@ import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
 import com.bibleinspiration.domain.repositories.ChurchRepository
+import com.bibleinspiration.domain.repositories.ContactRepository
+import com.bibleinspiration.presentation.components.ContactFormState
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 import com.bibleinspiration.presentation.viewmodels.ChurchFinderSheetState
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
@@ -59,6 +61,7 @@ class ChatViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChatRepository
     private lateinit var churchRepository: ChurchRepository
+    private lateinit var contactRepository: ContactRepository
     private lateinit var turnstileManager: TurnstileManager
     private lateinit var languagePreferences: LanguagePreferences
     private lateinit var context: Context
@@ -85,6 +88,7 @@ class ChatViewModelTest {
         coEvery { repository.touchConversation(any()) } returns Unit
         coEvery { repository.deleteConversation(any()) } returns Unit
         churchRepository = mockk(relaxed = true)
+        contactRepository = mockk(relaxed = true)
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
@@ -106,6 +110,7 @@ class ChatViewModelTest {
         viewModel = ChatViewModel(
             repository,
             churchRepository,
+            contactRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -435,6 +440,7 @@ class ChatViewModelTest {
         val vm = ChatViewModel(
             repository,
             churchRepository,
+            contactRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -457,6 +463,7 @@ class ChatViewModelTest {
         val vm = ChatViewModel(
             repository,
             churchRepository,
+            contactRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -489,6 +496,7 @@ class ChatViewModelTest {
         val vm = ChatViewModel(
             repository,
             churchRepository,
+            contactRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -516,6 +524,7 @@ class ChatViewModelTest {
         val vm = ChatViewModel(
             repository,
             churchRepository,
+            contactRepository,
             turnstileManager,
             languagePreferences,
             context,
@@ -1136,5 +1145,48 @@ class ChatViewModelTest {
 
         assertEquals(0, viewModel.uiState.value.interactionCount)
         assertFalse(viewModel.uiState.value.showChurchFinderBanner)
+    }
+
+    // ── Contact Form ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `submitContact transitions state to Success on success`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 42
+
+        viewModel.submitContact("feedback", "Great app!", null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.contactFormState.value is ContactFormState.Success)
+    }
+
+    @Test
+    fun `submitContact transitions state to Error on failure`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } throws IOException("no network")
+
+        viewModel.submitContact("bug", "App crashes", null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.contactFormState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `resetContactForm returns state to Idle`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
+        viewModel.submitContact("other", "Hello", null)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.contactFormState.value is ContactFormState.Success)
+
+        viewModel.resetContactForm()
+
+        assertTrue(viewModel.contactFormState.value is ContactFormState.Idle)
+    }
+
+    @Test
+    fun `submitContact does nothing when message is blank`() = runTest {
+        viewModel.submitContact("feedback", "   ", null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.contactFormState.value is ContactFormState.Idle)
+        coVerify(exactly = 0) { contactRepository.submitContact(any(), any(), any(), any()) }
     }
 }

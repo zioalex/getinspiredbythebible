@@ -73,4 +73,25 @@
     <string name="church_finder_website">الموقع الإلكتروني</string>
     <string name="church_finder_email">البريد الإلكتروني</string>
     <string name="church_finder_data_credit">بيانات الكنائس مقدمة من DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">تواصل</string>
+    <string name="contact_open_button">تواصل معنا</string>
+    <string name="contact_title">تواصل معنا</string>
+    <string name="contact_subtitle">شارك أفكارك أو أبلغ عن مشكلة</string>
+    <string name="contact_subject_label">الموضوع</string>
+    <string name="contact_subject_spiritual">سؤال روحي / كتابي</string>
+    <string name="contact_subject_feedback">ملاحظات عامة</string>
+    <string name="contact_subject_bug">الإبلاغ عن خطأ</string>
+    <string name="contact_subject_feature">طلب ميزة</string>
+    <string name="contact_subject_other">أخرى</string>
+    <string name="contact_email_label">بريدك الإلكتروني (اختياري، للرد)</string>
+    <string name="contact_email_placeholder">you@example.com</string>
+    <string name="contact_message_label">الرسالة</string>
+    <string name="contact_message_placeholder">شارك أفكارك أو أبلغ عن مشكلة أو اقترح تحسيناً…</string>
+    <string name="contact_privacy_note">ستُخزَّن رسالتك لمساعدتنا في تحسين الخدمة.</string>
+    <string name="contact_send_button">إرسال الرسالة</string>
+    <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>
+    <string name="contact_success_description">شكراً لتواصلك معنا. سنراجع رسالتك قريباً.</string>
+    <string name="contact_error_send">فشل إرسال الرسالة. يرجى المحاولة مجدداً.</string>
 </resources>
