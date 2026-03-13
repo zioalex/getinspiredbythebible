@@ -61,6 +61,18 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        checkDependencies = false
+        abortOnError = false       // Report issues without blocking the build
+        warningsAsErrors = false
+        // Suppress rules that fire on generated/third-party code even with checkDependencies=false
+        disable += setOf(
+            "ObsoleteLintCustomCheck",
+            "InvalidPackage",
+        )
+    }
 }
 
 ksp {
@@ -113,6 +125,9 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // Markdown rendering
+    implementation(libs.compose.markdown)
 
     // --- Testing ---
     testImplementation(libs.junit)

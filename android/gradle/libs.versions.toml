@@ -24,6 +24,7 @@ coroutinesTest = "1.9.0"
 owaspDepCheck = "12.1.0"
 hiltTesting = "2.51.1"          # same as hilt version
 androidxTestRunner = "1.6.2"
+composeMarkdown = "0.5.0"
 
 [libraries]
 # AndroidX Core
@@ -72,6 +73,9 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Markdown rendering
+compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

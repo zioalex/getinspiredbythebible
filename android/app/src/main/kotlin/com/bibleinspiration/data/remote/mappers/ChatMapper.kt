@@ -15,6 +15,8 @@ fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     message = message,
     conversationHistory = conversationHistory.map { it.toConversationMessageDto() },
     preferredTranslation = preferredTranslation?.ifBlank { null },
+    includeSearch = includeSearch,
+    sessionId = sessionId,
 )
 
 fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMessageDto(
@@ -43,4 +45,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     content = content,
     done = done,
     verses = verses.map { it.toDomain() },
+    messageId = messageId,
+    model = model,
 )

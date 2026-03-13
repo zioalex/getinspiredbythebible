@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,11 +29,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun ChatMessageItem(
@@ -62,7 +67,15 @@ fun ChatMessageItem(
     //  - it was flagged as an error (blank content + error flag)
     val showRetry = !isUser && !message.isStreaming && message.isError
 
-    // Blinking cursor alpha — only computed when actually needed (streaming + content present).
+    // Show the share button only for finished (non-streaming) assistant messages with content.
+    val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
+
+    val context = LocalContext.current
+
+    // Blinking cursor alpha — always created to respect Composable call order.
+    // The value is only read inside the streaming branch (case b), but the
+    // rememberInfiniteTransition + animateFloat calls must remain unconditional
+    // so the Compose runtime can track them across recompositions.
     val infiniteTransition = rememberInfiniteTransition(label = "cursor_blink")
     val cursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -121,7 +134,17 @@ fun ChatMessageItem(
                             }
                         }
 
-                        // Default — plain text bubble (user messages or finished assistant messages)
+                        // (c) Finished assistant message — render as Markdown.
+                        // Use the non-deprecated MarkdownText overload: pass color via style.
+                        !isUser -> {
+                            val bodyMedium = MaterialTheme.typography.bodyMedium
+                            MarkdownText(
+                                markdown = message.content,
+                                style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                            )
+                        }
+
+                        // (d) User message — plain text bubble
                         else -> {
                             Text(
                                 text = message.content,
@@ -130,6 +153,24 @@ fun ChatMessageItem(
                             )
                         }
                     }
+                }
+            }
+
+            // Share button — shown below finished assistant message bubbles.
+            if (showShare) {
+                IconButton(
+                    onClick = {
+                        ShareCompat.IntentBuilder(context)
+                            .setType("text/plain")
+                            .setText(message.content)
+                            .startChooser()
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = stringResource(R.string.action_share_message),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
