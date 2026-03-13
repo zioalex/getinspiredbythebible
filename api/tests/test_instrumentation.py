@@ -328,7 +328,7 @@ class TestDBMetricsRecording:
         from scripture.repository import _record_duration
 
         mock_span = MagicMock()
-        with patch("scripture.repository.db_slow_query_counter") as mock_counter:
+        with patch("scripture.repository.db_slow_queries_counter") as mock_counter:
             with patch("scripture.repository.settings") as mock_settings:
                 with patch("scripture.repository.logger"):
                     mock_settings.slow_query_threshold_ms = 0  # Everything is slow
@@ -348,7 +348,7 @@ class TestDBMetricsRecording:
         from scripture.repository import _record_duration
 
         mock_span = MagicMock()
-        with patch("scripture.repository.db_slow_query_counter") as mock_counter:
+        with patch("scripture.repository.db_slow_queries_counter") as mock_counter:
             with patch("scripture.repository.settings") as mock_settings:
                 mock_settings.slow_query_threshold_ms = 10000  # Very high threshold
                 _record_duration(mock_span, time.perf_counter(), "get_verse", 1, None)
