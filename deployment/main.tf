@@ -329,8 +329,8 @@ resource "azurerm_postgresql_flexible_server" "main" {
   sku_name = "B_Standard_B1ms"
 
   storage_mb                   = 32768 # 32GB minimum
-  backup_retention_days        = 35    # Increased from 7 to meet 35-day compliance best practices
-  geo_redundant_backup_enabled = true  # Enable geo-redundant backups for disaster recovery
+  backup_retention_days        = 7
+  geo_redundant_backup_enabled = false
   auto_grow_enabled            = false
 
   # Allow Azure services to connect
