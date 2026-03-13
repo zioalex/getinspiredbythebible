@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
 
+    # Query Expansion Settings
+    query_expansion_enabled: bool = False  # Feature flag for A/B testing
+
     # Email Settings (SMTP2GO HTTP API)
     smtp2go_enabled: bool = False  # Set to True to enable email notifications
     smtp2go_api_key: str | None = None  # SMTP2GO API key

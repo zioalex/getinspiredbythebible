@@ -182,6 +182,55 @@ class ChatService:
 
         return safety_result.compassionate_response_needed
 
+    async def _expand_query(
+        self, user_message: str, language: str, model_override: str | None = None
+    ) -> str:
+        """
+        Expand user query with related biblical themes and concepts using LLM.
+
+        Uses low temperature for consistent expansion results.
+        Falls back to original message on any error (fail-open).
+        """
+        expansion_prompt = f"""You are helping expand a search query to find relevant Bible verses.
+
+User's message: "{user_message}"
+Language: {language}
+
+Identify biblical themes, emotions, and related concepts that would help find relevant scripture.
+Generate an expanded search query including:
+- Core emotions/feelings (anxiety, peace, anger, joy, frustration, etc.)
+- Related biblical themes (trust in God, forgiveness, patience, God's love, self-control, etc.)
+- Synonyms and related words
+- Life situations this applies to
+
+Respond ONLY with the expanded query text in {language}, no explanation.
+Keep it under 100 words."""
+
+        start_time = time.time()
+        try:
+            response = await self.llm.chat(
+                messages=[ChatMessage(role="user", content=expansion_prompt)],
+                temperature=0.3,
+                max_tokens=150,
+                model_override=model_override,
+            )
+            expanded = response.content.strip()
+            expansion_time_ms = int((time.time() - start_time) * 1000)
+
+            logger.info(
+                "Query expansion completed",
+                extra={
+                    "original_query": user_message[:100],
+                    "expanded_query": expanded[:200],
+                    "language": language,
+                    "expansion_time_ms": expansion_time_ms,
+                },
+            )
+            return expanded
+        except Exception as e:
+            logger.warning("Query expansion failed, using original query: %s", e)
+            return user_message
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -255,7 +304,12 @@ class ChatService:
 
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context, search_context_prompt = await self._search_scripture(
-            request, translation, verse_refs, is_verse_lookup
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=detected_language,
+            model_override=model_override,
         )
 
         # Step 2: Build the message list
@@ -366,6 +420,8 @@ class ChatService:
         translation: str,
         verse_refs: list,
         is_verse_lookup: bool,
+        detected_language: str = "en",  # NEW
+        model_override: str | None = None,  # NEW
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
@@ -384,6 +440,21 @@ class ChatService:
             # Direct verse lookups for specific references
             direct_verses = await self._lookup_direct_verses(verse_refs, translation)
 
+            # Query expansion (optional feature flag)
+            extra_embeddings: list[list[float]] | None = None
+            if settings.query_expansion_enabled:
+                expanded_query = await self._expand_query(
+                    request.message, detected_language, model_override
+                )
+                if expanded_query != request.message:
+                    # Generate embedding for expanded query
+                    expansion_embed_response = await self.embedding.embed(expanded_query)
+                    extra_embeddings = [expansion_embed_response.embedding]
+                    logger.info(
+                        "Query expansion embeddings generated",
+                        extra={"num_extra_embeddings": len(extra_embeddings)},
+                    )
+
             # Semantic search for additional context
             scripture_context = await self.search_service.search(
                 query=request.message,
@@ -391,6 +462,7 @@ class ChatService:
                 max_passages=2,
                 similarity_threshold=0.35,
                 translation=translation,
+                extra_embeddings=extra_embeddings,  # NEW
             )
 
             # Merge direct lookup results with semantic search
@@ -404,6 +476,7 @@ class ChatService:
                     "verses_found": len(scripture_context.verses) if scripture_context else 0,
                     "passages_found": (len(scripture_context.passages) if scripture_context else 0),
                     "is_verse_lookup": is_verse_lookup,
+                    "query_expansion_used": extra_embeddings is not None,  # NEW
                 },
             )
         except Exception as e:
@@ -531,7 +604,12 @@ class ChatService:
 
         # Step 1: Search for relevant scripture
         scripture_context, search_context_prompt = await self._search_scripture(
-            request, translation, verse_refs, is_verse_lookup
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=detected_language,
+            model_override=model_override,
         )
 
         # Step 2: Send metadata before streaming starts

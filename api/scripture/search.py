@@ -7,8 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from providers import EmbeddingProvider
 from utils.book_names import get_localized_book_name
+from utils.logging_config import get_logger
 
 from .repository import ScriptureRepository
+
+logger = get_logger(__name__)
 
 
 class VerseResult(BaseModel):
@@ -65,6 +68,40 @@ class ScriptureSearchService:
         localized_book = get_localized_book_name(verse.book.name, verse.translation)
         return f"{localized_book} {verse.chapter_number}:{verse.verse_number}"
 
+    async def _search_verses_with_embeddings(
+        self,
+        query_embeddings: list[list[float]],
+        max_verses: int,
+        similarity_threshold: float,
+        translation: str | None,
+    ) -> list[tuple]:  # list of (verse, similarity) tuples
+        """Search verses using one or more query embeddings, merge and deduplicate results."""
+        if len(query_embeddings) == 1:
+            return await self.repo.search_verses_semantic(
+                query_embedding=query_embeddings[0],
+                limit=max_verses,
+                similarity_threshold=similarity_threshold,
+                translation=translation,
+            )
+
+        # Multiple embeddings: search each, merge with max similarity deduplication
+        all_results: dict[int, tuple] = {}  # verse_id -> (verse, similarity)
+        for embedding in query_embeddings:
+            results = await self.repo.search_verses_semantic(
+                query_embedding=embedding,
+                limit=max_verses * 2,  # fetch more to ensure good coverage
+                similarity_threshold=similarity_threshold,
+                translation=translation,
+            )
+            for verse, similarity in results:
+                vid = verse.id
+                if vid not in all_results or similarity > all_results[vid][1]:
+                    all_results[vid] = (verse, similarity)
+
+        # Sort by similarity descending, return top max_verses
+        merged = sorted(all_results.values(), key=lambda x: x[1], reverse=True)
+        return merged[:max_verses]
+
     async def search(
         self,
         query: str,
@@ -72,6 +109,7 @@ class ScriptureSearchService:
         max_passages: int = 2,
         similarity_threshold: float = 0.4,
         translation: str | None = None,
+        extra_embeddings: list[list[float]] | None = None,  # NEW: for query expansion
     ) -> SearchResults:
         """
         Search for relevant scripture based on a natural language query.
@@ -82,6 +120,7 @@ class ScriptureSearchService:
             max_passages: Maximum number of passages to return
             similarity_threshold: Minimum similarity score (0-1)
             translation: Optional translation code to filter by (e.g., 'kjv', 'ita1927')
+            extra_embeddings: Optional additional embeddings for multi-embedding search
 
         Returns:
             SearchResults with matching verses and passages
@@ -90,13 +129,27 @@ class ScriptureSearchService:
         embedding_response = await self.embedding_provider.embed(query)
         query_embedding = embedding_response.embedding
 
-        # Search verses
-        verse_results = await self.repo.search_verses_semantic(
-            query_embedding=query_embedding,
-            limit=max_verses,
+        # Build list of embeddings (original + any expansion embeddings)
+        query_embeddings = [query_embedding]
+        if extra_embeddings:
+            query_embeddings.extend(extra_embeddings)
+
+        # Search verses using single or multi-embedding search
+        verse_results = await self._search_verses_with_embeddings(
+            query_embeddings=query_embeddings,
+            max_verses=max_verses,
             similarity_threshold=similarity_threshold,
             translation=translation,
         )
+
+        if extra_embeddings:
+            logger.info(
+                "Multi-embedding search completed",
+                extra={
+                    "num_embeddings": len(query_embeddings),
+                    "total_results": len(verse_results),
+                },
+            )
 
         verses = [
             VerseResult(
