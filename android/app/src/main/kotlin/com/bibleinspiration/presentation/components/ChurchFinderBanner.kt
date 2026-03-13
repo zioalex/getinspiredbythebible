@@ -87,7 +87,7 @@ fun ChurchFinderBanner(
                 modifier = Modifier.size(28.dp),
             ) {
                 Text(
-                    text = "✕",
+                    text = stringResource(R.string.church_finder_dismiss),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
                 )

@@ -289,10 +289,12 @@ class ChatViewModel @Inject constructor(
                                 isLoading = false,
                                 isBackendWarming = false,
                                 interactionCount = newCount,
-                                // Show the banner after 3 interactions (only once).
+                                // Show the banner exactly once, at interaction 3.
+                                // Using == rather than >= prevents re-showing the banner
+                                // after it has been dismissed (banner=false, inline=false).
                                 showChurchFinderBanner = !state.showChurchFinderBanner &&
                                     !state.showChurchFinderInlineCard &&
-                                    newCount >= 3,
+                                    newCount == 3,
                                 // Show the inline card after 5 interactions if the banner
                                 // was already dismissed without opening the sheet.
                                 showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
