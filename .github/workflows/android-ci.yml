@@ -50,9 +50,14 @@ jobs:
       - name: Emit error lines as annotations
         if: failure()
         run: |
-          grep -E "^(e:|error:|FAILED|Caused by:|> Task|exception)" /tmp/gradle-test-output.txt | head -50 | while IFS= read -r line; do
+          grep -iE "(error:|e: |FAILED|Caused by:|exception|unresolved reference|cannot find symbol|not applicable|overload resolution|none of the following)" /tmp/gradle-test-output.txt | head -50 | while IFS= read -r line; do
             echo "::error::$line"
           done
+          echo "::group::Last 100 lines of gradle output"
+          tail -100 /tmp/gradle-test-output.txt | while IFS= read -r line; do
+            echo "::error::TAIL: $line"
+          done
+          echo "::endgroup::"
 
       - name: Upload test results
         if: always()
