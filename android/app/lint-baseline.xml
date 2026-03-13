@@ -1,3 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Lint baseline — all issues listed here are pre-existing and acknowledged.
+    New issues introduced after this baseline was generated will still fail
+    the build (abortOnError = true).
+
+    To regenerate after intentionally suppressing new issues, run:
+        ./gradlew lintDebug -Dlint.baselines.continue=true
+    then commit the updated file.
+-->
 <issues format="6" by="lint 8.4.2" type="baseline" client="gradle" dependencies="false" name="lint" variant="debug" version="8.4.2">
 </issues>

@@ -65,8 +65,12 @@ android {
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
-        abortOnError = false       // Report issues without blocking the build
-        warningsAsErrors = false
+        // TODO: re-enable after baseline is generated — see fix/android-lint-baseline strategy.
+        // The current baseline is empty; AGP 8.4.2 does not honour -Dlint.baselines.continue=true
+        // for ERROR-severity issues, so abortOnError=true causes CI to fail until a real baseline
+        // (generated via ./gradlew lintDebug -Dlint.baselines.continue=true) is committed.
+        abortOnError = false
+        warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
         disable += setOf(
             "ObsoleteLintCustomCheck",
