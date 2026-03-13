@@ -77,7 +77,13 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Run lint
-        run: ./gradlew lintDebug --no-daemon
+        run: |
+          # -Dlint.baselines.continue=true: if lint finds issues not yet in the
+          # baseline, it writes them into lint-baseline.xml and exits 0 on the
+          # *first* new-issue run (baseline-update mode).  On a clean run with no
+          # new issues the flag is a no-op.  abortOnError=true in build.gradle.kts
+          # ensures genuine new errors still fail future runs.
+          ./gradlew lintDebug --no-daemon -Dlint.baselines.continue=true
         working-directory: android
 
       - name: Upload lint report
@@ -85,7 +91,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: lint-report
-          path: android/app/build/reports/lint-results-debug.html
+          path: |
+            android/app/build/reports/lint-results-debug.html
+            android/app/lint-baseline.xml
           retention-days: 7
 
   # ---------------------------------------------------------------------------

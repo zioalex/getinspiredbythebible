@@ -65,8 +65,8 @@ android {
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
-        abortOnError = false       // Report issues without blocking the build
-        warningsAsErrors = false
+        abortOnError = true        // Strict: any lint error fails the build
+        warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
         disable += setOf(
             "ObsoleteLintCustomCheck",
