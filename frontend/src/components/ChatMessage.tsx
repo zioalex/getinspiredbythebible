@@ -36,6 +36,9 @@ export default function ChatMessage({
     const target = e.target as HTMLElement;
     const text = target.textContent || "";
 
+    // Conjunctions that should not be treated as book names
+    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+
     // Match multi-word book names (Russian Плач Иеремии, Song of Solomon, 1. Mose…).
     // Explicit alternates for multi-word non-English names prevent false positives
     // (e.g. "Читайте Бытие" must yield "Бытие", not "Читайте Бытие").
@@ -45,6 +48,12 @@ export default function ChatMessage({
 
     if (match) {
       const book = match[1].trim();
+
+      // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
+      if (CONJUNCTIONS.has(book.toLowerCase())) {
+        return;
+      }
+
       const chapter = parseInt(match[2]);
       const verse = parseInt(match[3]);
       onVerseClick(book, chapter, verse);
@@ -53,6 +62,9 @@ export default function ChatMessage({
 
   // Helper function to highlight ALL verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
+    // Conjunctions that should not be treated as book names
+    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+
     // Pattern to match verse references anywhere in text.
     // Same alternates as handleTextClick / verseExtraction.ts — see comments there.
     const verseRefPattern =
@@ -64,6 +76,13 @@ export default function ChatMessage({
     let partKey = 0;
 
     while ((match = verseRefPattern.exec(text)) !== null) {
+      const book = match[1].trim();
+
+      // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
+      if (CONJUNCTIONS.has(book.toLowerCase())) {
+        continue;
+      }
+
       // Add text before the verse reference
       if (match.index > lastIndex) {
         const beforeText = text.slice(lastIndex, match.index);

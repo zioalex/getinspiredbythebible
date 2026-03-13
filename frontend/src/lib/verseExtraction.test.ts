@@ -268,6 +268,78 @@ describe("extractVerseReferences", () => {
     expect(refs.has("john 3:16")).toBe(true);
     expect(refs.has("romans 8:28")).toBe(true);
   });
+
+  // --- Conjunction tests ---
+  it("should not treat Italian conjunction 'e' as a book name", () => {
+    const text = "Salmi 51:6 e 51:17 ci ricordano...";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("salmi 51:6")).toBe(true);
+    // "e 51:17" should NOT be in refs
+    expect(refs.has("e 51:17")).toBe(false);
+    // Salmi 51:17 may or may not be captured depending on implementation,
+    // but "e" must not be treated as a book
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^e\s+\d+:\d+/);
+    }
+  });
+
+  it("should not treat English conjunction 'and' as a book name", () => {
+    const text = "John 3:16 and Romans 8:28";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^and\s+\d+:\d+/);
+    }
+  });
+
+  it("should not treat German conjunction 'und' as a book name", () => {
+    const text = "Johannes 3:16 und Römer 8:28";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("johannes 3:16")).toBe(true);
+    expect(refs.has("römer 8:28")).toBe(true);
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^und\s+\d+:\d+/);
+    }
+  });
+
+  it("should handle numbered book names with Italian conjunction", () => {
+    const text = "1 Giovanni 2:15 e 2 Pietro 1:4";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("1 giovanni 2:15")).toBe(true);
+    expect(refs.has("2 pietro 1:4")).toBe(true);
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^e\s+\d+:\d+/);
+    }
+  });
+
+  it("should handle multiple conjunctions in one sentence", () => {
+    const text = "John 3:16 and Romans 8:28 and Philippians 4:13";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
+    expect(refs.has("philippians 4:13")).toBe(true);
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^and\s+\d+:\d+/);
+    }
+  });
+
+  it("should handle verse ranges with conjunctions", () => {
+    const text = "Psalm 23:1-6 and Psalm 91:1-2";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalm 23:1")).toBe(true);
+    expect(refs.has("psalm 91:1")).toBe(true);
+    for (const ref of refs) {
+      expect(ref).not.toMatch(/^and\s+\d+:\d+/);
+    }
+  });
+
+  it("should not break single verse with no conjunction", () => {
+    const text = "John 3:16";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
 });
 
 // ── LOCALIZED_BOOK_TO_ENGLISH integrity ───────────────────────────────────────
