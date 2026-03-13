@@ -44,8 +44,15 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon --info 2>&1 | tee /tmp/gradle-test-output.txt; exit ${PIPESTATUS[0]}
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-test-output.txt; exit ${PIPESTATUS[0]}
         working-directory: android
+
+      - name: Emit error lines as annotations
+        if: failure()
+        run: |
+          grep -E "^(e:|error:|FAILED|Caused by:|> Task|exception)" /tmp/gradle-test-output.txt | head -50 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
 
       - name: Upload test results
         if: always()
