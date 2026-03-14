@@ -51,6 +51,13 @@ fun VerseDetailBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
+    // Auto-load the chapter as soon as the sheet opens (Idle state means not yet loaded).
+    LaunchedEffect(Unit) {
+        if (chapterState is ChapterSheetState.Idle) {
+            onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation)
+        }
+    }
+
     // Scroll chapter list to the target verse once it loads.
     val listState = rememberLazyListState()
     LaunchedEffect(chapterState) {
@@ -121,17 +128,20 @@ fun VerseDetailBottomSheet(
                 )
             }
 
-            // ── Read full chapter button ─────────────────────────────────────
-            OutlinedButton(
-                onClick = { onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation) },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                enabled = chapterState !is ChapterSheetState.Loading,
-            ) {
-                Text(text = stringResource(R.string.read_full_chapter))
-            }
-
             // ── Chapter content ──────────────────────────────────────────────
             when (chapterState) {
+                is ChapterSheetState.Idle -> {
+                    // Waiting for the LaunchedEffect to fire — show a brief spinner.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+
                 is ChapterSheetState.Loading -> {
                     Box(
                         modifier = Modifier
@@ -150,6 +160,13 @@ fun VerseDetailBottomSheet(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
+                    // Retry button — only shown on error so user can try again.
+                    OutlinedButton(
+                        onClick = { onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Text(text = stringResource(R.string.read_full_chapter))
+                    }
                 }
 
                 is ChapterSheetState.Success -> {
@@ -220,9 +237,6 @@ fun VerseDetailBottomSheet(
                     }
                 }
 
-                is ChapterSheetState.Idle -> {
-                    // Nothing to show yet — user hasn't tapped "Read full chapter"
-                }
             }
         }
     }
