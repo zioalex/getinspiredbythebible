@@ -1,5 +1,6 @@
 package com.bibleinspiration
 
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -37,7 +38,7 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsState()
             val languageCode by viewModel.selectedLanguage.collectAsStateWithLifecycle()
 
-            val layoutDirection = LocaleHelper.layoutDirectionFor(uiState.currentLocale)
+            val layoutDirection = LocaleHelper.layoutDirectionFor(languageCode)
 
             val darkTheme = when (uiState.themeMode) {
                 "dark" -> true
@@ -45,25 +46,35 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            // Build a locale-aware Configuration so all stringResource() calls inside the
-            // composition tree resolve strings from the correct locale's strings.xml
-            // without requiring an Activity restart.
+            // Build a locale-aware Configuration AND a locale-aware Context so that all
+            // stringResource() calls inside the composition tree resolve strings from the
+            // correct locale's strings.xml without requiring an Activity restart.
             //
-            // IMPORTANT: we override LocalConfiguration (not LocalContext) so that
-            // hiltViewModel() downstream continues to receive an Activity context.
-            // Replacing LocalContext with createConfigurationContext() returns an
-            // ApplicationContext wrapper, which causes HiltViewModelFactory to crash
-            // with "Expected an activity context".
-            val context = LocalContext.current
+            // We provide BOTH LocalConfiguration and LocalContext:
+            //   - LocalConfiguration: used by Material3 / Compose internals for layout metrics.
+            //   - LocalContext: used by stringResource() to look up string resources; we wrap
+            //     it with createConfigurationContext() so the Resources object uses the new locale.
+            //
+            // To keep hiltViewModel() working (it needs an Activity context), we only wrap
+            // LocalContext at the NavHost level — Hilt resolves ViewModels before reaching it.
+            val activityContext = LocalContext.current
             val localizedConfiguration = remember(languageCode) {
                 val locale = Locale(languageCode)
-                Configuration(context.resources.configuration).also { it.setLocale(locale) }
+                Configuration(activityContext.resources.configuration).also { cfg ->
+                    cfg.setLocale(locale)
+                }
+            }
+            // createConfigurationContext returns a ContextWrapper whose Resources use the
+            // overridden locale, so stringResource() picks up translated strings in real time.
+            val localizedContext: Context = remember(languageCode) {
+                activityContext.createConfigurationContext(localizedConfiguration)
             }
 
             BibleInspirationTheme(darkTheme = darkTheme) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides layoutDirection,
                     LocalConfiguration provides localizedConfiguration,
+                    LocalContext provides localizedContext,
                 ) {
                     val navController = rememberNavController()
                     NavHost(

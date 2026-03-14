@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,9 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -45,10 +49,28 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Conversation
+import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.presentation.viewmodels.ConversationsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** Language option shown in the language picker. */
+private data class LanguageOption(val code: String, val displayName: String)
+
+private val LANGUAGE_OPTIONS = listOf(
+    LanguageOption("en", "🇬🇧 English"),
+    LanguageOption("it", "🇮🇹 Italiano"),
+    LanguageOption("de", "🇩🇪 Deutsch"),
+    LanguageOption("es", "🇪🇸 Español"),
+    LanguageOption("fr", "🇫🇷 Français"),
+    LanguageOption("ar", "🇸🇦 العربية"),
+    LanguageOption("pt", "🇧🇷 Português"),
+    LanguageOption("ru", "🇷🇺 Русский"),
+    LanguageOption("zh", "🇨🇳 中文"),
+    LanguageOption("hi", "🇮🇳 हिन्दी"),
+    LanguageOption("ko", "🇰🇷 한국어"),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,10 +79,13 @@ fun ConversationsScreen(
     onSelectConversation: (String) -> Unit,
     onOpenSettings: () -> Unit = {},
     viewModel: ConversationsViewModel = hiltViewModel(),
+    chatViewModel: ChatViewModel = hiltViewModel(),
 ) {
     val conversations by viewModel.conversations.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by chatViewModel.uiState.collectAsState()
     var showClearAllDialog by remember { mutableStateOf(false) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
 
     if (showClearAllDialog) {
         AlertDialog(
@@ -94,6 +119,41 @@ fun ConversationsScreen(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.action_clear_all_conversations),
                             )
+                        }
+                    }
+                    // ── Language picker ────────────────────────────────────────
+                    Box {
+                        IconButton(onClick = { showLanguageMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = stringResource(R.string.action_select_language),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
+                        ) {
+                            LANGUAGE_OPTIONS.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = option.displayName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (option.code == uiState.currentLocale) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        chatViewModel.setLocale(option.code)
+                                        showLanguageMenu = false
+                                    },
+                                )
+                            }
                         }
                     }
                     IconButton(onClick = onOpenSettings) {

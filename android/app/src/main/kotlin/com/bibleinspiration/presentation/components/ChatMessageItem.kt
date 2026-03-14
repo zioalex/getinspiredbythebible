@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -124,15 +125,18 @@ fun ChatMessageItem(
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
+
+    // User bubble: primary colour (matches web's bg-primary-600 for user messages)
+    // Assistant bubble: white surface with a subtle border (matches web's bg-white border)
     val bubbleColor = if (isUser) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surface
     }
     val textColor = if (isUser) {
         MaterialTheme.colorScheme.onPrimary
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+        MaterialTheme.colorScheme.onSurface
     }
 
     // Show the retry button when:
@@ -147,9 +151,6 @@ fun ChatMessageItem(
     val context = LocalContext.current
 
     // Blinking cursor alpha — always created to respect Composable call order.
-    // The value is only read inside the streaming branch (case b), but the
-    // rememberInfiniteTransition + animateFloat calls must remain unconditional
-    // so the Compose runtime can track them across recompositions.
     val infiniteTransition = rememberInfiniteTransition(label = "cursor_blink")
     val cursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -172,19 +173,45 @@ fun ChatMessageItem(
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
             if (!showRetry) {
-                Box(
-                    modifier = Modifier
+                val bubbleModifier = if (isUser) {
+                    // User bubble: filled primary, no border
+                    Modifier
                         .background(
                             color = bubbleColor,
                             shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isUser) 16.dp else 4.dp,
-                                bottomEnd = if (isUser) 4.dp else 16.dp,
+                                topStart = 18.dp,
+                                topEnd = 18.dp,
+                                bottomStart = 18.dp,
+                                bottomEnd = 4.dp,
                             ),
                         )
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                ) {
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                } else {
+                    // Assistant bubble: white surface with primary border — matches web card style
+                    Modifier
+                        .background(
+                            color = bubbleColor,
+                            shape = RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 18.dp,
+                                bottomStart = 18.dp,
+                                bottomEnd = 18.dp,
+                            ),
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 18.dp,
+                                bottomStart = 18.dp,
+                                bottomEnd = 18.dp,
+                            ),
+                        )
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                }
+
+                Box(modifier = bubbleModifier) {
                     when {
                         // (a) Waiting for the first chunk — show animated typing dots
                         !isUser && message.isStreaming && message.content.isEmpty() -> {
@@ -209,10 +236,9 @@ fun ChatMessageItem(
                         }
 
                         // (c) Finished assistant message — render as Markdown with tappable verse refs.
-                        // Verse references (e.g. "John 3:16") are rewritten as verse:// links so
-                        // that tapping them opens the chapter bottom sheet directly.
                         !isUser -> {
                             val bodyMedium = MaterialTheme.typography.bodyMedium
+                            // Amber colour for verse links — matches web's amber-600 link colour
                             val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
                                 markdown = injectVerseLinks(message.content),
@@ -241,7 +267,6 @@ fun ChatMessageItem(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Share button
                     IconButton(
                         onClick = {
                             ShareCompat.IntentBuilder(context)
