@@ -43,12 +43,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Compile Kotlin (diagnostic — surfaces exact error before test run)
-        run: ./gradlew compileDebugKotlin --no-daemon --stacktrace 2>&1 | tail -150
+      - name: Compile main Kotlin (diagnostic)
+        run: ./gradlew compileDebugKotlin --no-daemon 2>&1 | tail -20
+        working-directory: android
+
+      - name: Compile test Kotlin (diagnostic — surfaces test-source errors)
+        run: ./gradlew compileDebugUnitTestKotlin --no-daemon --stacktrace 2>&1 | tail -200
         working-directory: android
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tail -300
         working-directory: android
 
       - name: Upload test results
