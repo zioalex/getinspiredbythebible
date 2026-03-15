@@ -28,7 +28,6 @@ repos:
     rev: 26.1.0
     hooks:
       - id: black
-        language_version: python3.12
         files: ^api/
         args: ["--line-length=100"]
 
@@ -134,5 +133,5 @@ repos:
 
 # Default language version
 default_language_version:
-  python: python3.12
+  python: python3
   node: 22.22.0

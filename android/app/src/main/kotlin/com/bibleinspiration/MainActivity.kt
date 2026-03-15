@@ -1,6 +1,7 @@
 package com.bibleinspiration
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -55,19 +56,28 @@ class MainActivity : ComponentActivity() {
             //   - LocalContext: used by stringResource() to look up string resources; we wrap
             //     it with createConfigurationContext() so the Resources object uses the new locale.
             //
-            // To keep hiltViewModel() working (it needs an Activity context), we only wrap
-            // LocalContext at the NavHost level — Hilt resolves ViewModels before reaching it.
-            val activityContext = LocalContext.current
+            // IMPORTANT — Activity context preservation:
+            // hiltViewModel() (via hilt-navigation-compose) calls LocalContext.current and then
+            // walks the ContextWrapper chain looking for a ComponentActivity via findActivity().
+            // createConfigurationContext() wraps the Activity's *baseContext* (not the Activity
+            // itself), which breaks that walk.  We therefore create the localized context by
+            // wrapping the Activity directly, so the chain is:
+            //   LocalizedActivityContext → Activity → ...
+            // This keeps hiltViewModel() working in every NavHost destination.
+            val activity = LocalContext.current
             val localizedConfiguration = remember(languageCode) {
                 val locale = Locale(languageCode)
-                Configuration(activityContext.resources.configuration).also { cfg ->
+                Configuration(activity.resources.configuration).also { cfg ->
                     cfg.setLocale(locale)
                 }
             }
-            // createConfigurationContext returns a ContextWrapper whose Resources use the
-            // overridden locale, so stringResource() picks up translated strings in real time.
+            // Wrap the Activity (not its baseContext) so the ContextWrapper chain still
+            // contains the ComponentActivity that hiltViewModel() needs.
             val localizedContext: Context = remember(languageCode) {
-                activityContext.createConfigurationContext(localizedConfiguration)
+                object : ContextWrapper(activity) {
+                    private val localizedResources = activity.createConfigurationContext(localizedConfiguration).resources
+                    override fun getResources() = localizedResources
+                }
             }
 
             BibleInspirationTheme(darkTheme = darkTheme) {
