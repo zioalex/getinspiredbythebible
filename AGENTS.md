@@ -22,7 +22,8 @@ Route tasks to the right agent based on complexity, context size, and type:
 
 ## Choosing the right delegate
 
-### Use @claude-delegate (Sonnet) for:
+### Use @claude-delegate (Sonnet) for
+
 - Code reviews on non-critical paths
 - Quick bug fixes and debugging
 - Feature implementation (1-3 files)
@@ -30,7 +31,8 @@ Route tasks to the right agent based on complexity, context size, and type:
 - Documentation questions
 - Docker/compose troubleshooting
 
-### Use @claude-opus (Opus) for:
+### Use @claude-opus (Opus) for
+
 - Architecture decisions and trade-off analysis
 - Security audits and vulnerability reviews
 - Complex refactoring involving 5+ files
@@ -39,13 +41,15 @@ Route tasks to the right agent based on complexity, context size, and type:
 - Performance optimization strategy
 - Migration planning
 
-### Use @explore for:
+### Use @explore for
+
 - Finding files by pattern
 - Searching code for keywords
 - Understanding codebase structure
 - Quick lookups (no analysis needed)
 
-### Do NOT delegate when:
+### Do NOT delegate when
+
 - Simple one-line fixes → use build
 - File reading only → use @explore
 - Writing short documentation → use build
@@ -63,9 +67,13 @@ Route tasks to the right agent based on complexity, context size, and type:
 ## Important Rules
 
 ### Always verify CI before merging
+
 **NEVER merge a PR without first checking that all CI checks pass.** This includes:
+
 - Running `gh pr checks <PR_NUMBER>` or checking the PR status on GitHub
 - Waiting for all jobs (Android Lint, Unit Tests, etc.) to complete
 - If CI fails, investigate and fix the issue before merging
 
-Merging with failing CI can introduce bugs and break the build. If a CI failure is a false positive or unrelated to your changes, document this clearly and consider if the PR should proceed anyway (with justification).
+Merging with failing CI can introduce bugs and break the build. If a CI failure is a false positive or
+unrelated to your changes, document this clearly and consider if the PR should proceed anyway (with
+justification).
