@@ -108,4 +108,10 @@
     <string name="verses_filter_referenced">उल्लिखित</string>
     <string name="verses_filter_all_related">सभी (%d)</string>
     <string name="verses_panel_empty">इस फ़िल्टर के लिए कोई पद नहीं मिला।</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">स्वचालित</string>
+    <string name="translation_auto_description">बैकएंड आपकी भाषा के लिए सर्वश्रेष्ठ अनुवाद चुनता है</string>
+    <string name="translation_picker_title">बाइबिल संस्करण</string>
+    <string name="translation_picker_subtitle">अपना पसंदीदा बाइबिल अनुवाद चुनें</string>
 </resources>
