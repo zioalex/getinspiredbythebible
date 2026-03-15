@@ -92,6 +92,42 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      # google-services.json is gitignored (contains Firebase project credentials).
+      # In CI we write it from a repository secret.  For PRs from forks the secret
+      # will be empty; the placeholder keeps the Google Services plugin happy so the
+      # build still compiles — Firebase is disabled at runtime (FIREBASE_ENABLED=false
+      # in debug builds) so no real Firebase calls are made.
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "bible-inspiration-placeholder",
+              "storage_bucket": "bible-inspiration-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.bibleinspiration" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
         working-directory: android
@@ -125,6 +161,18 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Run lint
         run: |
@@ -182,6 +230,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Compile Kotlin sources (debug)
         run: ./gradlew compileDebugKotlin --no-daemon
         working-directory: android
@@ -216,6 +276,18 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Enable KVM group for emulator acceleration
         run: |
@@ -270,13 +342,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Build prod APK (debuggable, points to production backend)
+      - name: Write google-services.json
         run: |
-          ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
-        working-directory: android
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-      - name: Upload prod APK
+      - name: Build prod APK (debuggable, points to production backend)
         uses: actions/upload-artifact@v7
         with:
           name: android-prod-apk
@@ -354,6 +432,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
@@ -427,6 +517,18 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Resolve app dependencies to local cache
         # Downloads all dependencies to ~/.gradle/caches without triggering AGP build tasks
