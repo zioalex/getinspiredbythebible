@@ -38,26 +38,6 @@ import com.bibleinspiration.presentation.components.ContactFormBottomSheet
 import com.bibleinspiration.presentation.components.ContactFormState
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 
-/** Language option shown in the settings list. */
-private data class LanguageOption(
-    val code: String,
-    val displayName: String,
-)
-
-private val languageOptions = listOf(
-    LanguageOption("en", "🇬🇧 English"),
-    LanguageOption("it", "🇮🇹 Italiano"),
-    LanguageOption("de", "🇩🇪 Deutsch"),
-    LanguageOption("es", "🇪🇸 Español"),
-    LanguageOption("fr", "🇫🇷 Français"),
-    LanguageOption("ar", "🇸🇦 العربية"),
-    LanguageOption("pt", "🇧🇷 Português"),
-    LanguageOption("ru", "🇷🇺 Русский"),
-    LanguageOption("zh", "🇨🇳 中文"),
-    LanguageOption("hi", "🇮🇳 हिन्दी"),
-    LanguageOption("ko", "🇰🇷 한국어"),
-)
-
 /** Theme option shown in the settings section. */
 private data class ThemeOption(
     val mode: String,
@@ -128,7 +108,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            languageOptions.forEach { option ->
+            LANGUAGE_OPTIONS.forEach { option ->
                 LanguageRow(
                     option = option,
                     selected = option.code == currentLocale,

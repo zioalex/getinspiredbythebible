@@ -55,23 +55,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Language option shown in the language picker. */
-private data class LanguageOption(val code: String, val displayName: String)
-
-private val LANGUAGE_OPTIONS = listOf(
-    LanguageOption("en", "🇬🇧 English"),
-    LanguageOption("it", "🇮🇹 Italiano"),
-    LanguageOption("de", "🇩🇪 Deutsch"),
-    LanguageOption("es", "🇪🇸 Español"),
-    LanguageOption("fr", "🇫🇷 Français"),
-    LanguageOption("ar", "🇸🇦 العربية"),
-    LanguageOption("pt", "🇧🇷 Português"),
-    LanguageOption("ru", "🇷🇺 Русский"),
-    LanguageOption("zh", "🇨🇳 中文"),
-    LanguageOption("hi", "🇮🇳 हिन्दी"),
-    LanguageOption("ko", "🇰🇷 한국어"),
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationsScreen(
