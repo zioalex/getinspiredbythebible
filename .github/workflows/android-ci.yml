@@ -43,16 +43,42 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Compile main Kotlin (diagnostic)
-        run: ./gradlew compileDebugKotlin --no-daemon 2>&1 | tail -20
+      - name: Compile main Kotlin (diagnostic — emit errors as annotations)
+        run: |
+          set +e
+          ./gradlew compileDebugKotlin --no-daemon --stacktrace > /tmp/compile-main.txt 2>&1
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            grep -E "^e:|error:|Error:|FAILED|Caused by:|Exception" /tmp/compile-main.txt | head -50 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/compile-main.txt
+          else
+            echo "compileDebugKotlin: SUCCESS"
+          fi
+          exit $EXIT_CODE
         working-directory: android
 
-      - name: Compile test Kotlin (diagnostic — surfaces test-source errors)
-        run: ./gradlew compileDebugUnitTestKotlin --no-daemon --stacktrace 2>&1 | tail -200
+      - name: Compile test Kotlin (diagnostic — emit errors as annotations)
+        run: |
+          set +e
+          ./gradlew compileDebugUnitTestKotlin --no-daemon --stacktrace > /tmp/compile-test.txt 2>&1
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            grep -E "^e:|error:|Error:|FAILED|Caused by:|Exception" /tmp/compile-test.txt | head -50 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/compile-test.txt
+          else
+            echo "compileDebugUnitTestKotlin: SUCCESS"
+          fi
+          exit $EXIT_CODE
         working-directory: android
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tail -300
+        run: ./gradlew testDebugUnitTest --no-daemon
         working-directory: android
 
       - name: Upload test results
@@ -141,7 +167,20 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Compile Kotlin sources (debug)
-        run: ./gradlew compileDebugKotlin --no-daemon
+        run: |
+          set +e
+          ./gradlew compileDebugKotlin --no-daemon --stacktrace > /tmp/compile-output.txt 2>&1
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Extract error lines and emit as GitHub annotations (visible in check-run annotations API)
+            grep -E "^e:|error:|Error:|FAILED|Caused by:|Exception" /tmp/compile-output.txt | head -50 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            echo "=== LAST 100 LINES OF GRADLE OUTPUT ==="
+            tail -100 /tmp/compile-output.txt
+            echo "=== END GRADLE OUTPUT ==="
+            exit $EXIT_CODE
+          fi
         working-directory: android
 
       - name: Compile Kotlin sources (release)
