@@ -148,7 +148,8 @@ class ThemeColorSchemeTest {
     fun `light primary is brand blue not a system dynamic colour`() {
         // Verify we're not accidentally using a system-provided dynamic colour value.
         // The brand blue is 0xFF4A6FA5 — not a typical Material dynamic seed value.
-        val rgb = lightPrimary.value
-        assertEquals(0xFF4A6FA5u, rgb)
+        // We compare Color objects directly; accessing .value returns a platform-specific
+        // ULong representation that differs from the ARGB integer literal.
+        assertEquals(Color(0xFF4A6FA5), lightPrimary)
     }
 }

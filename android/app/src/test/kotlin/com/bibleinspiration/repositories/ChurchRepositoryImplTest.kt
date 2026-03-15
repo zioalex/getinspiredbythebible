@@ -162,7 +162,11 @@ class ChurchRepositoryImplTest {
 
     @Test
     fun `searchChurches calls API with correct location`() = runTest {
-        coEvery { api.searchChurches(any()) } returns ChurchSearchResponseDto(churches = emptyList())
+        coEvery { api.searchChurches(any()) } returns ChurchSearchResponseDto(
+            churches = emptyList(),
+            total = 0,
+            location = "Berlin",
+        )
 
         repository.searchChurches("Berlin")
 
@@ -174,7 +178,11 @@ class ChurchRepositoryImplTest {
     @Test
     fun `searchChurches passes trimmed location when input has leading spaces`() = runTest {
         // The ViewModel trims location; here we verify the raw repository delegates as-is.
-        coEvery { api.searchChurches(any()) } returns ChurchSearchResponseDto(churches = emptyList())
+        coEvery { api.searchChurches(any()) } returns ChurchSearchResponseDto(
+            churches = emptyList(),
+            total = 0,
+            location = "Paris",
+        )
 
         repository.searchChurches("Paris")
 
