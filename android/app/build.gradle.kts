@@ -130,6 +130,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
+
     // Markdown rendering
     implementation(libs.compose.markdown)
 

@@ -21,6 +21,7 @@ junitExt = "1.2.1"
 espressoCore = "3.6.1"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"
+splashscreen = "1.0.1"
 owaspDepCheck = "12.1.0"
 hiltTesting = "2.51.1"          # same as hilt version
 androidxTestRunner = "1.6.2"
@@ -76,6 +77,9 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 
 # Markdown rendering
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
+
+# Splash Screen
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
