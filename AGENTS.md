@@ -1,0 +1,71 @@
+# Project Agents Configuration
+
+## Delegation Rules
+
+Route tasks to the right agent based on complexity, context size, and type:
+
+| Task Type                      | Agent              | Model     | Why                                |
+|--------------------------------|--------------------|-----------|------------------------------------|
+| Quick code edits, simple fixes | build (default)    | free      | Fast, no overhead                  |
+| File exploration, grep         | @explore           | built-in  | Read-only, fast                    |
+| Code review, quick analysis    | @claude-delegate   | Sonnet    | Fast, capable for most tasks       |
+| Architecture decisions         | @claude-opus       | Opus      | Deep reasoning required            |
+| Multi-file refactoring         | @claude-delegate   | Sonnet    | Stateful multi-step work           |
+| Complex refactoring (5+ files) | @claude-opus       | Opus      | Needs broader context understanding|
+| Security review/audit          | @claude-opus       | Opus      | Thorough, nuanced analysis         |
+| Code review (critical paths)   | @claude-opus       | Opus      | Higher accuracy needed             |
+| Documentation writing          | build (default)    | free      | Straightforward writing            |
+| Docker/infra debugging         | @claude-delegate   | Sonnet    | Usually straightforward            |
+| Complex infra (networking)     | @claude-opus       | Opus      | Deep system reasoning              |
+| Quick questions, explanations  | @claude-delegate   | Sonnet    | Fast responses                     |
+| Trade-off analysis             | @claude-opus       | Opus      | Nuanced reasoning needed           |
+
+## Choosing the right delegate
+
+### Use @claude-delegate (Sonnet) for:
+- Code reviews on non-critical paths
+- Quick bug fixes and debugging
+- Feature implementation (1-3 files)
+- Standard refactoring
+- Documentation questions
+- Docker/compose troubleshooting
+
+### Use @claude-opus (Opus) for:
+- Architecture decisions and trade-off analysis
+- Security audits and vulnerability reviews
+- Complex refactoring involving 5+ files
+- Critical path code review (auth, payments, data handling)
+- Multi-service debugging (networking, distributed systems)
+- Performance optimization strategy
+- Migration planning
+
+### Use @explore for:
+- Finding files by pattern
+- Searching code for keywords
+- Understanding codebase structure
+- Quick lookups (no analysis needed)
+
+### Do NOT delegate when:
+- Simple one-line fixes → use build
+- File reading only → use @explore
+- Writing short documentation → use build
+
+## Model Comparison
+
+| Aspect          | @claude-delegate (Sonnet) | @claude-opus (Opus) |
+|-----------------|---------------------------|---------------------|
+| Speed           | Fast                      | Slower              |
+| Cost            | Lower                     | Higher              |
+| Best for        | Implementation, debugging | Reasoning, analysis |
+| Context depth   | Good                      | Excellent           |
+| Use when        | Task is well-defined      | Task needs thinking |
+
+## Important Rules
+
+### Always verify CI before merging
+**NEVER merge a PR without first checking that all CI checks pass.** This includes:
+- Running `gh pr checks <PR_NUMBER>` or checking the PR status on GitHub
+- Waiting for all jobs (Android Lint, Unit Tests, etc.) to complete
+- If CI fails, investigate and fix the issue before merging
+
+Merging with failing CI can introduce bugs and break the build. If a CI failure is a false positive or unrelated to your changes, document this clearly and consider if the PR should proceed anyway (with justification).
