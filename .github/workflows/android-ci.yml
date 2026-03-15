@@ -39,10 +39,10 @@ jobs:
           # Get all string resource names from the default (English) strings.xml
           DEFAULT_FILE="android/app/src/main/res/values/strings.xml"
           DEFAULT_NAMES=$(grep -oP '(?<=<string name=")[^"]+' "$DEFAULT_FILE" | sort -u)
-          
+
           # Locale directories (excluding the default values/)
           LOCALES=$(ls -d android/app/src/main/res/values-*/ 2>/dev/null | sed 's|.*/values-||' | sed 's|/||')
-          
+
           MISSING=""
           for LOCALE in $LOCALES; do
             LOCALE_FILE="android/app/src/main/res/values-$LOCALE/strings.xml"
@@ -57,7 +57,7 @@ jobs:
               MISSING="$MISSING\n  - $LOCALE: file not found"
             fi
           done
-          
+
           if [ -n "$MISSING" ]; then
             echo "=== Missing translations ==="
             echo -e "$MISSING"
@@ -65,7 +65,7 @@ jobs:
             echo "Please add the missing translations to all locale files."
             exit 1
           fi
-          
+
           echo "✅ All translations are present in all locale files"
 
   # ---------------------------------------------------------------------------
