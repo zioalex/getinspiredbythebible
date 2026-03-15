@@ -64,11 +64,13 @@ private val DarkColorScheme = darkColorScheme(
     primaryContainer = Color(0xFF1565C0),
     onPrimaryContainer = Color(0xFFE3F2FD),
 
-    secondary = Color(0xFFA5D6A7),              // light green
-    onSecondary = Color(0xFF1B5E20),
-    secondaryContainer = Color(0xFF2E4D30),
-    onSecondaryContainer = Color(0xFFC8E6C9),
+    // Secondary — warm amber/gold matching the parchment feel (replaces unrelated green)
+    secondary = Color(0xFFD4A853),
+    onSecondary = Color(0xFF3B1F00),
+    secondaryContainer = Color(0xFF4A2C00),
+    onSecondaryContainer = Color(0xFFFFDEA8),
 
+    // Tertiary — amber for verse links (consistent with light theme)
     tertiary = Color(0xFFFFCC80),               // amber for verse links
     onTertiary = Color(0xFF3B1F00),
     tertiaryContainer = Color(0xFF4A2C00),

@@ -108,4 +108,10 @@
     <string name="verses_filter_referenced">Citati</string>
     <string name="verses_filter_all_related">Tutti (%d)</string>
     <string name="verses_panel_empty">Nessun versetto trovato per questo filtro.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">Auto</string>
+    <string name="translation_auto_description">Il backend sceglie la traduzione migliore per la tua lingua</string>
+    <string name="translation_picker_title">Versione della Bibbia</string>
+    <string name="translation_picker_subtitle">Scegli la tua traduzione preferita della Bibbia</string>
 </resources>

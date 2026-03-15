@@ -115,4 +115,10 @@
     <string name="verses_filter_referenced">Referenced</string>
     <string name="verses_filter_all_related">All Related (%d)</string>
     <string name="verses_panel_empty">No verses found for this filter.</string>
+
+    <!-- Bible translation picker (ChatScreen top bar chip + bottom sheet) -->
+    <string name="translation_auto">Auto</string>
+    <string name="translation_auto_description">Backend picks the best translation for your language</string>
+    <string name="translation_picker_title">Bible Version</string>
+    <string name="translation_picker_subtitle">Choose your preferred Bible translation</string>
 </resources>

@@ -108,4 +108,10 @@
     <string name="verses_filter_referenced">Упомянутые</string>
     <string name="verses_filter_all_related">Все (%d)</string>
     <string name="verses_panel_empty">Стихи для этого фильтра не найдены.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">Авто</string>
+    <string name="translation_auto_description">Бэкенд выбирает лучший перевод для вашего языка</string>
+    <string name="translation_picker_title">Версия Библии</string>
+    <string name="translation_picker_subtitle">Выберите предпочитаемый перевод Библии</string>
 </resources>

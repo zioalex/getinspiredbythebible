@@ -108,4 +108,10 @@
     <string name="verses_filter_referenced">مذكورة</string>
     <string name="verses_filter_all_related">الكل (%d)</string>
     <string name="verses_panel_empty">لا توجد آيات لهذا الفلتر.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">تلقائي</string>
+    <string name="translation_auto_description">يختار الخادم أفضل ترجمة للغتك</string>
+    <string name="translation_picker_title">إصدار الكتاب المقدس</string>
+    <string name="translation_picker_subtitle">اختر ترجمة الكتاب المقدس المفضلة لديك</string>
 </resources>
