@@ -23,6 +23,52 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Translation Validation — ensures all strings in values/strings.xml exist
+  # in all locale files. Runs early to catch missing translations quickly.
+  # ---------------------------------------------------------------------------
+  translation-validation:
+    name: Translation Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate translations
+        run: |
+          # Get all string resource names from the default (English) strings.xml
+          DEFAULT_FILE="android/app/src/main/res/values/strings.xml"
+          DEFAULT_NAMES=$(grep -oP '(?<=<string name=")[^"]+' "$DEFAULT_FILE" | sort -u)
+          
+          # Locale directories (excluding the default values/)
+          LOCALES=$(ls -d android/app/src/main/res/values-*/ 2>/dev/null | sed 's|.*/values-||' | sed 's|/||')
+          
+          MISSING=""
+          for LOCALE in $LOCALES; do
+            LOCALE_FILE="android/app/src/main/res/values-$LOCALE/strings.xml"
+            if [ -f "$LOCALE_FILE" ]; then
+              LOCALE_NAMES=$(grep -oP '(?<=<string name=")[^"]+' "$LOCALE_FILE" | sort -u)
+              for NAME in $DEFAULT_NAMES; do
+                if ! echo "$LOCALE_NAMES" | grep -q "^$NAME$"; then
+                  MISSING="$MISSING\n  - $LOCALE: '$NAME' is missing"
+                fi
+              done
+            else
+              MISSING="$MISSING\n  - $LOCALE: file not found"
+            fi
+          done
+          
+          if [ -n "$MISSING" ]; then
+            echo "=== Missing translations ==="
+            echo -e "$MISSING"
+            echo ""
+            echo "Please add the missing translations to all locale files."
+            exit 1
+          fi
+          
+          echo "✅ All translations are present in all locale files"
+
+  # ---------------------------------------------------------------------------
   # Unit Tests (pure JVM — no emulator needed, fast)
   # ---------------------------------------------------------------------------
   unit-tests:
@@ -61,6 +107,7 @@ jobs:
   lint:
     name: Android Lint
     runs-on: ubuntu-latest
+    needs: [translation-validation]
 
     steps:
       - name: Checkout
