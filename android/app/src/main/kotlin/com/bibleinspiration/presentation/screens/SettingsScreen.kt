@@ -57,7 +57,6 @@ fun SettingsScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currentLocale = uiState.currentLocale
     val currentThemeMode = uiState.themeMode
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
@@ -95,29 +94,8 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // ── Language section ──────────────────────────────────────────────
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.settings_language_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = stringResource(R.string.settings_language_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            LANGUAGE_OPTIONS.forEach { option ->
-                LanguageRow(
-                    option = option,
-                    selected = option.code == currentLocale,
-                    onSelect = { viewModel.setLocale(option.code) },
-                )
-            }
-
             // ── Theme section ─────────────────────────────────────────────────
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.settings_theme_title),
                 style = MaterialTheme.typography.titleSmall,
@@ -213,30 +191,6 @@ fun SettingsScreen(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun LanguageRow(
-    option: LanguageOption,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onSelect,
-        )
-        Text(
-            text = option.displayName,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 8.dp),
-        )
     }
 }
 

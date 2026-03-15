@@ -24,14 +24,19 @@ import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,10 +46,22 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
+import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.net.URLDecoder
 import java.net.URLEncoder
+
+/**
+ * Minimal data class representing a verse reference parsed from a tapped markdown link.
+ * We only have book/chapter/verseNumber from the URL; text will be shown once the chapter loads.
+ */
+internal data class PendingVerseLink(
+    val book: String,
+    val chapter: Int,
+    val verseNumber: Int,
+    val translation: String?,
+)
 
 /**
  * Regex matching standalone Bible verse references in message text.
@@ -93,6 +110,29 @@ internal fun injectVerseLinks(markdown: String): String =
     }
 
 /**
+ * Parses a `verse://` URL and returns a [PendingVerseLink] if the URL is well-formed,
+ * or null otherwise.
+ *
+ * URL format: `verse://<encoded-book>/<chapter>/<verse>`
+ */
+internal fun parseVerseLink(url: String, preferredTranslation: String?): PendingVerseLink? {
+    if (!url.startsWith(VERSE_SCHEME)) return null
+    val path = url.removePrefix(VERSE_SCHEME)
+    val parts = path.split("/")
+    if (parts.size < 2) return null
+    val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return null
+    val chapter = parts[1].toIntOrNull() ?: return null
+    // Verse number may be a range like "16-18" — take the first number.
+    val verseNumber = parts.getOrNull(2)?.split("-")?.firstOrNull()?.toIntOrNull() ?: 1
+    return PendingVerseLink(
+        book = book,
+        chapter = chapter,
+        verseNumber = verseNumber,
+        translation = preferredTranslation,
+    )
+}
+
+/**
  * Parses a `verse://` URL and calls [onLoadChapter] if the URL is well-formed.
  *
  * URL format: `verse://<encoded-book>/<chapter>/<verse>`
@@ -111,6 +151,7 @@ internal fun handleVerseLink(
     onLoadChapter(book, chapter, preferredTranslation)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatMessageItem(
     message: Message,
@@ -161,6 +202,10 @@ fun ChatMessageItem(
         ),
         label = "cursor_alpha",
     )
+
+    // State for the chapter sheet opened by tapping an inline verse link in the message text.
+    var pendingVerseLink by remember { mutableStateOf<PendingVerseLink?>(null) }
+    val linkSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Row(
         modifier = modifier
@@ -245,7 +290,11 @@ fun ChatMessageItem(
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 onLinkClicked = { url ->
-                                    handleVerseLink(url, preferredTranslation, onLoadChapter)
+                                    val parsed = parseVerseLink(url, preferredTranslation)
+                                    if (parsed != null) {
+                                        pendingVerseLink = parsed
+                                        onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
+                                    }
                                 },
                             )
                         }
@@ -348,4 +397,48 @@ fun ChatMessageItem(
             }
         }
     }
+
+    // Chapter bottom sheet — opened when the user taps an inline verse link in the message text.
+    // We synthesise a minimal Verse object so VerseDetailBottomSheet can highlight the target verse.
+    pendingVerseLink?.let { link ->
+        // Build a synthetic Verse from the link so VerseDetailBottomSheet can highlight it.
+        val syntheticVerse = buildSyntheticVerse(link, chapterSheetState)
+        VerseDetailBottomSheet(
+            verse = syntheticVerse,
+            preferredTranslation = link.translation,
+            chapterState = chapterSheetState,
+            onLoadChapter = onLoadChapter,
+            sheetState = linkSheetState,
+            onDismiss = {
+                pendingVerseLink = null
+                onDismissSheet()
+            },
+        )
+    }
+}
+
+/**
+ * Builds a [Verse] stub from a [PendingVerseLink].
+ *
+ * If the chapter has already loaded successfully we attempt to pull the actual verse text from
+ * [chapterState]; otherwise we fall back to a placeholder so the sheet can still be shown.
+ */
+private fun buildSyntheticVerse(link: PendingVerseLink, chapterState: ChapterSheetState): Verse {
+    val actualText = if (chapterState is ChapterSheetState.Success) {
+        chapterState.response.verses
+            .firstOrNull { it.verseNumber == link.verseNumber }
+            ?.text
+            ?: ""
+    } else {
+        ""
+    }
+    val translation = link.translation
+        ?: if (chapterState is ChapterSheetState.Success) chapterState.response.translation ?: "KJV" else "KJV"
+    return Verse(
+        book = link.book,
+        chapter = link.chapter,
+        verse = link.verseNumber,
+        text = actualText,
+        translation = translation,
+    )
 }

@@ -32,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -56,6 +58,7 @@ import com.bibleinspiration.presentation.components.ChatInputField
 import com.bibleinspiration.presentation.components.ChatMessageItem
 import com.bibleinspiration.presentation.components.ChurchFinderBanner
 import com.bibleinspiration.presentation.components.ChurchFinderBottomSheet
+import com.bibleinspiration.presentation.components.TranslationPickerBottomSheet
 import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.VersesPanel
 import com.bibleinspiration.presentation.components.WelcomeBanner
@@ -72,6 +75,8 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val chapterSheetState by viewModel.chapterSheetState.collectAsState()
     val churchFinderSheetState by viewModel.churchFinderSheetState.collectAsState()
+    val availableTranslations by viewModel.availableTranslations.collectAsState()
+    val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -89,6 +94,9 @@ fun ChatScreen(
 
     // Whether the verses panel should be open.
     var showVersesPanel by rememberSaveable { mutableStateOf(false) }
+
+    // Whether the translation picker bottom sheet should be open.
+    var showTranslationPicker by rememberSaveable { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -145,6 +153,26 @@ fun ChatScreen(
         )
     }
 
+    // Translation picker bottom sheet
+    if (showTranslationPicker) {
+        TranslationPickerBottomSheet(
+            availableTranslations = availableTranslations,
+            selectedTranslationId = preferredTranslation,
+            onSelectTranslation = { id ->
+                viewModel.setPreferredTranslation(id)
+                showTranslationPicker = false
+            },
+            onDismiss = { showTranslationPicker = false },
+        )
+    }
+
+    // Label shown on the translation chip: the short ID (e.g. "KJV") or "Auto".
+    val translationLabel = if (preferredTranslation.isBlank()) {
+        stringResource(R.string.translation_auto)
+    } else {
+        preferredTranslation.uppercase()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -155,6 +183,21 @@ fun ChatScreen(
                     )
                 },
                 actions = {
+                    // Bible translation chip — always visible so users can switch versions.
+                    SuggestionChip(
+                        onClick = { showTranslationPicker = true },
+                        label = {
+                            Text(
+                                text = translationLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                        modifier = Modifier.padding(end = 4.dp),
+                    )
                     // Verses panel icon — shown when there are related verses.
                     if (uiState.allVerses.isNotEmpty()) {
                         IconButton(onClick = { showVersesPanel = true }) {
