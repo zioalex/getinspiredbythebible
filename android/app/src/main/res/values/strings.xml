@@ -51,6 +51,7 @@
     <string name="error_session_limit">You\'ve had 10 messages in this session! Why not take a break and enjoy God\'s creation outside? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">Select language</string>
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
     <string name="action_share_message">Share message</string>

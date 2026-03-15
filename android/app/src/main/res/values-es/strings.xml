@@ -50,8 +50,15 @@
     <string name="error_session_limit">¡Has tenido 10 mensajes en esta sesión! ¿Por qué no tomar un descanso y disfrutar de la creación de Dios al aire libre? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">Seleccionar idioma</string>
     <string name="action_start_new_session">Nueva sesión</string>
     <string name="action_retry">Reintentar</string>
+    <string name="action_share_message">Compartir mensaje</string>
+    <string name="action_feedback_helpful">Esto fue útil</string>
+    <string name="action_feedback_not_helpful">Esto no fue útil</string>
+    <string name="feedback_thank_you">¡Gracias por tu comentario!</string>
+    <string name="backend_warming_up">Conectando al servidor… (la primera solicitud puede tardar hasta 30 s)</string>
+    <string name="action_scroll_to_bottom">Desplazarse hacia abajo</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Leer capítulo completo</string>

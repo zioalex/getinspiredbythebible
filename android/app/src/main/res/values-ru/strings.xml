@@ -50,6 +50,7 @@
     <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">Выбрать язык</string>
     <string name="action_retry">Повторить</string>
     <string name="action_start_new_session">Новая сессия</string>
     <string name="action_share_message">Поделиться сообщением</string>

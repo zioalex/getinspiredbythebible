@@ -50,6 +50,7 @@
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">भाषा चुनें</string>
     <string name="action_retry">पुनः प्रयास करें</string>
     <string name="action_start_new_session">नया सत्र</string>
     <string name="action_share_message">संदेश साझा करें</string>

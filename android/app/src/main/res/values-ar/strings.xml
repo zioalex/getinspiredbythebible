@@ -50,8 +50,15 @@
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">اختر اللغة</string>
     <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
+    <string name="action_share_message">مشاركة الرسالة</string>
+    <string name="action_feedback_helpful">كان هذا مفيدًا</string>
+    <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
+    <string name="feedback_thank_you">شكرًا على تعليقك!</string>
+    <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
+    <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">اقرأ الفصل الكامل</string>

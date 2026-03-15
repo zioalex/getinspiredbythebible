@@ -50,6 +50,7 @@
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">选择语言</string>
     <string name="action_retry">重试</string>
     <string name="action_start_new_session">新会话</string>
     <string name="action_share_message">分享消息</string>

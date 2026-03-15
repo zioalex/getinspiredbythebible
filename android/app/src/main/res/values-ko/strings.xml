@@ -50,6 +50,7 @@
     <string name="error_session_limit">이 세션에서 10개의 메시지를 보내셨습니다! 잠시 쉬면서 하나님의 창조물을 즐겨보시는 건 어떨까요? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">언어 선택</string>
     <string name="action_retry">다시 시도</string>
     <string name="action_start_new_session">새 세션</string>
     <string name="action_share_message">메시지 공유</string>
