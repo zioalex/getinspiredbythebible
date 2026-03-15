@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Dark-mode splash screen theme.
+      Background becomes the dark primary container (#1565C0) that matches the
+      dark colour scheme defined in Theme.kt.
+    -->
+    <style name="Theme.BibleInspiration.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1565C0</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="windowSplashScreenIconBackgroundColor">#1565C0</item>
+        <item name="postSplashScreenTheme">@style/Theme.BibleInspiration</item>
+    </style>
+</resources>
