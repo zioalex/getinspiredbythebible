@@ -43,8 +43,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Compile Kotlin (diagnostic — surfaces exact error before test run)
+        run: ./gradlew compileDebugKotlin --no-daemon --stacktrace 2>&1 | tail -150
+        working-directory: android
+
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
         working-directory: android
 
       - name: Upload test results
@@ -83,7 +87,7 @@ jobs:
           # *first* new-issue run (baseline-update mode).  On a clean run with no
           # new issues the flag is a no-op.  abortOnError=true in build.gradle.kts
           # ensures genuine new errors still fail future runs.
-          ./gradlew lintDebug --no-daemon -Dlint.baselines.continue=true
+          ./gradlew lintDebug --no-daemon -Dlint.baselines.continue=true --stacktrace
         working-directory: android
 
       - name: Print lint XML report to stdout (rule-ID diagnosis)
