@@ -19,6 +19,7 @@ python3 scripts/generate_icons.py
 ```
 
 The script reads the vector drawable design from:
+
 - `app/src/main/res/drawable/ic_launcher_foreground.xml`
 - `app/src/main/res/drawable/ic_launcher_background.xml`
 
