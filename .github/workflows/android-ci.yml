@@ -595,28 +595,35 @@ jobs:
           echo "=== OWASP exit code: ${{ steps.owasp.outputs.owasp_exit }} ==="
           # Extract dependencies with CVSSv3 >= 7.0 (or CVSSv2 >= 7.0 if v3 absent)
           python3 - <<'PYEOF'
-          import xml.etree.ElementTree as ET, sys
-          ns = {'dc': 'https://jeremylong.github.io/DependencyCheck/dependency/2.9'}
+          import xml.etree.ElementTree as ET, re, sys
           try:
               tree = ET.parse('android/app/build/reports/dependency-check-report.xml')
           except Exception as e:
               print(f'Failed to parse XML report: {e}')
               sys.exit(0)
           root = tree.getroot()
+          # Auto-detect namespace from root tag e.g. {https://...dependency-check.4.1.xsd}analysis
+          m = re.match(r'\{([^}]+)\}', root.tag)
+          ns_uri = m.group(1) if m else ''
+          ns = {'dc': ns_uri} if ns_uri else {}
+          def tag(name):
+              return f'dc:{name}' if ns_uri else name
           findings = []
-          for dep in root.findall('.//dc:dependency', ns):
-              fname = dep.findtext('dc:fileName', default='?', namespaces=ns)
-              for vuln in dep.findall('.//dc:vulnerability', ns):
-                  cve  = vuln.findtext('dc:name', default='?', namespaces=ns)
-                  desc = vuln.findtext('dc:description', default='', namespaces=ns)[:120]
-                  # prefer CVSSv3 score
-                  score_el = vuln.find('.//dc:cvssV3/dc:baseScore', ns) \
-                             or vuln.find('.//dc:cvssV2/dc:score', ns)
+          for dep in root.findall(f'.//{tag("dependency")}', ns):
+              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
+              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
+                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
+                  desc = (vuln.findtext(tag('description'), default='', namespaces=ns) or '')[:120]
+                  # prefer CVSSv3 score, fall back to CVSSv2
+                  score_el = (vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                              or vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                              or vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns))
                   score = float(score_el.text) if score_el is not None else 0.0
-                  sev   = vuln.findtext('dc:severity', default='?', namespaces=ns)
+                  sev   = vuln.findtext(tag('severity'), default='?', namespaces=ns)
                   if score >= 7.0:
                       findings.append((score, fname, cve, sev, desc))
           findings.sort(key=lambda x: -x[0])
+          print(f'Namespace detected: {ns_uri}')
           if not findings:
               print('✅ No CVEs at or above CVSS 7.0 found in report.')
           else:
