@@ -535,6 +535,14 @@ jobs:
         run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
         working-directory: android
 
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-nvd-${{ hashFiles('android/app/build.gradle.kts') }}
+          restore-keys: |
+            dependency-check-nvd-
+
       - name: Download OWASP Dependency Check CLI
         run: |
           DC_VERSION="12.1.0"
@@ -555,6 +563,7 @@ jobs:
             --failOnCVSS 7 \
             --suppression android/dependency-check-suppressions.xml \
             --disableOssIndex \
+            --data "${HOME}/.dependency-check" \
             --nvdApiKey "${{ secrets.NIST_API_KEY }}"
         env:
           NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
