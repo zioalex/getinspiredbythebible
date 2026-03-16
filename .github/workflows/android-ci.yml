@@ -548,9 +548,9 @@ jobs:
           # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
           # Monthly bucket reduces downloads - only refreshes once per month.
           # Also include hash of build.gradle.kts to invalidate when deps change.
-          key: dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
+          key: dc-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
           restore-keys: |
-            dependency-check-nvd-v12.1.0-
+            dc-nvd-v12.1.0-
         # Always save cache regardless of other step failures
 
       - name: Download OWASP Dependency Check CLI

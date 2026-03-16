@@ -27,9 +27,11 @@ class MainActivityTest {
      */
     @Test
     fun appLaunchesWithoutCrash_andConversationsScreenIsDisplayed() {
-        // The FAB with "New conversation" content description must be visible —
-        // it is rendered by ConversationsScreen which requires hiltViewModel()
+        // Wait for the composition to fully settle (Room DB init, ViewModel state, etc.)
+        // before asserting visibility. The FAB with "New conversation" content description
+        // must be visible — it is rendered by ConversationsScreen which requires hiltViewModel()
         // to succeed with a real Activity context.
+        composeRule.waitForIdle()
         composeRule
             .onNodeWithContentDescription("New conversation")
             .assertIsDisplayed()
@@ -41,6 +43,7 @@ class MainActivityTest {
      */
     @Test
     fun settingsScreenIsReachableFromConversationsScreen() {
+        composeRule.waitForIdle()
         composeRule
             .onNodeWithContentDescription("Settings")
             .assertIsDisplayed()
