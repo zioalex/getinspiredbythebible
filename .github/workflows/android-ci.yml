@@ -551,6 +551,7 @@ jobs:
           key: dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
           restore-keys: |
             dependency-check-nvd-v12.1.0-
+        # Always save cache regardless of other step failures
 
       - name: Download OWASP Dependency Check CLI
         run: |
