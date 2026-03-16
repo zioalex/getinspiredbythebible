@@ -535,13 +535,20 @@ jobs:
         run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
         working-directory: android
 
+      - name: Compute week bucket for NVD cache key
+        id: date
+        run: echo "week=$(date +'%Y-W%V')" >> "$GITHUB_OUTPUT"
+
       - name: Cache NVD database
         uses: actions/cache@v4
         with:
           path: ~/.dependency-check
-          key: dependency-check-nvd-${{ hashFiles('android/app/build.gradle.kts') }}
+          # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
+          # Date component (weekly bucket) forces a fresh NVD download each week so the
+          # vulnerability database stays current. Format: YYYY-WNN.
+          key: dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.week }}
           restore-keys: |
-            dependency-check-nvd-
+            dependency-check-nvd-v12.1.0-
 
       - name: Download OWASP Dependency Check CLI
         run: |
