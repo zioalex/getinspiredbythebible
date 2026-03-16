@@ -561,17 +561,11 @@ jobs:
           unzip -q /tmp/dependency-check.zip -d /tmp/dependency-check
 
       - name: Run OWASP Dependency Check CLI
-        # Exit codes: 0=no vulns, 15=vulns above threshold, others=error/crash.
-        # We capture the exit code and always continue so the "Print findings" and
-        # "Upload report" steps can run. The final step re-exits with the captured code.
-        id: owasp
         run: |
           mkdir -p android/app/build/reports
-          set +e
           /tmp/dependency-check/dependency-check/bin/dependency-check.sh \
             --scan "${HOME}/.gradle/caches/modules-2/files-2.1/" \
             --format HTML \
-            --format XML \
             --out android/app/build/reports \
             --project "BibleInspirationApp" \
             --failOnCVSS 7 \
@@ -579,72 +573,13 @@ jobs:
             --disableOssIndex \
             --data "${HOME}/.dependency-check" \
             --nvdApiKey "${{ secrets.NIST_API_KEY }}"
-          echo "owasp_exit=$?" >> "$GITHUB_OUTPUT"
         env:
           NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
-
-      - name: Print OWASP findings (CVEs above threshold)
-        if: always()
-        run: |
-          XML="android/app/build/reports/dependency-check-report.xml"
-          if [ ! -f "$XML" ]; then
-            echo "⚠ No XML report found — OWASP may have crashed before producing output."
-            echo "  Check the 'Run OWASP Dependency Check CLI' step output above."
-            exit 0
-          fi
-          echo "=== OWASP exit code: ${{ steps.owasp.outputs.owasp_exit }} ==="
-          # Extract dependencies with CVSSv3 >= 7.0 (or CVSSv2 >= 7.0 if v3 absent)
-          python3 - <<'PYEOF'
-          import xml.etree.ElementTree as ET, sys
-          ns = {'dc': 'https://jeremylong.github.io/DependencyCheck/dependency/2.9'}
-          try:
-              tree = ET.parse('android/app/build/reports/dependency-check-report.xml')
-          except Exception as e:
-              print(f'Failed to parse XML report: {e}')
-              sys.exit(0)
-          root = tree.getroot()
-          findings = []
-          for dep in root.findall('.//dc:dependency', ns):
-              fname = dep.findtext('dc:fileName', default='?', namespaces=ns)
-              for vuln in dep.findall('.//dc:vulnerability', ns):
-                  cve  = vuln.findtext('dc:name', default='?', namespaces=ns)
-                  desc = vuln.findtext('dc:description', default='', namespaces=ns)[:120]
-                  # prefer CVSSv3 score
-                  score_el = vuln.find('.//dc:cvssV3/dc:baseScore', ns) \
-                             or vuln.find('.//dc:cvssV2/dc:score', ns)
-                  score = float(score_el.text) if score_el is not None else 0.0
-                  sev   = vuln.findtext('dc:severity', default='?', namespaces=ns)
-                  if score >= 7.0:
-                      findings.append((score, fname, cve, sev, desc))
-          findings.sort(key=lambda x: -x[0])
-          if not findings:
-              print('✅ No CVEs at or above CVSS 7.0 found in report.')
-          else:
-              print(f'❌ {len(findings)} CVE(s) at or above CVSS 7.0:\n')
-              for score, fname, cve, sev, desc in findings:
-                  print(f'  [{score:.1f}] {cve} ({sev})')
-                  print(f'    File: {fname}')
-                  print(f'    Desc: {desc}')
-                  print()
-          PYEOF
 
       - name: Upload dependency check report
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-check-report
-          path: |
-            android/app/build/reports/dependency-check-report.html
-            android/app/build/reports/dependency-check-report.xml
+          path: android/app/build/reports/dependency-check-report.html
           retention-days: 14
-
-      - name: Fail if OWASP found vulnerabilities
-        if: always()
-        run: |
-          EXIT="${{ steps.owasp.outputs.owasp_exit }}"
-          if [ -z "$EXIT" ] || [ "$EXIT" = "0" ]; then
-            echo "✅ OWASP Dependency Check passed."
-          else
-            echo "❌ OWASP Dependency Check failed with exit code $EXIT."
-            exit "$EXIT"
-          fi
