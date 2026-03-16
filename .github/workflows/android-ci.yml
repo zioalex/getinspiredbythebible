@@ -546,7 +546,8 @@ jobs:
           # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
           # Date component (weekly bucket) forces a fresh NVD download each week so the
           # vulnerability database stays current. Format: YYYY-WNN.
-          key: dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.week }}
+          key:
+            dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.week }}
           restore-keys: |
             dependency-check-nvd-v12.1.0-
 
