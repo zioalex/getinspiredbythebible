@@ -12,40 +12,45 @@ import timber.log.Timber
  * Never instantiated in debug builds, ensuring no data is sent during development.
  *
  * The [logEventFn], [recordExceptionFn], and [logMessageFn] parameters are injected so that
- * unit tests can pass simple lambdas instead of the final Firebase SDK classes (which cannot
- * be mocked with MockK in JVM unit tests without the Java agent).
+ * unit tests can pass simple lambdas instead of the final Firebase SDK classes.  The lambda
+ * for analytics events receives the event name and a plain [Map] so that tests never touch
+ * [android.os.Bundle] (whose constructor throws RuntimeException("Stub!") in JVM unit tests).
  */
 class FirebaseAnalyticsHelper(
-    private val logEventFn: (name: String, params: Bundle) -> Unit,
+    private val logEventFn: (name: String, params: Map<String, String>) -> Unit,
     private val recordExceptionFn: (Throwable) -> Unit,
     private val logMessageFn: (String) -> Unit,
 ) : AnalyticsHelper {
 
     /**
      * Convenience constructor for production use — wraps real Firebase instances.
+     * Bundle construction happens inside this lambda, not in the class body, so it
+     * is never executed in JVM unit tests.
      */
     constructor(
         firebaseAnalytics: FirebaseAnalytics,
         crashlytics: FirebaseCrashlytics,
     ) : this(
-        logEventFn = { name, bundle -> firebaseAnalytics.logEvent(name, bundle) },
+        logEventFn = { name, params ->
+            val bundle = Bundle().apply {
+                params.forEach { (key, value) -> putString(key, value) }
+            }
+            firebaseAnalytics.logEvent(name, bundle)
+        },
         recordExceptionFn = { throwable -> crashlytics.recordException(throwable) },
         logMessageFn = { message -> crashlytics.log(message) },
     )
 
     override fun logEvent(name: String, params: Map<String, String>) {
-        val bundle = Bundle().apply {
-            params.forEach { (key, value) -> putString(key, value) }
-        }
-        logEventFn(name, bundle)
+        logEventFn(name, params)
         Timber.v("[Analytics] event=%s params=%s", name, params)
     }
 
     override fun setCurrentScreen(screenName: String) {
-        val bundle = Bundle().apply {
-            putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
-        }
-        logEventFn(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
+        logEventFn(
+            FirebaseAnalytics.Event.SCREEN_VIEW,
+            mapOf(FirebaseAnalytics.Param.SCREEN_NAME to screenName),
+        )
         Timber.v("[Analytics] screen=%s", screenName)
     }
 

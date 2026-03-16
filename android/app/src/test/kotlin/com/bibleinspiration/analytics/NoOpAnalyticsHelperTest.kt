@@ -1,8 +1,5 @@
 package com.bibleinspiration.analytics
 
-import io.mockk.mockk
-import io.mockk.verify
-import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**

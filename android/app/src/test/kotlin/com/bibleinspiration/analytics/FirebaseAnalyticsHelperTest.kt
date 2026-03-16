@@ -1,29 +1,26 @@
 package com.bibleinspiration.analytics
 
-import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
 /**
  * Unit tests for [FirebaseAnalyticsHelper].
  *
- * Rather than mocking the final Firebase SDK classes (which throws in JVM unit tests without
- * the MockK Java agent), we construct [FirebaseAnalyticsHelper] via its lambda constructor.
- * This lets us capture calls at the boundary without any mocking framework limitations.
+ * We construct [FirebaseAnalyticsHelper] via its lambda constructor so that no real
+ * Firebase SDK classes are involved and [android.os.Bundle] is never instantiated
+ * (Bundle's constructor throws RuntimeException("Stub!") in JVM unit tests without
+ * Robolectric).  Bundle construction is delegated entirely to the production lambda
+ * inside the secondary constructor, which is never called during tests.
  */
 class FirebaseAnalyticsHelperTest {
 
-    // Captured call records
-    private data class LogEventCall(val name: String, val bundle: Bundle)
-    private data class RecordExceptionCall(val throwable: Throwable)
-    private data class LogMessageCall(val message: String)
+    private data class LogEventCall(val name: String, val params: Map<String, String>)
 
     private val loggedEvents = mutableListOf<LogEventCall>()
-    private val recordedExceptions = mutableListOf<RecordExceptionCall>()
-    private val loggedMessages = mutableListOf<LogMessageCall>()
+    private val recordedExceptions = mutableListOf<Throwable>()
+    private val loggedMessages = mutableListOf<String>()
 
     private lateinit var helper: FirebaseAnalyticsHelper
 
@@ -34,9 +31,9 @@ class FirebaseAnalyticsHelperTest {
         loggedMessages.clear()
 
         helper = FirebaseAnalyticsHelper(
-            logEventFn = { name, bundle -> loggedEvents.add(LogEventCall(name, bundle)) },
-            recordExceptionFn = { throwable -> recordedExceptions.add(RecordExceptionCall(throwable)) },
-            logMessageFn = { message -> loggedMessages.add(LogMessageCall(message)) },
+            logEventFn = { name, params -> loggedEvents.add(LogEventCall(name, params)) },
+            recordExceptionFn = { throwable -> recordedExceptions.add(throwable) },
+            logMessageFn = { message -> loggedMessages.add(message) },
         )
     }
 
@@ -53,7 +50,7 @@ class FirebaseAnalyticsHelperTest {
     }
 
     @Test
-    fun `logEvent with params includes param in bundle`() {
+    fun `logEvent with params includes param in map`() {
         helper.logEvent(
             AnalyticsHelper.EVENT_LANGUAGE_CHANGED,
             mapOf(AnalyticsHelper.PARAM_LANGUAGE to "fr"),
@@ -61,19 +58,19 @@ class FirebaseAnalyticsHelperTest {
 
         assertEquals(1, loggedEvents.size)
         assertEquals(AnalyticsHelper.EVENT_LANGUAGE_CHANGED, loggedEvents[0].name)
-        assertEquals("fr", loggedEvents[0].bundle.getString(AnalyticsHelper.PARAM_LANGUAGE))
+        assertEquals("fr", loggedEvents[0].params[AnalyticsHelper.PARAM_LANGUAGE])
     }
 
     @Test
-    fun `logEvent with empty params fires once with empty bundle`() {
+    fun `logEvent with empty params fires once with empty map`() {
         helper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
 
         assertEquals(1, loggedEvents.size)
-        assertEquals(0, loggedEvents[0].bundle.size())
+        assertEquals(0, loggedEvents[0].params.size)
     }
 
     @Test
-    fun `logEvent with multiple params puts all entries in bundle`() {
+    fun `logEvent with multiple params puts all entries in map`() {
         helper.logEvent(
             AnalyticsHelper.EVENT_CHAPTER_OPENED,
             mapOf(
@@ -83,9 +80,8 @@ class FirebaseAnalyticsHelperTest {
         )
 
         assertEquals(1, loggedEvents.size)
-        val bundle = loggedEvents[0].bundle
-        assertEquals("Genesis", bundle.getString(AnalyticsHelper.PARAM_BOOK))
-        assertEquals("1", bundle.getString(AnalyticsHelper.PARAM_CHAPTER))
+        assertEquals("Genesis", loggedEvents[0].params[AnalyticsHelper.PARAM_BOOK])
+        assertEquals("1", loggedEvents[0].params[AnalyticsHelper.PARAM_CHAPTER])
     }
 
     @Test
@@ -109,12 +105,12 @@ class FirebaseAnalyticsHelperTest {
     }
 
     @Test
-    fun `setCurrentScreen puts screen name in bundle`() {
+    fun `setCurrentScreen passes screen name as param`() {
         helper.setCurrentScreen("SettingsScreen")
 
         assertEquals(
             "SettingsScreen",
-            loggedEvents[0].bundle.getString(FirebaseAnalytics.Param.SCREEN_NAME),
+            loggedEvents[0].params[FirebaseAnalytics.Param.SCREEN_NAME],
         )
     }
 
@@ -137,7 +133,7 @@ class FirebaseAnalyticsHelperTest {
         helper.recordNonFatalException(ex)
 
         assertEquals(1, recordedExceptions.size)
-        assertEquals(ex, recordedExceptions[0].throwable)
+        assertEquals(ex, recordedExceptions[0])
     }
 
     @Test
@@ -148,9 +144,9 @@ class FirebaseAnalyticsHelperTest {
         helper.recordNonFatalException(ex, message)
 
         assertEquals(1, loggedMessages.size)
-        assertEquals(message, loggedMessages[0].message)
+        assertEquals(message, loggedMessages[0])
         assertEquals(1, recordedExceptions.size)
-        assertEquals(ex, recordedExceptions[0].throwable)
+        assertEquals(ex, recordedExceptions[0])
     }
 
     @Test
