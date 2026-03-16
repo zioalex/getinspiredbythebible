@@ -1,36 +1,43 @@
 package com.bibleinspiration.analytics
 
+import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
 /**
  * Unit tests for [FirebaseAnalyticsHelper].
  *
- * Firebase SDK objects ([FirebaseAnalytics] and [FirebaseCrashlytics]) are mocked with MockK
- * (relaxed = true) so that no real Firebase calls are made during tests.
- *
- * Note: [android.os.Bundle] is an Android framework stub in JVM unit tests and its methods
- * throw [RuntimeException] ("Stub!").  We therefore verify behaviour at the Firebase call-site
- * boundary (did the correct method get called with the right event name?) rather than
- * inspecting Bundle contents.  Bundle construction is an implementation detail of
- * [FirebaseAnalyticsHelper] tested indirectly through the Firebase mock invocations.
+ * Rather than mocking the final Firebase SDK classes (which throws in JVM unit tests without
+ * the MockK Java agent), we construct [FirebaseAnalyticsHelper] via its lambda constructor.
+ * This lets us capture calls at the boundary without any mocking framework limitations.
  */
 class FirebaseAnalyticsHelperTest {
 
-    private val firebaseAnalytics: FirebaseAnalytics = mockk(relaxed = true)
-    private val crashlytics: FirebaseCrashlytics = mockk(relaxed = true)
+    // Captured call records
+    private data class LogEventCall(val name: String, val bundle: Bundle)
+    private data class RecordExceptionCall(val throwable: Throwable)
+    private data class LogMessageCall(val message: String)
+
+    private val loggedEvents = mutableListOf<LogEventCall>()
+    private val recordedExceptions = mutableListOf<RecordExceptionCall>()
+    private val loggedMessages = mutableListOf<LogMessageCall>()
 
     private lateinit var helper: FirebaseAnalyticsHelper
 
     @Before
     fun setUp() {
-        helper = FirebaseAnalyticsHelper(firebaseAnalytics, crashlytics)
+        loggedEvents.clear()
+        recordedExceptions.clear()
+        loggedMessages.clear()
+
+        helper = FirebaseAnalyticsHelper(
+            logEventFn = { name, bundle -> loggedEvents.add(LogEventCall(name, bundle)) },
+            recordExceptionFn = { throwable -> recordedExceptions.add(RecordExceptionCall(throwable)) },
+            logMessageFn = { message -> loggedMessages.add(LogMessageCall(message)) },
+        )
     }
 
     // -------------------------------------------------------------------------
@@ -38,31 +45,35 @@ class FirebaseAnalyticsHelperTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `logEvent calls firebaseAnalytics logEvent with correct event name`() {
+    fun `logEvent fires with correct event name`() {
         helper.logEvent(AnalyticsHelper.EVENT_MESSAGE_SENT)
 
-        verify { firebaseAnalytics.logEvent(AnalyticsHelper.EVENT_MESSAGE_SENT, any()) }
+        assertEquals(1, loggedEvents.size)
+        assertEquals(AnalyticsHelper.EVENT_MESSAGE_SENT, loggedEvents[0].name)
     }
 
     @Test
-    fun `logEvent with params calls Firebase exactly once`() {
+    fun `logEvent with params includes param in bundle`() {
         helper.logEvent(
             AnalyticsHelper.EVENT_LANGUAGE_CHANGED,
             mapOf(AnalyticsHelper.PARAM_LANGUAGE to "fr"),
         )
 
-        verify(exactly = 1) { firebaseAnalytics.logEvent(AnalyticsHelper.EVENT_LANGUAGE_CHANGED, any()) }
+        assertEquals(1, loggedEvents.size)
+        assertEquals(AnalyticsHelper.EVENT_LANGUAGE_CHANGED, loggedEvents[0].name)
+        assertEquals("fr", loggedEvents[0].bundle.getString(AnalyticsHelper.PARAM_LANGUAGE))
     }
 
     @Test
-    fun `logEvent with empty params calls Firebase exactly once`() {
+    fun `logEvent with empty params fires once with empty bundle`() {
         helper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
 
-        verify(exactly = 1) { firebaseAnalytics.logEvent(AnalyticsHelper.EVENT_APP_OPEN, any()) }
+        assertEquals(1, loggedEvents.size)
+        assertEquals(0, loggedEvents[0].bundle.size())
     }
 
     @Test
-    fun `logEvent with multiple params calls Firebase exactly once`() {
+    fun `logEvent with multiple params puts all entries in bundle`() {
         helper.logEvent(
             AnalyticsHelper.EVENT_CHAPTER_OPENED,
             mapOf(
@@ -71,17 +82,18 @@ class FirebaseAnalyticsHelperTest {
             ),
         )
 
-        verify(exactly = 1) {
-            firebaseAnalytics.logEvent(AnalyticsHelper.EVENT_CHAPTER_OPENED, any())
-        }
+        assertEquals(1, loggedEvents.size)
+        val bundle = loggedEvents[0].bundle
+        assertEquals("Genesis", bundle.getString(AnalyticsHelper.PARAM_BOOK))
+        assertEquals("1", bundle.getString(AnalyticsHelper.PARAM_CHAPTER))
     }
 
     @Test
-    fun `logEvent does not call crashlytics`() {
+    fun `logEvent does not touch crashlytics`() {
         helper.logEvent(AnalyticsHelper.EVENT_MESSAGE_SENT)
 
-        verify(exactly = 0) { crashlytics.recordException(any()) }
-        verify(exactly = 0) { crashlytics.log(any()) }
+        assertEquals(0, recordedExceptions.size)
+        assertEquals(0, loggedMessages.size)
     }
 
     // -------------------------------------------------------------------------
@@ -89,24 +101,29 @@ class FirebaseAnalyticsHelperTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `setCurrentScreen logs SCREEN_VIEW event with Firebase`() {
+    fun `setCurrentScreen logs SCREEN_VIEW event`() {
         helper.setCurrentScreen("ConversationsScreen")
 
-        verify { firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, any()) }
+        assertEquals(1, loggedEvents.size)
+        assertEquals(FirebaseAnalytics.Event.SCREEN_VIEW, loggedEvents[0].name)
     }
 
     @Test
-    fun `setCurrentScreen calls Firebase exactly once`() {
+    fun `setCurrentScreen puts screen name in bundle`() {
         helper.setCurrentScreen("SettingsScreen")
 
-        verify(exactly = 1) { firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, any()) }
+        assertEquals(
+            "SettingsScreen",
+            loggedEvents[0].bundle.getString(FirebaseAnalytics.Param.SCREEN_NAME),
+        )
     }
 
     @Test
     fun `setCurrentScreen does not touch crashlytics`() {
         helper.setCurrentScreen("ChatScreen")
 
-        verify(exactly = 0) { crashlytics.recordException(any()) }
+        assertEquals(0, recordedExceptions.size)
+        assertEquals(0, loggedMessages.size)
     }
 
     // -------------------------------------------------------------------------
@@ -114,50 +131,54 @@ class FirebaseAnalyticsHelperTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `recordNonFatalException calls crashlytics recordException`() {
+    fun `recordNonFatalException calls recordException`() {
         val ex = RuntimeException("test")
 
         helper.recordNonFatalException(ex)
 
-        verify { crashlytics.recordException(ex) }
+        assertEquals(1, recordedExceptions.size)
+        assertEquals(ex, recordedExceptions[0].throwable)
     }
 
     @Test
-    fun `recordNonFatalException logs message to crashlytics when provided`() {
+    fun `recordNonFatalException logs message when provided`() {
         val ex = IllegalStateException("illegal state")
         val message = "context for this error"
 
         helper.recordNonFatalException(ex, message)
 
-        verify { crashlytics.log(message) }
-        verify { crashlytics.recordException(ex) }
+        assertEquals(1, loggedMessages.size)
+        assertEquals(message, loggedMessages[0].message)
+        assertEquals(1, recordedExceptions.size)
+        assertEquals(ex, recordedExceptions[0].throwable)
     }
 
     @Test
-    fun `recordNonFatalException does not call crashlytics log when message is null`() {
-        val ex = RuntimeException("no message")
+    fun `recordNonFatalException does not log message when null`() {
+        helper.recordNonFatalException(RuntimeException("no message"), null)
 
-        helper.recordNonFatalException(ex, null)
-
-        verify(exactly = 0) { crashlytics.log(any()) }
-        verify { crashlytics.recordException(ex) }
+        assertEquals(0, loggedMessages.size)
+        assertEquals(1, recordedExceptions.size)
     }
 
     @Test
     fun `recordNonFatalException logs message before recording exception`() {
         val callOrder = mutableListOf<String>()
-        every { crashlytics.log(any()) } answers { callOrder.add("log") }
-        every { crashlytics.recordException(any()) } answers { callOrder.add("record") }
+        val ordered = FirebaseAnalyticsHelper(
+            logEventFn = { _, _ -> },
+            recordExceptionFn = { callOrder.add("record") },
+            logMessageFn = { callOrder.add("log") },
+        )
 
-        helper.recordNonFatalException(RuntimeException("err"), "msg")
+        ordered.recordNonFatalException(RuntimeException("err"), "msg")
 
         assertEquals(listOf("log", "record"), callOrder)
     }
 
     @Test
-    fun `recordNonFatalException does not call firebaseAnalytics`() {
+    fun `recordNonFatalException does not call logEventFn`() {
         helper.recordNonFatalException(RuntimeException("oops"))
 
-        verify(exactly = 0) { firebaseAnalytics.logEvent(any(), any()) }
+        assertEquals(0, loggedEvents.size)
     }
 }

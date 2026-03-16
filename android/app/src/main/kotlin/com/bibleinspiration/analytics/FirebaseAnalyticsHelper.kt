@@ -10,17 +10,34 @@ import timber.log.Timber
  *
  * Used in **release** builds only (injected via [com.bibleinspiration.di.AnalyticsModule]).
  * Never instantiated in debug builds, ensuring no data is sent during development.
+ *
+ * The [logEventFn], [recordExceptionFn], and [logMessageFn] parameters are injected so that
+ * unit tests can pass simple lambdas instead of the final Firebase SDK classes (which cannot
+ * be mocked with MockK in JVM unit tests without the Java agent).
  */
 class FirebaseAnalyticsHelper(
-    private val firebaseAnalytics: FirebaseAnalytics,
-    private val crashlytics: FirebaseCrashlytics,
+    private val logEventFn: (name: String, params: Bundle) -> Unit,
+    private val recordExceptionFn: (Throwable) -> Unit,
+    private val logMessageFn: (String) -> Unit,
 ) : AnalyticsHelper {
+
+    /**
+     * Convenience constructor for production use — wraps real Firebase instances.
+     */
+    constructor(
+        firebaseAnalytics: FirebaseAnalytics,
+        crashlytics: FirebaseCrashlytics,
+    ) : this(
+        logEventFn = { name, bundle -> firebaseAnalytics.logEvent(name, bundle) },
+        recordExceptionFn = { throwable -> crashlytics.recordException(throwable) },
+        logMessageFn = { message -> crashlytics.log(message) },
+    )
 
     override fun logEvent(name: String, params: Map<String, String>) {
         val bundle = Bundle().apply {
             params.forEach { (key, value) -> putString(key, value) }
         }
-        firebaseAnalytics.logEvent(name, bundle)
+        logEventFn(name, bundle)
         Timber.v("[Analytics] event=%s params=%s", name, params)
     }
 
@@ -28,15 +45,15 @@ class FirebaseAnalyticsHelper(
         val bundle = Bundle().apply {
             putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
         }
-        firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
+        logEventFn(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
         Timber.v("[Analytics] screen=%s", screenName)
     }
 
     override fun recordNonFatalException(throwable: Throwable, message: String?) {
         if (message != null) {
-            crashlytics.log(message)
+            logMessageFn(message)
         }
-        crashlytics.recordException(throwable)
+        recordExceptionFn(throwable)
         Timber.w(throwable, "[Crashlytics] non-fatal recorded: %s", message)
     }
 }
