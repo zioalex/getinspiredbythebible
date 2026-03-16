@@ -633,6 +633,11 @@ jobs:
                   print(f'    File: {fname}')
                   print(f'    Desc: {desc}')
                   print()
+              # Emit as GitHub Actions annotations so they appear in the Checks API
+              # and are visible even when log blobs are inaccessible.
+              for score, fname, cve, sev, desc in findings:
+                  msg = f'{cve} ({sev}, CVSS {score:.1f}) in {fname}: {desc}'
+                  print(f'::error::{msg}')
           PYEOF
 
       - name: Upload dependency check report
