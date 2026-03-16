@@ -535,19 +535,20 @@ jobs:
         run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
         working-directory: android
 
-      - name: Compute week bucket for NVD cache key
+      - name: Compute NVD cache key
         id: date
-        run: echo "week=$(date +'%Y-W%V')" >> "$GITHUB_OUTPUT"
+        run: |
+          # Use monthly bucket to reduce NVD downloads while still keeping DB fresh
+          echo "month=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
 
       - name: Cache NVD database
         uses: actions/cache@v4
         with:
           path: ~/.dependency-check
           # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
-          # Date component (weekly bucket) forces a fresh NVD download each week so the
-          # vulnerability database stays current. Format: YYYY-WNN.
-          key:
-            dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.week }}
+          # Monthly bucket reduces downloads - only refreshes once per month.
+          # Also include hash of build.gradle.kts to invalidate when deps change.
+          key: dependency-check-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
           restore-keys: |
             dependency-check-nvd-v12.1.0-
 
