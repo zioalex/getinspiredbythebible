@@ -359,10 +359,13 @@
 
     All com.google.android.gms and com.google.firebase artifacts brought in as
     transitive runtime dependencies of Firebase Analytics and Crashlytics BOM 33.7.0
-    are suppressed here using <packageUrl regex> + <cvssBelow>11</cvssBelow>.
+    are suppressed here using <packageUrl regex> + <cvssBelow>10</cvssBelow>.
 
-    Using cvssBelow:11 (above the maximum CVSS score of 10) effectively suppresses
-    ALL CVE matches on the matched artifacts.  This is the correct approach when:
+    Using cvssBelow:10 suppresses CVEs with CVSS score strictly below 10.0 (i.e.,
+    all CVEs except those with the maximum possible CVSS score of exactly 10.0).
+    CVSS 10.0 false positives for Android client libraries are exceedingly rare;
+    any real CVSS 10.0 hit should be investigated and suppressed specifically.
+    This is the correct approach when:
       1. OWASP incorrectly CPE-matches an Android client library against CVEs
          for the Google Play Services SYSTEM PROCESS or other unrelated products.
       2. The library is a small internal Firebase helper with no published CVEs
@@ -393,7 +396,7 @@
       all CVE matches on these Android client libraries.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.android\.gms/play-services-measurement.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <suppress>
@@ -403,7 +406,7 @@
       app-bundled client library JARs. Using cvssBelow:11 to suppress all matches.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.android\.gms/play-services-base.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <suppress>
@@ -411,7 +414,7 @@
       GMS client library. Play Services OS CVEs do not apply to app-bundled client libs.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.android\.gms/play-services-basement.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <suppress>
@@ -419,7 +422,7 @@
       GMS tasks utility library. Play Services OS CVEs do not apply to app-bundled client libs.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.android\.gms/play-services-tasks.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
@@ -439,7 +442,7 @@
       and any other com.google.firebase artifact on the runtime classpath.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.firebase/.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
@@ -459,7 +462,7 @@
       CVEs in build tools do not affect end users. cvssBelow:11 suppresses all matches.
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.gms/.*</packageUrl>
-    <cvssBelow>11</cvssBelow>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
