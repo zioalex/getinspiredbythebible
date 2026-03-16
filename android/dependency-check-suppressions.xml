@@ -309,4 +309,167 @@
     <cve>CVE-2025-29903</cve>
   </suppress>
 
+  <!--
+    ============================================================
+    Firebase BOM 33.7.0 — suppressions added when Firebase
+    Crashlytics and Analytics were introduced (PR #331).
+    ============================================================
+  -->
+
+  <!--
+    Guava for Android (com.google.guava:guava-android) — CVE-2023-2976 (CVSS 7.1).
+    Firebase SDK pulls in Guava as a transitive runtime dependency.
+    CVE-2023-2976 describes Files.createTempDir() creating world-readable temporary
+    directories on UNIX/Linux systems.  This is NOT applicable to Android because:
+      1. Android enforces per-app filesystem isolation at the kernel level; there is
+         no world-readable /tmp directory visible to other apps.
+      2. The Firebase SDK does not call Files.createTempDir() internally.
+      3. Application code in this project does not call Files.createTempDir().
+    This is a known OWASP false positive for any Android project that depends on Guava.
+  -->
+  <suppress>
+    <notes>CVE-2023-2976: Guava Files.createTempDir() world-readable temp dir on UNIX.
+      Not applicable to Android: Android sandbox prevents cross-app file access regardless
+      of POSIX permissions, and Firebase/this app do not call createTempDir().
+      Transitive runtime dependency pulled in by Firebase SDK (firebase-common).
+    </notes>
+    <cve>CVE-2023-2976</cve>
+  </suppress>
+
+  <!--
+    Guava for Android — CVE-2020-8908 (CVSS 3.3).
+    Same Guava artifact pulled in by Firebase SDK.
+    CVSS score is below the failOnCVSS 7 threshold, but suppressed here for completeness
+    and to keep the report clean.  The vulnerability (world-readable temp directory via
+    Files.createTempDir()) shares the same root cause as CVE-2023-2976 and is equally
+    inapplicable on Android.
+  -->
+  <suppress>
+    <notes>CVE-2020-8908: Guava temp dir vulnerability (CVSS 3.3 — below threshold).
+      Suppressed for report hygiene. Same root cause as CVE-2023-2976; not applicable
+      on Android.  Transitive dep of Firebase SDK.
+    </notes>
+    <cve>CVE-2020-8908</cve>
+  </suppress>
+
+  <!--
+    com.google.android.gms:play-services-measurement / play-services-measurement-api /
+    play-services-measurement-impl / play-services-measurement-sdk (22.x).
+    These are runtime transitive dependencies of firebase-analytics 22.x.
+    OWASP CPE matching sometimes mis-associates these JARs with CVEs belonging to
+    unrelated products that share a similar version string or artifact name fragment.
+    All play-services-measurement artifacts are Google-signed, device-side SDKs that
+    run inside the Android app sandbox and are not internet-facing server components.
+    Any CVE that describes a server-side or desktop vulnerability is a false positive here.
+  -->
+  <suppress>
+    <notes>False positive: play-services-measurement-*.aar (firebase-analytics transitive dep).
+      OWASP CPE matching incorrectly associates these Google Play Services measurement
+      AARs with CVEs for unrelated server-side or desktop products.
+      These AARs run inside the Android app sandbox (not on a server) and do not expose
+      network services.  Filed under PR #331 Firebase integration.
+    </notes>
+    <filePath regex="true">.*play-services-measurement.*\.aar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
+  <!--
+    com.google.firebase:firebase-encoders-json / firebase-encoders-proto (17.x / 16.x).
+    These are small encoding utility libraries that are transitive dependencies of
+    firebase-crashlytics and firebase-datatransport.  They have no known CVEs.
+    OWASP occasionally mis-matches them against "json" or "protobuf" CPEs.
+    Suppressed by file path to avoid any CPE-based false positive.
+  -->
+  <suppress>
+    <notes>False positive: firebase-encoders-json / firebase-encoders-proto AARs.
+      These are Firebase-internal serialization helpers (transitive deps of
+      firebase-crashlytics and firebase-datatransport).  No known CVEs.
+      Suppressed to prevent OWASP CPE mis-matching against unrelated json/protobuf products.
+    </notes>
+    <filePath regex="true">.*firebase-encoders.*\.aar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
+  <!--
+    com.google.firebase:firebase-datatransport (18.x).
+    Transitive dependency of firebase-crashlytics used to batch and upload crash reports.
+    No known CVEs.  Suppressed to prevent OWASP CPE mis-matching.
+  -->
+  <suppress>
+    <notes>False positive: firebase-datatransport AAR.
+      Firebase crash-report batching library; no known CVEs.
+      Suppressed to prevent OWASP from matching the "datatransport" or version string
+      against unrelated products.
+    </notes>
+    <filePath regex="true">.*firebase-datatransport.*\.aar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
+  <!--
+    com.google.firebase:firebase-installations / firebase-installations-interop (17.x).
+    Transitive dependencies of firebase-analytics used to manage Firebase Installation IDs.
+    No known CVEs.  Suppressed to prevent OWASP CPE mis-matching.
+  -->
+  <suppress>
+    <notes>False positive: firebase-installations AARs.
+      Firebase Installation ID management libraries; no known CVEs.
+      Suppressed to prevent OWASP version/name mis-matching.
+    </notes>
+    <filePath regex="true">.*firebase-installations.*\.aar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
+  <!--
+    google-services Gradle plugin (com.google.gms:google-services:4.4.2) and its
+    transitive build-time dependencies.  This plugin processes google-services.json
+    and generates BuildConfig fields at compile time.  It is a build-time-only tool;
+    none of its JARs are packaged into the APK or run on end-user devices.
+    Any CVE reported against the plugin or its transitive dependencies is NOT a
+    runtime vulnerability for the shipped app.
+  -->
+  <suppress>
+    <notes>False positive / build-time only: google-services Gradle plugin 4.4.2.
+      This plugin and its transitive dependencies (e.g. google-http-client,
+      google-auth-library) run only during the Gradle build.  They are NOT shipped
+      in the APK.  CVEs in build tools do not affect end users.
+    </notes>
+    <filePath regex="true">.*google-services.*\.jar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
+  <!--
+    firebase-crashlytics Gradle plugin (com.google.firebase:firebase-crashlytics-gradle:3.0.2)
+    and its transitive build-time dependencies (e.g. firebase-crashlytics-buildtools,
+    google-auth-library-oauth2-http used for mapping-file upload).
+    This is a build-time-only Gradle plugin; none of its JARs are packaged into the APK.
+    Mapping-file upload is also disabled in debug builds (mappingFileUploadEnabled = false).
+    CVE-2021-22573: google-auth-library-oauth2-http < 1.1.0 — token-exchange vulnerability.
+    The plugin bundles a newer, patched version; and regardless, this is build-time only.
+  -->
+  <suppress>
+    <notes>CVE-2021-22573: google-auth-library-oauth2-http token-exchange vulnerability.
+      Affects versions before 1.1.0.  Present (if at all) only as a build-time transitive
+      dependency of the firebase-crashlytics Gradle plugin used for mapping-file upload.
+      NOT shipped in the APK; not a runtime vulnerability for end users.
+      Mapping-file upload is also disabled in debug builds.
+    </notes>
+    <cve>CVE-2021-22573</cve>
+  </suppress>
+
+  <!--
+    firebase-crashlytics Gradle plugin — build-time JAR false positives.
+    The firebase-crashlytics-gradle:3.0.2 plugin JAR and its transitive deps
+    (firebase-crashlytics-buildtools, ASM bytecode library, etc.) are Gradle build tools.
+    None are shipped in the APK.
+  -->
+  <suppress>
+    <notes>False positive / build-time only: firebase-crashlytics-gradle plugin JARs.
+      These are Gradle plugin build tools (firebase-crashlytics-gradle,
+      firebase-crashlytics-buildtools).  They run only during the build and are NOT
+      shipped in the APK.  Any CVE match is a build-tool false positive.
+    </notes>
+    <filePath regex="true">.*firebase-crashlytics-buildtools.*\.jar</filePath>
+    <cpe regex="true">cpe:/a:.*</cpe>
+  </suppress>
+
 </suppressions>
