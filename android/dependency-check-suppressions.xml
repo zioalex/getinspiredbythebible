@@ -481,10 +481,11 @@
   -->
 
   <!--
-    firebase-crashlytics-gradle-3.0.2 — CVE-2021-32751 (CVSS 8.5).
+    firebase-crashlytics-gradle — CVE-2021-32751 (CVSS 8.5) and any other CVEs.
     This is the Crashlytics Gradle plugin (build-time only), NOT the runtime
     firebase-crashlytics-ktx SDK. The plugin runs during build to upload
     mapping files to Firebase servers. It is NOT packaged into the APK.
+    Suppress all CVEs for this plugin using regex.
   -->
   <suppress>
     <notes>CVE-2021-32751: firebase-crashlytics-gradle plugin (build-time only).
@@ -492,6 +493,13 @@
       NOT shipped in the APK - runs only during build for symbol file upload.
     </notes>
     <cve>CVE-2021-32751</cve>
+  </suppress>
+  <suppress>
+    <notes>False positive: firebase-crashlytics-gradle plugin (build-time only).
+      All CVEs for this build-time-only Gradle plugin should be suppressed.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.google\.firebase/firebase-crashlytics-gradle.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
