@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Instrumented-test manifest overlay.
+
+    Firebase's ContentProviders (FirebaseInitProvider and CrashlyticsInitProvider)
+    auto-run before any test code and try to connect to Firebase using whatever
+    google-services.json is present in the APK. In CI the file is a placeholder
+    with fake project numbers / app IDs, which causes FirebaseCrashlytics to throw
+    an IllegalStateException and crash the test process before a single test runs.
+
+    Since FIREBASE_ENABLED=false in the debug build type (which is what
+    connectedDebugAndroidTest uses), Firebase is not needed at all during
+    instrumented tests — AnalyticsModule already returns NoOpAnalyticsHelper.
+    Removing the two providers here prevents the crash without affecting any
+    production behaviour.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+
+        <!-- Disable Firebase core auto-init (fires before Application.onCreate). -->
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
+
+        <!-- Disable Crashlytics auto-init (fires before Application.onCreate). -->
+        <provider
+            android:name="com.google.firebase.crashlytics.internal.CrashlyticsInitProvider"
+            android:authorities="${applicationId}.crashlyticsinitprovider"
+            tools:node="remove" />
+
+    </application>
+
+</manifest>
