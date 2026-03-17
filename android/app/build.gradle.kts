@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -34,6 +36,12 @@ android {
                 "BASE_URL",
                 "\"${project.findProperty("baseUrl") ?: "http://10.0.2.2:8000/"}\""
             )
+            // Firebase is disabled in debug builds — no crash reports or analytics sent.
+            buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
+            // Disable Crashlytics NDK & mapping upload in debug to speed up builds.
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                mappingFileUploadEnabled = false
+            }
         }
         release {
             isMinifyEnabled = true
@@ -45,6 +53,8 @@ android {
                 "BASE_URL",
                 "\"${project.findProperty("baseUrl") ?: "https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/"}\""
             )
+            // Firebase is enabled only in release builds.
+            buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
         }
     }
 
@@ -135,6 +145,11 @@ dependencies {
 
     // Markdown rendering
     implementation(libs.compose.markdown)
+
+    // Firebase (BOM ensures all Firebase libraries use compatible versions)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 
     // --- Testing ---
     testImplementation(libs.junit)

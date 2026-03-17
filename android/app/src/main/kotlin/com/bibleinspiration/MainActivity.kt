@@ -18,9 +18,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.bibleinspiration.analytics.AnalyticsHelper
 import com.bibleinspiration.presentation.screens.ChatScreen
 import com.bibleinspiration.presentation.screens.ConversationsScreen
 import com.bibleinspiration.presentation.screens.SettingsScreen
@@ -29,15 +31,24 @@ import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.utils.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var analyticsHelper: AnalyticsHelper
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install the AndroidX Splash Screen before super.onCreate() so the
         // splash window is shown immediately from the very first frame.
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Log the app_open event on every cold start.
+        analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
+
         setContent {
             val viewModel: ChatViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsState()
@@ -91,6 +102,26 @@ class MainActivity : ComponentActivity() {
                     LocalContext provides localizedContext,
                 ) {
                     val navController = rememberNavController()
+
+                    // Track screen views every time the user navigates to a new destination.
+                    remember(navController) {
+                        navController.addOnDestinationChangedListener(
+                            object : NavController.OnDestinationChangedListener {
+                                override fun onDestinationChanged(
+                                    controller: NavController,
+                                    destination: androidx.navigation.NavDestination,
+                                    arguments: Bundle?,
+                                ) {
+                                    // Strip route args so "chat/{conversationId}" → "chat"
+                                    val screenName = destination.route
+                                        ?.substringBefore("/")
+                                        ?: destination.displayName
+                                    analyticsHelper.setCurrentScreen(screenName)
+                                }
+                            },
+                        )
+                    }
+
                     NavHost(
                         navController = navController,
                         startDestination = "conversations",
