@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Instrumented-test manifest overlay.
+
+    Firebase's ContentProviders auto-run before any test code and try to connect
+    to Firebase using whatever google-services.json is present in the APK. In CI
+    the file is a placeholder with fake project numbers / app IDs, which causes
+    these providers to throw exceptions and crash the test process before a single
+    test runs.
+
+    Three providers must be removed:
+      1. FirebaseInitProvider     — Firebase core init
+      2. CrashlyticsInitProvider  — Crashlytics init
+      3. AppMeasurementContentProvider — Google Analytics measurement
+         (transitive via firebase-analytics-ktx → play-services-measurement-base,
+          initOrder=100, validates google_app_id and throws
+          IllegalArgumentException with a placeholder App ID)
+
+    Since FIREBASE_ENABLED=false in the debug build type (which is what
+    connectedDebugAndroidTest uses), Firebase is not needed at all during
+    instrumented tests — AnalyticsModule already returns NoOpAnalyticsHelper.
+    Removing these providers prevents the crash without affecting any
+    production behaviour.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+
+        <!-- Disable Firebase core auto-init (fires before Application.onCreate). -->
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
+
+        <!-- Disable Crashlytics auto-init (fires before Application.onCreate). -->
+        <provider
+            android:name="com.google.firebase.crashlytics.internal.CrashlyticsInitProvider"
+            android:authorities="${applicationId}.crashlyticsinitprovider"
+            tools:node="remove" />
+
+        <!-- Disable Google Analytics measurement provider (transitive via firebase-analytics-ktx
+             → play-services-measurement-base). Runs with initOrder=100 before
+             Application.onCreate() and throws IllegalArgumentException when the
+             google_app_id resource contains a placeholder value (as in CI). -->
+        <provider
+            android:name="com.google.android.gms.measurement.AppMeasurementContentProvider"
+            android:authorities="${applicationId}.google_measurement_service_provider"
+            tools:node="remove" />
+
+        <!-- Disable Firebase data-transport SQLite backend initializer (transitive via
+             firebase-crashlytics → firebase-datatransport). Safe to remove in tests:
+             no data is shipped to Firebase since FIREBASE_ENABLED=false. -->
+        <provider
+            android:name="com.google.android.datatransport.runtime.TransportRuntimeInitializer"
+            android:authorities="${applicationId}.transportruntimeinitializer"
+            tools:node="remove" />
+
+    </application>
+
+</manifest>

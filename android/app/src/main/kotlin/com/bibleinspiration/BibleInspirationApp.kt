@@ -12,14 +12,14 @@ class BibleInspirationApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize Firebase early so Crashlytics can capture exceptions from app startup.
-        // FirebaseApp.initializeApp is idempotent and safe to call in all build variants;
-        // data collection is disabled at runtime for debug builds below.
-        FirebaseApp.initializeApp(this)
-
-        // Crashlytics: disable data collection in debug builds so no crash reports
-        // or analytics events are sent during development or on CI.
-        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(BuildConfig.FIREBASE_ENABLED)
+        // Initialize Firebase only in builds where it is enabled (i.e. release).
+        // In debug / CI builds FIREBASE_ENABLED=false, so we skip initialization
+        // entirely — no Firebase SDK calls are made, no data is sent, and the
+        // placeholder google-services.json never causes a crash.
+        if (BuildConfig.FIREBASE_ENABLED) {
+            FirebaseApp.initializeApp(this)
+            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+        }
 
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())

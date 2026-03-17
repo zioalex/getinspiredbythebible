@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -38,10 +37,6 @@ android {
             )
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
-            // Disable Crashlytics NDK & mapping upload in debug to speed up builds.
-            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
-                mappingFileUploadEnabled = false
-            }
         }
         release {
             isMinifyEnabled = true
@@ -70,6 +65,16 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        // Disable system animations during instrumented tests.
+        // CircularProgressIndicator uses InfiniteTransition which permanently keeps
+        // ComposeIdlingResource busy (isIdleNow() = false), causing waitForIdle() to
+        // hang forever. Setting animationsDisabled=true sets all animator duration
+        // scales to 0 on the test device so infinite animations complete immediately,
+        // unblocking waitForIdle() and any Compose test API that calls it internally.
+        animationsDisabled = true
     }
 
     lint {
