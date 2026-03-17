@@ -328,10 +328,12 @@ jobs:
           target: default
           avd-name: test-avd
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: >-
+            -no-snapshot-save -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # API 29 x86 boots in ~60-90 s on GitHub runners; 10 min gives plenty of
-          # headroom for Gradle build + 2 trivial lifecycle-state tests.
+          # API 29 x86 boots in ~60-90 s on GitHub runners; 10 min gives
+          # plenty of headroom for Gradle build + 2 trivial lifecycle tests.
           script-timeout-minutes: 10
           script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
