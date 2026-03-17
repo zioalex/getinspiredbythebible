@@ -152,7 +152,7 @@ jobs:
       - name: Resolve base commit
         id: base
         run: echo "sha=$(git rev-parse HEAD~1)" >> "$GITHUB_OUTPUT"
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           base: ${{ steps.base.outputs.sha }}
