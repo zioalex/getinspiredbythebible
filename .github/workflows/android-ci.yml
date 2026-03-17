@@ -296,16 +296,43 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Cache the AVD so subsequent runs skip the ~2-min AVD-creation step.
+      # Key includes api-level, arch, and target so a config change busts the cache.
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-29-default-x86
+
+      - name: Create AVD (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86
+          target: default
+          avd-name: test-avd
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created"
+
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          arch: x86_64
-          profile: pixel_6
+          api-level: 29
+          arch: x86
+          target: default
           avd-name: test-avd
-          emulator-options: >-
-            -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
+          # API 29 x86 boots in ~60-90 s on GitHub runners; 10 min gives plenty of
+          # headroom for Gradle build + 2 trivial lifecycle-state tests.
+          script-timeout-minutes: 10
           script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
 
