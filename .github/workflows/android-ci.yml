@@ -320,6 +320,14 @@ jobs:
           disable-animations: false
           script: echo "AVD created"
 
+      # Pre-build both APKs (app + test) before the emulator starts.
+      # This keeps the emulator step focused on install+run rather than
+      # compiling — Gradle's cold compile takes 3-4 min and would eat most
+      # of the emulator boot window.
+      - name: Pre-build debug APKs
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
+        working-directory: android
+
       # API 29/x86 boots in ~60-90 s on GitHub runners (vs 3-5 min for API 34/x86_64).
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
