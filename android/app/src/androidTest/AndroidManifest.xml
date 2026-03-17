@@ -48,6 +48,14 @@
             android:authorities="${applicationId}.google_measurement_service_provider"
             tools:node="remove" />
 
+        <!-- Disable Firebase data-transport SQLite backend initializer (transitive via
+             firebase-crashlytics → firebase-datatransport). Safe to remove in tests:
+             no data is shipped to Firebase since FIREBASE_ENABLED=false. -->
+        <provider
+            android:name="com.google.android.datatransport.runtime.TransportRuntimeInitializer"
+            android:authorities="${applicationId}.transportruntimeinitializer"
+            tools:node="remove" />
+
     </application>
 
 </manifest>

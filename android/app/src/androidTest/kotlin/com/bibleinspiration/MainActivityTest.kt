@@ -1,9 +1,11 @@
 package com.bibleinspiration
 
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
@@ -26,19 +28,28 @@ class MainActivityTest {
      * context for creating a HiltViewModelFactory" crash that occurs when
      * LocalContext is replaced with a non-Activity context.
      *
-     * Uses waitUntil (polling every ~10 ms for up to 5 s) instead of just
-     * waitForIdle() so that async state changes driven by Room/DataStore
-     * coroutines on background dispatchers are also awaited.
+     * Strategy:
+     *   - Wait for the empty-state headline ("Start your first conversation")
+     *     using [waitUntilAtLeastOneExists], which polls the semantic tree without
+     *     calling waitForIdle(). This is critical because the loading state shows a
+     *     CircularProgressIndicator whose infinite InfiniteTransition animation
+     *     permanently keeps ComposeIdlingResource busy, causing waitForIdle() to
+     *     hang indefinitely and making any approach that calls it internally time out.
+     *   - Once the empty state is visible, isLoading=false, the spinner is gone, and
+     *     Compose is idle — assertIsDisplayed() works normally for the FAB.
      */
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun appLaunchesWithoutCrash_andConversationsScreenIsDisplayed() {
-        // Poll until the FAB node appears in the semantic tree (handles async DB/DS init).
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule
-                .onAllNodesWithContentDescription("New conversation")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
+        // Wait until the loading spinner is gone (Room emitted an empty list →
+        // isLoading = false → CircularProgressIndicator removed from tree).
+        // waitUntilAtLeastOneExists polls the semantic tree directly without
+        // calling waitForIdle(), avoiding the infinite-animation deadlock.
+        composeRule.waitUntilAtLeastOneExists(
+            matcher = hasText("Start your first conversation"),
+            timeoutMillis = 15_000,
+        )
+        // Now Compose is idle — standard assertion is safe.
         composeRule
             .onNodeWithContentDescription("New conversation")
             .assertIsDisplayed()
@@ -48,14 +59,14 @@ class MainActivityTest {
      * Verifies the Settings icon is reachable from the Conversations screen.
      * Guards against the BUG C fix regression (onOpenSettings wired correctly).
      */
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun settingsScreenIsReachableFromConversationsScreen() {
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule
-                .onAllNodesWithContentDescription("Settings")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
+        // Same loading-spinner workaround — wait for empty state before asserting.
+        composeRule.waitUntilAtLeastOneExists(
+            matcher = hasText("Start your first conversation"),
+            timeoutMillis = 15_000,
+        )
         composeRule
             .onNodeWithContentDescription("Settings")
             .assertIsDisplayed()
