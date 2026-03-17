@@ -21,15 +21,22 @@ class MainActivityTest {
     val rules: RuleChain = RuleChain.outerRule(hiltRule).around(composeRule)
 
     @Before
-    fun freezeComposeClock() {
+    fun setupComposeClock() {
         // CircularProgressIndicator uses InfiniteTransition which permanently keeps
-        // ComposeIdlingResource.isIdleNow() = false.  Even with testOptions.animationsDisabled,
-        // InfiniteTransition keeps scheduling frame callbacks via BroadcastFrameClock.
-        // Freezing the main clock stops all Compose animations before any test runs, so
-        // waitForIdle() returns immediately and all semantic-tree assertions work normally.
+        // ComposeIdlingResource.isIdleNow() = false, causing waitForIdle() to hang.
         //
-        // The FAB ("New conversation") and Settings IconButton are unconditionally in the
-        // Scaffold — no need to wait for isLoading=false; they are always in the tree.
+        // Strategy:
+        //  1. Advance by one frame — triggers the initial Compose composition so the
+        //     semantic tree is populated (FAB and Settings nodes appear immediately,
+        //     since they are unconditionally in the Scaffold regardless of isLoading).
+        //  2. Freeze the clock (autoAdvance = false) — stops InfiniteTransition from
+        //     scheduling further frame callbacks, so subsequent waitForIdle() calls
+        //     and assertIsDisplayed() return without hanging.
+        //
+        // The @Rule setup launches MainActivity and waits for RESUMED state, but the
+        // first Compose frame has not yet been dispatched at that point.  Advancing one
+        // frame here triggers that first composition before we freeze the clock.
+        composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.autoAdvance = false
     }
 
