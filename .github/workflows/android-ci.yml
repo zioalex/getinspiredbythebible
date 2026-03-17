@@ -321,7 +321,6 @@ jobs:
           script: echo "AVD created"
 
       # API 29/x86 boots in ~60-90 s on GitHub runners (vs 3-5 min for API 34/x86_64).
-      # script-timeout-minutes: 10 gives ample headroom after boot for Gradle + 2 tests.
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -330,10 +329,10 @@ jobs:
           target: default
           avd-name: test-avd
           force-avd-creation: false
+          emulator-boot-timeout: 600
           emulator-options: >-
             -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script-timeout-minutes: 10
           script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
 
