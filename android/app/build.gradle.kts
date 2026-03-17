@@ -67,6 +67,16 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        // Disable system animations during instrumented tests.
+        // CircularProgressIndicator uses InfiniteTransition which permanently keeps
+        // ComposeIdlingResource busy (isIdleNow() = false), causing waitForIdle() to
+        // hang forever. Setting animationsDisabled=true sets all animator duration
+        // scales to 0 on the test device so infinite animations complete immediately,
+        // unblocking waitForIdle() and any Compose test API that calls it internally.
+        animationsDisabled = true
+    }
+
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
