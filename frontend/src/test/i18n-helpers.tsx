@@ -1,9 +1,9 @@
-import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
-import enMessages from '../../messages/en.json';
-import itMessages from '../../messages/it.json';
-import deMessages from '../../messages/de.json';
+import React from "react";
+import { render, RenderOptions } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import enMessages from "../../messages/en.json";
+import itMessages from "../../messages/it.json";
+import deMessages from "../../messages/de.json";
 
 const allMessages: Record<string, typeof enMessages> = {
   en: enMessages,
@@ -19,14 +19,17 @@ function IntlWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function renderWithIntl(ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+export function renderWithIntl(
+  ui: React.ReactElement,
+  options?: Omit<RenderOptions, "wrapper">,
+) {
   return render(ui, { wrapper: IntlWrapper, ...options });
 }
 
 export function renderWithIntlLocale(
   ui: React.ReactElement,
   locale: string,
-  options?: Omit<RenderOptions, 'wrapper'>
+  options?: Omit<RenderOptions, "wrapper">,
 ) {
   const messages = allMessages[locale] ?? enMessages;
   return render(ui, {

@@ -1,4 +1,4 @@
-import { routing } from '@/i18n/routing';
+import { routing } from "@/i18n/routing";
 
 /**
  * Parse the Accept-Language header and return the best matching locale.
@@ -8,11 +8,11 @@ export function getPreferredLocale(acceptLanguage: string | null): string {
   if (!acceptLanguage) return routing.defaultLocale;
 
   const preferred = acceptLanguage
-    .split(',')
-    .map(part => {
-      const [lang, q] = part.trim().split(';q=');
+    .split(",")
+    .map((part) => {
+      const [lang, q] = part.trim().split(";q=");
       return {
-        lang: lang.split('-')[0].toLowerCase(),
+        lang: lang.split("-")[0].toLowerCase(),
         q: q ? parseFloat(q) : 1,
       };
     })

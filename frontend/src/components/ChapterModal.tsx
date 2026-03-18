@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { X, BookOpen, Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { Verse } from '@/lib/api';
+import { useEffect } from "react";
+import { X, BookOpen, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Verse } from "@/lib/api";
 
 interface ChapterModalProps {
   isOpen: boolean;
@@ -28,22 +28,22 @@ export default function ChapterModal({
   isLoading = false,
   translationName,
 }: ChapterModalProps) {
-  const t = useTranslations('ChapterModal');
+  const t = useTranslations("ChapterModal");
 
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
@@ -52,7 +52,7 @@ export default function ChapterModal({
     if (isOpen && highlightVerse && verses.length > 0) {
       const timer = setTimeout(() => {
         const element = document.getElementById(`verse-${highlightVerse}`);
-        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
       return () => clearTimeout(timer);
     }
@@ -63,7 +63,10 @@ export default function ChapterModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen sm:max-h-[85vh] flex flex-col sm:m-4">
@@ -75,10 +78,15 @@ export default function ChapterModal({
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-800">
                 {localized_book ? localized_book : book} {chapter}
               </h2>
-              <p className="text-sm text-gray-500">{t('verseCount', { count: verses.length })}</p>
+              <p className="text-sm text-gray-500">
+                {t("verseCount", { count: verses.length })}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+          >
             <X className="w-6 h-6 text-gray-600" />
           </button>
         </div>
@@ -91,22 +99,22 @@ export default function ChapterModal({
             </div>
           ) : (
             <div className="space-y-1">
-              {verses.map(verse => (
+              {verses.map((verse) => (
                 <div
                   key={verse.verse}
                   id={`verse-${verse.verse}`}
                   className={`group scroll-mt-6 transition-all py-2 ${
                     highlightVerse === verse.verse
-                      ? 'bg-amber-100 -mx-3 px-3 rounded-lg border-l-4 border-amber-500'
-                      : 'hover:bg-gray-50 -mx-3 px-3 rounded-lg'
+                      ? "bg-amber-100 -mx-3 px-3 rounded-lg border-l-4 border-amber-500"
+                      : "hover:bg-gray-50 -mx-3 px-3 rounded-lg"
                   }`}
                 >
                   <div className="flex gap-3">
                     <span
                       className={`flex-shrink-0 w-8 text-right text-sm font-bold ${
                         highlightVerse === verse.verse
-                          ? 'text-amber-700'
-                          : 'text-gray-400 group-hover:text-gray-600'
+                          ? "text-amber-700"
+                          : "text-gray-400 group-hover:text-gray-600"
                       }`}
                     >
                       {verse.verse}
@@ -114,10 +122,10 @@ export default function ChapterModal({
                     <p
                       className={`flex-1 leading-7 text-[15px] ${
                         highlightVerse === verse.verse
-                          ? 'text-gray-900 font-medium'
-                          : 'text-gray-700'
+                          ? "text-gray-900 font-medium"
+                          : "text-gray-700"
                       }`}
-                      style={{ fontFamily: 'Georgia, serif' }}
+                      style={{ fontFamily: "Georgia, serif" }}
                     >
                       {verse.text}
                     </p>
@@ -131,7 +139,7 @@ export default function ChapterModal({
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4">
           <p className="text-xs text-gray-500 text-center">
-            {translationName || t('defaultTranslation')}
+            {translationName || t("defaultTranslation")}
           </p>
         </div>
       </div>

@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { User, BookOpen, ThumbsUp, ThumbsDown } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { useTranslations } from 'next-intl';
-import { Message } from '@/lib/api';
-import ShareMenu from './ShareMenu';
+import React from "react";
+import { User, BookOpen, ThumbsUp, ThumbsDown } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useTranslations } from "next-intl";
+import { Message } from "@/lib/api";
+import ShareMenu from "./ShareMenu";
 
 interface ChatMessageProps {
   message: Message;
   messageId?: string;
   userMessage?: string;
   onVerseClick?: (book: string, chapter: number, verse: number) => void;
-  onFeedback?: (rating: 'positive' | 'negative') => void;
-  feedbackGiven?: 'positive' | 'negative' | null;
+  onFeedback?: (rating: "positive" | "negative") => void;
+  feedbackGiven?: "positive" | "negative" | null;
   feedbackDisabled?: boolean;
 }
 
@@ -26,18 +26,18 @@ export default function ChatMessage({
   feedbackGiven,
   feedbackDisabled = false,
 }: ChatMessageProps) {
-  const t = useTranslations('Feedback');
-  const isUser = message.role === 'user';
+  const t = useTranslations("Feedback");
+  const isUser = message.role === "user";
 
   // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
   const handleTextClick = (e: React.MouseEvent) => {
     if (!onVerseClick) return;
 
     const target = e.target as HTMLElement;
-    const text = target.textContent || '';
+    const text = target.textContent || "";
 
     // Conjunctions that should not be treated as book names
-    const CONJUNCTIONS = new Set(['e', 'and', 'und', 'y', 'et', 'o', 'a']);
+    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
 
     // Match multi-word book names (Russian Плач Иеремии, Song of Solomon, 1. Mose…).
     // Explicit alternates for multi-word non-English names prevent false positives
@@ -63,7 +63,7 @@ export default function ChatMessage({
   // Helper function to highlight ALL verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
     // Conjunctions that should not be treated as book names
-    const CONJUNCTIONS = new Set(['e', 'and', 'und', 'y', 'et', 'o', 'a']);
+    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
 
     // Pattern to match verse references anywhere in text.
     // Same alternates as handleTextClick / verseExtraction.ts — see comments there.
@@ -98,7 +98,7 @@ export default function ChatMessage({
           onClick={handleTextClick}
         >
           {fullMatch}
-        </span>
+        </span>,
       );
 
       lastIndex = match.index + fullMatch.length;
@@ -137,7 +137,7 @@ export default function ChatMessage({
           className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded italic font-serif border-l-2 border-amber-400"
         >
           &ldquo;{match[1]}&rdquo;
-        </span>
+        </span>,
       );
       lastIndex = match.index + match[0].length;
     }
@@ -147,12 +147,16 @@ export default function ChatMessage({
       parts.push(text.slice(lastIndex));
     }
 
-    return parts.length > 0 ? <React.Fragment key={key}>{parts}</React.Fragment> : text;
+    return parts.length > 0 ? (
+      <React.Fragment key={key}>{parts}</React.Fragment>
+    ) : (
+      text
+    );
   };
 
   return (
     <div
-      className={`flex gap-2 sm:gap-4 message-enter ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={`flex gap-2 sm:gap-4 message-enter ${isUser ? "justify-end" : "justify-start"}`}
     >
       {!isUser && (
         <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-100 flex items-center justify-center">
@@ -163,8 +167,8 @@ export default function ChatMessage({
       <div
         className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
           isUser
-            ? 'bg-primary-600 text-white rounded-br-md'
-            : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-sm'
+            ? "bg-primary-600 text-white rounded-br-md"
+            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-sm"
         }`}
       >
         {isUser ? (
@@ -176,13 +180,20 @@ export default function ChatMessage({
                 components={{
                   // Custom paragraph renderer to highlight verse references
                   p: ({ children }) => {
-                    const processedChildren = React.Children.map(children, (child, idx) => {
-                      if (typeof child === 'string') {
-                        return highlightText(child, idx);
-                      }
-                      return child;
-                    });
-                    return <p className="my-2 leading-relaxed">{processedChildren}</p>;
+                    const processedChildren = React.Children.map(
+                      children,
+                      (child, idx) => {
+                        if (typeof child === "string") {
+                          return highlightText(child, idx);
+                        }
+                        return child;
+                      },
+                    );
+                    return (
+                      <p className="my-2 leading-relaxed">
+                        {processedChildren}
+                      </p>
+                    );
                   },
                   // Style bold text (often verse references) - make them clickable
                   strong: ({ children }) => (
@@ -209,8 +220,12 @@ export default function ChatMessage({
                     </code>
                   ),
                   // Ensure lists look good
-                  ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-5 space-y-1">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-5 space-y-1">{children}</ol>
+                  ),
                 }}
               >
                 {message.content}
@@ -220,44 +235,53 @@ export default function ChatMessage({
             {/* Feedback and share buttons for assistant messages */}
             {messageId && onFeedback && (
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-400 mr-1">{t('wasHelpful')}</span>
+                <span className="text-xs text-gray-400 mr-1">
+                  {t("wasHelpful")}
+                </span>
                 <button
-                  onClick={() => onFeedback('positive')}
+                  onClick={() => onFeedback("positive")}
                   disabled={feedbackDisabled || feedbackGiven !== null}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    feedbackGiven === 'positive'
-                      ? 'bg-green-100 text-green-600'
+                    feedbackGiven === "positive"
+                      ? "bg-green-100 text-green-600"
                       : feedbackGiven !== null
-                        ? 'text-gray-300 cursor-not-allowed'
-                        : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-400 hover:text-green-600 hover:bg-green-50"
                   }`}
-                  aria-label={t('thumbsUp')}
-                  title={t('helpfulTitle')}
+                  aria-label={t("thumbsUp")}
+                  title={t("helpfulTitle")}
                 >
                   <ThumbsUp
-                    className={`w-4 h-4 ${feedbackGiven === 'positive' ? 'fill-current' : ''}`}
+                    className={`w-4 h-4 ${feedbackGiven === "positive" ? "fill-current" : ""}`}
                   />
                 </button>
                 <button
-                  onClick={() => onFeedback('negative')}
+                  onClick={() => onFeedback("negative")}
                   disabled={feedbackDisabled || feedbackGiven !== null}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    feedbackGiven === 'negative'
-                      ? 'bg-red-100 text-red-600'
+                    feedbackGiven === "negative"
+                      ? "bg-red-100 text-red-600"
                       : feedbackGiven !== null
-                        ? 'text-gray-300 cursor-not-allowed'
-                        : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-400 hover:text-red-600 hover:bg-red-50"
                   }`}
-                  aria-label={t('thumbsDown')}
-                  title={t('improveTitle')}
+                  aria-label={t("thumbsDown")}
+                  title={t("improveTitle")}
                 >
                   <ThumbsDown
-                    className={`w-4 h-4 ${feedbackGiven === 'negative' ? 'fill-current' : ''}`}
+                    className={`w-4 h-4 ${feedbackGiven === "negative" ? "fill-current" : ""}`}
                   />
                 </button>
-                {feedbackGiven && <span className="text-xs text-gray-400 ml-1">{t('thanks')}</span>}
+                {feedbackGiven && (
+                  <span className="text-xs text-gray-400 ml-1">
+                    {t("thanks")}
+                  </span>
+                )}
                 <div className="ml-auto">
-                  <ShareMenu question={userMessage || ''} answer={message.content} />
+                  <ShareMenu
+                    question={userMessage || ""}
+                    answer={message.content}
+                  />
                 </div>
               </div>
             )}

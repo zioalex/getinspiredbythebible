@@ -4,15 +4,16 @@
 
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // Validate API URL in production (this check is tree-shaken in dev builds)
 if (
-  process.env.NODE_ENV === 'production' &&
-  (!process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL === 'http://localhost:8000')
+  process.env.NODE_ENV === "production" &&
+  (!process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL === "http://localhost:8000")
 ) {
   console.error(
-    'WARNING: NEXT_PUBLIC_API_URL is not set or is set to localhost in production build'
+    "WARNING: NEXT_PUBLIC_API_URL is not set or is set to localhost in production build",
   );
 }
 
@@ -20,9 +21,9 @@ if (
  * Error thrown when the backend is warming up (cold start)
  */
 export class ColdStartError extends Error {
-  constructor(message: string = 'Backend is warming up') {
+  constructor(message: string = "Backend is warming up") {
     super(message);
-    this.name = 'ColdStartError';
+    this.name = "ColdStartError";
   }
 }
 
@@ -32,7 +33,7 @@ export class ColdStartError extends Error {
 export class SessionLimitError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'SessionLimitError';
+    this.name = "SessionLimitError";
   }
 }
 
@@ -90,10 +91,10 @@ function consumeToken(): void {
  */
 function getHeaders(): HeadersInit {
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
   if (turnstileToken) {
-    headers['X-Turnstile-Token'] = turnstileToken;
+    headers["X-Turnstile-Token"] = turnstileToken;
   }
   return headers;
 }
@@ -105,7 +106,7 @@ export function generateSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-const SESSION_STORAGE_KEY = 'bible-chat-session-id';
+const SESSION_STORAGE_KEY = "bible-chat-session-id";
 
 /**
  * Get or create a persistent session ID stored in localStorage.
@@ -113,7 +114,7 @@ const SESSION_STORAGE_KEY = 'bible-chat-session-id';
  * Use generateSessionId() for per-conversation IDs.
  */
 export function getOrCreateSessionId(): string {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return generateSessionId();
   }
   try {
@@ -147,7 +148,7 @@ export function resetSessionId(): string {
 }
 
 export interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -196,7 +197,7 @@ export interface ChatResponse {
 
 export interface FeedbackRequest {
   message_id: string;
-  rating: 'positive' | 'negative';
+  rating: "positive" | "negative";
   comment?: string;
   user_message: string;
   assistant_response: string;
@@ -215,7 +216,7 @@ export interface FeedbackResponse {
 
 export interface ContactRequest {
   email?: string;
-  subject: 'spiritual' | 'bug' | 'feature' | 'feedback' | 'other';
+  subject: "spiritual" | "bug" | "feature" | "feedback" | "other";
   message: string;
   session_id?: string;
   user_agent?: string;
@@ -228,7 +229,7 @@ export interface ContactResponse {
 }
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   providers: {
     llm: { provider: string; healthy: boolean };
     embedding: { provider: string; healthy: boolean };
@@ -259,7 +260,7 @@ export interface ChurchSearchResponse {
 export async function warmupBackend(
   onReady: () => void,
   onWaiting?: () => void,
-  maxWaitMs: number = 60000
+  maxWaitMs: number = 60000,
 ): Promise<void> {
   const start = Date.now();
   const interval = 3000;
@@ -273,7 +274,7 @@ export async function warmupBackend(
   onWaiting?.();
 
   while (Date.now() - start < maxWaitMs) {
-    await new Promise(r => setTimeout(r, interval));
+    await new Promise((r) => setTimeout(r, interval));
     if (await checkBackendReady()) {
       onReady();
       return;
@@ -289,7 +290,7 @@ export async function sendMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
-  timeoutMs: number = 60000
+  timeoutMs: number = 60000,
 ): Promise<ChatResponse> {
   try {
     // Set a timeout for cold start detection
@@ -300,7 +301,7 @@ export async function sendMessage(
     consumeToken();
 
     const response = await fetch(`${API_URL}/api/v1/chat`, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify({
         message,
@@ -318,15 +319,16 @@ export async function sendMessage(
       // Handle 429 rate limit errors
       if (response.status === 429) {
         const data = await response.json().catch(() => ({}));
-        if (data.error === 'session_lifetime_limit') {
+        if (data.error === "session_lifetime_limit") {
           throw new SessionLimitError(
-            data.message || 'Session limit reached. Start a new session to continue.'
+            data.message ||
+              "Session limit reached. Start a new session to continue.",
           );
         }
       }
       // 503 Service Unavailable often indicates cold start
       if (response.status === 503 || response.status === 502) {
-        throw new ColdStartError('Backend is starting up');
+        throw new ColdStartError("Backend is starting up");
       }
       throw new Error(`API error: ${response.status}`);
     }
@@ -339,9 +341,9 @@ export async function sendMessage(
     }
     if (
       error instanceof TypeError ||
-      (error instanceof DOMException && error.name === 'AbortError')
+      (error instanceof DOMException && error.name === "AbortError")
     ) {
-      throw new ColdStartError('Backend is warming up, please wait...');
+      throw new ColdStartError("Backend is warming up, please wait...");
     }
     throw error;
   }
@@ -357,7 +359,7 @@ export interface StreamMetadata {
 }
 
 export interface StreamChunk {
-  type: 'metadata' | 'content' | 'error';
+  type: "metadata" | "content" | "error";
   // For metadata type:
   message_id?: string;
   scripture_context?: ScriptureContext;
@@ -378,13 +380,13 @@ export async function* streamMessage(
   message: string,
   history: Message[] = [],
   preferredTranslation?: string,
-  sessionId?: string
+  sessionId?: string,
 ): AsyncGenerator<StreamChunk> {
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify({
       message,
@@ -399,9 +401,10 @@ export async function* streamMessage(
     // Handle 429 rate limit errors
     if (response.status === 429) {
       const data = await response.json().catch(() => ({}));
-      if (data.error === 'session_lifetime_limit') {
+      if (data.error === "session_lifetime_limit") {
         throw new SessionLimitError(
-          data.message || 'Session limit reached. Start a new session to continue.'
+          data.message ||
+            "Session limit reached. Start a new session to continue.",
         );
       }
     }
@@ -409,7 +412,7 @@ export async function* streamMessage(
   }
 
   const reader = response.body?.getReader();
-  if (!reader) throw new Error('No response body');
+  if (!reader) throw new Error("No response body");
 
   const decoder = new TextDecoder();
 
@@ -418,12 +421,12 @@ export async function* streamMessage(
     if (done) break;
 
     const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
+    const lines = chunk.split("\n");
 
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
+      if (line.startsWith("data: ")) {
         const data = line.slice(6);
-        if (data === '[DONE]') return;
+        if (data === "[DONE]") return;
 
         try {
           const parsed: StreamChunk = JSON.parse(data);
@@ -441,7 +444,7 @@ export async function* streamMessage(
  */
 export async function searchScripture(
   query: string,
-  maxVerses: number = 5
+  maxVerses: number = 5,
 ): Promise<ScriptureContext> {
   const params = new URLSearchParams({
     q: query,
@@ -465,13 +468,17 @@ export async function searchScripture(
 /**
  * Get a specific verse
  */
-export async function getVerse(book: string, chapter: number, verse: number): Promise<Verse> {
+export async function getVerse(
+  book: string,
+  chapter: number,
+  verse: number,
+): Promise<Verse> {
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(
     `${API_URL}/api/v1/scripture/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
-    { headers }
+    { headers },
   );
 
   if (!response.ok) {
@@ -487,7 +494,7 @@ export async function getVerse(book: string, chapter: number, verse: number): Pr
 export async function getChapter(
   book: string,
   chapter: number,
-  translation?: string
+  translation?: string,
 ): Promise<{
   book: string;
   localized_book?: string;
@@ -496,13 +503,15 @@ export async function getChapter(
   translation?: string;
   translation_name?: string;
 }> {
-  const params = translation ? `?translation=${encodeURIComponent(translation)}` : '';
+  const params = translation
+    ? `?translation=${encodeURIComponent(translation)}`
+    : "";
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(
     `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
-    { headers }
+    { headers },
   );
 
   if (!response.ok) {
@@ -518,11 +527,11 @@ export async function getChapter(
 export async function getVerseContext(
   book: string,
   chapter: number,
-  verse: number
+  verse: number,
 ): Promise<{ target_verse: number; verses: Verse[] }> {
   const response = await fetch(
     `${API_URL}/api/v1/chat/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { "Content-Type": "application/json" } },
   );
 
   if (!response.ok) {
@@ -550,7 +559,7 @@ export async function checkHealth(): Promise<HealthStatus> {
  */
 export async function getTranslations(): Promise<TranslationInfo[]> {
   const response = await fetch(`${API_URL}/api/v1/scripture/translations`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
 
   if (!response.ok) {
@@ -564,12 +573,14 @@ export async function getTranslations(): Promise<TranslationInfo[]> {
 /**
  * Search for churches near a location
  */
-export async function searchChurches(location: string): Promise<ChurchSearchResponse> {
+export async function searchChurches(
+  location: string,
+): Promise<ChurchSearchResponse> {
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(`${API_URL}/api/v1/church/search`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify({ location }),
   });
@@ -584,12 +595,14 @@ export async function searchChurches(location: string): Promise<ChurchSearchResp
 /**
  * Submit feedback for a chat message (thumbs up/down)
  */
-export async function submitFeedback(feedback: FeedbackRequest): Promise<FeedbackResponse> {
+export async function submitFeedback(
+  feedback: FeedbackRequest,
+): Promise<FeedbackResponse> {
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(`${API_URL}/api/v1/feedback`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify(feedback),
   });
@@ -604,12 +617,14 @@ export async function submitFeedback(feedback: FeedbackRequest): Promise<Feedbac
 /**
  * Submit a contact form message
  */
-export async function submitContactForm(contact: ContactRequest): Promise<ContactResponse> {
+export async function submitContactForm(
+  contact: ContactRequest,
+): Promise<ContactResponse> {
   const headers = getHeaders();
   consumeToken();
 
   const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify(contact),
   });

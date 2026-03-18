@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n/navigation';
-import { Globe } from 'lucide-react';
-import { routing } from '@/i18n/routing';
+import { useLocale } from "next-intl";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { Globe } from "lucide-react";
+import { routing } from "@/i18n/routing";
 
 export const localeLabels: Record<string, string> = {
-  en: 'English',
-  it: 'Italiano',
-  de: 'Deutsch',
-  es: 'Español',
-  fr: 'Français',
-  pt: 'Português',
-  ar: 'العربية',
-  ru: 'Русский',
-  zh: '中文',
-  hi: 'हिन्दी',
-  ko: '한국어',
+  en: "English",
+  it: "Italiano",
+  de: "Deutsch",
+  es: "Español",
+  fr: "Français",
+  pt: "Português",
+  ar: "العربية",
+  ru: "Русский",
+  zh: "中文",
+  hi: "हिन्दी",
+  ko: "한국어",
 };
 
 export default function LanguageSwitcher() {
@@ -33,10 +33,10 @@ export default function LanguageSwitcher() {
       <Globe className="w-4 h-4 text-gray-500" />
       <select
         value={locale}
-        onChange={e => handleChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         className="text-sm border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
       >
-        {routing.locales.map(loc => (
+        {routing.locales.map((loc) => (
           <option key={loc} value={loc}>
             {localeLabels[loc]}
           </option>

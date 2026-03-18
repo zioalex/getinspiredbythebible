@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { TurnstileProvider } from '@/lib/turnstile';
-import { useEffect } from 'react';
-import { setTurnstileToken, setOnTokenConsumed } from '@/lib/api';
-import { useTurnstile } from '@/lib/turnstile';
+import { TurnstileProvider } from "@/lib/turnstile";
+import { useEffect } from "react";
+import { setTurnstileToken, setOnTokenConsumed } from "@/lib/api";
+import { useTurnstile } from "@/lib/turnstile";
 
 function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
   const { token, refreshToken } = useTurnstile();

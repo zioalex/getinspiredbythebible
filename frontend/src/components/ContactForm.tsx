@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Mail,
   MessageSquare,
@@ -9,28 +9,28 @@ import {
   Send,
   Check,
   AlertCircle,
-} from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { submitContactForm, ContactRequest } from '@/lib/api';
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { submitContactForm, ContactRequest } from "@/lib/api";
 
-const CONTACT_EMAIL = 'getinspiredbythebible@ai4you.sh';
+const CONTACT_EMAIL = "getinspiredbythebible@ai4you.sh";
 
-type Subject = 'spiritual' | 'bug' | 'feature' | 'feedback' | 'other';
+type Subject = "spiritual" | "bug" | "feature" | "feedback" | "other";
 
 export default function ContactForm() {
-  const t = useTranslations('Contact');
+  const t = useTranslations("Contact");
 
   const subjectOptions: { value: Subject; label: string }[] = [
-    { value: 'spiritual', label: t('subjectSpiritual') },
-    { value: 'feedback', label: t('subjectFeedback') },
-    { value: 'bug', label: t('subjectBug') },
-    { value: 'feature', label: t('subjectFeature') },
-    { value: 'other', label: t('subjectOther') },
+    { value: "spiritual", label: t("subjectSpiritual") },
+    { value: "feedback", label: t("subjectFeedback") },
+    { value: "bug", label: t("subjectBug") },
+    { value: "feature", label: t("subjectFeature") },
+    { value: "other", label: t("subjectOther") },
   ];
   const [isExpanded, setIsExpanded] = useState(false);
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState<Subject>('spiritual');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState<Subject>("spiritual");
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,17 +47,18 @@ export default function ContactForm() {
         email: email.trim() || undefined,
         subject,
         message: message.trim(),
-        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        user_agent:
+          typeof navigator !== "undefined" ? navigator.userAgent : undefined,
       };
 
       await submitContactForm(request);
       setSubmitted(true);
-      setEmail('');
-      setMessage('');
-      setSubject('spiritual');
+      setEmail("");
+      setMessage("");
+      setSubject("spiritual");
     } catch (err) {
-      setError(t('errorSend'));
-      console.error('Failed to submit contact form:', err);
+      setError(t("errorSend"));
+      console.error("Failed to submit contact form:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -77,9 +78,13 @@ export default function ContactForm() {
       >
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4" />
-          <span className="text-sm font-medium">{t('getInTouch')}</span>
+          <span className="text-sm font-medium">{t("getInTouch")}</span>
         </div>
-        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4" />
+        ) : (
+          <ChevronDown className="w-4 h-4" />
+        )}
       </button>
 
       {/* Collapsible content */}
@@ -88,7 +93,7 @@ export default function ContactForm() {
           {/* Contact email */}
           <div className="flex items-center gap-2 text-sm">
             <Mail className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-500">{t('emailUs')}</span>
+            <span className="text-gray-500">{t("emailUs")}</span>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="text-primary-600 hover:text-primary-700 hover:underline"
@@ -102,14 +107,18 @@ export default function ContactForm() {
             <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
               <Check className="w-5 h-5 text-green-600" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-800">{t('successTitle')}</p>
-                <p className="text-xs text-green-600 mt-1">{t('successDescription')}</p>
+                <p className="text-sm font-medium text-green-800">
+                  {t("successTitle")}
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  {t("successDescription")}
+                </p>
               </div>
               <button
                 onClick={handleReset}
                 className="text-xs text-green-600 hover:text-green-700 underline"
               >
-                {t('sendAnother')}
+                {t("sendAnother")}
               </button>
             </div>
           ) : (
@@ -125,15 +134,18 @@ export default function ContactForm() {
 
               {/* Email (optional) */}
               <div>
-                <label htmlFor="contact-email" className="block text-xs text-gray-500 mb-1">
-                  {t('emailLabel')}
+                <label
+                  htmlFor="contact-email"
+                  className="block text-xs text-gray-500 mb-1"
+                >
+                  {t("emailLabel")}
                 </label>
                 <input
                   type="email"
                   id="contact-email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder={t('emailPlaceholder')}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t("emailPlaceholder")}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={isSubmitting}
                 />
@@ -141,17 +153,20 @@ export default function ContactForm() {
 
               {/* Subject */}
               <div>
-                <label htmlFor="contact-subject" className="block text-xs text-gray-500 mb-1">
-                  {t('subjectLabel')}
+                <label
+                  htmlFor="contact-subject"
+                  className="block text-xs text-gray-500 mb-1"
+                >
+                  {t("subjectLabel")}
                 </label>
                 <select
                   id="contact-subject"
                   value={subject}
-                  onChange={e => setSubject(e.target.value as Subject)}
+                  onChange={(e) => setSubject(e.target.value as Subject)}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                   disabled={isSubmitting}
                 >
-                  {subjectOptions.map(option => (
+                  {subjectOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -161,14 +176,17 @@ export default function ContactForm() {
 
               {/* Message */}
               <div>
-                <label htmlFor="contact-message" className="block text-xs text-gray-500 mb-1">
-                  {t('messageLabel')}
+                <label
+                  htmlFor="contact-message"
+                  className="block text-xs text-gray-500 mb-1"
+                >
+                  {t("messageLabel")}
                 </label>
                 <textarea
                   id="contact-message"
                   value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder={t('messagePlaceholder')}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t("messagePlaceholder")}
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   disabled={isSubmitting}
@@ -177,7 +195,7 @@ export default function ContactForm() {
               </div>
 
               {/* Privacy note */}
-              <p className="text-xs text-gray-400">{t('privacyNote')}</p>
+              <p className="text-xs text-gray-400">{t("privacyNote")}</p>
 
               {/* Submit button */}
               <button
@@ -188,12 +206,12 @@ export default function ContactForm() {
                 {isSubmitting ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {t('sending')}
+                    {t("sending")}
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    {t('sendMessage')}
+                    {t("sendMessage")}
                   </>
                 )}
               </button>
