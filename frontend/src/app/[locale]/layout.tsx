@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import {
   getMessages,
@@ -11,8 +10,6 @@ import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export async function generateMetadata({
   params,
@@ -71,7 +68,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
-      <body className={inter.className}>
+      <body>
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <ErrorBoundary>
