@@ -390,6 +390,12 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Build prod APK (debuggable, points to production backend)
+        run: |
+          ./gradlew assembleDebug --no-daemon \
+            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+        working-directory: android
+
+      - name: Upload prod APK
         uses: actions/upload-artifact@v7
         with:
           name: android-prod-apk
