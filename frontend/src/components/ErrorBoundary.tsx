@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { Component, ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import React, { Component, ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +23,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   render() {
@@ -36,7 +36,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
 }
 
 function ErrorFallback({ error }: { error?: Error }) {
-  const t = useTranslations("ErrorBoundary");
+  const t = useTranslations('ErrorBoundary');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white p-4">
@@ -60,17 +60,15 @@ function ErrorFallback({ error }: { error?: Error }) {
         </div>
 
         {/* Error Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("title")}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('title')}</h1>
 
         {/* Error Message */}
-        <p className="text-gray-600 mb-6">{t("message")}</p>
+        <p className="text-gray-600 mb-6">{t('message')}</p>
 
         {/* Technical Details (Development Only) */}
-        {process.env.NODE_ENV === "development" && error && (
+        {process.env.NODE_ENV === 'development' && error && (
           <div className="mb-6 p-4 bg-gray-100 rounded text-left">
-            <p className="text-sm font-mono text-red-600 break-all">
-              {error.toString()}
-            </p>
+            <p className="text-sm font-mono text-red-600 break-all">{error.toString()}</p>
           </div>
         )}
 
@@ -80,14 +78,14 @@ function ErrorFallback({ error }: { error?: Error }) {
             onClick={() => window.location.reload()}
             className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
-            {t("reloadButton")}
+            {t('reloadButton')}
           </button>
 
           <a
             href="mailto:getinspiredbythebible@ai4you.sh"
             className="block w-full text-primary-600 hover:text-primary-700 text-sm"
           >
-            {t("reportIssue")}
+            {t('reportIssue')}
           </a>
         </div>
       </div>

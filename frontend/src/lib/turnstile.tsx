@@ -1,13 +1,6 @@
-"use client";
+'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 interface TurnstileContextValue {
   token: string | null;
@@ -40,11 +33,11 @@ declare global {
         options: {
           sitekey: string;
           callback?: (token: string) => void;
-          "error-callback"?: (error: unknown) => void;
-          "expired-callback"?: () => void;
-          theme?: "light" | "dark" | "auto";
-          size?: "normal" | "compact" | "invisible";
-        },
+          'error-callback'?: (error: unknown) => void;
+          'expired-callback'?: () => void;
+          theme?: 'light' | 'dark' | 'auto';
+          size?: 'normal' | 'compact' | 'invisible';
+        }
       ) => string;
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
@@ -54,7 +47,7 @@ declare global {
 
 export function TurnstileProvider({
   children,
-  apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
 }: TurnstileProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -72,10 +65,7 @@ export function TurnstileProvider({
         const response = await fetch(`${apiUrl}/config`);
         if (response.ok) {
           const config = await response.json();
-          if (
-            config.security?.turnstile_enabled &&
-            config.security?.turnstile_site_key
-          ) {
+          if (config.security?.turnstile_enabled && config.security?.turnstile_site_key) {
             setIsEnabled(true);
             setSiteKey(config.security.turnstile_site_key);
           } else {
@@ -87,7 +77,7 @@ export function TurnstileProvider({
           setIsReady(true);
         }
       } catch (error) {
-        console.warn("Failed to fetch config for Turnstile:", error);
+        console.warn('Failed to fetch config for Turnstile:', error);
         // Proceed without Turnstile on error
         setIsReady(true);
       }
@@ -125,32 +115,30 @@ export function TurnstileProvider({
           setToken(newToken);
           setIsReady(true);
         },
-        "error-callback": (error: unknown) => {
-          console.warn("Turnstile challenge error:", error);
+        'error-callback': (error: unknown) => {
+          console.warn('Turnstile challenge error:', error);
           if (retryCountRef.current < MAX_RETRIES) {
             retryCountRef.current += 1;
             const delay = 1000 * retryCountRef.current;
             console.warn(
-              `Retrying Turnstile (${retryCountRef.current}/${MAX_RETRIES}) in ${delay}ms`,
+              `Retrying Turnstile (${retryCountRef.current}/${MAX_RETRIES}) in ${delay}ms`
             );
             setTimeout(() => refreshToken(), delay);
           } else {
-            console.error(
-              "Turnstile failed after retries, proceeding without token",
-            );
+            console.error('Turnstile failed after retries, proceeding without token');
             setIsReady(true);
           }
         },
-        "expired-callback": () => {
+        'expired-callback': () => {
           setToken(null);
           // Auto-refresh on expiry
           refreshToken();
         },
-        size: "invisible",
-        theme: "light",
+        size: 'invisible',
+        theme: 'light',
       });
     } catch (error) {
-      console.error("Failed to render Turnstile widget:", error);
+      console.error('Failed to render Turnstile widget:', error);
       setIsReady(true);
     }
   }, [siteKey, refreshToken]);
@@ -166,14 +154,14 @@ export function TurnstileProvider({
     }
 
     // Load the Turnstile script
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
     script.async = true;
     script.onload = () => {
       renderWidget();
     };
     script.onerror = () => {
-      console.error("Failed to load Turnstile script");
+      console.error('Failed to load Turnstile script');
       setIsReady(true); // Proceed without Turnstile
     };
 
@@ -188,18 +176,16 @@ export function TurnstileProvider({
   }, [siteKey, renderWidget]);
 
   return (
-    <TurnstileContext.Provider
-      value={{ token, isReady, isEnabled, refreshToken }}
-    >
+    <TurnstileContext.Provider value={{ token, isReady, isEnabled, refreshToken }}>
       {/* Hidden container for the invisible Turnstile widget */}
       {isEnabled && (
         <div
           ref={containerRef}
           style={{
-            position: "fixed",
+            position: 'fixed',
             bottom: 0,
             right: 0,
-            visibility: "hidden",
+            visibility: 'hidden',
           }}
           aria-hidden="true"
         />

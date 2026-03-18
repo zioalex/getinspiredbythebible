@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { X, AlertTriangle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import React, { useState } from 'react';
+import { X, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (comment: string) => void;
-  rating: "positive" | "negative";
+  rating: 'positive' | 'negative';
   isSubmitting?: boolean;
 }
 
@@ -19,30 +19,26 @@ export default function FeedbackModal({
   rating,
   isSubmitting = false,
 }: FeedbackModalProps) {
-  const t = useTranslations("Feedback");
-  const [comment, setComment] = useState("");
+  const t = useTranslations('Feedback');
+  const [comment, setComment] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(comment);
-    setComment("");
+    setComment('');
   };
 
   const handleSkip = () => {
-    onSubmit("");
-    setComment("");
+    onSubmit('');
+    setComment('');
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
 
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-4 sm:p-6">
@@ -50,31 +46,27 @@ export default function FeedbackModal({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          aria-label={t("close")}
+          aria-label={t('close')}
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
         <h2 className="text-lg font-semibold text-gray-800 mb-2">
-          {rating === "positive" ? t("positiveHeading") : t("negativeHeading")}
+          {rating === 'positive' ? t('positiveHeading') : t('negativeHeading')}
         </h2>
 
         <p className="text-sm text-gray-500 mb-4">
-          {rating === "positive"
-            ? t("positiveDescription")
-            : t("negativeDescription")}
+          {rating === 'positive' ? t('positiveDescription') : t('negativeDescription')}
         </p>
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <textarea
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={e => setComment(e.target.value)}
             placeholder={
-              rating === "positive"
-                ? t("positivePlaceholder")
-                : t("negativePlaceholder")
+              rating === 'positive' ? t('positivePlaceholder') : t('negativePlaceholder')
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             rows={4}
@@ -84,7 +76,7 @@ export default function FeedbackModal({
           {/* Privacy Notice */}
           <div className="flex items-start gap-2 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800">{t("privacyNotice")}</p>
+            <p className="text-xs text-amber-800">{t('privacyNotice')}</p>
           </div>
 
           {/* Buttons */}
@@ -95,14 +87,14 @@ export default function FeedbackModal({
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              {t("skip")}
+              {t('skip')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
             >
-              {isSubmitting ? t("submitting") : t("submit")}
+              {isSubmitting ? t('submitting') : t('submit')}
             </button>
           </div>
         </form>
