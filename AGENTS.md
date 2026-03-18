@@ -2,7 +2,7 @@
 
 ## Workflow: Plan → Delegate → Implement → Verify
 
-```
+```text
 User Request → Orchestrator (Plan) → Subagent (Implement via acpx_claude) → Orchestrator (Verify) → Report
 ```
 
@@ -56,6 +56,7 @@ After successful patterns emerge, codify them in these files.
 ## Fallback Agents
 
 Use `build` or `plan` agents directly only for:
+
 - Simple one-line fixes
 - Quick file reads without analysis
 - Short documentation writing
