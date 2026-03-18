@@ -4,6 +4,7 @@ import com.bibleinspiration.data.remote.api.BibleApiService
 import com.bibleinspiration.data.remote.models.ContactRequestDto
 import com.bibleinspiration.data.remote.models.ContactResponseDto
 import com.bibleinspiration.data.repositories.ContactRepositoryImpl
+import com.bibleinspiration.security.TurnstileManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -29,12 +30,14 @@ import java.io.IOException
 class ContactRepositoryImplTest {
 
     private lateinit var api: BibleApiService
+    private lateinit var turnstileManager: TurnstileManager
     private lateinit var repository: ContactRepositoryImpl
 
     @Before
     fun setUp() {
         api = mockk(relaxed = true)
-        repository = ContactRepositoryImpl(api)
+        turnstileManager = mockk(relaxed = true)
+        repository = ContactRepositoryImpl(api, turnstileManager)
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────
@@ -73,6 +76,24 @@ class ContactRepositoryImplTest {
         )
 
         assertEquals(1, result)
+    }
+
+    @Test
+    fun `submitContact calls onTokenConsumed after success`() = runTest {
+        coEvery { api.submitContact(any()) } returns ContactResponseDto(
+            id = 1,
+            subject = "bug",
+            createdAt = "2026-03-01T00:00:00Z",
+        )
+
+        repository.submitContact(
+            subject = "bug",
+            message = "Fix this",
+            email = null,
+            userAgent = null,
+        )
+
+        coVerify { turnstileManager.onTokenConsumed() }
     }
 
     // ── API delegation ────────────────────────────────────────────────────────
