@@ -1,79 +1,69 @@
 # Project Agents Configuration
 
-## Delegation Rules
+## Workflow: Plan → Delegate → Implement → Verify
 
-Route tasks to the right agent based on complexity, context size, and type:
+```
+User Request → Orchestrator (Plan) → Subagent (Implement via acpx_claude) → Orchestrator (Verify) → Report
+```
 
-| Task Type                      | Agent              | Model     | Why                                |
-|--------------------------------|--------------------|-----------|------------------------------------|
-| Quick code edits, simple fixes | build (default)    | free      | Fast, no overhead                  |
-| File exploration, grep         | @explore           | built-in  | Read-only, fast                    |
-| Code review, quick analysis    | @claude-delegate   | Sonnet    | Fast, capable for most tasks       |
-| Architecture decisions         | @claude-opus       | Opus      | Deep reasoning required            |
-| Multi-file refactoring         | @claude-delegate   | Sonnet    | Stateful multi-step work           |
-| Complex refactoring (5+ files) | @claude-opus       | Opus      | Needs broader context understanding|
-| Security review/audit          | @claude-opus       | Opus      | Thorough, nuanced analysis         |
-| Code review (critical paths)   | @claude-opus       | Opus      | Higher accuracy needed             |
-| Documentation writing          | build (default)    | free      | Straightforward writing            |
-| Docker/infra debugging         | @claude-delegate   | Sonnet    | Usually straightforward            |
-| Complex infra (networking)     | @claude-opus       | Opus      | Deep system reasoning              |
-| Quick questions, explanations  | @claude-delegate   | Sonnet    | Fast responses                     |
-| Trade-off analysis             | @claude-opus       | Opus      | Nuanced reasoning needed           |
+1. **Orchestrator** receives all user requests (default entry point)
+2. Orchestrator plans and decomposes into subtasks
+3. Orchestrator delegates to specialist subagents via `acpx_claude`
+4. Subagents implement using Minimax 2.5 free model
+5. Orchestrator verifies work, ensures CI passes
+6. Orchestrator reports to user
 
-## Choosing the right delegate
+## Agents
 
-### Use @claude-delegate (Sonnet) for
+| Agent | Model | Role |
+|-------|-------|------|
+| **orchestrator** | claude-opus-4.6 | High-level planner, delegates via acpx_claude, verifies work |
+| android-expert | minimax-m2.5-free | Android/Kotlin implementation |
+| fullstack-engineer | minimax-m2.5-free | API/Frontend/PostgreSQL implementation |
+| infra-engineer | minimax-m2.5-free | Azure/Terraform/CI-CD infrastructure |
+| build | free | Fallback for simple edits |
+| plan | free | Fallback for planning |
 
-- Code reviews on non-critical paths
-- Quick bug fixes and debugging
-- Feature implementation (1-3 files)
-- Standard refactoring
-- Documentation questions
-- Docker/compose troubleshooting
+## Subagent Routing
 
-### Use @claude-opus (Opus) for
+| Task Type | Delegate To |
+|-----------|-------------|
+| Android/Kotlin work | android-expert |
+| API/Frontend/PostgreSQL | fullstack-engineer |
+| Azure/Terraform/CI-CD | infra-engineer |
+| Cross-cutting | Sequential: infra → fullstack → android |
 
-- Architecture decisions and trade-off analysis
-- Security audits and vulnerability reviews
-- Complex refactoring involving 5+ files
-- Critical path code review (auth, payments, data handling)
-- Multi-service debugging (networking, distributed systems)
-- Performance optimization strategy
-- Migration planning
+## Delegation via acpx_claude
 
-### Use @explore for
+```javascript
+acpx_claude(
+  prompt="Implement [task]. Requirements: [details]. Return: [what to report]",
+  session="android-expert",  // or fullstack-engineer, infra-engineer
+  timeout=180,
+  dryRun=false
+)
+```
 
-- Finding files by pattern
-- Searching code for keywords
-- Understanding codebase structure
-- Quick lookups (no analysis needed)
+## Self-Improvement
 
-### Do NOT delegate when
+The Orchestrator can and should update these files to improve workflows:
 
-- Simple one-line fixes → use build
-- File reading only → use @explore
-- Writing short documentation → use build
+- `/workspace/AGENTS.md` — Update delegation rules, add learnings
+- `/workspace/opencode.json` — Adjust agent configs, prompts, models
 
-## Model Comparison
+After successful patterns emerge, codify them in these files.
 
-| Aspect          | @claude-delegate (Sonnet) | @claude-opus (Opus) |
-|-----------------|---------------------------|---------------------|
-| Speed           | Fast                      | Slower              |
-| Cost            | Lower                     | Higher              |
-| Best for        | Implementation, debugging | Reasoning, analysis |
-| Context depth   | Good                      | Excellent           |
-| Use when        | Task is well-defined      | Task needs thinking |
+## Fallback Agents
 
-## Important Rules
+Use `build` or `plan` agents directly only for:
+- Simple one-line fixes
+- Quick file reads without analysis
+- Short documentation writing
 
-### Always verify CI before merging
+## CI Verification
 
-**NEVER merge a PR without first checking that all CI checks pass.** This includes:
+**NEVER merge a PR without first checking that all CI checks pass.**
 
-- Running `gh pr checks <PR_NUMBER>` or checking the PR status on GitHub
-- Waiting for all jobs (Android Lint, Unit Tests, etc.) to complete
-- If CI fails, investigate and fix the issue before merging
-
-Merging with failing CI can introduce bugs and break the build. If a CI failure is a false positive or
-unrelated to your changes, document this clearly and consider if the PR should proceed anyway (with
-justification).
+- Run `gh pr checks <PR_NUMBER>` or check PR status on GitHub
+- Wait for all jobs (Android Lint, Unit Tests, etc.) to complete
+- If CI fails, investigate and fix before merging
