@@ -11,7 +11,7 @@ interface ChapterModalProps {
   book: string;
   localized_book?: string;
   chapter: number;
-  verses: Verse[];
+  verses?: Verse[];
   highlightVerse?: number;
   isLoading?: boolean;
   translationName?: string;
@@ -49,7 +49,7 @@ export default function ChapterModal({
 
   // Scroll to highlighted verse
   useEffect(() => {
-    if (isOpen && highlightVerse && verses.length > 0) {
+    if (isOpen && highlightVerse && verses && verses.length > 0) {
       const timer = setTimeout(() => {
         const element = document.getElementById(`verse-${highlightVerse}`);
         element?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -79,7 +79,9 @@ export default function ChapterModal({
                 {localized_book ? localized_book : book} {chapter}
               </h2>
               <p className="text-sm text-gray-500">
-                {t("verseCount", { count: verses.length })}
+                {verses
+                  ? t("verseCount", { count: verses.length })
+                  : t("noVerses")}
               </p>
             </div>
           </div>
@@ -97,7 +99,7 @@ export default function ChapterModal({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
             </div>
-          ) : (
+          ) : verses && verses.length > 0 ? (
             <div className="space-y-1">
               {verses.map((verse) => (
                 <div
@@ -132,6 +134,10 @@ export default function ChapterModal({
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-gray-500">
+              {t("noVerses")}
             </div>
           )}
         </div>

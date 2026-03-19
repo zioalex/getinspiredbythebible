@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, =1 {1 verse} other {# verses}}",
-    "defaultTranslation": "King James Version"
+    "defaultTranslation": "King James Version",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "Was this helpful?",

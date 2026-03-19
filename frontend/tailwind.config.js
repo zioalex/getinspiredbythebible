@@ -36,7 +36,7 @@ module.exports = {
       },
       fontFamily: {
         serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["system-ui", "sans-serif"],
       },
     },
   },

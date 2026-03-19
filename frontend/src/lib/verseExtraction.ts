@@ -323,14 +323,14 @@ export function extractVerseReferences(text: string): Set<string> {
  * Handles fuzzy matching for book names (e.g., "Psalm" vs "Psalms")
  */
 export function isVerseReferenced(
-  verse: { book: string; chapter: number; verse: number; reference: string },
+  verse: { book: string; chapter: number; verse: number; reference?: string },
   references: Set<string>,
 ): boolean {
-  // Normalize the verse reference for comparison
-  const normalizedRef = verse.reference.toLowerCase();
+  // Normalize the verse reference for comparison (handle undefined)
+  const normalizedRef = verse.reference?.toLowerCase();
 
-  // Check if this verse's reference is mentioned
-  if (references.has(normalizedRef)) {
+  // Check if this verse's reference is mentioned (only if reference exists)
+  if (normalizedRef && references.has(normalizedRef)) {
     return true;
   }
 

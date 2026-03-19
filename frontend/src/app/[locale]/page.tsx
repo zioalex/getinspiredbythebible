@@ -596,26 +596,29 @@ export default function Home() {
               {/* Language Switcher */}
               <LanguageSwitcher />
 
-              {/* Translation Selector */}
-              {translations.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="hidden md:inline text-xs text-gray-500">
-                    {tHeader("bibleVersion")}
-                  </span>
-                  <select
-                    value={selectedTranslation}
-                    onChange={(e) => handleTranslationChange(e.target.value)}
-                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">{tHeader("autoDetect")}</option>
-                    {translations.map((t) => (
-                      <option key={t.code} value={t.code}>
-                        {t.language} - {t.short_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Translation Selector - always visible, disabled when loading */}
+              <div className="flex items-center gap-2">
+                <span className="hidden md:inline text-xs text-gray-500">
+                  {tHeader("bibleVersion")}
+                </span>
+                <select
+                  value={selectedTranslation}
+                  onChange={(e) => handleTranslationChange(e.target.value)}
+                  disabled={translations.length === 0}
+                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                    translations.length === 0
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-600"
+                  }`}
+                >
+                  <option value="">{tHeader("autoDetect")}</option>
+                  {translations.map((t) => (
+                    <option key={t.code} value={t.code}>
+                      {t.language} - {t.short_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <button
                 onClick={handleNewChat}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
