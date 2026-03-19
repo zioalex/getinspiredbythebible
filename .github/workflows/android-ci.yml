@@ -305,14 +305,18 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-29-default-x86
+          key: avd-29-default-x86_64
 
       - name: Create AVD (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          arch: x86
+          # x86_64 has reliable KVM support on ubuntu-24.04 (kernel 6.8+).
+          # x86 (32-bit) KVM emulation is broken on modern GitHub runners —
+          # the emulator never completes boot, silently eating the full
+          # emulator-boot-timeout before the job hits the 30-min wall clock.
+          arch: x86_64
           target: default
           avd-name: test-avd
           force-avd-creation: false
@@ -328,12 +332,13 @@ jobs:
         run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
         working-directory: android
 
-      # API 29/x86 boots in ~60-90 s on GitHub runners (vs 3-5 min for API 34/x86_64).
+      # API 29/x86_64 boots in ~90-120 s on ubuntu-24.04 GitHub runners.
+      # x86_64 is required — see Create AVD step comment for details.
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          arch: x86
+          arch: x86_64
           target: default
           avd-name: test-avd
           force-avd-creation: false
@@ -341,7 +346,12 @@ jobs:
           emulator-options: >-
             -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --no-daemon
+          # --no-configuration-cache: AGP 8.4.2's connectedDebugAndroidTest task is
+          # incompatible with Gradle's configuration cache. Without this flag Gradle
+          # detects a cache miss (different task graph from the pre-build step), silently
+          # re-serialises the entire task graph, and can hang for several minutes before
+          # tests even start — wasting most of the job's time budget.
+          script: ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache
           working-directory: android
 
       - name: Upload instrumented test results
