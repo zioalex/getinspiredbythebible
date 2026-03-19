@@ -7,15 +7,18 @@ import com.bibleinspiration.data.local.mappers.toEntity
 import com.bibleinspiration.data.remote.api.BibleApiService
 import com.bibleinspiration.data.remote.mappers.toDomain
 import com.bibleinspiration.data.remote.mappers.toDto
+import com.bibleinspiration.data.remote.models.FeedbackRequestDto
 import com.bibleinspiration.data.streaming.toChunkFlow
 import com.bibleinspiration.domain.models.ChatRequest
 import com.bibleinspiration.domain.models.Conversation
+import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.StreamChunk
 import com.bibleinspiration.domain.repositories.ChatRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import javax.inject.Inject
 
 class ChatRepositoryImpl @Inject constructor(
@@ -83,5 +86,28 @@ class ChatRepositoryImpl @Inject constructor(
 
     override suspend fun clearAllConversations() {
         db.conversationDao().deleteAll()
+    }
+
+    // ── Feedback ──────────────────────────────────────────────────────────────
+
+    override suspend fun submitFeedback(
+        messageId: String,
+        rating: FeedbackRating,
+        userMessage: String,
+        assistantResponse: String,
+    ) {
+        try {
+            val dto = FeedbackRequestDto(
+                messageId = messageId,
+                rating = if (rating == FeedbackRating.POSITIVE) "positive" else "negative",
+                userMessage = userMessage,
+                assistantResponse = assistantResponse,
+            )
+            api.submitFeedback(dto)
+        } catch (e: Exception) {
+            // Best-effort: silently swallow all errors so feedback never
+            // disrupts the user's experience.
+            Timber.w(e, "submitFeedback failed (non-fatal)")
+        }
     }
 }

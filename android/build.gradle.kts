@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    // Firebase — declared here so the Gradle Plugin Portal resolves them; applied per-module.
+    alias(libs.plugins.google.services) apply false
     // NOTE: OWASP Dependency Check is intentionally NOT applied via the Gradle plugin
     // because OWASP v12+ pulls in BouncyCastle 1.78+ which conflicts with AGP signing.
     // CI uses the OWASP CLI directly (see .github/workflows/android-ci.yml).

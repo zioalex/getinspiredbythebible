@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash screen icon — white cross centred in a 240×240dp viewport.
+  The AndroidX Splash Screen API places this inside a 240dp circle; the
+  cross occupies the inner 160dp "safe zone" (two-thirds of the canvas).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Vertical bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M112,60 L128,60 L128,180 L112,180 Z" />
+
+    <!-- Horizontal bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,100 L168,100 L168,116 L72,116 Z" />
+
+</vector>

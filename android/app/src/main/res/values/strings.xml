@@ -40,8 +40,13 @@
     <string name="settings_theme_system">System default</string>
     <string name="bible_translation_section">Bible Translation</string>
     <string name="bible_translation_default">Default</string>
-    <string name="settings_debug_title">Debug</string>
-    <string name="action_export_debug_logs">Export Debug Logs</string>
+    <string name="settings_support_title">Support</string>
+    <string name="action_send_diagnostic_report">Send Diagnostic Report</string>
+
+    <!-- Settings: About section -->
+    <string name="settings_about_title">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
 
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>
@@ -51,10 +56,74 @@
     <string name="error_session_limit">You\'ve had 10 messages in this session! Why not take a break and enjoy God\'s creation outside? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">Select language</string>
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
+    <string name="action_share_message">Share message</string>
+
+    <!-- Feedback -->
+    <string name="action_feedback_helpful">This was helpful</string>
+    <string name="action_feedback_not_helpful">This was not helpful</string>
+    <string name="feedback_thank_you">Thank you for your feedback!</string>
+
+    <!-- Backend warm-up -->
+    <string name="backend_warming_up">Connecting to server… (first request may take up to 30 s)</string>
+
+    <!-- Scroll FAB -->
+    <string name="action_scroll_to_bottom">Scroll to bottom</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Read full chapter</string>
     <string name="loading_chapter">Loading chapter…</string>
+
+    <!-- Church Finder -->
+    <string name="church_finder_banner_text">Looking for a faith community?</string>
+    <string name="church_finder_find_church">Find a Church</string>
+    <string name="church_finder_dismiss">Dismiss</string>
+    <string name="church_finder_modal_title">Find a Church</string>
+    <string name="church_finder_modal_subtitle">Connect with a faith community near you</string>
+    <string name="church_finder_search_placeholder">City in English (e.g., Rome, Munich, Zurich)</string>
+    <string name="church_finder_search_button">Search</string>
+    <string name="church_finder_location_hint">Use English city names (e.g., Rome, Munich, Vienna)</string>
+    <string name="church_finder_enter_location">Enter a location to search</string>
+    <string name="church_finder_found_count">Found %d churches</string>
+    <string name="church_finder_no_churches_found">No churches found</string>
+    <string name="church_finder_no_churches_hint">Try a different location or broader search term.</string>
+    <string name="church_finder_website">Website</string>
+    <string name="church_finder_email">Email</string>
+    <string name="church_finder_data_credit">Church data provided by DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">Contact</string>
+    <string name="contact_open_button">Get in Touch</string>
+    <string name="contact_title">Get in Touch</string>
+    <string name="contact_subtitle">Share your thoughts or report an issue</string>
+    <string name="contact_subject_label">Subject</string>
+    <string name="contact_subject_spiritual">Spiritual / Biblical question</string>
+    <string name="contact_subject_feedback">General Feedback</string>
+    <string name="contact_subject_bug">Bug Report</string>
+    <string name="contact_subject_feature">Feature Request</string>
+    <string name="contact_subject_other">Other</string>
+    <string name="contact_email_label">Your email (optional, for reply)</string>
+    <string name="contact_email_placeholder">you@example.com</string>
+    <string name="contact_message_label">Message</string>
+    <string name="contact_message_placeholder">Share your thoughts, report an issue, or suggest an improvement…</string>
+    <string name="contact_privacy_note">Your message will be stored to help us improve the service.</string>
+    <string name="contact_send_button">Send Message</string>
+    <string name="contact_success_title">Message sent successfully!</string>
+    <string name="contact_success_description">Thank you for reaching out. We\'ll review your message soon.</string>
+    <string name="contact_error_send">Failed to send message. Please try again.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Related verses</string>
+    <string name="verses_panel_title">Related Verses</string>
+    <string name="verses_filter_referenced">Referenced</string>
+    <string name="verses_filter_all_related">All Related (%d)</string>
+    <string name="verses_panel_empty">No verses found for this filter.</string>
+
+    <!-- Bible translation picker (ChatScreen top bar chip + bottom sheet) -->
+    <string name="translation_auto">Auto</string>
+    <string name="translation_auto_description">Backend picks the best translation for your language</string>
+    <string name="translation_picker_title">Bible Version</string>
+    <string name="translation_picker_subtitle">Choose your preferred Bible translation</string>
 </resources>

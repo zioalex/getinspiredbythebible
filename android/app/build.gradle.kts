@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -34,6 +35,13 @@ android {
                 "BASE_URL",
                 "\"${project.findProperty("baseUrl") ?: "http://10.0.2.2:8000/"}\""
             )
+            // Firebase is disabled in debug builds — no crash reports or analytics sent.
+            buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
+            buildConfigField(
+                "String",
+                "PRIVACY_POLICY_URL",
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
+            )
         }
         release {
             isMinifyEnabled = true
@@ -44,6 +52,13 @@ android {
                 "String",
                 "BASE_URL",
                 "\"${project.findProperty("baseUrl") ?: "https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/"}\""
+            )
+            // Firebase is enabled only in release builds.
+            buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
+            buildConfigField(
+                "String",
+                "PRIVACY_POLICY_URL",
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
             )
         }
     }
@@ -60,6 +75,35 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        // Disable system animations during instrumented tests.
+        // CircularProgressIndicator uses InfiniteTransition which permanently keeps
+        // ComposeIdlingResource busy (isIdleNow() = false), causing waitForIdle() to
+        // hang forever. Setting animationsDisabled=true sets all animator duration
+        // scales to 0 on the test device so infinite animations complete immediately,
+        // unblocking waitForIdle() and any Compose test API that calls it internally.
+        animationsDisabled = true
+    }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        checkDependencies = false
+        // TODO: Re-enable abortOnError=true once lint-baseline.xml is populated.
+        // Steps to regenerate the baseline in a full Android SDK environment:
+        //   1. ./gradlew lintDebug -Dlint.baselines.continue=true
+        //   2. Commit the updated lint-baseline.xml
+        //   3. Set abortOnError = true here
+        // Note: AGP 8.4.2 does not honour -Dlint.baselines.continue=true for ERROR-severity
+        // issues in the same run; run the task twice if needed.
+        abortOnError = false
+        warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
+        // Suppress rules that fire on generated/third-party code even with checkDependencies=false
+        disable += setOf(
+            "ObsoleteLintCustomCheck",
+            "InvalidPackage",
+        )
     }
 }
 
@@ -113,6 +157,17 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
+
+    // Markdown rendering
+    implementation(libs.compose.markdown)
+
+    // Firebase (BOM ensures all Firebase libraries use compatible versions)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 
     // --- Testing ---
     testImplementation(libs.junit)

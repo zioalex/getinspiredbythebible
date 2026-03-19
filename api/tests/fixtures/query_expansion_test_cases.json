@@ -1,0 +1,65 @@
+{
+  "description": "Golden set of test cases for query expansion (BITB-018.1). These document the expected biblical themes that should be included in an expanded query for each user message.",
+  "test_cases": [
+    {
+      "query": "I'm anxious about the future",
+      "language": "en",
+      "expected_themes": ["peace", "trust", "worry", "tomorrow", "anxiety", "God's plan"],
+      "bible_references": ["Matthew 6:34", "Philippians 4:6-7", "Proverbs 3:5-6"]
+    },
+    {
+      "query": "Sono frustrato",
+      "language": "it",
+      "expected_themes": ["anger", "peace", "patience", "self-control", "frustration", "calm"],
+      "bible_references": ["James 1:19-20", "Proverbs 14:29", "Ephesians 4:26"]
+    },
+    {
+      "query": "I feel alone",
+      "language": "en",
+      "expected_themes": ["loneliness", "God's presence", "comfort", "companionship", "abandoned"],
+      "bible_references": ["Psalm 23", "Joshua 1:9", "John 14:18"]
+    },
+    {
+      "query": "I'm worried about money",
+      "language": "en",
+      "expected_themes": ["provision", "trust", "anxiety", "finances", "God provides", "contentment"],
+      "bible_references": ["Matthew 6:25-34", "Philippians 4:19", "Luke 12:22-31"]
+    },
+    {
+      "query": "I can't forgive them",
+      "language": "en",
+      "expected_themes": ["forgiveness", "reconciliation", "letting go", "bitterness", "mercy"],
+      "bible_references": ["Matthew 6:14-15", "Colossians 3:13", "Luke 17:3-4"]
+    },
+    {
+      "query": "Ich fühle mich hoffnungslos",
+      "language": "de",
+      "expected_themes": ["hope", "despair", "comfort", "God's faithfulness", "renewal"],
+      "bible_references": ["Romans 15:13", "Lamentations 3:22-23", "Psalm 42"]
+    },
+    {
+      "query": "Me siento perdido en la vida",
+      "language": "es",
+      "expected_themes": ["direction", "guidance", "purpose", "God's will", "path"],
+      "bible_references": ["Proverbs 3:5-6", "Jeremiah 29:11", "Psalm 119:105"]
+    },
+    {
+      "query": "Je souffre de solitude",
+      "language": "fr",
+      "expected_themes": ["loneliness", "comfort", "God's presence", "fellowship", "belonging"],
+      "bible_references": ["Psalm 68:6", "John 14:18", "Isaiah 41:10"]
+    },
+    {
+      "query": "Estou com medo do futuro",
+      "language": "pt",
+      "expected_themes": ["fear", "courage", "trust", "God's protection", "future"],
+      "bible_references": ["Isaiah 41:10", "2 Timothy 1:7", "Psalm 27:1"]
+    },
+    {
+      "query": "أشعر بالغضب الشديد",
+      "language": "ar",
+      "expected_themes": ["anger", "self-control", "peace", "patience", "forgiveness"],
+      "bible_references": ["Proverbs 29:11", "James 1:19", "Ephesians 4:26"]
+    }
+  ]
+}

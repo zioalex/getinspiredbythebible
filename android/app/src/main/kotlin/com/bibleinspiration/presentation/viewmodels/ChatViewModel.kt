@@ -7,20 +7,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bibleinspiration.R
 import com.bibleinspiration.data.preferences.LanguagePreferences
+import com.bibleinspiration.data.preferences.SessionPreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
 import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
+import com.bibleinspiration.domain.models.Church
+import com.bibleinspiration.domain.models.FeedbackRating
 import com.bibleinspiration.domain.models.Message
 import com.bibleinspiration.domain.models.Verse
 import com.bibleinspiration.domain.repositories.ChatRepository
+import com.bibleinspiration.domain.repositories.ChurchRepository
+import com.bibleinspiration.domain.repositories.ContactRepository
+import com.bibleinspiration.presentation.components.ContactFormState
 import com.bibleinspiration.security.TurnstileManager
 import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +56,14 @@ sealed class ChapterSheetState {
     data class Error(val message: String) : ChapterSheetState()
 }
 
+/** State of the church-finder bottom sheet. */
+sealed class ChurchFinderSheetState {
+    object Idle : ChurchFinderSheetState()
+    object Loading : ChurchFinderSheetState()
+    data class Success(val churches: List<Church>, val location: String) : ChurchFinderSheetState()
+    data class Error(val message: String) : ChurchFinderSheetState()
+}
+
 data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
@@ -61,16 +76,49 @@ data class ChatUiState(
     val themeMode: String = "system",
     /** True when the backend returns HTTP 429 with a session_lifetime_limit error. */
     val isSessionLimitReached: Boolean = false,
+    /** True when loading has been in-progress for >3 s with no chunk received yet. */
+    val isBackendWarming: Boolean = false,
+    /** Maps message ID (local UUID) to the rating given: "positive" or "negative". */
+    val feedbackGiven: Map<String, String> = emptyMap(),
+    /** True while a feedback submission is in flight. */
+    val isFeedbackSubmitting: Boolean = false,
+    /**
+     * Number of completed user↔assistant exchange rounds.
+     * Incremented each time an assistant message finishes streaming without error.
+     * Used to trigger the church-finder prompt at the right moment.
+     */
+    val interactionCount: Int = 0,
+    /**
+     * True once [interactionCount] reaches exactly 3 and the user hasn't
+     * dismissed the church-finder banner yet. Uses == 3 (not >= 3) so the
+     * banner is not re-shown after being dismissed.
+     */
+    val showChurchFinderBanner: Boolean = false,
+    /**
+     * True when the inline church-finder card should appear in the message list
+     * (after 5 interactions, or immediately after the banner is dismissed via
+     * "Find a Church").
+     */
+    val showChurchFinderInlineCard: Boolean = false,
+    /**
+     * Flat, deduplicated list of all [Verse] objects across every finished assistant
+     * message in the current conversation.  Populated incrementally as each
+     * streaming response completes.  Used by the Verses sidebar panel.
+     */
+    val allVerses: List<Verse> = emptyList(),
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val churchRepository: ChurchRepository,
+    private val contactRepository: ContactRepository,
     val turnstileManager: TurnstileManager,
     private val languagePreferences: LanguagePreferences,
     @ApplicationContext private val context: Context,
     private val themePreferences: ThemePreferences,
     private val translationPreferences: TranslationPreferences,
+    private val sessionPreferences: SessionPreferences,
     private val bibleApiService: BibleApiService,
 ) : ViewModel() {
 
@@ -103,6 +151,12 @@ class ChatViewModel @Inject constructor(
 
     private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
     val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
+
+    private val _churchFinderSheetState = MutableStateFlow<ChurchFinderSheetState>(ChurchFinderSheetState.Idle)
+    val churchFinderSheetState: StateFlow<ChurchFinderSheetState> = _churchFinderSheetState.asStateFlow()
+
+    private val _contactFormState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
+    val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -172,22 +226,34 @@ class ChatViewModel @Inject constructor(
                 .takeLast(20) // cap history
 
             val translation = preferredTranslation.value.ifBlank { null }
+            val sessionId = sessionPreferences.getOrCreateSessionId()
 
             val request = ChatRequest(
                 message = trimmed,
                 conversationHistory = history,
                 preferredTranslation = translation,
+                sessionId = sessionId,
             )
+
+            // Show warm-up hint if the backend hasn't responded within 3 seconds.
+            val warmUpJob = launch {
+                delay(3_000L)
+                if (_uiState.value.isLoading) {
+                    _uiState.update { it.copy(isBackendWarming = true) }
+                }
+            }
 
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var didError = false
+            var metadataMessageId = ""
 
             repository
                 .chatStream(request)
                 .catch { e ->
                     Timber.e(e, "chatStream error")
                     didError = true
+                    warmUpJob.cancel()
                     val errorMessage = mapExceptionToMessage(e)
                     _uiState.update { state ->
                         state.copy(
@@ -201,6 +267,7 @@ class ChatViewModel @Inject constructor(
                                 } else msg
                             },
                             isLoading = false,
+                            isBackendWarming = false,
                             error = errorMessage,
                         )
                     }
@@ -210,6 +277,7 @@ class ChatViewModel @Inject constructor(
                     // first validated request. Always reset after every stream attempt
                     // (success or error) so the next message obtains a fresh token.
                     turnstileManager.onTokenConsumed()
+                    warmUpJob.cancel()
 
                     if (!didError) {
                         val finalAssistant = Message(
@@ -218,22 +286,64 @@ class ChatViewModel @Inject constructor(
                             content = accumulatedContent,
                             verses = finalVerses,
                             isStreaming = false,
+                            messageId = metadataMessageId,
                         )
                         // Persist finished assistant message and bump conversation timestamp.
                         repository.saveMessage(conversationId, finalAssistant)
                         repository.touchConversation(conversationId)
 
                         _uiState.update { state ->
+                            val newCount = state.interactionCount + 1
+                            // Append new verses, deduplicating by reference + translation.
+                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}${it.translation}" }.toHashSet()
+                            val dedupedNew = finalVerses.filterNot { v ->
+                                "${v.book}${v.chapter}:${v.verse}${v.translation}" in existingRefs
+                            }
                             state.copy(
                                 messages = state.messages.map { msg ->
                                     if (msg.id == assistantId) finalAssistant else msg
                                 },
                                 isLoading = false,
+                                isBackendWarming = false,
+                                interactionCount = newCount,
+                                // Show the banner exactly once, at interaction 3.
+                                // Using == rather than >= prevents re-showing the banner
+                                // after it has been dismissed (banner=false, inline=false).
+                                showChurchFinderBanner = !state.showChurchFinderBanner &&
+                                    !state.showChurchFinderInlineCard &&
+                                    newCount == 3,
+                                // Show the inline card after 5 interactions if the banner
+                                // was already dismissed without opening the sheet.
+                                showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
+                                    (newCount >= 5 && !state.showChurchFinderBanner),
+                                allVerses = state.allVerses + dedupedNew,
                             )
                         }
                     }
                 }
                 .collect { chunk ->
+                    // First content chunk received — cancel the warm-up hint.
+                    if (accumulatedContent.isEmpty() && chunk.content.isNotEmpty()) {
+                        warmUpJob.cancel()
+                        _uiState.update { it.copy(isBackendWarming = false) }
+                    }
+
+                    // Handle metadata events (sent before content chunks).
+                    if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
+                        metadataMessageId = chunk.messageId
+                        // Update the in-progress assistant message with the backend message_id.
+                        _uiState.update { state ->
+                            state.copy(
+                                messages = state.messages.map { msg ->
+                                    if (msg.id == assistantId) {
+                                        msg.copy(messageId = chunk.messageId)
+                                    } else msg
+                                },
+                            )
+                        }
+                        return@collect
+                    }
+
                     accumulatedContent += chunk.content
                     if (chunk.done) finalVerses = chunk.verses
 
@@ -266,10 +376,15 @@ class ChatViewModel @Inject constructor(
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
-    fun loadConversation(conversationId: String) {
+     fun loadConversation(conversationId: String) {
         viewModelScope.launch {
             repository.observeMessages(conversationId).collect { messages ->
-                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId) }
+                // Re-derive allVerses from loaded messages (deduplicated).
+                val allVerses = messages
+                    .filter { it.role == Message.Role.ASSISTANT }
+                    .flatMap { it.verses }
+                    .distinctBy { "${it.book}${it.chapter}:${it.verse}${it.translation}" }
+                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
     }
@@ -281,10 +396,16 @@ class ChatViewModel @Inject constructor(
                 messages = emptyList(),
                 error = null,
                 isLoading = false,
+                isBackendWarming = false,
                 currentConversationId = null,
                 isSessionLimitReached = false,
+                interactionCount = 0,
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = false,
+                allVerses = emptyList(),
             )
         }
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
     }
 
     /**
@@ -346,10 +467,52 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(isSessionLimitReached = false) }
     }
 
+    /**
+     * Submits thumbs-up or thumbs-down feedback for an assistant message.
+     *
+     * @param messageLocalId The local UUID of the assistant [Message] (its [Message.id]).
+     * @param rating "positive" or "negative".
+     * @param comment Optional free-text comment (reserved for future use).
+     */
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+        // Look up the message and its context (user message preceding it).
+        val messages = _uiState.value.messages
+        val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
+        if (assistantMsg.messageId.isBlank()) return // no backend message_id yet — skip
+
+        // Find the user message that immediately preceded this assistant message.
+        val assistantIndex = messages.indexOf(assistantMsg)
+        val userMessage = messages.subList(0, assistantIndex).lastOrNull { it.role == Message.Role.USER }
+
+        _uiState.update { it.copy(isFeedbackSubmitting = true) }
+
+        viewModelScope.launch {
+            try {
+                val feedbackRating = if (rating == "positive") FeedbackRating.POSITIVE else FeedbackRating.NEGATIVE
+                repository.submitFeedback(
+                    messageId = assistantMsg.messageId,
+                    rating = feedbackRating,
+                    userMessage = userMessage?.content ?: "",
+                    assistantResponse = assistantMsg.content,
+                )
+                _uiState.update { state ->
+                    state.copy(
+                        feedbackGiven = state.feedbackGiven + (messageLocalId to rating),
+                        isFeedbackSubmitting = false,
+                    )
+                }
+                Timber.i("Feedback submitted: messageId=%s rating=%s", assistantMsg.messageId, rating)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to submit feedback")
+                _uiState.update { it.copy(isFeedbackSubmitting = false) }
+            }
+        }
+    }
+
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
                 repository.deleteConversation(conversationId)
@@ -380,6 +543,106 @@ class ChatViewModel @Inject constructor(
     /** Resets the chapter sheet state back to [ChapterSheetState.Idle]. */
     fun clearChapterSheet() {
         _chapterSheetState.value = ChapterSheetState.Idle
+    }
+
+    // ---------------------------------------------------------------------------
+    // Church Finder
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Dismisses the church-finder banner without opening the sheet.
+     * Also hides the inline card if it was already shown.
+     */
+    fun dismissChurchFinderBanner() {
+        _uiState.update {
+            it.copy(
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = false,
+            )
+        }
+    }
+
+    /**
+     * Called when the user taps "Find a Church" — dismisses the banner, shows
+     * the inline card, and triggers the bottom sheet to open (caller observes
+     * [churchFinderSheetState] transitioning away from Idle).
+     *
+     * The bottom sheet itself calls [searchChurches] with the user-supplied location.
+     */
+    fun openChurchFinder() {
+        _uiState.update {
+            it.copy(
+                showChurchFinderBanner = false,
+                showChurchFinderInlineCard = true,
+            )
+        }
+        // Reset to Idle so ChatScreen knows to open the sheet.
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
+    }
+
+    /**
+     * Searches for churches near [location] (English city name).
+     * Updates [churchFinderSheetState] from Loading → Success / Error.
+     */
+    fun searchChurches(location: String) {
+        if (location.isBlank()) return
+        _churchFinderSheetState.value = ChurchFinderSheetState.Loading
+        viewModelScope.launch {
+            try {
+                val churches = churchRepository.searchChurches(location.trim())
+                _churchFinderSheetState.value = ChurchFinderSheetState.Success(
+                    churches = churches,
+                    location = location.trim(),
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "searchChurches error for location=$location")
+                _churchFinderSheetState.value = ChurchFinderSheetState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the church-finder sheet state back to [ChurchFinderSheetState.Idle]. */
+    fun clearChurchFinderSheet() {
+        _churchFinderSheetState.value = ChurchFinderSheetState.Idle
+    }
+
+    // ---------------------------------------------------------------------------
+    // Contact Form
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Submits the contact form to the backend.
+     *
+     * @param subject One of the [ContactSubject] constants.
+     * @param message The user's free-text message (non-blank).
+     * @param email   Optional reply-to email address.
+     */
+    fun submitContact(subject: String, message: String, email: String?) {
+        if (message.isBlank()) return
+        _contactFormState.value = ContactFormState.Submitting
+        viewModelScope.launch {
+            try {
+                contactRepository.submitContact(
+                    subject = subject,
+                    message = message,
+                    email = email,
+                )
+                _contactFormState.value = ContactFormState.Success
+                Timber.i("Contact submitted: subject=%s", subject)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to submit contact form")
+                _contactFormState.value = ContactFormState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the contact form state back to [ContactFormState.Idle]. */
+    fun resetContactForm() {
+        _contactFormState.value = ContactFormState.Idle
     }
 
     // ---------------------------------------------------------------------------

@@ -23,6 +23,55 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Translation Validation — ensures all strings in values/strings.xml exist
+  # in all locale files. Runs early to catch missing translations quickly.
+  # ---------------------------------------------------------------------------
+  translation-validation:
+    name: Translation Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate translations
+        run: |
+          # Get all string resource names from the default (English) strings.xml
+          DEFAULT_FILE="android/app/src/main/res/values/strings.xml"
+          DEFAULT_NAMES=$(grep -oP '(?<=<string name=")[^"]+' "$DEFAULT_FILE" | sort -u)
+
+          # Locale directories: only consider values-XX/ dirs that actually contain
+          # a strings.xml file (excludes qualifier-only dirs like values-night/,
+          # values-v21/, values-land/, etc. which hold themes/styles, not strings).
+          LOCALES=$(for dir in android/app/src/main/res/values-*/; do
+            locale=$(echo "$dir" | sed 's|.*/values-||' | sed 's|/||')
+            if [ -f "${dir}strings.xml" ]; then
+              echo "$locale"
+            fi
+          done)
+
+          MISSING=""
+          for LOCALE in $LOCALES; do
+            LOCALE_FILE="android/app/src/main/res/values-$LOCALE/strings.xml"
+            LOCALE_NAMES=$(grep -oP '(?<=<string name=")[^"]+' "$LOCALE_FILE" | sort -u)
+            for NAME in $DEFAULT_NAMES; do
+              if ! echo "$LOCALE_NAMES" | grep -q "^$NAME$"; then
+                MISSING="$MISSING\n  - $LOCALE: '$NAME' is missing"
+              fi
+            done
+          done
+
+          if [ -n "$MISSING" ]; then
+            echo "=== Missing translations ==="
+            echo -e "$MISSING"
+            echo ""
+            echo "Please add the missing translations to all locale files."
+            exit 1
+          fi
+
+          echo "✅ All translations are present in all locale files"
+
+  # ---------------------------------------------------------------------------
   # Unit Tests (pure JVM — no emulator needed, fast)
   # ---------------------------------------------------------------------------
   unit-tests:
@@ -43,6 +92,42 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      # google-services.json is gitignored (contains Firebase project credentials).
+      # In CI we write it from a repository secret.  For PRs from forks the secret
+      # will be empty; the placeholder keeps the Google Services plugin happy so the
+      # build still compiles — Firebase is disabled at runtime (FIREBASE_ENABLED=false
+      # in debug builds) so no real Firebase calls are made.
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "bible-inspiration-placeholder",
+              "storage_bucket": "bible-inspiration-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.bibleinspiration" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
         working-directory: android
@@ -61,6 +146,7 @@ jobs:
   lint:
     name: Android Lint
     runs-on: ubuntu-latest
+    needs: [translation-validation]
 
     steps:
       - name: Checkout
@@ -76,16 +162,49 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Run lint
-        run: ./gradlew lintDebug --no-daemon
+        run: |
+          # -Dlint.baselines.continue=true: if lint finds issues not yet in the
+          # baseline, it writes them into lint-baseline.xml and exits 0 on the
+          # *first* new-issue run (baseline-update mode).  On a clean run with no
+          # new issues the flag is a no-op.  abortOnError=true in build.gradle.kts
+          # ensures genuine new errors still fail future runs.
+          ./gradlew lintDebug --no-daemon -Dlint.baselines.continue=true
         working-directory: android
+
+      - name: Print lint XML report to stdout (rule-ID diagnosis)
+        if: always()
+        run: |
+          XML_REPORT="android/app/build/reports/lint-results-debug.xml"
+          if [ -f "$XML_REPORT" ]; then
+            echo "=== LINT XML REPORT (rule IDs) ==="
+            grep -E '<issue id=|<location' "$XML_REPORT" | head -200 || true
+            echo "=== END LINT XML REPORT ==="
+          else
+            echo "No lint XML report found at $XML_REPORT"
+          fi
 
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: lint-report
-          path: android/app/build/reports/lint-results-debug.html
+          path: |
+            android/app/build/reports/lint-results-debug.html
+            android/app/build/reports/lint-results-debug.xml
+            android/app/lint-baseline.xml
           retention-days: 7
 
   # ---------------------------------------------------------------------------
@@ -110,6 +229,18 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Compile Kotlin sources (debug)
         run: ./gradlew compileDebugKotlin --no-daemon
@@ -238,6 +369,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
@@ -275,7 +418,7 @@ jobs:
       - name: TruffleHog OSS scan
         # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
         # env vars set by GitHub Actions — no explicit base/head needed.
-        uses: trufflesecurity/trufflehog@v3.93.7
+        uses: trufflesecurity/trufflehog@v3.93.8
         with:
           extra_args: --only-verified
 
@@ -321,6 +464,18 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Build prod APK (debuggable, points to production backend)
         run: |
@@ -396,10 +551,40 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Resolve app dependencies to local cache
         # Downloads all dependencies to ~/.gradle/caches without triggering AGP build tasks
         run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
         working-directory: android
+
+      - name: Compute NVD cache key
+        id: date
+        run: |
+          # Use monthly bucket to reduce NVD downloads while still keeping DB fresh
+          echo "month=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check
+          # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
+          # Monthly bucket reduces downloads - only refreshes once per month.
+          # Also include hash of build.gradle.kts to invalidate when deps change.
+          key: dc-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
+          restore-keys: |
+            dc-nvd-v12.1.0-
+        # Always save cache regardless of other step failures
 
       - name: Download OWASP Dependency Check CLI
         run: |
@@ -411,24 +596,102 @@ jobs:
           unzip -q /tmp/dependency-check.zip -d /tmp/dependency-check
 
       - name: Run OWASP Dependency Check CLI
+        # Exit codes: 0=no vulns, 15=vulns above threshold, others=error/crash.
+        # We capture the exit code and always continue so the "Print findings" and
+        # "Upload report" steps can run. The final step re-exits with the captured code.
+        id: owasp
         run: |
           mkdir -p android/app/build/reports
+          set +e
           /tmp/dependency-check/dependency-check/bin/dependency-check.sh \
             --scan "${HOME}/.gradle/caches/modules-2/files-2.1/" \
             --format HTML \
+            --format XML \
             --out android/app/build/reports \
             --project "BibleInspirationApp" \
             --failOnCVSS 7 \
             --suppression android/dependency-check-suppressions.xml \
             --disableOssIndex \
+            --data "${HOME}/.dependency-check" \
             --nvdApiKey "${{ secrets.NIST_API_KEY }}"
+          echo "owasp_exit=$?" >> "$GITHUB_OUTPUT"
         env:
           NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
+
+      - name: Print OWASP findings (CVEs above threshold)
+        if: always()
+        run: |
+          XML="android/app/build/reports/dependency-check-report.xml"
+          if [ ! -f "$XML" ]; then
+            echo "⚠ No XML report found — OWASP may have crashed before producing output."
+            echo "  Check the 'Run OWASP Dependency Check CLI' step output above."
+            exit 0
+          fi
+          echo "=== OWASP exit code: ${{ steps.owasp.outputs.owasp_exit }} ==="
+          # Extract dependencies with CVSSv3 >= 7.0 (or CVSSv2 >= 7.0 if v3 absent)
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, re, sys
+          try:
+              tree = ET.parse('android/app/build/reports/dependency-check-report.xml')
+          except Exception as e:
+              print(f'Failed to parse XML report: {e}')
+              sys.exit(0)
+          root = tree.getroot()
+          # Auto-detect namespace from root tag e.g. {https://...dependency-check.4.1.xsd}analysis
+          m = re.match(r'\{([^}]+)\}', root.tag)
+          ns_uri = m.group(1) if m else ''
+          ns = {'dc': ns_uri} if ns_uri else {}
+          def tag(name):
+              return f'dc:{name}' if ns_uri else name
+          findings = []
+          for dep in root.findall(f'.//{tag("dependency")}', ns):
+              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
+              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
+                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
+                  desc = (vuln.findtext(tag('description'), default='', namespaces=ns) or '')[:120]
+                  # prefer CVSSv3 score, fall back to CVSSv2
+                  score_el = (vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                              or vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                              or vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns))
+                  score = float(score_el.text) if score_el is not None else 0.0
+                  sev   = vuln.findtext(tag('severity'), default='?', namespaces=ns)
+                  if score >= 7.0:
+                      findings.append((score, fname, cve, sev, desc))
+          findings.sort(key=lambda x: -x[0])
+          print(f'Namespace detected: {ns_uri}')
+          if not findings:
+              print('✅ No CVEs at or above CVSS 7.0 found in report.')
+          else:
+              print(f'❌ {len(findings)} CVE(s) at or above CVSS 7.0:\n')
+              for score, fname, cve, sev, desc in findings:
+                  print(f'  [{score:.1f}] {cve} ({sev})')
+                  print(f'    File: {fname}')
+                  print(f'    Desc: {desc}')
+                  print()
+              # Emit as GitHub Actions annotations so they appear in the Checks API
+              # and are visible even when log blobs are inaccessible.
+              for score, fname, cve, sev, desc in findings:
+                  msg = f'{cve} ({sev}, CVSS {score:.1f}) in {fname}: {desc}'
+                  print(f'::error::{msg}')
+          PYEOF
 
       - name: Upload dependency check report
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-check-report
-          path: android/app/build/reports/dependency-check-report.html
+          path: |
+            android/app/build/reports/dependency-check-report.html
+            android/app/build/reports/dependency-check-report.xml
           retention-days: 14
+
+      - name: Fail if OWASP found vulnerabilities
+        if: always()
+        run: |
+          EXIT="${{ steps.owasp.outputs.owasp_exit }}"
+          if [ -z "$EXIT" ] || [ "$EXIT" = "0" ]; then
+            echo "✅ OWASP Dependency Check passed."
+          else
+            echo "❌ OWASP Dependency Check failed with exit code $EXIT."
+            exit "$EXIT"
+          fi

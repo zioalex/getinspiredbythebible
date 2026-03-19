@@ -42,18 +42,79 @@
     <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
     <string name="bible_translation_default">افتراضية</string>
 
-    <!-- Settings debug section -->
-    <string name="settings_debug_title">تصحيح</string>
-    <string name="action_export_debug_logs">تصدير سجلات التصحيح</string>
+    <!-- Settings support/about section -->
+    <string name="settings_support_title">الدعم</string>
+    <string name="action_send_diagnostic_report">إرسال تقرير تشخيصي</string>
+    <string name="settings_about_title">حول</string>
+    <string name="settings_version">الإصدار</string>
+    <string name="settings_privacy_policy">سياسة الخصوصية</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">اختر اللغة</string>
     <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
+    <string name="action_share_message">مشاركة الرسالة</string>
+    <string name="action_feedback_helpful">كان هذا مفيدًا</string>
+    <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
+    <string name="feedback_thank_you">شكرًا على تعليقك!</string>
+    <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
+    <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">اقرأ الفصل الكامل</string>
     <string name="loading_chapter">جارٍ تحميل الفصل…</string>
+
+    <!-- Church Finder -->
+    <string name="church_finder_banner_text">هل تبحث عن مجتمع إيماني؟</string>
+    <string name="church_finder_find_church">ابحث عن كنيسة</string>
+    <string name="church_finder_dismiss">تجاهل</string>
+    <string name="church_finder_modal_title">ابحث عن كنيسة</string>
+    <string name="church_finder_modal_subtitle">تواصل مع مجتمع إيماني بالقرب منك</string>
+    <string name="church_finder_search_placeholder">مدينة بالإنجليزية (مثل: Rome, Munich, Zurich)</string>
+    <string name="church_finder_search_button">بحث</string>
+    <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>
+    <string name="church_finder_enter_location">أدخل موقعاً للبحث</string>
+    <string name="church_finder_found_count">تم العثور على %d كنيسة</string>
+    <string name="church_finder_no_churches_found">لم يتم العثور على كنائس</string>
+    <string name="church_finder_no_churches_hint">جرّب موقعاً مختلفاً أو مصطلح بحث أوسع.</string>
+    <string name="church_finder_website">الموقع الإلكتروني</string>
+    <string name="church_finder_email">البريد الإلكتروني</string>
+    <string name="church_finder_data_credit">بيانات الكنائس مقدمة من DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">تواصل</string>
+    <string name="contact_open_button">تواصل معنا</string>
+    <string name="contact_title">تواصل معنا</string>
+    <string name="contact_subtitle">شارك أفكارك أو أبلغ عن مشكلة</string>
+    <string name="contact_subject_label">الموضوع</string>
+    <string name="contact_subject_spiritual">سؤال روحي / كتابي</string>
+    <string name="contact_subject_feedback">ملاحظات عامة</string>
+    <string name="contact_subject_bug">الإبلاغ عن خطأ</string>
+    <string name="contact_subject_feature">طلب ميزة</string>
+    <string name="contact_subject_other">أخرى</string>
+    <string name="contact_email_label">بريدك الإلكتروني (اختياري، للرد)</string>
+    <string name="contact_email_placeholder">you@example.com</string>
+    <string name="contact_message_label">الرسالة</string>
+    <string name="contact_message_placeholder">شارك أفكارك أو أبلغ عن مشكلة أو اقترح تحسيناً…</string>
+    <string name="contact_privacy_note">ستُخزَّن رسالتك لمساعدتنا في تحسين الخدمة.</string>
+    <string name="contact_send_button">إرسال الرسالة</string>
+    <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>
+    <string name="contact_success_description">شكراً لتواصلك معنا. سنراجع رسالتك قريباً.</string>
+    <string name="contact_error_send">فشل إرسال الرسالة. يرجى المحاولة مجدداً.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">آيات ذات صلة</string>
+    <string name="verses_panel_title">الآيات ذات الصلة</string>
+    <string name="verses_filter_referenced">مذكورة</string>
+    <string name="verses_filter_all_related">الكل (%d)</string>
+    <string name="verses_panel_empty">لا توجد آيات لهذا الفلتر.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">تلقائي</string>
+    <string name="translation_auto_description">يختار الخادم أفضل ترجمة للغتك</string>
+    <string name="translation_picker_title">إصدار الكتاب المقدس</string>
+    <string name="translation_picker_subtitle">اختر ترجمة الكتاب المقدس المفضلة لديك</string>
 </resources>

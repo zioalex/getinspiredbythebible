@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Вдохновение от Библии</string>
+    <string name="chat_input_hint">Поделитесь тем, что у вас на сердце…</string>
+    <string name="chat_send_button">Отправить</string>
+    <string name="action_clear_conversation">Очистить беседу</string>
+    <string name="welcome_title">Найдите вдохновение в Писании</string>
+    <string name="welcome_subtitle">Расскажите, через что вы проходите, и получите ободрение, укоренённое в Слове Божьем.</string>
+
+    <!-- Suggested prompts on welcome screen -->
+    <string name="prompt_suggestion_1">Что говорит Библия о надежде?</string>
+    <string name="prompt_suggestion_2">Найди стихи о прощении</string>
+    <string name="prompt_suggestion_3">В чём смысл Иоанна 3:16?</string>
+    <string name="prompt_suggestion_4">Покажи Псалмы о мире</string>
+
+    <string name="error_network">Ошибка сети. Проверьте подключение.</string>
+    <string name="error_timeout">Запрос истёк. Повторите попытку.</string>
+    <string name="error_server">Ошибка сервера. Повторите попытку позже.</string>
+    <string name="error_generic">Что-то пошло не так. Повторите попытку.</string>
+
+    <!-- Conversations screen -->
+    <string name="conversations_title">Беседы</string>
+    <string name="conversations_empty_headline">Начните первую беседу</string>
+    <string name="conversations_empty_subtitle">Нажмите + чтобы начать новый библейский разговор</string>
+    <string name="conversations_clear_all_title">Удалить все беседы?</string>
+    <string name="conversations_clear_all_message">Это навсегда удалит всю историю бесед.</string>
+    <string name="conversations_clear_all_confirm">Удалить всё</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_new_conversation">Новая беседа</string>
+    <string name="action_clear_all_conversations">Удалить все беседы</string>
+    <string name="action_delete_conversation">Удалить беседу</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_language_title">Язык</string>
+    <string name="settings_language_subtitle">Выберите язык для библейских стихов</string>
+    <string name="action_open_settings">Настройки</string>
+    <string name="settings_theme_title">Тема</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="bible_translation_section">Перевод Библии</string>
+    <string name="bible_translation_default">По умолчанию</string>
+
+    <!-- Settings support/about section -->
+    <string name="settings_support_title">Поддержка</string>
+    <string name="action_send_diagnostic_report">Отправить диагностический отчёт</string>
+    <string name="settings_about_title">О приложении</string>
+    <string name="settings_version">Версия</string>
+    <string name="settings_privacy_policy">Политика конфиденциальности</string>
+
+    <!-- Errors -->
+    <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
+
+    <!-- Actions -->
+    <string name="action_select_language">Выбрать язык</string>
+    <string name="action_retry">Повторить</string>
+    <string name="action_start_new_session">Новая сессия</string>
+    <string name="action_share_message">Поделиться сообщением</string>
+    <string name="action_feedback_helpful">Это было полезно</string>
+    <string name="action_feedback_not_helpful">Это было бесполезно</string>
+    <string name="feedback_thank_you">Спасибо за ваш отзыв!</string>
+    <string name="backend_warming_up">Подключение к серверу… (первый запрос может занять до 30 с)</string>
+    <string name="action_scroll_to_bottom">Прокрутить вниз</string>
+
+    <!-- Verse detail bottom sheet -->
+    <string name="read_full_chapter">Читать всю главу</string>
+    <string name="loading_chapter">Загрузка главы…</string>
+
+    <!-- Church finder -->
+    <string name="church_finder_banner_text">Ищете общину веры?</string>
+    <string name="church_finder_find_church">Найти церковь</string>
+    <string name="church_finder_dismiss">Закрыть</string>
+    <string name="church_finder_modal_title">Найти церковь</string>
+    <string name="church_finder_modal_subtitle">Присоединитесь к общине веры рядом с вами</string>
+    <string name="church_finder_search_placeholder">Город на английском (напр. Moscow, Rome, Paris)</string>
+    <string name="church_finder_search_button">Искать</string>
+    <string name="church_finder_location_hint">Используйте названия городов на английском</string>
+    <string name="church_finder_enter_location">Введите местоположение для поиска</string>
+    <string name="church_finder_found_count">Найдено церквей: %d</string>
+    <string name="church_finder_no_churches_found">Церкви не найдены</string>
+    <string name="church_finder_no_churches_hint">Попробуйте другое место или более широкий поисковый запрос.</string>
+    <string name="church_finder_website">Веб-сайт</string>
+    <string name="church_finder_email">Эл. почта</string>
+    <string name="church_finder_data_credit">Данные о церквях предоставлены DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">Контакт</string>
+    <string name="contact_open_button">Связаться с нами</string>
+    <string name="contact_title">Связаться с нами</string>
+    <string name="contact_subtitle">Поделитесь своими мыслями или сообщите о проблеме</string>
+    <string name="contact_subject_label">Тема</string>
+    <string name="contact_subject_spiritual">Духовный / библейский вопрос</string>
+    <string name="contact_subject_feedback">Общий отзыв</string>
+    <string name="contact_subject_bug">Сообщение об ошибке</string>
+    <string name="contact_subject_feature">Запрос функции</string>
+    <string name="contact_subject_other">Другое</string>
+    <string name="contact_email_label">Ваш email (необязательно, для ответа)</string>
+    <string name="contact_email_placeholder">вы@пример.ру</string>
+    <string name="contact_message_label">Сообщение</string>
+    <string name="contact_message_placeholder">Поделитесь мыслями, сообщите о проблеме или предложите улучшение…</string>
+    <string name="contact_privacy_note">Ваше сообщение будет сохранено для улучшения сервиса.</string>
+    <string name="contact_send_button">Отправить сообщение</string>
+    <string name="contact_success_title">Сообщение успешно отправлено!</string>
+    <string name="contact_success_description">Спасибо за обращение. Мы рассмотрим ваше сообщение в ближайшее время.</string>
+    <string name="contact_error_send">Не удалось отправить сообщение. Повторите попытку.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Связанные стихи</string>
+    <string name="verses_panel_title">Связанные стихи</string>
+    <string name="verses_filter_referenced">Упомянутые</string>
+    <string name="verses_filter_all_related">Все (%d)</string>
+    <string name="verses_panel_empty">Стихи для этого фильтра не найдены.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">Авто</string>
+    <string name="translation_auto_description">Бэкенд выбирает лучший перевод для вашего языка</string>
+    <string name="translation_picker_title">Версия Библии</string>
+    <string name="translation_picker_subtitle">Выберите предпочитаемый перевод Библии</string>
+</resources>

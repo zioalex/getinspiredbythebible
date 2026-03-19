@@ -156,4 +156,69 @@ class EventSourceParserTest {
 
         assertTrue(chunks.isEmpty())
     }
+
+    // ── GAP-002: metadata event tests ─────────────────────────────────────────
+
+    /**
+     * 8. Metadata event — a data line with type=metadata emits a StreamChunkDto
+     *    with the message_id and model fields populated and empty content.
+     */
+    @Test
+    fun `metadata event is parsed and emitted with messageId and model`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc-123","provider":"ollama","model":"llama3.2","detected_translation":"kjv"}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals("abc-123", chunks[0].messageId)
+        assertEquals("llama3.2", chunks[0].model)
+        assertEquals("", chunks[0].content)
+        assertFalse(chunks[0].done)
+    }
+
+    /**
+     * 9. Metadata event followed by content chunks — both are emitted in order.
+     *    The metadata chunk has type="metadata" and the content chunk has type="content".
+     */
+    @Test
+    fun `metadata event followed by content chunks emits both in order`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"msg-001","model":"llama3.2"}""" + "\n" +
+                """data: {"type":"content","content":"Hello","done":false}""" + "\n" +
+                """data: {"type":"content","content":" world","done":true}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(3, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals("msg-001", chunks[0].messageId)
+        assertEquals("", chunks[0].content)
+        assertEquals("Hello", chunks[1].content)
+        assertEquals(" world", chunks[2].content)
+        assertTrue(chunks[2].done)
+    }
+
+    /**
+     * 10. Typed content chunk — a chunk with type="content" is treated as a
+     *     regular content chunk.
+     */
+    @Test
+    fun `typed content chunk is treated as a regular content chunk`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"content","content":"typed hello","done":false}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("typed hello", chunks[0].content)
+        assertFalse(chunks[0].done)
+    }
 }

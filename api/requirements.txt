@@ -1,6 +1,6 @@
 # Web Framework
 fastapi==0.135.1
-uvicorn[standard]==0.41.0
+uvicorn[standard]==0.42.0
 pydantic==2.12.5
 pydantic-settings==2.13.1
 
@@ -31,7 +31,7 @@ azure-ai-contentsafety==1.0.0
 # Utilities
 python-dotenv==1.2.2
 numpy==1.26.4
-lingua-language-detector==2.1.1
+lingua-language-detector==2.2.0
 pyyaml>=6.0
 
 # Testing

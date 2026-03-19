@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, other {# 절}}",
-    "defaultTranslation": "개역개정"
+    "defaultTranslation": "개역개정",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "도움이 되었나요?",

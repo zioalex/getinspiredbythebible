@@ -1,0 +1,309 @@
+"""
+Tests for hybrid search (BITB-018.2).
+Tests use mocks to avoid requiring a real database connection.
+"""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from scripture.repository import ScriptureRepository
+from scripture.search import ScriptureSearchService
+
+# ==================== Repository Tests ====================
+
+
+class TestSearchVersesHybrid:
+    """Tests for ScriptureRepository.search_verses_hybrid()."""
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_returns_verses(self):
+        """search_verses_hybrid returns list of (verse, score) tuples."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        # Mock SQL result rows: (id, hybrid_score)
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = [
+            (1, 0.85),
+            (2, 0.72),
+        ]
+
+        # Mock verse objects
+        mock_verse1 = MagicMock()
+        mock_verse1.id = 1
+        mock_verse1.text = "Peace, be still."
+
+        mock_verse2 = MagicMock()
+        mock_verse2.id = 2
+        mock_verse2.text = "Be still and know that I am God."
+
+        mock_verses_result = MagicMock()
+        mock_verses_result.scalars.return_value.all.return_value = [mock_verse1, mock_verse2]
+
+        mock_session.execute.side_effect = [mock_sql_result, mock_verses_result]
+
+        embedding = [0.1] * 1024
+        results = await repo.search_verses_hybrid(
+            query_text="peace be still",
+            query_embedding=embedding,
+            limit=5,
+        )
+
+        assert len(results) == 2
+        assert results[0][0].id == 1
+        assert results[0][1] == pytest.approx(0.85)
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_empty_result(self):
+        """search_verses_hybrid returns empty list when no results."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        results = await repo.search_verses_hybrid(
+            query_text="peace be still",
+            query_embedding=embedding,
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_weight_normalization(self):
+        """Weights are normalized to sum to 1.0 in the SQL query."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        # Pass weights that don't sum to 1.0 — they should be normalized
+        await repo.search_verses_hybrid(
+            query_text="test",
+            query_embedding=embedding,
+            semantic_weight=2.0,
+            keyword_weight=1.0,
+        )
+
+        # Verify execute was called (weights were normalized internally)
+        mock_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_with_translation_filter(self):
+        """search_verses_hybrid passes translation filter to SQL."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        await repo.search_verses_hybrid(
+            query_text="test",
+            query_embedding=embedding,
+            translation="kjv",
+        )
+
+        # Verify execute was called with translation parameter
+        call_args = mock_session.execute.call_args
+        params = call_args[0][1]  # second positional arg is params dict
+        assert "translation" in params
+        assert params["translation"] == "kjv"
+
+
+class TestSearchPassagesHybrid:
+    """Tests for ScriptureRepository.search_passages_hybrid()."""
+
+    @pytest.mark.asyncio
+    async def test_passages_hybrid_returns_results(self):
+        """search_passages_hybrid returns list of (passage, score) tuples."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = [(1, 0.90)]
+
+        mock_passage = MagicMock()
+        mock_passage.id = 1
+        mock_passage.title = "The Lord's Prayer"
+
+        mock_passages_result = MagicMock()
+        mock_passages_result.scalars.return_value.all.return_value = [mock_passage]
+
+        mock_session.execute.side_effect = [mock_sql_result, mock_passages_result]
+
+        embedding = [0.1] * 1024
+        results = await repo.search_passages_hybrid(
+            query_text="our father prayer",
+            query_embedding=embedding,
+        )
+
+        assert len(results) == 1
+        assert results[0][0].title == "The Lord's Prayer"
+        assert results[0][1] == pytest.approx(0.90)
+
+    @pytest.mark.asyncio
+    async def test_passages_hybrid_empty_result(self):
+        """search_passages_hybrid returns empty list when no results."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        results = await repo.search_passages_hybrid(
+            query_text="xyz",
+            query_embedding=embedding,
+        )
+
+        assert results == []
+
+
+# ==================== SearchService Tests ====================
+
+
+class TestScriptureSearchServiceHybrid:
+    """Tests for ScriptureSearchService.search_hybrid()."""
+
+    @pytest.mark.asyncio
+    async def test_search_hybrid_calls_repository(self):
+        """search_hybrid generates embedding and calls repository methods."""
+        mock_session = AsyncMock()
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed.return_value = MagicMock(embedding=[0.1] * 1024)
+
+        service = ScriptureSearchService(mock_session, mock_embedding_provider)
+
+        mock_verse = MagicMock()
+        mock_verse.text = "Peace be still"
+        mock_verse.book.name = "Mark"
+        mock_verse.chapter_number = 4
+        mock_verse.verse_number = 39
+        mock_verse.translation = "kjv"
+        mock_verse.book.name = "Mark"
+
+        with (
+            patch.object(
+                service.repo, "search_verses_hybrid", new_callable=AsyncMock
+            ) as mock_verses,
+            patch.object(
+                service.repo, "search_passages_hybrid", new_callable=AsyncMock
+            ) as mock_passages,
+            patch("scripture.search.get_localized_book_name", return_value="Mark"),
+        ):
+            mock_verses.return_value = [(mock_verse, 0.85)]
+            mock_passages.return_value = []
+
+            results = await service.search_hybrid(
+                query="peace be still",
+                max_verses=5,
+            )
+
+        mock_embedding_provider.embed.assert_called_once_with("peace be still")
+        mock_verses.assert_called_once()
+        assert len(results.verses) == 1
+        assert results.verses[0].similarity == 0.85
+
+    @pytest.mark.asyncio
+    async def test_search_hybrid_passes_weights(self):
+        """search_hybrid passes correct weights to repository."""
+        mock_session = AsyncMock()
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed.return_value = MagicMock(embedding=[0.1] * 1024)
+
+        service = ScriptureSearchService(mock_session, mock_embedding_provider)
+
+        with (
+            patch.object(
+                service.repo, "search_verses_hybrid", new_callable=AsyncMock
+            ) as mock_verses,
+            patch.object(
+                service.repo, "search_passages_hybrid", new_callable=AsyncMock
+            ) as mock_passages,
+        ):
+            mock_verses.return_value = []
+            mock_passages.return_value = []
+
+            await service.search_hybrid(
+                query="test",
+                semantic_weight=0.6,
+                keyword_weight=0.4,
+            )
+
+        call_kwargs = mock_verses.call_args[1]
+        assert call_kwargs["semantic_weight"] == 0.6
+        assert call_kwargs["keyword_weight"] == 0.4
+
+
+# ==================== Config Validation Tests ====================
+
+
+class TestHybridSearchConfig:
+    """Tests for hybrid search configuration validation."""
+
+    def test_default_weights_are_valid(self):
+        """Default weights (0.7 + 0.3) sum to 1.0."""
+        from config import Settings
+
+        s = Settings(
+            hybrid_search_enabled=False,
+            hybrid_search_semantic_weight=0.7,
+            hybrid_search_keyword_weight=0.3,
+        )
+        assert s.hybrid_search_semantic_weight == 0.7
+        assert s.hybrid_search_keyword_weight == 0.3
+
+    def test_weights_must_sum_to_one(self):
+        """Weights that don't sum to 1.0 raise ValidationError."""
+        from pydantic import ValidationError
+
+        from config import Settings
+
+        # Try invalid weights that sum to 1.6
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(
+                hybrid_search_semantic_weight=0.8,
+                hybrid_search_keyword_weight=0.8,  # 0.8 + 0.8 = 1.6, invalid
+            )
+
+        error_msg = str(exc_info.value)
+        assert "sum" in error_msg.lower() or "1.0" in error_msg or "weights" in error_msg.lower()
+
+    def test_equal_weights_are_valid(self):
+        """Equal weights (0.5 + 0.5) are valid."""
+        from config import Settings
+
+        s = Settings(
+            hybrid_search_semantic_weight=0.5,
+            hybrid_search_keyword_weight=0.5,
+        )
+        assert s.hybrid_search_semantic_weight == 0.5
+
+    def test_hybrid_flag_defaults_to_false(self):
+        """HYBRID_SEARCH_ENABLED defaults to False."""
+        from config import Settings
+
+        s = Settings()
+        assert s.hybrid_search_enabled is False
+
+    def test_weight_out_of_range_raises(self):
+        """Weight > 1.0 raises ValidationError."""
+        from config import Settings
+
+        try:
+            Settings(
+                hybrid_search_semantic_weight=1.5,
+                hybrid_search_keyword_weight=-0.5,
+            )
+            assert False, "Should have raised ValidationError"
+        except Exception as e:
+            assert "0.0" in str(e) or "1.0" in str(e) or "between" in str(e).lower()

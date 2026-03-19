@@ -34,6 +34,7 @@ from .prompts import (
     get_system_prompt,
     get_verse_lookup_prompt,
 )
+from .topics import detect_topics
 
 logger = get_logger(__name__)
 
@@ -182,6 +183,69 @@ class ChatService:
 
         return safety_result.compassionate_response_needed
 
+    async def _expand_query(
+        self, user_message: str, language: str, model_override: str | None = None
+    ) -> str:
+        """
+        Expand user query with related biblical themes and concepts using LLM.
+
+        Uses low temperature for consistent expansion results.
+        Falls back to original message on any error (fail-open).
+        """
+        expansion_prompt = f"""You are helping expand a search query to find relevant Bible verses.
+
+User's message: "{user_message}"
+Language: {language}
+
+Identify biblical themes, emotions, and related concepts that would help find relevant scripture.
+Generate an expanded search query including:
+- Core emotions/feelings (anxiety, peace, anger, joy, frustration, etc.)
+- Related biblical themes (trust in God, forgiveness, patience, God's love, self-control, etc.)
+- Synonyms and related words
+- Life situations this applies to
+
+Respond ONLY with the expanded query text in {language}, no explanation.
+Keep it under 100 words."""
+
+        start_time = time.time()
+        try:
+            response = await self.llm.chat(
+                messages=[ChatMessage(role="user", content=expansion_prompt)],
+                temperature=0.3,
+                max_tokens=150,
+                model_override=model_override,
+            )
+            expanded = response.content.strip()
+            expansion_time_ms = int((time.time() - start_time) * 1000)
+
+            logger.info(
+                "Query expansion completed",
+                extra={
+                    "original_query": user_message[:100],
+                    "expanded_query": expanded[:200],
+                    "language": language,
+                    "expansion_time_ms": expansion_time_ms,
+                },
+            )
+            return expanded
+        except Exception as e:
+            logger.warning("Query expansion failed, using original query: %s", e)
+            return user_message
+
+    def _detect_topics(self, message: str) -> list[str]:
+        """
+        Detect biblical topics in user message using keyword-based mapping.
+
+        Fast keyword scan, no LLM call. Returns list of topic names.
+        """
+        topics = detect_topics(message)
+        if topics:
+            logger.info(
+                "Topics detected for boosting",
+                extra={"detected_topics": topics, "message_length": len(message)},
+            )
+        return topics
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
@@ -255,7 +319,12 @@ class ChatService:
 
         # Step 1: Search for relevant scripture (if enabled)
         scripture_context, search_context_prompt = await self._search_scripture(
-            request, translation, verse_refs, is_verse_lookup
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=detected_language,
+            model_override=model_override,
         )
 
         # Step 2: Build the message list
@@ -360,12 +429,14 @@ class ChatService:
             translation_info=translation_info,
         )
 
-    async def _search_scripture(
+    async def _search_scripture(  # noqa: C901
         self,
         request: ChatRequest,
         translation: str,
         verse_refs: list,
         is_verse_lookup: bool,
+        detected_language: str = "en",  # NEW
+        model_override: str | None = None,  # NEW
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
@@ -384,14 +455,100 @@ class ChatService:
             # Direct verse lookups for specific references
             direct_verses = await self._lookup_direct_verses(verse_refs, translation)
 
-            # Semantic search for additional context
-            scripture_context = await self.search_service.search(
-                query=request.message,
-                max_verses=settings.max_context_verses,
-                max_passages=2,
-                similarity_threshold=0.35,
-                translation=translation,
-            )
+            # Query expansion (optional feature flag)
+            extra_embeddings: list[list[float]] | None = None
+            if settings.query_expansion_enabled:
+                expanded_query = await self._expand_query(
+                    request.message, detected_language, model_override
+                )
+                if expanded_query != request.message:
+                    # Generate embedding for expanded query
+                    expansion_embed_response = await self.embedding.embed(expanded_query)
+                    extra_embeddings = [expansion_embed_response.embedding]
+                    logger.info(
+                        "Query expansion embeddings generated",
+                        extra={"num_extra_embeddings": len(extra_embeddings)},
+                    )
+
+            # Topic detection for boosting (keyword-based, <10ms)
+            boost_topics: list[str] = []
+            if settings.topic_boosting_enabled:
+                boost_topics = self._detect_topics(request.message)
+
+            # Semantic or hybrid search (optionally with topic boosting)
+            if settings.hybrid_search_enabled:
+                if settings.topic_boosting_enabled and boost_topics:
+                    semantic_results = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
+                    scripture_context = await self.search_service.search_hybrid_boosted(
+                        query=request.message,
+                        boost_topics=boost_topics,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        semantic_weight=settings.hybrid_search_semantic_weight,
+                        keyword_weight=settings.hybrid_search_keyword_weight,
+                        topic_boost_factor=settings.topic_boost_factor,
+                    )
+                else:
+                    semantic_results = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
+                    scripture_context = await self.search_service.search_hybrid(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        semantic_weight=settings.hybrid_search_semantic_weight,
+                        keyword_weight=settings.hybrid_search_keyword_weight,
+                    )
+                # Log differences for monitoring
+                semantic_refs = {v.reference for v in semantic_results.verses}
+                hybrid_refs = {v.reference for v in scripture_context.verses}
+                new_in_hybrid = hybrid_refs - semantic_refs
+                dropped_in_hybrid = semantic_refs - hybrid_refs
+                if new_in_hybrid or dropped_in_hybrid:
+                    logger.info(
+                        "Hybrid search result differences",
+                        extra={
+                            "new_in_hybrid": list(new_in_hybrid),
+                            "dropped_in_hybrid": list(dropped_in_hybrid),
+                        },
+                    )
+            else:
+                if settings.topic_boosting_enabled and boost_topics:
+                    scripture_context = await self.search_service.search_boosted(
+                        query=request.message,
+                        boost_topics=boost_topics,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        topic_boost_factor=settings.topic_boost_factor,
+                        extra_embeddings=extra_embeddings,
+                    )
+                else:
+                    scripture_context = await self.search_service.search(
+                        query=request.message,
+                        max_verses=settings.max_context_verses,
+                        max_passages=2,
+                        similarity_threshold=0.35,
+                        translation=translation,
+                        extra_embeddings=extra_embeddings,
+                    )
 
             # Merge direct lookup results with semantic search
             self._merge_direct_verses(scripture_context, direct_verses)
@@ -404,6 +561,10 @@ class ChatService:
                     "verses_found": len(scripture_context.verses) if scripture_context else 0,
                     "passages_found": (len(scripture_context.passages) if scripture_context else 0),
                     "is_verse_lookup": is_verse_lookup,
+                    "query_expansion_used": extra_embeddings is not None,
+                    "hybrid_search_used": settings.hybrid_search_enabled,
+                    "topic_boosting_used": settings.topic_boosting_enabled and bool(boost_topics),
+                    "boost_topics": boost_topics if boost_topics else [],
                 },
             )
         except Exception as e:
@@ -531,7 +692,12 @@ class ChatService:
 
         # Step 1: Search for relevant scripture
         scripture_context, search_context_prompt = await self._search_scripture(
-            request, translation, verse_refs, is_verse_lookup
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=detected_language,
+            model_override=model_override,
         )
 
         # Step 2: Send metadata before streaming starts

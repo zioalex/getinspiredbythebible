@@ -275,6 +275,10 @@ function normalizeBookName(book: string): string {
  * - Korean:   "요한복음 3:16", "시편 23:1", "예레미야 애가 3:3"
  */
 export function extractVerseReferences(text: string): Set<string> {
+  // Conjunctions that should not be treated as book names
+  // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
+  const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+
   // Pattern to match verse references in multiple languages.
   //
   // Alternatives (tried in order):
@@ -299,6 +303,12 @@ export function extractVerseReferences(text: string): Set<string> {
     const book = match[1].trim();
     const chapter = match[2];
     const verse = match[3];
+
+    // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
+    if (CONJUNCTIONS.has(book.toLowerCase())) {
+      continue;
+    }
+
     // Normalize the book name to English before storing, so that
     // isVerseReferenced() can match against English verse.reference values.
     const normalizedBook = normalizeBookName(book);
@@ -313,14 +323,14 @@ export function extractVerseReferences(text: string): Set<string> {
  * Handles fuzzy matching for book names (e.g., "Psalm" vs "Psalms")
  */
 export function isVerseReferenced(
-  verse: { book: string; chapter: number; verse: number; reference: string },
+  verse: { book: string; chapter: number; verse: number; reference?: string },
   references: Set<string>,
 ): boolean {
-  // Normalize the verse reference for comparison
-  const normalizedRef = verse.reference.toLowerCase();
+  // Normalize the verse reference for comparison (handle undefined)
+  const normalizedRef = verse.reference?.toLowerCase();
 
-  // Check if this verse's reference is mentioned
-  if (references.has(normalizedRef)) {
+  // Check if this verse's reference is mentioned (only if reference exists)
+  if (normalizedRef && references.has(normalizedRef)) {
     return true;
   }
 

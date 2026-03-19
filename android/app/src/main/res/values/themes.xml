@@ -2,4 +2,36 @@
 <resources>
     <!-- Base theme — Compose handles most theming; this is needed for the window/activity level. -->
     <style name="Theme.BibleInspiration" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      Splash screen theme — used only during the launch window before MainActivity draws its
+      first frame.  Extends the AndroidX SplashScreen theme so the compat library can read
+      the windowSplashScreen* attributes on API < 31.
+
+      Colours:
+        background  #4A6FA5  — app primary blue  (matches web primary-600)
+        icon        @drawable/ic_splash_icon  — white cross, centred
+        iconBg      #4A6FA5  — same as background so the icon circle blends in (API 31+)
+    -->
+    <style name="Theme.BibleInspiration.Splash" parent="Theme.SplashScreen">
+        <!-- Background colour of the splash window -->
+        <item name="windowSplashScreenBackground">#4A6FA5</item>
+
+        <!-- Animated / static icon shown in the centre of the screen -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+
+        <!-- Duration to show the splash (milliseconds) — 0 means "show until ready" -->
+        <item name="windowSplashScreenAnimationDuration">300</item>
+
+        <!--
+          Brand icon background colour (API 31+).  Setting it to the same blue as the
+          window background makes the circular icon container invisible, so the cross
+          appears to float directly on the blue backdrop — matching the launcher icon
+          adaptive-icon style.
+        -->
+        <item name="windowSplashScreenIconBackgroundColor">#4A6FA5</item>
+
+        <!-- Theme to switch to after the splash screen exits -->
+        <item name="postSplashScreenTheme">@style/Theme.BibleInspiration</item>
+    </style>
 </resources>

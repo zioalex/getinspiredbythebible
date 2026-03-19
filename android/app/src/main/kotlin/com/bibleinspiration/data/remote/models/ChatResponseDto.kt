@@ -24,7 +24,23 @@ data class VerseDto(
 /** Single SSE chunk from `POST /api/v1/chat/stream`. */
 @Serializable
 data class StreamChunkDto(
+    @SerialName("type") val type: String = "",
     @SerialName("content") val content: String = "",
     @SerialName("done") val done: Boolean = false,
     @SerialName("verses") val verses: List<VerseDto> = emptyList(),
+    @SerialName("message_id") val messageId: String = "",
+    @SerialName("model") val model: String = "",
+)
+
+/**
+ * Metadata event emitted by the SSE stream before any content chunks.
+ * Contains message_id, provider, model, and detected translation.
+ */
+@Serializable
+data class MetadataChunkDto(
+    @SerialName("type") val type: String = "",
+    @SerialName("message_id") val messageId: String = "",
+    @SerialName("provider") val provider: String = "",
+    @SerialName("model") val model: String = "",
+    @SerialName("detected_translation") val detectedTranslation: String? = null,
 )

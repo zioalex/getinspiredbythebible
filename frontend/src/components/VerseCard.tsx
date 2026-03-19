@@ -36,7 +36,8 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
             {/* Build reference from parts to avoid fragile string replacement */}
             {verse.localized_book
               ? `${verse.localized_book} ${verse.chapter}:${verse.verse}`
-              : verse.reference}
+              : verse.reference ||
+                `${verse.book} ${verse.chapter}:${verse.verse}`}
           </span>
           {verse.translation && (
             <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">

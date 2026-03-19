@@ -42,18 +42,79 @@
     <string name="bible_translation_section">Traduzione Biblica</string>
     <string name="bible_translation_default">Predefinita</string>
 
-    <!-- Settings debug section -->
-    <string name="settings_debug_title">Debug</string>
-    <string name="action_export_debug_logs">Esporta log di debug</string>
+    <!-- Settings support/about section -->
+    <string name="settings_support_title">Supporto</string>
+    <string name="action_send_diagnostic_report">Invia rapporto di diagnostica</string>
+    <string name="settings_about_title">Informazioni</string>
+    <string name="settings_version">Versione</string>
+    <string name="settings_privacy_policy">Informativa sulla privacy</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Hai avuto 10 messaggi in questa sessione! Perché non fare una pausa e goderti il creato di Dio all\'aria aperta? 🌳</string>
 
     <!-- Actions -->
+    <string name="action_select_language">Seleziona lingua</string>
     <string name="action_retry">Riprova</string>
     <string name="action_start_new_session">Nuova sessione</string>
+    <string name="action_share_message">Condividi messaggio</string>
+    <string name="action_feedback_helpful">È stato utile</string>
+    <string name="action_feedback_not_helpful">Non è stato utile</string>
+    <string name="feedback_thank_you">Grazie per il tuo feedback!</string>
+    <string name="backend_warming_up">Connessione al server… (la prima richiesta potrebbe richiedere fino a 30 s)</string>
+    <string name="action_scroll_to_bottom">Scorri verso il basso</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Leggi il capitolo completo</string>
     <string name="loading_chapter">Caricamento del capitolo…</string>
+
+    <!-- Church finder -->
+    <string name="church_finder_banner_text">Cerchi una comunità di fede?</string>
+    <string name="church_finder_find_church">Trova una chiesa</string>
+    <string name="church_finder_dismiss">Ignora</string>
+    <string name="church_finder_modal_title">Trova una chiesa</string>
+    <string name="church_finder_modal_subtitle">Connettiti con una comunità di fede vicino a te</string>
+    <string name="church_finder_search_placeholder">Città in inglese (es. Rome, Munich, Zurich)</string>
+    <string name="church_finder_search_button">Cerca</string>
+    <string name="church_finder_location_hint">Usa i nomi delle città in inglese</string>
+    <string name="church_finder_enter_location">Inserisci una posizione per cercare</string>
+    <string name="church_finder_found_count">%d chiese trovate</string>
+    <string name="church_finder_no_churches_found">Nessuna chiesa trovata</string>
+    <string name="church_finder_no_churches_hint">Prova un\'altra posizione o un termine di ricerca più ampio.</string>
+    <string name="church_finder_website">Sito web</string>
+    <string name="church_finder_email">E-mail</string>
+    <string name="church_finder_data_credit">Dati delle chiese forniti da DisciplesToday.org</string>
+
+    <!-- Contact Form -->
+    <string name="contact_section_title">Contatto</string>
+    <string name="contact_open_button">Contattaci</string>
+    <string name="contact_title">Contattaci</string>
+    <string name="contact_subtitle">Condividi i tuoi pensieri o segnala un problema</string>
+    <string name="contact_subject_label">Oggetto</string>
+    <string name="contact_subject_spiritual">Domanda spirituale / biblica</string>
+    <string name="contact_subject_feedback">Feedback generale</string>
+    <string name="contact_subject_bug">Segnalazione di bug</string>
+    <string name="contact_subject_feature">Richiesta di funzionalità</string>
+    <string name="contact_subject_other">Altro</string>
+    <string name="contact_email_label">La tua email (opzionale, per risposta)</string>
+    <string name="contact_email_placeholder">tu@esempio.it</string>
+    <string name="contact_message_label">Messaggio</string>
+    <string name="contact_message_placeholder">Condividi i tuoi pensieri, segnala un problema o suggerisci un miglioramento…</string>
+    <string name="contact_privacy_note">Il tuo messaggio verrà archiviato per aiutarci a migliorare il servizio.</string>
+    <string name="contact_send_button">Invia messaggio</string>
+    <string name="contact_success_title">Messaggio inviato con successo!</string>
+    <string name="contact_success_description">Grazie per averci contattato. Esamineremo il tuo messaggio a breve.</string>
+    <string name="contact_error_send">Invio del messaggio non riuscito. Riprova.</string>
+
+    <!-- Verses sidebar panel -->
+    <string name="action_open_verses_panel">Versetti correlati</string>
+    <string name="verses_panel_title">Versetti correlati</string>
+    <string name="verses_filter_referenced">Citati</string>
+    <string name="verses_filter_all_related">Tutti (%d)</string>
+    <string name="verses_panel_empty">Nessun versetto trovato per questo filtro.</string>
+
+    <!-- Bible translation picker -->
+    <string name="translation_auto">Auto</string>
+    <string name="translation_auto_description">Il backend sceglie la traduzione migliore per la tua lingua</string>
+    <string name="translation_picker_title">Versione della Bibbia</string>
+    <string name="translation_picker_subtitle">Scegli la tua traduzione preferita della Bibbia</string>
 </resources>

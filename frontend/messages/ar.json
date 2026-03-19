@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, =1 {1 آية} other {# آيات}}",
-    "defaultTranslation": "King James Version"
+    "defaultTranslation": "King James Version",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "هل كان هذا مفيداً؟",

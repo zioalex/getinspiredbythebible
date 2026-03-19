@@ -259,3 +259,97 @@ class TestRepositorySpans:
             # Check that similarity_threshold was set
             calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
             assert calls.get("db.similarity_threshold") == 0.42
+
+
+class TestDBMetricsRecording:
+    """Verify DB metrics are recorded alongside spans."""
+
+    @pytest.mark.asyncio
+    async def test_search_verses_semantic_records_metric(self):
+        """search_verses_semantic() records db.search.duration_ms metric."""
+        mock_session = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        repo = ScriptureRepository(mock_session)
+
+        with patch("scripture.repository.db_search_duration_histogram") as mock_histogram:
+            await repo.search_verses_semantic(
+                [0.1] * 10, limit=5, similarity_threshold=0.35, translation="kjv"
+            )
+            # Verify the histogram recorded a value with correct dimensions
+            mock_histogram.record.assert_called_once()
+            call_args = mock_histogram.record.call_args
+            # First arg is duration_ms (should be a float)
+            assert isinstance(call_args[0][0], float)
+            # Second arg is dimensions dict
+            assert call_args[0][1] == {"operation": "semantic_search_verses", "translation": "kjv"}
+
+    def test_record_duration_records_metric_for_search_operation(self):
+        """_record_duration() routes search operations to db_search_duration_histogram."""
+        from scripture.repository import _record_duration
+
+        mock_span = MagicMock()
+        with patch("scripture.repository.db_search_duration_histogram") as mock_histogram:
+            with patch("scripture.repository.settings") as mock_settings:
+                mock_settings.slow_query_threshold_ms = 10000  # High threshold
+                _record_duration(
+                    mock_span,
+                    time.perf_counter() - 0.05,
+                    "semantic_search_verses",
+                    5,
+                    "kjv",
+                )
+                mock_histogram.record.assert_called_once()
+                call_args = mock_histogram.record.call_args
+                # Verify dimensions include both operation and translation
+                assert call_args[0][1] == {
+                    "operation": "semantic_search_verses",
+                    "translation": "kjv",
+                }
+
+    def test_record_duration_records_metric_for_query_operation(self):
+        """_record_duration() routes non-search operations to db_query_duration_histogram."""
+        from scripture.repository import _record_duration
+
+        mock_span = MagicMock()
+        with patch("scripture.repository.db_query_duration_histogram") as mock_histogram:
+            with patch("scripture.repository.settings") as mock_settings:
+                mock_settings.slow_query_threshold_ms = 10000  # High threshold
+                _record_duration(mock_span, time.perf_counter() - 0.05, "get_verse", 1, "kjv")
+                mock_histogram.record.assert_called_once()
+                call_args = mock_histogram.record.call_args
+                # Verify dimensions include only operation (no translation for non-search)
+                assert call_args[0][1] == {"operation": "get_verse"}
+
+    def test_record_duration_increments_slow_query_counter(self):
+        """_record_duration() increments slow_query counter when threshold exceeded."""
+        from scripture.repository import _record_duration
+
+        mock_span = MagicMock()
+        with patch("scripture.repository.db_slow_queries_counter") as mock_counter:
+            with patch("scripture.repository.settings") as mock_settings:
+                with patch("scripture.repository.logger"):
+                    mock_settings.slow_query_threshold_ms = 0  # Everything is slow
+                    _record_duration(
+                        mock_span,
+                        time.perf_counter() - 0.5,
+                        "semantic_search_verses",
+                        5,
+                        "kjv",
+                    )
+                    mock_counter.add.assert_called_once_with(
+                        1, {"operation": "semantic_search_verses"}
+                    )
+
+    def test_record_duration_does_not_increment_slow_query_counter_for_fast_queries(self):
+        """_record_duration() does not increment slow_query counter for fast queries."""
+        from scripture.repository import _record_duration
+
+        mock_span = MagicMock()
+        with patch("scripture.repository.db_slow_queries_counter") as mock_counter:
+            with patch("scripture.repository.settings") as mock_settings:
+                mock_settings.slow_query_threshold_ms = 10000  # Very high threshold
+                _record_duration(mock_span, time.perf_counter(), "get_verse", 1, None)
+                mock_counter.add.assert_not_called()
