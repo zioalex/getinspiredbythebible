@@ -153,17 +153,56 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Cache the AVD so subsequent runs skip the ~2-min AVD-creation step.
+      # Key includes api-level and arch so a config change busts the cache.
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-29-default-x86_64
+
+      - name: Create AVD (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          # x86_64 has reliable KVM support on ubuntu-24.04 (kernel 6.8+).
+          # x86 (32-bit) KVM emulation is broken on modern GitHub runners.
+          arch: x86_64
+          target: default
+          avd-name: test-avd
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created"
+
+      # Pre-build both APKs before the emulator starts to avoid Gradle cold
+      # compile eating into the emulator boot window (3-4 min for a cold build).
+      - name: Pre-build debug APKs
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
+        working-directory: android
+
+      # API 29/x86_64 boots in ~90-120 s on ubuntu-24.04 GitHub runners.
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 29
           arch: x86_64
-          profile: pixel_6
+          target: default
           avd-name: test-avd
+          force-avd-creation: false
+          emulator-boot-timeout: 600
           emulator-options: >-
             -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --no-daemon
+          # --no-configuration-cache: AGP 8.4.2's connectedDebugAndroidTest is
+          # incompatible with Gradle's configuration cache. Without this flag
+          # Gradle silently re-serialises the task graph, adding minutes of dead
+          # time before any test starts.
+          script: ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache
           working-directory: android
 
       - name: Upload instrumented test results
