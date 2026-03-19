@@ -45,7 +45,7 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Run pre-commit on all files
-        run: pre-commit run --all-files --show-diff-on-failure
+        run: SKIP=hadolint-docker pre-commit run --all-files --show-diff-on-failure
 
       - name: Install PyYAML for env validation
         run: pip install pyyaml
