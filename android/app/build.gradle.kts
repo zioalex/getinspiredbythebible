@@ -37,6 +37,11 @@ android {
             )
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
+            buildConfigField(
+                "String",
+                "PRIVACY_POLICY_URL",
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
+            )
         }
         release {
             isMinifyEnabled = true
@@ -50,6 +55,11 @@ android {
             )
             // Firebase is enabled only in release builds.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
+            buildConfigField(
+                "String",
+                "PRIVACY_POLICY_URL",
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
+            )
         }
     }
 
@@ -80,10 +90,13 @@ android {
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
-        // TODO: re-enable after baseline is generated — see fix/android-lint-baseline strategy.
-        // The current baseline is empty; AGP 8.4.2 does not honour -Dlint.baselines.continue=true
-        // for ERROR-severity issues, so abortOnError=true causes CI to fail until a real baseline
-        // (generated via ./gradlew lintDebug -Dlint.baselines.continue=true) is committed.
+        // TODO: Re-enable abortOnError=true once lint-baseline.xml is populated.
+        // Steps to regenerate the baseline in a full Android SDK environment:
+        //   1. ./gradlew lintDebug -Dlint.baselines.continue=true
+        //   2. Commit the updated lint-baseline.xml
+        //   3. Set abortOnError = true here
+        // Note: AGP 8.4.2 does not honour -Dlint.baselines.continue=true for ERROR-severity
+        // issues in the same run; run the task twice if needed.
         abortOnError = false
         warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
