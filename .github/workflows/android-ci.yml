@@ -277,6 +277,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
+      - name: Write google-services.json
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'PLACEHOLDER'
+          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          PLACEHOLDER
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
       - name: Enable KVM group for emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
@@ -285,7 +297,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # Cache the AVD so subsequent runs skip the ~2-min AVD-creation step.
-      # Key includes api-level and arch so a config change busts the cache.
+      # Key includes api-level, arch, and target so a config change busts the cache.
       - name: Cache AVD
         uses: actions/cache@v4
         id: avd-cache
@@ -293,16 +305,14 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-29-default-x86_64
+          key: avd-29-default-x86
 
       - name: Create AVD (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          # x86_64 has reliable KVM support on ubuntu-24.04 (kernel 6.8+).
-          # x86 (32-bit) KVM emulation is broken on modern GitHub runners.
-          arch: x86_64
+          arch: x86
           target: default
           avd-name: test-avd
           force-avd-creation: false
@@ -310,18 +320,20 @@ jobs:
           disable-animations: false
           script: echo "AVD created"
 
-      # Pre-build both APKs before the emulator starts to avoid Gradle cold
-      # compile eating into the emulator boot window (3-4 min for a cold build).
+      # Pre-build both APKs (app + test) before the emulator starts.
+      # This keeps the emulator step focused on install+run rather than
+      # compiling — Gradle's cold compile takes 3-4 min and would eat most
+      # of the emulator boot window.
       - name: Pre-build debug APKs
         run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
         working-directory: android
 
-      # API 29/x86_64 boots in ~90-120 s on ubuntu-24.04 GitHub runners.
+      # API 29/x86 boots in ~60-90 s on GitHub runners (vs 3-5 min for API 34/x86_64).
       - name: Run instrumented tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          arch: x86_64
+          arch: x86
           target: default
           avd-name: test-avd
           force-avd-creation: false
@@ -329,11 +341,7 @@ jobs:
           emulator-options: >-
             -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # --no-configuration-cache: AGP 8.4.2's connectedDebugAndroidTest is
-          # incompatible with Gradle's configuration cache. Without this flag
-          # Gradle silently re-serialises the task graph, adding minutes of dead
-          # time before any test starts.
-          script: ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache
+          script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
 
       - name: Upload instrumented test results
