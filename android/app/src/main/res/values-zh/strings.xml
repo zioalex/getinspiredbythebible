@@ -42,9 +42,12 @@
     <string name="bible_translation_section">圣经译本</string>
     <string name="bible_translation_default">默认</string>
 
-    <!-- Settings debug section -->
-    <string name="settings_debug_title">调试</string>
-    <string name="action_export_debug_logs">导出调试日志</string>
+    <!-- Settings support/about section -->
+    <string name="settings_support_title">支持</string>
+    <string name="action_send_diagnostic_report">发送诊断报告</string>
+    <string name="settings_about_title">关于</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_privacy_policy">隐私政策</string>
 
     <!-- Errors -->
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>

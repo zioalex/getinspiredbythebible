@@ -40,8 +40,13 @@
     <string name="settings_theme_system">System default</string>
     <string name="bible_translation_section">Bible Translation</string>
     <string name="bible_translation_default">Default</string>
-    <string name="settings_debug_title">Debug</string>
-    <string name="action_export_debug_logs">Export Debug Logs</string>
+    <string name="settings_support_title">Support</string>
+    <string name="action_send_diagnostic_report">Send Diagnostic Report</string>
+
+    <!-- Settings: About section -->
+    <string name="settings_about_title">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
 
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>

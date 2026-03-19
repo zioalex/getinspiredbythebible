@@ -42,9 +42,12 @@
     <string name="bible_translation_section">성경 번역본</string>
     <string name="bible_translation_default">기본값</string>
 
-    <!-- Settings debug section -->
-    <string name="settings_debug_title">디버그</string>
-    <string name="action_export_debug_logs">디버그 로그 내보내기</string>
+    <!-- Settings support/about section -->
+    <string name="settings_support_title">지원</string>
+    <string name="action_send_diagnostic_report">진단 보고서 보내기</string>
+    <string name="settings_about_title">정보</string>
+    <string name="settings_version">버전</string>
+    <string name="settings_privacy_policy">개인정보 처리방침</string>
 
     <!-- Errors -->
     <string name="error_session_limit">이 세션에서 10개의 메시지를 보내셨습니다! 잠시 쉬면서 하나님의 창조물을 즐겨보시는 건 어떨까요? 🌳</string>
