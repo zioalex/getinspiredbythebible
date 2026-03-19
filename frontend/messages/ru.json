@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, =1 {1 стих} other {# стихов}}",
-    "defaultTranslation": "Синодальный перевод"
+    "defaultTranslation": "Синодальный перевод",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "Это было полезно?",

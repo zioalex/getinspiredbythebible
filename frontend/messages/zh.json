@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, other {# 节}}",
-    "defaultTranslation": "中文和合本"
+    "defaultTranslation": "中文和合本",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "这有帮助吗？",

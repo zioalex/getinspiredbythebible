@@ -42,7 +42,8 @@
   },
   "ChapterModal": {
     "verseCount": "{count, plural, =1 {1 पद} other {# पद}}",
-    "defaultTranslation": "Hindi IRV Bible"
+    "defaultTranslation": "Hindi IRV Bible",
+    "noVerses": "No verses available"
   },
   "Feedback": {
     "wasHelpful": "क्या यह सहायक था?",
