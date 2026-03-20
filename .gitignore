@@ -103,3 +103,23 @@ deployment/tfplan.*
 frontend/playwright-report/
 frontend/test-results/
 frontend/.playwright/
+
+# AI agent / tooling artifacts
+.acpx-prompt-*.txt
+.claude/
+verify_acpx_claude.txt
+
+# Patch files and conflict rejects
+*.patch
+*.rej
+*.orig
+*.old
+
+# Stray shell scripts (ad-hoc automation)
+create-pr-*.sh
+block_traffic_*.sh
+.git-commands.sh
+
+# Root-level package files (not a Node project at root)
+/package.json
+/package-lock.json
