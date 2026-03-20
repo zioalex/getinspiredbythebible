@@ -34,19 +34,26 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
 
 /**
  * Regex used to find verse references that are explicitly cited in a message body.
- * Mirrors the pattern in ChatMessageItem.kt (without the look-behind, because here
- * we're matching plain text extracted from Message.content).
+ * Mirrors the pattern in ChatMessageItem.kt (colon always required here since
+ * citation matching needs book+chapter+verse).
  *
- * `(?U)` enables Unicode mode so \p{L} matches any Unicode letter, supporting
- * non-English book names (German, Italian, Spanish, French, Portuguese, Russian,
- * Chinese, Korean, etc.).
+ * Uses \p{Lu}/\p{Lo} for the first character of book-name words so that only
+ * uppercase (Latin/Cyrillic) or caseless (CJK) letters start a word. This avoids
+ * greedily capturing preceding lowercase prose. No (?U) flag — \b stays ASCII-only
+ * which correctly treats CJK characters as non-word chars.
+ *
+ * Two alternatives:
+ *   Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ") + book + chapter:verse
+ *   Alt 2 — book (no prefix) + chapter:verse
  */
+private val CITED_BOOK_NAME =
+    "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
+        "(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+
 private val CITED_VERSE_REF_REGEX = Regex(
-    "(?U)" +
-        "((?:[1-3]\\s)?" +
-            "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
-            "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +
-        "\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)",  // (?!\d) instead of \b for CJK compat
+    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b" +
+        "|" +
+        "($CITED_BOOK_NAME)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b",
 )
 
 /**
@@ -58,7 +65,14 @@ internal fun referencedVerses(allVerses: List<Verse>, messages: List<Message>): 
         .filter { it.role == Message.Role.ASSISTANT }
         .joinToString(" ") { it.content }
     val citedRefs = CITED_VERSE_REF_REGEX.findAll(combinedText)
-        .map { "${it.groupValues[1]} ${it.groupValues[2]}:${it.groupValues[3]}" }
+        .map {
+            // Alt 1 (numbered prefix) fills groups 1-3; Alt 2 fills groups 4-6.
+            if (it.groupValues[1].isNotEmpty()) {
+                "${it.groupValues[1]} ${it.groupValues[2]}:${it.groupValues[3]}"
+            } else {
+                "${it.groupValues[4]} ${it.groupValues[5]}:${it.groupValues[6]}"
+            }
+        }
         .toHashSet()
     return allVerses.filter { verse ->
         // Match if the base reference (book chapter:verse) appears — ignore range suffix.

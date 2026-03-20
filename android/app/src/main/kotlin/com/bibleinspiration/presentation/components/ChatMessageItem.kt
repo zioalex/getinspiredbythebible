@@ -85,12 +85,26 @@ internal data class PendingVerseLink(
  * We exclude references already inside a markdown link by checking the character before the
  * match in the replace lambda (if preceded by '[', the ref is already a link display text).
  */
+// Book-name sub-pattern (multi-word, with connector words like "of", "de", "van", …).
+// First character must be \p{Lu} (uppercase Latin/Cyrillic) or \p{Lo} (CJK/other caseless).
+private val BOOK_NAME =
+    "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
+        "(?:\\s+(?:of|de|des|der|da|del|van|af)" +
+        "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+
+// Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
+// while un-numbered books also support chapter-only references (e.g. "Psalm 23").
+// We do NOT use (?U) — \b stays ASCII-only, which correctly treats CJK as \W.
 private val VERSE_REF_REGEX = Regex(
-    "(?U)" + // Unicode mode: \p{L} = any Unicode letter, \w includes non-ASCII
-        "((?:[1-3]\\s)?" +                         // Optional numeric prefix: "1 ", "2 ", "3 "
-            "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
-            "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +       // Additional words for multi-word books
-        "\\s+(\\d+)(?::(\\d+(?:-\\d+)?))?(?!\\d)"    // Chapter:verse (verse part optional) or chapter only; (?!\d) instead of \b for CJK compat
+    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
+    // Allows additional capitalised words after the prefix-book (e.g. "1 Corinthians", "2. Könige")
+    "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b" +
+        "|" +
+        // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
+        // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
+        // match "See" as book + "1" as chapter; the digit must not be followed by a word
+        // that looks like a book name (preventing false numbered-book splits).
+        "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)\\b|\\b(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 private const val VERSE_SCHEME = "verse://"
@@ -113,9 +127,19 @@ internal fun injectVerseLinks(markdown: String): String =
         if (before == '[') {
             result.value
         } else {
-            val book = result.groupValues[1]
-            val chapter = result.groupValues[2]
-            val verse = result.groupValues[3]
+            // Alt 1 (numbered prefix) populates groups 1-3; Alt 2 populates groups 4-6.
+            val book: String
+            val chapter: String
+            val verse: String
+            if (result.groupValues[1].isNotEmpty()) {
+                book = result.groupValues[1]
+                chapter = result.groupValues[2]
+                verse = result.groupValues[3]
+            } else {
+                book = result.groupValues[4]
+                chapter = result.groupValues[5]
+                verse = result.groupValues[6]
+            }
             val encodedBook = URLEncoder.encode(book, "UTF-8")
             val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
