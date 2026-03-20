@@ -51,9 +51,19 @@ fun VerseDetailBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    // Auto-load the chapter as soon as the sheet opens (Idle state means not yet loaded).
-    LaunchedEffect(Unit) {
-        if (chapterState is ChapterSheetState.Idle) {
+    // Auto-load the chapter as soon as the sheet opens.
+    // The key includes book + chapter so that tapping a *different* verse reference
+    // (even one from a previously cached chapter) always triggers a fresh load.
+    LaunchedEffect(verse.book, verse.chapter) {
+        val needsLoad = when (chapterState) {
+            is ChapterSheetState.Idle -> true
+            is ChapterSheetState.Success -> {
+                val loaded = chapterState.response
+                loaded.book != verse.book || loaded.chapter != verse.chapter
+            }
+            else -> true
+        }
+        if (needsLoad) {
             onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation)
         }
     }
@@ -74,13 +84,13 @@ fun VerseDetailBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        // Use fillMaxHeight(0.65f) so the Column has a bounded height, which lets
+        // Use fillMaxHeight(0.85f) so the Column has a bounded height, which lets
         // the LazyColumn inside use weight(1f) without triggering a Compose
         // measurement crash ("Nesting scrollable in same direction layouts").
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.65f)
+                .fillMaxHeight(0.85f)
                 .padding(horizontal = 16.dp)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
@@ -171,7 +181,7 @@ fun VerseDetailBottomSheet(
 
                 is ChapterSheetState.Success -> {
                     val response = chapterState.response
-                    val headerText = "${response.book} ${response.chapter}"
+                    val headerText = "${response.localizedBook ?: response.book} ${response.chapter}"
                     Text(
                         text = headerText,
                         style = MaterialTheme.typography.titleMedium,
@@ -206,7 +216,7 @@ fun VerseDetailBottomSheet(
                                         color = if (isTarget) {
                                             MaterialTheme.colorScheme.onSurface
                                         } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                                         },
                                     ),
                                 ) {

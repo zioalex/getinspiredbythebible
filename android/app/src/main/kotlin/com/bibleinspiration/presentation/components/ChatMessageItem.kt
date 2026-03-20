@@ -67,18 +67,30 @@ internal data class PendingVerseLink(
  * Regex matching standalone Bible verse references in message text.
  * Captures: group 1 = book name, group 2 = chapter number, group 3 = verse (may include range).
  *
- * Examples matched: "John 3:16", "1 Corinthians 13:4", "Song of Solomon 2:1", "Rev 22:21-22"
+ * `(?U)` enables Unicode mode so \p{L} matches any Unicode letter, supporting
+ * non-English book names in addition to English.
+ *
+ * Examples matched:
+ *   - English:       "John 3:16", "1 Corinthians 13:4", "Song of Solomon 2:1"
+ *   - German:        "Johannes 3:16", "Römer 8:28", "1. Mose 1:1", "2. Könige 5:14"
+ *   - Italian:       "Giovanni 3:16", "Salmi 23:1", "Romani 8:28"
+ *   - Spanish:       "Juan 3:16", "Génesis 1:1", "Romanos 8:28", "Apocalipsis 21:4"
+ *   - French:        "Jean 3:16", "Genèse 1:1", "Romains 8:28", "Psaumes 23:1"
+ *   - Portuguese:     "João 3:16", "Gênesis 1:1", "Salmos 23:1", "Apocalipse 21:4"
+ *   - Russian:       "Иоанн 3:16", "Псалтирь 23:1", "Плач Иеремии 3:3",
+ *                   "1 Коринфянам 13:4", "Откровение 21:4"
+ *   - Chinese:        "约翰福音 3:16", "诗篇 23:1", "创世记 1:1", "耶利米哀歌 3:3"
+ *   - Korean:         "요한복음 3:16", "시편 23:1", "창세기 1:1", "예레미야 애가 3:3"
  *
  * We exclude references already inside a markdown link by checking the character before the
  * match in the replace lambda (if preceded by '[', the ref is already a link display text).
  */
 private val VERSE_REF_REGEX = Regex(
-    // Optional numeric prefix: "1 ", "2 ", "3 "
-    "((?:[1-3]\\s)?" +
-        // Book name: one or two capitalised words
-        "[A-Z][a-zA-Z]+(?:\\s[A-Z][a-zA-Z]+)*)\\s" +
-        // Chapter:verse (with optional verse range)
-        "(\\d+):(\\d+(?:-\\d+)?)\\b",
+    "(?U)" + // Unicode mode: \p{L} = any Unicode letter, \w includes non-ASCII
+        "((?:[1-3]\\s)?" +                         // Optional numeric prefix: "1 ", "2 ", "3 "
+            "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
+            "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +       // Additional words for multi-word books
+        "\\s+(\\d+)(?::(\\d+(?:-\\d+)?))?\\b"      // Chapter:verse (verse part optional) or chapter only
 )
 
 private const val VERSE_SCHEME = "verse://"
@@ -87,6 +99,7 @@ private const val VERSE_SCHEME = "verse://"
  * Rewrites verse references in [markdown] as markdown links using the `verse://` scheme.
  *
  * E.g. "John 3:16" → "[John 3:16](verse://John/3/16)"
+ * E.g. "Psalm 23"  → "[Psalm 23](verse://Psalm/23)"   (chapter-only, no verse number)
  *
  * The book name is URL-encoded so that spaces survive the round-trip through the Markwon
  * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
@@ -104,8 +117,9 @@ internal fun injectVerseLinks(markdown: String): String =
             val chapter = result.groupValues[2]
             val verse = result.groupValues[3]
             val encodedBook = URLEncoder.encode(book, "UTF-8")
-            val display = "$book $chapter:$verse"
-            "[$display]($VERSE_SCHEME$encodedBook/$chapter/$verse)"
+            val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
+            val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
+            "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse)"
         }
     }
 
@@ -113,7 +127,8 @@ internal fun injectVerseLinks(markdown: String): String =
  * Parses a `verse://` URL and returns a [PendingVerseLink] if the URL is well-formed,
  * or null otherwise.
  *
- * URL format: `verse://<encoded-book>/<chapter>/<verse>`
+ * URL format: `verse://<encoded-book>/<chapter>[/<verse>]`
+ * The verse segment is optional; when absent the verse number defaults to 1.
  */
 internal fun parseVerseLink(url: String, preferredTranslation: String?): PendingVerseLink? {
     if (!url.startsWith(VERSE_SCHEME)) return null
@@ -292,6 +307,8 @@ fun ChatMessageItem(
                                 onLinkClicked = { url ->
                                     val parsed = parseVerseLink(url, preferredTranslation)
                                     if (parsed != null) {
+                                        // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
+                                        onDismissSheet()
                                         pendingVerseLink = parsed
                                         onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
                                     }

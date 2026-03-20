@@ -36,9 +36,17 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  * Regex used to find verse references that are explicitly cited in a message body.
  * Mirrors the pattern in ChatMessageItem.kt (without the look-behind, because here
  * we're matching plain text extracted from Message.content).
+ *
+ * `(?U)` enables Unicode mode so \p{L} matches any Unicode letter, supporting
+ * non-English book names (German, Italian, Spanish, French, Portuguese, Russian,
+ * Chinese, Korean, etc.).
  */
 private val CITED_VERSE_REF_REGEX = Regex(
-    "((?:[1-3]\\s)?[A-Z][a-zA-Z]+)\\s(\\d+):(\\d+(?:-\\d+)?)\\b",
+    "(?U)" +
+        "((?:[1-3]\\s)?" +
+            "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
+            "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +
+        "\\s+(\\d+):(\\d+(?:-\\d+)?)\\b",
 )
 
 /**
