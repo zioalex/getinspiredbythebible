@@ -417,6 +417,9 @@ class ChatViewModel @Inject constructor(
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
     fun startNewConversation() {
+        viewModelScope.launch {
+            sessionPreferences.resetSessionId()
+        }
         _uiState.update {
             it.copy(
                 messages = emptyList(),

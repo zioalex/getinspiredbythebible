@@ -39,4 +39,15 @@ class SessionPreferences @Inject constructor(
         dataStore.edit { prefs -> prefs[SESSION_ID_KEY] = newId }
         return newId
     }
+
+    /**
+     * Generates and persists a new session ID, replacing the existing one.
+     * Call this when starting a new session so the backend resets its
+     * per-session message counter.
+     */
+    suspend fun resetSessionId(): String {
+        val newId = UUID.randomUUID().toString()
+        dataStore.edit { prefs -> prefs[SESSION_ID_KEY] = newId }
+        return newId
+    }
 }

@@ -84,13 +84,14 @@ class RateLimiter:
                 session_entry = self._session_limits[session_id]
                 session_entry.timestamps = [t for t in session_entry.timestamps if t > cutoff]
 
+                # Check lifetime session limit first so it always takes precedence
+                # over the per-minute check, ensuring the farewell UX is shown.
+                if session_entry.total_requests >= self.session_max_requests:
+                    return False, "Session lifetime limit exceeded"
+
                 # Check per-minute session limit
                 if len(session_entry.timestamps) >= self.session_requests_per_minute:
                     return False, "Session rate limit exceeded"
-
-                # Check lifetime session limit
-                if session_entry.total_requests >= self.session_max_requests:
-                    return False, "Session lifetime limit exceeded"
 
             # Allow request and record it
             ip_entry.timestamps.append(now)
