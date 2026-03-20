@@ -39,8 +39,11 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  *
  * Uses \p{Lu}/\p{Lo} for the first character of book-name words so that only
  * uppercase (Latin/Cyrillic) or caseless (CJK) letters start a word. This avoids
- * greedily capturing preceding lowercase prose. No (?U) flag — \b stays ASCII-only
- * which correctly treats CJK characters as non-word chars.
+ * greedily capturing preceding lowercase prose. No (?U) flag — \p{Lu}/\p{Lo}/\p{L}
+ * stay Unicode while \w/\b stay ASCII.
+ *
+ * We use (?!\d) instead of \b to terminate digit sequences so that CJK characters
+ * immediately after a verse number (e.g. "3:16是") don't cause boundary failures.
  *
  * Two alternatives:
  *   Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ") + book + chapter:verse
@@ -51,9 +54,9 @@ private val CITED_BOOK_NAME =
         "(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 private val CITED_VERSE_REF_REGEX = Regex(
-    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b" +
+    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
-        "($CITED_BOOK_NAME)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b",
+        "($CITED_BOOK_NAME)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)",
 )
 
 /**

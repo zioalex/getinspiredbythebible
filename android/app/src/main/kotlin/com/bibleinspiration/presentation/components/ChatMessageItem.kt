@@ -94,17 +94,20 @@ private val BOOK_NAME =
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
 // while un-numbered books also support chapter-only references (e.g. "Psalm 23").
-// We do NOT use (?U) — \b stays ASCII-only, which correctly treats CJK as \W.
+// We do NOT use (?U) — \p{Lu}/\p{Lo}/\p{L} stay Unicode, but \w/\b stay ASCII.
+// We use (?!\d) instead of \b to terminate digit sequences for CJK compatibility:
+// \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
+// boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
 private val VERSE_REF_REGEX = Regex(
     // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
     // Allows additional capitalised words after the prefix-book (e.g. "1 Corinthians", "2. Könige")
-    "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)\\b" +
+    "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
-        "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)\\b|\\b(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 private const val VERSE_SCHEME = "verse://"
