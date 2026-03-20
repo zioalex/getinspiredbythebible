@@ -216,7 +216,7 @@ fun VerseDetailBottomSheet(
                                         color = if (isTarget) {
                                             MaterialTheme.colorScheme.onSurface
                                         } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
                                         },
                                     ),
                                 ) {
