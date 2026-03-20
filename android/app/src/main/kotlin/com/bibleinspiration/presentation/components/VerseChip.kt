@@ -41,7 +41,11 @@ fun VerseChip(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                 shape = RoundedCornerShape(8.dp),
             )
-            .clickable { showSheet = true },
+            .clickable {
+                // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
+                onDismissSheet()
+                showSheet = true
+            },
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
     ) {

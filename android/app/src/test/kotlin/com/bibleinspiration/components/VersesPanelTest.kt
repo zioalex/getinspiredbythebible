@@ -143,4 +143,111 @@ class VersesPanelTest {
 
         assertEquals(1, result.size)
     }
+
+    // ── Multi-word book names ────────────────────────────────────────────────
+
+    @Test
+    fun `referencedVerses matches multi-word book Song of Solomon`() {
+        val song21 = verse("Song of Solomon", 2, 1)
+        val messages = listOf(assistantMsg("Song of Solomon 2:1 speaks of love."))
+
+        val result = referencedVerses(listOf(song21), messages)
+
+        assertEquals(1, result.size)
+        assertEquals(song21, result[0])
+    }
+
+    @Test
+    fun `referencedVerses matches Song of Solomon with verse range`() {
+        val song21 = verse("Song of Solomon", 2, 1)
+        val messages = listOf(assistantMsg("Read Song of Solomon 2:1-5 for the wedding."))
+
+        val result = referencedVerses(listOf(song21), messages)
+
+        assertEquals(1, result.size)
+    }
+
+    // ── Non-Latin book names ─────────────────────────────────────────────────
+    // NOTE: referencedVerses compares the regex-extracted book name (from the message)
+    // against Verse.book (the backend's English name). Cross-language matching
+    // (e.g. "Johannes" vs "John") is not supported — those tests are intentionally
+    // omitted. These tests verify that the regex correctly extracts the citation
+    // from non-Latin text, using the SAME book name in both the message and the verse.
+
+    @Test
+    fun `referencedVerses matches same-language citation with Unicode book name`() {
+        // When the verse.book matches the localized name in the message, it works.
+        val verse = verse("Иоанн", 3, 16)
+        val messages = listOf(assistantMsg("читайте Иоанн 3:16 для вдохновения."))
+
+        val result = referencedVerses(listOf(verse), messages)
+
+        assertEquals(1, result.size)
+        assertEquals(verse, result[0])
+    }
+
+    @Test
+    fun `referencedVerses matches CJK book name when verse book matches`() {
+        val verse = verse("约翰福音", 3, 16)
+        val messages = listOf(assistantMsg("约翰福音 3:16是著名的经文。"))
+
+        val result = referencedVerses(listOf(verse), messages)
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `referencedVerses matches Korean book name when verse book matches`() {
+        val verse = verse("요한복음", 3, 16)
+        val messages = listOf(assistantMsg("요한복음 3:16은 유명한 구절입니다."))
+
+        val result = referencedVerses(listOf(verse), messages)
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `referencedVerses matches German book with umlaut when verse book matches`() {
+        val rom828 = verse("Römer", 8, 28)
+        val messages = listOf(assistantMsg("Römer 8:28 ist ein wichtiger Vers."))
+
+        val result = referencedVerses(listOf(rom828), messages)
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `referencedVerses matches German numbered book 1 Mose with period`() {
+        val gen11 = verse("1. Mose", 1, 1)
+        val messages = listOf(assistantMsg("am Anfang steht 1. Mose 1:1."))
+
+        val result = referencedVerses(listOf(gen11), messages)
+
+        assertEquals(1, result.size)
+    }
+
+    // ── Edge cases ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `referencedVerses does not match chapter-verse without book name`() {
+        val john316 = verse("John", 3, 16)
+        val messages = listOf(assistantMsg("Verse 3:16 is well known."))
+
+        val result = referencedVerses(listOf(john316), messages)
+
+        // "Verse 3:16" should NOT match — no valid book name before "3:16"
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `referencedVerses matches mixed-language message with same-lang verse names`() {
+        val john316 = verse("John", 3, 16)
+        val rom828 = verse("Römer", 8, 28)
+        // Message mixes English and German; verse names match the respective language
+        val messages = listOf(assistantMsg("John 3:16 und Römer 8:28 sind wichtige Verse."))
+
+        val result = referencedVerses(listOf(john316, rom828), messages)
+
+        assertEquals(2, result.size)
+    }
 }
