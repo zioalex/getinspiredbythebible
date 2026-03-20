@@ -176,16 +176,42 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(themeMode = mode) }
             }
         }
-        // Fetch available translations from the backend.
-        viewModelScope.launch {
+        // Fetch available translations from the backend with retry.
+        viewModelScope.launch { fetchTranslationsWithRetry() }
+    }
+
+    /**
+     * Fetches the available translations from the backend with exponential backoff.
+     * Attempts up to [maxAttempts] times, starting with a [initialDelayMs] ms delay that
+     * doubles on each retry. Falls back to an empty list when all attempts fail.
+     */
+    private suspend fun fetchTranslationsWithRetry(
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 1_000L,
+    ) {
+        var delayMs = initialDelayMs
+        repeat(maxAttempts) { attempt ->
             try {
                 val response = bibleApiService.getTranslations()
                 _availableTranslations.value = response.translations
+                return
             } catch (e: Exception) {
-                Timber.w(e, "Failed to fetch translations; defaulting to empty list")
-                _availableTranslations.value = emptyList()
+                val isLastAttempt = attempt == maxAttempts - 1
+                if (isLastAttempt) {
+                    Timber.w(e, "Failed to fetch translations after $maxAttempts attempts; defaulting to empty list")
+                    _availableTranslations.value = emptyList()
+                } else {
+                    Timber.w(e, "Failed to fetch translations (attempt ${attempt + 1}/$maxAttempts); retrying in ${delayMs}ms")
+                    delay(delayMs)
+                    delayMs *= 2
+                }
             }
         }
+    }
+
+    /** Triggers a fresh fetch of available translations (e.g. after a network error banner). */
+    fun refreshTranslations() {
+        viewModelScope.launch { fetchTranslationsWithRetry() }
     }
 
     fun sendMessage(text: String) {

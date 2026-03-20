@@ -3,10 +3,10 @@ package com.bibleinspiration.data.remote.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** A single Bible translation returned by `GET /api/v1/translations`. */
+/** A single Bible translation returned by `GET /api/v1/scripture/translations`. */
 @Serializable
 data class TranslationDto(
-    @SerialName("id") val id: String,
+    @SerialName("code") val id: String,
     @SerialName("name") val name: String,
     @SerialName("language") val language: String,
 )

@@ -30,7 +30,7 @@ interface BibleApiService {
     /**
      * Fetches the list of available Bible translations from the backend.
      */
-    @GET("api/v1/translations")
+    @GET("api/v1/scripture/translations")
     suspend fun getTranslations(): TranslationsResponseDto
 
     /**

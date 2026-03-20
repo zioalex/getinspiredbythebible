@@ -478,6 +478,73 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `availableTranslations is populated after retry when first call fails`() = runTest {
+        val translations = listOf(
+            TranslationDto(id = "KJV", name = "King James Version", language = "en"),
+        )
+        var callCount = 0
+        coEvery { bibleApiService.getTranslations() } answers {
+            callCount++
+            if (callCount == 1) throw IOException("transient error")
+            TranslationsResponseDto(translations)
+        }
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, vm.availableTranslations.value.size)
+        assertEquals("KJV", vm.availableTranslations.value[0].id)
+        assertEquals(2, callCount)
+    }
+
+    @Test
+    fun `refreshTranslations populates availableTranslations`() = runTest {
+        val translations = listOf(
+            TranslationDto(id = "ESV", name = "English Standard Version", language = "en"),
+        )
+        // Init exhausts all 3 retry attempts (calls 1-3) → empty list.
+        // refreshTranslations() triggers a fresh retry cycle: call 4 succeeds.
+        var callCount = 0
+        coEvery { bibleApiService.getTranslations() } answers {
+            callCount++
+            if (callCount <= 3) throw IOException("init failure")
+            TranslationsResponseDto(translations)
+        }
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            bibleApiService,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(vm.availableTranslations.value.isEmpty())
+
+        vm.refreshTranslations()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, vm.availableTranslations.value.size)
+        assertEquals("ESV", vm.availableTranslations.value[0].id)
+    }
+
+    @Test
     fun `setPreferredTranslation persists id via TranslationPreferences`() = runTest {
         viewModel.setPreferredTranslation("KJV")
         testDispatcher.scheduler.advanceUntilIdle()
