@@ -90,7 +90,7 @@ private val VERSE_REF_REGEX = Regex(
         "((?:[1-3]\\s)?" +                         // Optional numeric prefix: "1 ", "2 ", "3 "
             "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
             "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +       // Additional words for multi-word books
-        "\\s+(\\d+)(?::(\\d+(?:-\\d+)?))?\\b"      // Chapter:verse (verse part optional) or chapter only
+        "\\s+(\\d+)(?::(\\d+(?:-\\d+)?))?(?!\\d)"    // Chapter:verse (verse part optional) or chapter only; (?!\d) instead of \b for CJK compat
 )
 
 private const val VERSE_SCHEME = "verse://"

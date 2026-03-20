@@ -46,7 +46,7 @@ private val CITED_VERSE_REF_REGEX = Regex(
         "((?:[1-3]\\s)?" +
             "(?:\\p{L}[\\p{L}\\d]*(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+\\p{L}[\\p{L}\\d]*)*)" +
             "(?:\\s+\\p{L}[\\p{L}\\d]+)*)" +
-        "\\s+(\\d+):(\\d+(?:-\\d+)?)\\b",
+        "\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)",  // (?!\d) instead of \b for CJK compat
 )
 
 /**
