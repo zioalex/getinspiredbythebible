@@ -100,6 +100,7 @@ export function TurnstileProvider({
   const refreshToken = useCallback(() => {
     if (widgetIdRef.current && window.turnstile) {
       setToken(null);
+      setIsReady(false);   // ADD THIS LINE
       window.turnstile.reset(widgetIdRef.current);
     }
   }, []);
