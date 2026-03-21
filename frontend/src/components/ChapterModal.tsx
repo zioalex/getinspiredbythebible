@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, BookOpen, Loader2 } from "lucide-react";
+import { X, BookOpen, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
@@ -15,6 +15,11 @@ interface ChapterModalProps {
   highlightVerse?: number;
   isLoading?: boolean;
   translationName?: string;
+  error?: boolean;
+  onPrevChapter?: () => void;
+  onNextChapter?: () => void;
+  hasPrevChapter?: boolean;
+  hasNextChapter?: boolean;
 }
 
 export default function ChapterModal({
@@ -27,6 +32,11 @@ export default function ChapterModal({
   highlightVerse,
   isLoading = false,
   translationName,
+  error = false,
+  onPrevChapter,
+  onNextChapter,
+  hasPrevChapter = false,
+  hasNextChapter = false,
 }: ChapterModalProps) {
   const t = useTranslations("ChapterModal");
 
@@ -99,6 +109,11 @@ export default function ChapterModal({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
             </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500">
+              <AlertCircle className="w-10 h-10 text-red-400" />
+              <p className="text-center text-sm">Sorry, this chapter could not be loaded. Please try again.</p>
+            </div>
           ) : verses && verses.length > 0 ? (
             <div className="space-y-1">
               {verses.map((verse) => (
@@ -143,10 +158,26 @@ export default function ChapterModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4">
+        <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between gap-4">
+          <button
+            onClick={onPrevChapter}
+            disabled={!hasPrevChapter || !onPrevChapter}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
           <p className="text-xs text-gray-500 text-center">
             {translationName || t("defaultTranslation")}
           </p>
+          <button
+            onClick={onNextChapter}
+            disabled={!hasNextChapter || !onNextChapter}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
