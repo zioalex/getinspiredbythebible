@@ -754,25 +754,14 @@ describe("Turnstile token consumption", () => {
     });
 
     // Each call sets a fresh token and verifies consumption
+    // Only endpoints with require_turnstile on the backend should consume tokens
     setTurnstileToken("token-chat");
     await sendMessage("msg");
     expect(onConsumed).toHaveBeenCalledTimes(1);
 
-    setTurnstileToken("token-search");
-    await searchScripture("peace");
-    expect(onConsumed).toHaveBeenCalledTimes(2);
-
-    setTurnstileToken("token-verse");
-    await getVerse("John", 3, 16);
-    expect(onConsumed).toHaveBeenCalledTimes(3);
-
-    setTurnstileToken("token-chapter");
-    await getChapter("Psalm", 23);
-    expect(onConsumed).toHaveBeenCalledTimes(4);
-
     setTurnstileToken("token-church");
     await searchChurches("Zurich");
-    expect(onConsumed).toHaveBeenCalledTimes(5);
+    expect(onConsumed).toHaveBeenCalledTimes(2);
 
     setTurnstileToken("token-feedback");
     await submitFeedback({
@@ -781,7 +770,28 @@ describe("Turnstile token consumption", () => {
       user_message: "q",
       assistant_response: "a",
     });
-    expect(onConsumed).toHaveBeenCalledTimes(6);
+    expect(onConsumed).toHaveBeenCalledTimes(3);
+  });
+
+  it("should not consume token for unprotected scripture endpoints", async () => {
+    const onConsumed = vi.fn();
+    setOnTokenConsumed(onConsumed);
+    setTurnstileToken("shared-token");
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ verses: [], passages: [], query: "" }),
+    });
+
+    // Scripture endpoints do not require Turnstile — token must not be consumed
+    await searchScripture("peace");
+    expect(onConsumed).not.toHaveBeenCalled();
+
+    await getVerse("John", 3, 16);
+    expect(onConsumed).not.toHaveBeenCalled();
+
+    await getChapter("Psalm", 23);
+    expect(onConsumed).not.toHaveBeenCalled();
   });
 
   it("should not send token for unprotected endpoints", async () => {
