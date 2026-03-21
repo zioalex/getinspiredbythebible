@@ -109,6 +109,7 @@ export default function Home() {
     translationName?: string;
   } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState(false);
 
   // Track detected translation from chat
   const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
@@ -263,6 +264,7 @@ export default function Home() {
     const useTranslation =
       translation || selectedTranslation || detectedTranslation || undefined;
 
+    setModalError(false);
     setModalOpen(true);
     setModalLoading(true);
     setModalChapter({ book, chapter, verses: [], highlightVerse: verse });
@@ -280,6 +282,7 @@ export default function Home() {
       });
     } catch (error) {
       console.error("Failed to fetch chapter:", error);
+      setModalError(true);
     } finally {
       setModalLoading(false);
     }
@@ -288,6 +291,7 @@ export default function Home() {
   const handleCloseModal = () => {
     setModalOpen(false);
     setModalChapter(null);
+    setModalError(false);
   };
 
   const submitMessage = async (content: string) => {
@@ -860,7 +864,7 @@ export default function Home() {
       {relevantVerses.length > 0 && (
         <button
           onClick={() => setMobileVersesOpen(true)}
-          className="lg:hidden fixed top-20 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          className="lg:hidden fixed bottom-28 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
           aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />
@@ -963,6 +967,11 @@ export default function Home() {
           isLoading={modalLoading}
           translationName={modalChapter.translationName}
           localized_book={modalChapter.localized_book}
+          error={modalError}
+          onPrevChapter={modalChapter.chapter > 1 ? () => handleVerseClick(modalChapter.book, modalChapter.chapter - 1, 1) : undefined}
+          onNextChapter={() => handleVerseClick(modalChapter.book, modalChapter.chapter + 1, 1)}
+          hasPrevChapter={modalChapter.chapter > 1}
+          hasNextChapter={true}
         />
       )}
 
