@@ -318,7 +318,9 @@ jobs:
           avd-name: test-avd
           force-avd-creation: false
           emulator-boot-timeout: 300
-          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: >-
+            -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
           disable-animations: false
           script: echo "AVD created"
 
@@ -341,7 +343,8 @@ jobs:
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: >-
-            -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+            -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
