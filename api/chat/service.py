@@ -684,6 +684,7 @@ Keep it under 100 words."""
                     model_override=model_override,
                 ):
                     yield {"type": "content", "content": chunk}
+                yield {"type": "content", "content": "", "done": True, "verses": []}
                 return
 
         # Check if this is a verse/prayer lookup request
@@ -730,6 +731,24 @@ Keep it under 100 words."""
             model_override=model_override,
         ):
             yield {"type": "content", "content": chunk}
+
+        # Step 5: Send final done chunk with scripture verses so clients can
+        # populate their verse reference panels.
+        verses_payload = []
+        if scripture_context and scripture_context.verses:
+            verses_payload = [
+                {
+                    "book": v.book,
+                    "localized_book": v.localized_book,
+                    "chapter": v.chapter,
+                    "verse": v.verse,
+                    "text": v.text,
+                    "translation": v.translation,
+                    "relevance_score": v.similarity or 0.0,
+                }
+                for v in scripture_context.verses
+            ]
+        yield {"type": "content", "content": "", "done": True, "verses": verses_payload}
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

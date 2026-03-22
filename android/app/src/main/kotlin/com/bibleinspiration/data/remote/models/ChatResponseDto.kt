@@ -14,6 +14,7 @@ data class ChatResponseDto(
 @Serializable
 data class VerseDto(
     @SerialName("book") val book: String,
+    @SerialName("localized_book") val localizedBook: String? = null,
     @SerialName("chapter") val chapter: Int,
     @SerialName("verse") val verse: Int,
     @SerialName("text") val text: String,

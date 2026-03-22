@@ -31,6 +31,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,7 +74,7 @@ fun ContactFormBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    var selectedSubject by rememberSaveable { mutableStateOf(subjectOptions.first()) }
+    var selectedSubject by remember { mutableStateOf(subjectOptions.first()) }
     var subjectDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var emailInput by rememberSaveable { mutableStateOf("") }
     var messageInput by rememberSaveable { mutableStateOf("") }
