@@ -106,6 +106,12 @@ data class ChatUiState(
      * streaming response completes.  Used by the Verses sidebar panel.
      */
     val allVerses: List<Verse> = emptyList(),
+    /**
+     * Translation code detected by the backend from the conversation language
+     * (e.g. "ita1927" for Italian, "web" for English).  Set from the SSE metadata event.
+     * Used as a fallback when no explicit translation preference has been set by the user.
+     */
+    val detectedTranslation: String = "",
 )
 
 @HiltViewModel
@@ -357,7 +363,8 @@ class ChatViewModel @Inject constructor(
                     // Handle metadata events (sent before content chunks).
                     if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
                         metadataMessageId = chunk.messageId
-                        // Update the in-progress assistant message with the backend message_id.
+                        // Update the in-progress assistant message with the backend message_id,
+                        // and capture the detected translation for use in chapter loading.
                         _uiState.update { state ->
                             state.copy(
                                 messages = state.messages.map { msg ->
@@ -365,6 +372,7 @@ class ChatViewModel @Inject constructor(
                                         msg.copy(messageId = chunk.messageId)
                                     } else msg
                                 },
+                                detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
                             )
                         }
                         return@collect

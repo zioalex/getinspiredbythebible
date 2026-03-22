@@ -31,6 +31,7 @@ data class StreamChunkDto(
     @SerialName("verses") val verses: List<VerseDto> = emptyList(),
     @SerialName("message_id") val messageId: String = "",
     @SerialName("model") val model: String = "",
+    @SerialName("detected_translation") val detectedTranslation: String = "",
 )
 
 /**
