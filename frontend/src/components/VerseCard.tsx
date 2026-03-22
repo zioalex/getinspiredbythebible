@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
@@ -66,7 +66,7 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
       {onClick && (
         <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-800">
           <span>{t("readFullChapter")}</span>
-          <ExternalLink className="w-3 h-3" />
+          <BookOpen className="w-3 h-3" />
         </div>
       )}
     </div>

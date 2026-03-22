@@ -452,7 +452,6 @@ export async function searchScripture(
   });
 
   const headers = getHeaders();
-  consumeToken();
 
   const response = await fetch(`${API_URL}/api/v1/scripture/search?${params}`, {
     headers,
@@ -474,7 +473,6 @@ export async function getVerse(
   verse: number,
 ): Promise<Verse> {
   const headers = getHeaders();
-  consumeToken();
 
   const response = await fetch(
     `${API_URL}/api/v1/scripture/verse/${encodeURIComponent(book)}/${chapter}/${verse}`,
@@ -507,7 +505,6 @@ export async function getChapter(
     ? `?translation=${encodeURIComponent(translation)}`
     : "";
   const headers = getHeaders();
-  consumeToken();
 
   const response = await fetch(
     `${API_URL}/api/v1/scripture/chapter/${encodeURIComponent(book)}/${chapter}${params}`,
