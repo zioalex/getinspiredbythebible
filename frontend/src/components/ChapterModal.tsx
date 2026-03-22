@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, BookOpen, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  X,
+  BookOpen,
+  Loader2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Verse } from "@/lib/api";
 
@@ -112,7 +119,9 @@ export default function ChapterModal({
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500">
               <AlertCircle className="w-10 h-10 text-red-400" />
-              <p className="text-center text-sm">Sorry, this chapter could not be loaded. Please try again.</p>
+              <p className="text-center text-sm">
+                Sorry, this chapter could not be loaded. Please try again.
+              </p>
             </div>
           ) : verses && verses.length > 0 ? (
             <div className="space-y-1">

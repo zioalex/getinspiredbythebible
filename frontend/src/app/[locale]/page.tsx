@@ -968,8 +968,19 @@ export default function Home() {
           translationName={modalChapter.translationName}
           localized_book={modalChapter.localized_book}
           error={modalError}
-          onPrevChapter={modalChapter.chapter > 1 ? () => handleVerseClick(modalChapter.book, modalChapter.chapter - 1, 1) : undefined}
-          onNextChapter={() => handleVerseClick(modalChapter.book, modalChapter.chapter + 1, 1)}
+          onPrevChapter={
+            modalChapter.chapter > 1
+              ? () =>
+                  handleVerseClick(
+                    modalChapter.book,
+                    modalChapter.chapter - 1,
+                    1,
+                  )
+              : undefined
+          }
+          onNextChapter={() =>
+            handleVerseClick(modalChapter.book, modalChapter.chapter + 1, 1)
+          }
           hasPrevChapter={modalChapter.chapter > 1}
           hasNextChapter={true}
         />
