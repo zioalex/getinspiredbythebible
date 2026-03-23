@@ -422,23 +422,6 @@ fun ChatMessageItem(
                 }
             }
 
-            // Show verse references below assistant messages
-            if (!isUser && message.verses.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.padding(top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    message.verses.forEach { verse ->
-                        VerseChip(
-                            verse = verse,
-                            preferredTranslation = preferredTranslation,
-                            chapterState = chapterSheetState,
-                            onLoadChapter = onLoadChapter,
-                            onDismissSheet = onDismissSheet,
-                        )
-                    }
-                }
-            }
         }
     }
 
