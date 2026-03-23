@@ -47,9 +47,10 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                 when (jsonObj["type"]?.jsonPrimitive?.contentOrNull) {
                     "metadata" -> {
                         // Extract metadata fields and emit a synthetic content-less chunk
-                        // carrying messageId and model so the ViewModel can capture them.
+                        // carrying messageId, model, and detectedTranslation so the ViewModel can capture them.
                         val messageId = jsonObj["message_id"]?.jsonPrimitive?.contentOrNull ?: ""
                         val model = jsonObj["model"]?.jsonPrimitive?.contentOrNull ?: ""
+                        val detectedTranslation = jsonObj["detected_translation"]?.jsonPrimitive?.contentOrNull ?: ""
                         emit(
                             StreamChunkDto(
                                 type = "metadata",
@@ -57,6 +58,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                                 done = false,
                                 messageId = messageId,
                                 model = model,
+                                detectedTranslation = detectedTranslation,
                             ),
                         )
                     }

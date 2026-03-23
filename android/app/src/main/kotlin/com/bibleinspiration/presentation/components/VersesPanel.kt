@@ -177,7 +177,7 @@ fun VersesPanel(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    items(displayedVerses, key = { "${it.book}${it.chapter}:${it.verse}${it.translation}" }) { verse ->
+                    items(displayedVerses, key = { "${it.book}${it.chapter}:${it.verse}" }) { verse ->
                         VerseChip(
                             verse = verse,
                             preferredTranslation = preferredTranslation,

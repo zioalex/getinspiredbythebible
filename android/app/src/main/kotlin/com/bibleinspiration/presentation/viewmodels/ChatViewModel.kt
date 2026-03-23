@@ -106,6 +106,12 @@ data class ChatUiState(
      * streaming response completes.  Used by the Verses sidebar panel.
      */
     val allVerses: List<Verse> = emptyList(),
+    /**
+     * The Bible translation auto-detected by the backend for this conversation
+     * (e.g. "ita1927" for Italian).  Populated from the SSE metadata event.
+     * Used as a fallback when the user has not set an explicit preferred translation.
+     */
+    val detectedTranslation: String = "",
 )
 
 @HiltViewModel
@@ -320,10 +326,11 @@ class ChatViewModel @Inject constructor(
 
                         _uiState.update { state ->
                             val newCount = state.interactionCount + 1
-                            // Append new verses, deduplicating by reference + translation.
-                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}${it.translation}" }.toHashSet()
+                            // Append new verses, deduplicating by reference only (not translation)
+                            // so each verse appears once regardless of which translation it came from.
+                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
                             val dedupedNew = finalVerses.filterNot { v ->
-                                "${v.book}${v.chapter}:${v.verse}${v.translation}" in existingRefs
+                                "${v.book}${v.chapter}:${v.verse}" in existingRefs
                             }
                             state.copy(
                                 messages = state.messages.map { msg ->
@@ -365,6 +372,7 @@ class ChatViewModel @Inject constructor(
                                         msg.copy(messageId = chunk.messageId)
                                     } else msg
                                 },
+                                detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
                             )
                         }
                         return@collect
@@ -409,7 +417,7 @@ class ChatViewModel @Inject constructor(
                 val allVerses = messages
                     .filter { it.role == Message.Role.ASSISTANT }
                     .flatMap { it.verses }
-                    .distinctBy { "${it.book}${it.chapter}:${it.verse}${it.translation}" }
+                    .distinctBy { "${it.book}${it.chapter}:${it.verse}" }
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
