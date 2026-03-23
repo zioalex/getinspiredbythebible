@@ -200,7 +200,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -263,7 +263,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -450,7 +450,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -682,7 +682,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -835,7 +835,7 @@ jobs:
         run: terraform apply -auto-approve tfplan
 
       - name: Login to Azure (for verification)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -1079,7 +1079,7 @@ jobs:
         run: pip install asyncpg pydantic pydantic-settings
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -1182,7 +1182,7 @@ jobs:
           pip install httpx asyncpg sqlalchemy openai
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
@@ -1266,7 +1266,7 @@ jobs:
           pip install httpx asyncpg sqlalchemy openai psycopg2-binary
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: |
             {
