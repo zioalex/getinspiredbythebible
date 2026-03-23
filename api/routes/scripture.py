@@ -116,6 +116,12 @@ async def get_chapter(
     if not verses:
         raise HTTPException(status_code=404, detail=f"Chapter not found: {book} {chapter}")
 
+    # When no translation was requested, restrict to a single translation
+    # (the first one returned, which is the backend's default for this book's language).
+    if not translation:
+        default_translation = verses[0].translation
+        verses = [v for v in verses if v.translation == default_translation]
+
     # Get the translation from the first verse if not specified
     actual_translation = translation or (verses[0].translation if verses else None)
     trans_info = get_translation_info(actual_translation) if actual_translation else None

@@ -23,4 +23,5 @@ data class StreamChunk(
     val verses: List<Verse> = emptyList(),
     val messageId: String = "",
     val model: String = "",
+    val detectedTranslation: String = "",
 )
