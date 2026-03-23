@@ -326,10 +326,12 @@ class ChatViewModel @Inject constructor(
 
                         _uiState.update { state ->
                             val newCount = state.interactionCount + 1
-                            // Append new verses, deduplicating by reference + translation.
-                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}${it.translation}" }.toHashSet()
+                            // Append new verses, deduplicating by reference only (book+chapter:verse).
+                            // Intentionally excludes translation from the key so the same verse
+                            // doesn't appear multiple times in different translations (e.g. WEB and KJV).
+                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
                             val dedupedNew = finalVerses.filterNot { v ->
-                                "${v.book}${v.chapter}:${v.verse}${v.translation}" in existingRefs
+                                "${v.book}${v.chapter}:${v.verse}" in existingRefs
                             }
                             state.copy(
                                 messages = state.messages.map { msg ->
@@ -417,7 +419,7 @@ class ChatViewModel @Inject constructor(
                 val allVerses = messages
                     .filter { it.role == Message.Role.ASSISTANT }
                     .flatMap { it.verses }
-                    .distinctBy { "${it.book}${it.chapter}:${it.verse}${it.translation}" }
+                    .distinctBy { "${it.book}${it.chapter}:${it.verse}" }
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
