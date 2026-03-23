@@ -37,7 +37,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     // Pre-warm backend during splash
     warmupBackend(
       () => {},
-      () => {}
+      () => {},
     );
 
     let nextIndex = 1;
@@ -78,7 +78,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center"
       style={{
-        background: "linear-gradient(160deg, #3a5f96 0%, #4A6FA5 50%, #5a7fb5 100%)",
+        background:
+          "linear-gradient(160deg, #3a5f96 0%, #4A6FA5 50%, #5a7fb5 100%)",
         opacity: exiting ? 0 : 1,
         transition: `opacity ${SPLASH_EXIT_MS}ms ease-out`,
         pointerEvents: exiting ? "none" : "auto",
@@ -134,7 +135,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               width: i === currentIndex ? "20px" : "6px",
               height: "6px",
               backgroundColor:
-                i === currentIndex ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
+                i === currentIndex
+                  ? "rgba(255,255,255,0.9)"
+                  : "rgba(255,255,255,0.35)",
             }}
           />
         ))}
