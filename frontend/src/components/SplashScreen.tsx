@@ -37,7 +37,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     // Pre-warm backend during splash
     warmupBackend(
       () => {},
-      () => {},
+      () => {}
     );
 
     let nextIndex = 1;
