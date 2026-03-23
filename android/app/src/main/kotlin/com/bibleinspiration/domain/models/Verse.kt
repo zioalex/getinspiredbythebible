@@ -10,7 +10,8 @@ data class Verse(
     val text: String,
     val translation: String = "kjv",
     val relevanceScore: Float = 0f,
+    val localizedBook: String? = null,
 ) {
-    /** Human-readable reference, e.g. "John 3:16" */
-    val reference: String get() = "$book $chapter:$verse"
+    /** Human-readable reference, e.g. "John 3:16" (uses localized book name when available). */
+    val reference: String get() = "${localizedBook ?: book} $chapter:$verse"
 }

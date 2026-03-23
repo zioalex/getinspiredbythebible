@@ -364,6 +364,8 @@ class ChatViewModel @Inject constructor(
                     // Handle metadata events (sent before content chunks).
                     if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
                         metadataMessageId = chunk.messageId
+                        // Verses are delivered in the metadata event via scripture_context.
+                        if (chunk.verses.isNotEmpty()) finalVerses = chunk.verses
                         // Update the in-progress assistant message with the backend message_id.
                         _uiState.update { state ->
                             state.copy(
