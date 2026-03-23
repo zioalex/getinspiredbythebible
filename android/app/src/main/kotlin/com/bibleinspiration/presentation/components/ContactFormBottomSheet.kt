@@ -73,7 +73,7 @@ fun ContactFormBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    var selectedSubject by rememberSaveable { mutableStateOf(subjectOptions.first()) }
+    var selectedSubject by remember { mutableStateOf(subjectOptions.first()) }
     var subjectDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var emailInput by rememberSaveable { mutableStateOf("") }
     var messageInput by rememberSaveable { mutableStateOf("") }
