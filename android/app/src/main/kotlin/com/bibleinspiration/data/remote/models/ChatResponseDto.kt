@@ -19,6 +19,7 @@ data class VerseDto(
     @SerialName("text") val text: String,
     @SerialName("translation") val translation: String = "kjv",
     @SerialName("relevance_score") val relevanceScore: Float = 0f,
+    @SerialName("localized_book") val localizedBook: String? = null,
 )
 
 /** Single SSE chunk from `POST /api/v1/chat/stream`. */

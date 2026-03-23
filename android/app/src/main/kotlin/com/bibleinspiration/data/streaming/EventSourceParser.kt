@@ -1,11 +1,14 @@
 package com.bibleinspiration.data.streaming
 
 import com.bibleinspiration.data.remote.models.StreamChunkDto
+import com.bibleinspiration.data.remote.models.VerseDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.ResponseBody
 import timber.log.Timber
@@ -47,15 +50,28 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                 when (jsonObj["type"]?.jsonPrimitive?.contentOrNull) {
                     "metadata" -> {
                         // Extract metadata fields and emit a synthetic content-less chunk
-                        // carrying messageId, model, and detectedTranslation so the ViewModel can capture them.
+                        // carrying messageId, model, detectedTranslation, and verses so the ViewModel can capture them.
                         val messageId = jsonObj["message_id"]?.jsonPrimitive?.contentOrNull ?: ""
                         val model = jsonObj["model"]?.jsonPrimitive?.contentOrNull ?: ""
                         val detectedTranslation = jsonObj["detected_translation"]?.jsonPrimitive?.contentOrNull ?: ""
+                        // Extract verses from scripture_context.verses (the primary source for verse data).
+                        val verses: List<VerseDto> = try {
+                            val ctxEl = jsonObj["scripture_context"]
+                            if (ctxEl != null && ctxEl !is JsonNull) {
+                                val versesEl = (ctxEl as? JsonObject)?.get("verses")
+                                if (versesEl != null) json.decodeFromJsonElement<List<VerseDto>>(versesEl)
+                                else emptyList()
+                            } else emptyList()
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse scripture_context.verses")
+                            emptyList()
+                        }
                         emit(
                             StreamChunkDto(
                                 type = "metadata",
                                 content = "",
                                 done = false,
+                                verses = verses,
                                 messageId = messageId,
                                 model = model,
                                 detectedTranslation = detectedTranslation,
