@@ -58,13 +58,13 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
       </div>
 
       {/* Verse Text */}
-      <p className="text-gray-700 text-sm scripture-text leading-relaxed italic">
+      <p className="text-gray-700 text-base scripture-text leading-relaxed italic">
         "{verse.text}"
       </p>
 
       {/* Footer */}
       {onClick && (
-        <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-800">
+        <div className="mt-3 flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-800">
           <span>{t("readFullChapter")}</span>
           <BookOpen className="w-3 h-3" />
         </div>

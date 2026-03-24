@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Benvenuto",
     "description": "Condividi ciò che hai nel cuore, fai domande sulle Scritture o cerca semplicemente incoraggiamento. Posso aiutarti a esplorare argomenti teologici, ma non sostituisco teologi preparati o la guida pastorale.",
-    "prompt1": "Mi sento ansioso riguardo al futuro",
-    "prompt2": "Cosa dice la Bibbia sul perdono?",
-    "prompt3": "Ho bisogno di incoraggiamento oggi",
-    "prompt4": "Aiutami a capire Giovanni 3:16"
+    "prompt1": "Sto lottando e ho bisogno del conforto di Dio",
+    "prompt2": "Aiutami a trovare la forza per perdonare",
+    "prompt3": "Ho bisogno di incoraggiamento e speranza oggi",
+    "prompt4": "Cosa dice la Scrittura sulla guarigione di un cuore spezzato?"
   },
   "Chat": {
     "inputPlaceholder": "Condividi ciò che hai nel cuore...",

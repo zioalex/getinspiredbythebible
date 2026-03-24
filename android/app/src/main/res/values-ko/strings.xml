@@ -5,13 +5,13 @@
     <string name="chat_send_button">보내기</string>
     <string name="action_clear_conversation">대화 지우기</string>
     <string name="welcome_title">성경에서 영감을 찾으세요</string>
-    <string name="welcome_subtitle">겪고 있는 것을 나눠주시면 하나님의 말씀에 뿌리를 둔 격려를 받으세요.</string>
+    <string name="welcome_subtitle">하나님의 말씀에 당신의 짐을 가져오세요. 성경은 삶의 모든 계절에 위로, 힘, 소망을 전합니다.</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">성경은 소망에 대해 무엇을 말하나요?</string>
-    <string name="prompt_suggestion_2">용서에 관한 구절 찾기</string>
-    <string name="prompt_suggestion_3">요한복음 3:16의 의미는 무엇인가요?</string>
-    <string name="prompt_suggestion_4">평화에 관한 시편 보여주기</string>
+    <string name="prompt_suggestion_1">힘든 시간을 보내고 있어요, 하나님의 위로가 필요해요</string>
+    <string name="prompt_suggestion_2">용서할 힘을 찾도록 도와주세요</string>
+    <string name="prompt_suggestion_3">오늘 격려와 소망이 필요합니다</string>
+    <string name="prompt_suggestion_4">상한 마음의 치유에 대해 성경은 무엇을 말하나요?</string>
 
     <string name="error_network">네트워크 오류입니다. 연결을 확인하세요.</string>
     <string name="error_timeout">요청 시간이 초과되었습니다. 다시 시도하세요.</string>

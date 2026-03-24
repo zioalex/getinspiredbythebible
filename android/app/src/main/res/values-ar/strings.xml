@@ -5,13 +5,13 @@
     <string name="chat_send_button">إرسال</string>
     <string name="action_clear_conversation">مسح المحادثة</string>
     <string name="welcome_title">اعثر على الإلهام في الكتاب المقدس</string>
-    <string name="welcome_subtitle">شارك ما تمر به واحصل على تشجيع مستمد من كلمة الله.</string>
+    <string name="welcome_subtitle">أحضر أثقالك إلى كلمة الله. الكتاب المقدس يتكلم بالعزاء والقوة والأمل في كل موسم من مواسم الحياة.</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">ماذا تقول الكتاب المقدس عن الأمل؟</string>
-    <string name="prompt_suggestion_2">ابحث عن آيات عن المغفرة</string>
-    <string name="prompt_suggestion_3">ما معنى يوحنا 3:16؟</string>
-    <string name="prompt_suggestion_4">أرني مزامير عن السلام</string>
+    <string name="prompt_suggestion_1">أنا أعاني وأحتاج إلى عزاء الله</string>
+    <string name="prompt_suggestion_2">ساعدني على إيجاد القوة للمغفرة</string>
+    <string name="prompt_suggestion_3">أحتاج إلى تشجيع وأمل اليوم</string>
+    <string name="prompt_suggestion_4">ماذا يقول الكتاب المقدس عن شفاء القلب المكسور؟</string>
 
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>

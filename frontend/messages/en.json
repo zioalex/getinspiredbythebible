@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Welcome",
     "description": "Share what's on your heart, ask questions about Scripture, or simply seek encouragement. While I can help explore theological topics, I'm not a substitute for trained theologians or pastoral guidance.",
-    "prompt1": "I'm feeling anxious about the future",
-    "prompt2": "What does the Bible say about forgiveness?",
-    "prompt3": "I need encouragement today",
-    "prompt4": "Help me understand John 3:16"
+    "prompt1": "I'm struggling and need God's comfort",
+    "prompt2": "Help me find the strength to forgive",
+    "prompt3": "I need encouragement and hope today",
+    "prompt4": "What does Scripture say about healing a broken heart?"
   },
   "Chat": {
     "inputPlaceholder": "Share what's on your heart...",

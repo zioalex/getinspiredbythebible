@@ -5,13 +5,13 @@
     <string name="chat_send_button">भेजें</string>
     <string name="action_clear_conversation">बातचीत साफ करें</string>
     <string name="welcome_title">शास्त्र में प्रेरणा खोजें</string>
-    <string name="welcome_subtitle">आप जो अनुभव कर रहे हैं उसे बताएं और परमेश्वर के वचन में निहित प्रोत्साहन पाएं।</string>
+    <string name="welcome_subtitle">अपने बोझ परमेश्वर के वचन के पास लाएं। पवित्रशास्त्र जीवन की हर परिस्थिति में सांत्वना, शक्ति और आशा देता है।</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">बाइबिल आशा के बारे में क्या कहती है?</string>
-    <string name="prompt_suggestion_2">क्षमा के बारे में पद खोजें</string>
-    <string name="prompt_suggestion_3">यूहन्ना 3:16 का क्या अर्थ है?</string>
-    <string name="prompt_suggestion_4">शांति पर भजन संहिता दिखाएं</string>
+    <string name="prompt_suggestion_1">मैं संघर्ष में हूं और ईश्वर की सांत्वना चाहिए</string>
+    <string name="prompt_suggestion_2">मुझे क्षमा करने की शक्ति खोजने में मदद करें</string>
+    <string name="prompt_suggestion_3">मुझे आज प्रोत्साहन और आशा चाहिए</string>
+    <string name="prompt_suggestion_4">टूटे हुए दिल को ठीक करने के बारे में बाइबल क्या कहती है?</string>
 
     <string name="error_network">नेटवर्क त्रुटि। अपना कनेक्शन जांचें।</string>
     <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>
