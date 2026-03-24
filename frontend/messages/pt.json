@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Bem-vindo",
     "description": "Partilhe o que está no seu coração, faça perguntas sobre as Escrituras ou simplesmente procure encorajamento. Posso ajudá-lo a explorar temas teológicos, mas não sou substituto de teólogos formados ou de orientação pastoral.",
-    "prompt1": "Sinto-me ansioso com o futuro",
-    "prompt2": "O que diz a Bíblia sobre o perdão?",
-    "prompt3": "Preciso de encorajamento hoje",
-    "prompt4": "Ajuda-me a entender João 3:16"
+    "prompt1": "Estou a lutar e preciso do conforto de Deus",
+    "prompt2": "Ajuda-me a encontrar forças para perdoar",
+    "prompt3": "Preciso de encorajamento e esperança hoje",
+    "prompt4": "O que diz a Escritura sobre curar um coração partido?"
   },
   "Chat": {
     "inputPlaceholder": "Partilhe o que está no seu coração...",

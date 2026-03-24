@@ -102,11 +102,11 @@ body {
 /* Typography for scripture */
 .scripture-text {
   font-family: Georgia, "Times New Roman", serif;
-  line-height: 1.8;
+  line-height: 1.9;
 }
 
 .scripture-reference {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: #6b7280;
   font-weight: 500;
 }

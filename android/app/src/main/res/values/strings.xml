@@ -9,13 +9,13 @@
 
     <!-- Welcome banner -->
     <string name="welcome_title">Find Inspiration in Scripture</string>
-    <string name="welcome_subtitle">Share what you\'re going through and receive encouragement grounded in God\'s Word.</string>
+    <string name="welcome_subtitle">Bring your burdens to God\'s Word. Scripture speaks comfort, strength, and hope into every season of life.</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">What does the Bible say about hope?</string>
-    <string name="prompt_suggestion_2">Find verses about forgiveness</string>
-    <string name="prompt_suggestion_3">What is the meaning of John 3:16?</string>
-    <string name="prompt_suggestion_4">Show me Psalms about peace</string>
+    <string name="prompt_suggestion_1">I\'m struggling and need God\'s comfort</string>
+    <string name="prompt_suggestion_2">Help me find the strength to forgive</string>
+    <string name="prompt_suggestion_3">I need encouragement and hope today</string>
+    <string name="prompt_suggestion_4">What does Scripture say about healing a broken heart?</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>

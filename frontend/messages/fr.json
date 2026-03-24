@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Bienvenue",
     "description": "Partagez ce qui est sur votre cœur, posez des questions sur les Écritures ou cherchez simplement de l'encouragement. Je peux vous aider à explorer des sujets théologiques, mais je ne remplace pas des théologiens formés ou un accompagnement pastoral.",
-    "prompt1": "Je me sens anxieux face à l'avenir",
-    "prompt2": "Que dit la Bible sur le pardon ?",
-    "prompt3": "J'ai besoin d'encouragement aujourd'hui",
-    "prompt4": "Aidez-moi à comprendre Jean 3:16"
+    "prompt1": "Je lutte et j'ai besoin du réconfort de Dieu",
+    "prompt2": "Aide-moi à trouver la force de pardonner",
+    "prompt3": "J'ai besoin d'encouragement et d'espoir aujourd'hui",
+    "prompt4": "Que dit l'Écriture sur la guérison d'un cœur brisé ?"
   },
   "Chat": {
     "inputPlaceholder": "Partagez ce qui est sur votre cœur...",

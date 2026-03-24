@@ -5,13 +5,13 @@
     <string name="chat_send_button">Отправить</string>
     <string name="action_clear_conversation">Очистить беседу</string>
     <string name="welcome_title">Найдите вдохновение в Писании</string>
-    <string name="welcome_subtitle">Расскажите, через что вы проходите, и получите ободрение, укоренённое в Слове Божьем.</string>
+    <string name="welcome_subtitle">Принесите свои тяготы к Слову Божьему. Писание несёт утешение, силу и надежду в каждый период жизни.</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">Что говорит Библия о надежде?</string>
-    <string name="prompt_suggestion_2">Найди стихи о прощении</string>
-    <string name="prompt_suggestion_3">В чём смысл Иоанна 3:16?</string>
-    <string name="prompt_suggestion_4">Покажи Псалмы о мире</string>
+    <string name="prompt_suggestion_1">Я в трудностях и нуждаюсь в Божьем утешении</string>
+    <string name="prompt_suggestion_2">Помоги мне найти силы для прощения</string>
+    <string name="prompt_suggestion_3">Мне нужны ободрение и надежда сегодня</string>
+    <string name="prompt_suggestion_4">Что говорит Писание об исцелении разбитого сердца?</string>
 
     <string name="error_network">Ошибка сети. Проверьте подключение.</string>
     <string name="error_timeout">Запрос истёк. Повторите попытку.</string>

@@ -5,13 +5,13 @@
     <string name="chat_send_button">Enviar</string>
     <string name="action_clear_conversation">Limpar conversa</string>
     <string name="welcome_title">Encontre Inspiração nas Escrituras</string>
-    <string name="welcome_subtitle">Compartilhe o que você está passando e receba encorajamento baseado na Palavra de Deus.</string>
+    <string name="welcome_subtitle">Traga os seus fardos à Palavra de Deus. A Escritura fala conforto, força e esperança em cada fase da vida.</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">O que a Bíblia diz sobre esperança?</string>
-    <string name="prompt_suggestion_2">Encontrar versículos sobre perdão</string>
-    <string name="prompt_suggestion_3">Qual é o significado de João 3:16?</string>
-    <string name="prompt_suggestion_4">Mostre-me Salmos sobre a paz</string>
+    <string name="prompt_suggestion_1">Estou a lutar e preciso do conforto de Deus</string>
+    <string name="prompt_suggestion_2">Ajuda-me a encontrar forças para perdoar</string>
+    <string name="prompt_suggestion_3">Preciso de encorajamento e esperança hoje</string>
+    <string name="prompt_suggestion_4">O que diz a Escritura sobre curar um coração partido?</string>
 
     <string name="error_network">Erro de rede. Verifique sua conexão.</string>
     <string name="error_timeout">Tempo esgotado. Por favor, tente novamente.</string>

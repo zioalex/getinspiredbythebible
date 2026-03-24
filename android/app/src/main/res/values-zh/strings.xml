@@ -5,13 +5,13 @@
     <string name="chat_send_button">发送</string>
     <string name="action_clear_conversation">清除对话</string>
     <string name="welcome_title">在圣经中寻找灵感</string>
-    <string name="welcome_subtitle">分享您正在经历的事情，获得植根于上帝话语的鼓励。</string>
+    <string name="welcome_subtitle">将你的重担带到上帝的话语前。圣经在生命的每个季节都带来安慰、力量和盼望。</string>
 
     <!-- Suggested prompts on welcome screen -->
-    <string name="prompt_suggestion_1">圣经对盼望有何教导？</string>
-    <string name="prompt_suggestion_2">寻找关于饶恕的经文</string>
-    <string name="prompt_suggestion_3">约翰福音3:16的含义是什么？</string>
-    <string name="prompt_suggestion_4">显示关于平安的诗篇</string>
+    <string name="prompt_suggestion_1">我正在挣扎，需要上帝的安慰</string>
+    <string name="prompt_suggestion_2">帮助我找到宽恕的力量</string>
+    <string name="prompt_suggestion_3">我今天需要鼓励和盼望</string>
+    <string name="prompt_suggestion_4">圣经对医治破碎的心有什么说法？</string>
 
     <string name="error_network">网络错误，请检查您的连接。</string>
     <string name="error_timeout">请求超时，请重试。</string>

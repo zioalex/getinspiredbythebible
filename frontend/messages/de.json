@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Willkommen",
     "description": "Teile mit, was dich bewegt, stelle Fragen zur Heiligen Schrift oder suche einfach Ermutigung. Ich kann dir helfen, theologische Themen zu erkunden, bin aber kein Ersatz für ausgebildete Theologen oder seelsorgerliche Begleitung.",
-    "prompt1": "Ich fühle mich ängstlich wegen der Zukunft",
-    "prompt2": "Was sagt die Bibel über Vergebung?",
-    "prompt3": "Ich brauche heute Ermutigung",
-    "prompt4": "Hilf mir, Johannes 3:16 zu verstehen"
+    "prompt1": "Ich kämpfe und brauche Gottes Trost",
+    "prompt2": "Hilf mir, die Kraft zum Vergeben zu finden",
+    "prompt3": "Ich brauche heute Ermutigung und Hoffnung",
+    "prompt4": "Was sagt die Bibel über die Heilung eines gebrochenen Herzens?"
   },
   "Chat": {
     "inputPlaceholder": "Teile mit, was dich bewegt...",

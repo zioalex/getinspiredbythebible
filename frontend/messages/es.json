@@ -13,10 +13,10 @@
   "Welcome": {
     "heading": "Bienvenido",
     "description": "Comparte lo que tienes en el corazón, haz preguntas sobre las Escrituras o simplemente busca aliento. Puedo ayudarte a explorar temas teológicos, pero no soy un sustituto de teólogos capacitados o de la orientación pastoral.",
-    "prompt1": "Me siento ansioso por el futuro",
-    "prompt2": "¿Qué dice la Biblia sobre el perdón?",
-    "prompt3": "Necesito aliento hoy",
-    "prompt4": "Ayúdame a entender Juan 3:16"
+    "prompt1": "Estoy luchando y necesito el consuelo de Dios",
+    "prompt2": "Ayúdame a encontrar la fuerza para perdonar",
+    "prompt3": "Necesito aliento y esperanza hoy",
+    "prompt4": "¿Qué dice la Escritura sobre sanar un corazón roto?"
   },
   "Chat": {
     "inputPlaceholder": "Comparte lo que tienes en el corazón...",
