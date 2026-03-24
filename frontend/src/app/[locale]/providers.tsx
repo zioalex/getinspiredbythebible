@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { TurnstileProvider } from "@/lib/turnstile";
-import { useEffect, useState } from "react";
-import { setTurnstileToken, setOnTokenConsumed } from "@/lib/api";
-import { useTurnstile } from "@/lib/turnstile";
-import { SplashScreen } from "@/components/SplashScreen";
+import { TurnstileProvider } from '@/lib/turnstile';
+import { useEffect, useState } from 'react';
+import { setTurnstileToken, setOnTokenConsumed } from '@/lib/api';
+import { useTurnstile } from '@/lib/turnstile';
+import { SplashScreen } from '@/components/SplashScreen';
 
 function hasSplashCookie(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.cookie.split(";").some((c) => c.trim().startsWith("splash_seen=1"));
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some(c => c.trim().startsWith('splash_seen=1'));
 }
 
 function setSplashCookie(): void {
-  if (typeof document === "undefined") return;
-  document.cookie = "splash_seen=1; path=/; max-age=31536000; SameSite=Lax";
+  if (typeof document === 'undefined') return;
+  document.cookie = 'splash_seen=1; path=/; max-age=31536000; SameSite=Lax';
 }
 
 function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
