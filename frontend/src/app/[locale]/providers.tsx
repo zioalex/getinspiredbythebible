@@ -1,9 +1,10 @@
 "use client";
 
 import { TurnstileProvider } from "@/lib/turnstile";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { setTurnstileToken, setOnTokenConsumed } from "@/lib/api";
 import { useTurnstile } from "@/lib/turnstile";
+import { SplashScreen } from "@/components/SplashScreen";
 
 function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
   const { token, refreshToken } = useTurnstile();
@@ -23,9 +24,14 @@ function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
     <TurnstileProvider>
-      <TurnstileTokenSync>{children}</TurnstileTokenSync>
+      <TurnstileTokenSync>
+        {!splashDone && <SplashScreen onComplete={() => setSplashDone(true)} />}
+        {children}
+      </TurnstileTokenSync>
     </TurnstileProvider>
   );
 }
