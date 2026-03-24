@@ -34,6 +34,14 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
 
+private fun Context.hasSplashBeenSeen(): Boolean =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .getBoolean("splash_seen", false)
+
+private fun Context.markSplashSeen() =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("splash_seen", true).apply()
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -123,13 +131,18 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    val startDestination = remember {
+                        if (localizedContext.hasSplashBeenSeen()) "conversations" else "splash"
+                    }
+
                     NavHost(
                         navController = navController,
-                        startDestination = "splash",
+                        startDestination = startDestination,
                     ) {
                         composable("splash") {
                             SplashScreen(
                                 onComplete = {
+                                    localizedContext.markSplashSeen()
                                     navController.navigate("conversations") {
                                         popUpTo("splash") { inclusive = true }
                                     }
