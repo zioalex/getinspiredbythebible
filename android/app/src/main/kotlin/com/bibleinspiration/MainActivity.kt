@@ -26,6 +26,7 @@ import com.bibleinspiration.analytics.AnalyticsHelper
 import com.bibleinspiration.presentation.screens.ChatScreen
 import com.bibleinspiration.presentation.screens.ConversationsScreen
 import com.bibleinspiration.presentation.screens.SettingsScreen
+import com.bibleinspiration.presentation.screens.SplashScreen
 import com.bibleinspiration.presentation.theme.BibleInspirationTheme
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import com.bibleinspiration.utils.LocaleHelper
@@ -124,8 +125,17 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = "conversations",
+                        startDestination = "splash",
                     ) {
+                        composable("splash") {
+                            SplashScreen(
+                                onComplete = {
+                                    navController.navigate("conversations") {
+                                        popUpTo("splash") { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
                         composable("conversations") {
                             ConversationsScreen(
                                 onNewConversation = { navController.navigate("chat/new") },
