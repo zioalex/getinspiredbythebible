@@ -57,6 +57,25 @@ body {
   }
 }
 
+/* Splash screen phrase floating animation */
+@keyframes splash-float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-splash-phrase] {
+    animation: none !important;
+  }
+}
+
 /* Chat message animations */
 @keyframes fadeIn {
   from {
