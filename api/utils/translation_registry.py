@@ -890,7 +890,22 @@ TRANSLATION_REGISTRY: dict[str, dict[str, str] | None] = {
 # ---------------------------------------------------------------------------
 
 ITALIAN_ALIASES: dict[str, str] = {
-    "Salmo": "Psalms",  # Italian singular form used when an LLM refers to individual Psalms (e.g. "Salmo 60")
+    # Singular form used by LLMs when referring to an individual Psalm (e.g. "Salmo 60").
+    # Also covers Spanish and Portuguese where the same singular "Salmo" is used
+    # (canonical forms are "Salmos" in both those languages).
+    "Salmo": "Psalms",
+}
+
+FRENCH_ALIASES: dict[str, str] = {
+    # Singular form used by LLMs when referring to an individual Psalm (e.g. "Psaume 23").
+    # The canonical French form registered in ENGLISH_TO_FRENCH is "Psaumes" (plural).
+    "Psaume": "Psalms",
+}
+
+# English singular / abbreviated forms that LLMs commonly produce but are not
+# canonical keys in ENGLISH_TO_ITALIAN (which uses "Psalms" with the trailing 's').
+ENGLISH_ALIASES: dict[str, str] = {
+    "Psalm": "Psalms",  # singular form, e.g. "Psalm 23" — very common in English prose
 }
 
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
@@ -900,5 +915,7 @@ EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     **KOREAN_ALIASES,
     **GERMAN_ALIASES,
     **ITALIAN_ALIASES,
+    **FRENCH_ALIASES,
+    **ENGLISH_ALIASES,
     # add new language citation forms and aliases here
 }

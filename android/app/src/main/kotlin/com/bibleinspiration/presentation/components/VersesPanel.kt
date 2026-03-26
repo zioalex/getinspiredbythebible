@@ -51,7 +51,7 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  */
 private val CITED_BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 private val CITED_VERSE_REF_REGEX = Regex(
     "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
