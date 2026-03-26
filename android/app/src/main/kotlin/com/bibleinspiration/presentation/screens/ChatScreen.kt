@@ -147,7 +147,8 @@ fun ChatScreen(
             messages = uiState.messages,
             chapterSheetState = chapterSheetState,
             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
-                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() },
+                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
+                ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
             onLoadChapter = viewModel::loadChapter,
             onDismissSheet = viewModel::clearChapterSheet,
             onDismiss = { showVersesPanel = false },
@@ -273,7 +274,8 @@ fun ChatScreen(
                             message = message,
                             chapterSheetState = chapterSheetState,
                             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
-                                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() },
+                                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
+                                ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,

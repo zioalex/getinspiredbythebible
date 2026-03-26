@@ -79,8 +79,14 @@ internal fun referencedVerses(allVerses: List<Verse>, messages: List<Message>): 
         .toHashSet()
     return allVerses.filter { verse ->
         // Match if the base reference (book chapter:verse) appears — ignore range suffix.
+        // Check both the English book name and the localized book name so that non-English
+        // conversations (e.g. Italian "Salmi 60:1") correctly surface in the Referenced tab.
         val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}"
-        citedRefs.any { it.startsWith(baseRef) }
+        val localizedBaseRef = verse.localizedBook?.let { "${it} ${verse.chapter}:${verse.verse}" }
+        citedRefs.any { cited ->
+            cited.startsWith(baseRef) ||
+                (localizedBaseRef != null && cited.startsWith(localizedBaseRef))
+        }
     }
 }
 

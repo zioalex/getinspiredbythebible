@@ -889,11 +889,16 @@ TRANSLATION_REGISTRY: dict[str, dict[str, str] | None] = {
 #    multiple books without a disambiguating number prefix).
 # ---------------------------------------------------------------------------
 
+ITALIAN_ALIASES: dict[str, str] = {
+    "Salmo": "Psalms",  # Italian singular form used when an LLM refers to individual Psalms (e.g. "Salmo 60")
+}
+
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     **RUSSIAN_CITATION_FORMS,
     **RUSSIAN_ALIASES,
     **CHINESE_ALIASES,
     **KOREAN_ALIASES,
     **GERMAN_ALIASES,
+    **ITALIAN_ALIASES,
     # add new language citation forms and aliases here
 }
