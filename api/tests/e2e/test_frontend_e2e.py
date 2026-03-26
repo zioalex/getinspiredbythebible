@@ -190,7 +190,7 @@ class TestFrontendPageContent:
         html = r.text.lower()
 
         # Check for suggested prompt text (from messages/en.json Welcome section)
-        suggested_prompts = ["anxious", "forgiveness", "encouragement", "john"]
+        suggested_prompts = ["struggling", "forgive", "encouragement", "healing"]
         found = sum(1 for prompt in suggested_prompts if prompt in html)
 
         assert found >= 2, f"Expected at least 2 suggested prompts in English page, found {found}"
@@ -327,7 +327,7 @@ class TestTurnstileReadyState:
         html = r.text.lower()
 
         # All four prompts from messages/en.json Welcome section
-        expected_prompts = ["anxious", "forgiveness", "encouragement", "john"]
+        expected_prompts = ["struggling", "forgive", "encouragement", "healing"]
         missing = [p for p in expected_prompts if p not in html]
 
         assert not missing, (
