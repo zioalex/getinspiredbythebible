@@ -234,7 +234,7 @@ class LinguaLanguageDetector(LanguageDetector):
 
             # For non-English, require reasonable confidence
             if top_conf >= self._confidence_threshold:
-                return top_lang
+                return str(top_lang)
             else:
                 return DEFAULT_LANGUAGE
         except Exception:
