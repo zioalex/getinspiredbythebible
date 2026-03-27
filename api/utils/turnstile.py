@@ -135,21 +135,21 @@ def _get_client_ip(request: Request) -> str:
     # Check CF-Connecting-IP (Cloudflare)
     cf_ip = request.headers.get("CF-Connecting-IP")
     if cf_ip:
-        return cf_ip.strip()
+        return str(cf_ip).strip()
 
     # Check X-Forwarded-For header
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return str(forwarded).split(",")[0].strip()
 
     # Check X-Real-IP header
     real_ip = request.headers.get("X-Real-IP")
     if real_ip:
-        return real_ip.strip()
+        return str(real_ip).strip()
 
     # Fallback to direct client IP
     if request.client:
-        return request.client.host
+        return str(request.client.host)
 
     return "unknown"
 

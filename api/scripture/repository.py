@@ -3,7 +3,7 @@ Scripture Repository - Database operations for Bible data.
 """
 
 import time
-from typing import Sequence
+from typing import Sequence, cast
 
 from opentelemetry.trace import Span
 from sqlalchemy import func, select, text
@@ -88,7 +88,7 @@ class ScriptureRepository:
     async def get_all_books(self) -> Sequence[Book]:
         """Get all books in order."""
         result = await self.session.execute(select(Book).order_by(Book.position))
-        return result.scalars().all()
+        return cast(Sequence[Book], result.scalars().all())
 
     async def get_book_by_name(self, name: str) -> Book | None:
         """Get a book by its name (case-insensitive, supports localized names)."""
@@ -97,12 +97,12 @@ class ScriptureRepository:
         result = await self.session.execute(
             select(Book).where(func.lower(Book.name) == english_name.lower())
         )
-        return result.scalar_one_or_none()
+        return cast(Book | None, result.scalar_one_or_none())
 
     async def get_book_by_id(self, book_id: int) -> Book | None:
         """Get a book by ID."""
         result = await self.session.execute(select(Book).where(Book.id == book_id))
-        return result.scalar_one_or_none()
+        return cast(Book | None, result.scalar_one_or_none())
 
     # ==================== Verses ====================
 
@@ -131,7 +131,7 @@ class ScriptureRepository:
             _set_common_span_attrs(span, "get_verse", translation)
             start = time.perf_counter()
             result = await self.session.execute(query)
-            verse_obj = result.scalar_one_or_none()
+            verse_obj = cast(Verse | None, result.scalar_one_or_none())
             _record_duration(span, start, "get_verse", 1 if verse_obj else 0, translation)
             return verse_obj
 
@@ -162,7 +162,7 @@ class ScriptureRepository:
 
         query = query.order_by(Verse.verse_number).options(selectinload(Verse.book))
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return cast(Sequence[Verse], result.scalars().all())
 
     async def get_chapter_verses(
         self, book_name: str, chapter: int, translation: str | None = None
@@ -185,7 +185,7 @@ class ScriptureRepository:
             _set_common_span_attrs(span, "get_chapter", translation)
             start = time.perf_counter()
             result = await self.session.execute(query)
-            verses = result.scalars().all()
+            verses = cast(Sequence[Verse], result.scalars().all())
             _record_duration(span, start, "get_chapter", len(verses), translation)
             return verses
 
@@ -197,7 +197,7 @@ class ScriptureRepository:
             .limit(limit)
             .options(selectinload(Verse.book))
         )
-        return result.scalars().all()
+        return cast(Sequence[Verse], result.scalars().all())
 
     async def search_verses_semantic(
         self,
@@ -588,7 +588,7 @@ class ScriptureRepository:
         result = await self.session.execute(
             select(Passage).where(Passage.id == passage_id).options(selectinload(Passage.book))
         )
-        return result.scalar_one_or_none()
+        return cast(Passage | None, result.scalar_one_or_none())
 
     async def search_passages_semantic(
         self, query_embedding: list[float], limit: int = 3, similarity_threshold: float = 0.5
@@ -714,7 +714,7 @@ class ScriptureRepository:
     async def get_all_topics(self) -> Sequence[Topic]:
         """Get all topics."""
         result = await self.session.execute(select(Topic).order_by(Topic.name))
-        return result.scalars().all()
+        return cast(Sequence[Topic], result.scalars().all())
 
     async def search_topics_semantic(
         self, query_embedding: list[float], limit: int = 5

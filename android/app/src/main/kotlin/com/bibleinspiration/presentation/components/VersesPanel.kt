@@ -117,7 +117,7 @@ fun VersesPanel(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var showReferenced by rememberSaveable { mutableStateOf(true) }
+    var showReferenced by rememberSaveable { mutableStateOf(false) }
 
     val displayedVerses = if (showReferenced) {
         referencedVerses(allVerses, messages)
