@@ -117,4 +117,7 @@
     <string name="translation_auto_description">后端为您的语言选择最佳译本</string>
     <string name="translation_picker_title">圣经版本</string>
     <string name="translation_picker_subtitle">选择您喜欢的圣经译本</string>
+
+    <!-- Share -->
+    <string name="share_prefix">我找到了这个令人振奋的圣经启示：</string>
 </resources>

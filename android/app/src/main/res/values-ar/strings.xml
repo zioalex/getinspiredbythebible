@@ -117,4 +117,7 @@
     <string name="translation_auto_description">يختار الخادم أفضل ترجمة للغتك</string>
     <string name="translation_picker_title">إصدار الكتاب المقدس</string>
     <string name="translation_picker_subtitle">اختر ترجمة الكتاب المقدس المفضلة لديك</string>
+
+    <!-- Share -->
+    <string name="share_prefix">وجدت هذه الرؤية الكتابية الملهمة:</string>
 </resources>
