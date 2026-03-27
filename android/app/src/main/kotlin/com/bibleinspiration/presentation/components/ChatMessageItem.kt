@@ -197,6 +197,7 @@ internal fun handleVerseLink(
 @Composable
 fun ChatMessageItem(
     message: Message,
+    userMessage: String = "",
     chapterSheetState: ChapterSheetState,
     preferredTranslation: String?,
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
@@ -231,6 +232,7 @@ fun ChatMessageItem(
     // Show the share button only for finished (non-streaming) assistant messages with content.
     val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
 
+    val sharePrefix = stringResource(R.string.share_prefix)
     val context = LocalContext.current
 
     // Blinking cursor alpha — always created to respect Composable call order.
@@ -395,9 +397,14 @@ fun ChatMessageItem(
                     if (showShare) {
                         IconButton(
                             onClick = {
+                                val shareText = if (userMessage.isNotBlank()) {
+                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                                } else {
+                                    "$sharePrefix\n\n${message.content}"
+                                }
                                 ShareCompat.IntentBuilder(context)
                                     .setType("text/plain")
-                                    .setText(message.content)
+                                    .setText(shareText)
                                     .startChooser()
                             },
                         ) {

@@ -117,4 +117,7 @@
     <string name="translation_auto_description">बैकएंड आपकी भाषा के लिए सर्वश्रेष्ठ अनुवाद चुनता है</string>
     <string name="translation_picker_title">बाइबिल संस्करण</string>
     <string name="translation_picker_subtitle">अपना पसंदीदा बाइबिल अनुवाद चुनें</string>
+
+    <!-- Share -->
+    <string name="share_prefix">मुझे यह प्रेरणादायक बाइबिल अंतर्दृष्टि मिली:</string>
 </resources>

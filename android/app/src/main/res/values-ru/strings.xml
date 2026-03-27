@@ -117,4 +117,7 @@
     <string name="translation_auto_description">Бэкенд выбирает лучший перевод для вашего языка</string>
     <string name="translation_picker_title">Версия Библии</string>
     <string name="translation_picker_subtitle">Выберите предпочитаемый перевод Библии</string>
+
+    <!-- Share -->
+    <string name="share_prefix">Я нашёл это вдохновляющее библейское откровение:</string>
 </resources>
