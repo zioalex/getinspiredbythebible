@@ -357,60 +357,64 @@ fun ChatMessageItem(
                 }
             }
 
-            // Share button — shown below finished assistant message bubbles.
-            if (showShare) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = {
-                            val shareText = if (userMessage.isNotBlank()) {
-                                "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
-                            } else {
-                                "$sharePrefix\n\n${message.content}"
-                            }
-                            ShareCompat.IntentBuilder(context)
-                                .setType("text/plain")
-                                .setText(shareText)
-                                .startChooser()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(R.string.action_share_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            // Feedback buttons — only for finished assistant messages with a backend message_id.
-            if (message.role == Message.Role.ASSISTANT
+            // Action row — feedback (left) and share (right) rendered horizontally.
+            val showFeedback = message.role == Message.Role.ASSISTANT
                 && !message.isStreaming
                 && message.messageId.isNotBlank()
                 && onFeedback != null
-            ) {
-                val alreadyVoted = feedbackGiven != null
+            if (showShare || showFeedback) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Feedback buttons on the left side
+                    if (showFeedback) {
+                        val alreadyVoted = feedbackGiven != null
 
-                IconButton(
-                    onClick = { if (!alreadyVoted) onFeedback(message.id, "positive") },
-                    enabled = !alreadyVoted,
-                ) {
-                    Icon(
-                        imageVector = if (feedbackGiven == "positive") Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-                        contentDescription = stringResource(R.string.action_feedback_helpful),
-                        tint = if (feedbackGiven == "positive") MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                    )
-                }
-                IconButton(
-                    onClick = { if (!alreadyVoted) onFeedback(message.id, "negative") },
-                    enabled = !alreadyVoted,
-                ) {
-                    Icon(
-                        imageVector = if (feedbackGiven == "negative") Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
-                        contentDescription = stringResource(R.string.action_feedback_not_helpful),
-                        tint = if (feedbackGiven == "negative") MaterialTheme.colorScheme.error else LocalContentColor.current,
-                    )
+                        IconButton(
+                            onClick = { if (!alreadyVoted) onFeedback!!(message.id, "positive") },
+                            enabled = !alreadyVoted,
+                        ) {
+                            Icon(
+                                imageVector = if (feedbackGiven == "positive") Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                                contentDescription = stringResource(R.string.action_feedback_helpful),
+                                tint = if (feedbackGiven == "positive") MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                            )
+                        }
+                        IconButton(
+                            onClick = { if (!alreadyVoted) onFeedback!!(message.id, "negative") },
+                            enabled = !alreadyVoted,
+                        ) {
+                            Icon(
+                                imageVector = if (feedbackGiven == "negative") Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                                contentDescription = stringResource(R.string.action_feedback_not_helpful),
+                                tint = if (feedbackGiven == "negative") MaterialTheme.colorScheme.error else LocalContentColor.current,
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    // Share button on the right side
+                    if (showShare) {
+                        IconButton(
+                            onClick = {
+                                val shareText = if (userMessage.isNotBlank()) {
+                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                                } else {
+                                    "$sharePrefix\n\n${message.content}"
+                                }
+                                ShareCompat.IntentBuilder(context)
+                                    .setType("text/plain")
+                                    .setText(shareText)
+                                    .startChooser()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.action_share_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
 
