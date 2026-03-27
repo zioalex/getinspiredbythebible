@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -266,12 +267,16 @@ fun ChatScreen(
                         }
                     }
 
-                    items(
+                    itemsIndexed(
                         items = uiState.messages,
-                        key = { it.id },
-                    ) { message ->
+                        key = { _, msg -> msg.id },
+                    ) { index, message ->
+                        val userMsg = if (message.role == Message.Role.ASSISTANT && index > 0) {
+                            uiState.messages[index - 1].content
+                        } else ""
                         ChatMessageItem(
                             message = message,
+                            userMessage = userMsg,
                             chapterSheetState = chapterSheetState,
                             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
                                 ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }

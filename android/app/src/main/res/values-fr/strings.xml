@@ -117,4 +117,7 @@
     <string name="translation_auto_description">Le backend choisit la meilleure traduction pour votre langue</string>
     <string name="translation_picker_title">Version de la Bible</string>
     <string name="translation_picker_subtitle">Choisissez votre traduction préférée de la Bible</string>
+
+    <!-- Share -->
+    <string name="share_prefix">J\'ai trouvé cette réflexion biblique inspirante :</string>
 </resources>
