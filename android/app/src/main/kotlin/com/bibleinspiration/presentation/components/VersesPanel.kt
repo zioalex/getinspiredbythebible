@@ -51,7 +51,7 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  */
 private val CITED_BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 private val CITED_VERSE_REF_REGEX = Regex(
     "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
@@ -79,8 +79,14 @@ internal fun referencedVerses(allVerses: List<Verse>, messages: List<Message>): 
         .toHashSet()
     return allVerses.filter { verse ->
         // Match if the base reference (book chapter:verse) appears — ignore range suffix.
+        // Check both the English book name and the localized book name so that non-English
+        // conversations (e.g. Italian "Salmi 60:1") correctly surface in the Referenced tab.
         val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}"
-        citedRefs.any { it.startsWith(baseRef) }
+        val localizedBaseRef = verse.localizedBook?.let { "${it} ${verse.chapter}:${verse.verse}" }
+        citedRefs.any { cited ->
+            cited.startsWith(baseRef) ||
+                (localizedBaseRef != null && cited.startsWith(localizedBaseRef))
+        }
     }
 }
 

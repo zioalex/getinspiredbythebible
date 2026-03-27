@@ -27,6 +27,7 @@ import com.bibleinspiration.utils.LogCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -157,6 +158,7 @@ class ChatViewModel @Inject constructor(
 
     private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
     val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
+    private var loadChapterJob: Job? = null
 
     private val _churchFinderSheetState = MutableStateFlow<ChurchFinderSheetState>(ChurchFinderSheetState.Idle)
     val churchFinderSheetState: StateFlow<ChurchFinderSheetState> = _churchFinderSheetState.asStateFlow()
@@ -567,8 +569,9 @@ class ChatViewModel @Inject constructor(
      * Loads all verses for [book] and [chapter] from the API and updates [chapterSheetState].
      */
     fun loadChapter(book: String, chapter: Int, translation: String?) {
+        loadChapterJob?.cancel()
         _chapterSheetState.value = ChapterSheetState.Loading
-        viewModelScope.launch {
+        loadChapterJob = viewModelScope.launch {
             try {
                 val response = bibleApiService.getChapter(book, chapter, translation)
                 _chapterSheetState.value = ChapterSheetState.Success(response)

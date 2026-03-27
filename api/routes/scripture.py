@@ -159,6 +159,7 @@ async def get_verse_range(
     embedding: EmbeddingProviderDep,
 ):
     """Get a range of verses (e.g., John 3:16-21)."""
+    book = normalize_book_name(book)
     service = ScriptureSearchService(db, embedding)
     verses = await service.get_verse_range(book, chapter, start_verse, end_verse)
 

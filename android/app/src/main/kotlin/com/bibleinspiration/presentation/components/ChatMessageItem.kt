@@ -89,7 +89,7 @@ internal data class PendingVerseLink(
 // First character must be \p{Lu} (uppercase Latin/Cyrillic) or \p{Lo} (CJK/other caseless).
 private val BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|van|af)" +
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)" +
         "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
