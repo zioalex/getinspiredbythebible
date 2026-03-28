@@ -3,6 +3,7 @@ Scripture API routes - Bible data and search endpoints.
 """
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import Response
 from pydantic import BaseModel
 
 from providers import EmbeddingProviderDep
@@ -13,7 +14,7 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
-from utils.book_names import get_localized_book_name, normalize_book_name
+from utils.book_names import LOCALIZED_TO_ENGLISH, get_localized_book_name, normalize_book_name
 from utils.language import get_all_translations, get_translation_info
 from utils.metrics import scripture_search_counter, scripture_verses_returned
 
@@ -44,6 +45,24 @@ class ChapterResponse(BaseModel):
 async def get_translations():
     """Get all available Bible translations."""
     return {"translations": get_all_translations()}
+
+
+# ==================== Book Names ====================
+
+
+@router.get("/book-names")
+async def get_book_names(response: Response):
+    """Return complete localized→English book name mapping for client-side verse detection."""
+    multi_word_names = sorted(
+        [key for key in LOCALIZED_TO_ENGLISH if " " in key and not key[0].isdigit()],
+        key=len,
+        reverse=True,
+    )
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return {
+        "localized_to_english": LOCALIZED_TO_ENGLISH,
+        "multi_word_names": multi_word_names,
+    }
 
 
 # ==================== Books ====================
