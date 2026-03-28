@@ -109,7 +109,7 @@ export function getMultiWordAlternation(): string {
  *
  * Alternatives (tried in order):
  *  1. Multi-word localized book names auto-generated from LOCALIZED_BOOK_TO_ENGLISH
- *     (Russian: Плач Иеремии, Песня Песней; Arabic: أعمال الرسل; Hindi: भجन संहिता; …)
+ *     (e.g. Russian: Плач Иеремии, Песня Песней; plus any names loaded via API)
  *  2. Multi-word books joined by a connector word (Song of Solomon, Cantique des Cantiques…)
  *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
  *  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
