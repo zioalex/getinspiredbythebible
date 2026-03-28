@@ -20,14 +20,14 @@
  *   computed alternation string on first call so there is no repeated work.
  */
 
-import { LOCALIZED_BOOK_TO_ENGLISH } from "./verseExtraction";
+import { LOCALIZED_BOOK_TO_ENGLISH } from './verseExtraction';
 
 // ---------------------------------------------------------------------------
 // CONJUNCTIONS
 // ---------------------------------------------------------------------------
 
 /** Words that look like book names but are actually conjunctions. */
-export const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+export const CONJUNCTIONS = new Set(['e', 'and', 'und', 'y', 'et', 'o', 'a']);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,9 +48,7 @@ function isNumberPrefixed(key: string): boolean {
  * single-space and multi-space variants (e.g. markup artefacts).
  */
 function escapeForRegex(s: string): string {
-  return s
-    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    .replace(/ /g, "\\s+");
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
 }
 
 // ---------------------------------------------------------------------------
@@ -80,14 +78,14 @@ export function getMultiWordAlternation(): string {
   // Collect all multi-word localized book names.
   // A "multi-word" key is one that contains a space AND is NOT number-prefixed.
   const multiWordNames: string[] = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
-    (key) => key.includes(" ") && !isNumberPrefixed(key),
+    key => key.includes(' ') && !isNumberPrefixed(key)
   );
 
   // Sort longest-first so that longer alternates (e.g. "деяния апостолов")
   // are tried before shorter ones (e.g. "деяния") — prevents partial matches.
   multiWordNames.sort((a, b) => b.length - a.length);
 
-  _cachedMultiWordAlternation = multiWordNames.map(escapeForRegex).join("|");
+  _cachedMultiWordAlternation = multiWordNames.map(escapeForRegex).join('|');
   return _cachedMultiWordAlternation;
 }
 
@@ -114,7 +112,7 @@ function buildPatternSource(): string {
   }
 
   const multiWordAlt = getMultiWordAlternation();
-  const multiWordPart = multiWordAlt ? `${multiWordAlt}|` : "";
+  const multiWordPart = multiWordAlt ? `${multiWordAlt}|` : '';
 
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // [\p{Script=Han}]  — CJK ideographs (Chinese, Japanese Kanji)
@@ -137,7 +135,7 @@ function buildPatternSource(): string {
  * string *contains* a verse reference.  Safe to cache and reuse.
  */
 export function createVersePattern(): RegExp {
-  return new RegExp(buildPatternSource(), "iu");
+  return new RegExp(buildPatternSource(), 'iu');
 }
 
 /**
@@ -149,5 +147,5 @@ export function createVersePattern(): RegExp {
  * calls causes subtle bugs.
  */
 export function createVersePatternGlobal(): RegExp {
-  return new RegExp(buildPatternSource(), "giu");
+  return new RegExp(buildPatternSource(), 'giu');
 }
