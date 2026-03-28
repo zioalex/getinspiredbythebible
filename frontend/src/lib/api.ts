@@ -552,6 +552,23 @@ export async function checkHealth(): Promise<HealthStatus> {
 }
 
 /**
+ * Get book name mappings from the backend
+ */
+export async function getBookNames(): Promise<{
+  localized_to_english: Record<string, string>;
+  multi_word_names: string[];
+}> {
+  const response = await fetch(`${API_URL}/api/v1/scripture/book-names`, {
+    cache: "force-cache", // leverage the 24h cache-control header
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch book names");
+  }
+  const data = await response.json();
+  return data;
+}
+
+/**
  * Get available translations
  */
 export async function getTranslations(): Promise<TranslationInfo[]> {
