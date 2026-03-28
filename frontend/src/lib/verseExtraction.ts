@@ -452,6 +452,20 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
 };
 
 /**
+ * Merge API-provided book name mappings into LOCALIZED_BOOK_TO_ENGLISH.
+ * Called once after fetching /api/v1/scripture/book-names.
+ * New entries are lowercased to match the existing convention.
+ */
+export function updateBookNames(apiData: Record<string, string>): void {
+  for (const [localized, english] of Object.entries(apiData)) {
+    const key = localized.toLowerCase();
+    if (!(key in LOCALIZED_BOOK_TO_ENGLISH)) {
+      LOCALIZED_BOOK_TO_ENGLISH[key] = english.toLowerCase();
+    }
+  }
+}
+
+/**
  * Normalize a book name to its lowercase English canonical form.
  * If the name is already English (or another Western language handled by
  * fuzzy matching), it is returned as-is (lowercased).
