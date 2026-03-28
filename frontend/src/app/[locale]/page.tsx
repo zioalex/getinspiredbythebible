@@ -572,7 +572,9 @@ export default function Home() {
     messages.length >= inlinePromptIndex;
 
   const [suggestedPrompts] = useState(() => {
-    const allPrompts = Array.from({ length: 100 }, (_, i) => tWelcome(`prompt${i + 1}`));
+    const allPrompts = Array.from({ length: 100 }, (_, i) =>
+      tWelcome(`prompt${i + 1}`),
+    );
     const shuffled = [...allPrompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
