@@ -48,7 +48,9 @@ function isNumberPrefixed(key: string): boolean {
  * single-space and multi-space variants (e.g. markup artefacts).
  */
 function escapeForRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
+  return s
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/ /g, "\\s+");
 }
 
 // ---------------------------------------------------------------------------
@@ -61,10 +63,6 @@ function escapeForRegex(s: string): string {
 // is undefined if accessed before verseExtraction.ts finishes loading.
 let _cachedMultiWordAlternation: string | null = null;
 let _cachedPatternSource: string | null = null;
-
-// When non-null, server-provided multi-word names take precedence over
-// the locally-derived list.  Set via updateMultiWordNames().
-let _serverMultiWordNames: string[] | null = null;
 
 /**
  * Returns the alternation string for multi-word book names (lazy, cached).
@@ -79,22 +77,15 @@ export function getMultiWordAlternation(): string {
     return _cachedMultiWordAlternation;
   }
 
-  let multiWordNames: string[];
+  // Collect all multi-word localized book names.
+  // A "multi-word" key is one that contains a space AND is NOT number-prefixed.
+  const multiWordNames: string[] = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
+    (key) => key.includes(" ") && !isNumberPrefixed(key),
+  );
 
-  if (_serverMultiWordNames !== null) {
-    // Server-provided names are already sorted longest-first.
-    multiWordNames = _serverMultiWordNames;
-  } else {
-    // Collect all multi-word localized book names.
-    // A "multi-word" key is one that contains a space AND is NOT number-prefixed.
-    multiWordNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
-      (key) => key.includes(" ") && !isNumberPrefixed(key),
-    );
-
-    // Sort longest-first so that longer alternates (e.g. "деяния апостолов")
-    // are tried before shorter ones (e.g. "деяния") — prevents partial matches.
-    multiWordNames.sort((a, b) => b.length - a.length);
-  }
+  // Sort longest-first so that longer alternates (e.g. "деяния апостолов")
+  // are tried before shorter ones (e.g. "деяния") — prevents partial matches.
+  multiWordNames.sort((a, b) => b.length - a.length);
 
   _cachedMultiWordAlternation = multiWordNames.map(escapeForRegex).join("|");
   return _cachedMultiWordAlternation;
@@ -109,7 +100,7 @@ export function getMultiWordAlternation(): string {
  *
  * Alternatives (tried in order):
  *  1. Multi-word localized book names auto-generated from LOCALIZED_BOOK_TO_ENGLISH
- *     (e.g. Russian: Плач Иеремии, Песня Песней; plus any names loaded via API)
+ *     (Russian: Плач Иеремии, Песня Песней; Arabic: أعمال الرسل; Hindi: भجन संहिता; …)
  *  2. Multi-word books joined by a connector word (Song of Solomon, Cantique des Cantiques…)
  *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
  *  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
@@ -159,17 +150,4 @@ export function createVersePattern(): RegExp {
  */
 export function createVersePatternGlobal(): RegExp {
   return new RegExp(buildPatternSource(), "giu");
-}
-
-/**
- * Accept server-provided multi-word book names and invalidate the cached regex.
- * The next call to createVersePattern() or createVersePatternGlobal() will
- * rebuild the regex using the updated data.
- */
-export function updateMultiWordNames(names: string[]): void {
-  // Store the server-provided names (they're already sorted longest-first)
-  _serverMultiWordNames = names.map((n) => n.toLowerCase());
-  // Invalidate cached regex source so it rebuilds on next use
-  _cachedMultiWordAlternation = null;
-  _cachedPatternSource = null;
 }

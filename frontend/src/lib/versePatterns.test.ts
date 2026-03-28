@@ -47,6 +47,36 @@ describe("getMultiWordAlternation", () => {
     expect(alt).toContain("иисус");
   });
 
+  it("should include Korean multi-word book names", () => {
+    const alt = getMultiWordAlternation();
+    // "예레미야 애가" → lamentations (with space becomes \s+ in pattern)
+    expect(alt).toContain("예레미야");
+  });
+
+  it("should include Arabic multi-word book names", () => {
+    const alt = getMultiWordAlternation();
+    // "أعمال الرسل" → acts
+    expect(alt).toContain("أعمال");
+    // "نشيد الأنشاد" → song of solomon
+    expect(alt).toContain("نشيد");
+    // "مراثي إرميا" → lamentations
+    expect(alt).toContain("مراثي");
+  });
+
+  it("should include Hindi multi-word book names", () => {
+    const alt = getMultiWordAlternation();
+    // "भजन संहिता" → psalms
+    expect(alt).toContain("भजन");
+    // "प्रेरितों के काम" → acts
+    expect(alt).toContain("प्रेरितों");
+  });
+
+  it("should include Portuguese multi-word book names", () => {
+    const alt = getMultiWordAlternation().toLowerCase();
+    // "cântico dos cânticos" → song of solomon
+    expect(alt).toContain("cântico");
+  });
+
   it("should sort longer names before shorter ones (longest-first)", () => {
     const alt = getMultiWordAlternation().toLowerCase();
     // "деяния апостолов" (with escaped space) should appear before "деяния"
@@ -77,9 +107,7 @@ describe("getMultiWordAlternation", () => {
     const alt = getMultiWordAlternation();
     for (const key of multiWordKeys) {
       // The pattern replaces spaces with \s+ and escapes special chars.
-      const fragment = key
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-        .replace(/ /g, "\\s+");
+      const fragment = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
       expect(alt).toContain(fragment);
     }
   });
@@ -111,6 +139,16 @@ describe("createVersePattern", () => {
   it("should match a Russian two-word book name", () => {
     const re = createVersePattern();
     expect(re.test("Плач Иеремии 3:3")).toBe(true);
+  });
+
+  it("should match a Hindi two-word book name", () => {
+    const re = createVersePattern();
+    expect(re.test("भजन संहिता 23:1")).toBe(true);
+  });
+
+  it("should match an Arabic two-word book name", () => {
+    const re = createVersePattern();
+    expect(re.test("أعمال الرسل 2:38")).toBe(true);
   });
 
   it("should return a new instance on each call", () => {

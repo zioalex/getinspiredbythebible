@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   extractVerseReferences,
   isVerseReferenced,
   LOCALIZED_BOOK_TO_ENGLISH,
-  updateBookNames,
 } from "./verseExtraction";
 
 describe("extractVerseReferences", () => {
@@ -812,6 +811,38 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
     expect(refs.size).toBe(1);
   });
 
+  // ── Portuguese ────────────────────────────────────────────────────────────
+
+  it("should extract Portuguese Genesis 'Gênesis 1:1'", () => {
+    const refs = extractVerseReferences("Gênesis 1:1");
+    // Now normalized via LOCALIZED_BOOK_TO_ENGLISH: "gênesis" → "genesis"
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract Portuguese John 'João 3:16'", () => {
+    const refs = extractVerseReferences("João 3:16");
+    // Now normalized via LOCALIZED_BOOK_TO_ENGLISH: "joão" → "john"
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract Portuguese Psalms 'Salmos 23:1'", () => {
+    const refs = extractVerseReferences("Salmos 23:1");
+    // "salmos" not in the Portuguese section of LOCALIZED_BOOK_TO_ENGLISH
+    // (shared with Spanish — kept out to avoid breaking existing Spanish tests)
+    // so it passes through as-is lowercased
+    expect(refs.has("salmos 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract Portuguese Revelation 'Apocalipse 21:4'", () => {
+    const refs = extractVerseReferences("Apocalipse 21:4");
+    // Now normalized via LOCALIZED_BOOK_TO_ENGLISH: "apocalipse" → "revelation"
+    expect(refs.has("revelation 21:4")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
   // ── Italian: additional books beyond John and Joshua ─────────────────────
 
   it("should extract Italian Genesis 'Genesi 1:1'", () => {
@@ -1031,6 +1062,141 @@ describe("isVerseReferenced", () => {
   });
 });
 
+// ── Portuguese extraction + normalization ────────────────────────────────────
+
+describe("extractVerseReferences — Portuguese (pt)", () => {
+  it("should extract and normalize Portuguese John 'João 3:16' → 'john 3:16'", () => {
+    const refs = extractVerseReferences("João 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese Genesis 'Gênesis 1:1' → 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("Gênesis 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+  });
+
+  it("should extract Portuguese Psalms 'Salmos 23:1' (pass-through — shared with Spanish)", () => {
+    // "salmos" is not in the Portuguese section of LOCALIZED_BOOK_TO_ENGLISH to avoid
+    // breaking existing Spanish tests; it passes through as-is (lowercased).
+    const refs = extractVerseReferences("Salmos 23:1");
+    expect(refs.has("salmos 23:1")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese Revelation 'Apocalipse 21:4' → 'revelation 21:4'", () => {
+    const refs = extractVerseReferences("Apocalipse 21:4");
+    expect(refs.has("revelation 21:4")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese numbered book '1 Coríntios 13:4' → '1 corinthians 13:4'", () => {
+    const refs = extractVerseReferences("1 Coríntios 13:4");
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
+  });
+
+  it("should extract Portuguese Romans 'Romanos 8:28' (pass-through — shared with Spanish)", () => {
+    // "romanos" not in the Portuguese section of LOCALIZED_BOOK_TO_ENGLISH.
+    const refs = extractVerseReferences("Romanos 8:28");
+    expect(refs.has("romanos 8:28")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese Proverbs 'Provérbios 3:5' → 'proverbs 3:5'", () => {
+    const refs = extractVerseReferences("Provérbios 3:5");
+    expect(refs.has("proverbs 3:5")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese Song of Solomon 'Cântico dos Cânticos 1:1' → 'song of solomon 1:1'", () => {
+    const refs = extractVerseReferences("Cântico dos Cânticos 1:1");
+    expect(refs.has("song of solomon 1:1")).toBe(true);
+  });
+});
+
+// ── Arabic extraction + normalization ────────────────────────────────────────
+
+describe("extractVerseReferences — Arabic (ar)", () => {
+  it("should extract and normalize Arabic John 'يوحنا 3:16' → 'john 3:16'", () => {
+    const refs = extractVerseReferences("يوحنا 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Genesis 'تكوين 1:1' → 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("تكوين 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Psalms 'المزامير 23:1' → 'psalms 23:1'", () => {
+    const refs = extractVerseReferences("المزامير 23:1");
+    expect(refs.has("psalms 23:1")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Lamentations 'مراثي إرميا 3:3' → 'lamentations 3:3'", () => {
+    const refs = extractVerseReferences("مراثي إرميا 3:3");
+    expect(refs.has("lamentations 3:3")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Acts 'أعمال الرسل 2:38' → 'acts 2:38'", () => {
+    const refs = extractVerseReferences("أعمال الرسل 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Song of Solomon 'نشيد الأنشاد 1:1' → 'song of solomon 1:1'", () => {
+    const refs = extractVerseReferences("نشيد الأنشاد 1:1");
+    expect(refs.has("song of solomon 1:1")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic numbered book '1 كورنثوس 13:4' → '1 corinthians 13:4'", () => {
+    const refs = extractVerseReferences("1 كورنثوس 13:4");
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Romans 'رومية 8:28' → 'romans 8:28'", () => {
+    const refs = extractVerseReferences("رومية 8:28");
+    expect(refs.has("romans 8:28")).toBe(true);
+  });
+});
+
+// ── Hindi extraction + normalization ─────────────────────────────────────────
+
+describe("extractVerseReferences — Hindi (hi)", () => {
+  it("should extract and normalize Hindi John 'यूहन्ना 3:16' → 'john 3:16'", () => {
+    const refs = extractVerseReferences("यूहन्ना 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Genesis 'उत्पत्ति 1:1' → 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("उत्पत्ति 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Psalms 'भजन संहिता 23:1' → 'psalms 23:1'", () => {
+    const refs = extractVerseReferences("भजन संहिता 23:1");
+    expect(refs.has("psalms 23:1")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Acts 'प्रेरितों के काम 2:38' → 'acts 2:38'", () => {
+    const refs = extractVerseReferences("प्रेरितों के काम 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Romans 'रोमियों 8:28' → 'romans 8:28'", () => {
+    const refs = extractVerseReferences("रोमियों 8:28");
+    expect(refs.has("romans 8:28")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi numbered book '1 कुरिन्थियों 13:4' → '1 corinthians 13:4'", () => {
+    const refs = extractVerseReferences("1 कुरिन्थियों 13:4");
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Revelation 'प्रकाशितवाक्य 21:4' → 'revelation 21:4'", () => {
+    const refs = extractVerseReferences("प्रकाशितवाक्य 21:4");
+    expect(refs.has("revelation 21:4")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Proverbs 'नीतिवचन 3:5' → 'proverbs 3:5'", () => {
+    const refs = extractVerseReferences("नीतिवचन 3:5");
+    expect(refs.has("proverbs 3:5")).toBe(true);
+  });
+});
+
 // ── Russian multi-word book name tests ───────────────────────────────────────
 
 describe("extractVerseReferences — Russian multi-word books", () => {
@@ -1045,9 +1211,133 @@ describe("extractVerseReferences — Russian multi-word books", () => {
   });
 });
 
+// ── Korean multi-word book name test ─────────────────────────────────────────
+
+describe("extractVerseReferences — Korean multi-word books", () => {
+  it("should extract Korean Lamentations with space '예레미야 애가 3:3' → 'lamentations 3:3'", () => {
+    const refs = extractVerseReferences("예레미야 애가 3:3");
+    expect(refs.has("lamentations 3:3")).toBe(true);
+  });
+});
+
+// ── LOCALIZED_BOOK_TO_ENGLISH integrity — new languages ─────────────────────
+
+describe("LOCALIZED_BOOK_TO_ENGLISH table integrity — Arabic", () => {
+  it("should have core Arabic single-word book names", () => {
+    const required: [string, string][] = [
+      ["تكوين", "genesis"],
+      ["خروج", "exodus"],
+      ["لاويين", "leviticus"],
+      ["عدد", "numbers"],
+      ["تثنية", "deuteronomy"],
+      ["يشوع", "joshua"],
+      ["راعوث", "ruth"],
+      ["عزرا", "ezra"],
+      ["نحميا", "nehemiah"],
+      ["المزامير", "psalms"],
+      ["الأمثال", "proverbs"],
+      ["الجامعة", "ecclesiastes"],
+      ["إشعياء", "isaiah"],
+      ["إرميا", "jeremiah"],
+      ["حزقيال", "ezekiel"],
+      ["دانيال", "daniel"],
+      ["يوحنا", "john"],
+      ["رومية", "romans"],
+      ["عبرانيين", "hebrews"],
+      ["يعقوب", "james"],
+      ["الرؤيا", "revelation"],
+    ];
+    for (const [key, expected] of required) {
+      expect(LOCALIZED_BOOK_TO_ENGLISH[key]).toBe(expected);
+    }
+  });
+
+  it("should have Arabic multi-word book names", () => {
+    expect(LOCALIZED_BOOK_TO_ENGLISH["نشيد الأنشاد"]).toBe("song of solomon");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["مراثي إرميا"]).toBe("lamentations");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["أعمال الرسل"]).toBe("acts");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["1 أخبار الأيام"]).toBe("1 chronicles");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["2 أخبار الأيام"]).toBe("2 chronicles");
+  });
+});
+
+describe("LOCALIZED_BOOK_TO_ENGLISH table integrity — Hindi", () => {
+  it("should have core Hindi book names", () => {
+    const required: [string, string][] = [
+      ["उत्पत्ति", "genesis"],
+      ["निर्गमन", "exodus"],
+      ["लैव्यव्यवस्था", "leviticus"],
+      ["गिनती", "numbers"],
+      ["व्यवस्थाविवरण", "deuteronomy"],
+      ["यहोशू", "joshua"],
+      ["न्यायियों", "judges"],
+      ["रूत", "ruth"],
+      ["अय्यूब", "job"],
+      ["नीतिवचन", "proverbs"],
+      ["सभोपदेशक", "ecclesiastes"],
+      ["यशायाह", "isaiah"],
+      ["यिर्मयाह", "jeremiah"],
+      ["विलापगीत", "lamentations"],
+      ["यहेजकेल", "ezekiel"],
+      ["दानिय्येल", "daniel"],
+      ["यूहन्ना", "john"],
+      ["रोमियों", "romans"],
+      ["इब्रानियों", "hebrews"],
+      ["याकूब", "james"],
+      ["प्रकाशितवाक्य", "revelation"],
+    ];
+    for (const [key, expected] of required) {
+      expect(LOCALIZED_BOOK_TO_ENGLISH[key]).toBe(expected);
+    }
+  });
+
+  it("should have Hindi multi-word book names", () => {
+    expect(LOCALIZED_BOOK_TO_ENGLISH["भजन संहिता"]).toBe("psalms");
+    expect(LOCALIZED_BOOK_TO_ENGLISH["प्रेरितों के काम"]).toBe("acts");
+  });
+});
+
+describe("LOCALIZED_BOOK_TO_ENGLISH table integrity — Portuguese", () => {
+  it("should have core Portuguese-unique book names", () => {
+    // Only entries with Portuguese-specific spellings (accented forms different
+    // from Spanish/French/Italian) are in the map.
+    const required: [string, string][] = [
+      ["gênesis", "genesis"],
+      ["êxodo", "exodus"],
+      ["levítico", "leviticus"],
+      ["deuteronômio", "deuteronomy"],
+      ["juízes", "judges"],
+      ["rute", "ruth"],
+      ["jó", "job"],
+      ["provérbios", "proverbs"],
+      ["eclesiastes", "ecclesiastes"],
+      ["jeremias", "jeremiah"],
+      ["lamentações", "lamentations"],
+      ["oseias", "hosea"],
+      ["mateus", "matthew"],
+      ["joão", "john"],
+      ["atos", "acts"],
+      ["1 coríntios", "1 corinthians"],
+      ["2 coríntios", "2 corinthians"],
+      ["hebreus", "hebrews"],
+      ["tiago", "james"],
+      ["apocalipse", "revelation"],
+    ];
+    for (const [key, expected] of required) {
+      expect(LOCALIZED_BOOK_TO_ENGLISH[key]).toBe(expected);
+    }
+  });
+
+  it("should have Portuguese multi-word book name", () => {
+    expect(LOCALIZED_BOOK_TO_ENGLISH["cântico dos cânticos"]).toBe(
+      "song of solomon",
+    );
+  });
+});
+
 // ── Cross-language regression guard ──────────────────────────────────────────
 // Verifies that at least one representative verse per language can be extracted.
-// Portuguese, Arabic, Hindi are tested via the API-driven flow (updateBookNames).
+// Arabic, Hindi, Portuguese are fully normalized (map entry → English).
 // Russian, Chinese, Korean: already normalized in the original map.
 // Italian, German, Spanish, French: extracted but NOT fully normalized to English
 // (their Western forms pass through as-is, since adding full normalization maps
@@ -1057,14 +1347,17 @@ describe("extractVerseReferences — cross-language regression guard", () => {
   it("should extract at least one book name per language", () => {
     // [input, expected ref in the Set]
     const perLanguageSamples: [string, string][] = [
-      ["Иоанна 3:16", "john 3:16"], // ru — normalized via map
-      ["约翰福音 3:16", "john 3:16"], // zh — normalized via map
-      ["요한복음 3:16", "john 3:16"], // ko — normalized via map
-      ["Giovanni 3:16", "giovanni 3:16"], // it — extracted (not normalized)
-      ["Johannes 3:16", "johannes 3:16"], // de — extracted (not normalized)
-      ["Juan 3:16", "juan 3:16"], // es — extracted (not normalized)
-      ["Jean 3:16", "jean 3:16"], // fr — extracted (not normalized)
-      ["John 3:16", "john 3:16"], // en
+      ["João 3:16", "john 3:16"],         // pt — normalized via map
+      ["يوحنا 3:16", "john 3:16"],         // ar — normalized via map
+      ["Иоанна 3:16", "john 3:16"],        // ru — normalized via map
+      ["约翰福音 3:16", "john 3:16"],       // zh — normalized via map
+      ["यूहन्ना 3:16", "john 3:16"],       // hi — normalized via map
+      ["요한복음 3:16", "john 3:16"],       // ko — normalized via map
+      ["Giovanni 3:16", "giovanni 3:16"],  // it — extracted (not normalized)
+      ["Johannes 3:16", "johannes 3:16"],  // de — extracted (not normalized)
+      ["Juan 3:16", "juan 3:16"],          // es — extracted (not normalized)
+      ["Jean 3:16", "jean 3:16"],          // fr — extracted (not normalized)
+      ["John 3:16", "john 3:16"],          // en
     ];
     for (const [input, expected] of perLanguageSamples) {
       const refs = extractVerseReferences(input);
@@ -1077,18 +1370,27 @@ describe("extractVerseReferences — cross-language regression guard", () => {
 
 // ── Multi-word book name matrix ───────────────────────────────────────────────
 // Verifies multi-word book names are captured as a single token (not truncated).
-// Arabic/Hindi/Korean/Portuguese multi-word entries are now tested via the
-// API-driven flow (updateBookNames) and have been removed from this matrix.
+// Arabic/Hindi/Russian/Korean/Portuguese entries are normalized to English.
 // French/Italian entries are extracted but remain in their localized form
 // (since normalization maps for those languages are not in LOCALIZED_BOOK_TO_ENGLISH).
 
 describe("extractVerseReferences — multi-word book name matrix", () => {
   it("should capture multi-word book names as a single token across all languages", () => {
     const multiWordCases: [string, string][] = [
+      // Arabic multi-word — normalized
+      ["أعمال الرسل 2:38", "acts 2:38"],
+      ["نشيد الأنشاد 1:1", "song of solomon 1:1"],
+      // Hindi multi-word — normalized
+      ["भजन संहिता 23:1", "psalms 23:1"],
+      ["प्रेरितों के काम 2:38", "acts 2:38"],
       // Russian multi-word — normalized
       ["Плач Иеремии 3:3", "lamentations 3:3"],
       ["Песня Песней 1:1", "song of solomon 1:1"],
       ["Деяния Апостолов 2:38", "acts 2:38"],
+      // Korean multi-word — normalized
+      ["예레미야 애가 3:3", "lamentations 3:3"],
+      // Portuguese multi-word — normalized
+      ["Cântico dos Cânticos 1:1", "song of solomon 1:1"],
       // English multi-word — normalized (connector-word branch)
       ["Song of Solomon 1:1", "song of solomon 1:1"],
       // French multi-word — captured but NOT normalized (no French map)
@@ -1102,56 +1404,5 @@ describe("extractVerseReferences — multi-word book name matrix", () => {
         true,
       );
     }
-  });
-});
-
-// ── API-driven book name updates ─────────────────────────────────────────────
-// Verifies that updateBookNames() correctly merges API-provided mappings
-// and that extraction + normalization works for dynamically loaded languages.
-
-describe("extractVerseReferences — API-driven languages (updateBookNames)", () => {
-  // Simulate API response with a few representative entries
-  beforeAll(() => {
-    updateBookNames({
-      João: "John",
-      Gênesis: "Genesis",
-      يوحنا: "John",
-      تكوين: "Genesis",
-      यूहन्ना: "John",
-      उत्पत्ति: "Genesis",
-      Apocalipse: "Revelation",
-      رومية: "Romans",
-      रोमियों: "Romans",
-    });
-  });
-
-  it("should extract and normalize Portuguese John via API data", () => {
-    const refs = extractVerseReferences("João 3:16");
-    expect(refs.has("john 3:16")).toBe(true);
-  });
-
-  it("should extract and normalize Arabic Genesis via API data", () => {
-    const refs = extractVerseReferences("تكوين 1:1");
-    expect(refs.has("genesis 1:1")).toBe(true);
-  });
-
-  it("should extract and normalize Hindi John via API data", () => {
-    const refs = extractVerseReferences("यूहन्ना 3:16");
-    expect(refs.has("john 3:16")).toBe(true);
-  });
-
-  it("should extract and normalize Portuguese Revelation via API data", () => {
-    const refs = extractVerseReferences("Apocalipse 21:4");
-    expect(refs.has("revelation 21:4")).toBe(true);
-  });
-
-  it("should extract and normalize Arabic Romans via API data", () => {
-    const refs = extractVerseReferences("رومية 8:28");
-    expect(refs.has("romans 8:28")).toBe(true);
-  });
-
-  it("should extract and normalize Hindi Romans via API data", () => {
-    const refs = extractVerseReferences("रोमियों 8:28");
-    expect(refs.has("romans 8:28")).toBe(true);
   });
 });
