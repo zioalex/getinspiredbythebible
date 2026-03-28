@@ -571,12 +571,15 @@ export default function Home() {
     !inlinePromptDismissed &&
     messages.length >= inlinePromptIndex;
 
-  const suggestedPrompts = [
-    tWelcome("prompt1"),
-    tWelcome("prompt2"),
-    tWelcome("prompt3"),
-    tWelcome("prompt4"),
-  ];
+  const [suggestedPrompts] = useState(() => {
+    const allPrompts = Array.from({ length: 100 }, (_, i) => tWelcome(`prompt${i + 1}`));
+    const shuffled = [...allPrompts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 4);
+  });
 
   return (
     <main className="flex h-dvh">
