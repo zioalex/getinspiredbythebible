@@ -5,6 +5,7 @@ Tests for the /api/v1/scripture/book-names endpoint.
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 # Add parent directory to path to import main
@@ -118,7 +119,9 @@ def test_multi_word_names_no_number_prefixed_entries():
     response = client.get("/api/v1/scripture/book-names")
     names = response.json()["multi_word_names"]
     for name in names:
-        assert not name[0].isdigit(), f"Number-prefixed entry found in multi_word_names: '{name}'"
+        assert not name[0].isdigit(), (
+            f"Number-prefixed entry found in multi_word_names: '{name}'"
+        )
 
 
 def test_multi_word_names_known_entries_present():
@@ -128,11 +131,11 @@ def test_multi_word_names_known_entries_present():
     names_set = set(names)
 
     expected = [
-        "Song of Solomon",  # English
-        "Плач Иеремии",  # Russian
-        "مراثي إرميا",  # Arabic
-        "भजन संहिता",  # Hindi
-        "예레미야 애가",  # Korean
+        "Song of Solomon",    # English
+        "Плач Иеремии",       # Russian
+        "مراثي إرميا",        # Arabic
+        "भजन संहिता",         # Hindi
+        "예레미야 애가",       # Korean
     ]
     for name in expected:
         assert name in names_set, f"Expected '{name}' in multi_word_names but it was missing"
