@@ -62,6 +62,7 @@ import com.bibleinspiration.presentation.components.TranslationPickerBottomSheet
 import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.VersesPanel
 import com.bibleinspiration.presentation.components.WelcomeBanner
+import com.bibleinspiration.presentation.components.buildVerseRefRegex
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -77,6 +78,9 @@ fun ChatScreen(
     val churchFinderSheetState by viewModel.churchFinderSheetState.collectAsState()
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
+    val multiWordNames by viewModel.multiWordNames.collectAsState()
+    val localizedToEnglish by viewModel.localizedToEnglish.collectAsState()
+    val verseRefRegex = remember(multiWordNames) { buildVerseRefRegex(multiWordNames) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -149,6 +153,7 @@ fun ChatScreen(
             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
                 ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
                 ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
+            localizedToEnglish = localizedToEnglish,
             onLoadChapter = viewModel::loadChapter,
             onDismissSheet = viewModel::clearChapterSheet,
             onDismiss = { showVersesPanel = false },
@@ -281,6 +286,7 @@ fun ChatScreen(
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
                             onFeedback = { messageLocalId, rating -> viewModel.submitFeedback(messageLocalId, rating) },
                             feedbackGiven = uiState.feedbackGiven[message.id],
+                            verseRefRegex = verseRefRegex,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }
