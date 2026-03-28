@@ -127,8 +127,14 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
 internal fun buildVerseRefRegex(multiWordNames: List<String>): Regex {
     if (multiWordNames.isEmpty()) return DEFAULT_VERSE_REF_REGEX
 
+    // Escape regex special chars in each name, then replace spaces with \s+ for flexible
+    // whitespace matching. We cannot use Regex.escape() here because it wraps the whole
+    // string in \Q...\E, which prevents per-character manipulation. Instead we escape
+    // only the characters that are special in Java regex and replace spaces with \s+.
+    val regexSpecialChars = Regex("""[.+*?^${'$'}{}()\[\]|\\]""")
     val escapedAlternations = multiWordNames.joinToString("|") { name ->
-        Regex.escape(name).replace("\\ ", "\\s+")
+        regexSpecialChars.replace(name) { "\\${it.value}" }
+            .replace(" ", "\\s+")
     }
 
     // Build a dynamic book-name pattern that first tries multi-word server names (longest-first),
