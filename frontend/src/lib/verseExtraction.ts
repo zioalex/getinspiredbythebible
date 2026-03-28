@@ -3,11 +3,24 @@
  * Matches formats like: "John 3:16", "1 John 2:3", "Song of Solomon 1:1", etc.
  * Also supports localized formats: "Giovanni 3:16" (Italian), "1. Mose 1:1" (German),
  * "Плач Иеремии 3:3" (Russian), "耶利米哀歌 3:3" (Chinese), "예레미야 애가 3:3" (Korean).
+ *
+ * Additional languages (Portuguese, Arabic, Hindi, etc.) are loaded dynamically
+ * from the backend API via updateBookNames() — see /api/v1/scripture/book-names.
  */
+
+// Note on circular imports: versePatterns.ts imports LOCALIZED_BOOK_TO_ENGLISH
+// from this module.  JavaScript ES modules resolve circular imports via live
+// bindings, so the static import below is safe: versePatterns.ts only reads
+// LOCALIZED_BOOK_TO_ENGLISH at its own module-init time (which runs after
+// this module's const is initialised), and extractVerseReferences() is only
+// ever called after both modules are fully loaded.
+import { createVersePatternGlobal as _createVersePatternGlobal } from "./versePatterns";
 
 /**
  * Maps localized book names (lowercased) to canonical English book names (lowercased).
- * Covers Russian (nominative + genitive), Chinese, and Korean.
+ * Bundled fallback covers Russian (nominative + genitive), Chinese, and Korean.
+ * Additional languages (Portuguese, Arabic, Hindi, etc.) are loaded at runtime
+ * from the backend API via updateBookNames().
  * English and other Western-language names pass through unchanged.
  */
 export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
@@ -252,6 +265,20 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
 };
 
 /**
+ * Merge API-provided book name mappings into LOCALIZED_BOOK_TO_ENGLISH.
+ * Called once after fetching /api/v1/scripture/book-names.
+ * New entries are lowercased to match the existing convention.
+ */
+export function updateBookNames(apiData: Record<string, string>): void {
+  for (const [localized, english] of Object.entries(apiData)) {
+    const key = localized.toLowerCase();
+    if (!(key in LOCALIZED_BOOK_TO_ENGLISH)) {
+      LOCALIZED_BOOK_TO_ENGLISH[key] = english.toLowerCase();
+    }
+  }
+}
+
+/**
  * Normalize a book name to its lowercase English canonical form.
  * If the name is already English (or another Western language handled by
  * fuzzy matching), it is returned as-is (lowercased).
@@ -279,22 +306,11 @@ export function extractVerseReferences(text: string): Set<string> {
   // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
   const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
 
-  // Pattern to match verse references in multiple languages.
-  //
-  // Alternatives (tried in order):
-  //  1. Explicit multi-word non-English book names that have no connector word
-  //     (Russian: Плач Иеремии, Песня Песней; Korean: 예레미야 애가; Arabic: مراثي إرميا)
-  //  2. Multi-word books joined by a connector word (Song of Solomon, Cantico dei Cantici…)
-  //  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
-  //  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
-  //  5. Any single Unicode word >=2 chars (covers all remaining single-word book names)
-  //
-  // The Unicode-aware lookbehind (?<!\p{L}) prevents matching mid-word.
-  // Enumerating multi-word non-Latin names (alternatives 1) is necessary because a
-  // purely greedy pattern cannot distinguish "Читайте Бытие" (sentence + book) from
-  // "Плач Иеремии" (two-word book name) without a known-word list.
-  const versePattern =
-    /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)(?:-\d+)?/gu;
+  // Use the shared verse pattern (auto-generated from LOCALIZED_BOOK_TO_ENGLISH).
+  // Imported from versePatterns — the circular reference is safe because
+  // versePatterns only accesses LOCALIZED_BOOK_TO_ENGLISH at module init time,
+  // which completes before extractVerseReferences is ever called.
+  const versePattern = _createVersePatternGlobal();
 
   const references = new Set<string>();
   const matches = Array.from(text.matchAll(versePattern));

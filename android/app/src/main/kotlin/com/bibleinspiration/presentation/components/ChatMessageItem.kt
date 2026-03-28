@@ -98,7 +98,9 @@ private val BOOK_NAME =
 // We use (?!\d) instead of \b to terminate digit sequences for CJK compatibility:
 // \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
 // boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
-private val VERSE_REF_REGEX = Regex(
+
+/** Fallback regex used before book-name data loads from the API. */
+internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
     // Allows additional capitalised words after the prefix-book (e.g. "1 Corinthians", "2. Könige")
     "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
@@ -109,6 +111,44 @@ private val VERSE_REF_REGEX = Regex(
         // that looks like a book name (preventing false numbered-book splits).
         "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
+
+/**
+ * Builds a [Regex] for matching verse references that includes explicit alternations for
+ * [multiWordNames] (server-provided multi-word book names, sorted longest-first).
+ *
+ * Each name is regex-escaped and spaces are replaced with `\s+` for flexible whitespace
+ * matching.  The multi-word names are embedded into the book-name sub-pattern so that the
+ * overall capture group structure remains identical to [DEFAULT_VERSE_REF_REGEX]:
+ *   - Groups 1–3: numbered-prefix match
+ *   - Groups 4–6: un-prefixed match (with or without verse number)
+ *
+ * Falls back to [DEFAULT_VERSE_REF_REGEX] when [multiWordNames] is empty.
+ */
+internal fun buildVerseRefRegex(multiWordNames: List<String>): Regex {
+    if (multiWordNames.isEmpty()) return DEFAULT_VERSE_REF_REGEX
+
+    // Escape regex special chars in each name, then replace spaces with \s+ for flexible
+    // whitespace matching. We cannot use Regex.escape() here because it wraps the whole
+    // string in \Q...\E, which prevents per-character manipulation. Instead we escape
+    // only the characters that are special in Java regex and replace spaces with \s+.
+    val regexSpecialChars = Regex("""[.+*?^${'$'}{}()\[\]|\\]""")
+    val escapedAlternations = multiWordNames.joinToString("|") { name ->
+        regexSpecialChars.replace(name) { "\\${it.value}" }
+            .replace(" ", "\\s+")
+    }
+
+    // Build a dynamic book-name pattern that first tries multi-word server names (longest-first),
+    // then falls back to the generic Unicode single-word / connector-word pattern.
+    val dynamicBookName = "(?:$escapedAlternations|$BOOK_NAME)"
+
+    return Regex(
+        // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
+        "([1-3][\\s.][\\s]?$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+            "|" +
+            // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
+            "($dynamicBookName)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+    )
+}
 
 private const val VERSE_SCHEME = "verse://"
 
@@ -121,9 +161,16 @@ private const val VERSE_SCHEME = "verse://"
  * The book name is URL-encoded so that spaces survive the round-trip through the Markwon
  * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
  * are left unchanged by checking that the character before the match is not `[`.
+ *
+ * @param verseRefRegex The regex to use for matching verse references. Defaults to
+ *   [DEFAULT_VERSE_REF_REGEX]; pass a dynamically built regex from [buildVerseRefRegex]
+ *   once API book-name data has loaded.
  */
-internal fun injectVerseLinks(markdown: String): String =
-    VERSE_REF_REGEX.replace(markdown) { result ->
+internal fun injectVerseLinks(
+    markdown: String,
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
+): String =
+    verseRefRegex.replace(markdown) { result ->
         // If the match is immediately preceded by '[', it is already the display text of a
         // markdown link — skip it to avoid double-wrapping.
         val before = if (result.range.first > 0) markdown[result.range.first - 1] else '\u0000'
@@ -206,6 +253,7 @@ fun ChatMessageItem(
     onRetry: (() -> Unit)? = null,
     onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
     feedbackGiven: String? = null,
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -330,7 +378,7 @@ fun ChatMessageItem(
                             // Amber colour for verse links — matches web's amber-600 link colour
                             val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
-                                markdown = injectVerseLinks(message.content),
+                                markdown = injectVerseLinks(message.content, verseRefRegex),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 onLinkClicked = { url ->

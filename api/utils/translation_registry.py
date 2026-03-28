@@ -906,6 +906,7 @@ FRENCH_ALIASES: dict[str, str] = {
 # canonical keys in ENGLISH_TO_ITALIAN (which uses "Psalms" with the trailing 's').
 ENGLISH_ALIASES: dict[str, str] = {
     "Psalm": "Psalms",  # singular form, e.g. "Psalm 23" — very common in English prose
+    "Song of Solomon": "Song of Solomon",  # common English alias; also known as Song of Songs
 }
 
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {

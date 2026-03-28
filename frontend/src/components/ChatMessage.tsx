@@ -6,6 +6,11 @@ import ReactMarkdown from "react-markdown";
 import { useTranslations } from "next-intl";
 import { Message } from "@/lib/api";
 import ShareMenu from "./ShareMenu";
+import {
+  createVersePattern,
+  createVersePatternGlobal,
+  CONJUNCTIONS,
+} from "@/lib/versePatterns";
 
 interface ChatMessageProps {
   message: Message;
@@ -36,14 +41,8 @@ export default function ChatMessage({
     const target = e.target as HTMLElement;
     const text = target.textContent || "";
 
-    // Conjunctions that should not be treated as book names
-    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
-
-    // Match multi-word book names (Russian Плач Иеремии, Song of Solomon, 1. Mose…).
-    // Explicit alternates for multi-word non-English names prevent false positives
-    // (e.g. "Читайте Бытие" must yield "Бытие", not "Читайте Бытие").
-    const versePattern =
-      /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)/u;
+    // Use shared pattern auto-generated from all known localized book names.
+    const versePattern = createVersePattern();
     const match = text.match(versePattern);
 
     if (match) {
@@ -62,13 +61,9 @@ export default function ChatMessage({
 
   // Helper function to highlight ALL verse references and quoted text in a string
   const highlightText = (text: string, key: number): React.ReactNode => {
-    // Conjunctions that should not be treated as book names
-    const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
-
-    // Pattern to match verse references anywhere in text.
-    // Same alternates as handleTextClick / verseExtraction.ts — see comments there.
-    const verseRefPattern =
-      /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)(?:-\d+)?/gu;
+    // Use shared pattern auto-generated from all known localized book names.
+    // Always create a fresh global instance (mutable lastIndex state).
+    const verseRefPattern = createVersePatternGlobal();
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;

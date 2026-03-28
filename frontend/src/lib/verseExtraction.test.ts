@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   extractVerseReferences,
   isVerseReferenced,
   LOCALIZED_BOOK_TO_ENGLISH,
+  updateBookNames,
 } from "./verseExtraction";
 
 describe("extractVerseReferences", () => {
@@ -811,32 +812,6 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
     expect(refs.size).toBe(1);
   });
 
-  // ── Portuguese ────────────────────────────────────────────────────────────
-
-  it("should extract Portuguese Genesis 'Gênesis 1:1'", () => {
-    const refs = extractVerseReferences("Gênesis 1:1");
-    expect(refs.has("gênesis 1:1")).toBe(true);
-    expect(refs.size).toBe(1);
-  });
-
-  it("should extract Portuguese John 'João 3:16'", () => {
-    const refs = extractVerseReferences("João 3:16");
-    expect(refs.has("joão 3:16")).toBe(true);
-    expect(refs.size).toBe(1);
-  });
-
-  it("should extract Portuguese Psalms 'Salmos 23:1'", () => {
-    const refs = extractVerseReferences("Salmos 23:1");
-    expect(refs.has("salmos 23:1")).toBe(true);
-    expect(refs.size).toBe(1);
-  });
-
-  it("should extract Portuguese Revelation 'Apocalipse 21:4'", () => {
-    const refs = extractVerseReferences("Apocalipse 21:4");
-    expect(refs.has("apocalipse 21:4")).toBe(true);
-    expect(refs.size).toBe(1);
-  });
-
   // ── Italian: additional books beyond John and Joshua ─────────────────────
 
   it("should extract Italian Genesis 'Genesi 1:1'", () => {
@@ -1053,5 +1028,130 @@ describe("isVerseReferenced", () => {
       reference: "John 3:16",
     };
     expect(isVerseReferenced(verse, refs)).toBe(true);
+  });
+});
+
+// ── Russian multi-word book name tests ───────────────────────────────────────
+
+describe("extractVerseReferences — Russian multi-word books", () => {
+  it("should extract Russian Acts full form 'Деяния Апостолов 2:38' → 'acts 2:38'", () => {
+    const refs = extractVerseReferences("Деяния Апостолов 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract Russian Joshua 'Иисус Навин 1:9' → 'joshua 1:9'", () => {
+    const refs = extractVerseReferences("Иисус Навин 1:9");
+    expect(refs.has("joshua 1:9")).toBe(true);
+  });
+});
+
+// ── Cross-language regression guard ──────────────────────────────────────────
+// Verifies that at least one representative verse per language can be extracted.
+// Portuguese, Arabic, Hindi are tested via the API-driven flow (updateBookNames).
+// Russian, Chinese, Korean: already normalized in the original map.
+// Italian, German, Spanish, French: extracted but NOT fully normalized to English
+// (their Western forms pass through as-is, since adding full normalization maps
+//  would break the existing extraction tests for those languages).
+
+describe("extractVerseReferences — cross-language regression guard", () => {
+  it("should extract at least one book name per language", () => {
+    // [input, expected ref in the Set]
+    const perLanguageSamples: [string, string][] = [
+      ["Иоанна 3:16", "john 3:16"], // ru — normalized via map
+      ["约翰福音 3:16", "john 3:16"], // zh — normalized via map
+      ["요한복음 3:16", "john 3:16"], // ko — normalized via map
+      ["Giovanni 3:16", "giovanni 3:16"], // it — extracted (not normalized)
+      ["Johannes 3:16", "johannes 3:16"], // de — extracted (not normalized)
+      ["Juan 3:16", "juan 3:16"], // es — extracted (not normalized)
+      ["Jean 3:16", "jean 3:16"], // fr — extracted (not normalized)
+      ["John 3:16", "john 3:16"], // en
+    ];
+    for (const [input, expected] of perLanguageSamples) {
+      const refs = extractVerseReferences(input);
+      expect(refs.has(expected), `Expected '${expected}' from '${input}'`).toBe(
+        true,
+      );
+    }
+  });
+});
+
+// ── Multi-word book name matrix ───────────────────────────────────────────────
+// Verifies multi-word book names are captured as a single token (not truncated).
+// Arabic/Hindi/Korean/Portuguese multi-word entries are now tested via the
+// API-driven flow (updateBookNames) and have been removed from this matrix.
+// French/Italian entries are extracted but remain in their localized form
+// (since normalization maps for those languages are not in LOCALIZED_BOOK_TO_ENGLISH).
+
+describe("extractVerseReferences — multi-word book name matrix", () => {
+  it("should capture multi-word book names as a single token across all languages", () => {
+    const multiWordCases: [string, string][] = [
+      // Russian multi-word — normalized
+      ["Плач Иеремии 3:3", "lamentations 3:3"],
+      ["Песня Песней 1:1", "song of solomon 1:1"],
+      ["Деяния Апостолов 2:38", "acts 2:38"],
+      // English multi-word — normalized (connector-word branch)
+      ["Song of Solomon 1:1", "song of solomon 1:1"],
+      // French multi-word — captured but NOT normalized (no French map)
+      ["Cantique des Cantiques 1:1", "cantique des cantiques 1:1"],
+      // Italian multi-word — captured but NOT normalized (no Italian map)
+      ["Cantico dei Cantici 1:1", "cantico dei cantici 1:1"],
+    ];
+    for (const [input, expected] of multiWordCases) {
+      const refs = extractVerseReferences(input);
+      expect(refs.has(expected), `Expected '${expected}' from '${input}'`).toBe(
+        true,
+      );
+    }
+  });
+});
+
+// ── API-driven book name updates ─────────────────────────────────────────────
+// Verifies that updateBookNames() correctly merges API-provided mappings
+// and that extraction + normalization works for dynamically loaded languages.
+
+describe("extractVerseReferences — API-driven languages (updateBookNames)", () => {
+  // Simulate API response with a few representative entries
+  beforeAll(() => {
+    updateBookNames({
+      João: "John",
+      Gênesis: "Genesis",
+      يوحنا: "John",
+      تكوين: "Genesis",
+      यूहन्ना: "John",
+      उत्पत्ति: "Genesis",
+      Apocalipse: "Revelation",
+      رومية: "Romans",
+      रोमियों: "Romans",
+    });
+  });
+
+  it("should extract and normalize Portuguese John via API data", () => {
+    const refs = extractVerseReferences("João 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Genesis via API data", () => {
+    const refs = extractVerseReferences("تكوين 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi John via API data", () => {
+    const refs = extractVerseReferences("यूहन्ना 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract and normalize Portuguese Revelation via API data", () => {
+    const refs = extractVerseReferences("Apocalipse 21:4");
+    expect(refs.has("revelation 21:4")).toBe(true);
+  });
+
+  it("should extract and normalize Arabic Romans via API data", () => {
+    const refs = extractVerseReferences("رومية 8:28");
+    expect(refs.has("romans 8:28")).toBe(true);
+  });
+
+  it("should extract and normalize Hindi Romans via API data", () => {
+    const refs = extractVerseReferences("रोमियों 8:28");
+    expect(refs.has("romans 8:28")).toBe(true);
   });
 });

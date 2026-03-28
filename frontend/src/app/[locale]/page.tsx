@@ -27,6 +27,7 @@ import {
   Verse,
   getChapter,
   getTranslations,
+  getBookNames,
   TranslationInfo,
   submitFeedback,
   FeedbackRequest,
@@ -44,7 +45,9 @@ import {
 import {
   extractVerseReferences,
   isVerseReferenced,
+  updateBookNames,
 } from "@/lib/verseExtraction";
+import { updateMultiWordNames } from "@/lib/versePatterns";
 import { useTurnstile } from "@/lib/turnstile";
 
 // Extended message type with message_id for feedback tracking
@@ -166,7 +169,20 @@ export default function Home() {
         console.error("Failed to load translations:", error);
       }
     };
+
+    const loadBookNames = async () => {
+      try {
+        const data = await getBookNames();
+        updateBookNames(data.localized_to_english);
+        updateMultiWordNames(data.multi_word_names);
+      } catch (error) {
+        // Silently fail — bundled fallback data is sufficient
+        console.error("Failed to load book names:", error);
+      }
+    };
+
     loadTranslations();
+    loadBookNames();
   }, []);
 
   // Pre-warm backend on mount so cold-start scaling begins immediately
