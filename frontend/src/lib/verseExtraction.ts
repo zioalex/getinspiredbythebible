@@ -2,8 +2,17 @@
  * Extracts verse references from text
  * Matches formats like: "John 3:16", "1 John 2:3", "Song of Solomon 1:1", etc.
  * Also supports localized formats: "Giovanni 3:16" (Italian), "1. Mose 1:1" (German),
- * "Плач Иеремии 3:3" (Russian), "耶利米哀歌 3:3" (Chinese), "예레미야 애가 3:3" (Korean).
+ * "Плач Иеремии 3:3" (Russian), "耶利米哀歌 3:3" (Chinese), "예레미야 애가 3:3" (Korean),
+ * "يوحنا 3:16" (Arabic), "यूहन्ना 3:16" (Hindi), "João 3:16" (Portuguese).
  */
+
+// Note on circular imports: versePatterns.ts imports LOCALIZED_BOOK_TO_ENGLISH
+// from this module.  JavaScript ES modules resolve circular imports via live
+// bindings, so the static import below is safe: versePatterns.ts only reads
+// LOCALIZED_BOOK_TO_ENGLISH at its own module-init time (which runs after
+// this module's const is initialised), and extractVerseReferences() is only
+// ever called after both modules are fully loaded.
+import { createVersePatternGlobal as _createVersePatternGlobal } from "./versePatterns";
 
 /**
  * Maps localized book names (lowercased) to canonical English book names (lowercased).
@@ -208,6 +217,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   이사야: "isaiah",
   예레미야: "jeremiah",
   예레미야애가: "lamentations",
+  "예레미야 애가": "lamentations",
   에스겔: "ezekiel",
   다니엘: "daniel",
   호세아: "hosea",
@@ -249,6 +259,197 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   요한삼서: "3 john",
   유다서: "jude",
   요한계시록: "revelation",
+
+  // ── Portuguese (Almeida Atualizada / almeida) ─────────────────────────────
+  // Only entries with Portuguese-unique spellings (different from Spanish/French/Italian)
+  // are listed here, to avoid overriding behaviour tested in the existing Spanish and
+  // Italian comprehensive tests (e.g. "salmos" and "romanos" are shared with Spanish).
+  "gênesis": "genesis",
+  "êxodo": "exodus",
+  "levítico": "leviticus",
+  "deuteronômio": "deuteronomy",
+  "juízes": "judges",
+  rute: "ruth",
+  "1 reis": "1 kings",
+  "2 reis": "2 kings",
+  "1 crônicas": "1 chronicles",
+  "2 crônicas": "2 chronicles",
+  neemias: "nehemiah",
+  "jó": "job",
+  "provérbios": "proverbs",
+  eclesiastes: "ecclesiastes",
+  "cântico dos cânticos": "song of solomon",
+  jeremias: "jeremiah",
+  "lamentações": "lamentations",
+  oseias: "hosea",
+  obadias: "obadiah",
+  "miquéias": "micah",
+  naum: "nahum",
+  habacuque: "habakkuk",
+  sofonias: "zephaniah",
+  ageu: "haggai",
+  zacarias: "zechariah",
+  malaquias: "malachi",
+  mateus: "matthew",
+  "joão": "john",
+  atos: "acts",
+  "1 coríntios": "1 corinthians",
+  "2 coríntios": "2 corinthians",
+  colossenses: "colossians",
+  "1 tessalonicenses": "1 thessalonians",
+  "2 tessalonicenses": "2 thessalonians",
+  "1 timóteo": "1 timothy",
+  "2 timóteo": "2 timothy",
+  filemom: "philemon",
+  hebreus: "hebrews",
+  tiago: "james",
+  "1 joão": "1 john",
+  "2 joão": "2 john",
+  "3 joão": "3 john",
+  apocalipse: "revelation",
+
+  // ── Arabic (Smith & Van Dyke / arabicsv) ─────────────────────────────────
+  // Note: Arabic book names in the feed sometimes use definite-article prefix ال.
+  // Both the prefixed and un-prefixed forms are listed where the LLM may vary.
+  تكوين: "genesis",
+  خروج: "exodus",
+  لاويين: "leviticus",
+  عدد: "numbers",
+  تثنية: "deuteronomy",
+  يشوع: "joshua",
+  القضاة: "judges",
+  راعوث: "ruth",
+  "1 صموئيل": "1 samuel",
+  "2 صموئيل": "2 samuel",
+  "1 الملوك": "1 kings",
+  "2 الملوك": "2 kings",
+  "1 أخبار الأيام": "1 chronicles",
+  "2 أخبار الأيام": "2 chronicles",
+  عزرا: "ezra",
+  نحميا: "nehemiah",
+  "أستير": "esther",
+  "أيوب": "job",
+  المزامير: "psalms",
+  مزامير: "psalms",
+  "الأمثال": "proverbs",
+  "أمثال": "proverbs",
+  الجامعة: "ecclesiastes",
+  جامعة: "ecclesiastes",
+  "نشيد الأنشاد": "song of solomon",
+  "إشعياء": "isaiah",
+  "إرميا": "jeremiah",
+  "مراثي إرميا": "lamentations",
+  حزقيال: "ezekiel",
+  دانيال: "daniel",
+  هوشع: "hosea",
+  "يوئيل": "joel",
+  عاموس: "amos",
+  عوبديا: "obadiah",
+  يونان: "jonah",
+  ميخا: "micah",
+  ناحوم: "nahum",
+  حبقوق: "habakkuk",
+  صفنيا: "zephaniah",
+  حجي: "haggai",
+  زكريا: "zechariah",
+  ملاخي: "malachi",
+  "متى": "matthew",
+  مرقس: "mark",
+  لوقا: "luke",
+  يوحنا: "john",
+  "أعمال الرسل": "acts",
+  رومية: "romans",
+  "1 كورنثوس": "1 corinthians",
+  "2 كورنثوس": "2 corinthians",
+  "غلاطية": "galatians",
+  "أفسس": "ephesians",
+  فيليبي: "philippians",
+  كولوسي: "colossians",
+  "1 تسالونيكي": "1 thessalonians",
+  "2 تسالونيكي": "2 thessalonians",
+  "1 تيموثاوس": "1 timothy",
+  "2 تيموثاوس": "2 timothy",
+  "تيطس": "titus",
+  فليمون: "philemon",
+  عبرانيين: "hebrews",
+  يعقوب: "james",
+  "1 بطرس": "1 peter",
+  "2 بطرس": "2 peter",
+  "1 يوحنا": "1 john",
+  "2 يوحنا": "2 john",
+  "3 يوحنا": "3 john",
+  "يهوذا": "jude",
+  "الرؤيا": "revelation",
+  "رؤيا": "revelation",
+
+  // ── Hindi (IRV Bible / hindi) ─────────────────────────────────────────────
+  "उत्पत्ति": "genesis",
+  निर्गमन: "exodus",
+  "लैव्यव्यवस्था": "leviticus",
+  गिनती: "numbers",
+  "व्यवस्थाविवरण": "deuteronomy",
+  "यहोशू": "joshua",
+  "न्यायियों": "judges",
+  "रूत": "ruth",
+  "1 शमूएल": "1 samuel",
+  "2 शमूएल": "2 samuel",
+  "1 राजाओं": "1 kings",
+  "2 राजाओं": "2 kings",
+  "1 इतिहास": "1 chronicles",
+  "2 इतिहास": "2 chronicles",
+  "एज्रा": "ezra",
+  "नहेम्याह": "nehemiah",
+  "एस्तेर": "esther",
+  "अय्यूब": "job",
+  "भजन संहिता": "psalms",
+  "नीतिवचन": "proverbs",
+  सभोपदेशक: "ecclesiastes",
+  "श्रेष्ठगीत": "song of solomon",
+  "यशायाह": "isaiah",
+  "यिर्मयाह": "jeremiah",
+  विलापगीत: "lamentations",
+  "यहेजकेल": "ezekiel",
+  "दानिय्येल": "daniel",
+  "होशे": "hosea",
+  "योएल": "joel",
+  "आमोस": "amos",
+  "ओबद्याह": "obadiah",
+  "योना": "jonah",
+  "मीका": "micah",
+  "नहूम": "nahum",
+  "हबक्कूक": "habakkuk",
+  सपन्याह: "zephaniah",
+  "हाग्गै": "haggai",
+  "जकर्याह": "zechariah",
+  "मलाकी": "malachi",
+  "मत्ती": "matthew",
+  मरकुस: "mark",
+  "लूका": "luke",
+  "यूहन्ना": "john",
+  "प्रेरितों के काम": "acts",
+  "रोमियों": "romans",
+  "1 कुरिन्थियों": "1 corinthians",
+  "2 कुरिन्थियों": "2 corinthians",
+  "गलातियों": "galatians",
+  "इफिसियों": "ephesians",
+  "फिलिप्पियों": "philippians",
+  "कुलुस्सियों": "colossians",
+  "1 थिस्सलुनीकियों": "1 thessalonians",
+  "2 थिस्सलुनीकियों": "2 thessalonians",
+  "1 तीमुथियुस": "1 timothy",
+  "2 तीमुथियुस": "2 timothy",
+  "तीतुस": "titus",
+  "फिलेमोन": "philemon",
+  "इब्रानियों": "hebrews",
+  "याकूब": "james",
+  "1 पतरस": "1 peter",
+  "2 पतरस": "2 peter",
+  "1 यूहन्ना": "1 john",
+  "2 यूहन्ना": "2 john",
+  "3 यूहन्ना": "3 john",
+  "यहूदा": "jude",
+  "प्रकाशितवाक्य": "revelation",
+
 };
 
 /**
@@ -279,22 +480,11 @@ export function extractVerseReferences(text: string): Set<string> {
   // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
   const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
 
-  // Pattern to match verse references in multiple languages.
-  //
-  // Alternatives (tried in order):
-  //  1. Explicit multi-word non-English book names that have no connector word
-  //     (Russian: Плач Иеремии, Песня Песней; Korean: 예레미야 애가; Arabic: مراثي إرميا)
-  //  2. Multi-word books joined by a connector word (Song of Solomon, Cantico dei Cantici…)
-  //  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
-  //  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
-  //  5. Any single Unicode word >=2 chars (covers all remaining single-word book names)
-  //
-  // The Unicode-aware lookbehind (?<!\p{L}) prevents matching mid-word.
-  // Enumerating multi-word non-Latin names (alternatives 1) is necessary because a
-  // purely greedy pattern cannot distinguish "Читайте Бытие" (sentence + book) from
-  // "Плач Иеремии" (two-word book name) without a known-word list.
-  const versePattern =
-    /(?<!\p{L})(Плач\s+Иеремии|Песня\s+Песней|예레미야\s+애가|مراثي\s+إرميا|[\p{L}]{2,}(?:\s+(?:of|dei|des|der|van|de|af)\s+[\p{L}]+)+|\d+\.?\s*[\p{L}]{2,}(?:\s+[\p{L}]+)?|[\p{Script=Han}]+|[\p{L}]{2,})\s+(\d+):(\d+)(?:-\d+)?/gu;
+  // Use the shared verse pattern (auto-generated from LOCALIZED_BOOK_TO_ENGLISH).
+  // Imported from versePatterns — the circular reference is safe because
+  // versePatterns only accesses LOCALIZED_BOOK_TO_ENGLISH at module init time,
+  // which completes before extractVerseReferences is ever called.
+  const versePattern = _createVersePatternGlobal();
 
   const references = new Set<string>();
   const matches = Array.from(text.matchAll(versePattern));
