@@ -427,7 +427,8 @@ jobs:
   tf-plan:
     needs: [changes, build-backend, build-frontend]
     if: >-
-      always() && needs.changes.result == 'success' && needs.build-backend.result != 'failure' &&
+      always() && github.actor != 'dependabot[bot]' && needs.changes.result == 'success' &&
+      needs.build-backend.result != 'failure' &&
       needs.build-frontend.result != 'failure' && (github.event_name != 'workflow_dispatch' ||
        inputs.action != 'destroy')
     runs-on: ubuntu-latest
