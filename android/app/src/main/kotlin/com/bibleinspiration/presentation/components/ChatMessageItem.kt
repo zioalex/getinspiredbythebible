@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ThumbDown
@@ -43,6 +44,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.core.app.ShareCompat
 import com.bibleinspiration.R
 import com.bibleinspiration.domain.models.Message
@@ -405,7 +410,7 @@ fun ChatMessageItem(
                 }
             }
 
-            // Action row — feedback (left) and share (right) rendered horizontally.
+            // Action row — feedback (left) and copy+share (right) rendered horizontally.
             val showFeedback = message.role == Message.Role.ASSISTANT
                 && !message.isStreaming
                 && message.messageId.isNotBlank()
@@ -441,6 +446,22 @@ fun ChatMessageItem(
                         }
                     }
                     Spacer(modifier = Modifier.weight(1f))
+                    // Copy button
+                    if (showShare) {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     // Share button on the right side
                     if (showShare) {
                         IconButton(

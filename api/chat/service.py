@@ -24,7 +24,12 @@ from utils.language import (
     resolve_translation,
 )
 from utils.logging_config import get_logger
-from utils.verse_parser import extract_references, is_verse_lookup_request
+from utils.verse_parser import (
+    extract_all_references,
+    extract_references,
+    is_verse_lookup_request,
+    parse_structured_citations,
+)
 
 from .prompts import (
     OFF_TOPIC_PROMPT,
@@ -684,6 +689,7 @@ Keep it under 100 words."""
                     model_override=model_override,
                 ):
                     yield {"type": "content", "content": chunk}
+                yield {"type": "completion", "verses_cited": []}
                 return
 
         # Check if this is a verse/prayer lookup request
@@ -722,14 +728,45 @@ Keep it under 100 words."""
             prompt_type=prompt_type,
         )
 
-        # Step 4: Stream response content
+        # Step 4: Stream response content and accumulate full response
+        full_response = ""
         async for chunk in self.llm.chat_stream(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
             model_override=model_override,
         ):
+            full_response += chunk
             yield {"type": "content", "content": chunk}
+
+        # Step 5: Extract cited verses (dual-source) and yield completion event
+        structured = parse_structured_citations(full_response)
+        regex_extracted = extract_all_references(full_response)
+
+        # Merge and deduplicate (structured takes priority, regex catches misses)
+        all_verses: dict[str, None] = {}
+        for v in structured:
+            all_verses[str(v)] = None
+        for v in regex_extracted:
+            key = str(v)
+            if key not in all_verses:
+                all_verses[key] = None
+
+        verses_cited = list(all_verses.keys())
+        if verses_cited:
+            logger.info(
+                "Verses cited in response",
+                extra={
+                    "structured_count": len(structured),
+                    "regex_count": len(regex_extracted),
+                    "total_unique": len(verses_cited),
+                },
+            )
+
+        yield {
+            "type": "completion",
+            "verses_cited": verses_cited,
+        }
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

@@ -153,6 +153,8 @@
     <string name="action_retry">पुनः प्रयास करें</string>
     <string name="action_start_new_session">नया सत्र</string>
     <string name="action_share_message">संदेश साझा करें</string>
+    <string name="action_copy_message">संदेश कॉपी करें</string>
+    <string name="action_copied">कॉपी किया गया</string>
     <string name="action_feedback_helpful">यह उपयोगी था</string>
     <string name="action_feedback_not_helpful">यह उपयोगी नहीं था</string>
     <string name="feedback_thank_you">आपकी प्रतिक्रिया के लिए धन्यवाद!</string>

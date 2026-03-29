@@ -153,6 +153,8 @@
     <string name="action_retry">重试</string>
     <string name="action_start_new_session">新会话</string>
     <string name="action_share_message">分享消息</string>
+    <string name="action_copy_message">复制消息</string>
+    <string name="action_copied">已复制</string>
     <string name="action_feedback_helpful">这很有帮助</string>
     <string name="action_feedback_not_helpful">这没有帮助</string>
     <string name="feedback_thank_you">感谢您的反馈！</string>

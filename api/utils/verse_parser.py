@@ -288,57 +288,35 @@ FAMOUS_PRAYERS = {
 }
 
 
-def parse_verse_reference(text: str) -> VerseReference | None:
+def _build_verse_pattern() -> str:
+    """Build the regex pattern for matching verse references.
+
+    Returns the full pattern string with a capture group for the book name
+    and groups for chapter, verse_start, and optional verse_end.
     """
-    Parse a verse reference from text.
-
-    Supports formats:
-    - "John 3:16"
-    - "John 3:16-21" (range)
-    - "1 Corinthians 13:4"
-    - "1Cor 13:4" (abbreviated)
-    - "Giovanni 3:16" (Italian)
-    - "Johannes 3,16" (German with comma)
-
-    Args:
-        text: Text that may contain a verse reference
-
-    Returns:
-        VerseReference if found, None otherwise
-    """
-    # Build pattern from known book names and abbreviations
     all_names: set[str] = set()
     all_names.update(ALL_BOOK_NAMES)
-    # Add abbreviations (both as-is and capitalized versions)
     for abbr in BOOK_ABBREVIATIONS.keys():
         all_names.add(abbr)
         all_names.add(abbr.capitalize())
         all_names.add(abbr.upper())
 
-    # Sort by length descending to match longer names first
     sorted_names = sorted(all_names, key=len, reverse=True)
-
-    # Escape special regex characters and join
     book_alternatives = "|".join(re.escape(name) for name in sorted_names)
 
-    # Chapter:verse pattern (supports both : and , as separator)
     cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
 
-    # Combined pattern - match book name followed by chapter:verse
-    # The book can already include number prefix (e.g., "1 Corinthians")
-    # Use word boundary before but not after (to allow "John3:16")
-    full_pattern = rf"(?:^|(?<=\s))({book_alternatives})\s*{cv_pattern}"
+    # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars
+    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff]))({book_alternatives})\s*{cv_pattern}"
 
-    match = re.search(full_pattern, text, re.IGNORECASE)
-    if not match:
-        return None
 
+def _match_to_verse_reference(match: re.Match) -> VerseReference | None:
+    """Convert a regex match to a VerseReference, or None if book can't be normalized."""
     book_raw = match.group(1).strip()
     chapter = int(match.group(2))
     verse_start = int(match.group(3))
     verse_end = int(match.group(4)) if match.group(4) else None
 
-    # Normalize the book name
     book = _normalize_book(book_raw)
     if not book:
         return None
@@ -349,6 +327,97 @@ def parse_verse_reference(text: str) -> VerseReference | None:
         verse_start=verse_start,
         verse_end=verse_end,
     )
+
+
+def parse_verse_reference(text: str) -> VerseReference | None:
+    """
+    Parse the first verse reference from text.
+
+    Supports formats:
+    - "John 3:16"
+    - "John 3:16-21" (range)
+    - "1 Corinthians 13:4"
+    - "1Cor 13:4" (abbreviated)
+    - "Giovanni 3:16" (Italian)
+    - "Johannes 3,16" (German with comma)
+    - "约翰福音 3:16" (Chinese)
+    - "요한복음 3:16" (Korean)
+    - "यूहन्ना 3:16" (Hindi)
+
+    Args:
+        text: Text that may contain a verse reference
+
+    Returns:
+        VerseReference if found, None otherwise
+    """
+    pattern = _build_verse_pattern()
+    match = re.search(pattern, text, re.IGNORECASE)
+    if not match:
+        return None
+    return _match_to_verse_reference(match)
+
+
+def extract_all_references(text: str) -> list[VerseReference]:
+    """
+    Extract ALL verse references from text.
+
+    Unlike parse_verse_reference() which returns only the first match,
+    this function finds every verse reference in the text. Designed for
+    parsing AI responses that may cite multiple verses.
+
+    Args:
+        text: Text that may contain multiple verse references
+
+    Returns:
+        List of all VerseReference objects found (deduplicated)
+    """
+    pattern = _build_verse_pattern()
+    results: list[VerseReference] = []
+    seen: set[str] = set()
+
+    for match in re.finditer(pattern, text, re.IGNORECASE):
+        ref = _match_to_verse_reference(match)
+        if ref:
+            key = str(ref)
+            if key not in seen:
+                seen.add(key)
+                results.append(ref)
+
+    return results
+
+
+def parse_structured_citations(text: str) -> list[VerseReference]:
+    """
+    Parse the LLM's structured verse citation HTML comment.
+
+    Looks for a comment like: <!-- VERSES: John 3:16; Romans 8:28 -->
+    and parses each semicolon-separated reference.
+
+    Args:
+        text: Full LLM response text
+
+    Returns:
+        List of VerseReference objects from the structured citation
+    """
+    match = re.search(r"<!--\s*VERSES:\s*(.+?)\s*-->", text)
+    if not match:
+        return []
+
+    results: list[VerseReference] = []
+    seen: set[str] = set()
+
+    for ref_text in match.group(1).split(";"):
+        ref_text = ref_text.strip()
+        if not ref_text:
+            continue
+        ref = parse_verse_reference(ref_text)
+        if ref:
+            key = str(ref)
+            if key not in seen:
+                seen.add(key)
+                results.append(ref)
+
+    return results
 
 
 def _check_direct_match(book_raw_lower: str) -> str | None:

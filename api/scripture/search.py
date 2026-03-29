@@ -237,7 +237,7 @@ class ScriptureSearchService:
 
         verses = [
             VerseResult(
-                reference=self._get_localized_reference(verse),
+                reference=verse.reference,
                 text=verse.text,
                 book=verse.book.name,
                 localized_book=get_localized_book_name(verse.book.name, verse.translation),
@@ -319,7 +319,7 @@ class ScriptureSearchService:
 
         verses = [
             VerseResult(
-                reference=self._get_localized_reference(verse),
+                reference=verse.reference,
                 text=verse.text,
                 book=verse.book.name,
                 localized_book=get_localized_book_name(verse.book.name, verse.translation),
@@ -395,7 +395,7 @@ class ScriptureSearchService:
 
         verses = [
             VerseResult(
-                reference=self._get_localized_reference(verse),
+                reference=verse.reference,
                 text=verse.text,
                 book=verse.book.name,
                 localized_book=get_localized_book_name(verse.book.name, verse.translation),

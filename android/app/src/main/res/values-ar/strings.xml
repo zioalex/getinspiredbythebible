@@ -153,6 +153,8 @@
     <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
     <string name="action_share_message">مشاركة الرسالة</string>
+    <string name="action_copy_message">نسخ الرسالة</string>
+    <string name="action_copied">تم النسخ</string>
     <string name="action_feedback_helpful">كان هذا مفيدًا</string>
     <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
     <string name="feedback_thank_you">شكرًا على تعليقك!</string>

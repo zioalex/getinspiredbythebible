@@ -2,9 +2,11 @@
 
 from utils.verse_parser import (
     VerseReference,
+    extract_all_references,
     extract_references,
     find_prayer_reference,
     is_verse_lookup_request,
+    parse_structured_citations,
     parse_verse_reference,
 )
 
@@ -646,3 +648,128 @@ class TestParseVerseReferenceNonEnglish:
         result = parse_verse_reference("성경 요한복음 3:16 말씀")
         assert result is not None
         assert result.book == "John"
+
+    def test_chinese_preceded_by_cjk_text(self):
+        """Chinese book name preceded by other CJK chars (CJK lookbehind fix)."""
+        result = parse_verse_reference("根据约翰福音 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_in_sentence(self):
+        """Hindi verse reference within a longer sentence."""
+        result = parse_verse_reference("यूहन्ना 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+
+class TestExtractAllReferences:
+    """Tests for extract_all_references function (multi-verse extraction)."""
+
+    def test_single_verse(self):
+        """Single verse returns one result."""
+        results = extract_all_references("John 3:16")
+        assert len(results) == 1
+        assert results[0].book == "John"
+
+    def test_multiple_verses(self):
+        """Multiple verses in text are all extracted."""
+        text = "As it says in John 3:16 and also Romans 8:28, we have hope."
+        results = extract_all_references(text)
+        assert len(results) == 2
+        books = {r.book for r in results}
+        assert "John" in books
+        assert "Romans" in books
+
+    def test_many_verses(self):
+        """Many verses in a response are all found."""
+        text = (
+            "Consider John 3:16, Romans 8:28, Psalm 23:1, "
+            "and Genesis 1:1 for encouragement."
+        )
+        results = extract_all_references(text)
+        assert len(results) == 4
+
+    def test_deduplication(self):
+        """Same verse mentioned twice is only returned once."""
+        text = "John 3:16 is wonderful. Yes, John 3:16 is amazing."
+        results = extract_all_references(text)
+        assert len(results) == 1
+
+    def test_no_verses(self):
+        """Text with no verses returns empty list."""
+        results = extract_all_references("I need some encouragement today")
+        assert results == []
+
+    def test_chinese_multiple(self):
+        """Multiple Chinese verses are extracted."""
+        text = "根据约翰福音 3:16 和罗马书 8:28"
+        results = extract_all_references(text)
+        assert len(results) == 2
+        books = {r.book for r in results}
+        assert "John" in books
+        assert "Romans" in books
+
+    def test_mixed_languages(self):
+        """Mixed English and localized verse refs in same text."""
+        text = "Giovanni 3:16 is the same as John 3:16"
+        results = extract_all_references(text)
+        # Both match "John" — deduplicated
+        assert len(results) == 1
+        assert results[0].book == "John"
+
+
+class TestParseStructuredCitations:
+    """Tests for parse_structured_citations function."""
+
+    def test_single_citation(self):
+        """Parse single citation from HTML comment."""
+        text = "Some response text.\n<!-- VERSES: John 3:16 -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 1
+        assert results[0].book == "John"
+        assert results[0].chapter == 3
+        assert results[0].verse_start == 16
+
+    def test_multiple_citations(self):
+        """Parse multiple semicolon-separated citations."""
+        text = "Response.\n<!-- VERSES: John 3:16; Romans 8:28; Psalm 23:1 -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 3
+        books = [r.book for r in results]
+        assert books == ["John", "Romans", "Psalms"]
+
+    def test_no_comment(self):
+        """No VERSES comment returns empty list."""
+        text = "Just a normal response without citations."
+        results = parse_structured_citations(text)
+        assert results == []
+
+    def test_empty_comment(self):
+        """Empty VERSES comment returns empty list."""
+        text = "Response.\n<!-- VERSES:  -->"
+        results = parse_structured_citations(text)
+        assert results == []
+
+    def test_verse_range_in_citation(self):
+        """Verse range in structured citation."""
+        text = "<!-- VERSES: Romans 8:28-30 -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 1
+        assert results[0].verse_end == 30
+
+    def test_citation_with_extra_whitespace(self):
+        """Citations with extra whitespace are handled."""
+        text = "<!--  VERSES:  John 3:16 ;  Romans 8:28  -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 2
+
+    def test_citation_in_middle_of_text(self):
+        """VERSES comment embedded in longer text."""
+        text = "Here is my response about love.\n\n<!-- VERSES: 1 Corinthians 13:4 -->\n\nMore text."
+        results = parse_structured_citations(text)
+        assert len(results) == 1
+        assert results[0].book == "1 Corinthians"
