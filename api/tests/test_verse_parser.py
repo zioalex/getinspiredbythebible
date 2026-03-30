@@ -627,6 +627,74 @@ class TestParseVerseReferenceNonEnglish:
         assert result is not None
         assert result.book == "1 Corinthians"
 
+    # ── Arabic ────────────────────────────────────────────────────────────────
+
+    def test_arabic_john(self):
+        """Arabic John 'يوحنا 3:16' → John."""
+        result = parse_verse_reference("يوحنا 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_arabic_genesis(self):
+        """Arabic Genesis 'تكوين 1:1' → Genesis."""
+        result = parse_verse_reference("تكوين 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_arabic_psalms_canonical(self):
+        """Arabic Psalms canonical form 'المزامير 23:1' → Psalms."""
+        result = parse_verse_reference("المزامير 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_arabic_psalms_singular_citation(self):
+        """Arabic Psalms singular citation 'مزمور 139:12' → Psalms."""
+        result = parse_verse_reference("مزمور 139:12")
+        assert result is not None
+        assert result.book == "Psalms"
+        assert result.chapter == 139
+        assert result.verse_start == 12
+
+    def test_arabic_psalms_plural_no_article(self):
+        """Arabic Psalms plural without article 'مزامير 23:1' → Psalms."""
+        result = parse_verse_reference("مزامير 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_arabic_proverbs_no_article(self):
+        """Arabic Proverbs without article 'أمثال 3:5' → Proverbs."""
+        result = parse_verse_reference("أمثال 3:5")
+        assert result is not None
+        assert result.book == "Proverbs"
+
+    def test_arabic_revelation_no_article(self):
+        """Arabic Revelation without article 'رؤيا 21:4' → Revelation."""
+        result = parse_verse_reference("رؤيا 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_arabic_judges_no_article(self):
+        """Arabic Judges without article 'قضاة 4:4' → Judges."""
+        result = parse_verse_reference("قضاة 4:4")
+        assert result is not None
+        assert result.book == "Judges"
+
+    def test_arabic_1_samuel(self):
+        """Arabic 1 Samuel '1 صموئيل 17:45' → 1 Samuel."""
+        result = parse_verse_reference("1 صموئيل 17:45")
+        assert result is not None
+        assert result.book == "1 Samuel"
+
+    def test_arabic_in_sentence(self):
+        """Arabic verse reference within a longer sentence."""
+        result = parse_verse_reference("كما جاء في مزمور 139:12 عن نور الله")
+        assert result is not None
+        assert result.book == "Psalms"
+        assert result.chapter == 139
+        assert result.verse_start == 12
+
     # ── Verse-in-sentence tests ───────────────────────────────────────────────
 
     def test_russian_in_sentence(self):

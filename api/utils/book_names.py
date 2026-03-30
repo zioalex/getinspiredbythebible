@@ -42,6 +42,13 @@ SPANISH_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_SPANISH.items(
 FRENCH_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_FRENCH.items()}
 PORTUGUESE_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_PORTUGUESE.items()}
 ARABIC_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_ARABIC.items()}
+ARABIC_TO_ENGLISH.update(
+    {
+        alias: eng
+        for alias, eng in EXTRA_REVERSE_MAPPINGS.items()
+        if any(0x0600 <= ord(c) <= 0x06FF for c in alias)  # Arabic Unicode block
+    }
+)
 RUSSIAN_TO_ENGLISH: dict[str, str] = {v: k for k, v in ENGLISH_TO_RUSSIAN.items()}
 RUSSIAN_TO_ENGLISH.update(
     {
