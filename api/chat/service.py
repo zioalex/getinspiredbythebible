@@ -753,15 +753,21 @@ Keep it under 100 words."""
                 all_verses[key] = None
 
         verses_cited = list(all_verses.keys())
-        if verses_cited:
-            logger.info(
-                "Verses cited in response",
-                extra={
-                    "structured_count": len(structured),
-                    "regex_count": len(regex_extracted),
-                    "total_unique": len(verses_cited),
-                },
-            )
+
+        # Track LLM structured output compliance — helps decide whether to
+        # invest in tool/function calling as a more reliable mechanism.
+        has_structured = len(structured) > 0
+        has_regex = len(regex_extracted) > 0
+        logger.info(
+            "Verse extraction completed",
+            extra={
+                "structured_count": len(structured),
+                "regex_count": len(regex_extracted),
+                "total_unique": len(verses_cited),
+                "llm_structured_present": has_structured,
+                "regex_only": has_regex and not has_structured,
+            },
+        )
 
         yield {
             "type": "completion",

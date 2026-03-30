@@ -310,6 +310,11 @@ def _build_verse_pattern() -> str:
     return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff]))({book_alternatives})\s*{cv_pattern}"
 
 
+# Compiled regex cached at module load time — avoids rebuilding the ~710-term
+# alternation pattern on every call to parse_verse_reference / extract_all_references.
+_VERSE_PATTERN = re.compile(_build_verse_pattern(), re.IGNORECASE)
+
+
 def _match_to_verse_reference(match: re.Match) -> VerseReference | None:
     """Convert a regex match to a VerseReference, or None if book can't be normalized."""
     book_raw = match.group(1).strip()
@@ -350,8 +355,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     Returns:
         VerseReference if found, None otherwise
     """
-    pattern = _build_verse_pattern()
-    match = re.search(pattern, text, re.IGNORECASE)
+    match = _VERSE_PATTERN.search(text)
     if not match:
         return None
     return _match_to_verse_reference(match)
@@ -371,11 +375,10 @@ def extract_all_references(text: str) -> list[VerseReference]:
     Returns:
         List of all VerseReference objects found (deduplicated)
     """
-    pattern = _build_verse_pattern()
     results: list[VerseReference] = []
     seen: set[str] = set()
 
-    for match in re.finditer(pattern, text, re.IGNORECASE):
+    for match in _VERSE_PATTERN.finditer(text):
         ref = _match_to_verse_reference(match)
         if ref:
             key = str(ref)
