@@ -12,7 +12,7 @@ pgvector==0.4.2
 
 # HTTP Client (for LLM providers)
 httpx==0.28.1
-aiohttp==3.13.3
+aiohttp==3.13.4
 
 # Anthropic (for Claude provider - optional)
 anthropic==0.84.0
