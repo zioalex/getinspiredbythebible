@@ -153,6 +153,8 @@
     <string name="action_retry">다시 시도</string>
     <string name="action_start_new_session">새 세션</string>
     <string name="action_share_message">메시지 공유</string>
+    <string name="action_copy_message">메시지 복사</string>
+    <string name="action_copied">복사됨</string>
     <string name="action_feedback_helpful">도움이 되었습니다</string>
     <string name="action_feedback_not_helpful">도움이 되지 않았습니다</string>
     <string name="feedback_thank_you">피드백 감사합니다!</string>

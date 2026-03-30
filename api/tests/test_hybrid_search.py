@@ -190,6 +190,7 @@ class TestScriptureSearchServiceHybrid:
         mock_verse.verse_number = 39
         mock_verse.translation = "kjv"
         mock_verse.book.name = "Mark"
+        mock_verse.reference = "Mark 4:39"
 
         with (
             patch.object(

@@ -153,6 +153,8 @@
     <string name="action_retry">Повторить</string>
     <string name="action_start_new_session">Новая сессия</string>
     <string name="action_share_message">Поделиться сообщением</string>
+    <string name="action_copy_message">Копировать сообщение</string>
+    <string name="action_copied">Скопировано</string>
     <string name="action_feedback_helpful">Это было полезно</string>
     <string name="action_feedback_not_helpful">Это было бесполезно</string>
     <string name="feedback_thank_you">Спасибо за ваш отзыв!</string>

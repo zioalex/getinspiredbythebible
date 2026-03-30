@@ -335,6 +335,7 @@ export default function Home() {
       // Streaming metadata and content
       let metadata: StreamMetadata | null = null;
       let streamedContent = "";
+      let receivedCompletion = false;
       let assistantMessageIndex = -1;
 
       // Create a placeholder assistant message that will be updated as content streams
@@ -415,21 +416,38 @@ export default function Home() {
             }
             return updated;
           });
+        } else if (chunk.type === "completion" && chunk.verses_cited) {
+          // Server-provided verse citations (dual-source: LLM structured + regex)
+          receivedCompletion = true;
+          const serverCited = (chunk.verses_cited as string[]).map(
+            (v: string) => v.toLowerCase(),
+          );
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              updated[assistantMessageIndex] = {
+                ...msg,
+                versesCited: serverCited,
+              };
+            }
+            return updated;
+          });
         }
       }
 
-      // After streaming completes, extract actual verse citations from the response text
-      // (not from search results metadata — those are all semantically relevant verses,
-      // not necessarily the ones the assistant actually cited in its response)
-      const citedRefs = Array.from(extractVerseReferences(streamedContent));
-      setMessages((prev) => {
-        const updated = [...prev];
-        const msg = updated[assistantMessageIndex];
-        if (msg && msg.role === "assistant") {
-          updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
-        }
-        return updated;
-      });
+      // Fallback: if no completion event received, extract client-side
+      if (!receivedCompletion) {
+        const citedRefs = Array.from(extractVerseReferences(streamedContent));
+        setMessages((prev) => {
+          const updated = [...prev];
+          const msg = updated[assistantMessageIndex];
+          if (msg && msg.role === "assistant") {
+            updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
+          }
+          return updated;
+        });
+      }
 
       // Stream complete - increment interaction count for church finder
       setInteractionCount((prev) => {

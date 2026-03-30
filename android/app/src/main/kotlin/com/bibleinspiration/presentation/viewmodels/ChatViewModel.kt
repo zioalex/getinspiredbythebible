@@ -335,6 +335,7 @@ class ChatViewModel @Inject constructor(
 
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
+            var finalVersesCited: List<String> = emptyList()
             var didError = false
             var metadataMessageId = ""
 
@@ -377,6 +378,7 @@ class ChatViewModel @Inject constructor(
                             verses = finalVerses,
                             isStreaming = false,
                             messageId = metadataMessageId,
+                            versesCited = finalVersesCited,
                         )
                         // Persist finished assistant message and bump conversation timestamp.
                         repository.saveMessage(conversationId, finalAssistant)
@@ -420,7 +422,7 @@ class ChatViewModel @Inject constructor(
                     }
 
                     // Handle metadata events (sent before content chunks).
-                    if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
+                    if (chunk.type == "metadata") {
                         metadataMessageId = chunk.messageId
                         // Verses are delivered in the metadata event via scripture_context.
                         if (chunk.verses.isNotEmpty()) finalVerses = chunk.verses
@@ -434,6 +436,14 @@ class ChatViewModel @Inject constructor(
                                 },
                                 detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
                             )
+                        }
+                        return@collect
+                    }
+
+                    // Handle completion event with server-extracted verse citations.
+                    if (chunk.type == "completion") {
+                        if (chunk.versesCited.isNotEmpty()) {
+                            finalVersesCited = chunk.versesCited
                         }
                         return@collect
                     }

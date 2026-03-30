@@ -156,6 +156,8 @@
     <string name="action_retry">Retry</string>
     <string name="action_start_new_session">Start New Session</string>
     <string name="action_share_message">Share message</string>
+    <string name="action_copy_message">Copy message</string>
+    <string name="action_copied">Copied</string>
 
     <!-- Feedback -->
     <string name="action_feedback_helpful">This was helpful</string>

@@ -49,4 +49,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     messageId = messageId,
     model = model,
     detectedTranslation = detectedTranslation,
+    type = type,
+    versesCited = versesCited,
 )
