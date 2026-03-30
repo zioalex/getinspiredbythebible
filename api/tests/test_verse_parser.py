@@ -686,10 +686,7 @@ class TestExtractAllReferences:
 
     def test_many_verses(self):
         """Many verses in a response are all found."""
-        text = (
-            "Consider John 3:16, Romans 8:28, Psalm 23:1, "
-            "and Genesis 1:1 for encouragement."
-        )
+        text = "Consider John 3:16, Romans 8:28, Psalm 23:1, " "and Genesis 1:1 for encouragement."
         results = extract_all_references(text)
         assert len(results) == 4
 
@@ -769,7 +766,9 @@ class TestParseStructuredCitations:
 
     def test_citation_in_middle_of_text(self):
         """VERSES comment embedded in longer text."""
-        text = "Here is my response about love.\n\n<!-- VERSES: 1 Corinthians 13:4 -->\n\nMore text."
+        text = (
+            "Here is my response about love.\n\n<!-- VERSES: 1 Corinthians 13:4 -->\n\nMore text."
+        )
         results = parse_structured_citations(text)
         assert len(results) == 1
         assert results[0].book == "1 Corinthians"

@@ -359,7 +359,7 @@ export interface StreamMetadata {
 }
 
 export interface StreamChunk {
-  type: "metadata" | "content" | "error";
+  type: "metadata" | "content" | "error" | "completion";
   // For metadata type:
   message_id?: string;
   scripture_context?: ScriptureContext;
@@ -371,6 +371,8 @@ export interface StreamChunk {
   content?: string;
   // For error type:
   error?: string;
+  // For completion type:
+  verses_cited?: string[];
 }
 
 /**
