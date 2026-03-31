@@ -92,42 +92,42 @@ describe("extractVerseReferences", () => {
   it("should extract Italian book names", () => {
     const text = "Leggi Giovanni 3:16 per incoraggiamento";
     const refs = extractVerseReferences(text);
-    expect(refs.has("giovanni 3:16")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Italian book names with accents", () => {
     const text = "Considera Giosuè 1:9";
     const refs = extractVerseReferences(text);
-    expect(refs.has("giosuè 1:9")).toBe(true);
+    expect(refs.has("joshua 1:9")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German book names", () => {
     const text = "Lies Johannes 3:16 für Ermutigung";
     const refs = extractVerseReferences(text);
-    expect(refs.has("johannes 3:16")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German book names with umlauts", () => {
     const text = "Betrachte Römer 8:28";
     const refs = extractVerseReferences(text);
-    expect(refs.has("römer 8:28")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German numbered books with period", () => {
     const text = "Am Anfang steht 1. Mose 1:1";
     const refs = extractVerseReferences(text);
-    expect(refs.has("1. mose 1:1")).toBe(true);
+    expect(refs.has("genesis 1:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German book with umlauts and number", () => {
     const text = "Lese 2. Könige 5:14";
     const refs = extractVerseReferences(text);
-    expect(refs.has("2. könige 5:14")).toBe(true);
+    expect(refs.has("2 kings 5:14")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -274,11 +274,10 @@ describe("extractVerseReferences", () => {
   it("should not treat Italian conjunction 'e' as a book name", () => {
     const text = "Salmi 51:6 e 51:17 ci ricordano...";
     const refs = extractVerseReferences(text);
-    expect(refs.has("salmi 51:6")).toBe(true);
+    expect(refs.has("psalms 51:6")).toBe(true);
     // "e 51:17" should NOT be in refs
     expect(refs.has("e 51:17")).toBe(false);
-    // Salmi 51:17 may or may not be captured depending on implementation,
-    // but "e" must not be treated as a book
+    // "e" must not be treated as a book
     for (const ref of refs) {
       expect(ref).not.toMatch(/^e\s+\d+:\d+/);
     }
@@ -297,8 +296,8 @@ describe("extractVerseReferences", () => {
   it("should not treat German conjunction 'und' as a book name", () => {
     const text = "Johannes 3:16 und Römer 8:28";
     const refs = extractVerseReferences(text);
-    expect(refs.has("johannes 3:16")).toBe(true);
-    expect(refs.has("römer 8:28")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
     for (const ref of refs) {
       expect(ref).not.toMatch(/^und\s+\d+:\d+/);
     }
@@ -307,8 +306,8 @@ describe("extractVerseReferences", () => {
   it("should handle numbered book names with Italian conjunction", () => {
     const text = "1 Giovanni 2:15 e 2 Pietro 1:4";
     const refs = extractVerseReferences(text);
-    expect(refs.has("1 giovanni 2:15")).toBe(true);
-    expect(refs.has("2 pietro 1:4")).toBe(true);
+    expect(refs.has("1 john 2:15")).toBe(true);
+    expect(refs.has("2 peter 1:4")).toBe(true);
     for (const ref of refs) {
       expect(ref).not.toMatch(/^e\s+\d+:\d+/);
     }
@@ -328,8 +327,8 @@ describe("extractVerseReferences", () => {
   it("should handle verse ranges with conjunctions", () => {
     const text = "Psalm 23:1-6 and Psalm 91:1-2";
     const refs = extractVerseReferences(text);
-    expect(refs.has("psalm 23:1")).toBe(true);
-    expect(refs.has("psalm 91:1")).toBe(true);
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.has("psalms 91:1")).toBe(true);
     for (const ref of refs) {
       expect(ref).not.toMatch(/^and\s+\d+:\d+/);
     }
@@ -752,31 +751,31 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
 
   it("should extract Spanish John 'Juan 3:16'", () => {
     const refs = extractVerseReferences("Juan 3:16");
-    expect(refs.has("juan 3:16")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Spanish Genesis 'Génesis 1:1'", () => {
     const refs = extractVerseReferences("Génesis 1:1");
-    expect(refs.has("génesis 1:1")).toBe(true);
+    expect(refs.has("genesis 1:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Spanish Psalms 'Salmos 23:1'", () => {
     const refs = extractVerseReferences("Salmos 23:1");
-    expect(refs.has("salmos 23:1")).toBe(true);
+    expect(refs.has("psalms 23:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Spanish Romans 'Romanos 8:28'", () => {
     const refs = extractVerseReferences("Romanos 8:28");
-    expect(refs.has("romanos 8:28")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Spanish Revelation 'Apocalipsis 21:4'", () => {
     const refs = extractVerseReferences("Apocalipsis 21:4");
-    expect(refs.has("apocalipsis 21:4")).toBe(true);
+    expect(refs.has("revelation 21:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -784,31 +783,31 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
 
   it("should extract French Genesis 'Genèse 1:1'", () => {
     const refs = extractVerseReferences("Genèse 1:1");
-    expect(refs.has("genèse 1:1")).toBe(true);
+    expect(refs.has("genesis 1:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract French John 'Jean 3:16'", () => {
     const refs = extractVerseReferences("Jean 3:16");
-    expect(refs.has("jean 3:16")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract French Psalms 'Psaumes 23:1'", () => {
     const refs = extractVerseReferences("Psaumes 23:1");
-    expect(refs.has("psaumes 23:1")).toBe(true);
+    expect(refs.has("psalms 23:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract French Romans 'Romains 8:28'", () => {
     const refs = extractVerseReferences("Romains 8:28");
-    expect(refs.has("romains 8:28")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract French Revelation 'Apocalypse 21:4'", () => {
     const refs = extractVerseReferences("Apocalypse 21:4");
-    expect(refs.has("apocalypse 21:4")).toBe(true);
+    expect(refs.has("revelation 21:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -816,31 +815,31 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
 
   it("should extract Italian Genesis 'Genesi 1:1'", () => {
     const refs = extractVerseReferences("Genesi 1:1");
-    expect(refs.has("genesi 1:1")).toBe(true);
+    expect(refs.has("genesis 1:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Italian Psalms 'Salmi 23:1'", () => {
     const refs = extractVerseReferences("Salmi 23:1");
-    expect(refs.has("salmi 23:1")).toBe(true);
+    expect(refs.has("psalms 23:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Italian Romans 'Romani 8:28'", () => {
     const refs = extractVerseReferences("Romani 8:28");
-    expect(refs.has("romani 8:28")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Italian Revelation 'Apocalisse 21:4'", () => {
     const refs = extractVerseReferences("Apocalisse 21:4");
-    expect(refs.has("apocalisse 21:4")).toBe(true);
+    expect(refs.has("revelation 21:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract Italian 1 Corinthians '1 Corinzi 13:4'", () => {
     const refs = extractVerseReferences("1 Corinzi 13:4");
-    expect(refs.has("1 corinzi 13:4")).toBe(true);
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -848,25 +847,25 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
 
   it("should extract German Revelation 'Offenbarung 21:4'", () => {
     const refs = extractVerseReferences("Offenbarung 21:4");
-    expect(refs.has("offenbarung 21:4")).toBe(true);
+    expect(refs.has("revelation 21:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German Psalms 'Psalmen 23:1'", () => {
     const refs = extractVerseReferences("Psalmen 23:1");
-    expect(refs.has("psalmen 23:1")).toBe(true);
+    expect(refs.has("psalms 23:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German Hebrews 'Hebräer 11:1'", () => {
     const refs = extractVerseReferences("Hebräer 11:1");
-    expect(refs.has("hebräer 11:1")).toBe(true);
+    expect(refs.has("hebrews 11:1")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
   it("should extract German 1 Corinthians '1. Korinther 13:4'", () => {
     const refs = extractVerseReferences("1. Korinther 13:4");
-    expect(refs.has("1. korinther 13:4")).toBe(true);
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -886,7 +885,7 @@ describe("extractVerseReferences — comprehensive cross-language coverage", () 
 
   it("should extract references from text mixing Italian and English", () => {
     const refs = extractVerseReferences("See Giovanni 3:16 and Romans 8:28");
-    expect(refs.has("giovanni 3:16")).toBe(true);
+    expect(refs.has("john 3:16")).toBe(true);
     expect(refs.has("romans 8:28")).toBe(true);
     expect(refs.size).toBe(2);
   });
@@ -1046,24 +1045,24 @@ describe("extractVerseReferences — Russian multi-word books", () => {
 });
 
 // ── Cross-language regression guard ──────────────────────────────────────────
-// Verifies that at least one representative verse per language can be extracted.
-// Portuguese, Arabic, Hindi are tested via the API-driven flow (updateBookNames).
-// Russian, Chinese, Korean: already normalized in the original map.
-// Italian, German, Spanish, French: extracted but NOT fully normalized to English
-// (their Western forms pass through as-is, since adding full normalization maps
-//  would break the existing extraction tests for those languages).
+// Verifies that at least one representative verse per language can be extracted
+// and normalized to English.  All 11 languages now have bundled normalization
+// maps in LOCALIZED_BOOK_TO_ENGLISH, so every language normalizes to English.
 
 describe("extractVerseReferences — cross-language regression guard", () => {
   it("should extract at least one book name per language", () => {
     // [input, expected ref in the Set]
     const perLanguageSamples: [string, string][] = [
-      ["Иоанна 3:16", "john 3:16"], // ru — normalized via map
-      ["约翰福音 3:16", "john 3:16"], // zh — normalized via map
-      ["요한복음 3:16", "john 3:16"], // ko — normalized via map
-      ["Giovanni 3:16", "giovanni 3:16"], // it — extracted (not normalized)
-      ["Johannes 3:16", "johannes 3:16"], // de — extracted (not normalized)
-      ["Juan 3:16", "juan 3:16"], // es — extracted (not normalized)
-      ["Jean 3:16", "jean 3:16"], // fr — extracted (not normalized)
+      ["Иоанна 3:16", "john 3:16"], // ru
+      ["约翰福音 3:16", "john 3:16"], // zh
+      ["요한복음 3:16", "john 3:16"], // ko
+      ["Giovanni 3:16", "john 3:16"], // it
+      ["Johannes 3:16", "john 3:16"], // de
+      ["Juan 3:16", "john 3:16"], // es
+      ["Jean 3:16", "john 3:16"], // fr
+      ["João 3:16", "john 3:16"], // pt
+      ["يوحنا 3:16", "john 3:16"], // ar
+      ["यूहन्ना 3:16", "john 3:16"], // hi
       ["John 3:16", "john 3:16"], // en
     ];
     for (const [input, expected] of perLanguageSamples) {
@@ -1076,25 +1075,31 @@ describe("extractVerseReferences — cross-language regression guard", () => {
 });
 
 // ── Multi-word book name matrix ───────────────────────────────────────────────
-// Verifies multi-word book names are captured as a single token (not truncated).
-// Arabic/Hindi/Korean/Portuguese multi-word entries are now tested via the
-// API-driven flow (updateBookNames) and have been removed from this matrix.
-// French/Italian entries are extracted but remain in their localized form
-// (since normalization maps for those languages are not in LOCALIZED_BOOK_TO_ENGLISH).
+// Verifies multi-word book names are captured as a single token (not truncated)
+// and normalized to English across all languages.
 
 describe("extractVerseReferences — multi-word book name matrix", () => {
   it("should capture multi-word book names as a single token across all languages", () => {
     const multiWordCases: [string, string][] = [
-      // Russian multi-word — normalized
+      // Russian multi-word
       ["Плач Иеремии 3:3", "lamentations 3:3"],
       ["Песня Песней 1:1", "song of solomon 1:1"],
       ["Деяния Апостолов 2:38", "acts 2:38"],
-      // English multi-word — normalized (connector-word branch)
+      // English multi-word
       ["Song of Solomon 1:1", "song of solomon 1:1"],
-      // French multi-word — captured but NOT normalized (no French map)
-      ["Cantique des Cantiques 1:1", "cantique des cantiques 1:1"],
-      // Italian multi-word — captured but NOT normalized (no Italian map)
-      ["Cantico dei Cantici 1:1", "cantico dei cantici 1:1"],
+      // French multi-word — now normalized to English
+      ["Cantique des Cantiques 1:1", "song of solomon 1:1"],
+      // Italian multi-word — now normalized to English
+      ["Cantico dei Cantici 1:1", "song of solomon 1:1"],
+      // Arabic multi-word
+      ["أعمال الرسل 2:38", "acts 2:38"],
+      ["مراثي إرميا 3:22", "lamentations 3:22"],
+      ["نشيد الأنشاد 2:1", "song of solomon 2:1"],
+      // Hindi multi-word
+      ["भजन संहिता 23:1", "psalms 23:1"],
+      ["प्रेरितों के काम 2:38", "acts 2:38"],
+      // Portuguese multi-word
+      ["Cântico dos Cânticos 1:1", "song of solomon 1:1"],
     ];
     for (const [input, expected] of multiWordCases) {
       const refs = extractVerseReferences(input);
