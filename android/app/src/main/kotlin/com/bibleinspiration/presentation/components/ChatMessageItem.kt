@@ -92,9 +92,10 @@ internal data class PendingVerseLink(
  */
 // Book-name sub-pattern (multi-word, with connector words like "of", "de", "van", …).
 // First character must be \p{Lu} (uppercase Latin/Cyrillic) or \p{Lo} (CJK/other caseless).
+// Connector words include Western (of, de, des, …), Hindi (के), and Arabic article (ال).
 private val BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)" +
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af|के|ال)" +
         "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
@@ -106,9 +107,10 @@ private val BOOK_NAME =
 
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
-    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
-    // Allows additional capitalised words after the prefix-book (e.g. "1 Corinthians", "2. Könige")
-    "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. ", "1-я "), colon REQUIRED
+    // [\s.\-] also accepts dash for Russian Synodal style (e.g. "1-я Царств", "1-е Коринфянам").
+    // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
+    "([1-3][\\s.\\-][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
@@ -147,8 +149,8 @@ internal fun buildVerseRefRegex(multiWordNames: List<String>): Regex {
     val dynamicBookName = "(?:$escapedAlternations|$BOOK_NAME)"
 
     return Regex(
-        // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
-        "([1-3][\\s.][\\s]?$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+        // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. ", "1-я "), colon REQUIRED
+        "([1-3][\\s.\\-][\\s]?$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
             "|" +
             // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
             "($dynamicBookName)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
