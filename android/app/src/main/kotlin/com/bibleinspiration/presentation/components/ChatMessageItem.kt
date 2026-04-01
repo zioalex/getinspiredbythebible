@@ -108,10 +108,11 @@ private val BOOK_NAME =
 
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
-    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. ", "1-я "), colon REQUIRED
-    // [\s.\-] also accepts dash for Russian Synodal style (e.g. "1-я Царств", "1-е Коринфянам").
+    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED.
+    // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
+    // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
     // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
-    "([1-3][\\s.\\-][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
@@ -150,8 +151,8 @@ internal fun buildVerseRefRegex(multiWordNames: List<String>): Regex {
     val dynamicBookName = "(?:$escapedAlternations|$BOOK_NAME)"
 
     return Regex(
-        // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. ", "1-я "), colon REQUIRED
-        "([1-3][\\s.\\-][\\s]?$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+        // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
             "|" +
             // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
             "($dynamicBookName)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
