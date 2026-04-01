@@ -145,6 +145,7 @@
     dependency (Kotlin/Gradle tooling). Netty is not packaged into the APK.
     CVE-2025-24970, CVE-2025-55163: Netty SslHandler / HTTP decoder vulnerabilities.
     CVE-2025-58056, CVE-2025-58057: Netty vulnerabilities (below CVSS 7 threshold but flagged).
+    CVE-2026-33871, CVE-2026-33870: Netty vulnerabilities (build-time only, not in APK).
     CVE-2023-44487: HTTP/2 Rapid Reset (same as gRPC above, server-side only).
   -->
   <suppress>
@@ -170,6 +171,18 @@
       dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
     </notes>
     <cve>CVE-2025-58057</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2026-33871: Netty vulnerability. Netty is a build-time transitive
+      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2026-33871</cve>
+  </suppress>
+  <suppress>
+    <notes>CVE-2026-33870: Netty vulnerability. Netty is a build-time transitive
+      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    </notes>
+    <cve>CVE-2026-33870</cve>
   </suppress>
 
   <!--
