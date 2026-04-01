@@ -68,17 +68,19 @@
   </suppress>
 
   <!--
-    gRPC 1.57.0 — CVE-2023-44487 (HTTP/2 Rapid Reset Attack).
+    gRPC (io.grpc) — all modules, build-time only, NOT in the APK.
     gRPC is a transitive build-time dependency pulled in via Kotlin/Android tooling.
-    This CVE applies to gRPC servers handling HTTP/2 connections; the Android app
-    does not expose an HTTP/2 server endpoint.
+    The Android app does not expose an HTTP/2 server endpoint. All gRPC CVEs
+    (e.g. CVE-2023-44487, CVE-2023-33953, CVE-2023-32732) are server-side only.
   -->
   <suppress>
-    <notes>CVE-2023-44487: HTTP/2 Rapid Reset Attack. gRPC here is a build-time
-      transitive dependency. The Android app does not run a gRPC/HTTP2 server.
-      Not applicable to client-only Android usage.
+    <notes>False positive / build-time only: io.grpc artifacts (all modules).
+      gRPC is a transitive dependency of Kotlin / Gradle tooling.
+      It is NOT shipped in the APK. The Android app does not run a gRPC server.
+      All gRPC CVEs are server-side and inapplicable. cvssBelow:10 suppresses all matches.
     </notes>
-    <cve>CVE-2023-44487</cve>
+    <packageUrl regex="true">pkg:maven/io\.grpc/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
@@ -114,62 +116,49 @@
   </suppress>
 
   <!--
-    protobuf / protobuf-java various versions — CVE-2024-7254, CVE-2022-3171, CVE-2015-5237.
+    protobuf / protobuf-java — build-time only, NOT in the APK.
     These are build-time transitive dependencies bundled inside Kotlin compiler JARs
     and Gradle plugin JARs (kotlin-compiler, kotlin-gradle-plugin-idea-proto).
     The embedded protobuf instances are not directly accessible from app code.
+    Known CVEs: CVE-2024-7254 (StackOverflow), CVE-2022-3171 (DoS), CVE-2015-5237 (overflow).
   -->
   <suppress>
-    <notes>CVE-2024-7254: protobuf-java StackOverflow vulnerability. The protobuf versions
-      flagged are embedded inside Kotlin compiler / Gradle plugin JARs (build-time only)
-      and are not shipped in the APK.
+    <notes>False positive / build-time only: com.google.protobuf artifacts (all modules).
+      Protobuf JARs are embedded inside Kotlin compiler / Gradle plugin JARs and are
+      NOT shipped in the APK. cvssBelow:10 suppresses all matches.
     </notes>
-    <cve>CVE-2024-7254</cve>
-  </suppress>
-  <suppress>
-    <notes>CVE-2022-3171: protobuf-java DoS vulnerability. The protobuf version (2.6.1)
-      is embedded in the Kotlin compiler JAR (build-time only) and is not shipped in the APK.
-    </notes>
-    <cve>CVE-2022-3171</cve>
-  </suppress>
-  <suppress>
-    <notes>CVE-2015-5237: protobuf integer overflow. The protobuf version (2.6.1)
-      is embedded in the Kotlin compiler JAR (build-time only) and is not shipped in the APK.
-    </notes>
-    <cve>CVE-2015-5237</cve>
+    <packageUrl regex="true">pkg:maven/com\.google\.protobuf/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
-    Netty 4.1.93.Final — multiple CVEs.
+    Netty (io.netty) — all modules, build-time only, NOT in the APK.
     Netty is a transitive dependency pulled in by gRPC which is itself a build-time
     dependency (Kotlin/Gradle tooling). Netty is not packaged into the APK.
-    CVE-2025-24970, CVE-2025-55163: Netty SslHandler / HTTP decoder vulnerabilities.
-    CVE-2025-58056, CVE-2025-58057: Netty vulnerabilities (below CVSS 7 threshold but flagged).
-    CVE-2023-44487: HTTP/2 Rapid Reset (same as gRPC above, server-side only).
+    The Android app does not run any Netty server (HTTP, HTTP/2, or gRPC).
+
+    Rather than chasing individual CVEs as they appear in the NVD, we suppress ALL
+    io.netty artifacts by packageUrl. This is the same approach used for Firebase,
+    Play Services, and other build-time-only dependency groups.
+
+    Known CVEs suppressed:
+      CVE-2023-44487: HTTP/2 Rapid Reset (server-side only).
+      CVE-2025-24970: Netty SslHandler DoS (CVSS 7.5).
+      CVE-2025-55163: Netty HTTP/2 "MadeYouReset" DoS (CVSS 7.5).
+      CVE-2025-58056, CVE-2025-58057: Netty vulnerabilities.
+      CVE-2025-67735: Netty CRLF injection (CVSS 6.5).
+      CVE-2026-33870: Netty HTTP/1.1 request smuggling (CVSS 7.5).
+      CVE-2026-33871: Netty HTTP/2 CONTINUATION flood DoS (CVSS 7.5).
   -->
   <suppress>
-    <notes>CVE-2025-24970: Netty SslHandler vulnerability. Netty is a build-time
-      transitive dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
+    <notes>False positive / build-time only: io.netty artifacts (all modules).
+      Netty is a transitive dependency of gRPC / Kotlin / Gradle tooling.
+      It is NOT shipped in the APK. The Android app does not run any Netty server.
+      All Netty CVEs (server DoS, request smuggling, CRLF injection, etc.) are
+      inapplicable to this client-only Android app. cvssBelow:10 suppresses all matches.
     </notes>
-    <cve>CVE-2025-24970</cve>
-  </suppress>
-  <suppress>
-    <notes>CVE-2025-55163: Netty HTTP decoder vulnerability. Netty is a build-time
-      transitive dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
-    </notes>
-    <cve>CVE-2025-55163</cve>
-  </suppress>
-  <suppress>
-    <notes>CVE-2025-58056: Netty vulnerability. Netty is a build-time transitive
-      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
-    </notes>
-    <cve>CVE-2025-58056</cve>
-  </suppress>
-  <suppress>
-    <notes>CVE-2025-58057: Netty vulnerability. Netty is a build-time transitive
-      dependency (via gRPC/Gradle tooling) and is not shipped in the APK.
-    </notes>
-    <cve>CVE-2025-58057</cve>
+    <packageUrl regex="true">pkg:maven/io\.netty/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
   </suppress>
 
   <!--
@@ -686,6 +675,40 @@
     </notes>
     <packageUrl regex="true">pkg:maven/com\.google\.guava/guava.*</packageUrl>
     <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <!--
+    ============================================================
+    Additional build-time-only dependencies (NOT in the APK)
+    ============================================================
+  -->
+
+  <!--
+    BouncyCastle (org.bouncycastle) — build-time only.
+    AGP uses BouncyCastle for APK/AAB signing during the Gradle build.
+    BouncyCastle JARs are NOT shipped in the APK. The Android platform provides
+    its own crypto provider (Conscrypt) at runtime.
+  -->
+  <suppress>
+    <notes>False positive / build-time only: org.bouncycastle artifacts.
+      Used by AGP for APK signing at build time. NOT shipped in the APK.
+      Android uses Conscrypt as its crypto provider at runtime.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.bouncycastle/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <!--
+    Gson (com.google.code.gson) — transitive runtime dep of Firebase SDK.
+    CVE-2025-53864 is a false positive: the CVE is for Connect2id Nimbus JOSE+JWT,
+    not Gson itself. OWASP incorrectly matches Gson because Nimbus uses Gson internally.
+    This project does not use Nimbus JOSE+JWT.
+  -->
+  <suppress>
+    <notes>CVE-2025-53864: False positive. This CVE is for Connect2id Nimbus JOSE+JWT,
+      not Gson. OWASP incorrectly matches Gson. This project does not use Nimbus.
+    </notes>
+    <cve>CVE-2025-53864</cve>
   </suppress>
 
   <!--

@@ -111,7 +111,7 @@ export function getMultiWordAlternation(): string {
  *  1. Multi-word localized book names auto-generated from LOCALIZED_BOOK_TO_ENGLISH
  *     (e.g. Russian: Плач Иеремии, Песня Песней; plus any names loaded via API)
  *  2. Multi-word books joined by a connector word (Song of Solomon, Cantique des Cantiques…)
- *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige…)
+ *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige, 1 أخبار الأيام…)
  *  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
  *  5. Any single Unicode word ≥2 chars (covers all remaining single-word books)
  *
@@ -127,11 +127,13 @@ function buildPatternSource(): string {
 
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // [\p{Script=Han}]  — CJK ideographs (Chinese, Japanese Kanji)
+  // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
+  //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
   _cachedPatternSource =
     `(?<!\\p{L})(${multiWordPart}` +
-    `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af)\\s+[\\p{L}\\p{M}]+)+` +
-    `|\\d+\\.?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)?` +
-    `|[\\p{Script=Han}]+` +
+    `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
+    `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
+    `|[\\p{Script=Han}]{2,}` +
     `|[\\p{L}\\p{M}]{2,})\\s+(\\d+):(\\d+)(?:-\\d+)?`;
 
   return _cachedPatternSource;

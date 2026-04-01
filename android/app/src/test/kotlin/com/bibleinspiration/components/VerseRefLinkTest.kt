@@ -1,5 +1,6 @@
 package com.bibleinspiration.components
 
+import com.bibleinspiration.presentation.components.buildVerseRefRegex
 import com.bibleinspiration.presentation.components.handleVerseLink
 import com.bibleinspiration.presentation.components.injectVerseLinks
 import org.junit.Assert.assertEquals
@@ -331,6 +332,110 @@ class VerseRefLinkTest {
         val input = "창세기 1:1은 시작"
         val result = injectVerseLinks(input)
         assertTrue(result.contains("[창세기 1:1]"))
+    }
+
+    // ── Non-English book names: Arabic ─────────────────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Arabic single-word book يوحنا`() {
+        val input = "كما جاء في يوحنا 3:16 أن الله أحب العالم"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[يوحنا 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic numbered book 1 كورنثوس`() {
+        val input = "1 كورنثوس 13:4 عن المحبة"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[1 كورنثوس 13:4]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic Psalms المزامير`() {
+        val input = "المزامير 23:1 مزمور الراعي"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[المزامير 23:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic Revelation الرؤيا`() {
+        val input = "الرؤيا 21:4 عن السماء الجديدة"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[الرؤيا 21:4]"))
+    }
+
+    // ── Non-English book names: Hindi ────────────────────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Hindi single-word book यूहन्ना`() {
+        val input = "जैसा कि यूहन्ना 3:16 में लिखा है"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[यूहन्ना 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Hindi numbered book 1 कुरिन्थियों`() {
+        val input = "1 कुरिन्थियों 13:4 प्रेम के बारे में"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[1 कुरिन्थियों 13:4]"))
+    }
+
+    // ── Non-English book names: Arabic/Hindi multi-word with dynamic regex ──
+
+    @Test
+    fun `buildVerseRefRegex wraps Arabic multi-word Acts أعمال الرسل`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("أعمال الرسل", "مراثي إرميا", "نشيد الأنشاد")
+        )
+        val input = "أعمال الرسل 2:38 عن المعمودية"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Arabic Acts", result.contains("[أعمال الرسل 2:38]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Arabic multi-word Lamentations مراثي إرميا`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("أعمال الرسل", "مراثي إرميا")
+        )
+        val input = "مراثي إرميا 3:22 عن الرحمة"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Arabic Lamentations", result.contains("[مراثي إرميا 3:22]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Hindi multi-word Psalms भजन संहिता`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("भजन संहिता", "प्रेरितों के काम")
+        )
+        val input = "भजन संहिता 23:1 में राहत है"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Hindi Psalms", result.contains("[भजन संहिता 23:1]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Hindi multi-word Acts प्रेरितों के काम`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("भजन संहिता", "प्रेरितों के काम")
+        )
+        val input = "प्रेरितों के काम 2:38 बपतिस्मा के बारे में"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Hindi Acts", result.contains("[प्रेरितों के काम 2:38]"))
+    }
+
+    // ── Russian Synodal dash-format numbered books ──────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Russian Synodal dash format 1-я Царств`() {
+        val input = "1-я Царств 1:1 рассказывает о Самуиле"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 1-я Царств", result.contains("[1-я Царств 1:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Russian Synodal dash format 1-е Коринфянам`() {
+        val input = "1-е Коринфянам 13:4 о любви"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 1-е Коринфянам", result.contains("[1-е Коринфянам 13:4]"))
     }
 
     // ── Edge cases ──────────────────────────────────────────────────────────
