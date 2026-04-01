@@ -376,6 +376,8 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   '2 صموئيل': '2 samuel',
   '1 الملوك': '1 kings',
   '2 الملوك': '2 kings',
+  '1 ملوك': '1 kings', // without article (LLM citation form)
+  '2 ملوك': '2 kings', // without article (LLM citation form)
   '1 أخبار الأيام': '1 chronicles',
   '2 أخبار الأيام': '2 chronicles',
   عزرا: 'ezra',
@@ -609,6 +611,26 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   иуды: 'jude',
   откровения: 'revelation',
 
+  // ── Russian (Synodal dash-format: "1-я", "1-е", "2-я", "3-я") ────────────
+  '1-я царств': '1 samuel',
+  '2-я царств': '2 samuel',
+  '3-я царств': '1 kings',
+  '4-я царств': '2 kings',
+  '1-я паралипоменон': '1 chronicles',
+  '2-я паралипоменон': '2 chronicles',
+  '1-е коринфянам': '1 corinthians',
+  '2-е коринфянам': '2 corinthians',
+  '1-е фессалоникийцам': '1 thessalonians',
+  '2-е фессалоникийцам': '2 thessalonians',
+  '1-е тимофею': '1 timothy',
+  '2-е тимофею': '2 timothy',
+  '1-е петра': '1 peter',
+  '2-е петра': '2 peter',
+  '1-е иоанна': '1 john',
+  '2-е иоанна': '2 john',
+  '3-е иоанна': '3 john',
+  '2-я петра': '2 peter',
+
   // ── Chinese (中文和合本 CUV) ───────────────────────────────────────────────
   创世记: 'genesis',
   出埃及记: 'exodus',
@@ -703,6 +725,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   이사야: 'isaiah',
   예레미야: 'jeremiah',
   예레미야애가: 'lamentations',
+  '예레미야 애가': 'lamentations', // canonical form with space
   에스겔: 'ezekiel',
   다니엘: 'daniel',
   호세아: 'hosea',
