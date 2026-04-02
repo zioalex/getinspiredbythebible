@@ -306,8 +306,11 @@ def _build_verse_pattern() -> str:
 
     cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
 
-    # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars
-    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff]))({book_alternatives})\s*{cv_pattern}"
+    # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars,
+    # or the left Chinese guillemet 《 (U+300A).
+    # The optional 》 (U+300B) after the book name handles Chinese guillemet notation
+    # like 《约翰福音》3:16.
+    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a]))({book_alternatives})\u300b?\s*{cv_pattern}"
 
 
 # Compiled regex cached at module load time — avoids rebuilding the ~710-term
