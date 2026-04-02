@@ -718,6 +718,7 @@ ENGLISH_TO_CHINESE: dict[str, str] = {
 CHINESE_ALIASES: dict[str, str] = {
     "\ufeff创世记": "Genesis",  # Genesis with UTF-8 BOM (getbible API feed artifact)
     "启示录": "Revelation",  # Revelation in Simplified characters (feed uses Traditional "啟示錄")
+    "创世纪": "Genesis",  # Common variant: 纪 (era) instead of CUV-canonical 记 (record)
 }
 
 # Korean Revised Version (개역개정 / krv)

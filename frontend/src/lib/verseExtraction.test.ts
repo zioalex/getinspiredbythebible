@@ -255,6 +255,12 @@ describe("extractVerseReferences", () => {
     expect(refs.has("john 3:16")).toBe(true);
   });
 
+  it("should extract '《创世纪》1:1' (variant 纪) as 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("《创世纪》1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
   // ── Korean citation tests ────────────────────────────────────────────────
 
   it("should normalize Korean '요한복음 3:16' to 'john 3:16'", () => {

@@ -633,6 +633,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
 
   // ── Chinese (中文和合本 CUV) ───────────────────────────────────────────────
   创世记: "genesis",
+  创世纪: "genesis", // common variant: 纪 (era) instead of CUV-canonical 记 (record)
   出埃及记: "exodus",
   利未记: "leviticus",
   民数记: "numbers",

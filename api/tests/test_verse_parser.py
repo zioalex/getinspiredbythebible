@@ -462,6 +462,14 @@ class TestParseVerseReferenceNonEnglish:
         assert "John" in books
         assert "Psalms" in books
 
+    def test_chinese_genesis_variant_ji(self):
+        """Chinese Genesis variant '创世纪' (with 纪) → Genesis."""
+        result = parse_verse_reference("《创世纪》1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
     # ── Korean ────────────────────────────────────────────────────────────────
 
     def test_korean_john(self):
