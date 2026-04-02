@@ -81,7 +81,17 @@ fun ChatScreen(
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val multiWordNames by viewModel.multiWordNames.collectAsState()
     val localizedToEnglish by viewModel.localizedToEnglish.collectAsState()
-    val verseRefRegex = remember(multiWordNames) { buildVerseRefRegex(multiWordNames) }
+    // Extract CJK (Han-script) book names from the localized map for no-space matching.
+    val cjkBookNames = remember(localizedToEnglish) {
+        localizedToEnglish.keys.filter { key ->
+            key.length >= 2 && key.all { ch ->
+                Character.UnicodeScript.of(ch.code) == Character.UnicodeScript.HAN
+            }
+        }.sortedByDescending { it.length }
+    }
+    val verseRefRegex = remember(multiWordNames, cjkBookNames) {
+        buildVerseRefRegex(multiWordNames, cjkBookNames)
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }

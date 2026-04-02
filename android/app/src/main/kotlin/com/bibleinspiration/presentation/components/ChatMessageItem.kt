@@ -106,6 +106,11 @@ private val BOOK_NAME =
 // \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
 // boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
 
+// Conditional whitespace sub-pattern: after a CJK (Han) character the space between
+// book name and chapter number is optional (\s*); otherwise at least one space is required (\s+).
+// This enables matching "约翰福音10:28" (Chinese no-space) while still requiring "John 3:16".
+private const val COND_WS = "(?:(?<=\\p{IsHan})\\s*|\\s+)"
+
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED.
@@ -118,12 +123,14 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
-        "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        // Uses COND_WS so CJK book names can abut the chapter number without a space.
+        "($BOOK_NAME)$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
  * Builds a [Regex] for matching verse references that includes explicit alternations for
- * [multiWordNames] (server-provided multi-word book names, sorted longest-first).
+ * [multiWordNames] (server-provided multi-word book names, sorted longest-first) and
+ * [cjkBookNames] (CJK book names that may appear without a space before the chapter number).
  *
  * Each name is regex-escaped and spaces are replaced with `\s+` for flexible whitespace
  * matching.  The multi-word names are embedded into the book-name sub-pattern so that the
@@ -131,31 +138,61 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
  *   - Groups 1–3: numbered-prefix match
  *   - Groups 4–6: un-prefixed match (with or without verse number)
  *
- * Falls back to [DEFAULT_VERSE_REF_REGEX] when [multiWordNames] is empty.
+ * When [cjkBookNames] are provided, the generic [BOOK_NAME] pattern is modified to exclude
+ * Han characters as a first character (`(?!\p{IsHan})`) so that only the explicit CJK
+ * alternation matches Chinese book names — preventing greedy over-matching in embedded text.
+ *
+ * Falls back to [DEFAULT_VERSE_REF_REGEX] when both lists are empty.
  */
-internal fun buildVerseRefRegex(multiWordNames: List<String>): Regex {
-    if (multiWordNames.isEmpty()) return DEFAULT_VERSE_REF_REGEX
+internal fun buildVerseRefRegex(
+    multiWordNames: List<String>,
+    cjkBookNames: List<String> = emptyList(),
+): Regex {
+    if (multiWordNames.isEmpty() && cjkBookNames.isEmpty()) return DEFAULT_VERSE_REF_REGEX
 
     // Escape regex special chars in each name, then replace spaces with \s+ for flexible
     // whitespace matching. We cannot use Regex.escape() here because it wraps the whole
     // string in \Q...\E, which prevents per-character manipulation. Instead we escape
     // only the characters that are special in Java regex and replace spaces with \s+.
     val regexSpecialChars = Regex("""[.+*?^${'$'}{}()\[\]|\\]""")
-    val escapedAlternations = multiWordNames.joinToString("|") { name ->
-        regexSpecialChars.replace(name) { "\\${it.value}" }
-            .replace(" ", "\\s+")
-    }
+    val escapedMultiWord = if (multiWordNames.isNotEmpty()) {
+        multiWordNames.joinToString("|") { name ->
+            regexSpecialChars.replace(name) { "\\${it.value}" }
+                .replace(" ", "\\s+")
+        }
+    } else null
 
-    // Build a dynamic book-name pattern that first tries multi-word server names (longest-first),
-    // then falls back to the generic Unicode single-word / connector-word pattern.
-    val dynamicBookName = "(?:$escapedAlternations|$BOOK_NAME)"
+    // CJK book names: sorted longest-first, escaped, joined as alternation.
+    val escapedCjk = if (cjkBookNames.isNotEmpty()) {
+        cjkBookNames.sortedByDescending { it.length }.joinToString("|") { name ->
+            regexSpecialChars.replace(name) { "\\${it.value}" }
+        }
+    } else null
+
+    // When CJK alternation is present, prevent the generic BOOK_NAME from matching Han
+    // characters as a first character — only the explicit CJK alternation handles those.
+    val genericBookName = if (escapedCjk != null) {
+        "(?!\\p{IsHan})$BOOK_NAME"
+    } else BOOK_NAME
+
+    // Build a dynamic book-name pattern that first tries server names (longest-first),
+    // then CJK names, then falls back to the generic Unicode pattern.
+    val dynamicBookName = buildString {
+        append("(?:")
+        var needsPipe = false
+        if (escapedMultiWord != null) { append(escapedMultiWord); needsPipe = true }
+        if (escapedCjk != null) { if (needsPipe) append("|"); append(escapedCjk); needsPipe = true }
+        if (needsPipe) append("|")
+        append(genericBookName)
+        append(")")
+    }
 
     return Regex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
         "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
             "|" +
-            // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
-            "($dynamicBookName)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            // Alt 2 — no prefix. Uses COND_WS for CJK no-space support.
+            "($dynamicBookName)$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 
