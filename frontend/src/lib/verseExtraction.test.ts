@@ -1423,6 +1423,88 @@ describe("extractVerseReferences — Chinese", () => {
   });
 });
 
+// ── Chinese no-space format ─────────────────────────────────────────────────────
+// Chinese naturally writes 约翰福音10:28 (no space between book name and chapter).
+// The backend already handles this with \s*; the frontend must match.
+
+describe("extractVerseReferences — Chinese no-space format", () => {
+  describe("basic no-space detection", () => {
+    it("should detect 约翰福音10:28 (no space) → john 10:28", () => {
+      const refs = extractVerseReferences("约翰福音10:28");
+      expect(refs.has("john 10:28")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+
+    it("should detect 约翰一书5:13 (no space, numbered book) → 1 john 5:13", () => {
+      const refs = extractVerseReferences("约翰一书5:13");
+      expect(refs.has("1 john 5:13")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+
+    it("should detect 诗篇23:1 (no space) → psalms 23:1", () => {
+      const refs = extractVerseReferences("诗篇23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+
+    it("should detect 创世记1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("创世记1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+  });
+
+  describe("no-space with verse range", () => {
+    it("should detect 约翰福音3:16-18 (no space, range) → john 3:16", () => {
+      const refs = extractVerseReferences("约翰福音3:16-18");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+  });
+
+  describe("multiple no-space refs", () => {
+    it("should detect refs separated by Chinese enumeration comma (、)", () => {
+      const refs = extractVerseReferences("约翰福音10:28、约翰福音3:16");
+      expect(refs.has("john 10:28")).toBe(true);
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.size).toBe(2);
+    });
+
+    it("should detect mixed spaced and no-space refs", () => {
+      const refs = extractVerseReferences("约翰福音10:28、约翰一书 5:13");
+      expect(refs.has("john 10:28")).toBe(true);
+      expect(refs.has("1 john 5:13")).toBe(true);
+      expect(refs.size).toBe(2);
+    });
+  });
+
+  describe("embedded in Chinese text", () => {
+    it("should detect no-space ref in natural Chinese sentence", () => {
+      const refs = extractVerseReferences(
+        "请阅读约翰福音10:28来获得鼓励",
+      );
+      expect(refs.has("john 10:28")).toBe(true);
+      expect(refs.size).toBe(1);
+    });
+
+    it("should detect refs from user's real-world example", () => {
+      const refs = extractVerseReferences(
+        "这来自圣经，具体是约翰福音10:28、约翰福音3:16等章节",
+      );
+      expect(refs.has("john 10:28")).toBe(true);
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.size).toBe(2);
+    });
+  });
+
+  describe("regression: Latin no-space must NOT match", () => {
+    it("should NOT match John3:16 (Latin without space)", () => {
+      const refs = extractVerseReferences("John3:16");
+      expect(refs.size).toBe(0);
+    });
+  });
+});
+
 // ── Korean ──────────────────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Korean", () => {
