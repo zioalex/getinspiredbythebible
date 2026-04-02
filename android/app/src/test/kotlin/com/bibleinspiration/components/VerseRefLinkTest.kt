@@ -382,6 +382,50 @@ class VerseRefLinkTest {
         assertTrue("should link second ref", result.contains("[约翰福音 3:16]"))
     }
 
+    // ── Chinese guillemet 《》 notation ──────────────────────────────────────
+    // Chinese texts commonly wrap book names in guillemets: 《约翰福音》3:16
+
+    @Test
+    fun `injectVerseLinks wraps Chinese guillemet notation with space`() {
+        val input = "《约翰福音》 3:16是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 3:16", result.contains("[约翰福音 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Chinese guillemet notation without space`() {
+        val input = "《约翰福音》3:16是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 3:16", result.contains("[约翰福音 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps guillemet with verse range`() {
+        val input = "《罗马书》8:28-39给我们安慰"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 罗马书", result.contains("[罗马书 8:28-39]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps multiple guillemet refs`() {
+        val input = "《约翰福音》3:16和《诗篇》23:1都很重要"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 3:16]"))
+        assertTrue("should link 诗篇", result.contains("[诗篇 23:1]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex with CJK names wraps guillemet in sentence`() {
+        val regex = buildVerseRefRegex(
+            emptyList(),
+            listOf("约翰福音", "诗篇", "创世记"),
+        )
+        val input = "请阅读《约翰福音》10:28来获得鼓励"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 10:28]"))
+        assertFalse("should NOT match surrounding text", result.contains("[请阅读约翰福音"))
+    }
+
     // ── Non-English book names: Korean (Hangul) ─────────────────────────────
 
     @Test

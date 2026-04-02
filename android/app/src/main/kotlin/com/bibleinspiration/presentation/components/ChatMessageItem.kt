@@ -106,10 +106,11 @@ private val BOOK_NAME =
 // \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
 // boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
 
-// Conditional whitespace sub-pattern: after a CJK (Han) character the space between
-// book name and chapter number is optional (\s*); otherwise at least one space is required (\s+).
-// This enables matching "约翰福音10:28" (Chinese no-space) while still requiring "John 3:16".
-private const val COND_WS = "(?:(?<=\\p{IsHan})\\s*|\\s+)"
+// Conditional whitespace sub-pattern: after a CJK (Han) character or a closing
+// Chinese guillemet 》 (U+300B) the space between book name and chapter number is
+// optional (\s*); otherwise at least one space is required (\s+).
+// This enables matching "约翰福音10:28" and "《约翰福音》3:16" while still requiring "John 3:16".
+private const val COND_WS = "(?:(?<=[\\p{IsHan}\\u300B])\\s*|\\s+)"
 
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
@@ -124,7 +125,9 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
         // Uses COND_WS so CJK book names can abut the chapter number without a space.
-        "($BOOK_NAME)$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        // \u300B? optionally consumes a closing Chinese guillemet 》 after the book name
+        // (e.g. 《约翰福音》3:16) so it does not block the chapter:verse match.
+        "($BOOK_NAME)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
@@ -192,7 +195,8 @@ internal fun buildVerseRefRegex(
         "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK no-space support.
-            "($dynamicBookName)$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            // \u300B? optionally consumes closing Chinese guillemet 》 after book name.
+            "($dynamicBookName)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 
