@@ -230,6 +230,31 @@ describe("extractVerseReferences", () => {
     expect(refs.size).toBe(1);
   });
 
+  // ── Chinese guillemet 《》 tests ──────────────────────────────────────────
+
+  it("should extract '《约翰福音》3:16' as 'john 3:16'", () => {
+    const refs = extractVerseReferences("《约翰福音》3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract '《诗篇》23:1' as 'psalms 23:1'", () => {
+    const refs = extractVerseReferences("《诗篇》23:1");
+    expect(refs.has("psalms 23:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract '《创世记》 1:1' (guillemet with space) as 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("《创世记》 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract guillemet reference in sentence context", () => {
+    const refs = extractVerseReferences("请阅读《约翰福音》3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
   // ── Korean citation tests ────────────────────────────────────────────────
 
   it("should normalize Korean '요한복음 3:16' to 'john 3:16'", () => {

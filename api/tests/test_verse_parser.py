@@ -426,6 +426,42 @@ class TestParseVerseReferenceNonEnglish:
         assert result is not None
         assert result.book == "Revelation"
 
+    # ── Chinese guillemets 《》 ────────────────────────────────────────────────
+
+    def test_chinese_guillemet_john(self):
+        """Chinese guillemet '《约翰福音》3:16' → John."""
+        result = parse_verse_reference("《约翰福音》3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_chinese_guillemet_genesis_with_space(self):
+        """Chinese guillemet with space '《创世记》 1:1' → Genesis."""
+        result = parse_verse_reference("《创世记》 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_chinese_guillemet_psalms(self):
+        """Chinese guillemet '《诗篇》23:1' → Psalms."""
+        result = parse_verse_reference("《诗篇》23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_chinese_guillemet_in_sentence(self):
+        """Chinese guillemet in sentence context."""
+        result = parse_verse_reference("请阅读《约翰福音》3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_chinese_guillemet_extract_multiple(self):
+        """Extract multiple guillemet-wrapped references."""
+        results = extract_all_references("《约翰福音》3:16和《诗篇》23:1")
+        assert len(results) == 2
+        books = {r.book for r in results}
+        assert "John" in books
+        assert "Psalms" in books
+
     # ── Korean ────────────────────────────────────────────────────────────────
 
     def test_korean_john(self):

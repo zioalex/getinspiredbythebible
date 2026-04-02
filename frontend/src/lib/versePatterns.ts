@@ -173,12 +173,15 @@ function buildPatternSource(): string {
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
   //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
+  // The \u300A (《) and \u300B (》) handle Chinese guillemet notation like 《约翰福音》3:16.
+  // The lookbehind includes 《 so it can start a match, and 》? after the book-name
+  // capture group makes the closing guillemet optional.
   _cachedPatternSource =
-    `(?:(?<!\\p{L})|(?<=\\p{Script=Han}))(${multiWordPart}` +
+    `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\u300A))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
     `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
     `|${cjkPart}` +
-    `(?:(?![\\p{Script=Han}])[\\p{L}\\p{M}]){2,})(?:(?<=[\\p{Script=Han}])\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
+    `(?:(?![\\p{Script=Han}])[\\p{L}\\p{M}]){2,})\u300B?(?:(?<=[\\p{Script=Han}])\\s*|(?<=\u300B)\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
 
   return _cachedPatternSource;
 }
