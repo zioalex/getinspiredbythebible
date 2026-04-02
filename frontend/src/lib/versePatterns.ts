@@ -60,6 +60,7 @@ function escapeForRegex(s: string): string {
 // verseExtraction.ts form a circular import pair — LOCALIZED_BOOK_TO_ENGLISH
 // is undefined if accessed before verseExtraction.ts finishes loading.
 let _cachedMultiWordAlternation: string | null = null;
+let _cachedCjkAlternation: string | null = null;
 let _cachedPatternSource: string | null = null;
 
 // When non-null, server-provided multi-word names take precedence over
@@ -101,6 +102,38 @@ export function getMultiWordAlternation(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Lazy-cached CJK book name alternation
+// ---------------------------------------------------------------------------
+
+// Regex to test if a string is entirely CJK Han characters.
+const CJK_ONLY_RE = /^[\p{Script=Han}]+$/u;
+
+/**
+ * Returns an alternation string of all known CJK (Chinese) book names from
+ * LOCALIZED_BOOK_TO_ENGLISH, sorted longest-first.
+ *
+ * This replaces the generic `[\p{Script=Han}]{2,}` pattern which was too
+ * greedy — it consumed preceding CJK context text (e.g. 请阅读约翰福音
+ * instead of just 约翰福音).  An explicit alternation matches only known
+ * book names and avoids this problem.
+ */
+function getCjkAlternation(): string {
+  if (_cachedCjkAlternation !== null) {
+    return _cachedCjkAlternation;
+  }
+
+  const cjkNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
+    (key) => CJK_ONLY_RE.test(key) && key.length >= 2,
+  );
+
+  // Longest first to prevent partial matches (e.g. 约翰福音 before 约翰).
+  cjkNames.sort((a, b) => b.length - a.length);
+
+  _cachedCjkAlternation = cjkNames.join("|");
+  return _cachedCjkAlternation;
+}
+
+// ---------------------------------------------------------------------------
 // Regex pattern string builder
 // ---------------------------------------------------------------------------
 
@@ -112,10 +145,20 @@ export function getMultiWordAlternation(): string {
  *     (e.g. Russian: Плач Иеремии, Песня Песней; plus any names loaded via API)
  *  2. Multi-word books joined by a connector word (Song of Solomon, Cantique des Cantiques…)
  *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige, 1 أخبار الأيام…)
- *  4. Chinese/CJK single-token books (耶利米哀歌, 创世记…)
+ *  4. Chinese/CJK book names — explicit alternation of known names from the map.
+ *     Unlike the generic [\p{Script=Han}]{2,} that was used before, an explicit
+ *     alternation prevents greedy over-matching of surrounding CJK context text.
  *  5. Any single Unicode word ≥2 chars (covers all remaining single-word books)
  *
- * The Unicode-aware lookbehind (?<!\p{L}) prevents matching mid-word.
+ * Start boundary: (?:(?<!\p{L})|(?<=\p{Script=Han})) allows matching after
+ * CJK characters (which are \p{L}) while still preventing mid-word matches
+ * in Latin/Cyrillic/Arabic text.
+ *
+ * Space between book name and chapter number:
+ *   - After a CJK Han character → \s* (zero or more spaces), so both
+ *     约翰福音 10:28 and 约翰福音10:28 are accepted.
+ *   - After any other character → \s+ (one or more spaces required), which
+ *     preserves John 3:16 behaviour and prevents false positives like John3:16.
  */
 function buildPatternSource(): string {
   if (_cachedPatternSource !== null) {
@@ -124,17 +167,18 @@ function buildPatternSource(): string {
 
   const multiWordAlt = getMultiWordAlternation();
   const multiWordPart = multiWordAlt ? `${multiWordAlt}|` : "";
+  const cjkAlt = getCjkAlternation();
+  const cjkPart = cjkAlt ? `${cjkAlt}|` : "";
 
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
-  // [\p{Script=Han}]  — CJK ideographs (Chinese, Japanese Kanji)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
   //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
   _cachedPatternSource =
-    `(?<!\\p{L})(${multiWordPart}` +
+    `(?:(?<!\\p{L})|(?<=\\p{Script=Han}))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
     `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
-    `|[\\p{Script=Han}]{2,}` +
-    `|[\\p{L}\\p{M}]{2,})\\s+(\\d+):(\\d+)(?:-\\d+)?`;
+    `|${cjkPart}` +
+    `(?:(?![\\p{Script=Han}])[\\p{L}\\p{M}]){2,})(?:(?<=[\\p{Script=Han}])\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
 
   return _cachedPatternSource;
 }
