@@ -359,7 +359,7 @@ export interface StreamMetadata {
 }
 
 export interface StreamChunk {
-  type: "metadata" | "content" | "error";
+  type: "metadata" | "content" | "error" | "completion";
   // For metadata type:
   message_id?: string;
   scripture_context?: ScriptureContext;
@@ -371,6 +371,8 @@ export interface StreamChunk {
   content?: string;
   // For error type:
   error?: string;
+  // For completion type:
+  verses_cited?: string[];
 }
 
 /**
@@ -549,6 +551,23 @@ export async function checkHealth(): Promise<HealthStatus> {
   }
 
   return response.json();
+}
+
+/**
+ * Get book name mappings from the backend
+ */
+export async function getBookNames(): Promise<{
+  localized_to_english: Record<string, string>;
+  multi_word_names: string[];
+}> {
+  const response = await fetch(`${API_URL}/api/v1/scripture/book-names`, {
+    cache: "force-cache", // leverage the 24h cache-control header
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch book names");
+  }
+  const data = await response.json();
+  return data;
 }
 
 /**

@@ -123,3 +123,5 @@ block_traffic_*.sh
 # Root-level package files (not a Node project at root)
 /package.json
 /package-lock.json
+# Spurious package-lock in the Python API directory
+api/package-lock.json

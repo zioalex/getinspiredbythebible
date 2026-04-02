@@ -153,6 +153,8 @@
     <string name="action_start_new_session">Nouvelle session</string>
     <string name="action_retry">Réessayer</string>
     <string name="action_share_message">Partager le message</string>
+    <string name="action_copy_message">Copier le message</string>
+    <string name="action_copied">Copié</string>
     <string name="action_feedback_helpful">C\'était utile</string>
     <string name="action_feedback_not_helpful">Ce n\'était pas utile</string>
     <string name="feedback_thank_you">Merci pour votre avis !</string>

@@ -402,8 +402,9 @@ ENGLISH_TO_PORTUGUESE: dict[str, str] = {
 
 # Arabic (Smith & Van Dyke / arabicsv)
 # Note: Arabic uses definite-article prefixes (ال) on some book names in the feed.
-# If an LLM produces forms without the prefix (e.g. "مزامير" vs "المزامير"),
-# add an ARABIC_CITATION_FORMS dict here following the RUSSIAN_CITATION_FORMS pattern.
+# LLMs commonly produce forms without the article, singular forms, or simplified
+# spellings.  ARABIC_CITATION_FORMS (below the main dict) maps these variants
+# back to the canonical English name.
 ENGLISH_TO_ARABIC: dict[str, str] = {
     "Genesis": "تكوين",
     "Exodus": "خروج",
@@ -471,6 +472,28 @@ ENGLISH_TO_ARABIC: dict[str, str] = {
     "3 John": "3 يوحنا",
     "Jude": "يهوذا",
     "Revelation": "الرؤيا",
+}
+
+# Arabic citation forms — alternate forms LLMs produce when citing verses.
+# The Smith & Van Dyke feed uses definite-article forms (المزامير, الأمثال, etc.)
+# but LLMs commonly output bare/singular forms (مزمور, أمثال, etc.).
+ARABIC_CITATION_FORMS: dict[str, str] = {
+    # Psalms — singular "مزمور" (psalm) vs feed's "المزامير" (the psalms)
+    "مزمور": "Psalms",
+    # Psalms — plural without article
+    "مزامير": "Psalms",
+    # Proverbs — without definite article
+    "أمثال": "Proverbs",
+    # Ecclesiastes — without definite article
+    "جامعة": "Ecclesiastes",
+    # Judges — without definite article
+    "قضاة": "Judges",
+    # Revelation — without definite article
+    "رؤيا": "Revelation",
+    # Song of Solomon — common LLM short form
+    "نشيد الأناشيد": "Song of Solomon",
+    # Acts — shortened form without "الرسل"
+    "أعمال": "Acts",
 }
 
 # Russian (Synodal Translation 1876 / synodal)
@@ -906,11 +929,13 @@ FRENCH_ALIASES: dict[str, str] = {
 # canonical keys in ENGLISH_TO_ITALIAN (which uses "Psalms" with the trailing 's').
 ENGLISH_ALIASES: dict[str, str] = {
     "Psalm": "Psalms",  # singular form, e.g. "Psalm 23" — very common in English prose
+    "Song of Solomon": "Song of Solomon",  # common English alias; also known as Song of Songs
 }
 
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     **RUSSIAN_CITATION_FORMS,
     **RUSSIAN_ALIASES,
+    **ARABIC_CITATION_FORMS,
     **CHINESE_ALIASES,
     **KOREAN_ALIASES,
     **GERMAN_ALIASES,

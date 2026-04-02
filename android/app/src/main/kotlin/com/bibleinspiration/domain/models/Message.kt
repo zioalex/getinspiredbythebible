@@ -23,6 +23,8 @@ data class Message(
     val isError: Boolean = false,
     val messageId: String = "",
     val feedbackRating: FeedbackRating? = null,
+    /** Server-extracted verse citations in English canonical form (e.g. "John 3:16"). */
+    val versesCited: List<String> = emptyList(),
 ) {
     enum class Role { USER, ASSISTANT }
 }

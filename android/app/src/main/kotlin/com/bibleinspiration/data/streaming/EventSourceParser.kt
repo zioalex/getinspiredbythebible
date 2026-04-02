@@ -78,6 +78,23 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                             ),
                         )
                     }
+                    "completion" -> {
+                        // Server-extracted verse citations (dual-source: LLM structured + regex).
+                        val versesCited: List<String> = try {
+                            val citedEl = jsonObj["verses_cited"]
+                            if (citedEl != null) json.decodeFromJsonElement<List<String>>(citedEl)
+                            else emptyList()
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse verses_cited")
+                            emptyList()
+                        }
+                        emit(
+                            StreamChunkDto(
+                                type = "completion",
+                                versesCited = versesCited,
+                            ),
+                        )
+                    }
                     "content", null, "" -> {
                         // Standard content chunk or legacy plain chunk with no type field.
                         val chunk = json.decodeFromString<StreamChunkDto>(data)

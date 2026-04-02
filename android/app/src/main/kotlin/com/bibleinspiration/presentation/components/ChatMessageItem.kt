@@ -1,5 +1,9 @@
 package com.bibleinspiration.presentation.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ThumbDown
@@ -87,10 +92,12 @@ internal data class PendingVerseLink(
  */
 // Book-name sub-pattern (multi-word, with connector words like "of", "de", "van", …).
 // First character must be \p{Lu} (uppercase Latin/Cyrillic) or \p{Lo} (CJK/other caseless).
+// Continuation chars include \p{M} (combining marks) for Hindi/Arabic diacritics.
+// Connector words include Western (of, de, des, …), Hindi (के), and Arabic article (ال).
 private val BOOK_NAME =
-    "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)" +
-        "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+    "[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]*" +
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af|के|ال)" +
+        "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]*)*"
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
 // while un-numbered books also support chapter-only references (e.g. "Psalm 23").
@@ -98,17 +105,100 @@ private val BOOK_NAME =
 // We use (?!\d) instead of \b to terminate digit sequences for CJK compatibility:
 // \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
 // boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
-private val VERSE_REF_REGEX = Regex(
-    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED
-    // Allows additional capitalised words after the prefix-book (e.g. "1 Corinthians", "2. Könige")
-    "([1-3][\\s.][\\s]?$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+
+// Conditional whitespace sub-pattern: after a CJK (Han) character or a closing
+// Chinese guillemet 》 (U+300B) the space between book name and chapter number is
+// optional (\s*); otherwise at least one space is required (\s+).
+// This enables matching "约翰福音10:28" and "《约翰福音》3:16" while still requiring "John 3:16".
+private const val COND_WS = "(?:(?<=[\\p{IsHan}\\u300B])\\s*|\\s+)"
+
+/** Fallback regex used before book-name data loads from the API. */
+internal val DEFAULT_VERSE_REF_REGEX = Regex(
+    // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED.
+    // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
+    // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
+    // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
-        "($BOOK_NAME)\\s+(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        // Uses COND_WS so CJK book names can abut the chapter number without a space.
+        // \u300B? optionally consumes a closing Chinese guillemet 》 after the book name
+        // (e.g. 《约翰福音》3:16) so it does not block the chapter:verse match.
+        "($BOOK_NAME)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
+
+/**
+ * Builds a [Regex] for matching verse references that includes explicit alternations for
+ * [multiWordNames] (server-provided multi-word book names, sorted longest-first) and
+ * [cjkBookNames] (CJK book names that may appear without a space before the chapter number).
+ *
+ * Each name is regex-escaped and spaces are replaced with `\s+` for flexible whitespace
+ * matching.  The multi-word names are embedded into the book-name sub-pattern so that the
+ * overall capture group structure remains identical to [DEFAULT_VERSE_REF_REGEX]:
+ *   - Groups 1–3: numbered-prefix match
+ *   - Groups 4–6: un-prefixed match (with or without verse number)
+ *
+ * When [cjkBookNames] are provided, the generic [BOOK_NAME] pattern is modified to exclude
+ * Han characters as a first character (`(?!\p{IsHan})`) so that only the explicit CJK
+ * alternation matches Chinese book names — preventing greedy over-matching in embedded text.
+ *
+ * Falls back to [DEFAULT_VERSE_REF_REGEX] when both lists are empty.
+ */
+internal fun buildVerseRefRegex(
+    multiWordNames: List<String>,
+    cjkBookNames: List<String> = emptyList(),
+): Regex {
+    if (multiWordNames.isEmpty() && cjkBookNames.isEmpty()) return DEFAULT_VERSE_REF_REGEX
+
+    // Escape regex special chars in each name, then replace spaces with \s+ for flexible
+    // whitespace matching. We cannot use Regex.escape() here because it wraps the whole
+    // string in \Q...\E, which prevents per-character manipulation. Instead we escape
+    // only the characters that are special in Java regex and replace spaces with \s+.
+    val regexSpecialChars = Regex("""[.+*?^${'$'}{}()\[\]|\\]""")
+    val escapedMultiWord = if (multiWordNames.isNotEmpty()) {
+        multiWordNames.joinToString("|") { name ->
+            regexSpecialChars.replace(name) { "\\${it.value}" }
+                .replace(" ", "\\s+")
+        }
+    } else null
+
+    // CJK book names: sorted longest-first, escaped, joined as alternation.
+    val escapedCjk = if (cjkBookNames.isNotEmpty()) {
+        cjkBookNames.sortedByDescending { it.length }.joinToString("|") { name ->
+            regexSpecialChars.replace(name) { "\\${it.value}" }
+        }
+    } else null
+
+    // When CJK alternation is present, prevent the generic BOOK_NAME from matching Han
+    // characters as a first character — only the explicit CJK alternation handles those.
+    val genericBookName = if (escapedCjk != null) {
+        "(?!\\p{IsHan})$BOOK_NAME"
+    } else BOOK_NAME
+
+    // Build a dynamic book-name pattern that first tries server names (longest-first),
+    // then CJK names, then falls back to the generic Unicode pattern.
+    val dynamicBookName = buildString {
+        append("(?:")
+        var needsPipe = false
+        if (escapedMultiWord != null) { append(escapedMultiWord); needsPipe = true }
+        if (escapedCjk != null) { if (needsPipe) append("|"); append(escapedCjk); needsPipe = true }
+        if (needsPipe) append("|")
+        append(genericBookName)
+        append(")")
+    }
+
+    return Regex(
+        // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+            "|" +
+            // Alt 2 — no prefix. Uses COND_WS for CJK no-space support.
+            // \u300B? optionally consumes closing Chinese guillemet 》 after book name.
+            "($dynamicBookName)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+    )
+}
 
 private const val VERSE_SCHEME = "verse://"
 
@@ -121,9 +211,16 @@ private const val VERSE_SCHEME = "verse://"
  * The book name is URL-encoded so that spaces survive the round-trip through the Markwon
  * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
  * are left unchanged by checking that the character before the match is not `[`.
+ *
+ * @param verseRefRegex The regex to use for matching verse references. Defaults to
+ *   [DEFAULT_VERSE_REF_REGEX]; pass a dynamically built regex from [buildVerseRefRegex]
+ *   once API book-name data has loaded.
  */
-internal fun injectVerseLinks(markdown: String): String =
-    VERSE_REF_REGEX.replace(markdown) { result ->
+internal fun injectVerseLinks(
+    markdown: String,
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
+): String =
+    verseRefRegex.replace(markdown) { result ->
         // If the match is immediately preceded by '[', it is already the display text of a
         // markdown link — skip it to avoid double-wrapping.
         val before = if (result.range.first > 0) markdown[result.range.first - 1] else '\u0000'
@@ -206,6 +303,7 @@ fun ChatMessageItem(
     onRetry: (() -> Unit)? = null,
     onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
     feedbackGiven: String? = null,
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -330,7 +428,7 @@ fun ChatMessageItem(
                             // Amber colour for verse links — matches web's amber-600 link colour
                             val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
-                                markdown = injectVerseLinks(message.content),
+                                markdown = injectVerseLinks(message.content, verseRefRegex),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 onLinkClicked = { url ->
@@ -357,7 +455,7 @@ fun ChatMessageItem(
                 }
             }
 
-            // Action row — feedback (left) and share (right) rendered horizontally.
+            // Action row — feedback (left) and copy+share (right) rendered horizontally.
             val showFeedback = message.role == Message.Role.ASSISTANT
                 && !message.isStreaming
                 && message.messageId.isNotBlank()
@@ -393,6 +491,22 @@ fun ChatMessageItem(
                         }
                     }
                     Spacer(modifier = Modifier.weight(1f))
+                    // Copy button
+                    if (showShare) {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     // Share button on the right side
                     if (showShare) {
                         IconButton(

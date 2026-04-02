@@ -1,5 +1,6 @@
 package com.bibleinspiration.components
 
+import com.bibleinspiration.presentation.components.buildVerseRefRegex
 import com.bibleinspiration.presentation.components.handleVerseLink
 import com.bibleinspiration.presentation.components.injectVerseLinks
 import org.junit.Assert.assertEquals
@@ -310,6 +311,121 @@ class VerseRefLinkTest {
         assertTrue(result.contains("[耶利米哀歌 3:3]"))
     }
 
+    // ── Chinese (CJK) no-space verse detection ────────────────────────────────
+    // In Chinese text, there is typically no space between the book name and
+    // the chapter number (e.g. "约翰福音10:28" instead of "约翰福音 10:28").
+
+    @Test
+    fun `injectVerseLinks wraps Chinese book with no space before chapter`() {
+        val input = "约翰福音10:28是重要的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 10:28", result.contains("[约翰福音 10:28]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Chinese 诗篇 with no space before chapter`() {
+        val input = "诗篇23:1是安慰的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 诗篇 23:1", result.contains("[诗篇 23:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Chinese 创世记 with no space before chapter`() {
+        val input = "创世记1:1是起始"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 创世记 1:1", result.contains("[创世记 1:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Chinese verse range with no space`() {
+        val input = "约翰福音3:16-18是重要的"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 3:16-18", result.contains("[约翰福音 3:16-18]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps multiple Chinese no-space refs separated by 、`() {
+        val input = "约翰福音10:28、诗篇23:1都很重要"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 10:28]"))
+        assertTrue("should link 诗篇", result.contains("[诗篇 23:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not match Latin book with no space (regression)`() {
+        val input = "Read John3:16 for hope"
+        val result = injectVerseLinks(input)
+        assertEquals("Latin no-space should NOT match", input, result)
+    }
+
+    @Test
+    fun `buildVerseRefRegex with CJK names matches embedded Chinese no-space`() {
+        val regex = buildVerseRefRegex(
+            emptyList(),
+            listOf("约翰福音", "诗篇", "创世记", "耶利米哀歌"),
+        )
+        val input = "请阅读约翰福音10:28来获得鼓励"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 10:28]"))
+        assertFalse("should NOT match surrounding CJK text", result.contains("[请阅读约翰福音"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex with CJK names matches real-world Chinese sentence`() {
+        val regex = buildVerseRefRegex(
+            emptyList(),
+            listOf("约翰福音", "诗篇", "创世记", "耶利米哀歌"),
+        )
+        val input = "这来自圣经，具体是约翰福音10:28、约翰福音3:16等章节"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link first ref", result.contains("[约翰福音 10:28]"))
+        assertTrue("should link second ref", result.contains("[约翰福音 3:16]"))
+    }
+
+    // ── Chinese guillemet 《》 notation ──────────────────────────────────────
+    // Chinese texts commonly wrap book names in guillemets: 《约翰福音》3:16
+
+    @Test
+    fun `injectVerseLinks wraps Chinese guillemet notation with space`() {
+        val input = "《约翰福音》 3:16是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 3:16", result.contains("[约翰福音 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Chinese guillemet notation without space`() {
+        val input = "《约翰福音》3:16是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音 3:16", result.contains("[约翰福音 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps guillemet with verse range`() {
+        val input = "《罗马书》8:28-39给我们安慰"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 罗马书", result.contains("[罗马书 8:28-39]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps multiple guillemet refs`() {
+        val input = "《约翰福音》3:16和《诗篇》23:1都很重要"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 3:16]"))
+        assertTrue("should link 诗篇", result.contains("[诗篇 23:1]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex with CJK names wraps guillemet in sentence`() {
+        val regex = buildVerseRefRegex(
+            emptyList(),
+            listOf("约翰福音", "诗篇", "创世记"),
+        )
+        val input = "请阅读《约翰福音》10:28来获得鼓励"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link 约翰福音", result.contains("[约翰福音 10:28]"))
+        assertFalse("should NOT match surrounding text", result.contains("[请阅读约翰福音"))
+    }
+
     // ── Non-English book names: Korean (Hangul) ─────────────────────────────
 
     @Test
@@ -331,6 +447,110 @@ class VerseRefLinkTest {
         val input = "창세기 1:1은 시작"
         val result = injectVerseLinks(input)
         assertTrue(result.contains("[창세기 1:1]"))
+    }
+
+    // ── Non-English book names: Arabic ─────────────────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Arabic single-word book يوحنا`() {
+        val input = "كما جاء في يوحنا 3:16 أن الله أحب العالم"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[يوحنا 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic numbered book 1 كورنثوس`() {
+        val input = "1 كورنثوس 13:4 عن المحبة"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[1 كورنثوس 13:4]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic Psalms المزامير`() {
+        val input = "المزامير 23:1 مزمور الراعي"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[المزامير 23:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic Revelation الرؤيا`() {
+        val input = "الرؤيا 21:4 عن السماء الجديدة"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[الرؤيا 21:4]"))
+    }
+
+    // ── Non-English book names: Hindi ────────────────────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Hindi single-word book यूहन्ना`() {
+        val input = "जैसा कि यूहन्ना 3:16 में लिखा है"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[यूहन्ना 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Hindi numbered book 1 कुरिन्थियों`() {
+        val input = "1 कुरिन्थियों 13:4 प्रेम के बारे में"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[1 कुरिन्थियों 13:4]"))
+    }
+
+    // ── Non-English book names: Arabic/Hindi multi-word with dynamic regex ──
+
+    @Test
+    fun `buildVerseRefRegex wraps Arabic multi-word Acts أعمال الرسل`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("أعمال الرسل", "مراثي إرميا", "نشيد الأنشاد")
+        )
+        val input = "أعمال الرسل 2:38 عن المعمودية"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Arabic Acts", result.contains("[أعمال الرسل 2:38]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Arabic multi-word Lamentations مراثي إرميا`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("أعمال الرسل", "مراثي إرميا")
+        )
+        val input = "مراثي إرميا 3:22 عن الرحمة"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Arabic Lamentations", result.contains("[مراثي إرميا 3:22]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Hindi multi-word Psalms भजन संहिता`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("भजन संहिता", "प्रेरितों के काम")
+        )
+        val input = "भजन संहिता 23:1 में राहत है"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Hindi Psalms", result.contains("[भजन संहिता 23:1]"))
+    }
+
+    @Test
+    fun `buildVerseRefRegex wraps Hindi multi-word Acts प्रेरितों के काम`() {
+        val regex = com.bibleinspiration.presentation.components.buildVerseRefRegex(
+            listOf("भजन संहिता", "प्रेरितों के काम")
+        )
+        val input = "प्रेरितों के काम 2:38 बपतिस्मा के बारे में"
+        val result = injectVerseLinks(input, regex)
+        assertTrue("should link Hindi Acts", result.contains("[प्रेरितों के काम 2:38]"))
+    }
+
+    // ── Russian Synodal dash-format numbered books ──────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps Russian Synodal dash format 1-я Царств`() {
+        val input = "1-я Царств 1:1 рассказывает о Самуиле"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 1-я Царств", result.contains("[1-я Царств 1:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Russian Synodal dash format 1-е Коринфянам`() {
+        val input = "1-е Коринфянам 13:4 о любви"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 1-е Коринфянам", result.contains("[1-е Коринфянам 13:4]"))
     }
 
     // ── Edge cases ──────────────────────────────────────────────────────────

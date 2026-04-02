@@ -11,6 +11,7 @@ import com.bibleinspiration.data.preferences.SessionPreferences
 import com.bibleinspiration.data.preferences.ThemePreferences
 import com.bibleinspiration.data.preferences.TranslationPreferences
 import com.bibleinspiration.data.remote.api.BibleApiService
+import com.bibleinspiration.data.remote.models.BookNamesResponseDto
 import com.bibleinspiration.data.remote.models.ChapterResponseDto
 import com.bibleinspiration.data.remote.models.TranslationDto
 import com.bibleinspiration.domain.models.ChatRequest
@@ -148,6 +149,31 @@ class ChatViewModel @Inject constructor(
     private val _availableTranslations = MutableStateFlow<List<TranslationDto>>(emptyList())
     val availableTranslations: StateFlow<List<TranslationDto>> = _availableTranslations.asStateFlow()
 
+    /**
+     * Book name data fetched from the backend.  Null until the first successful fetch.
+     * Provides [multiWordNames] (for dynamic regex) and [localizedToEnglish] (for normalization).
+     */
+    private val _bookNames = MutableStateFlow<BookNamesResponseDto?>(null)
+    val bookNames: StateFlow<BookNamesResponseDto?> = _bookNames.asStateFlow()
+
+    /** Multi-word book names derived from [_bookNames], sorted longest-first (as provided by API). */
+    val multiWordNames: StateFlow<List<String>> = _bookNames
+        .map { it?.multiWordNames ?: emptyList() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyList(),
+        )
+
+    /** Localized-to-English book name map derived from [_bookNames]. */
+    val localizedToEnglish: StateFlow<Map<String, String>> = _bookNames
+        .map { it?.localizedToEnglish ?: emptyMap() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyMap(),
+        )
+
     /** The user's currently preferred translation ID (empty string = no preference). */
     val preferredTranslation: StateFlow<String> = translationPreferences.preferredTranslationFlow
         .stateIn(
@@ -186,6 +212,8 @@ class ChatViewModel @Inject constructor(
         }
         // Fetch available translations from the backend with retry.
         viewModelScope.launch { fetchTranslationsWithRetry() }
+        // Fetch book name mappings from the backend with retry.
+        viewModelScope.launch { fetchBookNamesWithRetry() }
     }
 
     /**
@@ -220,6 +248,34 @@ class ChatViewModel @Inject constructor(
     /** Triggers a fresh fetch of available translations (e.g. after a network error banner). */
     fun refreshTranslations() {
         viewModelScope.launch { fetchTranslationsWithRetry() }
+    }
+
+    /**
+     * Fetches book name mappings from the backend with exponential backoff.
+     * Attempts up to [maxAttempts] times, starting with a [initialDelayMs] ms delay that
+     * doubles on each retry. Falls back to null (no dynamic regex) when all attempts fail.
+     */
+    private suspend fun fetchBookNamesWithRetry(
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 1_000L,
+    ) {
+        var delayMs = initialDelayMs
+        repeat(maxAttempts) { attempt ->
+            try {
+                val response = bibleApiService.getBookNames()
+                _bookNames.value = response
+                return
+            } catch (e: Exception) {
+                val isLastAttempt = attempt == maxAttempts - 1
+                if (isLastAttempt) {
+                    Timber.w(e, "Failed to fetch book names after $maxAttempts attempts; falling back to default regex")
+                } else {
+                    Timber.w(e, "Failed to fetch book names (attempt ${attempt + 1}/$maxAttempts); retrying in ${delayMs}ms")
+                    delay(delayMs)
+                    delayMs *= 2
+                }
+            }
+        }
     }
 
     fun sendMessage(text: String) {
@@ -279,6 +335,7 @@ class ChatViewModel @Inject constructor(
 
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
+            var finalVersesCited: List<String> = emptyList()
             var didError = false
             var metadataMessageId = ""
 
@@ -321,6 +378,7 @@ class ChatViewModel @Inject constructor(
                             verses = finalVerses,
                             isStreaming = false,
                             messageId = metadataMessageId,
+                            versesCited = finalVersesCited,
                         )
                         // Persist finished assistant message and bump conversation timestamp.
                         repository.saveMessage(conversationId, finalAssistant)
@@ -364,7 +422,7 @@ class ChatViewModel @Inject constructor(
                     }
 
                     // Handle metadata events (sent before content chunks).
-                    if (chunk.messageId.isNotBlank() && accumulatedContent.isEmpty()) {
+                    if (chunk.type == "metadata") {
                         metadataMessageId = chunk.messageId
                         // Verses are delivered in the metadata event via scripture_context.
                         if (chunk.verses.isNotEmpty()) finalVerses = chunk.verses
@@ -378,6 +436,14 @@ class ChatViewModel @Inject constructor(
                                 },
                                 detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
                             )
+                        }
+                        return@collect
+                    }
+
+                    // Handle completion event with server-extracted verse citations.
+                    if (chunk.type == "completion") {
+                        if (chunk.versesCited.isNotEmpty()) {
+                            finalVersesCited = chunk.versesCited
                         }
                         return@collect
                     }
