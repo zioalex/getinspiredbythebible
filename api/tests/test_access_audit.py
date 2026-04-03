@@ -54,9 +54,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={
-                    "Referer": "https://getinspiredbythebible.ai4you.sh/chat"
-                },
+                headers={"Referer": "https://getinspiredbythebible.ai4you.sh/chat"},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
