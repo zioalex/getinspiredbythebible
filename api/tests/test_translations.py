@@ -193,8 +193,9 @@ def test_all_arabic_books_unique():
 
 def test_chinese_book_names_complete():
     """Test that all 66 Bible books have Chinese mappings (plus BOM and alias variants)"""
-    # 66 canonical books + BOM variant for Genesis + Simplified alias for Revelation = 68
-    assert len(CHINESE_BOOK_NAMES) == 68
+    # 66 canonical + BOM variant + Simplified Revelation + 28 aliases
+    # (16 记↔纪 swaps + 12 Catholic 思高本 names) = 96
+    assert len(CHINESE_BOOK_NAMES) == 96
     # Verify exactly 66 unique English book names are covered
     unique_english_names = set(CHINESE_BOOK_NAMES.values())
     assert len(unique_english_names) == 66

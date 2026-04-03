@@ -701,6 +701,7 @@ the verse regex lookup runs. This handles all books, mixed script, and future ad
 with zero per-book maintenance.
 
 *Backend (Python):*
+
 ```python
 # Option A: opencc-python-reimplemented (most robust, ~2MB)
 import opencc
@@ -713,6 +714,7 @@ text = HanziConv.toSimplified(text)
 ```
 
 *Frontend (TypeScript):*
+
 ```typescript
 // Option A: chinese-conv npm package (~50KB gzipped)
 import { traditionalToSimplified } from 'chinese-conv';
@@ -725,6 +727,7 @@ text = text.replace(/[\u4e00-\u9fff]/g, ch => BIBLE_T2S[ch] || ch);
 ```
 
 *Android (Kotlin):*
+
 ```kotlin
 // Use ICU Transliterator (built into Android)
 val t2s = Transliterator.getInstance("Traditional-Simplified")
