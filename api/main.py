@@ -35,6 +35,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
 from config import settings  # noqa: E402
+from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
 from routes import (  # noqa: E402
@@ -233,6 +234,10 @@ app.add_middleware(
 # Correlation ID middleware for request tracing
 # Added after CORS (executes before CORS in request chain due to middleware stack)
 app.add_middleware(CorrelationIDMiddleware)
+
+# Access audit middleware for monitoring unofficial API access
+# Added last = executes first (outermost), sees all requests before other middleware
+app.add_middleware(AccessAuditMiddleware)
 
 
 # ==================== Routes ====================
