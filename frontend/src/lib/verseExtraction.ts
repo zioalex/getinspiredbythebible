@@ -633,6 +633,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
 
   // ── Chinese (中文和合本 CUV) ───────────────────────────────────────────────
   创世记: "genesis",
+  创世纪: "genesis", // common variant: 纪 (era) instead of CUV-canonical 记 (record)
   出埃及记: "exodus",
   利未记: "leviticus",
   民数记: "numbers",
@@ -698,6 +699,37 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   约翰三书: "3 john",
   犹大书: "jude",
   启示录: "revelation",
+
+  // ── Chinese 记↔纪 swap aliases (LLMs confuse these homophones) ────────────
+  出埃及纪: "exodus",
+  利未纪: "leviticus",
+  民数纪: "numbers",
+  申命纪: "deuteronomy",
+  约书亚纪: "joshua",
+  士师纪: "judges",
+  路得纪: "ruth",
+  撒母耳纪上: "1 samuel",
+  撒母耳纪下: "2 samuel",
+  列王记上: "1 kings", // CUV uses 纪 for Kings; variant uses 记
+  列王记下: "2 kings",
+  以斯拉纪: "ezra",
+  尼希米纪: "nehemiah",
+  以斯帖纪: "esther",
+  约伯纪: "job",
+
+  // ── Chinese Catholic 思高本 (Studium Biblicum) names ──────────────────────
+  玛窦福音: "matthew",
+  马尔谷福音: "mark",
+  若望福音: "john",
+  宗徒大事录: "acts",
+  默示录: "revelation",
+  格林多前书: "1 corinthians",
+  格林多后书: "2 corinthians",
+  若望一书: "1 john",
+  若望二书: "2 john",
+  若望三书: "3 john",
+  雅各伯书: "james",
+  犹达书: "jude",
 
   // ── Korean (개역개정 KRV) ──────────────────────────────────────────────────
   창세기: "genesis",

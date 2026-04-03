@@ -255,6 +255,151 @@ describe("extractVerseReferences", () => {
     expect(refs.has("john 3:16")).toBe(true);
   });
 
+  it("should extract '《创世纪》1:1' (variant 纪) as 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("《创世纪》1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  // ── Chinese 记↔纪 swap variants ──────────────────────────────────────────
+
+  it("should extract 出埃及纪 3:14 (纪 variant) as 'exodus 3:14'", () => {
+    const refs = extractVerseReferences("出埃及纪 3:14");
+    expect(refs.has("exodus 3:14")).toBe(true);
+  });
+
+  it("should extract 利未纪 19:18 (纪 variant) as 'leviticus 19:18'", () => {
+    const refs = extractVerseReferences("利未纪 19:18");
+    expect(refs.has("leviticus 19:18")).toBe(true);
+  });
+
+  it("should extract 民数纪 6:24 (纪 variant) as 'numbers 6:24'", () => {
+    const refs = extractVerseReferences("民数纪 6:24");
+    expect(refs.has("numbers 6:24")).toBe(true);
+  });
+
+  it("should extract 申命纪 6:4 (纪 variant) as 'deuteronomy 6:4'", () => {
+    const refs = extractVerseReferences("申命纪 6:4");
+    expect(refs.has("deuteronomy 6:4")).toBe(true);
+  });
+
+  it("should extract 约书亚纪 1:9 (纪 variant) as 'joshua 1:9'", () => {
+    const refs = extractVerseReferences("约书亚纪 1:9");
+    expect(refs.has("joshua 1:9")).toBe(true);
+  });
+
+  it("should extract 士师纪 6:12 (纪 variant) as 'judges 6:12'", () => {
+    const refs = extractVerseReferences("士师纪 6:12");
+    expect(refs.has("judges 6:12")).toBe(true);
+  });
+
+  it("should extract 路得纪 1:16 (纪 variant) as 'ruth 1:16'", () => {
+    const refs = extractVerseReferences("路得纪 1:16");
+    expect(refs.has("ruth 1:16")).toBe(true);
+  });
+
+  it("should extract 撒母耳纪上 3:10 (纪 variant) as '1 samuel 3:10'", () => {
+    const refs = extractVerseReferences("撒母耳纪上 3:10");
+    expect(refs.has("1 samuel 3:10")).toBe(true);
+  });
+
+  it("should extract 撒母耳纪下 7:16 (纪 variant) as '2 samuel 7:16'", () => {
+    const refs = extractVerseReferences("撒母耳纪下 7:16");
+    expect(refs.has("2 samuel 7:16")).toBe(true);
+  });
+
+  it("should extract 列王记上 18:1 (记 variant) as '1 kings 18:1'", () => {
+    const refs = extractVerseReferences("列王记上 18:1");
+    expect(refs.has("1 kings 18:1")).toBe(true);
+  });
+
+  it("should extract 列王记下 5:14 (记 variant) as '2 kings 5:14'", () => {
+    const refs = extractVerseReferences("列王记下 5:14");
+    expect(refs.has("2 kings 5:14")).toBe(true);
+  });
+
+  it("should extract 以斯拉纪 7:10 (纪 variant) as 'ezra 7:10'", () => {
+    const refs = extractVerseReferences("以斯拉纪 7:10");
+    expect(refs.has("ezra 7:10")).toBe(true);
+  });
+
+  it("should extract 尼希米纪 8:10 (纪 variant) as 'nehemiah 8:10'", () => {
+    const refs = extractVerseReferences("尼希米纪 8:10");
+    expect(refs.has("nehemiah 8:10")).toBe(true);
+  });
+
+  it("should extract 以斯帖纪 4:14 (纪 variant) as 'esther 4:14'", () => {
+    const refs = extractVerseReferences("以斯帖纪 4:14");
+    expect(refs.has("esther 4:14")).toBe(true);
+  });
+
+  it("should extract 约伯纪 1:21 (纪 variant) as 'job 1:21'", () => {
+    const refs = extractVerseReferences("约伯纪 1:21");
+    expect(refs.has("job 1:21")).toBe(true);
+  });
+
+  // ── Chinese Catholic (思高本) name variants ──────────────────────────────
+
+  it("should extract 玛窦福音 5:3 (Catholic Matthew) as 'matthew 5:3'", () => {
+    const refs = extractVerseReferences("玛窦福音 5:3");
+    expect(refs.has("matthew 5:3")).toBe(true);
+  });
+
+  it("should extract 马尔谷福音 1:1 (Catholic Mark) as 'mark 1:1'", () => {
+    const refs = extractVerseReferences("马尔谷福音 1:1");
+    expect(refs.has("mark 1:1")).toBe(true);
+  });
+
+  it("should extract 若望福音 3:16 (Catholic John) as 'john 3:16'", () => {
+    const refs = extractVerseReferences("若望福音 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract 宗徒大事录 2:38 (Catholic Acts) as 'acts 2:38'", () => {
+    const refs = extractVerseReferences("宗徒大事录 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract 默示录 21:4 (Catholic Revelation) as 'revelation 21:4'", () => {
+    const refs = extractVerseReferences("默示录 21:4");
+    expect(refs.has("revelation 21:4")).toBe(true);
+  });
+
+  it("should extract 格林多前书 13:4 (Catholic 1 Cor) as '1 corinthians 13:4'", () => {
+    const refs = extractVerseReferences("格林多前书 13:4");
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
+  });
+
+  it("should extract 格林多后书 5:17 (Catholic 2 Cor) as '2 corinthians 5:17'", () => {
+    const refs = extractVerseReferences("格林多后书 5:17");
+    expect(refs.has("2 corinthians 5:17")).toBe(true);
+  });
+
+  it("should extract 若望一书 4:8 (Catholic 1 John) as '1 john 4:8'", () => {
+    const refs = extractVerseReferences("若望一书 4:8");
+    expect(refs.has("1 john 4:8")).toBe(true);
+  });
+
+  it("should extract 若望二书 1:6 (Catholic 2 John) as '2 john 1:6'", () => {
+    const refs = extractVerseReferences("若望二书 1:6");
+    expect(refs.has("2 john 1:6")).toBe(true);
+  });
+
+  it("should extract 若望三书 1:4 (Catholic 3 John) as '3 john 1:4'", () => {
+    const refs = extractVerseReferences("若望三书 1:4");
+    expect(refs.has("3 john 1:4")).toBe(true);
+  });
+
+  it("should extract 雅各伯书 1:5 (Catholic James) as 'james 1:5'", () => {
+    const refs = extractVerseReferences("雅各伯书 1:5");
+    expect(refs.has("james 1:5")).toBe(true);
+  });
+
+  it("should extract 犹达书 1:3 (Catholic Jude) as 'jude 1:3'", () => {
+    const refs = extractVerseReferences("犹达书 1:3");
+    expect(refs.has("jude 1:3")).toBe(true);
+  });
+
   // ── Korean citation tests ────────────────────────────────────────────────
 
   it("should normalize Korean '요한복음 3:16' to 'john 3:16'", () => {
