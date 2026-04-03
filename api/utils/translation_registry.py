@@ -714,11 +714,42 @@ ENGLISH_TO_CHINESE: dict[str, str] = {
     "Revelation": "啟示錄",  # Traditional characters — actual name in getbible CUS feed
 }
 
-# Chinese aliases (encoding variants and simplified/traditional script variants)
+# Chinese aliases (encoding variants, simplified/traditional script variants,
+# 记↔纪 character swaps, and Catholic 思高本 book names).
 CHINESE_ALIASES: dict[str, str] = {
+    # ── encoding / script variants ────────────────────────────────────────────
     "\ufeff创世记": "Genesis",  # Genesis with UTF-8 BOM (getbible API feed artifact)
     "启示录": "Revelation",  # Revelation in Simplified characters (feed uses Traditional "啟示錄")
-    "创世纪": "Genesis",  # Common variant: 纪 (era) instead of CUV-canonical 记 (record)
+    # ── 记↔纪 swaps (jì — both mean "record"; LLMs frequently confuse them) ──
+    "创世纪": "Genesis",
+    "出埃及纪": "Exodus",
+    "利未纪": "Leviticus",
+    "民数纪": "Numbers",
+    "申命纪": "Deuteronomy",
+    "约书亚纪": "Joshua",
+    "士师纪": "Judges",
+    "路得纪": "Ruth",
+    "撒母耳纪上": "1 Samuel",
+    "撒母耳纪下": "2 Samuel",
+    "列王记上": "1 Kings",  # CUV uses 纪 for Kings; variant uses 记
+    "列王记下": "2 Kings",
+    "以斯拉纪": "Ezra",
+    "尼希米纪": "Nehemiah",
+    "以斯帖纪": "Esther",
+    "约伯纪": "Job",
+    # ── Catholic 思高本 (Studium Biblicum) names ──────────────────────────────
+    "玛窦福音": "Matthew",
+    "马尔谷福音": "Mark",
+    "若望福音": "John",
+    "宗徒大事录": "Acts",
+    "默示录": "Revelation",
+    "格林多前书": "1 Corinthians",
+    "格林多后书": "2 Corinthians",
+    "若望一书": "1 John",
+    "若望二书": "2 John",
+    "若望三书": "3 John",
+    "雅各伯书": "James",
+    "犹达书": "Jude",
 }
 
 # Korean Revised Version (개역개정 / krv)

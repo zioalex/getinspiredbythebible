@@ -470,6 +470,188 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 1
         assert result.verse_start == 1
 
+    # ── Chinese 记↔纪 swap variants ──────────────────────────────────────────
+    # CUV uses 记 for most OT books but 纪 for Kings.  LLMs frequently swap
+    # them because both characters are pronounced jì and mean "record".
+
+    def test_chinese_exodus_ji_variant(self):
+        """出埃及纪 (纪 variant) → Exodus."""
+        result = parse_verse_reference("出埃及纪 3:14")
+        assert result is not None
+        assert result.book == "Exodus"
+
+    def test_chinese_leviticus_ji_variant(self):
+        """利未纪 (纪 variant) → Leviticus."""
+        result = parse_verse_reference("利未纪 19:18")
+        assert result is not None
+        assert result.book == "Leviticus"
+
+    def test_chinese_numbers_ji_variant(self):
+        """民数纪 (纪 variant) → Numbers."""
+        result = parse_verse_reference("民数纪 6:24")
+        assert result is not None
+        assert result.book == "Numbers"
+
+    def test_chinese_deuteronomy_ji_variant(self):
+        """申命纪 (纪 variant) → Deuteronomy."""
+        result = parse_verse_reference("申命纪 6:4")
+        assert result is not None
+        assert result.book == "Deuteronomy"
+
+    def test_chinese_joshua_ji_variant(self):
+        """约书亚纪 (纪 variant) → Joshua."""
+        result = parse_verse_reference("约书亚纪 1:9")
+        assert result is not None
+        assert result.book == "Joshua"
+
+    def test_chinese_judges_ji_variant(self):
+        """士师纪 (纪 variant) → Judges."""
+        result = parse_verse_reference("士师纪 6:12")
+        assert result is not None
+        assert result.book == "Judges"
+
+    def test_chinese_ruth_ji_variant(self):
+        """路得纪 (纪 variant) → Ruth."""
+        result = parse_verse_reference("路得纪 1:16")
+        assert result is not None
+        assert result.book == "Ruth"
+
+    def test_chinese_1samuel_ji_variant(self):
+        """撒母耳纪上 (纪 variant) → 1 Samuel."""
+        result = parse_verse_reference("撒母耳纪上 3:10")
+        assert result is not None
+        assert result.book == "1 Samuel"
+
+    def test_chinese_2samuel_ji_variant(self):
+        """撒母耳纪下 (纪 variant) → 2 Samuel."""
+        result = parse_verse_reference("撒母耳纪下 7:16")
+        assert result is not None
+        assert result.book == "2 Samuel"
+
+    def test_chinese_1kings_ji_variant(self):
+        """列王记上 (记 variant) → 1 Kings."""
+        result = parse_verse_reference("列王记上 18:1")
+        assert result is not None
+        assert result.book == "1 Kings"
+
+    def test_chinese_2kings_ji_variant(self):
+        """列王记下 (记 variant) → 2 Kings."""
+        result = parse_verse_reference("列王记下 5:14")
+        assert result is not None
+        assert result.book == "2 Kings"
+
+    def test_chinese_ezra_ji_variant(self):
+        """以斯拉纪 (纪 variant) → Ezra."""
+        result = parse_verse_reference("以斯拉纪 7:10")
+        assert result is not None
+        assert result.book == "Ezra"
+
+    def test_chinese_nehemiah_ji_variant(self):
+        """尼希米纪 (纪 variant) → Nehemiah."""
+        result = parse_verse_reference("尼希米纪 8:10")
+        assert result is not None
+        assert result.book == "Nehemiah"
+
+    def test_chinese_esther_ji_variant(self):
+        """以斯帖纪 (纪 variant) → Esther."""
+        result = parse_verse_reference("以斯帖纪 4:14")
+        assert result is not None
+        assert result.book == "Esther"
+
+    def test_chinese_job_ji_variant(self):
+        """约伯纪 (纪 variant) → Job."""
+        result = parse_verse_reference("约伯纪 1:21")
+        assert result is not None
+        assert result.book == "Job"
+
+    # ── Chinese Catholic (思高本) name variants ──────────────────────────────
+    # LLMs trained on Catholic Chinese texts may produce 思高本 names instead
+    # of the CUV/和合本 names.
+
+    def test_chinese_catholic_matthew(self):
+        """Catholic 玛窦福音 → Matthew."""
+        result = parse_verse_reference("玛窦福音 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_chinese_catholic_mark(self):
+        """Catholic 马尔谷福音 → Mark."""
+        result = parse_verse_reference("马尔谷福音 1:1")
+        assert result is not None
+        assert result.book == "Mark"
+
+    def test_chinese_catholic_john(self):
+        """Catholic 若望福音 → John."""
+        result = parse_verse_reference("若望福音 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_chinese_catholic_acts(self):
+        """Catholic 宗徒大事录 → Acts."""
+        result = parse_verse_reference("宗徒大事录 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_chinese_catholic_revelation(self):
+        """Catholic 默示录 → Revelation."""
+        result = parse_verse_reference("默示录 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_chinese_catholic_1corinthians(self):
+        """Catholic 格林多前书 → 1 Corinthians."""
+        result = parse_verse_reference("格林多前书 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_chinese_catholic_2corinthians(self):
+        """Catholic 格林多后书 → 2 Corinthians."""
+        result = parse_verse_reference("格林多后书 5:17")
+        assert result is not None
+        assert result.book == "2 Corinthians"
+
+    def test_chinese_catholic_1john(self):
+        """Catholic 若望一书 → 1 John."""
+        result = parse_verse_reference("若望一书 4:8")
+        assert result is not None
+        assert result.book == "1 John"
+
+    def test_chinese_catholic_2john(self):
+        """Catholic 若望二书 → 2 John."""
+        result = parse_verse_reference("若望二书 1:6")
+        assert result is not None
+        assert result.book == "2 John"
+
+    def test_chinese_catholic_3john(self):
+        """Catholic 若望三书 → 3 John."""
+        result = parse_verse_reference("若望三书 1:4")
+        assert result is not None
+        assert result.book == "3 John"
+
+    def test_chinese_catholic_james(self):
+        """Catholic 雅各伯书 → James."""
+        result = parse_verse_reference("雅各伯书 1:5")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_chinese_catholic_jude(self):
+        """Catholic 犹达书 → Jude."""
+        result = parse_verse_reference("犹达书 1:3")
+        assert result is not None
+        assert result.book == "Jude"
+
+    def test_chinese_catholic_guillemet(self):
+        """Catholic name inside guillemets: 《默示录》21:4 → Revelation."""
+        result = parse_verse_reference("《默示录》21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_chinese_ji_variant_guillemet(self):
+        """记↔纪 variant inside guillemets: 《出埃及纪》3:14 → Exodus."""
+        result = parse_verse_reference("《出埃及纪》3:14")
+        assert result is not None
+        assert result.book == "Exodus"
+
     # ── Korean ────────────────────────────────────────────────────────────────
 
     def test_korean_john(self):
