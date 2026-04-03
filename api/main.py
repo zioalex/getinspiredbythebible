@@ -234,6 +234,12 @@ app.add_middleware(
 # Added after CORS (executes before CORS in request chain due to middleware stack)
 app.add_middleware(CorrelationIDMiddleware)
 
+# Access audit middleware for monitoring unofficial API access
+# Added last = executes first (outermost), sees all requests before other middleware
+from middleware.access_audit import AccessAuditMiddleware
+
+app.add_middleware(AccessAuditMiddleware)
+
 
 # ==================== Routes ====================
 
