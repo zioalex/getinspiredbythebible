@@ -660,6 +660,100 @@ Testing & Documentation:
 
 ## P3 - Low Priority (Future)
 
+### 🎯 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-04-03
+
+**As a** Chinese-speaking user (traditional script),
+**I want** verse references written in traditional Chinese characters (e.g. 約翰福音 3:16, 馬太福音 5:3) to be detected and linked,
+**so that** I can see verse lookups regardless of whether the LLM produces simplified or traditional characters.
+
+**Why P3:** PR #389 added 28 aliases covering the highest-impact variants (记↔纪 swaps
+and Catholic 思高本 names). Traditional character support is the remaining gap, but
+it requires a different approach than individual aliases — there are 66 books × 2 scripts
+plus mixed-script edge cases.
+
+**Background:**
+
+CUV (Chinese Union Version/和合本) exists in both simplified (CUVS) and traditional (CUVT)
+editions. LLMs may produce traditional characters for any book name. Examples:
+
+| Simplified (current) | Traditional (unhandled) | Book |
+|---|---|---|
+| 约翰福音 | 約翰福音 | John |
+| 马太福音 | 馬太福音 | Matthew |
+| 使徒行传 | 使徒行傳 | Acts |
+| 传道书 | 傳道書 | Ecclesiastes |
+| 启示录 | 啟示錄 | Revelation (already aliased) |
+| 历代志上 | 歷代志上 | 1 Chronicles |
+| 罗马书 | 羅馬書 | Romans |
+| ... | ... | all 66 books potentially affected |
+
+Adding 66+ individual aliases is fragile and won't handle mixed-script text
+(e.g. `約翰福音` with traditional 約 but simplified 音).
+
+**Proposed approach — T2S (Traditional→Simplified) normalization function:**
+
+A single function that converts Traditional Chinese characters to Simplified *before*
+the verse regex lookup runs. This handles all books, mixed script, and future additions
+with zero per-book maintenance.
+
+*Backend (Python):*
+```python
+# Option A: opencc-python-reimplemented (most robust, ~2MB)
+import opencc
+converter = opencc.OpenCC('t2s')
+text = converter.convert(text)
+
+# Option B: hanziconv (lightweight, ~500KB)
+from hanziconv import HanziConv
+text = HanziConv.toSimplified(text)
+```
+
+*Frontend (TypeScript):*
+```typescript
+// Option A: chinese-conv npm package (~50KB gzipped)
+import { traditionalToSimplified } from 'chinese-conv';
+text = traditionalToSimplified(text);
+
+// Option B: Minimal custom T2S table covering only the ~120 unique
+// characters used in Bible book names (smallest bundle impact)
+const BIBLE_T2S: Record<string, string> = { '約': '约', '馬': '马', ... };
+text = text.replace(/[\u4e00-\u9fff]/g, ch => BIBLE_T2S[ch] || ch);
+```
+
+*Android (Kotlin):*
+```kotlin
+// Use ICU Transliterator (built into Android)
+val t2s = Transliterator.getInstance("Traditional-Simplified")
+text = t2s.transliterate(text)
+```
+
+**Acceptance Criteria:**
+
+- [ ] Backend: Traditional Chinese book names are normalized to simplified before verse parsing
+- [ ] Frontend: Traditional Chinese book names are normalized before verse extraction
+- [ ] Android: Traditional Chinese book names are normalized in client-side regex
+- [ ] Mixed-script text handled correctly (e.g. partial traditional)
+- [ ] No regression on existing simplified Chinese tests
+- [ ] Minimal bundle size impact (frontend: prefer Option B if < 20 unique chars needed)
+- [ ] Performance: normalization adds < 1ms overhead per call
+
+**Tech Constraints:**
+
+- Backend dependency must be pip-installable and compatible with Python 3.11+
+- Frontend solution must not significantly increase bundle size
+- Must not affect non-Chinese text (normalization should be a no-op for Latin/Cyrillic/etc.)
+
+**Out of Scope:**
+
+- Simplified→Traditional conversion (output is always simplified)
+- Full CJK variant unification (only T2S needed for verse parsing)
+
+---
+
 ### 🎯 BITB-010: Add Blue-Green Deployment
 
 **Status:** 🎯 Todo
