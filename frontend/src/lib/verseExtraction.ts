@@ -843,6 +843,16 @@ function normalizeBookName(book: string): string {
  * - Chinese:  "约翰福音 3:16", "诗篇 23:1", "耶利米哀歌 3:3"
  * - Korean:   "요한복음 3:16", "시편 23:1", "예레미야 애가 3:3"
  */
+/**
+ * Normalize Devanagari digits (०-९, U+0966-U+096F) to ASCII digits (0-9).
+ * Returns the string unchanged if no Devanagari digits are present.
+ */
+function normalizeDevanagariDigits(s: string): string {
+  return s.replace(/[\u0966-\u096F]/g, (ch) =>
+    String(ch.charCodeAt(0) - 0x0966),
+  );
+}
+
 export function extractVerseReferences(text: string): Set<string> {
   // Conjunctions that should not be treated as book names
   // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
@@ -859,8 +869,9 @@ export function extractVerseReferences(text: string): Set<string> {
 
   for (const match of matches) {
     const book = match[1].trim();
-    const chapter = match[2];
-    const verse = match[3];
+    // Normalize Devanagari digits (३:१६ → 3:16) in chapter/verse groups
+    const chapter = normalizeDevanagariDigits(match[2]);
+    const verse = normalizeDevanagariDigits(match[3]);
 
     // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
     if (CONJUNCTIONS.has(book.toLowerCase())) {

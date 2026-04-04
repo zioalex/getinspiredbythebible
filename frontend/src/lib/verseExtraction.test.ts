@@ -1527,6 +1527,61 @@ describe("extractVerseReferences — Hindi", () => {
   });
 });
 
+// ── Hindi: no-space and Devanagari numeral improvements ─────────────────────────
+
+describe("extractVerseReferences — Hindi no-space and Devanagari numerals", () => {
+  describe("no-space references", () => {
+    it("should detect यूहन्ना3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect प्रकाशितवाक्य21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("प्रकाशितवाक्य21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("Devanagari numerals", () => {
+    it("should detect यूहन्ना ३:१६ (Devanagari numerals) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना ३:१६");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति १:१ (Devanagari numerals) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति १:१");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("embedded in Hindi text", () => {
+    it("should detect ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("कृपया यूहन्ना 3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect no-space ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("बाइबल में यूहन्ना3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple Hindi references", () => {
+    it("should detect multiple Hindi refs in one sentence", () => {
+      const refs = extractVerseReferences(
+        "यूहन्ना 3:16 और रोमियों 8:28 पढ़ें",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+  });
+});
+
 // ── Chinese ─────────────────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Chinese", () => {

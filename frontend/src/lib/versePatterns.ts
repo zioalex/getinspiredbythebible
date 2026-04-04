@@ -62,6 +62,7 @@ function escapeForRegex(s: string): string {
 let _cachedMultiWordAlternation: string | null = null;
 let _cachedCjkAlternation: string | null = null;
 let _cachedHangulAlternation: string | null = null;
+let _cachedDevanagariAlternation: string | null = null;
 let _cachedPatternSource: string | null = null;
 
 // When non-null, server-provided multi-word names take precedence over
@@ -166,6 +167,35 @@ function getHangulAlternation(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Lazy-cached Devanagari (Hindi) book name alternation
+// ---------------------------------------------------------------------------
+
+// Regex to test if a string is entirely Devanagari script (including combining marks).
+const DEVANAGARI_ONLY_RE = /^[\p{Script=Devanagari}]+$/u;
+
+/**
+ * Returns an alternation string of all known Devanagari (Hindi) book names from
+ * LOCALIZED_BOOK_TO_ENGLISH, sorted longest-first.
+ *
+ * Like CJK and Hangul alternation, this prevents the generic fallback pattern
+ * from greedily matching surrounding Devanagari text.
+ */
+function getDevanagariAlternation(): string {
+  if (_cachedDevanagariAlternation !== null) {
+    return _cachedDevanagariAlternation;
+  }
+
+  const devanagariNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
+    (key) => DEVANAGARI_ONLY_RE.test(key) && key.length >= 2,
+  );
+
+  devanagariNames.sort((a, b) => b.length - a.length);
+
+  _cachedDevanagariAlternation = devanagariNames.join("|");
+  return _cachedDevanagariAlternation;
+}
+
+// ---------------------------------------------------------------------------
 // Regex pattern string builder
 // ---------------------------------------------------------------------------
 
@@ -208,6 +238,8 @@ function buildPatternSource(): string {
   const cjkPart = cjkAlt ? `${cjkAlt}|` : "";
   const hangulAlt = getHangulAlternation();
   const hangulPart = hangulAlt ? `${hangulAlt}|` : "";
+  const devanagariAlt = getDevanagariAlternation();
+  const devanagariPart = devanagariAlt ? `${devanagariAlt}|` : "";
 
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
@@ -218,13 +250,16 @@ function buildPatternSource(): string {
   // The lookbehind includes opening brackets so they can start a match, and the
   // closing bracket class [\u300B\u300D\u300F]? after the book-name capture group
   // makes them optional.
+  //
+  // Chapter:verse digits: [\d\u0966-\u096F] supports both Western and Devanagari numerals.
   _cachedPatternSource =
-    `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
+    `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=\\p{Script=Devanagari})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
     `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
     `|${cjkPart}` +
     `${hangulPart}` +
-    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
+    `${devanagariPart}` +
+    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\\p{Script=Devanagari}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)([\\d\u0966-\u096F]+):([\\d\u0966-\u096F]+)(?:-[\\d\u0966-\u096F]+)?`;
 
   return _cachedPatternSource;
 }
@@ -264,5 +299,6 @@ export function updateMultiWordNames(names: string[]): void {
   // Invalidate cached regex source so it rebuilds on next use
   _cachedMultiWordAlternation = null;
   _cachedHangulAlternation = null;
+  _cachedDevanagariAlternation = null;
   _cachedPatternSource = null;
 }

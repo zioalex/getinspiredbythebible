@@ -1050,6 +1050,109 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 3
         assert result.verse_start == 16
 
+    # ── Hindi (expanded) ─────────────────────────────────────────────────────
+
+    def test_hindi_genesis(self):
+        """Hindi Genesis 'उत्पत्ति 1:1' → Genesis."""
+        result = parse_verse_reference("उत्पत्ति 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_hindi_psalms(self):
+        """Hindi Psalms 'भजन संहिता 23:1' → Psalms."""
+        result = parse_verse_reference("भजन संहिता 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_hindi_proverbs(self):
+        """Hindi Proverbs 'नीतिवचन 3:5' → Proverbs."""
+        result = parse_verse_reference("नीतिवचन 3:5")
+        assert result is not None
+        assert result.book == "Proverbs"
+
+    def test_hindi_revelation(self):
+        """Hindi Revelation 'प्रकाशितवाक्य 21:4' → Revelation."""
+        result = parse_verse_reference("प्रकाशितवाक्य 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_hindi_acts(self):
+        """Hindi Acts 'प्रेरितों के काम 2:38' → Acts (3-word with के connector)."""
+        result = parse_verse_reference("प्रेरितों के काम 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_hindi_romans(self):
+        """Hindi Romans 'रोमियों 8:28' → Romans."""
+        result = parse_verse_reference("रोमियों 8:28")
+        assert result is not None
+        assert result.book == "Romans"
+
+    def test_hindi_1_corinthians(self):
+        """Hindi 1 Corinthians '1 कुरिन्थियों 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 कुरिन्थियों 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_hindi_hebrews(self):
+        """Hindi Hebrews 'इब्रानियों 11:1' → Hebrews."""
+        result = parse_verse_reference("इब्रानियों 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_hindi_james(self):
+        """Hindi James 'याकूब 1:2' → James."""
+        result = parse_verse_reference("याकूब 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_hindi_range(self):
+        """Hindi verse range 'यूहन्ना 3:16-18' → John 3:16-18."""
+        result = parse_verse_reference("यूहन्ना 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_hindi_no_space_john(self):
+        """Hindi John without space 'यूहन्ना3:16' → John."""
+        result = parse_verse_reference("यूहन्ना3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_no_space_genesis(self):
+        """Hindi Genesis without space 'उत्पत्ति1:1' → Genesis."""
+        result = parse_verse_reference("उत्पत्ति1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_hindi_embedded_sentence(self):
+        """Hindi ref embedded in Hindi sentence."""
+        result = parse_verse_reference("कृपया यूहन्ना 3:16 पढ़ें")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_devanagari_numerals(self):
+        """Hindi with Devanagari numerals 'यूहन्ना ३:१६' → John 3:16."""
+        result = parse_verse_reference("यूहन्ना ३:१६")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_devanagari_numerals_genesis(self):
+        """Hindi Genesis with Devanagari numerals 'उत्पत्ति १:१' → Genesis 1:1."""
+        result = parse_verse_reference("उत्पत्ति १:१")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
 
 class TestExtractAllReferences:
     """Tests for extract_all_references function (multi-verse extraction)."""
