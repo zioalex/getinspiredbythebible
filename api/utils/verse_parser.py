@@ -338,6 +338,28 @@ def _match_to_verse_reference(match: re.Match) -> VerseReference | None:
     )
 
 
+def _normalize_arabic_text(text: str) -> str:
+    """Strip Arabic tashkeel (diacritics) and tatweel (kashida) from text.
+
+    Tashkeel marks (U+064B–U+065F, U+0670) are vowelisation marks that are
+    often present in fully-vocalised Arabic text but absent in the book-name
+    lookup tables.  Stripping them before regex matching ensures that
+    ``يُوحَنَّا`` matches the canonical ``يوحنا``.
+
+    Tatweel (U+0640, kashida) is a decorative letter-stretching character
+    that can appear between any letters: ``يـوحـنـا``.
+
+    Also normalizes French-style guillemets «» (U+00AB / U+00BB) to the
+    CJK-style guillemets 《》 (U+300A / U+300B) so the existing bracket
+    handling in the regex covers both Arabic «…» and Chinese 《…》.
+    """
+    # Strip tashkeel marks and tatweel
+    text = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", text)
+    # Normalize guillemets
+    text = text.replace("\u00ab", "\u300a").replace("\u00bb", "\u300b")
+    return text
+
+
 def parse_verse_reference(text: str) -> VerseReference | None:
     """
     Parse the first verse reference from text.
@@ -352,6 +374,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     - "约翰福音 3:16" (Chinese)
     - "요한복음 3:16" (Korean)
     - "यूहन्ना 3:16" (Hindi)
+    - "يوحنا 3:16" (Arabic, with optional tashkeel)
 
     Args:
         text: Text that may contain a verse reference
@@ -359,6 +382,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     Returns:
         VerseReference if found, None otherwise
     """
+    text = _normalize_arabic_text(text)
     match = _VERSE_PATTERN.search(text)
     if not match:
         return None
@@ -379,6 +403,7 @@ def extract_all_references(text: str) -> list[VerseReference]:
     Returns:
         List of all VerseReference objects found (deduplicated)
     """
+    text = _normalize_arabic_text(text)
     results: list[VerseReference] = []
     seen: set[str] = set()
 

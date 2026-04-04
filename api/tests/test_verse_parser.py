@@ -1012,6 +1012,105 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 139
         assert result.verse_start == 12
 
+    # ── Arabic (expanded) ────────────────────────────────────────────────────
+
+    def test_arabic_matthew(self):
+        """Arabic Matthew 'متى 5:3' → Matthew."""
+        result = parse_verse_reference("متى 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_arabic_mark(self):
+        """Arabic Mark 'مرقس 1:1' → Mark."""
+        result = parse_verse_reference("مرقس 1:1")
+        assert result is not None
+        assert result.book == "Mark"
+
+    def test_arabic_luke(self):
+        """Arabic Luke 'لوقا 2:1' → Luke."""
+        result = parse_verse_reference("لوقا 2:1")
+        assert result is not None
+        assert result.book == "Luke"
+
+    def test_arabic_acts_full(self):
+        """Arabic Acts full form 'أعمال الرسل 2:38' → Acts."""
+        result = parse_verse_reference("أعمال الرسل 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_arabic_acts_short(self):
+        """Arabic Acts short form 'أعمال 2:38' → Acts."""
+        result = parse_verse_reference("أعمال 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_arabic_lamentations(self):
+        """Arabic Lamentations 'مراثي إرميا 3:22' → Lamentations."""
+        result = parse_verse_reference("مراثي إرميا 3:22")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_arabic_hebrews(self):
+        """Arabic Hebrews 'عبرانيين 11:1' → Hebrews."""
+        result = parse_verse_reference("عبرانيين 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_arabic_james(self):
+        """Arabic James 'يعقوب 1:2' → James."""
+        result = parse_verse_reference("يعقوب 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_arabic_range(self):
+        """Arabic verse range 'يوحنا 3:16-18' → John 3:16-18."""
+        result = parse_verse_reference("يوحنا 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_arabic_eastern_numerals(self):
+        """Arabic with Eastern Arabic numerals 'يوحنا ٣:١٦' → John 3:16."""
+        result = parse_verse_reference("يوحنا ٣:١٦")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_arabic_eastern_numerals_genesis(self):
+        """Arabic Genesis with Eastern Arabic numerals 'تكوين ١:١' → Genesis 1:1."""
+        result = parse_verse_reference("تكوين ١:١")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
+    def test_arabic_tashkeel_john(self):
+        """Arabic John with tashkeel diacritics 'يُوحَنَّا 3:16' → John."""
+        result = parse_verse_reference("يُوحَنَّا 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_arabic_guillemet(self):
+        """Arabic with guillemets '«يوحنا» 3:16' → John."""
+        result = parse_verse_reference("«يوحنا» 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_arabic_2_corinthians(self):
+        """Arabic 2 Corinthians '2 كورنثوس 5:17' → 2 Corinthians."""
+        result = parse_verse_reference("2 كورنثوس 5:17")
+        assert result is not None
+        assert result.book == "2 Corinthians"
+
+    def test_arabic_song_variant(self):
+        """Arabic Song of Solomon LLM variant 'نشيد الأناشيد 2:1' → Song of Solomon."""
+        result = parse_verse_reference("نشيد الأناشيد 2:1")
+        assert result is not None
+        assert result.book == "Song of Solomon"
+
     # ── Verse-in-sentence tests ───────────────────────────────────────────────
 
     def test_russian_in_sentence(self):

@@ -853,10 +853,45 @@ function normalizeDevanagariDigits(s: string): string {
   );
 }
 
+/**
+ * Normalize Eastern Arabic digits (٠-٩, U+0660-U+0669) to ASCII digits (0-9).
+ */
+function normalizeEasternArabicDigits(s: string): string {
+  return s.replace(/[\u0660-\u0669]/g, (ch) =>
+    String(ch.charCodeAt(0) - 0x0660),
+  );
+}
+
+/**
+ * Normalize non-ASCII digit systems to ASCII.
+ * Handles Devanagari (०-९) and Eastern Arabic (٠-٩) numerals.
+ */
+function normalizeDigits(s: string): string {
+  return normalizeEasternArabicDigits(normalizeDevanagariDigits(s));
+}
+
+/**
+ * Strip Arabic tashkeel (diacritics U+064B–U+065F, U+0670) and tatweel
+ * (kashida U+0640) from text so that vowelised forms like يُوحَنَّا
+ * match the canonical يوحنا in the lookup table.
+ *
+ * Also normalizes French guillemets «» (U+00AB/U+00BB) to CJK guillemets
+ * 《》 (U+300A/U+300B) so the existing bracket handling covers Arabic «…».
+ */
+function normalizeArabicText(text: string): string {
+  return text
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/\u00AB/g, "\u300A")
+    .replace(/\u00BB/g, "\u300B");
+}
+
 export function extractVerseReferences(text: string): Set<string> {
   // Conjunctions that should not be treated as book names
   // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
   const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+
+  // Preprocess: strip Arabic tashkeel/tatweel and normalize guillemets.
+  text = normalizeArabicText(text);
 
   // Use the shared verse pattern (auto-generated from LOCALIZED_BOOK_TO_ENGLISH).
   // Imported from versePatterns — the circular reference is safe because
@@ -869,9 +904,9 @@ export function extractVerseReferences(text: string): Set<string> {
 
   for (const match of matches) {
     const book = match[1].trim();
-    // Normalize Devanagari digits (३:१६ → 3:16) in chapter/verse groups
-    const chapter = normalizeDevanagariDigits(match[2]);
-    const verse = normalizeDevanagariDigits(match[3]);
+    // Normalize Devanagari (३→3) and Eastern Arabic (٣→3) digits
+    const chapter = normalizeDigits(match[2]);
+    const verse = normalizeDigits(match[3]);
 
     // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
     if (CONJUNCTIONS.has(book.toLowerCase())) {

@@ -251,7 +251,8 @@ function buildPatternSource(): string {
   // closing bracket class [\u300B\u300D\u300F]? after the book-name capture group
   // makes them optional.
   //
-  // Chapter:verse digits: [\d\u0966-\u096F] supports both Western and Devanagari numerals.
+  // Chapter:verse digits: [\d\u0966-\u096F\u0660-\u0669] supports Western,
+  // Devanagari (Hindi), and Eastern Arabic numerals.
   _cachedPatternSource =
     `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=\\p{Script=Devanagari})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
@@ -259,7 +260,7 @@ function buildPatternSource(): string {
     `|${cjkPart}` +
     `${hangulPart}` +
     `${devanagariPart}` +
-    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\\p{Script=Devanagari}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)([\\d\u0966-\u096F]+):([\\d\u0966-\u096F]+)(?:-[\\d\u0966-\u096F]+)?`;
+    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\\p{Script=Devanagari}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)([\\d\u0966-\u096F\u0660-\u0669]+):([\\d\u0966-\u096F\u0660-\u0669]+)(?:-[\\d\u0966-\u096F\u0660-\u0669]+)?`;
 
   return _cachedPatternSource;
 }

@@ -1452,6 +1452,46 @@ describe("extractVerseReferences — Arabic", () => {
   });
 });
 
+// ── Arabic: tashkeel, Eastern numerals, guillemets ──────────────────────────────
+
+describe("extractVerseReferences — Arabic tashkeel and Eastern numerals", () => {
+  describe("tashkeel (diacritics) stripping", () => {
+    it("should detect \u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16 (with tashkeel) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences("\u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1 (with tashkeel) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences("\u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Eastern Arabic numerals", () => {
+    it("should detect \u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666 (Eastern Arabic numerals) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences("\u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u0643\u0648\u064A\u0646 \u0661:\u0661 (Eastern Arabic numerals) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences("\u062A\u0643\u0648\u064A\u0646 \u0661:\u0661");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Arabic guillemets \u00AB\u00BB", () => {
+    it("should detect \u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16 \u2192 john 3:16", () => {
+      const refs = extractVerseReferences("\u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1 \u2192 psalms 23:1", () => {
+      const refs = extractVerseReferences("\u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Hindi ───────────────────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Hindi", () => {
