@@ -640,6 +640,26 @@ RUSSIAN_ALIASES: dict[str, str] = {
     "3 Иоанна": "3 John",
     # Jude — nominative alias (feed uses dative "Иуде")
     "Иуда": "Jude",
+    # ── Russian abbreviations (commonly used by LLMs) ────────────────────────
+    "Ин": "John",
+    "Мф": "Matthew",
+    "Мк": "Mark",
+    "Лк": "Luke",
+    "Пс": "Psalms",
+    "Рим": "Romans",
+    "Быт": "Genesis",
+    "Ис": "Isaiah",
+    "Откр": "Revelation",
+    "Деян": "Acts",
+    "Гал": "Galatians",
+    "Еф": "Ephesians",
+    "Кол": "Colossians",
+    "Евр": "Hebrews",
+    "Иак": "James",
+    "Флп": "Philippians",
+    "Флм": "Philemon",
+    # ── ё/е variants ─────────────────────────────────────────────────────────
+    "Иёв": "Job",  # ё variant of Иов
 }
 
 # Chinese Union Version Simplified (CUS / cuv)

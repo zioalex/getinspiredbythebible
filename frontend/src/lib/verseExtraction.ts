@@ -578,6 +578,28 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   иуда: "jude",
   откровение: "revelation",
 
+  // ── Russian abbreviations (commonly used by LLMs) ─────────────────────────
+  ин: "john",
+  мф: "matthew",
+  мк: "mark",
+  лк: "luke",
+  пс: "psalms",
+  рим: "romans",
+  быт: "genesis",
+  ис: "isaiah",
+  откр: "revelation",
+  деян: "acts",
+  гал: "galatians",
+  еф: "ephesians",
+  кол: "colossians",
+  евр: "hebrews",
+  иак: "james",
+  флп: "philippians",
+  флм: "philemon",
+
+  // ── Russian ё/е variants ──────────────────────────────────────────────────
+  иёв: "job",
+
   // ── Russian (genitive forms — used after chapter/verse references) ────────
   бытия: "genesis",
   исхода: "exodus",

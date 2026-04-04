@@ -1121,6 +1121,92 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 3
         assert result.verse_start == 16
 
+    # ── Russian (expanded — abbreviations, ё/е, word-ordinals) ───────────────
+
+    def test_russian_abbreviation_in(self):
+        """Russian abbreviation 'Ин 3:16' → John."""
+        result = parse_verse_reference("Ин 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_russian_abbreviation_mf(self):
+        """Russian abbreviation 'Мф 5:3' → Matthew."""
+        result = parse_verse_reference("Мф 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_russian_abbreviation_mk(self):
+        """Russian abbreviation 'Мк 1:1' → Mark."""
+        result = parse_verse_reference("Мк 1:1")
+        assert result is not None
+        assert result.book == "Mark"
+
+    def test_russian_abbreviation_lk(self):
+        """Russian abbreviation 'Лк 2:1' → Luke."""
+        result = parse_verse_reference("Лк 2:1")
+        assert result is not None
+        assert result.book == "Luke"
+
+    def test_russian_abbreviation_ps(self):
+        """Russian abbreviation 'Пс 23:1' → Psalms."""
+        result = parse_verse_reference("Пс 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_russian_abbreviation_rim(self):
+        """Russian abbreviation 'Рим 8:28' → Romans."""
+        result = parse_verse_reference("Рим 8:28")
+        assert result is not None
+        assert result.book == "Romans"
+
+    def test_russian_abbreviation_byt(self):
+        """Russian abbreviation 'Быт 1:1' → Genesis."""
+        result = parse_verse_reference("Быт 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_russian_abbreviation_otkr(self):
+        """Russian abbreviation 'Откр 21:4' → Revelation."""
+        result = parse_verse_reference("Откр 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_russian_abbreviation_deyan(self):
+        """Russian abbreviation 'Деян 2:38' → Acts."""
+        result = parse_verse_reference("Деян 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_russian_abbreviation_evr(self):
+        """Russian abbreviation 'Евр 11:1' → Hebrews."""
+        result = parse_verse_reference("Евр 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_russian_abbreviation_gal(self):
+        """Russian abbreviation 'Гал 3:28' → Galatians."""
+        result = parse_verse_reference("Гал 3:28")
+        assert result is not None
+        assert result.book == "Galatians"
+
+    def test_russian_abbreviation_ef(self):
+        """Russian abbreviation 'Еф 2:8' → Ephesians."""
+        result = parse_verse_reference("Еф 2:8")
+        assert result is not None
+        assert result.book == "Ephesians"
+
+    def test_russian_abbreviation_iak(self):
+        """Russian abbreviation 'Иак 1:2' → James."""
+        result = parse_verse_reference("Иак 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_russian_yo_variant_iov(self):
+        """Russian ё variant 'Иёв 1:1' → Job (ё instead of о)."""
+        result = parse_verse_reference("Иёв 1:1")
+        assert result is not None
+        assert result.book == "Job"
+
     def test_chinese_in_sentence(self):
         """Chinese verse reference within a longer sentence."""
         result = parse_verse_reference("经文 约翰福音 3:16 所说")

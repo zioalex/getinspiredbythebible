@@ -1941,6 +1941,59 @@ describe("extractVerseReferences — Russian extended", () => {
   });
 });
 
+// ── Russian: abbreviations and ё/е normalization ────────────────────────────────
+
+describe("extractVerseReferences — Russian abbreviations and ё/е", () => {
+  describe("common abbreviations", () => {
+    it("should detect Ин 3:16 → john 3:16", () => {
+      const refs = extractVerseReferences("Ин 3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect Мф 5:3 → matthew 5:3", () => {
+      const refs = extractVerseReferences("Мф 5:3");
+      expect(refs.has("matthew 5:3")).toBe(true);
+    });
+
+    it("should detect Пс 23:1 → psalms 23:1", () => {
+      const refs = extractVerseReferences("Пс 23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect Рим 8:28 → romans 8:28", () => {
+      const refs = extractVerseReferences("Рим 8:28");
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+
+    it("should detect Быт 1:1 → genesis 1:1", () => {
+      const refs = extractVerseReferences("Быт 1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect Откр 21:4 → revelation 21:4", () => {
+      const refs = extractVerseReferences("Откр 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect Деян 2:38 → acts 2:38", () => {
+      const refs = extractVerseReferences("Деян 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+
+    it("should detect Евр 11:1 → hebrews 11:1", () => {
+      const refs = extractVerseReferences("Евр 11:1");
+      expect(refs.has("hebrews 11:1")).toBe(true);
+    });
+  });
+
+  describe("ё/е normalization", () => {
+    it("should detect Иёв 1:1 (ё variant) → job 1:1", () => {
+      const refs = extractVerseReferences("Иёв 1:1");
+      expect(refs.has("job 1:1")).toBe(true);
+    });
+  });
+});
+
 // ── Mixed-script detection ──────────────────────────────────────────────────────
 
 describe("extractVerseReferences — mixed scripts", () => {
