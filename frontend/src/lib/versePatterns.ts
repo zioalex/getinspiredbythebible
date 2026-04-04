@@ -61,6 +61,7 @@ function escapeForRegex(s: string): string {
 // is undefined if accessed before verseExtraction.ts finishes loading.
 let _cachedMultiWordAlternation: string | null = null;
 let _cachedCjkAlternation: string | null = null;
+let _cachedHangulAlternation: string | null = null;
 let _cachedPatternSource: string | null = null;
 
 // When non-null, server-provided multi-word names take precedence over
@@ -134,6 +135,37 @@ function getCjkAlternation(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Lazy-cached Hangul (Korean) book name alternation
+// ---------------------------------------------------------------------------
+
+// Regex to test if a string is entirely Hangul syllable characters.
+const HANGUL_ONLY_RE = /^[\p{Script=Hangul}]+$/u;
+
+/**
+ * Returns an alternation string of all known Hangul (Korean) book names from
+ * LOCALIZED_BOOK_TO_ENGLISH, sorted longest-first.
+ *
+ * Like getCjkAlternation() for Chinese, this prevents the generic
+ * [\p{L}\p{M}]{2,} pattern from greedily matching surrounding Korean context
+ * text.  An explicit alternation matches only known book names.
+ */
+function getHangulAlternation(): string {
+  if (_cachedHangulAlternation !== null) {
+    return _cachedHangulAlternation;
+  }
+
+  const hangulNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
+    (key) => HANGUL_ONLY_RE.test(key) && key.length >= 2,
+  );
+
+  // Longest first to prevent partial matches (e.g. 요한계시록 before 요한복음).
+  hangulNames.sort((a, b) => b.length - a.length);
+
+  _cachedHangulAlternation = hangulNames.join("|");
+  return _cachedHangulAlternation;
+}
+
+// ---------------------------------------------------------------------------
 // Regex pattern string builder
 // ---------------------------------------------------------------------------
 
@@ -148,15 +180,20 @@ function getCjkAlternation(): string {
  *  4. Chinese/CJK book names — explicit alternation of known names from the map.
  *     Unlike the generic [\p{Script=Han}]{2,} that was used before, an explicit
  *     alternation prevents greedy over-matching of surrounding CJK context text.
- *  5. Any single Unicode word ≥2 chars (covers all remaining single-word books)
+ *  5. Korean/Hangul book names — explicit alternation, same rationale as CJK.
+ *  6. Any single Unicode word ≥2 chars (covers all remaining single-word books)
  *
- * Start boundary: (?:(?<!\p{L})|(?<=\p{Script=Han})) allows matching after
- * CJK characters (which are \p{L}) while still preventing mid-word matches
- * in Latin/Cyrillic/Arabic text.
+ * Start boundary: (?:(?<!\p{L})|(?<=\p{Script=Han})|(?<=\p{Script=Hangul}))
+ * allows matching after CJK/Hangul characters (which are \p{L}) while still
+ * preventing mid-word matches in Latin/Cyrillic/Arabic text.
+ *
+ * Bracket support:
+ *   - Chinese guillemets: 《 (U+300A) / 》 (U+300B)
+ *   - Korean corner brackets: 「 (U+300C) / 」 (U+300D) and 『 (U+300E) / 』 (U+300F)
  *
  * Space between book name and chapter number:
- *   - After a CJK Han character → \s* (zero or more spaces), so both
- *     约翰福音 10:28 and 约翰福音10:28 are accepted.
+ *   - After a CJK Han or Hangul character → \s* (zero or more spaces), so both
+ *     约翰福音 10:28 / 요한복음 3:16 and 约翰福音10:28 / 요한복음3:16 are accepted.
  *   - After any other character → \s+ (one or more spaces required), which
  *     preserves John 3:16 behaviour and prevents false positives like John3:16.
  */
@@ -169,19 +206,25 @@ function buildPatternSource(): string {
   const multiWordPart = multiWordAlt ? `${multiWordAlt}|` : "";
   const cjkAlt = getCjkAlternation();
   const cjkPart = cjkAlt ? `${cjkAlt}|` : "";
+  const hangulAlt = getHangulAlternation();
+  const hangulPart = hangulAlt ? `${hangulAlt}|` : "";
 
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
   //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
-  // The \u300A (《) and \u300B (》) handle Chinese guillemet notation like 《约翰福音》3:16.
-  // The lookbehind includes 《 so it can start a match, and 》? after the book-name
-  // capture group makes the closing guillemet optional.
+  // Bracket support:
+  //   Chinese guillemets: \u300A (《) / \u300B (》)
+  //   Korean corner brackets: \u300C (「) / \u300D (」) / \u300E (『) / \u300F (』)
+  // The lookbehind includes opening brackets so they can start a match, and the
+  // closing bracket class [\u300B\u300D\u300F]? after the book-name capture group
+  // makes them optional.
   _cachedPatternSource =
-    `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\u300A))(${multiWordPart}` +
+    `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
     `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
     `|${cjkPart}` +
-    `(?:(?![\\p{Script=Han}])[\\p{L}\\p{M}]){2,})\u300B?(?:(?<=[\\p{Script=Han}])\\s*|(?<=\u300B)\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
+    `${hangulPart}` +
+    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)(\\d+):(\\d+)(?:-\\d+)?`;
 
   return _cachedPatternSource;
 }
@@ -220,5 +263,6 @@ export function updateMultiWordNames(names: string[]): void {
   _serverMultiWordNames = names.map((n) => n.toLowerCase());
   // Invalidate cached regex source so it rebuilds on next use
   _cachedMultiWordAlternation = null;
+  _cachedHangulAlternation = null;
   _cachedPatternSource = null;
 }

@@ -799,6 +799,11 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   요한삼서: "3 john",
   유다서: "jude",
   요한계시록: "revelation",
+
+  // ── Korean aliases (short forms LLMs commonly produce) ─────────────────────
+  계시록: "revelation", // Short for 요한계시록
+  애가: "lamentations", // Short for 예레미야 애가
+  행전: "acts", // Short for 사도행전
 };
 
 /**

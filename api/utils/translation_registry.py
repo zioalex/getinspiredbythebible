@@ -826,6 +826,9 @@ ENGLISH_TO_KOREAN: dict[str, str] = {
 # Korean aliases (spacing/orthographic variants)
 KOREAN_ALIASES: dict[str, str] = {
     "예레미야애가": "Lamentations",  # Lamentations without space (LLM and some sources omit it)
+    "계시록": "Revelation",  # Short form of 요한계시록 (without 요한)
+    "애가": "Lamentations",  # Short form of 예레미야 애가 (without 예레미야)
+    "행전": "Acts",  # Short form of 사도행전 (without 사도)
 }
 
 # Hindi (IRV Bible / hindi)
