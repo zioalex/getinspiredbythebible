@@ -16,7 +16,7 @@ User Request → Orchestrator (Plan) → Subagent (Implement via acpx_claude) �
 ## Agents
 
 | Agent | Model | Role |
-|-------|-------|------|
+| ------- | ------- | ------ |
 | **orchestrator** | claude-opus-4.6 | High-level planner, delegates via acpx_claude, verifies work |
 | android-expert | minimax-m2.5-free | Android/Kotlin implementation |
 | fullstack-engineer | minimax-m2.5-free | API/Frontend/PostgreSQL implementation |
@@ -27,7 +27,7 @@ User Request → Orchestrator (Plan) → Subagent (Implement via acpx_claude) �
 ## Subagent Routing
 
 | Task Type | Delegate To |
-|-----------|-------------|
+| ----------- | ------------- |
 | Android/Kotlin work | android-expert |
 | API/Frontend/PostgreSQL | fullstack-engineer |
 | Azure/Terraform/CI-CD | infra-engineer |

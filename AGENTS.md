@@ -2,9 +2,12 @@
 
 ## Project Overview
 
-**Get Inspired by the Bible** is a multilingual AI-powered Bible study app. Users chat with an AI about the Bible, and the app detects verse references in responses, linking them to scripture. Deployed on Azure.
+**Get Inspired by the Bible** is a multilingual AI-powered Bible study app.
+Users chat with an AI about the Bible, and the app detects verse references
+in responses, linking them to scripture. Deployed on Azure.
 
-**Tech stack:** Python 3.12 / FastAPI / PostgreSQL 16 + pgvector / Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
+**Tech stack:** Python 3.12 / FastAPI / PostgreSQL 16 + pgvector /
+Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
 ## Repository Layout
 
@@ -73,7 +76,7 @@ Critical variables:
 
 ## Testing
 
-### Backend
+### Backend Tests
 
 ```bash
 # Unit tests (no DB needed for most tests)
@@ -88,7 +91,7 @@ cd scripts/migrations && DATABASE_URL=postgresql://test:test@localhost/test pyth
 
 Pytest markers: `network`, `golden_set`, `functional`, `e2e`
 
-### Frontend
+### Frontend Tests
 
 ```bash
 cd frontend && npx vitest run          # Unit tests
@@ -97,7 +100,7 @@ cd frontend && npx tsc --noEmit        # Type check
 cd frontend && npm run build           # Build check
 ```
 
-### Android
+### Android Tests
 
 ```bash
 cd android && ./gradlew testDebugUnitTest --no-daemon
@@ -130,7 +133,9 @@ make android-test   # Android unit tests
 
 Configured in `.pre-commit-config.yaml`. Install with `make install-hooks`.
 
-Hooks: trailing-whitespace, end-of-file-fixer, check-yaml/json, Black, Ruff, MyPy, Bandit, hadolint (Dockerfiles), Prettier (YAML + frontend), yamllint, detect-secrets, shellcheck, markdownlint, ESLint.
+Hooks: trailing-whitespace, end-of-file-fixer, check-yaml/json, Black,
+Ruff, MyPy, Bandit, hadolint (Dockerfiles), Prettier (YAML + frontend),
+yamllint, detect-secrets, shellcheck, markdownlint, ESLint.
 
 Format commands: `make format` (auto-fix Python + frontend)
 
@@ -139,7 +144,7 @@ Format commands: `make format` (auto-fix Python + frontend)
 ### On Pull Request (`test_update.yml`)
 
 | Job | What it does |
-|-----|-------------|
+| ----- | ------------- |
 | `backend-tests` | Ruff, Black, MyPy, pytest (PostgreSQL 16 + pgvector service) |
 | `frontend-tests` | npm lint, tsc, vitest, build (Node 20.x + 22.x matrix) |
 | `integration-tests` | Docker Compose: health check, scripture search, chat, streaming, frontend |
@@ -148,7 +153,7 @@ Format commands: `make format` (auto-fix Python + frontend)
 ### Android CI (`android-ci.yml`)
 
 | Job | What it does |
-|-----|-------------|
+| ----- | ------------- |
 | `translation-validation` | Ensures all strings exist in all locale files |
 | `unit-tests` | JVM testDebugUnitTest |
 | `lint` | Kotlin lint with baseline |
@@ -174,15 +179,24 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+### Branch & PR Hygiene
+
+**Never push to a branch that has a closed or merged PR.** If the PR for
+a branch has been closed or merged, that branch is done. Create a new
+branch (from `main`) for any further work, even if it's related. Pushing
+to a dead branch causes confusion and orphaned commits.
+
 ## Architecture Patterns
 
 ### Provider Abstraction (api/providers/)
 
-Abstract base classes `LLMProvider` and `EmbeddingProvider` in `base.py`. Factory functions in `factory.py` use `match/case` to create providers by name.
+Abstract base classes `LLMProvider` and `EmbeddingProvider` in `base.py`.
+Factory functions in `factory.py` use `match/case` to create providers by name.
 
 - **LLM providers:** Claude, Ollama, OpenRouter
 - **Embedding providers:** Azure OpenAI, Ollama
-- **DI:** `LLMProviderDep` and `EmbeddingProviderDep` FastAPI dependency annotations with `lru_cache()` singletons
+- **DI:** `LLMProviderDep` and `EmbeddingProviderDep` FastAPI dependency
+  annotations with `lru_cache()` singletons
 
 ### Multi-Language / Translation System
 
@@ -212,20 +226,27 @@ Adding a new language:
 Verse references are detected in three places (must stay in sync):
 
 | Platform | File | Notes |
-|----------|------|-------|
+| ---------- | ------ | ------- |
 | Backend | `api/utils/verse_parser.py` | Builds regex from `ALL_BOOK_NAMES` (translation_registry). Canonical. |
 | Frontend | `frontend/src/lib/versePatterns.ts` | Multi-word book names, CJK no-space patterns, guillemet `<<>>` support |
 | Android | `android/.../ChatMessageItem.kt` | Regex with connector words (`of`, `de`, `van`, `ke`, `al`), CJK + guillemet |
 
-**CJK-specific:** Chinese/Korean book names have no space between name and chapter number. Chinese also uses guillemet notation `<<BookName>>`.
+**CJK-specific:** Chinese/Korean book names have no space between name
+and chapter number. Chinese also uses guillemet notation `<<BookName>>`.
 
 ## Common Pitfalls
 
-1. **DATABASE_URL required for DB tests** - Most unit tests mock the DB, but integration tests need a real PostgreSQL with pgvector extension
-2. **CJK verse regex** - Chinese/Korean patterns need special handling (no space between book name and chapter). Always test with CJK inputs when modifying verse parsing
-3. **Three verse parsers must stay in sync** - Changes to verse detection must be mirrored across backend, frontend, and Android
-4. **Translation registry is the source of truth** - Never hardcode book names elsewhere; always derive from `translation_registry.py`
+1. **DATABASE_URL required for DB tests** - Most unit tests mock the DB,
+   but integration tests need a real PostgreSQL with pgvector extension
+2. **CJK verse regex** - Chinese/Korean patterns need special handling
+   (no space between book name and chapter). Always test with CJK inputs
+   when modifying verse parsing
+3. **Three verse parsers must stay in sync** - Changes to verse detection
+   must be mirrored across backend, frontend, and Android
+4. **Translation registry is the source of truth** - Never hardcode book
+   names elsewhere; always derive from `translation_registry.py`
 5. **Pre-commit hooks need NVM** - The ESLint hook sources NVM to find the correct Node.js version
 6. **`make format`** - Run this before committing to auto-fix formatting issues
-7. **Frontend excludes** - Pre-commit trailing-whitespace and end-of-file-fixer exclude `frontend/` (handled by Prettier instead)
+7. **Frontend excludes** - Pre-commit trailing-whitespace and
+   end-of-file-fixer exclude `frontend/` (handled by Prettier instead)
 8. **Android string validation** - CI checks that all strings in `values/strings.xml` exist in every locale directory
