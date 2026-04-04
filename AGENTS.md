@@ -83,10 +83,10 @@ Critical variables:
 cd api && python -m pytest tests/ -x -q
 
 # With a real DB (needed for integration/DB tests)
-DATABASE_URL=postgresql://user:pass@localhost/dbname python -m pytest tests/ -x -q
+DATABASE_URL=postgresql://user:pass@localhost/dbname python -m pytest tests/ -x -q  # pragma: allowlist secret
 
 # Migration tests
-cd scripts/migrations && DATABASE_URL=postgresql://test:test@localhost/test python -m pytest test_run_migrations.py -v
+cd scripts/migrations && DATABASE_URL=postgresql://test:test@localhost/test python -m pytest test_run_migrations.py -v  # pragma: allowlist secret
 ```
 
 Pytest markers: `network`, `golden_set`, `functional`, `e2e`
