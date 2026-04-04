@@ -699,6 +699,97 @@ class TestParseVerseReferenceNonEnglish:
         assert result is not None
         assert result.book == "Lamentations"
 
+    def test_korean_no_space_john(self):
+        """Korean John without space '요한복음3:16' → John."""
+        result = parse_verse_reference("요한복음3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_korean_no_space_psalms(self):
+        """Korean Psalms without space '시편23:1' → Psalms."""
+        result = parse_verse_reference("시편23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_korean_no_space_genesis(self):
+        """Korean Genesis without space '창세기1:1' → Genesis."""
+        result = parse_verse_reference("창세기1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_korean_no_space_revelation(self):
+        """Korean Revelation without space '요한계시록21:4' → Revelation."""
+        result = parse_verse_reference("요한계시록21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_korean_corner_bracket_john(self):
+        """Korean John with corner brackets '「요한복음」3:16' → John."""
+        result = parse_verse_reference("「요한복음」3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_korean_double_corner_bracket_psalms(self):
+        """Korean Psalms with double corner brackets '『시편』23:1' → Psalms."""
+        result = parse_verse_reference("『시편』23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_korean_revelation_short(self):
+        """Korean Revelation short form '계시록 21:4' → Revelation."""
+        result = parse_verse_reference("계시록 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_korean_lamentations_short(self):
+        """Korean Lamentations short form '애가 3:3' → Lamentations."""
+        result = parse_verse_reference("애가 3:3")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_korean_acts_short(self):
+        """Korean Acts short form '행전 2:38' → Acts."""
+        result = parse_verse_reference("행전 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_korean_embedded_no_space(self):
+        """Korean ref without space embedded in Korean text."""
+        result = parse_verse_reference("성경에서 요한복음3:16을 읽으세요")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_korean_matthew(self):
+        """Korean Matthew '마태복음 5:3' → Matthew."""
+        result = parse_verse_reference("마태복음 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_korean_hebrews(self):
+        """Korean Hebrews '히브리서 11:1' → Hebrews."""
+        result = parse_verse_reference("히브리서 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_korean_range(self):
+        """Korean verse range '요한복음 3:16-18' → John 3:16."""
+        result = parse_verse_reference("요한복음 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_korean_corner_bracket_no_space(self):
+        """Korean corner bracket without space '「요한복음」3:16' → John."""
+        result = parse_verse_reference("「요한복음」3:16")
+        assert result is not None
+        assert result.book == "John"
+
     # ── Italian ───────────────────────────────────────────────────────────────
 
     def test_italian_john(self):

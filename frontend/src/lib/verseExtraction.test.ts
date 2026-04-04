@@ -1733,6 +1733,76 @@ describe("extractVerseReferences — Korean", () => {
   });
 });
 
+// ── Korean: no-space and alias improvements ─────────────────────────────────────
+
+describe("extractVerseReferences — Korean no-space and aliases", () => {
+  describe("no-space references", () => {
+    it("should detect 요한복음3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("요한복음3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 시편23:1 (no space) → psalms 23:1", () => {
+      const refs = extractVerseReferences("시편23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect 창세기1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("창세기1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect 요한계시록21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("요한계시록21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("corner bracket notation", () => {
+    it("should detect 「요한복음」3:16 (corner brackets) → john 3:16", () => {
+      const refs = extractVerseReferences("「요한복음」3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 『시편』23:1 (double corner brackets) → psalms 23:1", () => {
+      const refs = extractVerseReferences("『시편』23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+
+  describe("short-form aliases", () => {
+    it("should detect 계시록 21:4 (short Revelation) → revelation 21:4", () => {
+      const refs = extractVerseReferences("계시록 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect 애가 3:3 (short Lamentations) → lamentations 3:3", () => {
+      const refs = extractVerseReferences("애가 3:3");
+      expect(refs.has("lamentations 3:3")).toBe(true);
+    });
+
+    it("should detect 행전 2:38 (short Acts) → acts 2:38", () => {
+      const refs = extractVerseReferences("행전 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+  });
+
+  describe("embedded no-space", () => {
+    it("should detect 요한복음3:16 embedded in Korean text", () => {
+      const refs = extractVerseReferences("성경에서 요한복음3:16을 읽으세요");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple no-space references", () => {
+    it("should detect 요한복음3:16 그리고 시편23:1 (multiple no-space)", () => {
+      const refs = extractVerseReferences("요한복음3:16 그리고 시편23:1");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Russian (extended) ──────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Russian extended", () => {
