@@ -100,3 +100,51 @@ body {
 .chat-message-content p::first-line {
   font-weight: 600;
 }
+
+/* Basic markdown typography for legal pages */
+.legal-markdown h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.legal-markdown h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.legal-markdown h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-markdown p {
+  margin-bottom: 0.9rem;
+  line-height: 1.65;
+}
+
+.legal-markdown ul {
+  list-style: disc;
+  margin-left: 1.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.legal-markdown li {
+  margin-bottom: 0.45rem;
+}
+
+.legal-markdown blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 0.75rem;
+  margin: 1rem 0;
+  color: #4b5563;
+}
+
+.legal-markdown a {
+  color: #0f766e;
+  text-decoration: underline;
+}

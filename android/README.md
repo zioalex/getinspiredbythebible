@@ -3,6 +3,8 @@
 Native Android app for the [Bible Inspiration Chat](../README.md) platform.
 Built with Kotlin, Jetpack Compose, and MVVM Clean Architecture.
 
+For Google Play submission and official store onboarding, see [docs/ANDROID_PLAY_STORE_ONBOARDING.md](../docs/ANDROID_PLAY_STORE_ONBOARDING.md).
+
 ## Prerequisites
 
 | Tool | Version | Notes |
