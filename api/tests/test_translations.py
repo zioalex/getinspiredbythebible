@@ -293,9 +293,10 @@ def test_chinese_api_book_names():
 
 
 def test_korean_book_names_complete():
-    """Test that all 66 Bible books have Korean mappings (plus alternate Lamentations form)"""
-    # 66 canonical books + alternate form for Lamentations without space = 67
-    assert len(KOREAN_BOOK_NAMES) == 67
+    """Test that all 66 Bible books have Korean mappings (plus aliases)"""
+    # 66 canonical books + 1 alternate Lamentations (no space) + 3 short-form aliases
+    # (계시록=Revelation, 애가=Lamentations, 행전=Acts) = 70
+    assert len(KOREAN_BOOK_NAMES) == 70
     unique_english_names = set(KOREAN_BOOK_NAMES.values())
     assert len(unique_english_names) == 66
     # Check key books
@@ -305,6 +306,10 @@ def test_korean_book_names_complete():
     # Lamentations: API uses form WITH space
     assert KOREAN_BOOK_NAMES["예레미야 애가"] == "Lamentations"
     assert KOREAN_BOOK_NAMES["예레미야애가"] == "Lamentations"  # alternate without space
+    # Short-form aliases
+    assert KOREAN_BOOK_NAMES["계시록"] == "Revelation"
+    assert KOREAN_BOOK_NAMES["애가"] == "Lamentations"
+    assert KOREAN_BOOK_NAMES["행전"] == "Acts"
 
 
 def test_korean_api_book_names():
