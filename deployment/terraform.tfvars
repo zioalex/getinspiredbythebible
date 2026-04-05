@@ -118,13 +118,13 @@ budget_alert_emails = ["zioalex@gmail.com"]
 # Custom Domain
 # -----------------------------------------------------------------------------
 
-custom_domain_frontend = "getinspiredbythebible.ai4you.sh"
+custom_domain_frontend = "voxquieta.org"
 
 # email settings
 smtp2go_enabled            = true
-smtp2go_sender_email       = "noreply@getinspiredbythebible.ai4you.sh"
+smtp2go_sender_email       = "noreply@voxquieta.org"
 smtp2go_sender_name        = "Bible Inspiration"
-contact_notification_email = "getinspiredbythebible@ai4you.sh"
+contact_notification_email = "contact@voxquieta.org"
 
 # -----------------------------------------------------------------------------
 # Cloudflare Turnstile (Bot Protection)

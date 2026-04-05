@@ -7,7 +7,7 @@ The entire suite is skipped automatically when the API is unreachable.
 Architecture note
 -----------------
 These tests target the **backend API** directly (FastAPI on Azure Container Apps).
-The backend URL is separate from the frontend URL (https://getinspiredbythebible.ai4you.sh).
+The backend URL is separate from the frontend URL (https://voxquieta.org).
 In CI, BACKEND_API_URL is passed from the deploy job output. Locally, set it
 to http://localhost:8000 or the Azure Container Apps FQDN.
 

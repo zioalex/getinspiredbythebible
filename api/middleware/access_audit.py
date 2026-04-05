@@ -85,7 +85,7 @@ def _get_allowed_origins() -> list[str]:
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
-        "https://getinspiredbythebible.ai4you.sh",
+        settings.production_frontend_url,
     ]
     if settings.cors_origins:
         custom = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]

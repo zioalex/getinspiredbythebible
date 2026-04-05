@@ -40,7 +40,7 @@ android {
             buildConfigField(
                 "String",
                 "PRIVACY_POLICY_URL",
-                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://voxquieta.org/privacy"}\""
             )
         }
         release {
@@ -51,14 +51,14 @@ android {
             buildConfigField(
                 "String",
                 "BASE_URL",
-                "\"${project.findProperty("baseUrl") ?: "https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/"}\""
+                "\"${project.findProperty("baseUrl") ?: "https://api.voxquieta.org/"}\""
             )
             // Firebase is enabled only in release builds.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
             buildConfigField(
                 "String",
                 "PRIVACY_POLICY_URL",
-                "\"${project.findProperty("privacyPolicyUrl") ?: "https://getinspiredbythebible.com/privacy"}\""
+                "\"${project.findProperty("privacyPolicyUrl") ?: "https://voxquieta.org/privacy"}\""
             )
         }
     }

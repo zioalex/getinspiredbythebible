@@ -1,7 +1,7 @@
 """
 End-to-end smoke tests simulating real user behavior through the frontend.
 
-These tests hit https://getinspiredbythebible.ai4you.sh (the Next.js frontend)
+These tests hit https://voxquieta.org (the Next.js frontend)
 and verify that pages load with the expected content for each locale — exactly
 what a real user's browser would do when opening the application.
 
@@ -29,7 +29,7 @@ Usage
 Environment variables
 ---------------------
 FRONTEND_URL   Base URL of the frontend to test against.
-               Defaults to https://getinspiredbythebible.ai4you.sh
+               Defaults to https://voxquieta.org
 """
 
 import os
@@ -37,7 +37,7 @@ import os
 import httpx
 import pytest
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://getinspiredbythebible.ai4you.sh")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://voxquieta.org")
 
 # 60 s gives enough headroom for Azure Container Apps cold-start after a fresh
 # deploy.  The previous 30 s limit caused intermittent ReadTimeout failures on

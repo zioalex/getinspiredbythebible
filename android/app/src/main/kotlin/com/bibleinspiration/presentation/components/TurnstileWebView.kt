@@ -89,7 +89,7 @@ fun TurnstileWebView(
                     "Android",
                 )
                 loadDataWithBaseURL(
-                    "https://getinspiredbythebible.ai4you.sh",
+                    "https://voxquieta.org",
                     htmlContent,
                     "text/html",
                     "UTF-8",
