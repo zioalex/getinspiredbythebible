@@ -1452,6 +1452,58 @@ describe("extractVerseReferences — Arabic", () => {
   });
 });
 
+// ── Arabic: tashkeel, Eastern numerals, guillemets ──────────────────────────────
+
+describe("extractVerseReferences — Arabic tashkeel and Eastern numerals", () => {
+  describe("tashkeel (diacritics) stripping", () => {
+    it("should detect \u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16 (with tashkeel) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1 (with tashkeel) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences(
+        "\u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1",
+      );
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Eastern Arabic numerals", () => {
+    it("should detect \u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666 (Eastern Arabic numerals) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u0643\u0648\u064A\u0646 \u0661:\u0661 (Eastern Arabic numerals) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences(
+        "\u062A\u0643\u0648\u064A\u0646 \u0661:\u0661",
+      );
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Arabic guillemets \u00AB\u00BB", () => {
+    it("should detect \u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16 \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1 \u2192 psalms 23:1", () => {
+      const refs = extractVerseReferences(
+        "\u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1",
+      );
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Hindi ───────────────────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Hindi", () => {
@@ -1520,6 +1572,59 @@ describe("extractVerseReferences — Hindi", () => {
 
   describe("multiple refs in same text", () => {
     it("should detect two Hindi refs in one sentence", () => {
+      const refs = extractVerseReferences("यूहन्ना 3:16 और रोमियों 8:28 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+  });
+});
+
+// ── Hindi: no-space and Devanagari numeral improvements ─────────────────────────
+
+describe("extractVerseReferences — Hindi no-space and Devanagari numerals", () => {
+  describe("no-space references", () => {
+    it("should detect यूहन्ना3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect प्रकाशितवाक्य21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("प्रकाशितवाक्य21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("Devanagari numerals", () => {
+    it("should detect यूहन्ना ३:१६ (Devanagari numerals) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना ३:१६");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति १:१ (Devanagari numerals) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति १:१");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("embedded in Hindi text", () => {
+    it("should detect ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("कृपया यूहन्ना 3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect no-space ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("बाइबल में यूहन्ना3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple Hindi references", () => {
+    it("should detect multiple Hindi refs in one sentence", () => {
       const refs = extractVerseReferences("यूहन्ना 3:16 और रोमियों 8:28 पढ़ें");
       expect(refs.has("john 3:16")).toBe(true);
       expect(refs.has("romans 8:28")).toBe(true);
@@ -1733,6 +1838,76 @@ describe("extractVerseReferences — Korean", () => {
   });
 });
 
+// ── Korean: no-space and alias improvements ─────────────────────────────────────
+
+describe("extractVerseReferences — Korean no-space and aliases", () => {
+  describe("no-space references", () => {
+    it("should detect 요한복음3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("요한복음3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 시편23:1 (no space) → psalms 23:1", () => {
+      const refs = extractVerseReferences("시편23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect 창세기1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("창세기1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect 요한계시록21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("요한계시록21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("corner bracket notation", () => {
+    it("should detect 「요한복음」3:16 (corner brackets) → john 3:16", () => {
+      const refs = extractVerseReferences("「요한복음」3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 『시편』23:1 (double corner brackets) → psalms 23:1", () => {
+      const refs = extractVerseReferences("『시편』23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+
+  describe("short-form aliases", () => {
+    it("should detect 계시록 21:4 (short Revelation) → revelation 21:4", () => {
+      const refs = extractVerseReferences("계시록 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect 애가 3:3 (short Lamentations) → lamentations 3:3", () => {
+      const refs = extractVerseReferences("애가 3:3");
+      expect(refs.has("lamentations 3:3")).toBe(true);
+    });
+
+    it("should detect 행전 2:38 (short Acts) → acts 2:38", () => {
+      const refs = extractVerseReferences("행전 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+  });
+
+  describe("embedded no-space", () => {
+    it("should detect 요한복음3:16 embedded in Korean text", () => {
+      const refs = extractVerseReferences("성경에서 요한복음3:16을 읽으세요");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple no-space references", () => {
+    it("should detect 요한복음3:16 그리고 시편23:1 (multiple no-space)", () => {
+      const refs = extractVerseReferences("요한복음3:16 그리고 시편23:1");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Russian (extended) ──────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Russian extended", () => {
@@ -1772,6 +1947,59 @@ describe("extractVerseReferences — Russian extended", () => {
       );
       expect(refs.has("john 3:16")).toBe(true);
       expect(refs.has("romans 8:28")).toBe(true);
+    });
+  });
+});
+
+// ── Russian: abbreviations and ё/е normalization ────────────────────────────────
+
+describe("extractVerseReferences — Russian abbreviations and ё/е", () => {
+  describe("common abbreviations", () => {
+    it("should detect Ин 3:16 → john 3:16", () => {
+      const refs = extractVerseReferences("Ин 3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect Мф 5:3 → matthew 5:3", () => {
+      const refs = extractVerseReferences("Мф 5:3");
+      expect(refs.has("matthew 5:3")).toBe(true);
+    });
+
+    it("should detect Пс 23:1 → psalms 23:1", () => {
+      const refs = extractVerseReferences("Пс 23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect Рим 8:28 → romans 8:28", () => {
+      const refs = extractVerseReferences("Рим 8:28");
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+
+    it("should detect Быт 1:1 → genesis 1:1", () => {
+      const refs = extractVerseReferences("Быт 1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect Откр 21:4 → revelation 21:4", () => {
+      const refs = extractVerseReferences("Откр 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect Деян 2:38 → acts 2:38", () => {
+      const refs = extractVerseReferences("Деян 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+
+    it("should detect Евр 11:1 → hebrews 11:1", () => {
+      const refs = extractVerseReferences("Евр 11:1");
+      expect(refs.has("hebrews 11:1")).toBe(true);
+    });
+  });
+
+  describe("ё/е normalization", () => {
+    it("should detect Иёв 1:1 (ё variant) → job 1:1", () => {
+      const refs = extractVerseReferences("Иёв 1:1");
+      expect(refs.has("job 1:1")).toBe(true);
     });
   });
 });

@@ -699,6 +699,97 @@ class TestParseVerseReferenceNonEnglish:
         assert result is not None
         assert result.book == "Lamentations"
 
+    def test_korean_no_space_john(self):
+        """Korean John without space '요한복음3:16' → John."""
+        result = parse_verse_reference("요한복음3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_korean_no_space_psalms(self):
+        """Korean Psalms without space '시편23:1' → Psalms."""
+        result = parse_verse_reference("시편23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_korean_no_space_genesis(self):
+        """Korean Genesis without space '창세기1:1' → Genesis."""
+        result = parse_verse_reference("창세기1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_korean_no_space_revelation(self):
+        """Korean Revelation without space '요한계시록21:4' → Revelation."""
+        result = parse_verse_reference("요한계시록21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_korean_corner_bracket_john(self):
+        """Korean John with corner brackets '「요한복음」3:16' → John."""
+        result = parse_verse_reference("「요한복음」3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_korean_double_corner_bracket_psalms(self):
+        """Korean Psalms with double corner brackets '『시편』23:1' → Psalms."""
+        result = parse_verse_reference("『시편』23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_korean_revelation_short(self):
+        """Korean Revelation short form '계시록 21:4' → Revelation."""
+        result = parse_verse_reference("계시록 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_korean_lamentations_short(self):
+        """Korean Lamentations short form '애가 3:3' → Lamentations."""
+        result = parse_verse_reference("애가 3:3")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_korean_acts_short(self):
+        """Korean Acts short form '행전 2:38' → Acts."""
+        result = parse_verse_reference("행전 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_korean_embedded_no_space(self):
+        """Korean ref without space embedded in Korean text."""
+        result = parse_verse_reference("성경에서 요한복음3:16을 읽으세요")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_korean_matthew(self):
+        """Korean Matthew '마태복음 5:3' → Matthew."""
+        result = parse_verse_reference("마태복음 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_korean_hebrews(self):
+        """Korean Hebrews '히브리서 11:1' → Hebrews."""
+        result = parse_verse_reference("히브리서 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_korean_range(self):
+        """Korean verse range '요한복음 3:16-18' → John 3:16."""
+        result = parse_verse_reference("요한복음 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_korean_corner_bracket_no_space(self):
+        """Korean corner bracket without space '「요한복음」3:16' → John."""
+        result = parse_verse_reference("「요한복음」3:16")
+        assert result is not None
+        assert result.book == "John"
+
     # ── Italian ───────────────────────────────────────────────────────────────
 
     def test_italian_john(self):
@@ -921,6 +1012,105 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 139
         assert result.verse_start == 12
 
+    # ── Arabic (expanded) ────────────────────────────────────────────────────
+
+    def test_arabic_matthew(self):
+        """Arabic Matthew 'متى 5:3' → Matthew."""
+        result = parse_verse_reference("متى 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_arabic_mark(self):
+        """Arabic Mark 'مرقس 1:1' → Mark."""
+        result = parse_verse_reference("مرقس 1:1")
+        assert result is not None
+        assert result.book == "Mark"
+
+    def test_arabic_luke(self):
+        """Arabic Luke 'لوقا 2:1' → Luke."""
+        result = parse_verse_reference("لوقا 2:1")
+        assert result is not None
+        assert result.book == "Luke"
+
+    def test_arabic_acts_full(self):
+        """Arabic Acts full form 'أعمال الرسل 2:38' → Acts."""
+        result = parse_verse_reference("أعمال الرسل 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_arabic_acts_short(self):
+        """Arabic Acts short form 'أعمال 2:38' → Acts."""
+        result = parse_verse_reference("أعمال 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_arabic_lamentations(self):
+        """Arabic Lamentations 'مراثي إرميا 3:22' → Lamentations."""
+        result = parse_verse_reference("مراثي إرميا 3:22")
+        assert result is not None
+        assert result.book == "Lamentations"
+
+    def test_arabic_hebrews(self):
+        """Arabic Hebrews 'عبرانيين 11:1' → Hebrews."""
+        result = parse_verse_reference("عبرانيين 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_arabic_james(self):
+        """Arabic James 'يعقوب 1:2' → James."""
+        result = parse_verse_reference("يعقوب 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_arabic_range(self):
+        """Arabic verse range 'يوحنا 3:16-18' → John 3:16-18."""
+        result = parse_verse_reference("يوحنا 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_arabic_eastern_numerals(self):
+        """Arabic with Eastern Arabic numerals 'يوحنا ٣:١٦' → John 3:16."""
+        result = parse_verse_reference("يوحنا ٣:١٦")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_arabic_eastern_numerals_genesis(self):
+        """Arabic Genesis with Eastern Arabic numerals 'تكوين ١:١' → Genesis 1:1."""
+        result = parse_verse_reference("تكوين ١:١")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
+
+    def test_arabic_tashkeel_john(self):
+        """Arabic John with tashkeel diacritics 'يُوحَنَّا 3:16' → John."""
+        result = parse_verse_reference("يُوحَنَّا 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_arabic_guillemet(self):
+        """Arabic with guillemets '«يوحنا» 3:16' → John."""
+        result = parse_verse_reference("«يوحنا» 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_arabic_2_corinthians(self):
+        """Arabic 2 Corinthians '2 كورنثوس 5:17' → 2 Corinthians."""
+        result = parse_verse_reference("2 كورنثوس 5:17")
+        assert result is not None
+        assert result.book == "2 Corinthians"
+
+    def test_arabic_song_variant(self):
+        """Arabic Song of Solomon LLM variant 'نشيد الأناشيد 2:1' → Song of Solomon."""
+        result = parse_verse_reference("نشيد الأناشيد 2:1")
+        assert result is not None
+        assert result.book == "Song of Solomon"
+
     # ── Verse-in-sentence tests ───────────────────────────────────────────────
 
     def test_russian_in_sentence(self):
@@ -930,6 +1120,92 @@ class TestParseVerseReferenceNonEnglish:
         assert result.book == "John"
         assert result.chapter == 3
         assert result.verse_start == 16
+
+    # ── Russian (expanded — abbreviations, ё/е, word-ordinals) ───────────────
+
+    def test_russian_abbreviation_in(self):
+        """Russian abbreviation 'Ин 3:16' → John."""
+        result = parse_verse_reference("Ин 3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_russian_abbreviation_mf(self):
+        """Russian abbreviation 'Мф 5:3' → Matthew."""
+        result = parse_verse_reference("Мф 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_russian_abbreviation_mk(self):
+        """Russian abbreviation 'Мк 1:1' → Mark."""
+        result = parse_verse_reference("Мк 1:1")
+        assert result is not None
+        assert result.book == "Mark"
+
+    def test_russian_abbreviation_lk(self):
+        """Russian abbreviation 'Лк 2:1' → Luke."""
+        result = parse_verse_reference("Лк 2:1")
+        assert result is not None
+        assert result.book == "Luke"
+
+    def test_russian_abbreviation_ps(self):
+        """Russian abbreviation 'Пс 23:1' → Psalms."""
+        result = parse_verse_reference("Пс 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_russian_abbreviation_rim(self):
+        """Russian abbreviation 'Рим 8:28' → Romans."""
+        result = parse_verse_reference("Рим 8:28")
+        assert result is not None
+        assert result.book == "Romans"
+
+    def test_russian_abbreviation_byt(self):
+        """Russian abbreviation 'Быт 1:1' → Genesis."""
+        result = parse_verse_reference("Быт 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_russian_abbreviation_otkr(self):
+        """Russian abbreviation 'Откр 21:4' → Revelation."""
+        result = parse_verse_reference("Откр 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_russian_abbreviation_deyan(self):
+        """Russian abbreviation 'Деян 2:38' → Acts."""
+        result = parse_verse_reference("Деян 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_russian_abbreviation_evr(self):
+        """Russian abbreviation 'Евр 11:1' → Hebrews."""
+        result = parse_verse_reference("Евр 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_russian_abbreviation_gal(self):
+        """Russian abbreviation 'Гал 3:28' → Galatians."""
+        result = parse_verse_reference("Гал 3:28")
+        assert result is not None
+        assert result.book == "Galatians"
+
+    def test_russian_abbreviation_ef(self):
+        """Russian abbreviation 'Еф 2:8' → Ephesians."""
+        result = parse_verse_reference("Еф 2:8")
+        assert result is not None
+        assert result.book == "Ephesians"
+
+    def test_russian_abbreviation_iak(self):
+        """Russian abbreviation 'Иак 1:2' → James."""
+        result = parse_verse_reference("Иак 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_russian_yo_variant_iov(self):
+        """Russian ё variant 'Иёв 1:1' → Job (ё instead of о)."""
+        result = parse_verse_reference("Иёв 1:1")
+        assert result is not None
+        assert result.book == "Job"
 
     def test_chinese_in_sentence(self):
         """Chinese verse reference within a longer sentence."""
@@ -958,6 +1234,109 @@ class TestParseVerseReferenceNonEnglish:
         assert result.book == "John"
         assert result.chapter == 3
         assert result.verse_start == 16
+
+    # ── Hindi (expanded) ─────────────────────────────────────────────────────
+
+    def test_hindi_genesis(self):
+        """Hindi Genesis 'उत्पत्ति 1:1' → Genesis."""
+        result = parse_verse_reference("उत्पत्ति 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_hindi_psalms(self):
+        """Hindi Psalms 'भजन संहिता 23:1' → Psalms."""
+        result = parse_verse_reference("भजन संहिता 23:1")
+        assert result is not None
+        assert result.book == "Psalms"
+
+    def test_hindi_proverbs(self):
+        """Hindi Proverbs 'नीतिवचन 3:5' → Proverbs."""
+        result = parse_verse_reference("नीतिवचन 3:5")
+        assert result is not None
+        assert result.book == "Proverbs"
+
+    def test_hindi_revelation(self):
+        """Hindi Revelation 'प्रकाशितवाक्य 21:4' → Revelation."""
+        result = parse_verse_reference("प्रकाशितवाक्य 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+    def test_hindi_acts(self):
+        """Hindi Acts 'प्रेरितों के काम 2:38' → Acts (3-word with के connector)."""
+        result = parse_verse_reference("प्रेरितों के काम 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_hindi_romans(self):
+        """Hindi Romans 'रोमियों 8:28' → Romans."""
+        result = parse_verse_reference("रोमियों 8:28")
+        assert result is not None
+        assert result.book == "Romans"
+
+    def test_hindi_1_corinthians(self):
+        """Hindi 1 Corinthians '1 कुरिन्थियों 13:4' → 1 Corinthians."""
+        result = parse_verse_reference("1 कुरिन्थियों 13:4")
+        assert result is not None
+        assert result.book == "1 Corinthians"
+
+    def test_hindi_hebrews(self):
+        """Hindi Hebrews 'इब्रानियों 11:1' → Hebrews."""
+        result = parse_verse_reference("इब्रानियों 11:1")
+        assert result is not None
+        assert result.book == "Hebrews"
+
+    def test_hindi_james(self):
+        """Hindi James 'याकूब 1:2' → James."""
+        result = parse_verse_reference("याकूब 1:2")
+        assert result is not None
+        assert result.book == "James"
+
+    def test_hindi_range(self):
+        """Hindi verse range 'यूहन्ना 3:16-18' → John 3:16-18."""
+        result = parse_verse_reference("यूहन्ना 3:16-18")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+        assert result.verse_end == 18
+
+    def test_hindi_no_space_john(self):
+        """Hindi John without space 'यूहन्ना3:16' → John."""
+        result = parse_verse_reference("यूहन्ना3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_no_space_genesis(self):
+        """Hindi Genesis without space 'उत्पत्ति1:1' → Genesis."""
+        result = parse_verse_reference("उत्पत्ति1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_hindi_embedded_sentence(self):
+        """Hindi ref embedded in Hindi sentence."""
+        result = parse_verse_reference("कृपया यूहन्ना 3:16 पढ़ें")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_devanagari_numerals(self):
+        """Hindi with Devanagari numerals 'यूहन्ना ३:१६' → John 3:16."""
+        result = parse_verse_reference("यूहन्ना ३:१६")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_hindi_devanagari_numerals_genesis(self):
+        """Hindi Genesis with Devanagari numerals 'उत्पत्ति १:१' → Genesis 1:1."""
+        result = parse_verse_reference("उत्पत्ति १:१")
+        assert result is not None
+        assert result.book == "Genesis"
+        assert result.chapter == 1
+        assert result.verse_start == 1
 
 
 class TestExtractAllReferences:
