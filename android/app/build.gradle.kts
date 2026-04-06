@@ -12,6 +12,11 @@ android {
     namespace = "com.bibleinspiration"
     compileSdk = 35
 
+    // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
+    // This prevents CI from injecting an empty string when a GitHub variable is unset.
+    fun gradleProp(name: String, default: String): String =
+        (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
+
     defaultConfig {
         applicationId = "com.bibleinspiration"
         minSdk = 26
@@ -30,36 +35,20 @@ android {
             isMinifyEnabled = false
             isDebuggable = true
             // Default: emulator localhost for local dev. Override with -PbaseUrl=... to hit prod.
-            buildConfigField(
-                "String",
-                "BASE_URL",
-                "\"${project.findProperty("baseUrl") ?: "http://10.0.2.2:8000/"}\""
-            )
+            buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "http://10.0.2.2:8000/")}\"")
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
-            buildConfigField(
-                "String",
-                "PRIVACY_POLICY_URL",
-                "\"${project.findProperty("privacyPolicyUrl") ?: "https://voxquieta.org/privacy"}\""
-            )
+            buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // BASE_URL injected via CI — override with -PbaseUrl=... or env var
-            buildConfigField(
-                "String",
-                "BASE_URL",
-                "\"${project.findProperty("baseUrl") ?: "https://api.voxquieta.org/"}\""
-            )
+            buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "https://api.voxquieta.org/")}\"")
             // Firebase is enabled only in release builds.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
-            buildConfigField(
-                "String",
-                "PRIVACY_POLICY_URL",
-                "\"${project.findProperty("privacyPolicyUrl") ?: "https://voxquieta.org/privacy"}\""
-            )
+            buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
         }
     }
 
