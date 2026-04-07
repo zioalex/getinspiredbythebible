@@ -162,4 +162,22 @@ class ChatMapperTest {
 
         assertEquals("Genesis 1:1", verse.reference)
     }
+
+    @Test
+    fun `VerseDto with localizedBook toDomain uses localizedBook in reference`() {
+        val dto = VerseDto(book = "John", chapter = 3, verse = 16, text = "For God so loved...", translation = "synodal", localizedBook = "Иоанна")
+        val verse = dto.toDomain()
+
+        assertEquals("Иоанна 3:16", verse.reference)
+        assertEquals("Иоанна", verse.localizedBook)
+    }
+
+    @Test
+    fun `VerseDto without localizedBook toDomain falls back to book in reference`() {
+        val dto = VerseDto(book = "John", chapter = 3, verse = 16, text = "For God so loved...", translation = "kjv", localizedBook = null)
+        val verse = dto.toDomain()
+
+        assertEquals("John 3:16", verse.reference)
+        assertNull(verse.localizedBook)
+    }
 }

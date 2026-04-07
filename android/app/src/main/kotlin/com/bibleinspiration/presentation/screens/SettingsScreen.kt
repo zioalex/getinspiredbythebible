@@ -41,6 +41,7 @@ import com.bibleinspiration.BuildConfig
 import com.bibleinspiration.R
 import com.bibleinspiration.presentation.components.ContactFormBottomSheet
 import com.bibleinspiration.presentation.components.ContactFormState
+import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 
 /** Theme option shown in the settings section. */
@@ -222,6 +223,13 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+
+        // ── Turnstile bot-protection widget (invisible, 1×1 dp) ───────────────
+        // Ensures a valid token is available when the contact form is submitted,
+        // even when the user navigates here without first visiting ChatScreen.
+        // Mirrors the web app where the Turnstile widget is on the same page as
+        // the contact form.
+        TurnstileWebView(turnstileManager = viewModel.turnstileManager)
 
         // ── Contact Form bottom sheet ──────────────────────────────────────────
         if (showContactSheet) {

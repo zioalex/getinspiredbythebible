@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -62,6 +63,7 @@ import com.bibleinspiration.presentation.components.TranslationPickerBottomSheet
 import com.bibleinspiration.presentation.components.TurnstileWebView
 import com.bibleinspiration.presentation.components.VersesPanel
 import com.bibleinspiration.presentation.components.WelcomeBanner
+import com.bibleinspiration.presentation.components.buildVerseRefRegex
 import com.bibleinspiration.presentation.viewmodels.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -77,6 +79,19 @@ fun ChatScreen(
     val churchFinderSheetState by viewModel.churchFinderSheetState.collectAsState()
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
+    val multiWordNames by viewModel.multiWordNames.collectAsState()
+    val localizedToEnglish by viewModel.localizedToEnglish.collectAsState()
+    // Extract CJK (Han-script) book names from the localized map for no-space matching.
+    val cjkBookNames = remember(localizedToEnglish) {
+        localizedToEnglish.keys.filter { key ->
+            key.length >= 2 && key.all { ch ->
+                Character.UnicodeScript.of(ch.code) == Character.UnicodeScript.HAN
+            }
+        }.sortedByDescending { it.length }
+    }
+    val verseRefRegex = remember(multiWordNames, cjkBookNames) {
+        buildVerseRefRegex(multiWordNames, cjkBookNames)
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -147,7 +162,9 @@ fun ChatScreen(
             messages = uiState.messages,
             chapterSheetState = chapterSheetState,
             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
-                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() },
+                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
+                ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
+            localizedToEnglish = localizedToEnglish,
             onLoadChapter = viewModel::loadChapter,
             onDismissSheet = viewModel::clearChapterSheet,
             onDismiss = { showVersesPanel = false },
@@ -265,20 +282,26 @@ fun ChatScreen(
                         }
                     }
 
-                    items(
+                    itemsIndexed(
                         items = uiState.messages,
-                        key = { it.id },
-                    ) { message ->
+                        key = { _, msg -> msg.id },
+                    ) { index, message ->
+                        val userMsg = if (message.role == Message.Role.ASSISTANT && index > 0) {
+                            uiState.messages[index - 1].content
+                        } else ""
                         ChatMessageItem(
                             message = message,
+                            userMessage = userMsg,
                             chapterSheetState = chapterSheetState,
                             preferredTranslation = preferredTranslation.takeIf { it.isNotBlank() }
-                                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() },
+                                ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
+                                ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
                             onFeedback = { messageLocalId, rating -> viewModel.submitFeedback(messageLocalId, rating) },
                             feedbackGiven = uiState.feedbackGiven[message.id],
+                            verseRefRegex = verseRefRegex,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }

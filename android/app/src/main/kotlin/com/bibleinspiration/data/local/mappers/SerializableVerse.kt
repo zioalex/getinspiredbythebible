@@ -17,6 +17,7 @@ data class SerializableVerse(
     val text: String,
     val translation: String,
     val relevanceScore: Float,
+    val localizedBook: String? = null,
 )
 
 fun Verse.toSerializable() = SerializableVerse(
@@ -26,6 +27,7 @@ fun Verse.toSerializable() = SerializableVerse(
     text = text,
     translation = translation,
     relevanceScore = relevanceScore,
+    localizedBook = localizedBook,
 )
 
 fun SerializableVerse.toDomain() = Verse(
@@ -35,4 +37,5 @@ fun SerializableVerse.toDomain() = Verse(
     text = text,
     translation = translation,
     relevanceScore = relevanceScore,
+    localizedBook = localizedBook,
 )

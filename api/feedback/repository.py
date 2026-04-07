@@ -3,6 +3,7 @@ Feedback repository - Database operations for feedback and contact submissions.
 """
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -85,4 +86,4 @@ class FeedbackRepository:
         result = await self.db.execute(
             select(Feedback).where(Feedback.message_id == UUID(message_id))
         )
-        return result.scalar_one_or_none()
+        return cast(Feedback | None, result.scalar_one_or_none())

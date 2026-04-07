@@ -12,8 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 // ── Web service palette reference ────────────────────────────────────────────
-// Primary blue:   #4A6FA5  (primary-600 in the web Tailwind theme)
-// Primary light:  #D0E4FF  (primary-100)
+// Primary warm:   #A35F38  (primary-600 in the web Tailwind theme — warm brown)
+// Primary light:  #F3E8DB  (primary-100)
 // Amber accent:   #D97706  (amber-600) used for verse link highlights
 // Background:     #F8F5F0  (warm off-white, scripture-paper feel)
 // Surface:        #FFFFFF
@@ -21,11 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 // ─────────────────────────────────────────────────────────────────────────────
 
 private val LightColorScheme = lightColorScheme(
-    // Primary — matches web primary-600 (#4A6FA5)
-    primary = Color(0xFF4A6FA5),
+    // Primary — matches web primary-600 (#A35F38, warm brown)
+    primary = Color(0xFFA35F38),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD0E4FF),       // primary-100
-    onPrimaryContainer = Color(0xFF003258),
+    primaryContainer = Color(0xFFF3E8DB),       // primary-100
+    onPrimaryContainer = Color(0xFF3D1A0A),
 
     // Secondary — warm amber to match verse highlight chips
     secondary = Color(0xFF8B6914),

@@ -741,16 +741,20 @@ class TestChatServiceChatStream:
         async for chunk in service.chat_stream(request):
             chunks.append(chunk)
 
-        # First chunk should be metadata
-        assert len(chunks) == 3
+        # First chunk should be metadata, last is completion
+        assert len(chunks) == 4
         assert chunks[0]["type"] == "metadata"
         assert "message_id" in chunks[0]
         assert "provider" in chunks[0]
         assert "model" in chunks[0]
 
-        # Remaining chunks should be content
+        # Content chunks
         assert chunks[1] == {"type": "content", "content": "Hello "}
         assert chunks[2] == {"type": "content", "content": "world!"}
+
+        # Completion event with verse citations
+        assert chunks[3]["type"] == "completion"
+        assert "verses_cited" in chunks[3]
 
 
 class TestChatServiceGetVerseContext:

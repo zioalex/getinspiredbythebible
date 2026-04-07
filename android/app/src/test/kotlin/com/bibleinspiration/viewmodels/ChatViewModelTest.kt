@@ -938,7 +938,7 @@ class ChatViewModelTest {
         // Set up a successful chat stream that produces an assistant message.
         // The stream emits a metadata chunk (with messageId) then a content chunk.
         every { repository.chatStream(any()) } returns flowOf(
-            StreamChunk(content = "", messageId = backendMessageId, done = false),
+            StreamChunk(type = "metadata", content = "", messageId = backendMessageId, done = false),
             StreamChunk(content = "Here is some inspiration.", done = true),
         )
         coEvery {
