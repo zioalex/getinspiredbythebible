@@ -444,6 +444,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   उत्पत्ति: "genesis",
   निर्गमन: "exodus",
   लैव्यव्यवस्था: "leviticus",
+  लेवियतियुस: "leviticus", // alternate transliteration used by some LLMs
   गिनती: "numbers",
   व्यवस्थाविवरण: "deuteronomy",
   यहोशू: "joshua",

@@ -59,12 +59,17 @@ describe("getMultiWordAlternation", () => {
     }
   });
 
-  it("should NOT include number-prefixed book names", () => {
-    // "1 царств", "2 samuel", etc. are handled by the \\d+ branch — must not appear
-    // as a multi-word alternate.
+  it("should NOT include number-prefixed Latin/Cyrillic/Arabic book names", () => {
+    // "1 царств", "2 samuel", "1 أخبار الأيام", etc. are handled by the \\d+ branch
+    // and must not appear as multi-word alternates.
+    // EXCEPTION: number-prefixed non-Latin (Han/Hangul/Devanagari) books must be
+    // listed explicitly because the numbered-prefix branch excludes those scripts.
+    const NON_LATIN = /[\p{Script=Han}\p{Script=Hangul}\p{Script=Devanagari}]/u;
     const parts = getMultiWordAlternation().split("|");
     for (const part of parts) {
-      expect(part).not.toMatch(/^\d/);
+      if (part.match(/^\d/)) {
+        expect(part).toMatch(NON_LATIN);
+      }
     }
   });
 
