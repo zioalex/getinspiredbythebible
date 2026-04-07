@@ -578,6 +578,28 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   иуда: "jude",
   откровение: "revelation",
 
+  // ── Russian abbreviations (commonly used by LLMs) ─────────────────────────
+  ин: "john",
+  мф: "matthew",
+  мк: "mark",
+  лк: "luke",
+  пс: "psalms",
+  рим: "romans",
+  быт: "genesis",
+  ис: "isaiah",
+  откр: "revelation",
+  деян: "acts",
+  гал: "galatians",
+  еф: "ephesians",
+  кол: "colossians",
+  евр: "hebrews",
+  иак: "james",
+  флп: "philippians",
+  флм: "philemon",
+
+  // ── Russian ё/е variants ──────────────────────────────────────────────────
+  иёв: "job",
+
   // ── Russian (genitive forms — used after chapter/verse references) ────────
   бытия: "genesis",
   исхода: "exodus",
@@ -633,6 +655,7 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
 
   // ── Chinese (中文和合本 CUV) ───────────────────────────────────────────────
   创世记: "genesis",
+  创世纪: "genesis", // common variant: 纪 (era) instead of CUV-canonical 记 (record)
   出埃及记: "exodus",
   利未记: "leviticus",
   民数记: "numbers",
@@ -698,6 +721,37 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   约翰三书: "3 john",
   犹大书: "jude",
   启示录: "revelation",
+
+  // ── Chinese 记↔纪 swap aliases (LLMs confuse these homophones) ────────────
+  出埃及纪: "exodus",
+  利未纪: "leviticus",
+  民数纪: "numbers",
+  申命纪: "deuteronomy",
+  约书亚纪: "joshua",
+  士师纪: "judges",
+  路得纪: "ruth",
+  撒母耳纪上: "1 samuel",
+  撒母耳纪下: "2 samuel",
+  列王记上: "1 kings", // CUV uses 纪 for Kings; variant uses 记
+  列王记下: "2 kings",
+  以斯拉纪: "ezra",
+  尼希米纪: "nehemiah",
+  以斯帖纪: "esther",
+  约伯纪: "job",
+
+  // ── Chinese Catholic 思高本 (Studium Biblicum) names ──────────────────────
+  玛窦福音: "matthew",
+  马尔谷福音: "mark",
+  若望福音: "john",
+  宗徒大事录: "acts",
+  默示录: "revelation",
+  格林多前书: "1 corinthians",
+  格林多后书: "2 corinthians",
+  若望一书: "1 john",
+  若望二书: "2 john",
+  若望三书: "3 john",
+  雅各伯书: "james",
+  犹达书: "jude",
 
   // ── Korean (개역개정 KRV) ──────────────────────────────────────────────────
   창세기: "genesis",
@@ -767,6 +821,11 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   요한삼서: "3 john",
   유다서: "jude",
   요한계시록: "revelation",
+
+  // ── Korean aliases (short forms LLMs commonly produce) ─────────────────────
+  계시록: "revelation", // Short for 요한계시록
+  애가: "lamentations", // Short for 예레미야 애가
+  행전: "acts", // Short for 사도행전
 };
 
 /**
@@ -806,10 +865,55 @@ function normalizeBookName(book: string): string {
  * - Chinese:  "约翰福音 3:16", "诗篇 23:1", "耶利米哀歌 3:3"
  * - Korean:   "요한복음 3:16", "시편 23:1", "예레미야 애가 3:3"
  */
+/**
+ * Normalize Devanagari digits (०-९, U+0966-U+096F) to ASCII digits (0-9).
+ * Returns the string unchanged if no Devanagari digits are present.
+ */
+function normalizeDevanagariDigits(s: string): string {
+  return s.replace(/[\u0966-\u096F]/g, (ch) =>
+    String(ch.charCodeAt(0) - 0x0966),
+  );
+}
+
+/**
+ * Normalize Eastern Arabic digits (٠-٩, U+0660-U+0669) to ASCII digits (0-9).
+ */
+function normalizeEasternArabicDigits(s: string): string {
+  return s.replace(/[\u0660-\u0669]/g, (ch) =>
+    String(ch.charCodeAt(0) - 0x0660),
+  );
+}
+
+/**
+ * Normalize non-ASCII digit systems to ASCII.
+ * Handles Devanagari (०-९) and Eastern Arabic (٠-٩) numerals.
+ */
+function normalizeDigits(s: string): string {
+  return normalizeEasternArabicDigits(normalizeDevanagariDigits(s));
+}
+
+/**
+ * Strip Arabic tashkeel (diacritics U+064B–U+065F, U+0670) and tatweel
+ * (kashida U+0640) from text so that vowelised forms like يُوحَنَّا
+ * match the canonical يوحنا in the lookup table.
+ *
+ * Also normalizes French guillemets «» (U+00AB/U+00BB) to CJK guillemets
+ * 《》 (U+300A/U+300B) so the existing bracket handling covers Arabic «…».
+ */
+function normalizeArabicText(text: string): string {
+  return text
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/\u00AB/g, "\u300A")
+    .replace(/\u00BB/g, "\u300B");
+}
+
 export function extractVerseReferences(text: string): Set<string> {
   // Conjunctions that should not be treated as book names
   // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
   const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
+
+  // Preprocess: strip Arabic tashkeel/tatweel and normalize guillemets.
+  text = normalizeArabicText(text);
 
   // Use the shared verse pattern (auto-generated from LOCALIZED_BOOK_TO_ENGLISH).
   // Imported from versePatterns — the circular reference is safe because
@@ -822,8 +926,9 @@ export function extractVerseReferences(text: string): Set<string> {
 
   for (const match of matches) {
     const book = match[1].trim();
-    const chapter = match[2];
-    const verse = match[3];
+    // Normalize Devanagari (३→3) and Eastern Arabic (٣→3) digits
+    const chapter = normalizeDigits(match[2]);
+    const verse = normalizeDigits(match[3]);
 
     // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
     if (CONJUNCTIONS.has(book.toLowerCase())) {
@@ -842,6 +947,8 @@ export function extractVerseReferences(text: string): Set<string> {
 /**
  * Checks if a verse matches any of the given references
  * Handles fuzzy matching for book names (e.g., "Psalm" vs "Psalms")
+ * Also handles non-Latin book names (Hindi, Korean, Arabic, Chinese, Russian)
+ * by normalizing them to their lowercase English canonical form before lookup.
  */
 export function isVerseReferenced(
   verse: { book: string; chapter: number; verse: number; reference?: string },
@@ -855,8 +962,12 @@ export function isVerseReferenced(
     return true;
   }
 
-  // Also check using book/chapter/verse fields for more accurate matching
-  const altRef = `${verse.book.toLowerCase()} ${verse.chapter}:${verse.verse}`;
+  // Also check using book/chapter/verse fields for more accurate matching.
+  // Normalize the book name to English so that non-Latin scripts (Hindi,
+  // Korean, Arabic, Chinese, Russian) resolve to the same English key that
+  // the backend puts in the `references` Set (e.g. "Philippians 4:7").
+  const normalizedBook = normalizeBookName(verse.book);
+  const altRef = `${normalizedBook} ${verse.chapter}:${verse.verse}`;
   if (references.has(altRef)) {
     return true;
   }
@@ -870,8 +981,9 @@ export function isVerseReferenced(
       const refChapter = refParts[2];
       const refVerse = refParts[3];
 
-      // Fuzzy book name matching
-      const verseBook = verse.book.toLowerCase();
+      // Fuzzy book name matching — use the already-normalized English form so
+      // non-Latin scripts are compared on equal footing.
+      const verseBook = normalizedBook;
       const bookMatches =
         verseBook === refBook ||
         verseBook.startsWith(refBook) ||

@@ -179,7 +179,8 @@ jobs:
     needs: changes
     # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
     if: |
-      github.actor != 'dependabot[bot]' && (
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]' && (
         (github.event_name != 'workflow_dispatch' && needs.changes.outputs.backend == 'true') ||
         (github.event_name == 'workflow_dispatch' &&
          inputs.action == 'deploy' &&
@@ -242,7 +243,8 @@ jobs:
     needs: changes
     # Skip for Dependabot PRs (no access to secrets) and apply normal build logic
     if: |
-      github.actor != 'dependabot[bot]' && (
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]' && (
         (github.event_name != 'workflow_dispatch' && needs.changes.outputs.frontend == 'true') ||
         (github.event_name == 'workflow_dispatch' &&
          inputs.action == 'deploy' &&
@@ -427,9 +429,10 @@ jobs:
   tf-plan:
     needs: [changes, build-backend, build-frontend]
     if: >-
-      always() && github.actor != 'dependabot[bot]' && needs.changes.result == 'success' && needs.build-backend.result
-      != 'failure' && needs.build-frontend.result != 'failure' && (github.event_name != 'workflow_dispatch' ||
-      inputs.action != 'destroy')
+      always() && github.actor != 'dependabot[bot]' && github.event.pull_request.user.login != 'dependabot[bot]' &&
+      needs.changes.result == 'success' && needs.build-backend.result != 'failure' && needs.build-frontend.result !=
+      'failure' && (github.event_name != 'workflow_dispatch' ||
+        inputs.action != 'destroy')
     runs-on: ubuntu-latest
     outputs:
       has_changes: ${{ steps.plan.outputs.exit_code == '2' }}

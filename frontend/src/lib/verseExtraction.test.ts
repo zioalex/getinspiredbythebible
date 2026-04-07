@@ -255,6 +255,151 @@ describe("extractVerseReferences", () => {
     expect(refs.has("john 3:16")).toBe(true);
   });
 
+  it("should extract '《创世纪》1:1' (variant 纪) as 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("《创世纪》1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  // ── Chinese 记↔纪 swap variants ──────────────────────────────────────────
+
+  it("should extract 出埃及纪 3:14 (纪 variant) as 'exodus 3:14'", () => {
+    const refs = extractVerseReferences("出埃及纪 3:14");
+    expect(refs.has("exodus 3:14")).toBe(true);
+  });
+
+  it("should extract 利未纪 19:18 (纪 variant) as 'leviticus 19:18'", () => {
+    const refs = extractVerseReferences("利未纪 19:18");
+    expect(refs.has("leviticus 19:18")).toBe(true);
+  });
+
+  it("should extract 民数纪 6:24 (纪 variant) as 'numbers 6:24'", () => {
+    const refs = extractVerseReferences("民数纪 6:24");
+    expect(refs.has("numbers 6:24")).toBe(true);
+  });
+
+  it("should extract 申命纪 6:4 (纪 variant) as 'deuteronomy 6:4'", () => {
+    const refs = extractVerseReferences("申命纪 6:4");
+    expect(refs.has("deuteronomy 6:4")).toBe(true);
+  });
+
+  it("should extract 约书亚纪 1:9 (纪 variant) as 'joshua 1:9'", () => {
+    const refs = extractVerseReferences("约书亚纪 1:9");
+    expect(refs.has("joshua 1:9")).toBe(true);
+  });
+
+  it("should extract 士师纪 6:12 (纪 variant) as 'judges 6:12'", () => {
+    const refs = extractVerseReferences("士师纪 6:12");
+    expect(refs.has("judges 6:12")).toBe(true);
+  });
+
+  it("should extract 路得纪 1:16 (纪 variant) as 'ruth 1:16'", () => {
+    const refs = extractVerseReferences("路得纪 1:16");
+    expect(refs.has("ruth 1:16")).toBe(true);
+  });
+
+  it("should extract 撒母耳纪上 3:10 (纪 variant) as '1 samuel 3:10'", () => {
+    const refs = extractVerseReferences("撒母耳纪上 3:10");
+    expect(refs.has("1 samuel 3:10")).toBe(true);
+  });
+
+  it("should extract 撒母耳纪下 7:16 (纪 variant) as '2 samuel 7:16'", () => {
+    const refs = extractVerseReferences("撒母耳纪下 7:16");
+    expect(refs.has("2 samuel 7:16")).toBe(true);
+  });
+
+  it("should extract 列王记上 18:1 (记 variant) as '1 kings 18:1'", () => {
+    const refs = extractVerseReferences("列王记上 18:1");
+    expect(refs.has("1 kings 18:1")).toBe(true);
+  });
+
+  it("should extract 列王记下 5:14 (记 variant) as '2 kings 5:14'", () => {
+    const refs = extractVerseReferences("列王记下 5:14");
+    expect(refs.has("2 kings 5:14")).toBe(true);
+  });
+
+  it("should extract 以斯拉纪 7:10 (纪 variant) as 'ezra 7:10'", () => {
+    const refs = extractVerseReferences("以斯拉纪 7:10");
+    expect(refs.has("ezra 7:10")).toBe(true);
+  });
+
+  it("should extract 尼希米纪 8:10 (纪 variant) as 'nehemiah 8:10'", () => {
+    const refs = extractVerseReferences("尼希米纪 8:10");
+    expect(refs.has("nehemiah 8:10")).toBe(true);
+  });
+
+  it("should extract 以斯帖纪 4:14 (纪 variant) as 'esther 4:14'", () => {
+    const refs = extractVerseReferences("以斯帖纪 4:14");
+    expect(refs.has("esther 4:14")).toBe(true);
+  });
+
+  it("should extract 约伯纪 1:21 (纪 variant) as 'job 1:21'", () => {
+    const refs = extractVerseReferences("约伯纪 1:21");
+    expect(refs.has("job 1:21")).toBe(true);
+  });
+
+  // ── Chinese Catholic (思高本) name variants ──────────────────────────────
+
+  it("should extract 玛窦福音 5:3 (Catholic Matthew) as 'matthew 5:3'", () => {
+    const refs = extractVerseReferences("玛窦福音 5:3");
+    expect(refs.has("matthew 5:3")).toBe(true);
+  });
+
+  it("should extract 马尔谷福音 1:1 (Catholic Mark) as 'mark 1:1'", () => {
+    const refs = extractVerseReferences("马尔谷福音 1:1");
+    expect(refs.has("mark 1:1")).toBe(true);
+  });
+
+  it("should extract 若望福音 3:16 (Catholic John) as 'john 3:16'", () => {
+    const refs = extractVerseReferences("若望福音 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract 宗徒大事录 2:38 (Catholic Acts) as 'acts 2:38'", () => {
+    const refs = extractVerseReferences("宗徒大事录 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract 默示录 21:4 (Catholic Revelation) as 'revelation 21:4'", () => {
+    const refs = extractVerseReferences("默示录 21:4");
+    expect(refs.has("revelation 21:4")).toBe(true);
+  });
+
+  it("should extract 格林多前书 13:4 (Catholic 1 Cor) as '1 corinthians 13:4'", () => {
+    const refs = extractVerseReferences("格林多前书 13:4");
+    expect(refs.has("1 corinthians 13:4")).toBe(true);
+  });
+
+  it("should extract 格林多后书 5:17 (Catholic 2 Cor) as '2 corinthians 5:17'", () => {
+    const refs = extractVerseReferences("格林多后书 5:17");
+    expect(refs.has("2 corinthians 5:17")).toBe(true);
+  });
+
+  it("should extract 若望一书 4:8 (Catholic 1 John) as '1 john 4:8'", () => {
+    const refs = extractVerseReferences("若望一书 4:8");
+    expect(refs.has("1 john 4:8")).toBe(true);
+  });
+
+  it("should extract 若望二书 1:6 (Catholic 2 John) as '2 john 1:6'", () => {
+    const refs = extractVerseReferences("若望二书 1:6");
+    expect(refs.has("2 john 1:6")).toBe(true);
+  });
+
+  it("should extract 若望三书 1:4 (Catholic 3 John) as '3 john 1:4'", () => {
+    const refs = extractVerseReferences("若望三书 1:4");
+    expect(refs.has("3 john 1:4")).toBe(true);
+  });
+
+  it("should extract 雅各伯书 1:5 (Catholic James) as 'james 1:5'", () => {
+    const refs = extractVerseReferences("雅各伯书 1:5");
+    expect(refs.has("james 1:5")).toBe(true);
+  });
+
+  it("should extract 犹达书 1:3 (Catholic Jude) as 'jude 1:3'", () => {
+    const refs = extractVerseReferences("犹达书 1:3");
+    expect(refs.has("jude 1:3")).toBe(true);
+  });
+
   // ── Korean citation tests ────────────────────────────────────────────────
 
   it("should normalize Korean '요한복음 3:16' to 'john 3:16'", () => {
@@ -1307,6 +1452,58 @@ describe("extractVerseReferences — Arabic", () => {
   });
 });
 
+// ── Arabic: tashkeel, Eastern numerals, guillemets ──────────────────────────────
+
+describe("extractVerseReferences — Arabic tashkeel and Eastern numerals", () => {
+  describe("tashkeel (diacritics) stripping", () => {
+    it("should detect \u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16 (with tashkeel) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u064A\u064F\u0648\u062D\u064E\u0646\u064E\u0651\u0627 3:16",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1 (with tashkeel) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences(
+        "\u062A\u064E\u0643\u0652\u0648\u0650\u064A\u0646 1:1",
+      );
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Eastern Arabic numerals", () => {
+    it("should detect \u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666 (Eastern Arabic numerals) \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u064A\u0648\u062D\u0646\u0627 \u0663:\u0661\u0666",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u062A\u0643\u0648\u064A\u0646 \u0661:\u0661 (Eastern Arabic numerals) \u2192 genesis 1:1", () => {
+      const refs = extractVerseReferences(
+        "\u062A\u0643\u0648\u064A\u0646 \u0661:\u0661",
+      );
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("Arabic guillemets \u00AB\u00BB", () => {
+    it("should detect \u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16 \u2192 john 3:16", () => {
+      const refs = extractVerseReferences(
+        "\u00AB\u064A\u0648\u062D\u0646\u0627\u00BB 3:16",
+      );
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect \u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1 \u2192 psalms 23:1", () => {
+      const refs = extractVerseReferences(
+        "\u00AB\u0627\u0644\u0645\u0632\u0627\u0645\u064A\u0631\u00BB 23:1",
+      );
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Hindi ───────────────────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Hindi", () => {
@@ -1375,6 +1572,59 @@ describe("extractVerseReferences — Hindi", () => {
 
   describe("multiple refs in same text", () => {
     it("should detect two Hindi refs in one sentence", () => {
+      const refs = extractVerseReferences("यूहन्ना 3:16 और रोमियों 8:28 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+  });
+});
+
+// ── Hindi: no-space and Devanagari numeral improvements ─────────────────────────
+
+describe("extractVerseReferences — Hindi no-space and Devanagari numerals", () => {
+  describe("no-space references", () => {
+    it("should detect यूहन्ना3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect प्रकाशितवाक्य21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("प्रकाशितवाक्य21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("Devanagari numerals", () => {
+    it("should detect यूहन्ना ३:१६ (Devanagari numerals) → john 3:16", () => {
+      const refs = extractVerseReferences("यूहन्ना ३:१६");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect उत्पत्ति १:१ (Devanagari numerals) → genesis 1:1", () => {
+      const refs = extractVerseReferences("उत्पत्ति १:१");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+  });
+
+  describe("embedded in Hindi text", () => {
+    it("should detect ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("कृपया यूहन्ना 3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect no-space ref in Hindi sentence", () => {
+      const refs = extractVerseReferences("बाइबल में यूहन्ना3:16 पढ़ें");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple Hindi references", () => {
+    it("should detect multiple Hindi refs in one sentence", () => {
       const refs = extractVerseReferences("यूहन्ना 3:16 और रोमियों 8:28 पढ़ें");
       expect(refs.has("john 3:16")).toBe(true);
       expect(refs.has("romans 8:28")).toBe(true);
@@ -1588,6 +1838,76 @@ describe("extractVerseReferences — Korean", () => {
   });
 });
 
+// ── Korean: no-space and alias improvements ─────────────────────────────────────
+
+describe("extractVerseReferences — Korean no-space and aliases", () => {
+  describe("no-space references", () => {
+    it("should detect 요한복음3:16 (no space) → john 3:16", () => {
+      const refs = extractVerseReferences("요한복음3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 시편23:1 (no space) → psalms 23:1", () => {
+      const refs = extractVerseReferences("시편23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect 창세기1:1 (no space) → genesis 1:1", () => {
+      const refs = extractVerseReferences("창세기1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect 요한계시록21:4 (no space) → revelation 21:4", () => {
+      const refs = extractVerseReferences("요한계시록21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+  });
+
+  describe("corner bracket notation", () => {
+    it("should detect 「요한복음」3:16 (corner brackets) → john 3:16", () => {
+      const refs = extractVerseReferences("「요한복음」3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect 『시편』23:1 (double corner brackets) → psalms 23:1", () => {
+      const refs = extractVerseReferences("『시편』23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+
+  describe("short-form aliases", () => {
+    it("should detect 계시록 21:4 (short Revelation) → revelation 21:4", () => {
+      const refs = extractVerseReferences("계시록 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect 애가 3:3 (short Lamentations) → lamentations 3:3", () => {
+      const refs = extractVerseReferences("애가 3:3");
+      expect(refs.has("lamentations 3:3")).toBe(true);
+    });
+
+    it("should detect 행전 2:38 (short Acts) → acts 2:38", () => {
+      const refs = extractVerseReferences("행전 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+  });
+
+  describe("embedded no-space", () => {
+    it("should detect 요한복음3:16 embedded in Korean text", () => {
+      const refs = extractVerseReferences("성경에서 요한복음3:16을 읽으세요");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+  });
+
+  describe("multiple no-space references", () => {
+    it("should detect 요한복음3:16 그리고 시편23:1 (multiple no-space)", () => {
+      const refs = extractVerseReferences("요한복음3:16 그리고 시편23:1");
+      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+  });
+});
+
 // ── Russian (extended) ──────────────────────────────────────────────────────────
 
 describe("extractVerseReferences — Russian extended", () => {
@@ -1631,6 +1951,59 @@ describe("extractVerseReferences — Russian extended", () => {
   });
 });
 
+// ── Russian: abbreviations and ё/е normalization ────────────────────────────────
+
+describe("extractVerseReferences — Russian abbreviations and ё/е", () => {
+  describe("common abbreviations", () => {
+    it("should detect Ин 3:16 → john 3:16", () => {
+      const refs = extractVerseReferences("Ин 3:16");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("should detect Мф 5:3 → matthew 5:3", () => {
+      const refs = extractVerseReferences("Мф 5:3");
+      expect(refs.has("matthew 5:3")).toBe(true);
+    });
+
+    it("should detect Пс 23:1 → psalms 23:1", () => {
+      const refs = extractVerseReferences("Пс 23:1");
+      expect(refs.has("psalms 23:1")).toBe(true);
+    });
+
+    it("should detect Рим 8:28 → romans 8:28", () => {
+      const refs = extractVerseReferences("Рим 8:28");
+      expect(refs.has("romans 8:28")).toBe(true);
+    });
+
+    it("should detect Быт 1:1 → genesis 1:1", () => {
+      const refs = extractVerseReferences("Быт 1:1");
+      expect(refs.has("genesis 1:1")).toBe(true);
+    });
+
+    it("should detect Откр 21:4 → revelation 21:4", () => {
+      const refs = extractVerseReferences("Откр 21:4");
+      expect(refs.has("revelation 21:4")).toBe(true);
+    });
+
+    it("should detect Деян 2:38 → acts 2:38", () => {
+      const refs = extractVerseReferences("Деян 2:38");
+      expect(refs.has("acts 2:38")).toBe(true);
+    });
+
+    it("should detect Евр 11:1 → hebrews 11:1", () => {
+      const refs = extractVerseReferences("Евр 11:1");
+      expect(refs.has("hebrews 11:1")).toBe(true);
+    });
+  });
+
+  describe("ё/е normalization", () => {
+    it("should detect Иёв 1:1 (ё variant) → job 1:1", () => {
+      const refs = extractVerseReferences("Иёв 1:1");
+      expect(refs.has("job 1:1")).toBe(true);
+    });
+  });
+});
+
 // ── Mixed-script detection ──────────────────────────────────────────────────────
 
 describe("extractVerseReferences — mixed scripts", () => {
@@ -1668,5 +2041,169 @@ describe("extractVerseReferences — non-Latin conjunction filtering", () => {
     for (const ref of refs) {
       expect(ref).not.toMatch(/^و\s/);
     }
+  });
+});
+
+// ── isVerseReferenced: non-Latin verse.book vs. English references Set ──────────
+// Regression guard for the bug where a Hindi/Korean/Arabic Bible translation
+// returns `verse.book` in the localized script, but the `references` Set (built
+// from the backend's `verses_cited`) contains capitalized English book names like
+// "Philippians 4:7".  The old fuzzy match failed because
+// "फिलिप्पियों".startsWith("philippians") === false.
+
+describe("isVerseReferenced — non-Latin verse.book vs. English references Set", () => {
+  // ── Hindi ─────────────────────────────────────────────────────────────────
+
+  it("should match Hindi Philippians verse against English-capitalized Set entry", () => {
+    // verse.book comes from a Hindi Bible DB row; Set contains backend verses_cited
+    const verse = {
+      book: "फिलिप्पियों",
+      chapter: 4,
+      verse: 7,
+      reference: "फिलिप्पियों 4:7",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:7"]))).toBe(true);
+  });
+
+  it("should match Hindi Isaiah verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "यशायाह",
+      chapter: 26,
+      verse: 3,
+      reference: "यशायाह 26:3",
+    };
+    expect(isVerseReferenced(verse, new Set(["Isaiah 26:3"]))).toBe(true);
+  });
+
+  it("should match Hindi John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "यूहन्ना",
+      chapter: 3,
+      verse: 16,
+      reference: "यूहन्ना 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Hindi Romans verse when Set contains lowercase English", () => {
+    // references Set may also hold lowercase-normalized forms
+    const verse = {
+      book: "रोमियों",
+      chapter: 8,
+      verse: 28,
+      reference: "रोमियों 8:28",
+    };
+    expect(isVerseReferenced(verse, new Set(["romans 8:28"]))).toBe(true);
+  });
+
+  // ── Korean ────────────────────────────────────────────────────────────────
+
+  it("should match Korean Philippians verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "빌립보서",
+      chapter: 4,
+      verse: 13,
+      reference: "빌립보서 4:13",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:13"]))).toBe(true);
+  });
+
+  it("should match Korean John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "요한복음",
+      chapter: 3,
+      verse: 16,
+      reference: "요한복음 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Korean Psalms verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "시편",
+      chapter: 23,
+      verse: 1,
+      reference: "시편 23:1",
+    };
+    expect(isVerseReferenced(verse, new Set(["Psalms 23:1"]))).toBe(true);
+  });
+
+  // ── Arabic ────────────────────────────────────────────────────────────────
+
+  it("should match Arabic John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "يوحنا",
+      chapter: 3,
+      verse: 16,
+      reference: "يوحنا 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Arabic Genesis verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "تكوين",
+      chapter: 1,
+      verse: 1,
+      reference: "تكوين 1:1",
+    };
+    expect(isVerseReferenced(verse, new Set(["Genesis 1:1"]))).toBe(true);
+  });
+
+  // ── Chinese ───────────────────────────────────────────────────────────────
+
+  it("should match Chinese John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "约翰福音",
+      chapter: 3,
+      verse: 16,
+      reference: "约翰福音 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Chinese Philippians verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "腓立比书",
+      chapter: 4,
+      verse: 13,
+      reference: "腓立比书 4:13",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:13"]))).toBe(true);
+  });
+
+  // ── Russian ───────────────────────────────────────────────────────────────
+
+  it("should match Russian John (genitive) verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "Иоанна",
+      chapter: 3,
+      verse: 16,
+      reference: "Иоанна 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  // ── Negative: still rejects wrong verse ───────────────────────────────────
+
+  it("should not match Hindi Philippians verse against wrong English Set entry", () => {
+    const verse = {
+      book: "फिलिप्पियों",
+      chapter: 4,
+      verse: 7,
+      reference: "फिलिप्पियों 4:7",
+    };
+    // Wrong chapter/verse — must not match
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:8"]))).toBe(false);
+  });
+
+  it("should not match Hindi Isaiah against unrelated English Set entry", () => {
+    const verse = {
+      book: "यशायाह",
+      chapter: 26,
+      verse: 3,
+      reference: "यशायाह 26:3",
+    };
+    expect(isVerseReferenced(verse, new Set(["Romans 8:28"]))).toBe(false);
   });
 });

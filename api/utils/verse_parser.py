@@ -307,10 +307,11 @@ def _build_verse_pattern() -> str:
     cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
 
     # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars,
-    # or the left Chinese guillemet 《 (U+300A).
-    # The optional 》 (U+300B) after the book name handles Chinese guillemet notation
-    # like 《约翰福音》3:16.
-    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a]))({book_alternatives})\u300b?\s*{cv_pattern}"
+    # or opening brackets: Chinese guillemet 《 (U+300A), Korean corner brackets
+    # 「 (U+300C) and 『 (U+300E).
+    # The optional closing bracket class [\u300b\u300d\u300f] after the book name
+    # handles 《约翰福音》3:16 and 「요한복음」3:16 / 『시편』23:1.
+    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a\u300c\u300e]))({book_alternatives})[\u300b\u300d\u300f]?\s*{cv_pattern}"
 
 
 # Compiled regex cached at module load time — avoids rebuilding the ~710-term
@@ -337,6 +338,28 @@ def _match_to_verse_reference(match: re.Match) -> VerseReference | None:
     )
 
 
+def _normalize_arabic_text(text: str) -> str:
+    """Strip Arabic tashkeel (diacritics) and tatweel (kashida) from text.
+
+    Tashkeel marks (U+064B–U+065F, U+0670) are vowelisation marks that are
+    often present in fully-vocalised Arabic text but absent in the book-name
+    lookup tables.  Stripping them before regex matching ensures that
+    ``يُوحَنَّا`` matches the canonical ``يوحنا``.
+
+    Tatweel (U+0640, kashida) is a decorative letter-stretching character
+    that can appear between any letters: ``يـوحـنـا``.
+
+    Also normalizes French-style guillemets «» (U+00AB / U+00BB) to the
+    CJK-style guillemets 《》 (U+300A / U+300B) so the existing bracket
+    handling in the regex covers both Arabic «…» and Chinese 《…》.
+    """
+    # Strip tashkeel marks and tatweel
+    text = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", text)
+    # Normalize guillemets
+    text = text.replace("\u00ab", "\u300a").replace("\u00bb", "\u300b")
+    return text
+
+
 def parse_verse_reference(text: str) -> VerseReference | None:
     """
     Parse the first verse reference from text.
@@ -351,6 +374,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     - "约翰福音 3:16" (Chinese)
     - "요한복음 3:16" (Korean)
     - "यूहन्ना 3:16" (Hindi)
+    - "يوحنا 3:16" (Arabic, with optional tashkeel)
 
     Args:
         text: Text that may contain a verse reference
@@ -358,6 +382,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     Returns:
         VerseReference if found, None otherwise
     """
+    text = _normalize_arabic_text(text)
     match = _VERSE_PATTERN.search(text)
     if not match:
         return None
@@ -378,6 +403,7 @@ def extract_all_references(text: str) -> list[VerseReference]:
     Returns:
         List of all VerseReference objects found (deduplicated)
     """
+    text = _normalize_arabic_text(text)
     results: list[VerseReference] = []
     seen: set[str] = set()
 

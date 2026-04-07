@@ -123,3 +123,10 @@ db_slow_queries_counter = meter.create_counter(
     description="Count of queries exceeding slow query threshold (default 100ms)",
     unit="1",
 )
+
+# ── Access audit metrics ─────────────────────────────────────────────────
+api_access_counter = meter.create_counter(
+    name="api.access.total",
+    description="Total API requests by source classification (official/unofficial)",
+    unit="1",
+)

@@ -106,11 +106,12 @@ private val BOOK_NAME =
 // \b requires a \w↔\W transition, but in Java without (?U) the behaviour at CJK
 // boundaries is unreliable across JVM versions. (?!\d) is simpler and always works.
 
-// Conditional whitespace sub-pattern: after a CJK (Han) character or a closing
-// Chinese guillemet 》 (U+300B) the space between book name and chapter number is
+// Conditional whitespace sub-pattern: after a CJK (Han) or Hangul (Korean) character,
+// or a closing bracket (》」』), the space between book name and chapter number is
 // optional (\s*); otherwise at least one space is required (\s+).
-// This enables matching "约翰福音10:28" and "《约翰福音》3:16" while still requiring "John 3:16".
-private const val COND_WS = "(?:(?<=[\\p{IsHan}\\u300B])\\s*|\\s+)"
+// This enables matching "约翰福音10:28", "요한복음3:16", "《约翰福音》3:16",
+// "「요한복음」3:16" while still requiring "John 3:16".
+private const val COND_WS = "(?:(?<=[\\p{IsHan}\\p{IsHangul}\\u300B\\u300D\\u300F])\\s*|\\s+)"
 
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
@@ -124,10 +125,10 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
-        // Uses COND_WS so CJK book names can abut the chapter number without a space.
-        // \u300B? optionally consumes a closing Chinese guillemet 》 after the book name
-        // (e.g. 《约翰福音》3:16) so it does not block the chapter:verse match.
-        "($BOOK_NAME)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        // Uses COND_WS so CJK/Hangul book names can abut the chapter number without a space.
+        // [\u300B\u300D\u300F]? optionally consumes a closing bracket (》」』) after the
+        // book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not block the match.
+        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
@@ -174,8 +175,10 @@ internal fun buildVerseRefRegex(
 
     // When CJK alternation is present, prevent the generic BOOK_NAME from matching Han
     // characters as a first character — only the explicit CJK alternation handles those.
+    // When CJK/Hangul alternation is present, prevent the generic BOOK_NAME from matching
+    // Han or Hangul characters as a first character — only the explicit alternation handles those.
     val genericBookName = if (escapedCjk != null) {
-        "(?!\\p{IsHan})$BOOK_NAME"
+        "(?!\\p{IsHan}|\\p{IsHangul})$BOOK_NAME"
     } else BOOK_NAME
 
     // Build a dynamic book-name pattern that first tries server names (longest-first),
@@ -194,9 +197,9 @@ internal fun buildVerseRefRegex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
         "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
             "|" +
-            // Alt 2 — no prefix. Uses COND_WS for CJK no-space support.
-            // \u300B? optionally consumes closing Chinese guillemet 》 after book name.
-            "($dynamicBookName)\\u300B?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
+            // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
+            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 

@@ -640,6 +640,26 @@ RUSSIAN_ALIASES: dict[str, str] = {
     "3 Иоанна": "3 John",
     # Jude — nominative alias (feed uses dative "Иуде")
     "Иуда": "Jude",
+    # ── Russian abbreviations (commonly used by LLMs) ────────────────────────
+    "Ин": "John",
+    "Мф": "Matthew",
+    "Мк": "Mark",
+    "Лк": "Luke",
+    "Пс": "Psalms",
+    "Рим": "Romans",
+    "Быт": "Genesis",
+    "Ис": "Isaiah",
+    "Откр": "Revelation",
+    "Деян": "Acts",
+    "Гал": "Galatians",
+    "Еф": "Ephesians",
+    "Кол": "Colossians",
+    "Евр": "Hebrews",
+    "Иак": "James",
+    "Флп": "Philippians",
+    "Флм": "Philemon",
+    # ── ё/е variants ─────────────────────────────────────────────────────────
+    "Иёв": "Job",  # ё variant of Иов
 }
 
 # Chinese Union Version Simplified (CUS / cuv)
@@ -714,10 +734,42 @@ ENGLISH_TO_CHINESE: dict[str, str] = {
     "Revelation": "啟示錄",  # Traditional characters — actual name in getbible CUS feed
 }
 
-# Chinese aliases (encoding variants and simplified/traditional script variants)
+# Chinese aliases (encoding variants, simplified/traditional script variants,
+# 记↔纪 character swaps, and Catholic 思高本 book names).
 CHINESE_ALIASES: dict[str, str] = {
+    # ── encoding / script variants ────────────────────────────────────────────
     "\ufeff创世记": "Genesis",  # Genesis with UTF-8 BOM (getbible API feed artifact)
     "启示录": "Revelation",  # Revelation in Simplified characters (feed uses Traditional "啟示錄")
+    # ── 记↔纪 swaps (jì — both mean "record"; LLMs frequently confuse them) ──
+    "创世纪": "Genesis",
+    "出埃及纪": "Exodus",
+    "利未纪": "Leviticus",
+    "民数纪": "Numbers",
+    "申命纪": "Deuteronomy",
+    "约书亚纪": "Joshua",
+    "士师纪": "Judges",
+    "路得纪": "Ruth",
+    "撒母耳纪上": "1 Samuel",
+    "撒母耳纪下": "2 Samuel",
+    "列王记上": "1 Kings",  # CUV uses 纪 for Kings; variant uses 记
+    "列王记下": "2 Kings",
+    "以斯拉纪": "Ezra",
+    "尼希米纪": "Nehemiah",
+    "以斯帖纪": "Esther",
+    "约伯纪": "Job",
+    # ── Catholic 思高本 (Studium Biblicum) names ──────────────────────────────
+    "玛窦福音": "Matthew",
+    "马尔谷福音": "Mark",
+    "若望福音": "John",
+    "宗徒大事录": "Acts",
+    "默示录": "Revelation",
+    "格林多前书": "1 Corinthians",
+    "格林多后书": "2 Corinthians",
+    "若望一书": "1 John",
+    "若望二书": "2 John",
+    "若望三书": "3 John",
+    "雅各伯书": "James",
+    "犹达书": "Jude",
 }
 
 # Korean Revised Version (개역개정 / krv)
@@ -794,6 +846,9 @@ ENGLISH_TO_KOREAN: dict[str, str] = {
 # Korean aliases (spacing/orthographic variants)
 KOREAN_ALIASES: dict[str, str] = {
     "예레미야애가": "Lamentations",  # Lamentations without space (LLM and some sources omit it)
+    "계시록": "Revelation",  # Short form of 요한계시록 (without 요한)
+    "애가": "Lamentations",  # Short form of 예레미야 애가 (without 예레미야)
+    "행전": "Acts",  # Short form of 사도행전 (without 사도)
 }
 
 # Hindi (IRV Bible / hindi)
