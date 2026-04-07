@@ -36,6 +36,7 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
   return {
     extractVerseReferences: actual.extractVerseReferences,
     isVerseReferenced: actual.isVerseReferenced,
+    LOCALIZED_BOOK_TO_ENGLISH: actual.LOCALIZED_BOOK_TO_ENGLISH,
   };
 });
 

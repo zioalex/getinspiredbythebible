@@ -49,17 +49,17 @@ def get_client_ip(request: Request) -> str:
     if forwarded_for:
         # X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2
         # The first IP is the original client
-        client_ip = forwarded_for.split(",")[0].strip()
+        client_ip = str(forwarded_for).split(",")[0].strip()
         return client_ip
 
     # Check X-Real-IP header (nginx)
     real_ip = request.headers.get("X-Real-IP")
     if real_ip:
-        return real_ip.strip()
+        return str(real_ip).strip()
 
     # Fall back to direct client
     if request.client:
-        return request.client.host
+        return str(request.client.host)
 
     return ""
 

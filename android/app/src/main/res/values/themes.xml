@@ -9,13 +9,13 @@
       the windowSplashScreen* attributes on API < 31.
 
       Colours:
-        background  #4A6FA5  — app primary blue  (matches web primary-600)
+        background  #874A30  — app primary warm brown  (matches web primary-700)
         icon        @drawable/ic_splash_icon  — white cross, centred
-        iconBg      #4A6FA5  — same as background so the icon circle blends in (API 31+)
+        iconBg      #874A30  — same as background so the icon circle blends in (API 31+)
     -->
     <style name="Theme.BibleInspiration.Splash" parent="Theme.SplashScreen">
         <!-- Background colour of the splash window -->
-        <item name="windowSplashScreenBackground">#4A6FA5</item>
+        <item name="windowSplashScreenBackground">#874A30</item>
 
         <!-- Animated / static icon shown in the centre of the screen -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
@@ -24,12 +24,12 @@
         <item name="windowSplashScreenAnimationDuration">300</item>
 
         <!--
-          Brand icon background colour (API 31+).  Setting it to the same blue as the
-          window background makes the circular icon container invisible, so the cross
-          appears to float directly on the blue backdrop — matching the launcher icon
+          Brand icon background colour (API 31+).  Setting it to the same warm brown as
+          the window background makes the circular icon container invisible, so the cross
+          appears to float directly on the warm backdrop — matching the launcher icon
           adaptive-icon style.
         -->
-        <item name="windowSplashScreenIconBackgroundColor">#4A6FA5</item>
+        <item name="windowSplashScreenIconBackgroundColor">#874A30</item>
 
         <!-- Theme to switch to after the splash screen exits -->
         <item name="postSplashScreenTheme">@style/Theme.BibleInspiration</item>

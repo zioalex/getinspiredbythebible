@@ -51,7 +51,7 @@ import com.bibleinspiration.presentation.viewmodels.ChapterSheetState
  */
 private val CITED_BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
 
 private val CITED_VERSE_REF_REGEX = Regex(
     "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
@@ -62,25 +62,66 @@ private val CITED_VERSE_REF_REGEX = Regex(
 /**
  * Returns the subset of [allVerses] whose human-readable reference (e.g. "John 3:16")
  * appears explicitly in the text of at least one [messages] entry.
+ *
+ * Prefers server-provided [Message.versesCited] (dual-source: LLM structured output + backend
+ * regex) when available, falling back to client-side regex extraction for older messages.
+ *
+ * @param localizedToEnglish Optional map of localized book names to English names (from the
+ *   API).  When provided, book names extracted from the regex match are normalized to English
+ *   before comparing with [Verse.book], fixing the bug where Arabic/Hindi/Russian book names
+ *   extracted from chat text don't match the English [Verse.book] field.
  */
-internal fun referencedVerses(allVerses: List<Verse>, messages: List<Message>): List<Verse> {
-    val combinedText = messages
-        .filter { it.role == Message.Role.ASSISTANT }
-        .joinToString(" ") { it.content }
+internal fun referencedVerses(
+    allVerses: List<Verse>,
+    messages: List<Message>,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+): List<Verse> {
+    val assistantMessages = messages.filter { it.role == Message.Role.ASSISTANT }
+
+    // Prefer server-provided versesCited when any assistant message has them.
+    val serverCited = assistantMessages.flatMap { it.versesCited }
+    if (serverCited.isNotEmpty()) {
+        // Server citations are in English canonical form (e.g. "John 3:16").
+        // Normalize to lowercase for case-insensitive matching.
+        val citedLower = serverCited.map { it.lowercase() }.toHashSet()
+        return allVerses.filter { verse ->
+            val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
+            citedLower.any { it.startsWith(baseRef) }
+        }
+    }
+
+    // Fallback: client-side regex extraction for older messages without versesCited.
+    val combinedText = assistantMessages.joinToString(" ") { it.content }
     val citedRefs = CITED_VERSE_REF_REGEX.findAll(combinedText)
         .map {
             // Alt 1 (numbered prefix) fills groups 1-3; Alt 2 fills groups 4-6.
+            val rawBook: String
+            val chapter: String
+            val verse: String
             if (it.groupValues[1].isNotEmpty()) {
-                "${it.groupValues[1]} ${it.groupValues[2]}:${it.groupValues[3]}"
+                rawBook = it.groupValues[1]
+                chapter = it.groupValues[2]
+                verse = it.groupValues[3]
             } else {
-                "${it.groupValues[4]} ${it.groupValues[5]}:${it.groupValues[6]}"
+                rawBook = it.groupValues[4]
+                chapter = it.groupValues[5]
+                verse = it.groupValues[6]
             }
+            // Normalize localized book name to English when the map contains a match.
+            val book = localizedToEnglish[rawBook] ?: rawBook
+            "$book $chapter:$verse"
         }
         .toHashSet()
     return allVerses.filter { verse ->
         // Match if the base reference (book chapter:verse) appears — ignore range suffix.
+        // Check both the English book name and the localized book name so that non-English
+        // conversations (e.g. Italian "Salmi 60:1") correctly surface in the Referenced tab.
         val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}"
-        citedRefs.any { it.startsWith(baseRef) }
+        val localizedBaseRef = verse.localizedBook?.let { "${it} ${verse.chapter}:${verse.verse}" }
+        citedRefs.any { cited ->
+            cited.startsWith(baseRef) ||
+                (localizedBaseRef != null && cited.startsWith(localizedBaseRef))
+        }
     }
 }
 
@@ -91,13 +132,16 @@ internal fun referencedVerses(allVerses: List<Verse>, messages: List<Message>): 
  * - **Referenced**: only verses explicitly cited in assistant message text.
  * - **All Related**: every verse returned by the backend across all messages.
  *
- * @param allVerses       All unique verses across finished assistant messages.
- * @param messages        Full message list (used to determine which verses are referenced).
- * @param chapterSheetState Current state of the chapter-detail sheet.
+ * @param allVerses            All unique verses across finished assistant messages.
+ * @param messages             Full message list (used to determine which verses are referenced).
+ * @param chapterSheetState    Current state of the chapter-detail sheet.
  * @param preferredTranslation The user's preferred Bible translation code, or null.
- * @param onLoadChapter   Callback to open the chapter-detail sheet.
- * @param onDismissSheet  Callback to clear the chapter-detail sheet state.
- * @param onDismiss       Callback to close this panel.
+ * @param localizedToEnglish   Map from localized book names to English names (from the API).
+ *                             Used to normalize book names extracted from non-English chat text
+ *                             before comparing with [Verse.book].
+ * @param onLoadChapter        Callback to open the chapter-detail sheet.
+ * @param onDismissSheet       Callback to clear the chapter-detail sheet state.
+ * @param onDismiss            Callback to close this panel.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,12 +153,13 @@ fun VersesPanel(
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
     onDismissSheet: () -> Unit,
     onDismiss: () -> Unit,
+    localizedToEnglish: Map<String, String> = emptyMap(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var showReferenced by rememberSaveable { mutableStateOf(true) }
+    var showReferenced by rememberSaveable { mutableStateOf(false) }
 
     val displayedVerses = if (showReferenced) {
-        referencedVerses(allVerses, messages)
+        referencedVerses(allVerses, messages, localizedToEnglish)
     } else {
         allVerses
     }

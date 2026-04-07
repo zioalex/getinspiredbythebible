@@ -7,6 +7,7 @@ import com.bibleinspiration.data.remote.models.ChurchSearchResponseDto
 import com.bibleinspiration.data.remote.models.ContactRequestDto
 import com.bibleinspiration.data.remote.models.ContactResponseDto
 import com.bibleinspiration.data.remote.models.FeedbackRequestDto
+import com.bibleinspiration.data.remote.models.BookNamesResponseDto
 import com.bibleinspiration.data.remote.models.TranslationsResponseDto
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -32,6 +33,12 @@ interface BibleApiService {
      */
     @GET("api/v1/scripture/translations")
     suspend fun getTranslations(): TranslationsResponseDto
+
+    /**
+     * Fetches localized book name mappings and the list of multi-word book names.
+     */
+    @GET("api/v1/scripture/book-names")
+    suspend fun getBookNames(): BookNamesResponseDto
 
     /**
      * Fetches all verses for a given book and chapter.

@@ -39,6 +39,7 @@ fun VerseDto.toDomain(): Verse = Verse(
     text = text,
     translation = translation,
     relevanceScore = relevanceScore,
+    localizedBook = localizedBook,
 )
 
 fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
@@ -48,4 +49,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     messageId = messageId,
     model = model,
     detectedTranslation = detectedTranslation,
+    type = type,
+    versesCited = versesCited,
 )

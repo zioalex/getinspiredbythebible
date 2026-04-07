@@ -260,8 +260,9 @@ jobs:
     name: Instrumented UI Tests
     runs-on: ubuntu-latest
     needs: [compile-check]
-    # Emulator tests are slow; give them plenty of time
-    timeout-minutes: 30
+    # Emulator boot + pre-build APKs + tests + teardown can exceed 30 min.
+    # Tests themselves finish in ~1 min; most time is emulator lifecycle.
+    timeout-minutes: 55
 
     steps:
       - name: Checkout
@@ -299,7 +300,7 @@ jobs:
       # Cache the AVD so subsequent runs skip the ~2-min AVD-creation step.
       # Key includes api-level, arch, and target so a config change busts the cache.
       - name: Cache AVD
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
@@ -316,7 +317,10 @@ jobs:
           target: default
           avd-name: test-avd
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 300
+          emulator-options: >-
+            -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back
+            none
           disable-animations: false
           script: echo "AVD created"
 
@@ -339,7 +343,8 @@ jobs:
           force-avd-creation: false
           emulator-boot-timeout: 600
           emulator-options: >-
-            -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+            -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back
+            none
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --no-daemon
           working-directory: android
@@ -426,7 +431,7 @@ jobs:
       - name: TruffleHog OSS scan
         # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
         # env vars set by GitHub Actions — no explicit base/head needed.
-        uses: trufflesecurity/trufflehog@v3.93.8
+        uses: trufflesecurity/trufflehog@v3.94.2
         with:
           extra_args: --only-verified
 
@@ -583,7 +588,7 @@ jobs:
           echo "month=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
 
       - name: Cache NVD database
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.dependency-check
           # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
@@ -657,16 +662,43 @@ jobs:
               for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
                   cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
                   desc = (vuln.findtext(tag('description'), default='', namespaces=ns) or '')[:120]
-                  # prefer CVSSv3 score, fall back to CVSSv2
-                  score_el = (vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
-                              or vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
-                              or vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns))
+                  # prefer CVSSv3 score, fall back to CVSSv4, then CVSSv2.
+                  # Note: use 'is not None' checks instead of 'or' chaining because
+                  # XML elements with no children evaluate as falsy (Python >= 3.12
+                  # DeprecationWarning, future versions will raise TypeError).
+                  score_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                  if score_el is None:
+                      score_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                  if score_el is None:
+                      score_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
                   score = float(score_el.text) if score_el is not None else 0.0
                   sev   = vuln.findtext(tag('severity'), default='?', namespaces=ns)
                   if score >= 7.0:
                       findings.append((score, fname, cve, sev, desc))
           findings.sort(key=lambda x: -x[0])
           print(f'Namespace detected: {ns_uri}')
+          # Also collect ALL vulns (any score) for diagnostic purposes
+          all_vulns = []
+          for dep in root.findall(f'.//{tag("dependency")}', ns):
+              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
+              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
+                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
+                  s_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                  if s_el is None:
+                      s_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                  if s_el is None:
+                      s_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
+                  s = float(s_el.text) if s_el is not None else 0.0
+                  sev = vuln.findtext(tag('severity'), default='?', namespaces=ns)
+                  all_vulns.append((s, fname, cve, sev))
+          if all_vulns:
+              all_vulns.sort(key=lambda x: -x[0])
+              print(f'\n📋 All {len(all_vulns)} vulnerability(ies) in report (any CVSS):')
+              for s, fn, cv, sv in all_vulns[:30]:
+                  print(f'  [{s:.1f}] {cv} ({sv}) — {fn}')
+              if len(all_vulns) > 30:
+                  print(f'  ... and {len(all_vulns) - 30} more')
+              print()
           if not findings:
               print('✅ No CVEs at or above CVSS 7.0 found in report.')
           else:

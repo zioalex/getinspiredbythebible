@@ -284,11 +284,12 @@ class TestChatStreamOffTopic:
         async for chunk in chat_service.chat_stream(request):
             chunks.append(chunk)
 
-        # First chunk is metadata, next 3 are content chunks
-        assert len(chunks) == 4
+        # First chunk is metadata, next 3 are content, last is completion
+        assert len(chunks) == 5
         assert chunks[0]["type"] == "metadata"
         content = "".join(c["content"] for c in chunks if c["type"] == "content")
         assert content == "I'd love to help!"
+        assert chunks[-1]["type"] == "completion"
 
     @pytest.mark.asyncio
     @patch("chat.service.settings")
@@ -319,8 +320,9 @@ class TestChatStreamOffTopic:
         async for chunk in chat_service.chat_stream(request):
             chunks.append(chunk)
 
-        # First chunk is metadata, next 3 are content chunks
-        assert len(chunks) == 4
+        # First chunk is metadata, next 3 are content, last is completion
+        assert len(chunks) == 5
         assert chunks[0]["type"] == "metadata"
         content = "".join(c["content"] for c in chunks if c["type"] == "content")
         assert content == "God loves you."
+        assert chunks[-1]["type"] == "completion"

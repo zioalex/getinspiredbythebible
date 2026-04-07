@@ -205,7 +205,61 @@ class EventSourceParserTest {
     }
 
     /**
-     * 10. Typed content chunk — a chunk with type="content" is treated as a
+     * 10. Metadata event with scripture_context verses — verses are extracted and included
+     *     in the emitted StreamChunkDto.
+     */
+    @Test
+    fun `metadata event with scripture_context verses emits StreamChunkDto with parsed verses`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc","model":"llama3","detected_translation":"kjv","scripture_context":{"query":"love","verses":[{"book":"John","chapter":3,"verse":16,"text":"For God so loved...","translation":"kjv","localized_book":null}],"passages":[]}}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals(1, chunks[0].verses.size)
+        assertEquals("John", chunks[0].verses[0].book)
+        assertEquals(3, chunks[0].verses[0].chapter)
+        assertEquals(16, chunks[0].verses[0].verse)
+    }
+
+    /**
+     * 11. Metadata event with localized_book in scripture_context verses — localized book
+     *     name is included in the parsed VerseDto.
+     */
+    @Test
+    fun `metadata event verses include localized_book when present`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc","model":"llama3","scripture_context":{"query":"love","verses":[{"book":"John","chapter":3,"verse":16,"text":"For God so loved...","translation":"kjv","localized_book":"Иоанна"}],"passages":[]}}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("Иоанна", chunks[0].verses[0].localizedBook)
+    }
+
+    /**
+     * 12. Metadata event without scripture_context — emits chunk with empty verses list.
+     */
+    @Test
+    fun `metadata event without scripture_context emits empty verses list`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc","model":"llama3"}""" + "\n",
+        )
+
+        val chunks = mutableListOf<com.bibleinspiration.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertTrue(chunks[0].verses.isEmpty())
+    }
+
+    /**
+     * 13. Typed content chunk — a chunk with type="content" is treated as a
      *     regular content chunk.
      */
     @Test

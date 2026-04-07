@@ -27,6 +27,7 @@ import {
   Verse,
   getChapter,
   getTranslations,
+  getBookNames,
   TranslationInfo,
   submitFeedback,
   FeedbackRequest,
@@ -44,7 +45,9 @@ import {
 import {
   extractVerseReferences,
   isVerseReferenced,
+  updateBookNames,
 } from "@/lib/verseExtraction";
+import { updateMultiWordNames } from "@/lib/versePatterns";
 import { useTurnstile } from "@/lib/turnstile";
 
 // Extended message type with message_id for feedback tracking
@@ -73,7 +76,7 @@ export default function Home() {
   // null = checking, true = ready, false = warming up
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
-  const [showOnlyReferenced, setShowOnlyReferenced] = useState(true); // Default to showing only referenced verses
+  const [showOnlyReferenced, setShowOnlyReferenced] = useState(false); // Default to showing all related verses
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
 
@@ -166,7 +169,20 @@ export default function Home() {
         console.error("Failed to load translations:", error);
       }
     };
+
+    const loadBookNames = async () => {
+      try {
+        const data = await getBookNames();
+        updateBookNames(data.localized_to_english);
+        updateMultiWordNames(data.multi_word_names);
+      } catch (error) {
+        // Silently fail — bundled fallback data is sufficient
+        console.error("Failed to load book names:", error);
+      }
+    };
+
     loadTranslations();
+    loadBookNames();
   }, []);
 
   // Pre-warm backend on mount so cold-start scaling begins immediately
@@ -319,6 +335,7 @@ export default function Home() {
       // Streaming metadata and content
       let metadata: StreamMetadata | null = null;
       let streamedContent = "";
+      let receivedCompletion = false;
       let assistantMessageIndex = -1;
 
       // Create a placeholder assistant message that will be updated as content streams
@@ -399,21 +416,38 @@ export default function Home() {
             }
             return updated;
           });
+        } else if (chunk.type === "completion" && chunk.verses_cited) {
+          // Server-provided verse citations (dual-source: LLM structured + regex)
+          receivedCompletion = true;
+          const serverCited = (chunk.verses_cited as string[]).map(
+            (v: string) => v.toLowerCase(),
+          );
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              updated[assistantMessageIndex] = {
+                ...msg,
+                versesCited: serverCited,
+              };
+            }
+            return updated;
+          });
         }
       }
 
-      // After streaming completes, extract actual verse citations from the response text
-      // (not from search results metadata — those are all semantically relevant verses,
-      // not necessarily the ones the assistant actually cited in its response)
-      const citedRefs = Array.from(extractVerseReferences(streamedContent));
-      setMessages((prev) => {
-        const updated = [...prev];
-        const msg = updated[assistantMessageIndex];
-        if (msg && msg.role === "assistant") {
-          updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
-        }
-        return updated;
-      });
+      // Fallback: if no completion event received, extract client-side
+      if (!receivedCompletion) {
+        const citedRefs = Array.from(extractVerseReferences(streamedContent));
+        setMessages((prev) => {
+          const updated = [...prev];
+          const msg = updated[assistantMessageIndex];
+          if (msg && msg.role === "assistant") {
+            updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
+          }
+          return updated;
+        });
+      }
 
       // Stream complete - increment interaction count for church finder
       setInteractionCount((prev) => {
@@ -571,12 +605,17 @@ export default function Home() {
     !inlinePromptDismissed &&
     messages.length >= inlinePromptIndex;
 
-  const suggestedPrompts = [
-    tWelcome("prompt1"),
-    tWelcome("prompt2"),
-    tWelcome("prompt3"),
-    tWelcome("prompt4"),
-  ];
+  const [suggestedPrompts] = useState(() => {
+    const allPrompts = Array.from({ length: 100 }, (_, i) =>
+      tWelcome(`prompt${i + 1}`),
+    );
+    const shuffled = [...allPrompts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 4);
+  });
 
   return (
     <main className="flex h-dvh">
