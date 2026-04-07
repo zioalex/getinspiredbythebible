@@ -851,6 +851,12 @@ KOREAN_ALIASES: dict[str, str] = {
     "행전": "Acts",  # Short form of 사도행전 (without 사도)
 }
 
+# Alternate Hindi spellings/transliterations that LLMs commonly produce but are
+# not the canonical IRV Bible keys in ENGLISH_TO_HINDI.
+HINDI_ALIASES: dict[str, str] = {
+    "लेवियतियुस": "Leviticus",  # Transliterated form; IRV uses लैव्यव्यवस्था
+}
+
 # Hindi (IRV Bible / hindi)
 ENGLISH_TO_HINDI: dict[str, str] = {
     "Genesis": "उत्पत्ति",
@@ -993,6 +999,7 @@ EXTRA_REVERSE_MAPPINGS: dict[str, str] = {
     **ARABIC_CITATION_FORMS,
     **CHINESE_ALIASES,
     **KOREAN_ALIASES,
+    **HINDI_ALIASES,
     **GERMAN_ALIASES,
     **ITALIAN_ALIASES,
     **FRENCH_ALIASES,
