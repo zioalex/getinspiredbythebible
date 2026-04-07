@@ -2043,3 +2043,167 @@ describe("extractVerseReferences — non-Latin conjunction filtering", () => {
     }
   });
 });
+
+// ── isVerseReferenced: non-Latin verse.book vs. English references Set ──────────
+// Regression guard for the bug where a Hindi/Korean/Arabic Bible translation
+// returns `verse.book` in the localized script, but the `references` Set (built
+// from the backend's `verses_cited`) contains capitalized English book names like
+// "Philippians 4:7".  The old fuzzy match failed because
+// "फिलिप्पियों".startsWith("philippians") === false.
+
+describe("isVerseReferenced — non-Latin verse.book vs. English references Set", () => {
+  // ── Hindi ─────────────────────────────────────────────────────────────────
+
+  it("should match Hindi Philippians verse against English-capitalized Set entry", () => {
+    // verse.book comes from a Hindi Bible DB row; Set contains backend verses_cited
+    const verse = {
+      book: "फिलिप्पियों",
+      chapter: 4,
+      verse: 7,
+      reference: "फिलिप्पियों 4:7",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:7"]))).toBe(true);
+  });
+
+  it("should match Hindi Isaiah verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "यशायाह",
+      chapter: 26,
+      verse: 3,
+      reference: "यशायाह 26:3",
+    };
+    expect(isVerseReferenced(verse, new Set(["Isaiah 26:3"]))).toBe(true);
+  });
+
+  it("should match Hindi John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "यूहन्ना",
+      chapter: 3,
+      verse: 16,
+      reference: "यूहन्ना 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Hindi Romans verse when Set contains lowercase English", () => {
+    // references Set may also hold lowercase-normalized forms
+    const verse = {
+      book: "रोमियों",
+      chapter: 8,
+      verse: 28,
+      reference: "रोमियों 8:28",
+    };
+    expect(isVerseReferenced(verse, new Set(["romans 8:28"]))).toBe(true);
+  });
+
+  // ── Korean ────────────────────────────────────────────────────────────────
+
+  it("should match Korean Philippians verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "빌립보서",
+      chapter: 4,
+      verse: 13,
+      reference: "빌립보서 4:13",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:13"]))).toBe(true);
+  });
+
+  it("should match Korean John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "요한복음",
+      chapter: 3,
+      verse: 16,
+      reference: "요한복음 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Korean Psalms verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "시편",
+      chapter: 23,
+      verse: 1,
+      reference: "시편 23:1",
+    };
+    expect(isVerseReferenced(verse, new Set(["Psalms 23:1"]))).toBe(true);
+  });
+
+  // ── Arabic ────────────────────────────────────────────────────────────────
+
+  it("should match Arabic John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "يوحنا",
+      chapter: 3,
+      verse: 16,
+      reference: "يوحنا 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Arabic Genesis verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "تكوين",
+      chapter: 1,
+      verse: 1,
+      reference: "تكوين 1:1",
+    };
+    expect(isVerseReferenced(verse, new Set(["Genesis 1:1"]))).toBe(true);
+  });
+
+  // ── Chinese ───────────────────────────────────────────────────────────────
+
+  it("should match Chinese John verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "约翰福音",
+      chapter: 3,
+      verse: 16,
+      reference: "约翰福音 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  it("should match Chinese Philippians verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "腓立比书",
+      chapter: 4,
+      verse: 13,
+      reference: "腓立比书 4:13",
+    };
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:13"]))).toBe(true);
+  });
+
+  // ── Russian ───────────────────────────────────────────────────────────────
+
+  it("should match Russian John (genitive) verse against English-capitalized Set entry", () => {
+    const verse = {
+      book: "Иоанна",
+      chapter: 3,
+      verse: 16,
+      reference: "Иоанна 3:16",
+    };
+    expect(isVerseReferenced(verse, new Set(["John 3:16"]))).toBe(true);
+  });
+
+  // ── Negative: still rejects wrong verse ───────────────────────────────────
+
+  it("should not match Hindi Philippians verse against wrong English Set entry", () => {
+    const verse = {
+      book: "फिलिप्पियों",
+      chapter: 4,
+      verse: 7,
+      reference: "फिलिप्पियों 4:7",
+    };
+    // Wrong chapter/verse — must not match
+    expect(isVerseReferenced(verse, new Set(["Philippians 4:8"]))).toBe(false);
+  });
+
+  it("should not match Hindi Isaiah against unrelated English Set entry", () => {
+    const verse = {
+      book: "यशायाह",
+      chapter: 26,
+      verse: 3,
+      reference: "यशायाह 26:3",
+    };
+    expect(isVerseReferenced(verse, new Set(["Romans 8:28"]))).toBe(false);
+  });
+});
