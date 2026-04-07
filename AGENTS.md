@@ -186,6 +186,13 @@ a branch has been closed or merged, that branch is done. Create a new
 branch (from `main`) for any further work, even if it's related. Pushing
 to a dead branch causes confusion and orphaned commits.
 
+**Always open a PR after committing work to a feature branch.** Whenever
+you commit and push changes to a `claude/*`, `feature/*`, or `fix/*`
+branch, immediately open a pull request against `main` (or update the
+existing open PR if one already exists for that branch). Do not leave
+commits sitting on a branch without an active PR — work that is not in a
+PR is invisible to review and CI.
+
 ## Architecture Patterns
 
 ### Provider Abstraction (api/providers/)

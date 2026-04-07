@@ -947,6 +947,8 @@ export function extractVerseReferences(text: string): Set<string> {
 /**
  * Checks if a verse matches any of the given references
  * Handles fuzzy matching for book names (e.g., "Psalm" vs "Psalms")
+ * Also handles non-Latin book names (Hindi, Korean, Arabic, Chinese, Russian)
+ * by normalizing them to their lowercase English canonical form before lookup.
  */
 export function isVerseReferenced(
   verse: { book: string; chapter: number; verse: number; reference?: string },
@@ -960,8 +962,12 @@ export function isVerseReferenced(
     return true;
   }
 
-  // Also check using book/chapter/verse fields for more accurate matching
-  const altRef = `${verse.book.toLowerCase()} ${verse.chapter}:${verse.verse}`;
+  // Also check using book/chapter/verse fields for more accurate matching.
+  // Normalize the book name to English so that non-Latin scripts (Hindi,
+  // Korean, Arabic, Chinese, Russian) resolve to the same English key that
+  // the backend puts in the `references` Set (e.g. "Philippians 4:7").
+  const normalizedBook = normalizeBookName(verse.book);
+  const altRef = `${normalizedBook} ${verse.chapter}:${verse.verse}`;
   if (references.has(altRef)) {
     return true;
   }
@@ -975,8 +981,9 @@ export function isVerseReferenced(
       const refChapter = refParts[2];
       const refVerse = refParts[3];
 
-      // Fuzzy book name matching
-      const verseBook = verse.book.toLowerCase();
+      // Fuzzy book name matching — use the already-normalized English form so
+      // non-Latin scripts are compared on equal footing.
+      const verseBook = normalizedBook;
       const bookMatches =
         verseBook === refBook ||
         verseBook.startsWith(refBook) ||
