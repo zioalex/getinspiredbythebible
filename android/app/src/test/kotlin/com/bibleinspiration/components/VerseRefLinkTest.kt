@@ -495,6 +495,34 @@ class VerseRefLinkTest {
         assertTrue(result.contains("[1 कुरिन्थियों 13:4]"))
     }
 
+    @Test
+    fun `injectVerseLinks handles Hindi verse-range followed by और and another book`() {
+        // Regression test for web-side bug where the numbered-prefix branch greedily
+        // captured "4 और इब्रानियों" starting from the dangling 4 in "1:3-4".
+        // Android's regex is not vulnerable because its numbered branch only matches
+        // [1-3] prefixes, but we lock this behaviour in with an explicit test.
+        val input = "लेवियतियुस 1:3-4 और इब्रानियों 9:22 रोमियों 12:1"
+        val result = injectVerseLinks(input)
+        assertTrue("should link Leviticus", result.contains("[लेवियतियुस 1:3-4]"))
+        assertTrue("should link Hebrews", result.contains("[इब्रानियों 9:22]"))
+        assertTrue("should link Romans", result.contains("[रोमियों 12:1]"))
+        // Must not create a fake "4 और इब्रानियों" link.
+        assertTrue(
+            "should not produce greedy '4 और' match",
+            !result.contains("[4 और")
+        )
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Hindi alternate transliteration लेवियतियुस`() {
+        // Unknown-to-the-map Hindi book names should still be wrapped because
+        // the generic BOOK_NAME pattern accepts any \p{Lo} starting character.
+        // Backend HINDI_ALIASES will normalize लेवियतियुस → Leviticus on tap.
+        val input = "लेवियतियुस 1:3 में बलिदान का उल्लेख है"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[लेवियतियुस 1:3]"))
+    }
+
     // ── Non-English book names: Arabic/Hindi multi-word with dynamic regex ──
 
     @Test
