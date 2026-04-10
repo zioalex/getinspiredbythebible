@@ -905,7 +905,7 @@ jobs:
   #
   #  1. E2E tests (tests/e2e/)  — hit the frontend URL like a real user's
   #     browser would. Checks that all locale pages load with HTML content.
-  #     URL: https://getinspiredbythebible.ai4you.sh  (stable Cloudflare URL)
+  #     URL: set via vars.FRONTEND_URL  (stable Cloudflare URL)
   #
   #  2. Functional API tests (tests/functional/) — hit the backend API directly.
   #     URL: the Azure Container Apps FQDN passed from the deploy job output.
@@ -937,7 +937,7 @@ jobs:
       - name: Run e2e tests (real user — frontend URL)
         id: e2e
         env:
-          FRONTEND_URL: https://getinspiredbythebible.ai4you.sh
+          FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         run: |
           cd api
           python -m pytest tests/e2e/ -m e2e -v --tb=short
@@ -956,7 +956,7 @@ jobs:
           echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### E2E Tests (real user via frontend)" >> $GITHUB_STEP_SUMMARY
-          echo "**Frontend:** https://getinspiredbythebible.ai4you.sh" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.e2e.outcome }}" == "success" ]; then
             echo "✅ All e2e tests passed" >> $GITHUB_STEP_SUMMARY

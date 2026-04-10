@@ -13,7 +13,7 @@ import {
 import { useTranslations } from "next-intl";
 import { submitContactForm, ContactRequest } from "@/lib/api";
 
-const CONTACT_EMAIL = "getinspiredbythebible@ai4you.sh";
+const CONTACT_EMAIL = "contact@voxquieta.org";
 
 type Subject = "spiritual" | "bug" | "feature" | "feedback" | "other";
 

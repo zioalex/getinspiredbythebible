@@ -249,7 +249,7 @@ jobs:
       - name: Compile Kotlin sources (release)
         run: |
           ./gradlew compileReleaseKotlin --no-daemon \
-            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
         working-directory: android
 
   # ---------------------------------------------------------------------------
@@ -397,7 +397,7 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
         working-directory: android
 
       - name: Upload prod APK
@@ -493,7 +493,7 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
         working-directory: android
 
       - name: Check AndroidManifest security flags

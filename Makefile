@@ -165,7 +165,7 @@ android-build: ## Build Android debug APK pointing at local dev backend (require
 android-build-prod: ## Build Android debug APK pointing at the production backend (requires JDK 17)
 	@echo "$(BLUE)Building Android debug APK (prod backend)...$(NC)"
 	@cd android && ./gradlew assembleDebug --no-daemon \
-		-PbaseUrl=https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io/
+		-PbaseUrl=https://api.voxquieta.org/
 	@echo "$(GREEN)✓ Android prod APK: android/app/build/outputs/apk/debug/app-debug.apk$(NC)"
 
 android-lint: ## Run Android lint checks
@@ -294,16 +294,16 @@ docker-up-prod: ## Start services (production mode, CPU)
 	@echo "$(BLUE)Starting services in production mode (CPU)...$(NC)"
 	@docker compose --env-file .env.production up -d --build
 	@echo "$(GREEN)✓ Services started in production mode$(NC)"
-	@echo "$(YELLOW)Frontend: https://getinspiredbythebible.ai4you.sh$(NC)"
-	@echo "$(YELLOW)API: https://getinspiredbythebible.ai4you.sh/api$(NC)"
+	@echo "$(YELLOW)Frontend: https://voxquieta.org$(NC)"
+	@echo "$(YELLOW)API: https://voxquieta.org/api$(NC)"
 	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
 
 docker-up-prod-gpu: ## Start services (production mode, GPU)
 	@echo "$(BLUE)Starting services in production mode (GPU)...$(NC)"
 	@docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 	@echo "$(GREEN)✓ Services started in production mode$(NC)"
-	@echo "$(YELLOW)Frontend: https://getinspiredbythebible.ai4you.sh$(NC)"
-	@echo "$(YELLOW)API: https://getinspiredbythebible.ai4you.sh/api$(NC)"
+	@echo "$(YELLOW)Frontend: https://voxquieta.org$(NC)"
+	@echo "$(YELLOW)API: https://voxquieta.org/api$(NC)"
 	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
 
 docker-up-dev: ## Start services (dev mode, safe alongside prod)

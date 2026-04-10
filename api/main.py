@@ -198,8 +198,8 @@ def _get_cors_origins() -> list[str]:
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
-        # Production domain
-        "https://getinspiredbythebible.ai4you.sh",
+        # Production domain (configurable via PRODUCTION_FRONTEND_URL env var)
+        settings.production_frontend_url,
     ]
     # Add custom origins from environment variable (comma-separated)
     if settings.cors_origins:

@@ -80,10 +80,10 @@ frontend_max_replicas = 2
 
 # Custom domain for frontend (leave empty to skip)
 # After setting, add CNAME in your DNS provider pointing to frontend_fqdn
-custom_domain_frontend = ""  # e.g., "getinspiredbythebible.ai4you.sh"
+custom_domain_frontend = ""  # e.g., "voxquieta.org"
 
 # Custom domain for backend API (leave empty to skip)
-custom_domain_backend = ""  # e.g., "api.getinspiredbythebible.ai4you.sh"
+custom_domain_backend = ""  # e.g., "api.voxquieta.org"
 
 # Additional CORS origins (comma-separated)
 # Custom domain is automatically added, use this for additional origins

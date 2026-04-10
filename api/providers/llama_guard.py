@@ -17,6 +17,7 @@ import logging
 
 import httpx
 
+from config import settings
 from providers.azure_content_safety import ContentSafetyResult
 
 logger = logging.getLogger(__name__)
@@ -65,8 +66,8 @@ class LlamaGuardProvider:
 
     OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
     MODEL = "meta-llama/llama-guard-3-8b"
-    REFERER = "https://getinspiredbythebible.ai4you.sh"
-    APP_TITLE = "GetInspiredByTheBible"
+    REFERER = settings.production_frontend_url
+    APP_TITLE = "VoxQuieta"
 
     def __init__(self, api_key: str, threshold: float = 0.5, timeout: int = 10):
         """
