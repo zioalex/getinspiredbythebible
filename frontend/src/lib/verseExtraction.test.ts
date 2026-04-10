@@ -1581,6 +1581,27 @@ describe("extractVerseReferences — Hindi", () => {
 
 // ── Hindi: no-space and Devanagari numeral improvements ─────────────────────────
 
+describe("extractVerseReferences — Hindi edge cases (verse range + conjunction, alt spelling)", () => {
+  it("should detect all three refs in a verse-range + 'और' context (no '4 और इब्रानियों' garbage)", () => {
+    const text =
+      "यह बाइबिल से है, विशेष रूप से लेवियतियुस 1:3-4 और इब्रानियों 9:22। रोमियों 12:1 में कहा गया है।";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("leviticus 1:3")).toBe(true);
+    expect(refs.has("hebrews 9:22")).toBe(true);
+    expect(refs.has("romans 12:1")).toBe(true);
+    // Must not produce the greedy '4 और इब्रानियों' garbage match.
+    for (const r of refs) {
+      expect(r.startsWith("4 ")).toBe(false);
+      expect(r).not.toContain("और");
+    }
+  });
+
+  it("should detect alternate transliteration लेवियतियुस → leviticus", () => {
+    const refs = extractVerseReferences("लेवियतियुस 1:3");
+    expect(refs.has("leviticus 1:3")).toBe(true);
+  });
+});
+
 describe("extractVerseReferences — Hindi no-space and Devanagari numerals", () => {
   describe("no-space references", () => {
     it("should detect यूहन्ना3:16 (no space) → john 3:16", () => {

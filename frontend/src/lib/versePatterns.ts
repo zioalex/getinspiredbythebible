@@ -90,9 +90,18 @@ export function getMultiWordAlternation(): string {
   } else {
     // Collect all multi-word localized book names.
     // A "multi-word" key is one that contains a space AND is NOT number-prefixed.
-    multiWordNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter(
-      (key) => key.includes(" ") && !isNumberPrefixed(key),
-    );
+    // Number-prefixed Latin/Cyrillic/Arabic books (e.g. "1 samuel", "1 царств",
+    // "1 أخبار الأيام") are handled by the numbered-prefix \d+ branch in the regex.
+    // BUT number-prefixed Han/Hangul/Devanagari books (e.g. "1 शमूएल", "1 요한") must
+    // be listed explicitly here, because the numbered-prefix branch excludes those
+    // scripts to prevent greedy over-matching of surrounding non-Latin context text.
+    const NON_LATIN_SCRIPT_RE =
+      /[\p{Script=Han}\p{Script=Hangul}\p{Script=Devanagari}]/u;
+    multiWordNames = Object.keys(LOCALIZED_BOOK_TO_ENGLISH).filter((key) => {
+      if (!key.includes(" ")) return false;
+      if (isNumberPrefixed(key)) return NON_LATIN_SCRIPT_RE.test(key);
+      return true;
+    });
 
     // Sort longest-first so that longer alternates (e.g. "деяния апостолов")
     // are tried before shorter ones (e.g. "деяния") — prevents partial matches.
@@ -207,6 +216,8 @@ function getDevanagariAlternation(): string {
  *     (e.g. Russian: Плач Иеремии, Песня Песней; plus any names loaded via API)
  *  2. Multi-word books joined by a connector word (Song of Solomon, Cantique des Cantiques…)
  *  3. Numbered-prefix books (1 John, 2 Kings, 1. Mose, 2. Könige, 1 أخبار الأيام…)
+ *     Han/Hangul/Devanagari characters are excluded from this branch — all legitimate
+ *     CJK/Korean/Hindi numbered books are already covered by branches 1, 4, and 5.
  *  4. Chinese/CJK book names — explicit alternation of known names from the map.
  *     Unlike the generic [\p{Script=Han}]{2,} that was used before, an explicit
  *     alternation prevents greedy over-matching of surrounding CJK context text.
@@ -256,7 +267,7 @@ function buildPatternSource(): string {
   _cachedPatternSource =
     `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=\\p{Script=Devanagari})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
-    `|\\d+(?:\\.|-[\\p{L}\\p{M}]{1,2})?\\s*[\\p{L}\\p{M}]{2,}(?:\\s+[\\p{L}\\p{M}]+)*` +
+    `|\\d+(?:\\.|-(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]{1,2})?\\s*(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,}(?:\\s+(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}])+)*` +
     `|${cjkPart}` +
     `${hangulPart}` +
     `${devanagariPart}` +
