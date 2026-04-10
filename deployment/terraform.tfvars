@@ -119,6 +119,7 @@ budget_alert_emails = ["zioalex@gmail.com"]
 # -----------------------------------------------------------------------------
 
 custom_domain_frontend = "voxquieta.org"
+custom_domain_backend  = "api.voxquieta.org"
 
 # email settings
 smtp2go_enabled            = true
