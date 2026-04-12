@@ -895,17 +895,22 @@ Budget alerts will email you at 80% and 100% of your $50 limit.
 
 ## Cloudflare Manual Configuration Checklist
 
-Some Cloudflare settings cannot be managed by Terraform and must be configured manually in the Cloudflare Dashboard. After deploying a new domain or changing certificates, verify all of these:
+Some Cloudflare settings cannot be managed by Terraform and must be
+configured manually in the Cloudflare Dashboard. After deploying a new
+domain or changing certificates, verify all of these:
 
 ### Turnstile Hostname Allow-List
 
-The Cloudflare Turnstile widget will silently fail if the hostname it runs on is not in the allow-list. When adding a new domain:
+The Cloudflare Turnstile widget will silently fail if the hostname it
+runs on is not in the allow-list. When adding a new domain:
 
 1. Go to **Cloudflare Dashboard** -> **Turnstile** -> select your widget
 2. Under **Hostname Management**, add every domain the frontend runs on (e.g. `voxquieta.org`, `www.voxquieta.org`)
 3. The Turnstile site key in `terraform.tfvars` (`turnstile_site_key`) must match the widget
 
-**Symptom if missing:** Backend logs show "Missing Turnstile token" for all requests. Frontend silently falls back to sending requests without a token.
+**Symptom if missing:** Backend logs show "Missing Turnstile token"
+for all requests. Frontend silently falls back to sending requests
+without a token.
 
 ### SSL/TLS Mode
 
@@ -923,10 +928,13 @@ When creating a new Cloudflare Origin Certificate:
 2. Select RSA (2048), add hostnames: `yourdomain.com`, `*.yourdomain.com`
 3. Set validity to 15 years
 4. Save cert as `origin-cert.pem` and key as `origin-key.pem`
-5. Convert to PFX: `openssl pkcs12 -export -out cloudflare-origin.pfx -inkey origin-key.pem -in origin-cert.pem -passout pass:`
+5. Convert to PFX:
+   `openssl pkcs12 -export -out cloudflare-origin.pfx -inkey origin-key.pem -in origin-cert.pem -passout pass:`
 6. Base64-encode for CI: `base64 -w 0 cloudflare-origin.pfx` and store as `CLOUDFLARE_ORIGIN_CERT_B64` GitHub secret
 
-**Important:** A wildcard cert (`*.voxquieta.org`) does NOT cover the apex domain (`voxquieta.org`). Ensure both are listed as hostnames when creating the cert.
+**Important:** A wildcard cert (`*.voxquieta.org`) does NOT cover
+the apex domain (`voxquieta.org`). Ensure both are listed as
+hostnames when creating the cert.
 
 ### DNS Records
 
@@ -947,7 +955,8 @@ terraform output domain_verification_id
 
 ## Rollback: Emergency Cert Rebind
 
-If a deployment breaks custom domain HTTPS (e.g. Error 526), use these commands to manually fix it without waiting for a full CI/CD cycle:
+If a deployment breaks custom domain HTTPS (e.g. Error 526), use
+these commands to manually fix without waiting for a full CI/CD cycle:
 
 ```bash
 # Variables — adjust for your environment

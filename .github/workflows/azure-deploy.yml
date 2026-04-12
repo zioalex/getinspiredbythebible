@@ -524,7 +524,8 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-            echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
@@ -816,7 +817,8 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
-            echo "TF_VAR_cloudflare_origin_cert_frontend=deployment/cloudflare-origin.pfx" >> $GITHUB_ENV
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
@@ -911,7 +913,8 @@ jobs:
           FAILED=0
           for DOMAIN in "${DOMAINS[@]}"; do
             echo "Checking https://$DOMAIN ..."
-            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
             CF_RAY=$(curl -sI --max-time 15 "https://$DOMAIN/health" 2>/dev/null | grep -i 'cf-ray' || echo "")
 
             if [ "$HTTP_CODE" = "526" ]; then
@@ -1056,7 +1059,8 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-            echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
