@@ -148,7 +148,11 @@ export function TurnstileProvider({
             console.error(
               "Turnstile failed after retries, proceeding without token",
             );
-            reportTurnstileError("challenge_failed", "max retries exceeded", apiUrl);
+            reportTurnstileError(
+              "challenge_failed",
+              "max retries exceeded",
+              apiUrl,
+            );
             setIsReady(true);
           }
         },
@@ -186,7 +190,11 @@ export function TurnstileProvider({
     };
     script.onerror = () => {
       console.error("Failed to load Turnstile script");
-      reportTurnstileError("script_load", "failed to load turnstile script", apiUrl);
+      reportTurnstileError(
+        "script_load",
+        "failed to load turnstile script",
+        apiUrl,
+      );
       setIsReady(true); // Proceed without Turnstile
     };
 
