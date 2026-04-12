@@ -52,6 +52,14 @@ declare global {
   }
 }
 
+function reportTurnstileError(type: string, detail: string, apiUrl: string) {
+  fetch(`${apiUrl}/api/v1/client-errors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: `turnstile_${type}`, detail }),
+  }).catch(() => {}); // fire-and-forget
+}
+
 export function TurnstileProvider({
   children,
   apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -88,6 +96,7 @@ export function TurnstileProvider({
         }
       } catch (error) {
         console.warn("Failed to fetch config for Turnstile:", error);
+        reportTurnstileError("config_fetch", String(error), apiUrl);
         // Proceed without Turnstile on error
         setIsReady(true);
       }
@@ -139,6 +148,7 @@ export function TurnstileProvider({
             console.error(
               "Turnstile failed after retries, proceeding without token",
             );
+            reportTurnstileError("challenge_failed", "max retries exceeded", apiUrl);
             setIsReady(true);
           }
         },
@@ -152,6 +162,7 @@ export function TurnstileProvider({
       });
     } catch (error) {
       console.error("Failed to render Turnstile widget:", error);
+      reportTurnstileError("render_failed", String(error), apiUrl);
       setIsReady(true);
     }
   }, [siteKey, refreshToken]);
@@ -175,6 +186,7 @@ export function TurnstileProvider({
     };
     script.onerror = () => {
       console.error("Failed to load Turnstile script");
+      reportTurnstileError("script_load", "failed to load turnstile script", apiUrl);
       setIsReady(true); // Proceed without Turnstile
     };
 
