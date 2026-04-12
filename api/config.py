@@ -87,12 +87,16 @@ class Settings(BaseSettings):
     # Email Settings (SMTP2GO HTTP API)
     smtp2go_enabled: bool = False  # Set to True to enable email notifications
     smtp2go_api_key: str | None = None  # SMTP2GO API key
-    smtp2go_sender_email: str = "noreply@ai4you.sh"
+    smtp2go_sender_email: str = "noreply@voxquieta.org"
     smtp2go_sender_name: str = "Bible Inspiration"
-    contact_notification_email: str = "getinspiredbythebible@ai4you.sh"
+    contact_notification_email: str = "contact@voxquieta.org"
+
+    # Production frontend URL (used for CORS, access audit, and Referer headers)
+    # Change this when migrating to a new domain.
+    production_frontend_url: str = "https://voxquieta.org"
 
     # CORS Settings
-    # Comma-separated list of allowed origins (in addition to localhost)
+    # Comma-separated list of allowed origins (in addition to localhost and production_frontend_url)
     # Example: "https://myapp.azurecontainerapps.io,https://example.com"
     cors_origins: str = ""
 

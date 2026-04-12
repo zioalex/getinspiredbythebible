@@ -27,7 +27,7 @@ describe("ContactForm", () => {
   it("shows email link when expanded", () => {
     renderWithIntl(<ContactForm />);
     fireEvent.click(screen.getByText("Get in Touch"));
-    expect(screen.getByText("getinspiredbythebible@ai4you.sh")).toBeDefined();
+    expect(screen.getByText("contact@voxquieta.org")).toBeDefined();
   });
 
   it("submit button is disabled when message is empty", () => {

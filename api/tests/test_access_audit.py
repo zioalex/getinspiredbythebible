@@ -41,7 +41,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://getinspiredbythebible.ai4you.sh"},
+                headers={"Origin": "https://voxquieta.org"},
             )
             mock_counter.add.assert_called()
             call_args = mock_counter.add.call_args
@@ -54,7 +54,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Referer": "https://getinspiredbythebible.ai4you.sh/chat"},
+                headers={"Referer": "https://voxquieta.org/chat"},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
@@ -117,7 +117,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.post(
                 "/api/v1/chat/stream",
-                headers={"Origin": "https://getinspiredbythebible.ai4you.sh"},
+                headers={"Origin": "https://voxquieta.org"},
                 json={"message": "test"},
             )
             mock_counter.add.assert_called()
@@ -189,7 +189,7 @@ class TestPathNormalization:
             # and verify path normalization via unit tests above.
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://getinspiredbythebible.ai4you.sh"},
+                headers={"Origin": "https://voxquieta.org"},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
@@ -221,23 +221,23 @@ class TestOriginMatching:
     """Verify Origin/Referer matching logic."""
 
     def test_exact_match(self):
-        origins = ["https://getinspiredbythebible.ai4you.sh"]
-        assert _origin_matches("https://getinspiredbythebible.ai4you.sh", origins)
+        origins = ["https://voxquieta.org"]
+        assert _origin_matches("https://voxquieta.org", origins)
 
     def test_trailing_slash(self):
-        origins = ["https://getinspiredbythebible.ai4you.sh"]
-        assert _origin_matches("https://getinspiredbythebible.ai4you.sh/", origins)
+        origins = ["https://voxquieta.org"]
+        assert _origin_matches("https://voxquieta.org/", origins)
 
     def test_referer_with_path(self):
-        origins = ["https://getinspiredbythebible.ai4you.sh"]
-        assert _origin_matches("https://getinspiredbythebible.ai4you.sh/chat", origins)
+        origins = ["https://voxquieta.org"]
+        assert _origin_matches("https://voxquieta.org/chat", origins)
 
     def test_no_match(self):
-        origins = ["https://getinspiredbythebible.ai4you.sh"]
+        origins = ["https://voxquieta.org"]
         assert not _origin_matches("https://evil.example.com", origins)
 
     def test_empty_value(self):
-        origins = ["https://getinspiredbythebible.ai4you.sh"]
+        origins = ["https://voxquieta.org"]
         assert not _origin_matches("", origins)
 
     def test_localhost(self):

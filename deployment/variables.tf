@@ -173,13 +173,13 @@ variable "frontend_max_replicas" {
 # -----------------------------------------------------------------------------
 
 variable "custom_domain_frontend" {
-  description = "Custom domain for frontend (e.g., 'getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  description = "Custom domain for frontend (e.g., 'voxquieta.org'). Leave empty to skip."
   type        = string
   default     = ""
 }
 
 variable "custom_domain_backend" {
-  description = "Custom domain for backend API (e.g., 'api.getinspiredbythebible.ai4you.sh'). Leave empty to skip."
+  description = "Custom domain for backend API (e.g., 'api.voxquieta.org'). Leave empty to skip."
   type        = string
   default     = ""
 }
@@ -426,7 +426,7 @@ variable "smtp2go_sender_name" {
 variable "contact_notification_email" {
   description = "Email address to receive contact form notifications"
   type        = string
-  default     = "getinspiredbythebible@ai4you.sh"
+  default     = "contact@voxquieta.org"
 }
 
 # -----------------------------------------------------------------------------

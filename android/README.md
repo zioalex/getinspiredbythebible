@@ -78,7 +78,7 @@ The app uses `BuildConfig.BASE_URL` to locate the API.
 | Build type | Default `BASE_URL` | Notes |
 |---|---|---|
 | `debug` | `http://10.0.2.2:8000/` | `10.0.2.2` routes to `localhost` on Android emulator |
-| `release` | `https://api.getinspiredbythebible.com/` | Override via `-PbaseUrl=...` |
+| `release` | `https://api.voxquieta.org/` | Override via `-PbaseUrl=...` or CI variable |
 
 To point a debug build at a custom URL, pass it as a Gradle property:
 

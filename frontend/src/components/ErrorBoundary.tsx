@@ -84,7 +84,7 @@ function ErrorFallback({ error }: { error?: Error }) {
           </button>
 
           <a
-            href="mailto:getinspiredbythebible@ai4you.sh"
+            href="mailto:contact@voxquieta.org"
             className="block w-full text-primary-600 hover:text-primary-700 text-sm"
           >
             {t("reportIssue")}

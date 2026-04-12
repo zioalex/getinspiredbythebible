@@ -343,8 +343,8 @@ async def test_api_call_format():
         assert call_args[0] == "https://openrouter.ai/api/v1/chat/completions"
         assert call_kwargs["headers"]["Authorization"] == "Bearer test-key"
         assert call_kwargs["headers"]["Content-Type"] == "application/json"
-        assert call_kwargs["headers"]["HTTP-Referer"] == "https://getinspiredbythebible.ai4you.sh"
-        assert call_kwargs["headers"]["X-Title"] == "GetInspiredByTheBible"
+        assert call_kwargs["headers"]["HTTP-Referer"] == "https://voxquieta.org"
+        assert call_kwargs["headers"]["X-Title"] == "VoxQuieta"
         assert call_kwargs["json"]["model"] == "meta-llama/llama-guard-3-8b"
         assert call_kwargs["json"]["temperature"] == 0
         assert call_kwargs["json"]["max_tokens"] == 20

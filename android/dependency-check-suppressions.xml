@@ -48,6 +48,14 @@
     </notes>
     <cve>CVE-2023-22946</cve>
   </suppress>
+  <suppress>
+    <notes>CVE-2025-54920: False positive. collection-ktx is AndroidX, not Apache Spark.
+      OWASP incorrectly matches the jar to Apache Spark CPEs.
+      This CVE affects Apache Spark before 3.5.7 / 4.0.1 and is inapplicable to
+      the AndroidX collections library (androidx.collection:collection-ktx).
+    </notes>
+    <cve>CVE-2025-54920</cve>
+  </suppress>
 
   <!--
     Gradle 8.4.2 build tool CVEs (CVE-2026-22816, CVE-2026-22865).
