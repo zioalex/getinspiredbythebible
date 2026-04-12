@@ -893,6 +893,112 @@ Budget alerts will email you at 80% and 100% of your $50 limit.
 - [pgvector on Azure](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/how-to-use-pgvector)
 - [Terraform AzureRM Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest)
 
+## Cloudflare Manual Configuration Checklist
+
+Some Cloudflare settings cannot be managed by Terraform and must be configured manually in the Cloudflare Dashboard. After deploying a new domain or changing certificates, verify all of these:
+
+### Turnstile Hostname Allow-List
+
+The Cloudflare Turnstile widget will silently fail if the hostname it runs on is not in the allow-list. When adding a new domain:
+
+1. Go to **Cloudflare Dashboard** -> **Turnstile** -> select your widget
+2. Under **Hostname Management**, add every domain the frontend runs on (e.g. `voxquieta.org`, `www.voxquieta.org`)
+3. The Turnstile site key in `terraform.tfvars` (`turnstile_site_key`) must match the widget
+
+**Symptom if missing:** Backend logs show "Missing Turnstile token" for all requests. Frontend silently falls back to sending requests without a token.
+
+### SSL/TLS Mode
+
+1. Go to **SSL/TLS** -> **Overview**
+2. Set mode to **Full (Strict)** when using Cloudflare Origin Certificates
+3. "Full (Strict)" validates the origin cert is trusted by Cloudflare; "Full" skips validation
+
+**Symptom if wrong:** Error 526 (Invalid SSL Certificate) when set to "Full (Strict)" without a valid origin cert installed.
+
+### Origin Certificate Creation
+
+When creating a new Cloudflare Origin Certificate:
+
+1. Go to **SSL/TLS** -> **Origin Server** -> **Create Certificate**
+2. Select RSA (2048), add hostnames: `yourdomain.com`, `*.yourdomain.com`
+3. Set validity to 15 years
+4. Save cert as `origin-cert.pem` and key as `origin-key.pem`
+5. Convert to PFX: `openssl pkcs12 -export -out cloudflare-origin.pfx -inkey origin-key.pem -in origin-cert.pem -passout pass:`
+6. Base64-encode for CI: `base64 -w 0 cloudflare-origin.pfx` and store as `CLOUDFLARE_ORIGIN_CERT_B64` GitHub secret
+
+**Important:** A wildcard cert (`*.voxquieta.org`) does NOT cover the apex domain (`voxquieta.org`). Ensure both are listed as hostnames when creating the cert.
+
+### DNS Records
+
+For each custom domain, create:
+
+| Type | Name | Target | Proxy |
+|------|------|--------|-------|
+| CNAME | `@` (or subdomain) | `<app>.agreeablesea-6ee07535.northeurope.azurecontainerapps.io` | Proxied |
+| TXT | `asuid.<domain>` | `<domain_verification_id>` (from `terraform output`) | DNS only |
+
+### Domain Verification ID
+
+Get the verification ID needed for the TXT record:
+
+```bash
+terraform output domain_verification_id
+```
+
+## Rollback: Emergency Cert Rebind
+
+If a deployment breaks custom domain HTTPS (e.g. Error 526), use these commands to manually fix it without waiting for a full CI/CD cycle:
+
+```bash
+# Variables — adjust for your environment
+ENV_NAME="bible-app-env"
+RG="bible-app-rg"
+FRONTEND_APP="bible-app-frontend"
+BACKEND_APP="bible-app-backend"
+
+# 1. Upload the certificate (if not already present)
+az containerapp env certificate upload \
+  --name $ENV_NAME \
+  --resource-group $RG \
+  --certificate-file cloudflare-origin.pfx \
+  --password ""
+
+# 2. Find the correct certificate by SAN
+az containerapp env certificate list \
+  --name $ENV_NAME \
+  --resource-group $RG \
+  --query "[].{name:name, SANs:properties.subjectAlternativeNames, expiry:properties.expirationDate}" \
+  -o table
+
+# 3. Get cert ID for voxquieta.org
+CERT_ID=$(az containerapp env certificate list \
+  --name $ENV_NAME \
+  --resource-group $RG \
+  --query "[?properties.subjectAlternativeNames[?contains(@, 'voxquieta.org')]] | [0].id" \
+  -o tsv)
+echo "Using cert: $CERT_ID"
+
+# 4. Bind to frontend
+az containerapp hostname bind \
+  --name $FRONTEND_APP \
+  --resource-group $RG \
+  --hostname voxquieta.org \
+  --certificate "$CERT_ID" \
+  --environment $ENV_NAME
+
+# 5. Bind to backend
+az containerapp hostname bind \
+  --name $BACKEND_APP \
+  --resource-group $RG \
+  --hostname api.voxquieta.org \
+  --certificate "$CERT_ID" \
+  --environment $ENV_NAME
+
+# 6. Verify through Cloudflare edge
+curl -sI https://voxquieta.org/health | grep -E 'HTTP|cf-ray'
+curl -sI https://api.voxquieta.org/health | grep -E 'HTTP|cf-ray'
+```
+
 ## 📝 License
 
 MIT License - see repository root for details.
