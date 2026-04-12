@@ -687,13 +687,14 @@ resource "null_resource" "frontend_custom_domain" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Adding custom domain ${var.custom_domain_frontend} to ${azurerm_container_app.frontend.name}..."
       az containerapp hostname add \
         --name ${azurerm_container_app.frontend.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_frontend} \
-        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.frontend.ingress[0].fqdn}"
+        --hostname ${var.custom_domain_frontend}
     EOT
   }
 
@@ -711,13 +712,14 @@ resource "null_resource" "backend_custom_domain" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Adding custom domain ${var.custom_domain_backend} to ${azurerm_container_app.backend.name}..."
       az containerapp hostname add \
         --name ${azurerm_container_app.backend.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_backend} \
-        || echo "Warning: Failed to add hostname. Ensure DNS is configured with CNAME pointing to ${azurerm_container_app.backend.ingress[0].fqdn}"
+        --hostname ${var.custom_domain_backend}
     EOT
   }
 
@@ -749,14 +751,15 @@ resource "null_resource" "frontend_ssl_cert_upload" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for frontend..."
       az containerapp env certificate upload \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
         --certificate-file ${var.cloudflare_origin_cert_frontend} \
-        --password "${var.cloudflare_origin_cert_password}" \
-        || echo "Warning: Certificate may already exist or upload failed"
+        --password "${var.cloudflare_origin_cert_password}"
     EOT
   }
 
@@ -776,7 +779,9 @@ resource "null_resource" "frontend_ssl_cert_bind" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Binding SSL certificate to ${var.custom_domain_frontend}..."
 
       # Get the certificate ID (most recently uploaded cert for this environment)
@@ -791,8 +796,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
           --resource-group ${azurerm_resource_group.main.name} \
           --hostname ${var.custom_domain_frontend} \
           --certificate "$CERT_ID" \
-          --environment ${azurerm_container_app_environment.main.name} \
-          || echo "Warning: Failed to bind certificate. Hostname may not be configured."
+          --environment ${azurerm_container_app_environment.main.name}
       else
         echo "Error: No certificate found in environment"
         exit 1
@@ -817,14 +821,15 @@ resource "null_resource" "backend_ssl_cert_upload" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for backend..."
       az containerapp env certificate upload \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
         --certificate-file ${var.cloudflare_origin_cert_backend} \
-        --password "${var.cloudflare_origin_cert_password}" \
-        || echo "Warning: Certificate may already exist or upload failed"
+        --password "${var.cloudflare_origin_cert_password}"
     EOT
   }
 
@@ -844,7 +849,9 @@ resource "null_resource" "backend_ssl_cert_bind" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
+      set -euo pipefail
       echo "Binding SSL certificate to ${var.custom_domain_backend}..."
 
       # Get the certificate ID (most recently uploaded cert for this environment)
@@ -859,8 +866,7 @@ resource "null_resource" "backend_ssl_cert_bind" {
           --resource-group ${azurerm_resource_group.main.name} \
           --hostname ${var.custom_domain_backend} \
           --certificate "$CERT_ID" \
-          --environment ${azurerm_container_app_environment.main.name} \
-          || echo "Warning: Failed to bind certificate. Hostname may not be configured."
+          --environment ${azurerm_container_app_environment.main.name}
       else
         echo "Error: No certificate found in environment"
         exit 1
