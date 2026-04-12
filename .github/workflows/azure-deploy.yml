@@ -903,6 +903,33 @@ jobs:
             echo "Frontend URL: https://$FRONTEND_FQDN"
           fi
 
+      - name: Verify Custom Domain HTTPS
+        if: env.cert_decoded == 'true'
+        run: |
+          set -euo pipefail
+          DOMAINS=("voxquieta.org" "api.voxquieta.org")
+          FAILED=0
+          for DOMAIN in "${DOMAINS[@]}"; do
+            echo "Checking https://$DOMAIN ..."
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
+            CF_RAY=$(curl -sI --max-time 15 "https://$DOMAIN/health" 2>/dev/null | grep -i 'cf-ray' || echo "")
+
+            if [ "$HTTP_CODE" = "526" ]; then
+              echo "::error::$DOMAIN returned HTTP 526 (Invalid SSL Certificate) — cert binding is wrong"
+              FAILED=1
+            elif [ "$HTTP_CODE" = "000" ]; then
+              echo "::warning::$DOMAIN is unreachable (DNS may not be propagated yet)"
+            elif [ -z "$CF_RAY" ]; then
+              echo "::warning::$DOMAIN responded HTTP $HTTP_CODE but no cf-ray header (not going through Cloudflare)"
+            else
+              echo "$DOMAIN OK — HTTP $HTTP_CODE, $CF_RAY"
+            fi
+          done
+          if [ "$FAILED" -ne 0 ]; then
+            echo "::error::One or more domains have SSL certificate issues"
+            exit 1
+          fi
+
       - name: Post Deployment Summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
