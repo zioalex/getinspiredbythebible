@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">圣经灵感</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">每天从上帝的话语中获得灵感</string>
     <string name="chat_input_hint">分享您心中所想…</string>
     <string name="chat_send_button">发送</string>
     <string name="action_clear_conversation">清除对话</string>
-    <string name="welcome_title">在圣经中寻找灵感</string>
+    <string name="welcome_title">每天从上帝的话语中获得灵感</string>
     <string name="welcome_subtitle">将你的重担带到上帝的话语前。圣经在生命的每个季节都带来安慰、力量和盼望。</string>
 
     <!-- Suggested prompts on welcome screen -->

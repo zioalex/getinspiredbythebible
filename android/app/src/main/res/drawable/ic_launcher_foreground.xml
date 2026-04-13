@@ -1,22 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Launcher icon foreground — simple cross / book silhouette in white.
-  Designed to sit within the safe zone of the 108dp adaptive icon canvas.
--->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Vertical bar of the cross -->
+    <!-- Left page -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M50,24 L58,24 L58,84 L50,84 Z" />
+        android:pathData="M51,58 L51,72 Q51,74 48,75 L32,78 Q30,79 30,76 L30,60 Q30,58 32,57 L48,54 Q51,53 51,56 Z" />
 
-    <!-- Horizontal bar of the cross -->
+    <!-- Right page -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,44 L78,44 L78,52 L30,52 Z" />
+        android:pathData="M57,58 L57,72 Q57,74 60,75 L76,78 Q78,79 78,76 L78,60 Q78,58 76,57 L60,54 Q57,53 57,56 Z" />
+
+    <!-- Spine -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52.5,52 L55.5,52 L55.5,80 L52.5,80 Z" />
+
+    <!-- Light ray center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.9"
+        android:pathData="M53,51 L55,51 L54.5,30 L53.5,30 Z" />
+
+    <!-- Light ray left -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.6"
+        android:pathData="M52,52 L50.5,51 L43,32 L45,31 Z" />
+
+    <!-- Light ray right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.6"
+        android:pathData="M56,52 L57.5,51 L65,32 L63,31 Z" />
 
 </vector>

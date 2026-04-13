@@ -1,5 +1,5 @@
 """
-Bible Inspiration Chat API
+Vox Quieta API
 
 Main FastAPI application entry point.
 """

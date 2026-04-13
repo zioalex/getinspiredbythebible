@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Bible Inspiration</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">Get inspired daily by God\'s Word</string>
 
     <!-- Chat screen -->
     <string name="chat_input_hint">Share what\'s on your heart…</string>
@@ -8,7 +9,7 @@
     <string name="action_clear_conversation">Clear conversation</string>
 
     <!-- Welcome banner -->
-    <string name="welcome_title">Find Inspiration in Scripture</string>
+    <string name="welcome_title">Get inspired daily by God\'s Word</string>
     <string name="welcome_subtitle">Bring your burdens to God\'s Word. Scripture speaks comfort, strength, and hope into every season of life.</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -116,7 +117,7 @@
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>
     <string name="conversations_empty_headline">Start your first conversation</string>
-    <string name="conversations_empty_subtitle">Tap + to begin a new Bible-inspired chat</string>
+    <string name="conversations_empty_subtitle">Tap + to begin a new conversation</string>
     <string name="conversations_clear_all_title">Clear all conversations?</string>
     <string name="conversations_clear_all_message">This will permanently delete all conversation history.</string>
     <string name="conversations_clear_all_confirm">Clear all</string>

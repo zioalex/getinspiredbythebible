@@ -1,5 +1,5 @@
 # =============================================================================
-# Variables for Azure Bible App Deployment
+# Variables for Azure Vox Quieta Deployment
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -420,7 +420,7 @@ variable "smtp2go_sender_email" {
 variable "smtp2go_sender_name" {
   description = "Sender name for notifications"
   type        = string
-  default     = "Bible Inspiration"
+  default     = "Vox Quieta"
 }
 
 variable "contact_notification_email" {

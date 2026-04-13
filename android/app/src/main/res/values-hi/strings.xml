@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">बाइबिल प्रेरणा</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">परमेश्वर के वचन से हर दिन प्रेरित हों</string>
     <string name="chat_input_hint">अपने दिल की बात साझा करें…</string>
     <string name="chat_send_button">भेजें</string>
     <string name="action_clear_conversation">बातचीत साफ करें</string>
-    <string name="welcome_title">शास्त्र में प्रेरणा खोजें</string>
+    <string name="welcome_title">परमेश्वर के वचन से हर दिन प्रेरित हों</string>
     <string name="welcome_subtitle">अपने बोझ परमेश्वर के वचन के पास लाएं। पवित्रशास्त्र जीवन की हर परिस्थिति में सांत्वना, शक्ति और आशा देता है।</string>
 
     <!-- Suggested prompts on welcome screen -->

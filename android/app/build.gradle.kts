@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.bibleinspiration"
+    namespace = "org.voxquieta.app"
     compileSdk = 35
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
@@ -18,13 +18,13 @@ android {
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
     defaultConfig {
-        applicationId = "com.bibleinspiration"
+        applicationId = "org.voxquieta.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
-        testInstrumentationRunner = "com.bibleinspiration.HiltTestRunner"
+        testInstrumentationRunner = "org.voxquieta.app.HiltTestRunner"
         vectorDrawables {
             useSupportLibrary = true
         }

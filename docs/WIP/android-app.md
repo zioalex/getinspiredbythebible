@@ -1,11 +1,11 @@
-# Android App: Bible Inspiration Chat
+# Android App: Vox Quieta
 
 **Status:** In Progress
 **Started:** 2026-02-21
 
 ## Summary
 
-Native Android application for the Bible Inspiration Chat platform.
+Native Android application for the Vox Quieta platform.
 Connects to the existing FastAPI backend (`/api/v1/chat/stream`, `/api/v1/scripture/*`).
 Supports 7 locales (en, it, de, es, fr, pt, ar) with full RTL for Arabic.
 
@@ -67,7 +67,7 @@ Supports 7 locales (en, it, de, es, fr, pt, ar) with full RTL for Arabic.
 - [x] `ChatInputField.kt` (OutlinedTextField + send button)
 - [x] `VerseChip.kt` (collapsible verse references)
 - [x] `WelcomeBanner.kt`
-- [x] `MainActivity.kt` + `BibleInspirationApp.kt` (Hilt)
+- [x] `MainActivity.kt` + `VoxQuietaApp.kt` (Hilt)
 - [x] Theme + Typography
 
 ### Chunk 5 — i18n + RTL ✅

@@ -14,7 +14,7 @@ Implement persistent conversation history using Room database.
 - `data/local/MessageEntity.kt` — Room entity for messages (with FK cascade to conversations)
 - `data/local/ConversationDao.kt` — DAO with Flow-based observation and CRUD
 - `data/local/MessageDao.kt` — DAO for messages
-- `data/local/BibleInspirationDatabase.kt` — Room database class (v1)
+- `data/local/VoxQuietaDatabase.kt` — Room database class (v1)
 - `data/local/mappers/SerializableVerse.kt` — Serializable DTO to avoid polluting domain with annotations
 - `data/local/mappers/ConversationEntityMapper.kt` — ConversationEntity ↔ Conversation domain
 - `data/local/mappers/MessageEntityMapper.kt` — MessageEntity ↔ Message domain (JSON verses)

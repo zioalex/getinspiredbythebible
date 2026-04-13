@@ -187,7 +187,7 @@ android-security-check: ## Run OWASP dependency vulnerability scan (uses CLI, no
 		--scan "$$HOME/.gradle/caches/modules-2/files-2.1/" \
 		--format HTML \
 		--out android/app/build/reports \
-		--project "BibleInspirationApp" \
+		--project "VoxQuietaApp" \
 		--failOnCVSS 7 \
 		--suppression android/dependency-check-suppressions.xml
 	@echo "$(GREEN)✓ OWASP scan complete. Report: android/app/build/reports/dependency-check-report.html$(NC)"

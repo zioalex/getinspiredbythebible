@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD040 -->
 # Azure Terraform Module - Bible Chat Application
 
-Deploy the **Get Inspired by the Bible** application on Azure using Container Apps with scale-to-zero capability.
+Deploy the **Vox Quieta** application on Azure using Container Apps with scale-to-zero capability.
 
 ## 💰 Cost Breakdown (~$25-40/month)
 
@@ -788,7 +788,7 @@ This uses [SMTP2GO](https://www.smtp2go.com/)'s HTTP API.
    smtp2go_enabled      = true
    smtp2go_api_key      = "api-xxxxxxxxxxxxxxxx"  # pragma: allowlist secret
    smtp2go_sender_email = "noreply@yourdomain.com"
-   smtp2go_sender_name  = "Bible Inspiration"
+   smtp2go_sender_name  = "Vox Quieta"
    contact_notification_email = "your-email@example.com"
    ```
 

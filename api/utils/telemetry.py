@@ -1,5 +1,5 @@
 """
-OpenTelemetry tracer configuration for Bible Inspiration Chat API.
+OpenTelemetry tracer configuration for Vox Quieta API.
 
 Provides a pre-configured tracer for database instrumentation.
 The tracer automatically integrates with Azure Monitor when

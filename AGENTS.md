@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Get Inspired by the Bible** is a multilingual AI-powered Bible study app.
+**Vox Quieta** is a multilingual AI-powered Bible study app.
 Users chat with an AI about the Bible, and the app detects verse references
 in responses, linking them to scripture. Deployed on Azure.
 
