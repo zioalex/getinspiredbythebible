@@ -119,6 +119,7 @@ env:
         || github.sha }}
   TF_VERSION: "1.6.0"
   TF_WORKING_DIR: "./deployment"
+  # TODO: update Azure resource names when infrastructure is renamed to voxquieta
   BACKEND_APP_NAME: bible-app-backend
   FRONTEND_APP_NAME: bible-app-frontend
   ACR_NAME: bibleappacrmb0172

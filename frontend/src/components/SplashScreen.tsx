@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { warmupBackend } from "@/lib/api";
 
 interface Phrase {
@@ -172,6 +173,7 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
+  const t = useTranslations("Splash");
   const [phrasesVisible, setPhrasesVisible] = useState(false);
   const [centerVisible, setCenterVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -248,7 +250,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           transition: "opacity 700ms ease-out, transform 700ms ease-out",
         }}
       >
-        {/* Cross icon */}
+        {/* Open book with soft light rays icon */}
         <div className="mb-6 opacity-90">
           <svg
             width="56"
@@ -258,16 +260,44 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            <rect x="22" y="4" width="12" height="48" rx="3" fill="white" />
-            <rect x="4" y="18" width="48" height="12" rx="3" fill="white" />
+            {/* Left page */}
+            <path
+              d="M26 32v8c0 1-0.5 1.5-1.5 1.8l-10 2.5c-1.2 0.3-2-0.3-2-1.5v-12c0-1.2 0.8-2 2-2.3l10-2.5c1-0.3 1.5 0.3 1.5 1.5z"
+              fill="white"
+            />
+            {/* Right page */}
+            <path
+              d="M30 32v8c0 1 0.5 1.5 1.5 1.8l10 2.5c1.2 0.3 2-0.3 2-1.5v-12c0-1.2-0.8-2-2-2.3l-10-2.5c-1-0.3-1.5 0.3-1.5 1.5z"
+              fill="white"
+            />
+            {/* Spine */}
+            <rect x="27" y="27" width="2" height="17" rx="0.5" fill="white" />
+            {/* Light ray center */}
+            <path
+              d="M27.5 26L28.5 26L28.2 14L27.8 14Z"
+              fill="white"
+              opacity="0.9"
+            />
+            {/* Light ray left */}
+            <path
+              d="M26.5 27L25.5 26.5L20 15L21.5 14.5Z"
+              fill="white"
+              opacity="0.6"
+            />
+            {/* Light ray right */}
+            <path
+              d="M29.5 27L30.5 26.5L36 15L34.5 14.5Z"
+              fill="white"
+              opacity="0.6"
+            />
           </svg>
         </div>
 
         <h1 className="text-white text-2xl font-semibold mb-2 tracking-wide">
-          Bible Inspiration
+          {t("title")}
         </h1>
         <p className="text-white/60 text-sm tracking-wider uppercase">
-          Let God's Word speak to your heart
+          {t("motto")}
         </p>
       </div>
     </div>

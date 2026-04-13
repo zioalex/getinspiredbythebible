@@ -1,7 +1,7 @@
 # =============================================================================
-# Azure Container Apps - Bible Chat Application
+# Azure Container Apps - Vox Quieta Application
 # =============================================================================
-# Deploys the getinspiredbythebible application on Azure using:
+# Deploys the voxquieta application on Azure using:
 # - Azure Container Apps (serverless containers with scale-to-zero)
 # - Azure Database for PostgreSQL Flexible Server (with pgvector)
 # - Azure Container Registry (for Docker images)
@@ -57,7 +57,7 @@ locals {
   db_location = var.db_location != "" ? var.db_location : var.location
 
   tags = merge(var.tags, {
-    "project"    = "getinspiredbythebible"
+    "project"    = "voxquieta"
     "managed_by" = "terraform"
   })
 

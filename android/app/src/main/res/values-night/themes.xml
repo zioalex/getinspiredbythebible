@@ -5,11 +5,11 @@
       Background becomes the dark primary warm brown (#5B3427) that matches the
       dark colour scheme defined in Theme.kt.
     -->
-    <style name="Theme.BibleInspiration.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.VoxQuieta.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#5B3427</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
         <item name="windowSplashScreenAnimationDuration">300</item>
         <item name="windowSplashScreenIconBackgroundColor">#5B3427</item>
-        <item name="postSplashScreenTheme">@style/Theme.BibleInspiration</item>
+        <item name="postSplashScreenTheme">@style/Theme.VoxQuieta</item>
     </style>
 </resources>

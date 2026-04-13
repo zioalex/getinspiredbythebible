@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BibleInspiration"
+rootProject.name = "VoxQuieta"
 include(":app")

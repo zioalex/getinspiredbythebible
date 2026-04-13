@@ -1,11 +1,11 @@
 {
   "Metadata": {
-    "title": "Chat di Ispirazione Biblica",
-    "description": "Trova incoraggiamento spirituale e guida attraverso le Scritture"
+    "title": "Vox Quieta",
+    "description": "Lasciati ispirare ogni giorno dalla Parola di Dio"
   },
   "Header": {
-    "title": "Ispirazione Biblica",
-    "subtitle": "Trova incoraggiamento nelle Scritture",
+    "title": "Vox Quieta",
+    "subtitle": "Lasciati ispirare ogni giorno dalla Parola di Dio",
     "bibleVersion": "Versione biblica:",
     "autoDetect": "Rileva automaticamente",
     "newChat": "Nuova Chat"
@@ -192,7 +192,7 @@
     "shareOnFacebook": "Condividi su Facebook",
     "shareOnBluesky": "Condividi su Bluesky",
     "sharePrefix": "Ho trovato questa riflessione biblica ispiratrice:",
-    "shareVia": "Chat di Ispirazione Biblica"
+    "shareVia": "Vox Quieta"
   },
   "Contact": {
     "getInTouch": "Contattaci",
@@ -220,5 +220,9 @@
     "message": "Si è verificato un errore imprevisto. Prova a ricaricare la pagina. Se il problema persiste, contatta il supporto.",
     "reloadButton": "Ricarica la pagina",
     "reportIssue": "Segnala questo problema"
+  },
+  "Splash": {
+    "title": "Vox Quieta",
+    "motto": "Lasciati ispirare ogni giorno dalla Parola di Dio"
   }
 }

@@ -10,7 +10,7 @@
 
 ## Summary
 
-Implement the two highest-impact performance improvements for Get Inspired by the Bible:
+Implement the two highest-impact performance improvements for Vox Quieta:
 
 1. **Streaming UI** — Switch frontend from waiting for full response to word-by-word streaming
 2. **HNSW Indexes** — Replace IVFFlat with HNSW for 40-200x faster semantic search

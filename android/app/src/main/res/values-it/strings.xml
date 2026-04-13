@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ispirazione Biblica</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">Lasciati ispirare ogni giorno dalla Parola di Dio</string>
     <string name="chat_input_hint">Condividi cosa hai nel cuore…</string>
     <string name="chat_send_button">Invia</string>
     <string name="action_clear_conversation">Cancella conversazione</string>
-    <string name="welcome_title">Trova Ispirazione nella Scrittura</string>
+    <string name="welcome_title">Lasciati ispirare ogni giorno dalla Parola di Dio</string>
     <string name="welcome_subtitle">Porta i tuoi pesi alla Parola di Dio. Le Scritture parlano conforto, forza e speranza in ogni stagione della vita.</string>
 
     <!-- Suggested prompts on welcome screen -->

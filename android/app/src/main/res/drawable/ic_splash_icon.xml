@@ -1,23 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Splash screen icon — white cross centred in a 240×240dp viewport.
-  The AndroidX Splash Screen API places this inside a 240dp circle; the
-  cross occupies the inner 160dp "safe zone" (two-thirds of the canvas).
--->
+<!-- Splash screen icon — open book with soft light rays, 240×240dp viewport -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="240dp"
     android:height="240dp"
     android:viewportWidth="240"
     android:viewportHeight="240">
 
-    <!-- Vertical bar -->
+    <!-- Left page -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M112,60 L128,60 L128,180 L112,180 Z" />
+        android:pathData="M116,150 L116,170 Q116,175 111,176 L68,184 Q62,185 62,179 L62,139 Q62,133 68,132 L111,124 Q116,123 116,128 Z" />
 
-    <!-- Horizontal bar -->
+    <!-- Right page -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M72,100 L168,100 L168,116 L72,116 Z" />
+        android:pathData="M124,150 L124,170 Q124,175 129,176 L172,184 Q178,185 178,179 L178,139 Q178,133 172,132 L129,124 Q124,123 124,128 Z" />
+
+    <!-- Spine -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M118,120 L122,120 L122,185 L118,185 Z" />
+
+    <!-- Light ray center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.9"
+        android:pathData="M117,118 L123,118 L121,68 L119,68 Z" />
+
+    <!-- Light ray left -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.6"
+        android:pathData="M115,120 L112,118 L96,72 L100,70 Z" />
+
+    <!-- Light ray right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.6"
+        android:pathData="M125,120 L128,118 L144,72 L140,70 Z" />
 
 </vector>

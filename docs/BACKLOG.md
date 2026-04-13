@@ -1,6 +1,6 @@
 # Product Backlog
 
-Prioritized list of user stories and features for Get Inspired by the Bible.
+Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-03-08
 

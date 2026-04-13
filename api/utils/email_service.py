@@ -141,7 +141,7 @@ class EmailService:
         """
         to_email = settings.contact_notification_email
 
-        subject = f"[Bible Inspiration] New {subject_type.title()} Submission"
+        subject = f"[Vox Quieta] New {subject_type.title()} Submission"
 
         body_text = f"""
 New contact form submission received:
@@ -213,7 +213,7 @@ User Agent: {user_agent or 'Not provided'}
             return True
 
         to_email = settings.contact_notification_email
-        subject = "[Bible Inspiration] Negative Feedback Received"
+        subject = "[Vox Quieta] Negative Feedback Received"
 
         body_text = f"""
 Negative feedback received on a response:
