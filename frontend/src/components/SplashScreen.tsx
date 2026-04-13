@@ -273,11 +273,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             {/* Spine */}
             <rect x="27" y="27" width="2" height="17" rx="0.5" fill="white" />
             {/* Light ray center */}
-            <path d="M27.5 26L28.5 26L28.2 14L27.8 14Z" fill="white" opacity="0.9" />
+            <path
+              d="M27.5 26L28.5 26L28.2 14L27.8 14Z"
+              fill="white"
+              opacity="0.9"
+            />
             {/* Light ray left */}
-            <path d="M26.5 27L25.5 26.5L20 15L21.5 14.5Z" fill="white" opacity="0.6" />
+            <path
+              d="M26.5 27L25.5 26.5L20 15L21.5 14.5Z"
+              fill="white"
+              opacity="0.6"
+            />
             {/* Light ray right */}
-            <path d="M29.5 27L30.5 26.5L36 15L34.5 14.5Z" fill="white" opacity="0.6" />
+            <path
+              d="M29.5 27L30.5 26.5L36 15L34.5 14.5Z"
+              fill="white"
+              opacity="0.6"
+            />
           </svg>
         </div>
 
