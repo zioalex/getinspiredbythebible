@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from config import settings
 from main import app
 from middleware.access_audit import (
     _classify_user_agent,
@@ -32,6 +33,9 @@ from middleware.access_audit import (
 
 client = TestClient(app)
 
+# Use the configured production URL so tests stay in sync with config
+PROD_URL = settings.production_frontend_url
+
 
 class TestAccessClassification:
     """Test source classification logic via real HTTP requests."""
@@ -41,7 +45,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
             )
             mock_counter.add.assert_called()
             call_args = mock_counter.add.call_args
@@ -54,7 +58,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Referer": "https://voxquieta.org/chat"},
+                headers={"Referer": f"{PROD_URL}/chat"},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
@@ -117,7 +121,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.post(
                 "/api/v1/chat/stream",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
                 json={"message": "test"},
             )
             mock_counter.add.assert_called()
@@ -189,7 +193,7 @@ class TestPathNormalization:
             # and verify path normalization via unit tests above.
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
@@ -221,23 +225,23 @@ class TestOriginMatching:
     """Verify Origin/Referer matching logic."""
 
     def test_exact_match(self):
-        origins = ["https://voxquieta.org"]
-        assert _origin_matches("https://voxquieta.org", origins)
+        origins = [PROD_URL]
+        assert _origin_matches(PROD_URL, origins)
 
     def test_trailing_slash(self):
-        origins = ["https://voxquieta.org"]
-        assert _origin_matches("https://voxquieta.org/", origins)
+        origins = [PROD_URL]
+        assert _origin_matches(f"{PROD_URL}/", origins)
 
     def test_referer_with_path(self):
-        origins = ["https://voxquieta.org"]
-        assert _origin_matches("https://voxquieta.org/chat", origins)
+        origins = [PROD_URL]
+        assert _origin_matches(f"{PROD_URL}/chat", origins)
 
     def test_no_match(self):
-        origins = ["https://voxquieta.org"]
+        origins = [PROD_URL]
         assert not _origin_matches("https://evil.example.com", origins)
 
     def test_empty_value(self):
-        origins = ["https://voxquieta.org"]
+        origins = [PROD_URL]
         assert not _origin_matches("", origins)
 
     def test_localhost(self):
