@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from config import settings
 from providers.llama_guard import LlamaGuardProvider
 
 
@@ -343,7 +344,7 @@ async def test_api_call_format():
         assert call_args[0] == "https://openrouter.ai/api/v1/chat/completions"
         assert call_kwargs["headers"]["Authorization"] == "Bearer test-key"
         assert call_kwargs["headers"]["Content-Type"] == "application/json"
-        assert call_kwargs["headers"]["HTTP-Referer"] == "https://voxquieta.org"
+        assert call_kwargs["headers"]["HTTP-Referer"] == settings.production_frontend_url
         assert call_kwargs["headers"]["X-Title"] == "VoxQuieta"
         assert call_kwargs["json"]["model"] == "meta-llama/llama-guard-3-8b"
         assert call_kwargs["json"]["temperature"] == 0

@@ -134,7 +134,7 @@ class Settings(BaseSettings):
     # Skip verification for these paths (prefix match).
     # Health probes, docs, and info endpoints don't go through the frontend
     # Turnstile widget and must work without a token.
-    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/"
+    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/,/api/v1/client-errors"
     # Development: Use Cloudflare test keys for local testing
     # Test secret: 1x0000000000000000000000000000000AA (always passes)
     # Test secret: 2x0000000000000000000000000000000AA (always fails)

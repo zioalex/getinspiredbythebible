@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.security.TurnstileManager
 
 /**
@@ -89,7 +90,7 @@ fun TurnstileWebView(
                     "Android",
                 )
                 loadDataWithBaseURL(
-                    "https://voxquieta.org",
+                    BuildConfig.FRONTEND_URL,
                     htmlContent,
                     "text/html",
                     "UTF-8",

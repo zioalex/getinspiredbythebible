@@ -518,10 +518,16 @@ jobs:
       - name: Decode Cloudflare Origin Certificate
         env:
           CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
-        if: env.CERT_B64 != ''
         run: |
-          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+          if [ -z "$CERT_B64" ]; then
+            echo "::warning::CLOUDFLARE_ORIGIN_CERT_B64 secret is not set — custom domain SSL will not be configured"
+            echo "cert_decoded=false" >> $GITHUB_ENV
+          else
+            echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+            echo "cert_decoded=true" >> $GITHUB_ENV
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -805,10 +811,16 @@ jobs:
       - name: Decode Cloudflare Origin Certificate
         env:
           CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
-        if: env.CERT_B64 != ''
         run: |
-          echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
-          echo "TF_VAR_cloudflare_origin_cert_frontend=deployment/cloudflare-origin.pfx" >> $GITHUB_ENV
+          if [ -z "$CERT_B64" ]; then
+            echo "::warning::CLOUDFLARE_ORIGIN_CERT_B64 secret is not set — custom domain SSL will not be configured"
+            echo "cert_decoded=false" >> $GITHUB_ENV
+          else
+            echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+            echo "cert_decoded=true" >> $GITHUB_ENV
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -864,7 +876,18 @@ jobs:
           if [ -n "$BACKEND_FQDN" ]; then
             BACKEND_URL="https://$BACKEND_FQDN"
             echo "Backend URL: $BACKEND_URL"
-            curl -sf "$BACKEND_URL/health" || echo "Backend health check pending..."
+            for i in 1 2 3; do
+              if curl -sf "$BACKEND_URL/health" --max-time 10; then
+                echo "Backend health check passed"
+                break
+              fi
+              if [ "$i" -eq 3 ]; then
+                echo "::error::Backend health check failed after 3 attempts"
+                exit 1
+              fi
+              echo "Attempt $i failed, retrying in 10s..."
+              sleep 10
+            done
             # Export for functional-tests job
             echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
           else
@@ -880,6 +903,34 @@ jobs:
 
           if [ -n "$FRONTEND_FQDN" ]; then
             echo "Frontend URL: https://$FRONTEND_FQDN"
+          fi
+
+      - name: Verify Custom Domain HTTPS
+        if: env.cert_decoded == 'true'
+        run: |
+          set -euo pipefail
+          DOMAINS=("voxquieta.org" "api.voxquieta.org")
+          FAILED=0
+          for DOMAIN in "${DOMAINS[@]}"; do
+            echo "Checking https://$DOMAIN ..."
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
+            CF_RAY=$(curl -sI --max-time 15 "https://$DOMAIN/health" 2>/dev/null | grep -i 'cf-ray' || echo "")
+
+            if [ "$HTTP_CODE" = "526" ]; then
+              echo "::error::$DOMAIN returned HTTP 526 (Invalid SSL Certificate) — cert binding is wrong"
+              FAILED=1
+            elif [ "$HTTP_CODE" = "000" ]; then
+              echo "::warning::$DOMAIN is unreachable (DNS may not be propagated yet)"
+            elif [ -z "$CF_RAY" ]; then
+              echo "::warning::$DOMAIN responded HTTP $HTTP_CODE but no cf-ray header (not going through Cloudflare)"
+            else
+              echo "$DOMAIN OK — HTTP $HTTP_CODE, $CF_RAY"
+            fi
+          done
+          if [ "$FAILED" -ne 0 ]; then
+            echo "::error::One or more domains have SSL certificate issues"
+            exit 1
           fi
 
       - name: Post Deployment Summary
@@ -1002,10 +1053,16 @@ jobs:
       - name: Decode Cloudflare Origin Certificate
         env:
           CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
-        if: env.CERT_B64 != ''
         run: |
-          echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-          echo "TF_VAR_cloudflare_origin_cert_frontend=${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx" >> $GITHUB_ENV
+          if [ -z "$CERT_B64" ]; then
+            echo "::warning::CLOUDFLARE_ORIGIN_CERT_B64 secret is not set — custom domain SSL will not be configured"
+            echo "cert_decoded=false" >> $GITHUB_ENV
+          else
+            echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+            echo "cert_decoded=true" >> $GITHUB_ENV
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
