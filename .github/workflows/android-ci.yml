@@ -249,7 +249,8 @@ jobs:
       - name: Compile Kotlin sources (release)
         run: |
           ./gradlew compileReleaseKotlin --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
   # ---------------------------------------------------------------------------
@@ -397,7 +398,8 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
       - name: Upload prod APK
@@ -493,7 +495,8 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
       - name: Check AndroidManifest security flags

@@ -39,6 +39,7 @@ android {
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
+            buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
         }
         release {
             isMinifyEnabled = true
@@ -49,6 +50,7 @@ android {
             // Firebase is enabled only in release builds.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
+            buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
         }
     }
 

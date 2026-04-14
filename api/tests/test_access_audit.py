@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from config import settings
 from main import app
 from middleware.access_audit import (
     _classify_user_agent,
@@ -31,6 +32,7 @@ from middleware.access_audit import (
 )
 
 client = TestClient(app)
+PROD_URL = settings.production_frontend_url
 
 
 class TestAccessClassification:
@@ -41,7 +43,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
             )
             mock_counter.add.assert_called()
             call_args = mock_counter.add.call_args
@@ -54,7 +56,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Referer": "https://voxquieta.org/chat"},
+                headers={"Referer": f"{PROD_URL}/chat"},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
@@ -117,7 +119,7 @@ class TestAccessClassification:
         with patch("middleware.access_audit.api_access_counter") as mock_counter:
             client.post(
                 "/api/v1/chat/stream",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
                 json={"message": "test"},
             )
             mock_counter.add.assert_called()
@@ -189,7 +191,7 @@ class TestPathNormalization:
             # and verify path normalization via unit tests above.
             client.get(
                 "/api/v1/scripture/translations",
-                headers={"Origin": "https://voxquieta.org"},
+                headers={"Origin": PROD_URL},
             )
             mock_counter.add.assert_called()
             attrs = mock_counter.add.call_args[0][1]
