@@ -700,12 +700,15 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isSessionLimitReached)
-        assertEquals("You've had 10 messages...", viewModel.uiState.value.error)
+        // error field is null — the invitation text is surfaced as an assistant message, not
+        // via the snackbar, matching the web-frontend behaviour.
+        assertNull(viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isLoading)
-        // The assistant message must be marked as error
+        // The assistant message must carry the invitation text as a normal (non-error) response.
         val lastMsg = viewModel.uiState.value.messages.last()
         assertEquals(Message.Role.ASSISTANT, lastMsg.role)
-        assertTrue(lastMsg.isError)
+        assertFalse(lastMsg.isError)
+        assertEquals("You've had 10 messages...", lastMsg.content)
     }
 
     @Test

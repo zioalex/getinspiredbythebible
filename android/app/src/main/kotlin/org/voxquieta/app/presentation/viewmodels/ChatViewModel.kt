@@ -357,19 +357,32 @@ class ChatViewModel @Inject constructor(
                     warmUpJob.cancel()
                     val errorMessage = mapExceptionToMessage(e)
                     _uiState.update { state ->
+                        // When the session limit is reached, deliver the invitation text as a
+                        // proper assistant message (matching web-frontend behaviour) rather than
+                        // flagging it as an error.  isSessionLimitReached was already set to
+                        // true inside mapExceptionToMessage before this update runs.
+                        val isSessionLimit = state.isSessionLimitReached
                         state.copy(
                             messages = state.messages.map { msg ->
                                 if (msg.id == assistantId) {
-                                    msg.copy(
-                                        content = "",
-                                        isStreaming = false,
-                                        isError = true,
-                                    )
+                                    if (isSessionLimit) {
+                                        msg.copy(
+                                            content = errorMessage,
+                                            isStreaming = false,
+                                            isError = false,
+                                        )
+                                    } else {
+                                        msg.copy(
+                                            content = "",
+                                            isStreaming = false,
+                                            isError = true,
+                                        )
+                                    }
                                 } else msg
                             },
                             isLoading = false,
                             isBackendWarming = false,
-                            error = errorMessage,
+                            error = if (isSessionLimit) null else errorMessage,
                         )
                     }
                 }

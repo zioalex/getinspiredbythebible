@@ -24,8 +24,6 @@ import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -382,31 +380,18 @@ fun ChatScreen(
                 }
             }
 
-            // "Take a Break" session-limit banner — shown when the backend returns HTTP 429
-            // with a session_lifetime_limit detail.
+            // "Start New Session" button — shown when the backend returns HTTP 429
+            // with a session_lifetime_limit detail.  The invitation text is already
+            // displayed as a proper assistant message in the chat above, so the
+            // banner only needs to surface the action button.
             if (uiState.isSessionLimitReached) {
-                Card(
+                Button(
+                    onClick = { viewModel.startNewConversation() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(R.string.error_session_limit),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { viewModel.startNewConversation() },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(stringResource(R.string.action_start_new_session))
-                        }
-                    }
+                    Text(stringResource(R.string.action_start_new_session))
                 }
             }
 
