@@ -134,6 +134,14 @@ class ChatViewModel @Inject constructor(
     private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
+    companion object {
+        /**
+         * Number of completed interactions after which the session ends.
+         * Must match the backend's RATE_LIMIT_SESSION_MAX_REQUESTS setting (default 10).
+         */
+        const val MAX_INTERACTIONS = 10
+    }
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -409,19 +417,34 @@ class ChatViewModel @Inject constructor(
 
                         _uiState.update { state ->
                             val newCount = state.interactionCount + 1
+                            // Detect the exact moment the session limit is reached so we can
+                            // proactively block the input and show the invitation message —
+                            // no need for the user to attempt a failing 11th request.
+                            val sessionLimitJustReached =
+                                !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
                             // Append new verses, deduplicating by reference only (not translation)
                             // so each verse appears once regardless of which translation it came from.
                             val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
                             val dedupedNew = finalVerses.filterNot { v ->
                                 "${v.book}${v.chapter}:${v.verse}" in existingRefs
                             }
+                            // When the limit is just reached, append a synthetic assistant
+                            // message so the user sees the invitation in the conversation.
+                            val limitMessage = if (sessionLimitJustReached) {
+                                Message(
+                                    id = UUID.randomUUID().toString(),
+                                    role = Message.Role.ASSISTANT,
+                                    content = context.getString(R.string.error_session_limit),
+                                )
+                            } else null
                             state.copy(
                                 messages = state.messages.map { msg ->
                                     if (msg.id == assistantId) finalAssistant else msg
-                                },
+                                } + listOfNotNull(limitMessage),
                                 isLoading = false,
                                 isBackendWarming = false,
                                 interactionCount = newCount,
+                                isSessionLimitReached = state.isSessionLimitReached || sessionLimitJustReached,
                                 // Show the banner exactly once, at interaction 3.
                                 // Using == rather than >= prevents re-showing the banner
                                 // after it has been dismissed (banner=false, inline=false).
