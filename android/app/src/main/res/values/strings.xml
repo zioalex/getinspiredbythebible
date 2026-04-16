@@ -145,6 +145,9 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
 
+    <!-- Offline notice -->
+    <string name="offline_notice">You\'re offline. You can read past messages, but sending new ones requires an internet connection.</string>
+
     <!-- Errors -->
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_timeout">Request timed out. Please try again.</string>

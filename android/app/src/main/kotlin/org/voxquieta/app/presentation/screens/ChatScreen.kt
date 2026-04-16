@@ -2,6 +2,7 @@ package org.voxquieta.app.presentation.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -97,10 +100,13 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var inputText by rememberSaveable { mutableStateOf("") }
 
-    // Show the FAB when the user has scrolled up (i.e. not at the bottom).
+    // Show the FAB only when the user has scrolled up from the bottom (i.e. the last item
+    // in the list is not currently visible).
     val showScrollFab by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index
+            lastVisibleIndex != null && lastVisibleIndex < layoutInfo.totalItemsCount - 1
         }
     }
 
@@ -321,12 +327,13 @@ fun ChatScreen(
                     }
                 }
 
-                // Scroll-to-bottom FAB — visible when the user has scrolled up.
+                // Scroll-to-bottom FAB — visible when the user has scrolled up from the bottom.
                 if (showScrollFab) {
                     FloatingActionButton(
                         onClick = {
                             scope.launch {
-                                listState.animateScrollToItem(uiState.messages.size - 1)
+                                val lastIndex = listState.layoutInfo.totalItemsCount - 1
+                                if (lastIndex >= 0) listState.animateScrollToItem(lastIndex)
                             }
                         },
                         modifier = Modifier
@@ -344,6 +351,36 @@ fun ChatScreen(
             }
 
             HorizontalDivider()
+
+            // Offline banner — shown whenever the device has no active internet connection.
+            // The user can still read old session history, but sending new messages requires internet.
+            if (uiState.isOffline) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.offline_notice),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
 
             // "Take a Break" session-limit banner — shown when the backend returns HTTP 429
             // with a session_lifetime_limit detail.

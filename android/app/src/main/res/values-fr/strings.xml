@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">Que dit la Bible sur la générosité ?</string>
     <string name="prompt_suggestion_100">J\'ai besoin qu\'on me rappelle que Dieu est avec moi</string>
 
+    <string name="offline_notice">Vous êtes hors ligne. Vous pouvez lire les anciens messages, mais l\'envoi de nouveaux nécessite une connexion internet.</string>
+
     <string name="error_network">Erreur réseau. Vérifiez votre connexion.</string>
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>
     <string name="error_server">Erreur serveur. Veuillez réessayer plus tard.</string>

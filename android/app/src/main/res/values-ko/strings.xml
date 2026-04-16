@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">관대함에 대해 성경은 무엇을 말하나요?</string>
     <string name="prompt_suggestion_100">하나님이 나와 함께하신다는 것을 기억하게 해주세요</string>
 
+    <string name="offline_notice">오프라인 상태입니다. 이전 메시지는 읽을 수 있지만, 새 메시지를 보내려면 인터넷 연결이 필요합니다.</string>
+
     <string name="error_network">네트워크 오류입니다. 연결을 확인하세요.</string>
     <string name="error_timeout">요청 시간이 초과되었습니다. 다시 시도하세요.</string>
     <string name="error_server">서버 오류입니다. 나중에 다시 시도하세요.</string>

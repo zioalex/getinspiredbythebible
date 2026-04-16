@@ -25,6 +25,7 @@ import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.LogCollector
+import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -114,6 +115,8 @@ data class ChatUiState(
      * Used as a fallback when the user has not set an explicit preferred translation.
      */
     val detectedTranslation: String = "",
+    /** True when the device has no active internet connection. */
+    val isOffline: Boolean = false,
 )
 
 @HiltViewModel
@@ -128,6 +131,7 @@ class ChatViewModel @Inject constructor(
     private val translationPreferences: TranslationPreferences,
     private val sessionPreferences: SessionPreferences,
     private val bibleApiService: BibleApiService,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -214,6 +218,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
         viewModelScope.launch { fetchBookNamesWithRetry() }
+        // Mirror the connectivity state into uiState so the UI can react.
+        viewModelScope.launch {
+            networkMonitor.isOffline.collect { offline ->
+                _uiState.update { it.copy(isOffline = offline) }
+            }
+        }
     }
 
     /**

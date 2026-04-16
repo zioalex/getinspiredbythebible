@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">圣经对慷慨有什么说法？</string>
     <string name="prompt_suggestion_100">我需要被提醒上帝与我同在</string>
 
+    <string name="offline_notice">您已离线。您可以阅读以前的消息，但发送新消息需要互联网连接。</string>
+
     <string name="error_network">网络错误，请检查您的连接。</string>
     <string name="error_timeout">请求超时，请重试。</string>
     <string name="error_server">服务器错误，请稍后重试。</string>
