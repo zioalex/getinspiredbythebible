@@ -700,12 +700,42 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isSessionLimitReached)
-        assertEquals("You've had 10 messages...", viewModel.uiState.value.error)
+        // error field is null — the invitation text is surfaced as an assistant message, not
+        // via the snackbar, matching the web-frontend behaviour.
+        assertNull(viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isLoading)
-        // The assistant message must be marked as error
+        // The assistant message must carry the invitation text as a normal (non-error) response.
         val lastMsg = viewModel.uiState.value.messages.last()
         assertEquals(Message.Role.ASSISTANT, lastMsg.role)
-        assertTrue(lastMsg.isError)
+        assertFalse(lastMsg.isError)
+        assertEquals("You've had 10 messages...", lastMsg.content)
+    }
+
+    @Test
+    fun `isSessionLimitReached becomes true after MAX_INTERACTIONS completed streams`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        // Send exactly MAX_INTERACTIONS - 1 messages; limit not yet reached.
+        repeat(ChatViewModel.MAX_INTERACTIONS - 1) { i ->
+            viewModel.sendMessage("Msg ${i + 1}")
+            testDispatcher.scheduler.advanceUntilIdle()
+        }
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+
+        // The MAX_INTERACTIONS-th message tips us over the limit.
+        viewModel.sendMessage("Msg ${ChatViewModel.MAX_INTERACTIONS}")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+        // A synthetic invitation message must be appended after the last AI response.
+        val lastMsg = viewModel.uiState.value.messages.last()
+        assertEquals(Message.Role.ASSISTANT, lastMsg.role)
+        assertFalse(lastMsg.isError)
+        assertEquals("You've had 10 messages...", lastMsg.content)
+        // Input must be blocked immediately — no failed 11th request required.
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, viewModel.uiState.value.interactionCount)
     }
 
     @Test
