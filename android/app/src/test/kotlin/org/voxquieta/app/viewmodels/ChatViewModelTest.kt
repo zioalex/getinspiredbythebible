@@ -1,6 +1,7 @@
 package org.voxquieta.app.viewmodels
 
 import android.content.Context
+import android.net.ConnectivityManager
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
@@ -98,6 +99,9 @@ class ChatViewModelTest {
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
+            // ConnectivityManager is now used in ViewModel.init; provide a relaxed mock so
+            // getSystemService(), activeNetwork, and registerDefaultNetworkCallback() all work.
+            every { getSystemService(ConnectivityManager::class.java) } returns mockk(relaxed = true)
         }
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
