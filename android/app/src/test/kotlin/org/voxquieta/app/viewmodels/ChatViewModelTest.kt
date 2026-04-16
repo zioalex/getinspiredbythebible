@@ -1,7 +1,6 @@
 package org.voxquieta.app.viewmodels
 
 import android.content.Context
-import android.net.ConnectivityManager
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
@@ -27,6 +26,7 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,6 +34,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -70,6 +71,7 @@ class ChatViewModelTest {
     private lateinit var translationPreferences: TranslationPreferences
     private lateinit var sessionPreferences: SessionPreferences
     private lateinit var bibleApiService: BibleApiService
+    private lateinit var networkMonitor: NetworkMonitor
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -99,9 +101,9 @@ class ChatViewModelTest {
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
-            // ConnectivityManager is now used in ViewModel.init; provide a relaxed mock so
-            // getSystemService(), activeNetwork, and registerDefaultNetworkCallback() all work.
-            every { getSystemService(ConnectivityManager::class.java) } returns mockk(relaxed = true)
+        }
+        networkMonitor = mockk {
+            every { isOffline } returns MutableStateFlow(false)
         }
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
@@ -122,6 +124,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
     }
 
@@ -452,6 +455,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -475,6 +479,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -504,6 +509,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -537,6 +543,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.availableTranslations.value.isEmpty())
@@ -575,6 +582,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -603,6 +611,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             bibleApiService,
+            networkMonitor,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
