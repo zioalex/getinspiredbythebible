@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">Что говорит Библия о щедрости?</string>
     <string name="prompt_suggestion_100">Мне нужно напоминание о том, что Бог со мной</string>
 
+    <string name="offline_notice">Вы не в сети. Вы можете читать прошлые сообщения, но для отправки новых требуется подключение к интернету.</string>
+
     <string name="error_network">Ошибка сети. Проверьте подключение.</string>
     <string name="error_timeout">Запрос истёк. Повторите попытку.</string>
     <string name="error_server">Ошибка сервера. Повторите попытку позже.</string>

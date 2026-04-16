@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">ماذا يقول الكتاب المقدس عن الكرم؟</string>
     <string name="prompt_suggestion_100">أحتاج إلى أن يُذكّرني أحد بأن الله معي</string>
 
+    <string name="offline_notice">أنت غير متصل بالإنترنت. يمكنك قراءة الرسائل السابقة، لكن إرسال رسائل جديدة يتطلب اتصالاً بالإنترنت.</string>
+
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>
     <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>

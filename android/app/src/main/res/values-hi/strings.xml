@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">बाइबल उदारता के बारे में क्या कहती है?</string>
     <string name="prompt_suggestion_100">मुझे याद दिलाने की ज़रूरत है कि परमेश्वर मेरे साथ हैं</string>
 
+    <string name="offline_notice">आप ऑफ़लाइन हैं। आप पुराने संदेश पढ़ सकते हैं, लेकिन नए संदेश भेजने के लिए इंटरनेट कनेक्शन की आवश्यकता है।</string>
+
     <string name="error_network">नेटवर्क त्रुटि। अपना कनेक्शन जांचें।</string>
     <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>
     <string name="error_server">सर्वर त्रुटि। बाद में पुनः प्रयास करें।</string>

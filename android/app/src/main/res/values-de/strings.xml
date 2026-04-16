@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">Was sagt die Bibel über Großzügigkeit?</string>
     <string name="prompt_suggestion_100">Ich muss daran erinnert werden, dass Gott bei mir ist</string>
 
+    <string name="offline_notice">Sie sind offline. Sie können vergangene Nachrichten lesen, aber zum Senden neuer Nachrichten ist eine Internetverbindung erforderlich.</string>
+
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>

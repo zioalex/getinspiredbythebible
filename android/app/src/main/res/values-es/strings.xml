@@ -110,6 +110,8 @@
     <string name="prompt_suggestion_99">¿Qué dice la Biblia sobre la generosidad?</string>
     <string name="prompt_suggestion_100">Necesito que me recuerden que Dios está conmigo</string>
 
+    <string name="offline_notice">Estás sin conexión. Puedes leer mensajes anteriores, pero enviar nuevos requiere conexión a internet.</string>
+
     <string name="error_network">Error de red. Comprueba tu conexión.</string>
     <string name="error_timeout">Tiempo de espera agotado. Inténtalo de nuevo.</string>
     <string name="error_server">Error del servidor. Inténtalo más tarde.</string>
