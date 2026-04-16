@@ -2,6 +2,9 @@ package org.voxquieta.app.presentation.viewmodels
 
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -114,6 +117,8 @@ data class ChatUiState(
      * Used as a fallback when the user has not set an explicit preferred translation.
      */
     val detectedTranslation: String = "",
+    /** True when the device has no active internet connection. */
+    val isOffline: Boolean = false,
 )
 
 @HiltViewModel
@@ -182,6 +187,26 @@ class ChatViewModel @Inject constructor(
             initialValue = TranslationPreferences.DEFAULT_TRANSLATION,
         )
 
+    private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+
+    private fun isNetworkAvailable(): Boolean {
+        val network = connectivityManager.activeNetwork ?: return false
+        val caps = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            _uiState.update { it.copy(isOffline = false) }
+        }
+        override fun onLost(network: Network) {
+            // Only mark offline when there is truly no active network left.
+            if (!isNetworkAvailable()) {
+                _uiState.update { it.copy(isOffline = true) }
+            }
+        }
+    }
+
     private val _chapterSheetState = MutableStateFlow<ChapterSheetState>(ChapterSheetState.Idle)
     val chapterSheetState: StateFlow<ChapterSheetState> = _chapterSheetState.asStateFlow()
     private var loadChapterJob: Job? = null
@@ -214,6 +239,14 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
         viewModelScope.launch { fetchBookNamesWithRetry() }
+        // Set initial connectivity state and monitor changes.
+        _uiState.update { it.copy(isOffline = !isNetworkAvailable()) }
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
     /**
