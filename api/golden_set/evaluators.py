@@ -74,6 +74,23 @@ def check_forbidden_content(response: str, expectations: Expectations) -> tuple[
     return True, "no forbidden content found"
 
 
+def check_required_content(response: str, expectations: Expectations) -> tuple[bool, str]:
+    """Check that response contains all required phrases."""
+    if not expectations.must_contain:
+        return True, "no required content specified"
+
+    response_lower = response.lower()
+    missing = []
+    for phrase in expectations.must_contain:
+        if phrase.lower() not in response_lower:
+            missing.append(phrase)
+
+    if missing:
+        return False, f"required content missing: {missing}"
+
+    return True, "all required content found"
+
+
 def check_source_statement(response: str, expectations: Expectations) -> tuple[bool, str]:
     """Check that source is stated in the first 500 characters of the response."""
     if not expectations.source_statement_required:
@@ -181,6 +198,7 @@ def run_all_checks(
         "scripture_presence": check_scripture_presence(response, expectations),
         "expected_books": check_expected_books(response, expectations),
         "forbidden_content": check_forbidden_content(response, expectations),
+        "required_content": check_required_content(response, expectations),
         "source_statement": check_source_statement(response, expectations),
         "response_language": check_response_language(response, expectations),
         "response_length": check_response_length(response, expectations),

@@ -22,6 +22,7 @@ class Expectations(BaseModel):
     min_verses_cited: int = 0
     expected_books: list[str] = []
     must_not_contain: list[str] = []
+    must_contain: list[str] = []
     response_language: str = "en"
     source_statement_required: bool = False
     source_is_biblical: bool | None = None
