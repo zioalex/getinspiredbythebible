@@ -524,6 +524,24 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
+              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              rm -f /tmp/pfx_chain.pem
+              echo "PFX normalized to modern PKCS12 format"
+            fi
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+              exit 1
+            fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
             echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
@@ -817,6 +835,24 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="deployment/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
+              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              rm -f /tmp/pfx_chain.pem
+              echo "PFX normalized to modern PKCS12 format"
+            fi
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+              exit 1
+            fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
             echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
@@ -1059,6 +1095,24 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
+              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              rm -f /tmp/pfx_chain.pem
+              echo "PFX normalized to modern PKCS12 format"
+            fi
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+              exit 1
+            fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
             echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
             echo "cert_decoded=true" >> $GITHUB_ENV
