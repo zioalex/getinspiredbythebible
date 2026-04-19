@@ -117,7 +117,7 @@ env:
     ${{ github.event_name == 'workflow_run'
         && github.event.workflow_run.head_sha
         || github.sha }}
-  TF_VERSION: "1.6.0"
+  TF_VERSION: "1.10.5"
   TF_WORKING_DIR: "./deployment"
   # TODO: update Azure resource names when infrastructure is renamed to voxquieta
   BACKEND_APP_NAME: bible-app-backend
@@ -568,9 +568,6 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
 
       - name: Terraform Plan
         id: plan
@@ -595,9 +592,6 @@ jobs:
           fi
           exit 0
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
 
       - name: Upload Plan Artifact
         if: github.event_name != 'pull_request'
@@ -875,9 +869,6 @@ jobs:
 
       - name: Terraform Init
         working-directory: deployment
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
         run: |
           terraform init \
             -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
@@ -893,9 +884,6 @@ jobs:
 
       - name: Terraform Apply
         working-directory: deployment
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
         run: terraform apply -auto-approve tfplan
 
       - name: Login to Azure (for verification)
@@ -1147,9 +1135,6 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
 
       - name: Terraform Destroy
         run: |
@@ -1159,9 +1144,6 @@ jobs:
             -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
             -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "true"
-          ARM_USE_OIDC: "false"
 
       - name: Post Destroy Summary
         run: |
