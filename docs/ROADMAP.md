@@ -1,6 +1,6 @@
 # Product Roadmap
 
-High-level planning for Get Inspired by the Bible - organized into Now / Next / Later / Icebox.
+High-level planning for Vox Quieta - organized into Now / Next / Later / Icebox.
 
 **Last Updated:** 2026-02-23
 
@@ -8,7 +8,7 @@ High-level planning for Get Inspired by the Bible - organized into Now / Next / 
 
 ## Vision
 
-Get Inspired by the Bible helps people find spiritual encouragement and relevant
+Vox Quieta helps people find spiritual encouragement and relevant
 scripture based on their life situations through:
 
 - **Natural conversation**: Ask questions in your own words, get biblically-grounded responses

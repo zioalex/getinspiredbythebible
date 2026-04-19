@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains SQL migration scripts for the Bible Inspiration Chat database.
+This directory contains SQL migration scripts for the Vox Quieta database.
 
 ## How to Run Migrations
 

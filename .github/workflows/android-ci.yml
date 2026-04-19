@@ -107,14 +107,14 @@ jobs:
           {
             "project_info": {
               "project_number": "000000000000",
-              "project_id": "bible-inspiration-placeholder",
-              "storage_bucket": "bible-inspiration-placeholder.appspot.com"
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
             },
             "client": [
               {
                 "client_info": {
                   "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": { "package_name": "com.bibleinspiration" }
+                  "android_client_info": { "package_name": "org.voxquieta.app" }
                 },
                 "oauth_client": [],
                 "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
@@ -168,7 +168,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -236,7 +236,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -249,7 +249,8 @@ jobs:
       - name: Compile Kotlin sources (release)
         run: |
           ./gradlew compileReleaseKotlin --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
   # ---------------------------------------------------------------------------
@@ -284,7 +285,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -388,7 +389,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -397,7 +398,8 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
       - name: Upload prod APK
@@ -431,7 +433,7 @@ jobs:
       - name: TruffleHog OSS scan
         # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
         # env vars set by GitHub Actions — no explicit base/head needed.
-        uses: trufflesecurity/trufflehog@v3.94.2
+        uses: trufflesecurity/trufflehog@v3.94.3
         with:
           extra_args: --only-verified
 
@@ -484,7 +486,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -493,7 +495,8 @@ jobs:
       - name: Build prod APK (debuggable, points to production backend)
         run: |
           ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }}
+            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
+            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
 
       - name: Check AndroidManifest security flags
@@ -570,7 +573,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"bible-inspiration-placeholder","storage_bucket":"bible-inspiration-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.bibleinspiration"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -621,7 +624,7 @@ jobs:
             --format HTML \
             --format XML \
             --out android/app/build/reports \
-            --project "BibleInspirationApp" \
+            --project "VoxQuietaApp" \
             --failOnCVSS 7 \
             --suppression android/dependency-check-suppressions.xml \
             --disableOssIndex \

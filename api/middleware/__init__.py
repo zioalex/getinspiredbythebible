@@ -1,5 +1,5 @@
 """
-Middleware package for Bible Inspiration Chat API.
+Middleware package for Vox Quieta API.
 
 Provides:
 - AccessAuditMiddleware: Classifies API requests as official/unofficial (observability)

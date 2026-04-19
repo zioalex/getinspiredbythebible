@@ -376,8 +376,8 @@ class TestRunAllChecks:
         score = run_all_checks(response, exp, "I'm anxious about work")
         assert isinstance(score, AutomatedScore)
         assert score.passed
-        assert score.total_checks == 7
-        assert score.passed_checks == 7
+        assert score.total_checks == 8
+        assert score.passed_checks == 8
         assert score.failed_checks == []
 
     def test_some_checks_fail(self):

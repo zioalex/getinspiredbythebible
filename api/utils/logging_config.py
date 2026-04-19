@@ -1,5 +1,5 @@
 """
-Logging configuration for the Bible Inspiration Chat API.
+Logging configuration for the Vox Quieta API.
 
 Provides structured logging with consistent formatting across all modules.
 

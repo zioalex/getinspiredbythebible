@@ -1,6 +1,6 @@
-# Bible Inspiration — Android App
+# Vox Quieta — Android App
 
-Native Android app for the [Bible Inspiration Chat](../README.md) platform.
+Native Android app for the [Vox Quieta](../README.md) platform.
 Built with Kotlin, Jetpack Compose, and MVVM Clean Architecture.
 
 ## Prerequisites
@@ -106,7 +106,7 @@ cd api && uvicorn main:app --reload
 
 ```bash
 ./gradlew installDebug
-adb shell am start -n com.bibleinspiration/.MainActivity
+adb shell am start -n org.voxquieta.app/.MainActivity
 ```
 
 Or press the green ▶ button in Android Studio.
@@ -171,7 +171,7 @@ android/
 ├── app/
 │   └── src/
 │       ├── main/kotlin/com/bibleinspiration/
-│       │   ├── BibleInspirationApp.kt    # @HiltAndroidApp
+│       │   ├── VoxQuietaApp.kt    # @HiltAndroidApp
 │       │   ├── MainActivity.kt
 │       │   ├── data/
 │       │   │   ├── remote/               # Retrofit + OkHttp + DTOs + mappers

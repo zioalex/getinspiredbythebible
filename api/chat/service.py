@@ -384,6 +384,12 @@ Keep it under 100 words."""
             extra={"total_duration_seconds": f"{total_duration:.2f}"},
         )
 
+        if "Not from the Bible" in response.content[:120] and len(response.content) < 300:
+            logger.warning(
+                "Possible truncated prayer response: source disclaimer present but body is short",
+                extra={"response_preview": response.content[:200]},
+            )
+
         return ChatResponse(
             message_id=message_id,
             message=response.content,

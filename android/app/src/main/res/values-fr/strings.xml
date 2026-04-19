@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Inspiration Biblique</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="chat_input_hint">Partagez ce qui est sur votre cœur…</string>
     <string name="chat_send_button">Envoyer</string>
     <string name="action_clear_conversation">Effacer la conversation</string>
-    <string name="welcome_title">Trouvez l\'Inspiration dans les Écritures</string>
+    <string name="welcome_title">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="welcome_subtitle">Apportez vos fardeaux à la Parole de Dieu. L\'Écriture apporte réconfort, force et espoir à chaque saison de la vie.</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">Des versets sur la lumière qui vainc les ténèbres</string>
     <string name="prompt_suggestion_99">Que dit la Bible sur la générosité ?</string>
     <string name="prompt_suggestion_100">J\'ai besoin qu\'on me rappelle que Dieu est avec moi</string>
+
+    <string name="offline_notice">Vous êtes hors ligne. Vous pouvez lire les anciens messages, mais l\'envoi de nouveaux nécessite une connexion internet.</string>
 
     <string name="error_network">Erreur réseau. Vérifiez votre connexion.</string>
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>

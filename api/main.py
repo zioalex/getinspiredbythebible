@@ -1,5 +1,5 @@
 """
-Bible Inspiration Chat API
+Vox Quieta API
 
 Main FastAPI application entry point.
 """
@@ -30,7 +30,7 @@ if _appinsights_conn:
         print(f"WARNING: Failed to configure Application Insights: {e}")
         print(_traceback.format_exc())
 
-from fastapi import Depends, FastAPI  # noqa: E402
+from fastapi import Depends, FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
@@ -303,6 +303,30 @@ async def get_config():
             ),
         },
     }
+
+
+@app.post("/api/v1/client-errors", include_in_schema=False)
+async def report_client_error(request: Request):
+    """Receive client-side error reports (Turnstile failures, etc.)."""
+    body = await request.json()
+    client_ip = request.headers.get(
+        "CF-Connecting-IP",
+        request.headers.get(
+            "X-Forwarded-For", request.client.host if request.client else "unknown"
+        ),
+    )
+    logger.warning(
+        "Client error report: %s — %s",
+        body.get("type", "unknown"),
+        body.get("detail", ""),
+        extra={
+            "error_type": body.get("type"),
+            "error_detail": body.get("detail"),
+            "user_agent": request.headers.get("user-agent"),
+            "ip": client_ip,
+        },
+    )
+    return {"status": "ok"}
 
 
 @app.get("/debug/embeddings", tags=["debug"], dependencies=[Depends(require_local_access)])

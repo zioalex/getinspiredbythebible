@@ -1,4 +1,4 @@
-# Bible Inspiration Chat - Architecture Design Document
+# Vox Quieta - Architecture Design Document
 
 **Version:** 1.0.0
 **Last Updated:** January 2026
@@ -28,7 +28,7 @@
 
 ### 1.1 Purpose
 
-Bible Inspiration Chat is a conversational AI application that helps users find spiritual encouragement and relevant
+Vox Quieta is a conversational AI application that helps users find spiritual encouragement and relevant
 scripture based on their life situations. The system combines semantic search capabilities with large language model
 (LLM) generation to provide Bible-grounded responses.
 
@@ -762,7 +762,7 @@ services:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Docker Network (bible-chat)                  │
+│                    Docker Network (vox-quieta)                  │
 │                                                                 │
 │  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌────────┐  │
 │  │ frontend │────▶│   api    │────▶│ postgres │     │ ollama │  │
@@ -1003,7 +1003,7 @@ cd frontend && npm run dev
 ```bash
 # Clone repository
 git clone <repo-url>
-cd bible-chat
+cd vox-quieta
 
 # Start services
 docker-compose up -d
@@ -1081,4 +1081,4 @@ CREATE INDEX idx_verse_text_trgm ON verses USING gin (text gin_trgm_ops);
 
 ---
 
-*Document maintained by the Bible Inspiration Chat development team.*
+*Document maintained by the Vox Quieta development team.*

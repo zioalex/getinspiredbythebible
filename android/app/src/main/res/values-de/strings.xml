@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Bibel-Inspiration</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">Lass dich täglich von Gottes Wort inspirieren</string>
     <string name="chat_input_hint">Teile, was dir auf dem Herzen liegt…</string>
     <string name="chat_send_button">Senden</string>
     <string name="action_clear_conversation">Gespräch löschen</string>
-    <string name="welcome_title">Finde Inspiration in der Schrift</string>
+    <string name="welcome_title">Lass dich täglich von Gottes Wort inspirieren</string>
     <string name="welcome_subtitle">Bringe deine Lasten zu Gottes Wort. Die Heilige Schrift spricht Trost, Kraft und Hoffnung in jede Lebenslage.</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">Verse über das Licht, das die Dunkelheit überwindet</string>
     <string name="prompt_suggestion_99">Was sagt die Bibel über Großzügigkeit?</string>
     <string name="prompt_suggestion_100">Ich muss daran erinnert werden, dass Gott bei mir ist</string>
+
+    <string name="offline_notice">Sie sind offline. Sie können vergangene Nachrichten lesen, aber zum Senden neuer Nachrichten ist eine Internetverbindung erforderlich.</string>
 
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>

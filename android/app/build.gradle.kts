@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.bibleinspiration"
+    namespace = "org.voxquieta.app"
     compileSdk = 35
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
@@ -18,13 +18,13 @@ android {
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
     defaultConfig {
-        applicationId = "com.bibleinspiration"
+        applicationId = "org.voxquieta.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
-        testInstrumentationRunner = "com.bibleinspiration.HiltTestRunner"
+        testInstrumentationRunner = "org.voxquieta.app.HiltTestRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -39,6 +39,7 @@ android {
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
+            buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
         }
         release {
             isMinifyEnabled = true
@@ -49,6 +50,7 @@ android {
             // Firebase is enabled only in release builds.
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
+            buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
         }
     }
 

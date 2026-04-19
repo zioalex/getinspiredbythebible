@@ -53,6 +53,10 @@ cases:
         - "you should pray"
         - "use this for devotions"
         - "I recommend praying"
+      must_contain:
+        - "Hail Mary"
+        - "full of grace"
+        - "blessed art thou"
       response_language: "en"
       must_contain_scripture: false
     reference_response: |
@@ -73,6 +77,10 @@ cases:
         - "pray this prayer"
         - "you should pray"
         - "use this for devotions"
+      must_contain:
+        - "serenity to accept"
+        - "courage to change"
+        - "wisdom to know"
       response_language: "en"
       must_contain_scripture: false
     tags: ["non-biblical-prayer", "recovery"]
@@ -87,6 +95,10 @@ cases:
       must_not_contain:
         - "pray this prayer"
         - "you should pray"
+      must_contain:
+        - "instrument of your peace"
+        - "where there is hatred"
+        - "let me sow love"
       response_language: "en"
       must_contain_scripture: false
     tags: ["non-biblical-prayer", "catholic"]
@@ -113,6 +125,10 @@ cases:
       must_not_contain:
         - "pray this prayer"
         - "you should pray"
+      must_contain:
+        - "glory be to the father"
+        - "and to the son"
+        - "world without end"
       response_language: "en"
       must_contain_scripture: false
     tags: ["non-biblical-prayer", "doxology"]

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Bible Inspiration Chat currently supports three languages: English (en), Italian (it),
+Vox Quieta currently supports three languages: English (en), Italian (it),
 and German (de). To maximize the app's reach and impact, we should prioritize adding
 languages based on two key criteria:
 

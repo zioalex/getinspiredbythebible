@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">बाइबिल प्रेरणा</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">परमेश्वर के वचन से हर दिन प्रेरित हों</string>
     <string name="chat_input_hint">अपने दिल की बात साझा करें…</string>
     <string name="chat_send_button">भेजें</string>
     <string name="action_clear_conversation">बातचीत साफ करें</string>
-    <string name="welcome_title">शास्त्र में प्रेरणा खोजें</string>
+    <string name="welcome_title">परमेश्वर के वचन से हर दिन प्रेरित हों</string>
     <string name="welcome_subtitle">अपने बोझ परमेश्वर के वचन के पास लाएं। पवित्रशास्त्र जीवन की हर परिस्थिति में सांत्वना, शक्ति और आशा देता है।</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">अंधकार पर प्रकाश की जीत के बारे में पद</string>
     <string name="prompt_suggestion_99">बाइबल उदारता के बारे में क्या कहती है?</string>
     <string name="prompt_suggestion_100">मुझे याद दिलाने की ज़रूरत है कि परमेश्वर मेरे साथ हैं</string>
+
+    <string name="offline_notice">आप ऑफ़लाइन हैं। आप पुराने संदेश पढ़ सकते हैं, लेकिन नए संदेश भेजने के लिए इंटरनेट कनेक्शन की आवश्यकता है।</string>
 
     <string name="error_network">नेटवर्क त्रुटि। अपना कनेक्शन जांचें।</string>
     <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>

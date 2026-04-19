@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Application
-    app_name: str = "Bible Inspiration Chat"
+    app_name: str = "Vox Quieta"
     app_version: str = "0.1.0"
     debug: bool = False  # Set DEBUG=true in .env for development
 
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     smtp2go_enabled: bool = False  # Set to True to enable email notifications
     smtp2go_api_key: str | None = None  # SMTP2GO API key
     smtp2go_sender_email: str = "noreply@voxquieta.org"
-    smtp2go_sender_name: str = "Bible Inspiration"
+    smtp2go_sender_name: str = "Vox Quieta"
     contact_notification_email: str = "contact@voxquieta.org"
 
     # Production frontend URL (used for CORS, access audit, and Referer headers)
@@ -134,7 +134,7 @@ class Settings(BaseSettings):
     # Skip verification for these paths (prefix match).
     # Health probes, docs, and info endpoints don't go through the frontend
     # Turnstile widget and must work without a token.
-    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/"
+    turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/,/api/v1/client-errors"
     # Development: Use Cloudflare test keys for local testing
     # Test secret: 1x0000000000000000000000000000000AA (always passes)
     # Test secret: 2x0000000000000000000000000000000AA (always fails)

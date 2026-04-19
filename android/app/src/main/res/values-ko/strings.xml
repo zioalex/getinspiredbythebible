@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">성경 영감</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">매일 하나님의 말씀에서 영감을 받으세요</string>
     <string name="chat_input_hint">마음에 있는 것을 나눠주세요…</string>
     <string name="chat_send_button">보내기</string>
     <string name="action_clear_conversation">대화 지우기</string>
-    <string name="welcome_title">성경에서 영감을 찾으세요</string>
+    <string name="welcome_title">매일 하나님의 말씀에서 영감을 받으세요</string>
     <string name="welcome_subtitle">하나님의 말씀에 당신의 짐을 가져오세요. 성경은 삶의 모든 계절에 위로, 힘, 소망을 전합니다.</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">어둠을 이기는 빛에 관한 구절들</string>
     <string name="prompt_suggestion_99">관대함에 대해 성경은 무엇을 말하나요?</string>
     <string name="prompt_suggestion_100">하나님이 나와 함께하신다는 것을 기억하게 해주세요</string>
+
+    <string name="offline_notice">오프라인 상태입니다. 이전 메시지는 읽을 수 있지만, 새 메시지를 보내려면 인터넷 연결이 필요합니다.</string>
 
     <string name="error_network">네트워크 오류입니다. 연결을 확인하세요.</string>
     <string name="error_timeout">요청 시간이 초과되었습니다. 다시 시도하세요.</string>

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">إلهام الكتاب المقدس</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">استلهم يومياً من كلمة الله</string>
     <string name="chat_input_hint">شارك ما يدور في خاطرك…</string>
     <string name="chat_send_button">إرسال</string>
     <string name="action_clear_conversation">مسح المحادثة</string>
-    <string name="welcome_title">اعثر على الإلهام في الكتاب المقدس</string>
+    <string name="welcome_title">استلهم يومياً من كلمة الله</string>
     <string name="welcome_subtitle">أحضر أثقالك إلى كلمة الله. الكتاب المقدس يتكلم بالعزاء والقوة والأمل في كل موسم من مواسم الحياة.</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">آيات عن النور الذي يغلب الظلام</string>
     <string name="prompt_suggestion_99">ماذا يقول الكتاب المقدس عن الكرم؟</string>
     <string name="prompt_suggestion_100">أحتاج إلى أن يُذكّرني أحد بأن الله معي</string>
+
+    <string name="offline_notice">أنت غير متصل بالإنترنت. يمكنك قراءة الرسائل السابقة، لكن إرسال رسائل جديدة يتطلب اتصالاً بالإنترنت.</string>
 
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>

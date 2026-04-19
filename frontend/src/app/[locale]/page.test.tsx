@@ -153,7 +153,7 @@ describe("Home page responsive layout", () => {
 
     it("hides subtitle on mobile (hidden sm:block)", () => {
       renderWithIntl(<Home />);
-      const subtitle = screen.getByText("Find encouragement through Scripture");
+      const subtitle = screen.getByText("Get inspired daily by God's Word");
       expect(subtitle.className).toContain("hidden");
       expect(subtitle.className).toContain("sm:block");
     });

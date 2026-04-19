@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document describes the testing infrastructure for the Bible Inspiration Chat application.
+This document describes the testing infrastructure for the Vox Quieta application.
 
 ## Overview
 

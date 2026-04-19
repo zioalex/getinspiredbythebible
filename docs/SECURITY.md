@@ -1,6 +1,6 @@
 # Security Architecture
 
-This document describes the security measures implemented to protect the Bible Inspiration Chat API from abuse.
+This document describes the security measures implemented to protect the Vox Quieta API from abuse.
 
 ## Overview
 

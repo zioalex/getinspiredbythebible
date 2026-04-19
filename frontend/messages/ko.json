@@ -1,11 +1,11 @@
 {
   "Metadata": {
-    "title": "성경 영감 채팅",
-    "description": "성경을 통해 영적 격려와 인도하심을 찾으세요"
+    "title": "Vox Quieta",
+    "description": "매일 하나님의 말씀에서 영감을 받으세요"
   },
   "Header": {
-    "title": "성경 영감",
-    "subtitle": "성경을 통해 격려를 찾으세요",
+    "title": "Vox Quieta",
+    "subtitle": "매일 하나님의 말씀에서 영감을 받으세요",
     "bibleVersion": "성경 버전:",
     "autoDetect": "자동 감지",
     "newChat": "새 대화"
@@ -192,7 +192,7 @@
     "shareOnFacebook": "Facebook으로 공유",
     "shareOnBluesky": "Bluesky로 공유",
     "sharePrefix": "이 영감적인 성경 통찰을 발견했습니다:",
-    "shareVia": "성경 영감 채팅"
+    "shareVia": "Vox Quieta"
   },
   "Contact": {
     "getInTouch": "문의하기",
@@ -220,5 +220,9 @@
     "message": "예상치 못한 오류가 발생했습니다. 페이지를 다시 로드해 보세요. 문제가 지속되면 지원팀에 문의하세요.",
     "reloadButton": "페이지 새로고침",
     "reportIssue": "이 문제 보고"
+  },
+  "Splash": {
+    "title": "Vox Quieta",
+    "motto": "매일 하나님의 말씀에서 영감을 받으세요"
   }
 }

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">圣经灵感</string>
+    <string name="app_name">Vox Quieta</string>
+    <string name="splash_motto">每天从上帝的话语中获得灵感</string>
     <string name="chat_input_hint">分享您心中所想…</string>
     <string name="chat_send_button">发送</string>
     <string name="action_clear_conversation">清除对话</string>
-    <string name="welcome_title">在圣经中寻找灵感</string>
+    <string name="welcome_title">每天从上帝的话语中获得灵感</string>
     <string name="welcome_subtitle">将你的重担带到上帝的话语前。圣经在生命的每个季节都带来安慰、力量和盼望。</string>
 
     <!-- Suggested prompts on welcome screen -->
@@ -108,6 +109,8 @@
     <string name="prompt_suggestion_98">关于光胜过黑暗的经文</string>
     <string name="prompt_suggestion_99">圣经对慷慨有什么说法？</string>
     <string name="prompt_suggestion_100">我需要被提醒上帝与我同在</string>
+
+    <string name="offline_notice">您已离线。您可以阅读以前的消息，但发送新消息需要互联网连接。</string>
 
     <string name="error_network">网络错误，请检查您的连接。</string>
     <string name="error_timeout">请求超时，请重试。</string>

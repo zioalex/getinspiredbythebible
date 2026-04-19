@@ -13,7 +13,7 @@
 
 services:
   api:
-    image: ${ACR_NAME:-bibleappacrmb0172}.azurecr.io/bible-backend:${IMAGE_TAG:-latest}
+    image: ${ACR_NAME:-bibleappacrmb0172}.azurecr.io/voxquieta-backend:${IMAGE_TAG:-latest}
     ports:
       - "0.0.0.0:8000:8000"
     environment:

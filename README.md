@@ -1,4 +1,4 @@
-# Bible Inspiration Chat
+# Vox Quieta
 
 A conversational AI that helps people find spiritual encouragement and relevant scripture
 based on their life situations. Built with a modular architecture that supports multiple
@@ -46,7 +46,7 @@ LLM backends.
 ### 1. Clone and Setup
 
 ```bash
-cd bible-chat
+cd vox-quieta
 cp api/.env.example api/.env  # Create env file (optional)
 ```
 
@@ -91,7 +91,7 @@ python create_embeddings.py
 ## 📁 Project Structure
 
 ```text
-bible-chat/
+vox-quieta/
 ├── docker-compose.yml      # Container orchestration
 ├── api/                    # FastAPI backend
 │   ├── main.py            # Application entry point

@@ -1,7 +1,7 @@
 # Golden Set Testing Guide
 
 The golden set is a quality assurance framework for evaluating chat responses
-from the Bible Inspiration Chat API. It uses YAML-defined test cases with
+from the Vox Quieta API. It uses YAML-defined test cases with
 machine-checkable expectations to measure whether responses meet quality
 standards: citing scripture, acknowledging user situations, using the right
 language, and avoiding harmful phrases.

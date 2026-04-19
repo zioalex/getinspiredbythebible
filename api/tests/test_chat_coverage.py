@@ -148,6 +148,17 @@ class TestGetPrayerLookupPrompt:
         result = get_prayer_lookup_prompt("en")
         assert "prayer" in result.lower()
 
+    def test_prayer_text_instruction_present(self):
+        """Fix for disclaimer-without-prayer bug: prompt must require full prayer text."""
+        result = get_prayer_lookup_prompt("en")
+        assert "Always include the full prayer text" in result
+
+    def test_no_conflicting_suppress_instruction(self):
+        """Fix for disclaimer-without-prayer bug: old conflicting instructions must be gone."""
+        result = get_prayer_lookup_prompt("en")
+        assert "Do NOT suggest" not in result
+        assert "don't recommend them for use" not in result
+
 
 class TestBuildSearchContextPrompt:
     """Tests for build_search_context_prompt()."""
