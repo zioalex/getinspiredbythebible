@@ -539,14 +539,15 @@ jobs:
               fi
               rm -f /tmp/pfx_chain.pem
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
-               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
-              exit 1
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "cert_decoded=false" >> $GITHUB_ENV
             fi
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
       - name: Setup Terraform
@@ -852,14 +853,15 @@ jobs:
               fi
               rm -f /tmp/pfx_chain.pem
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
-               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
-              exit 1
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "cert_decoded=false" >> $GITHUB_ENV
             fi
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
       - name: Setup Terraform
@@ -1114,14 +1116,15 @@ jobs:
               fi
               rm -f /tmp/pfx_chain.pem
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
-               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
-              exit 1
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "cert_decoded=false" >> $GITHUB_ENV
             fi
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
           fi
 
       - name: Setup Terraform
