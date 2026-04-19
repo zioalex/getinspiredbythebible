@@ -532,14 +532,16 @@ jobs:
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
                 || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
-              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
-                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
-              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
               rm -f /tmp/pfx_chain.pem
-              echo "PFX normalized to modern PKCS12 format"
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
+               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
               exit 1
             fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
@@ -843,14 +845,16 @@ jobs:
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
                 || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
-              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
-                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
-              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
               rm -f /tmp/pfx_chain.pem
-              echo "PFX normalized to modern PKCS12 format"
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
+               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
               exit 1
             fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
@@ -1103,14 +1107,16 @@ jobs:
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
                 || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
                 -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
-              openssl pkcs12 -export -in /tmp/pfx_chain.pem \
-                -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx
-              mv /tmp/pfx_modern.pfx "$PFX_FILE"
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
               rm -f /tmp/pfx_chain.pem
-              echo "PFX normalized to modern PKCS12 format"
             fi
-            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
-              echo "::error::cloudflare-origin.pfx is not a valid PKCS12 file or password is wrong"
+            if ! openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null && \
+               ! openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              echo "::error::cloudflare-origin.pfx cannot be read — check password or regenerate"
               exit 1
             fi
             # Path relative to TF working dir so filemd5() and az CLI resolve correctly
