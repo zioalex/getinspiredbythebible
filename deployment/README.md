@@ -40,7 +40,7 @@ Deploy the **Vox Quieta** application on Azure using Container Apps with scale-t
 
 1. **Azure Account** with active subscription
 2. **Azure CLI** installed and logged in
-3. **Terraform** >= 1.0.0
+3. **Terraform** >= 1.10.0 (earlier versions may fail provider install with `openpgp: key expired`)
 4. **Docker** for building images
 
 ## 🚀 Quick Start
@@ -415,7 +415,9 @@ Cloudflare Origin Certificates solve this by providing a certificate trusted by 
 
 ### Step 2: Convert to PFX Format
 
-Azure Container Apps requires PFX format:
+Azure Container Apps requires PFX (PKCS#12) format. Use modern AES-256 encryption
+(the default in OpenSSL 3.x) — the older RC2/3DES format (OpenSSL 1.x `-legacy`) is
+rejected by the Azure CLI version shipped with `azure/login@v3`:
 
 ```bash
 # Without password (simpler)
@@ -430,6 +432,10 @@ openssl pkcs12 -export -out cloudflare-origin.pfx \
   -in origin-cert.pem \
   -passout pass:yourpassword
 ```
+
+> **Note:** The CI workflow attempts to auto-normalize legacy PFX files to modern
+> format on decode. If the `CLOUDFLARE_ORIGIN_CERT_B64` secret was encoded from an
+> OpenSSL 1.x PFX, re-generate it using the commands above and update the secret.
 
 ### Step 3: Configure Terraform
 
@@ -664,7 +670,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/login@v1
+      - uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -928,7 +934,7 @@ When creating a new Cloudflare Origin Certificate:
 2. Select RSA (2048), add hostnames: `yourdomain.com`, `*.yourdomain.com`
 3. Set validity to 15 years
 4. Save cert as `origin-cert.pem` and key as `origin-key.pem`
-5. Convert to PFX:
+5. Convert to PFX (modern AES format — do **not** use `-legacy`):
    `openssl pkcs12 -export -out cloudflare-origin.pfx -inkey origin-key.pem -in origin-cert.pem -passout pass:`
 6. Base64-encode for CI: `base64 -w 0 cloudflare-origin.pfx` and store as `CLOUDFLARE_ORIGIN_CERT_B64` GitHub secret
 
