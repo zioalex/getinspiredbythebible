@@ -569,7 +569,7 @@ jobs:
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
 
       - name: Terraform Plan
@@ -596,7 +596,7 @@ jobs:
           exit 0
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
 
       - name: Upload Plan Artifact
@@ -876,7 +876,7 @@ jobs:
       - name: Terraform Init
         working-directory: deployment
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
         run: |
           terraform init \
@@ -894,7 +894,7 @@ jobs:
       - name: Terraform Apply
         working-directory: deployment
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
         run: terraform apply -auto-approve tfplan
 
@@ -1148,7 +1148,7 @@ jobs:
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
 
       - name: Terraform Destroy
@@ -1160,7 +1160,7 @@ jobs:
             -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
-          ARM_USE_CLI: "false"
+          ARM_USE_CLI: "true"
           ARM_USE_OIDC: "false"
 
       - name: Post Destroy Summary
