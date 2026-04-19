@@ -545,7 +545,8 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
               echo "cert_decoded=false" >> $GITHUB_ENV
             fi
           fi
@@ -569,6 +570,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
 
       - name: Terraform Plan
         id: plan
@@ -595,6 +597,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
 
       - name: Upload Plan Artifact
         if: github.event_name != 'pull_request'
@@ -859,7 +862,8 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
               echo "cert_decoded=false" >> $GITHUB_ENV
             fi
           fi
@@ -873,6 +877,7 @@ jobs:
         working-directory: deployment
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
         run: |
           terraform init \
             -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
@@ -890,6 +895,7 @@ jobs:
         working-directory: deployment
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
         run: terraform apply -auto-approve tfplan
 
       - name: Login to Azure (for verification)
@@ -1122,7 +1128,8 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read (wrong password or corrupt file) — SSL cert upload will be skipped. To fix: regenerate the PFX with 'openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:' and update CLOUDFLARE_ORIGIN_CERT_B64."
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
               echo "cert_decoded=false" >> $GITHUB_ENV
             fi
           fi
@@ -1142,6 +1149,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
 
       - name: Terraform Destroy
         run: |
@@ -1153,6 +1161,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           ARM_USE_CLI: "false"
+          ARM_USE_OIDC: "false"
 
       - name: Post Destroy Summary
         run: |
