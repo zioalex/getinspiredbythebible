@@ -117,7 +117,7 @@ env:
     ${{ github.event_name == 'workflow_run'
         && github.event.workflow_run.head_sha
         || github.sha }}
-  TF_VERSION: "1.6.0"
+  TF_VERSION: "1.10.5"
   TF_WORKING_DIR: "./deployment"
   # TODO: update Azure resource names when infrastructure is renamed to voxquieta
   BACKEND_APP_NAME: bible-app-backend
@@ -524,9 +524,31 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
+              rm -f /tmp/pfx_chain.pem
+            fi
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
+              echo "cert_decoded=false" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Setup Terraform
@@ -546,8 +568,6 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "false"
 
       - name: Terraform Plan
         id: plan
@@ -572,8 +592,6 @@ jobs:
           fi
           exit 0
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "false"
 
       - name: Upload Plan Artifact
         if: github.event_name != 'pull_request'
@@ -817,9 +835,31 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="deployment/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
+              rm -f /tmp/pfx_chain.pem
+            fi
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
+              echo "cert_decoded=false" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Setup Terraform
@@ -829,8 +869,6 @@ jobs:
 
       - name: Terraform Init
         working-directory: deployment
-        env:
-          ARM_USE_CLI: "false"
         run: |
           terraform init \
             -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT }}" \
@@ -846,8 +884,6 @@ jobs:
 
       - name: Terraform Apply
         working-directory: deployment
-        env:
-          ARM_USE_CLI: "false"
         run: terraform apply -auto-approve tfplan
 
       - name: Login to Azure (for verification)
@@ -1059,9 +1095,31 @@ jobs:
             echo "cert_decoded=false" >> $GITHUB_ENV
           else
             echo "$CERT_B64" | base64 -d > ${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx
-            # Path relative to TF working dir so filemd5() and az CLI resolve correctly
-            echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
-            echo "cert_decoded=true" >> $GITHUB_ENV
+            # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            PFX_FILE="${{ env.TF_WORKING_DIR }}/cloudflare-origin.pfx"
+            CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
+            if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null \
+                || openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
+                -nodes -out /tmp/pfx_chain.pem 2>/dev/null; then
+              if openssl pkcs12 -export -in /tmp/pfx_chain.pem \
+                  -passout "pass:${CERT_PASS}" -out /tmp/pfx_modern.pfx 2>/dev/null; then
+                mv /tmp/pfx_modern.pfx "$PFX_FILE"
+                echo "PFX normalized to modern PKCS12 format"
+              fi
+              rm -f /tmp/pfx_chain.pem
+            fi
+            if openssl pkcs12 -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null || \
+               openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
+              # Path relative to TF working dir so filemd5() and az CLI resolve correctly
+              echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_ENV
+            else
+              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
+              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
+              echo "cert_decoded=false" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Setup Terraform
@@ -1077,8 +1135,6 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="key=bible-app.tfstate"
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "false"
 
       - name: Terraform Destroy
         run: |
@@ -1088,8 +1144,6 @@ jobs:
             -var="frontend_image=${{ env.ACR_NAME }}.azurecr.io/bible-frontend:${{ github.sha }}" \
             -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          ARM_USE_CLI: "false"
 
       - name: Post Destroy Summary
         run: |
