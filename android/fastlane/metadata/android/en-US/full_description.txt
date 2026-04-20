@@ -7,7 +7,7 @@ KEY FEATURES
 • AI-guided Scripture exploration — describe what you're feeling and receive relevant Bible passages with context
 • Full Bible reader — browse any book, chapter, and verse across multiple translations
 • Church finder — locate nearby churches when you're ready to connect with a community
-• Multi-language support — available in English, Italian, Russian, Chinese, Hindi, and Korean
+• Multi-language support — available in English, Arabic, Chinese, French, German, Hindi, Italian, Korean, Portuguese, Russian, and Spanish
 • Offline-ready conversation history — review past conversations any time
 • Privacy-first — no account required, no personal data stored on our servers
 
