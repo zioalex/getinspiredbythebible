@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: April 20, 2026**
+Last updated: April 20, 2026
 
 ## Who We Are
 
@@ -9,14 +9,22 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 ## What Data We Collect
 
 ### Data You Provide
-- **Chat messages**: The text you type is sent to our API to generate Scripture-based responses. We do not store your messages on our servers beyond the time needed to generate a response.
+
+- **Chat messages**: The text you type is sent to our API to generate Scripture-based
+  responses. We do not store your messages on our servers beyond the time needed to generate
+  a response.
 - **Feedback ratings**: Optional thumbs-up/thumbs-down ratings you submit on responses.
 
 ### Data Collected Automatically
-- **Crash reports**: If the app crashes, Firebase Crashlytics collects anonymised diagnostic information (device model, OS version, app version, stack trace). No personal identifiers are included.
-- **Usage analytics**: Firebase Analytics collects anonymised usage events (screen views, feature interactions) to help us improve the app. No personal identifiers are included.
+
+- **Crash reports**: If the app crashes, Firebase Crashlytics collects anonymised diagnostic
+  information (device model, OS version, app version, stack trace). No personal identifiers
+  are included.
+- **Usage analytics**: Firebase Analytics collects anonymised usage events (screen views,
+  feature interactions) to help us improve the app. No personal identifiers are included.
 
 ### Data We Do NOT Collect
+
 - We do not require account registration.
 - We do not collect your name, email address, or phone number.
 - We do not track your location.
@@ -24,7 +32,8 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 
 ## Conversation History
 
-Conversation history is stored **locally on your device only** using an encrypted on-device database (Room/SQLite). It is never uploaded to our servers.
+Conversation history is stored **locally on your device only** using an encrypted on-device
+database (Room/SQLite). It is never uploaded to our servers.
 
 ## Third-Party Services
 
@@ -42,14 +51,19 @@ Conversation history is stored **locally on your device only** using an encrypte
 ## Your Rights (GDPR)
 
 If you are in the European Economic Area, you have the right to:
+
 - Access the personal data we hold about you.
 - Request deletion of your data.
 - Object to processing of your data.
 
-Since we collect no personally identifiable information, most requests can be fulfilled by clearing your local conversation history within the app. For crash/analytics data held by Google, please refer to Google's privacy controls at [myaccount.google.com](https://myaccount.google.com).
+Since we collect no personally identifiable information, most requests can be fulfilled by
+clearing your local conversation history within the app. For crash/analytics data held by
+Google, please refer to Google's privacy controls at
+[myaccount.google.com](https://myaccount.google.com).
 
-For any privacy questions, contact us at: **privacy@voxquieta.org**
+For any privacy questions, contact us at: **<privacy@voxquieta.org>**
 
 ## Changes to This Policy
 
-We will post any material changes to this page and update the "Last updated" date. Continued use of the app after changes constitutes acceptance of the updated policy.
+We will post any material changes to this page and update the "Last updated" date. Continued
+use of the app after changes constitutes acceptance of the updated policy.
