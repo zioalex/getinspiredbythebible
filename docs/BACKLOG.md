@@ -844,7 +844,8 @@ text = t2s.transliterate(text)
 - [x] GitHub Actions publish workflow created (`.github/workflows/android-publish.yml`)
 - [ ] Production keystore generated and GitHub secrets set (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`,
   `KEY_ALIAS`, `KEY_PASSWORD`, `GOOGLE_PLAY_JSON_KEY`)
-- [ ] Screenshots captured (2–8, 1080×1920) and added to `android/play_store_assets/screenshots/`
+- [x] Screenshots captured (9 screens) and added to `android/play_store_assets/screenshots/` and
+  `android/fastlane/metadata/android/en-US/images/phoneScreenshots/`
 - [ ] Google Play Console: app created, listing filled, content rating completed
 - [ ] App submitted and approved by Google
 - [ ] Post-launch monitoring verified (Firebase Crashlytics + Analytics)
