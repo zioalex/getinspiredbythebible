@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
@@ -205,10 +206,18 @@ class ChatViewModel @Inject constructor(
     val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
 
     init {
+        // isTurnstileReady is true when a valid token is held OR when Turnstile has
+        // errored (fail-open): the interceptor already forwards requests without a
+        // token, so the backend decides whether to accept them. This prevents the
+        // Turnstile widget from permanently blocking the input on widget errors.
         viewModelScope.launch {
-            turnstileManager.tokenFlow.collect { token ->
-                _uiState.update { it.copy(isTurnstileReady = token != null) }
-            }
+            combine(
+                turnstileManager.tokenFlow,
+                turnstileManager.hasError,
+            ) { token, errored -> token != null || errored }
+                .collect { ready ->
+                    _uiState.update { it.copy(isTurnstileReady = ready) }
+                }
         }
         // Restore persisted locale on startup.
         viewModelScope.launch {

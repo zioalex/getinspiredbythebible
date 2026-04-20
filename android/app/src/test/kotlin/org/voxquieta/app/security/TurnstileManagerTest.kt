@@ -4,7 +4,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -136,5 +138,55 @@ class TurnstileManagerTest {
 
         assertEquals("fresh-token", manager.currentToken())
         assertEquals("fresh-token", manager.tokenFlow.first())
+    }
+
+    // -------------------------------------------------------------------------
+    // Fail-open (hasError) tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `hasError is initially false`() = runTest {
+        assertFalse(manager.hasError.value)
+    }
+
+    @Test
+    fun `onError sets hasError to true`() = runTest {
+        manager.onError("110200")
+        assertTrue(manager.hasError.value)
+    }
+
+    @Test
+    fun `onError clears the token and sets hasError`() = runTest {
+        manager.onTokenReceived("live-token")
+        manager.onError("110200")
+
+        assertNull(manager.currentToken())
+        assertTrue(manager.hasError.value)
+    }
+
+    @Test
+    fun `onTokenReceived clears hasError`() = runTest {
+        manager.onError("110200")
+        manager.onTokenReceived("recovery-token")
+
+        assertFalse(manager.hasError.value)
+        assertEquals("recovery-token", manager.currentToken())
+    }
+
+    @Test
+    fun `hasError persists across requestReset so fail-open continues until token arrives`() = runTest {
+        manager.onError("110200")
+        manager.requestReset()
+
+        assertTrue(manager.hasError.value)
+    }
+
+    @Test
+    fun `multiple errors keep hasError true`() = runTest {
+        manager.onError("110200")
+        manager.onError("300030")
+
+        assertTrue(manager.hasError.value)
+        assertNull(manager.currentToken())
     }
 }

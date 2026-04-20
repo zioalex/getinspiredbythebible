@@ -434,6 +434,29 @@ class ChatViewModelTest {
         assertFalse(viewModel.uiState.value.isTurnstileReady)
     }
 
+    @Test
+    fun `isTurnstileReady is true when turnstile widget errors (fail-open)`() = runTest {
+        // Simulate Cloudflare widget firing the error callback (e.g. network unreachable).
+        turnstileManager.onError("300030")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The user should still be able to send; backend decides whether to accept the request.
+        assertTrue(viewModel.uiState.value.isTurnstileReady)
+    }
+
+    @Test
+    fun `isTurnstileReady becomes true again when token arrives after error`() = runTest {
+        turnstileManager.onError("300030")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isTurnstileReady)
+
+        // Widget recovers and delivers a fresh token.
+        turnstileManager.onTokenReceived("fresh-token")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isTurnstileReady)
+    }
+
     // ── Translation tests ─────────────────────────────────────────────────────
 
     @Test
