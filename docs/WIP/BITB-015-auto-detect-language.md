@@ -35,4 +35,4 @@
 
 ## PR URL
 
-https://github.com/zioalex/getinspiredbythebible/pull/197
+<https://github.com/zioalex/getinspiredbythebible/pull/197>

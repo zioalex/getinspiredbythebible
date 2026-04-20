@@ -1,9 +1,11 @@
 # WIP Story Implementation Audit (2026-04-20)
 
 ## Scope
+
 This audit covers story-style and PR-tracker docs under docs/WIP and records archival moves to docs/DONE performed during reconciliation. Session summaries and operational notes are excluded unless used as evidence for a contradiction.
 
 ## Status Legend
+
 - Implemented: completed and corroborated by DONE/backlog evidence
 - Partially implemented: code/PR exists but merge/deploy/post-actions still pending or conflicting status remains
 - Not implemented: still planned/in-progress without completion evidence
@@ -37,22 +39,27 @@ This audit covers story-style and PR-tracker docs under docs/WIP and records arc
 ## Contradictions
 
 1. BITB-014 mismatch
+
 - WIP says merged: [docs/WIP/CURRENT-STATUS-2026-03-04.md](docs/WIP/CURRENT-STATUS-2026-03-04.md#L32)
 - Backlog story still todo: [docs/BACKLOG_STORIES/BITB-014-fix-migration-pipeline-dependency.md](docs/BACKLOG_STORIES/BITB-014-fix-migration-pipeline-dependency.md#L4)
 
 2. BITB-015 ID/scope collision (resolved on 2026-04-20)
+
 - WIP language-detection doc now explicitly marked as a legacy historical ID and linked to canonical PR #197 record: [docs/WIP/BITB-015-auto-detect-language.md](docs/WIP/BITB-015-auto-detect-language.md)
 - Backlog BITB-015 remains the current agent-configuration story: [docs/BACKLOG_STORIES/BITB-015-consolidate-agent-configuration.md](docs/BACKLOG_STORIES/BITB-015-consolidate-agent-configuration.md#L1)
 
 3. BITB-016 status mismatch
+
 - WIP indicates completion: [docs/WIP/BITB-016-IMPLEMENTATION-COMPLETE.md](docs/WIP/BITB-016-IMPLEMENTATION-COMPLETE.md#L229)
 - Backlog story still todo: [docs/BACKLOG_STORIES/BITB-016-fix-migration-ssl-connection.md](docs/BACKLOG_STORIES/BITB-016-fix-migration-ssl-connection.md#L4)
 
 4. PR309 mismatch
+
 - WIP says open awaiting merge: [docs/WIP/PR309-android-gap-002-streaming-metadata.md](docs/WIP/PR309-android-gap-002-streaming-metadata.md#L5)
 - GitHub PR verification (2026-04-20): PR #309 is closed and unmerged
 
 5. BITB-021 internal inconsistency (resolved on 2026-04-20)
+
 - Story status updated to explicit in-progress state that matches its narrative and dependency context: [docs/BACKLOG_STORIES/BITB-021-instrument-performance-metrics.md](docs/BACKLOG_STORIES/BITB-021-instrument-performance-metrics.md#L4)
 
 ## Recommended Triage Actions
