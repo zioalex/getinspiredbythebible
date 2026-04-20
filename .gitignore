@@ -125,3 +125,7 @@ block_traffic_*.sh
 /package-lock.json
 # Spurious package-lock in the Python API directory
 api/package-lock.json
+sslcert/cert.b64
+sslcert/origin-cert.pem
+sslcert/origin-key.pem
+sslcert/cloudflare-origin.pfx
