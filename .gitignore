@@ -18,6 +18,7 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+sshcert/
 
 # Node.js / Frontend
 **/node_modules/
