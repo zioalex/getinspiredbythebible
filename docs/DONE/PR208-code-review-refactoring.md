@@ -49,7 +49,8 @@ Successfully completed the full lifecycle for PR #208 (Multi-Language Content Sa
 ### 2026-03-04 - Code Review & Refactoring
 
 **Issue Identified:**
-Human spotted potential code duplication: "Content safety check BEFORE LLM call" appeared in both `chat()` and `chat_stream()` methods in PR #208.
+Human spotted potential code duplication: "Content safety check BEFORE LLM call" appeared in both
+`chat()` and `chat_stream()` methods in PR #208.
 
 **Investigation Findings:**
 
@@ -77,8 +78,10 @@ Human spotted potential code duplication: "Content safety check BEFORE LLM call"
    ```
 
 2. **Updated both methods to call helper:**
-   - `chat()` method: `await self._check_content_safety(request.message, detected_language, request.session_id, context="chat")`
-   - `chat_stream()` method: `await self._check_content_safety(request.message, detected_language, request.session_id, context="chat stream")`
+   - `chat()` method: `await self._check_content_safety(request.message, detected_language,
+     request.session_id, context="chat")`
+   - `chat_stream()` method: `await self._check_content_safety(request.message, detected_language,
+     request.session_id, context="chat stream")`
 
 3. **Results:**
    - Net code reduction: 60 duplicated lines → 1 shared helper + 2 call sites (~6 lines total)
@@ -105,7 +108,8 @@ Human spotted potential code duplication: "Content safety check BEFORE LLM call"
 
 **Conflict Details:**
 
-- **`api/config.py`:** Conflict between content safety settings (feature branch) and new field/model validators added in main
+- **`api/config.py`:** Conflict between content safety settings (feature branch) and new
+  field/model validators added in main
 - Resolution: Kept both sets of changes
   - ✅ Content safety settings from PR #208 (Azure endpoint, key, threshold, mode)
   - ✅ All validators from main (database_url validators, LLM/embedding provider validators, Turnstile config)

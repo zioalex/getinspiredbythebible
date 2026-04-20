@@ -1,7 +1,5 @@
 # BITB-018: Fix CI Integration Test Ollama Model Pull Timeout
 
-# BITB-018: Fix CI Integration Test Ollama Model Pull Timeout
-
 **Priority:** P1 (High - Needs Investigation)
 **Status:** ✅ Resolved - Temporary GitHub network glitch
 **Size:** S (investigation only)
@@ -20,7 +18,8 @@
 - Second CI run passed: Normal download speed, model pulled successfully
 - No code changes between runs
 
-**Decision:** No fix implemented. Occasional network glitches (~1-2% frequency) are acceptable. Developers can re-run failed jobs.
+**Decision:** No fix implemented. Occasional network glitches (~1-2% frequency) are acceptable.
+Developers can re-run failed jobs.
 
 **Lessons Learned:**
 
@@ -71,11 +70,13 @@
 ## Problem Statement
 
 **Current Behavior:**
-Integration tests are failing with timeout errors while waiting for Ollama embedding model to be ready. The test waits up to 60 attempts (10 minutes) but Ollama never reports the model as ready via the API tags endpoint.
+Integration tests are failing with timeout errors while waiting for Ollama embedding model to be
+ready. The test waits up to 60 attempts (10 minutes) but Ollama never reports the model as ready
+via the API tags endpoint.
 
 **Error Log:**
 
-```
+```text
 Waiting for Ollama embedding model... attempt 56/60
 Waiting for Ollama embedding model... attempt 57/60
 Waiting for Ollama embedding model... attempt 58/60
@@ -85,7 +86,7 @@ Ollama failed to be ready with embedding model
 
 **Ollama Container Logs:**
 
-```
+```text
 ollama-1  | Pulling embedding model: mxbai-embed-large...
 ollama-1  | pulling manifest ⠙
 ollama-1  | pulling 819c2adf5ce6:  89% ▕████████████████  ▏ 595 MB/669 MB  187 KB/s   6m33s
@@ -93,7 +94,8 @@ ollama-1  | [GIN] 2026/03/04 - 19:11:18 | 200 |      79.784µs |      172.18.0.1
 Error: Process completed with exit code 1.
 ```
 
-**Key Insight:** Model download reached **89% (595 MB of 669 MB)** but network speed was only **187 KB/s**, requiring ~60 minutes total to complete. Test timed out after 10 minutes.
+**Key Insight:** Model download reached **89% (595 MB of 669 MB)** but network speed was only
+**187 KB/s**, requiring ~60 minutes total to complete. Test timed out after 10 minutes.
 
 **GitHub Actions Run:**
 
@@ -112,7 +114,9 @@ Error: Process completed with exit code 1.
 7. **Result:** Model reaches 89% before timeout, test fails
 
 **Why this is NOT a race condition:**
-The problem isn't that we're checking too early—it's that the download is **too slow to ever complete** within a reasonable CI timeout. Even with a 20-minute timeout, the download would still fail.
+The problem isn't that we're checking too early—it's that the download is **too slow to ever
+complete** within a reasonable CI timeout. Even with a 20-minute timeout, the download would
+still fail.
 
 **Potential Causes:**
 

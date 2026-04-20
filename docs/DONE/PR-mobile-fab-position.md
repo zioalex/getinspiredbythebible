@@ -5,11 +5,13 @@
 
 ## Summary
 
-Move the mobile floating action button (FAB) for verse references from bottom-right to top-right position to prevent interference with phone UI elements.
+Move the mobile floating action button (FAB) for verse references from bottom-right to top-right
+position to prevent interference with phone UI elements.
 
 ## User Story
 
-As a mobile user, I want the verse references button to be positioned at the top of the screen so that it doesn't interfere with the input area and other bottom UI elements.
+As a mobile user, I want the verse references button to be positioned at the top of the screen so
+that it doesn't interfere with the input area and other bottom UI elements.
 
 ## Tasks
 

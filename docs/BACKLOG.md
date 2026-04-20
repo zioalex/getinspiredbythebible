@@ -4,7 +4,9 @@ Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-04-20
 
-**Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub. Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226, #227. Confirmed closed-unmerged: #309.
+**Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
+Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
+\#227. Confirmed closed-unmerged: #309.
 
 ---
 

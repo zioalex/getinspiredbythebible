@@ -20,15 +20,17 @@
 
 **Current Error:**
 
-```
+```text
 asyncpg.exceptions.CantChangeRuntimeParamError: parameter "ssl" cannot be changed now
 ```
 
 **Root Cause:**
-The migration scripts (`001_add_feedback_tables.py`, `002_add_spiritual_contact_subject.py`) are passing the full `DATABASE_URL` with `?ssl=require` query parameter to `asyncpg.connect()`.
+The migration scripts (`001_add_feedback_tables.py`, `002_add_spiritual_contact_subject.py`) are
+passing the full `DATABASE_URL` with `?ssl=require` query parameter to `asyncpg.connect()`.
 
 **Technical Issue:**
-asyncpg does NOT support SSL configuration as a URL query parameter (unlike psycopg2). SSL settings must be passed as a separate `ssl` parameter to the connection function.
+asyncpg does NOT support SSL configuration as a URL query parameter (unlike psycopg2).
+SSL settings must be passed as a separate `ssl` parameter to the connection function.
 
 **Impact:**
 
@@ -213,7 +215,7 @@ def get_migration_connection_params(database_url: str) -> tuple[str, dict]:
         Tuple of (clean_url, connection_kwargs)
 
     Example:
-        >>> url = "postgresql://user:pass@host/db?ssl=require"
+        >>> url = "postgresql://user:pass@host/db?ssl=require"  # pragma: allowlist secret
         >>> clean_url, kwargs = get_migration_connection_params(url)
         >>> conn = await asyncpg.connect(clean_url, **kwargs)
     """
@@ -295,7 +297,7 @@ if __name__ == "__main__":
 
 ```bash
 # 1. Run locally (no SSL)
-export DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+export DATABASE_URL="postgresql://user:pass@localhost:5432/db"  # pragma: allowlist secret
 python scripts/migrations/001_add_feedback_tables.py
 # Should work ✅
 

@@ -10,7 +10,10 @@
 
 ## Background
 
-The Azure Monitor Performance Dashboard was deployed on 2026-03-04 as part of the observability initiative (PRs B1-B5). The workbook is live in Azure Portal and queries are configured correctly, but **all panels show "No data"** because the backend is not emitting the specific custom metrics that the dashboard expects.
+The Azure Monitor Performance Dashboard was deployed on 2026-03-04 as part of the observability
+initiative (PRs B1-B5). The workbook is live in Azure Portal and queries are configured correctly,
+but **all panels show "No data"** because the backend is not emitting the specific custom metrics
+that the dashboard expects.
 
 **Gap identified:**
 
@@ -25,7 +28,8 @@ The dashboard KQL queries expect these OpenTelemetry custom metrics:
 - `db.query.duration_ms` - General SQL query duration
 - `db.slow_queries` - Count of queries exceeding 100ms threshold
 
-The backend currently only emits generic metrics (`chat.messages.total`, `chat.response_time_ms`) that don't match the dashboard's queries.
+The backend currently only emits generic metrics (`chat.messages.total`, `chat.response_time_ms`)
+that don't match the dashboard's queries.
 
 **Reference docs:**
 
@@ -39,7 +43,9 @@ The backend currently only emits generic metrics (`chat.messages.total`, `chat.r
 
 **As a** site reliability engineer monitoring the Bible app in production,
 **I want** the Performance Dashboard to display real-time LLM and database metrics,
-**so that** I can detect performance degradation, identify bottlenecks (slow queries, high TTFT, rate limit exhaustion), and correlate errors with infrastructure health without needing to write custom KQL queries or dig through raw logs.
+**so that** I can detect performance degradation, identify bottlenecks (slow queries, high TTFT,
+rate limit exhaustion), and correlate errors with infrastructure health without needing to write
+custom KQL queries or dig through raw logs.
 
 ---
 
@@ -50,8 +56,10 @@ The backend currently only emits generic metrics (`chat.messages.total`, `chat.r
 The workbook has 5 panels with specific queries:
 
 1. **📊 Overview — Error Detection:** Works (uses built-in `requests` table)
-2. **🤖 LLM Performance:** ❌ Empty — expects `llm.ttft_ms`, `llm.total_duration_ms`, `llm.fallback_count`, `llm.rate_limit_hits`, `llm.tokens_per_second`
-3. **🗄️ Database Performance:** ❌ Empty — expects `db.search.duration_ms`, `db.query.duration_ms`, `db.slow_queries`
+2. **🤖 LLM Performance:** ❌ Empty — expects `llm.ttft_ms`, `llm.total_duration_ms`,
+   `llm.fallback_count`, `llm.rate_limit_hits`, `llm.tokens_per_second`
+3. **🗄️ Database Performance:** ❌ Empty — expects `db.search.duration_ms`,
+   `db.query.duration_ms`, `db.slow_queries`
 4. **🚨 Error Analysis:** Works (uses built-in `requests` table with `customDimensions["correlation_id"]`)
 5. **🖥️ Infrastructure:** Works (uses built-in `performanceCounters` table)
 
@@ -68,7 +76,8 @@ The workbook has 5 panels with specific queries:
 
 **Database metrics:**
 
-- `ScriptureRepository` uses OpenTelemetry **spans** (`utils/telemetry.py`) to record duration on traces, but does not emit **metrics** to the `customMetrics` table
+- `ScriptureRepository` uses OpenTelemetry **spans** (`utils/telemetry.py`) to record duration on
+  traces, but does not emit **metrics** to the `customMetrics` table
 - The slow query logger writes to logs but doesn't increment a counter metric
 
 **Root cause:** The dashboard was designed with these metrics in mind, but the backend instrumentation was never implemented.
@@ -120,7 +129,9 @@ llm_tokens_per_second_histogram = meter.create_histogram(
   - Record timestamp before first chunk
   - When first chunk arrives: calculate TTFT, emit `llm_ttft_histogram.record(ttft_ms)`
   - Track total tokens generated and total duration
-  - After stream completes: calculate `tokens_per_sec = total_tokens / total_duration`, emit `llm_tokens_per_second_histogram.record(tokens_per_sec)` and `llm_total_duration_histogram.record(total_duration_ms)`
+  - After stream completes: calculate `tokens_per_sec = total_tokens / total_duration`, emit
+    `llm_tokens_per_second_histogram.record(tokens_per_sec)` and
+    `llm_total_duration_histogram.record(total_duration_ms)`
 
 - [ ] In `_attempt_chat_with_model()`:
   - When catching `RateLimitError` (HTTP 429): emit `llm_rate_limit_counter.add(1)`
@@ -187,7 +198,9 @@ The repository already has `_record_duration()` helper that:
 
 ### 3. Metrics Export to Application Insights
 
-No changes needed here — the OpenTelemetry `configure_azure_monitor()` in `api/main.py` already exports all metrics created via `metrics.get_meter("bible_app")` to Application Insights. The new metrics will automatically appear in the `customMetrics` table.
+No changes needed here — the OpenTelemetry `configure_azure_monitor()` in `api/main.py` already
+exports all metrics created via `metrics.get_meter("bible_app")` to Application Insights. The new
+metrics will automatically appear in the `customMetrics` table.
 
 ---
 

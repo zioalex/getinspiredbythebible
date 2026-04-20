@@ -19,7 +19,8 @@
 
 **Root Cause:** Temporary network slowdown on GitHub Actions infrastructure, not a systematic problem with our CI configuration.
 
-**Decision:** No fix needed. Accept that occasional network glitches can happen (~1-2% of runs). Developers can simply re-run failed CI jobs.
+**Decision:** No fix needed. Accept that occasional network glitches can happen (~1-2% of runs).
+Developers can simply re-run failed CI jobs.
 
 **Lessons Learned:**
 
@@ -46,14 +47,14 @@
 
 **Error:**
 
-```
+```text
 Waiting for Ollama embedding model... attempt 59/60
 Ollama failed to be ready with embedding model
 ```
 
 **Ollama Logs:**
 
-```
+```text
 ollama-1  | Pulling embedding model: mxbai-embed-large...
 ollama-1  | pulling 819c2adf5ce6:  89% ▕████████████████  ▏ 595 MB/669 MB  187 KB/s   6m33s
 Error: Process completed with exit code 1.
@@ -249,7 +250,7 @@ gh pr view 192 --json files,title,body
 
 ### Step 2: Decision Tree
 
-```
+```text
 START: Integration test failed with Ollama timeout
 
 ├─ Did tests work before PR #192?
@@ -497,13 +498,13 @@ max_attempts=120  # 20 minutes instead of 10
 
 ### Recommended Approach: Phased Investigation + Conditional Fix
 
-**Phase 1: Investigation (Today - 15 minutes)**
+### Phase 1: Investigation (Today - 15 minutes)
 
 1. Re-run the failed CI job → See if it's transient
 2. Check CI history → Find last successful run
 3. Review PR #192 → See if it changed anything Ollama-related
 
-**Phase 2: Decision (Based on Phase 1 results)**
+### Phase 2: Decision (Based on Phase 1 results)
 
 **IF** tests worked before PR #192:
 → **Fix PR #192 regression** (investigate what broke)
@@ -514,7 +515,7 @@ max_attempts=120  # 20 minutes instead of 10
 **IF** retry fails AND tests never worked reliably:
 → **Implement pre-built image** (Option B from BITB-018)
 
-**Phase 3: Implementation (If needed - 2-3 hours)**
+### Phase 3: Implementation (If needed - 2-3 hours)
 
 - Only proceed if evidence shows persistent issue
 - Pre-built image is the right long-term solution
