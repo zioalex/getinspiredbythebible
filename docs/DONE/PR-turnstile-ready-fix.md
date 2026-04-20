@@ -1,6 +1,6 @@
 # PR: Fix Example Sentences - Turnstile Ready Check
 
-**Status:** In Progress
+**Status:** ✅ Merged (PR #171, 2026-02-23)
 **Branch:** fix/turnstile-ready-check
 **Started:** 2026-02-23
 

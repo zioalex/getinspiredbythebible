@@ -1,6 +1,8 @@
-# BITB-015: Auto-Detect User Language for AI Responses
+# Legacy Story (Formerly BITB-015): Auto-Detect User Language for AI Responses
 
-**Status:** In Progress
+**Status:** ✅ Merged (PR #197, 2026-02-24)
+**Legacy ID Note:** This file keeps the historical WIP label "BITB-015" from an older tracking phase. The active backlog ID `BITB-015` now refers to a different story (agent configuration).
+**Canonical Record:** `docs/DONE/2026-02-24-mobile-ux-and-quick-wins.md` (PR #197)
 **Branch:** fix/auto-detect-language
 **Started:** 2026-02-24
 
@@ -33,4 +35,4 @@
 
 ## PR URL
 
-{to be filled}
+https://github.com/zioalex/getinspiredbythebible/pull/197
