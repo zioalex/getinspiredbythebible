@@ -24,9 +24,9 @@ You agree not to:
 
 ## 5. Intellectual Property
 
-The App and its content (excluding Bible text, which is in the public domain or used under licence) are the property of the Vox Quieta team and are protected by copyright. You may not reproduce or redistribute any part of the App without written permission.
+The App's source code is released under the [MIT License](https://opensource.org/licenses/MIT) and is available at [https://github.com/zioalex/getinspiredbythebible](https://github.com/zioalex/getinspiredbythebible). You are free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software in accordance with that licence.
 
-Bible translations used in the App are sourced from public-domain or open-licence sources. Attribution is available within the App.
+Bible translations used in the App are sourced from public-domain or open-licence sources.
 
 ## 6. AI-Generated Content
 
@@ -46,7 +46,7 @@ We may update the App or these Terms at any time. Continued use of the App after
 
 ## 10. Governing Law
 
-These Terms are governed by the laws of Italy, without regard to conflict-of-law principles.
+These Terms are governed by the laws of Switzerland, without regard to conflict-of-law principles.
 
 ## 11. Contact
 
