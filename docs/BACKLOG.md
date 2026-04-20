@@ -833,12 +833,18 @@ text = t2s.transliterate(text)
 **Acceptance Criteria:**
 
 - [ ] Turnstile bot protection enabled (BITB-003)
-- [ ] App icon and branding finalized
-- [ ] Privacy policy and terms of service written
-- [ ] Google Play Store listing created
-- [ ] APK signed with production keystore
+- [x] App icon and branding finalized (`android/play_store_assets/`)
+- [x] Privacy policy written (`docs/privacy-policy.md`)
+- [x] Terms of service written (`docs/terms-of-service.md`)
+- [x] Play Store metadata created (`android/fastlane/metadata/android/en-US/`)
+- [x] Fastlane configured for Play Store uploads (`android/fastlane/`)
+- [x] Release signing config added to `android/app/build.gradle.kts`
+- [x] GitHub Actions publish workflow created (`.github/workflows/android-publish.yml`)
+- [ ] Production keystore generated and GitHub secrets set (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `GOOGLE_PLAY_JSON_KEY`)
+- [ ] Screenshots captured (2–8, 1080×1920) and added to `android/play_store_assets/screenshots/`
+- [ ] Google Play Console: app created, listing filled, content rating completed
 - [ ] App submitted and approved by Google
-- [ ] Post-launch monitoring (crash reports, analytics)
+- [ ] Post-launch monitoring verified (Firebase Crashlytics + Analytics)
 
 **Tech Constraints:**
 
