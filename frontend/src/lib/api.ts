@@ -319,9 +319,9 @@ export async function sendMessage(
       // Handle 429 rate limit errors
       if (response.status === 429) {
         const data = await response.json().catch(() => ({}));
-        if (data.error === "session_lifetime_limit") {
+        if (data.detail?.error === "session_lifetime_limit") {
           throw new SessionLimitError(
-            data.message ||
+            data.detail?.message ||
               "Session limit reached. Start a new session to continue.",
           );
         }
@@ -403,9 +403,9 @@ export async function* streamMessage(
     // Handle 429 rate limit errors
     if (response.status === 429) {
       const data = await response.json().catch(() => ({}));
-      if (data.error === "session_lifetime_limit") {
+      if (data.detail?.error === "session_lifetime_limit") {
         throw new SessionLimitError(
-          data.message ||
+          data.detail?.message ||
             "Session limit reached. Start a new session to continue.",
         );
       }
