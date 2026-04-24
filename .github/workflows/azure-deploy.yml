@@ -913,7 +913,7 @@ jobs:
             BACKEND_URL="https://$BACKEND_FQDN"
             echo "Backend URL: $BACKEND_URL"
             for i in 1 2 3; do
-              if curl -sf "$BACKEND_URL/health" --max-time 10; then
+              if curl -sf "$BACKEND_URL/health/live" --max-time 10; then
                 echo "Backend health check passed"
                 break
               fi
