@@ -442,6 +442,19 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 }
 
 # -----------------------------------------------------------------------------
+# Secret Change Trigger
+# -----------------------------------------------------------------------------
+# The backend container app uses ignore_changes = [secret] to avoid false drift
+# from the Azure API never returning secret values.  This terraform_data resource
+# watches a SHA256 hash of the OpenRouter API key so that when it actually
+# changes, terraform_data is replaced, which in turn triggers a replacement of
+# the backend container app via replace_triggered_by.
+
+resource "terraform_data" "backend_secret_trigger" {
+  triggers_replace = sha256(var.openrouter_api_key)
+}
+
+# -----------------------------------------------------------------------------
 # Container App - Backend (FastAPI)
 # -----------------------------------------------------------------------------
 
@@ -578,6 +591,10 @@ resource "azurerm_container_app" "backend" {
     # NOTE: to rotate a secret (ACR password, API key, etc.) run:
     #   terraform apply -replace=azurerm_container_app.backend
     ignore_changes = [secret]
+
+    # Automatically replace the backend container app when the OpenRouter
+    # API key changes, even though ignore_changes hides secret drift.
+    replace_triggered_by = [terraform_data.backend_secret_trigger.id]
   }
 
   tags = local.tags
