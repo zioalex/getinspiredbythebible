@@ -1020,7 +1020,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: pip install httpx pytest pytest-asyncio
+        run: pip install httpx pytest pytest-asyncio pydantic pydantic-settings
 
       - name: Run e2e tests (real user — frontend URL)
         id: e2e
