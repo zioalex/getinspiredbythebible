@@ -200,6 +200,13 @@ locals {
       "TURNSTILE_SITE_KEY" = {
         value = var.turnstile_site_key
       }
+    } : {},
+
+    # Synthetic monitor probe bypass (only when secret is provided)
+    var.monitor_probe_secret != "" ? {
+      "MONITOR_PROBE_SECRET" = {
+        secret_name = "monitor-probe-secret" # pragma: allowlist secret
+      }
     } : {}
   )
 
@@ -451,7 +458,14 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 # the backend container app via replace_triggered_by.
 
 resource "terraform_data" "backend_secret_trigger" {
-  triggers_replace = sha256(var.openrouter_api_key)
+  # Hash all GH-sourced sensitive values that flow into ACA `secret` blocks.
+  # When any of them changes, terraform_data is replaced, which forces a
+  # replacement of azurerm_container_app.backend (via replace_triggered_by),
+  # bypassing the lifecycle { ignore_changes = [secret] } rotation trap.
+  triggers_replace = sha256(join("|", [
+    var.openrouter_api_key,
+    var.monitor_probe_secret,
+  ]))
 }
 
 # -----------------------------------------------------------------------------
@@ -568,6 +582,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "turnstile-secret-key"
       value = var.turnstile_secret_key
+    }
+  }
+
+  # Synthetic monitor probe shared secret (only when set)
+  dynamic "secret" {
+    for_each = var.monitor_probe_secret != "" ? [1] : []
+    content {
+      name  = "monitor-probe-secret"
+      value = var.monitor_probe_secret
     }
   }
 

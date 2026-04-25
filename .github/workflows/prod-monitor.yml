@@ -1,0 +1,201 @@
+name: Prod Monitor
+
+# Production monitoring + alerting via Telegram.
+#
+# Three independent jobs run every 5 minutes:
+#   - health        : cheap liveness check (/health/live, /health/ready)
+#   - synthetic-chat: real chat round-trip via /api/v1/chat/stream — catches
+#                     the failure mode where the backend returns HTTP 200 with
+#                     an in-band {"type":"error", ...} SSE chunk (e.g. a bad
+#                     OpenRouter API key).
+#   - log-scan      : Azure Log Analytics KQL query against the backend's
+#                     ContainerAppConsoleLogs_CL for error patterns over the
+#                     last 10 minutes.
+#
+# Each job sends a Telegram message on transition pass→fail or fail→pass.
+# State is stored in the gh-monitor-state branch (one tiny file per job) so
+# repeated failures don't spam the chat.
+#
+# Required repo secrets:
+#   TELEGRAM_BOT_TOKEN   - existing Telegram bot token (e.g. shared with N8N)
+#   TELEGRAM_CHAT_ID     - chat/group ID where alerts land (negative for groups)
+#   MONITOR_PROBE_SECRET - shared secret for the synthetic chat probe; must
+#                          match settings.monitor_probe_secret in the deployed
+#                          backend (wired via TF_VAR_monitor_probe_secret in
+#                          azure-deploy.yml)
+#   ARM_CLIENT_ID / ARM_CLIENT_SECRET / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID
+#                        - service principal for the log-scan job (already
+#                          used by azure-deploy.yml)
+#
+# Required repo variables (vars.*):
+#   BACKEND_URL          - e.g. https://bible-app-backend.<region>.azurecontainerapps.io
+#                          (default: production hardcoded fallback below)
+#
+# Manual run:
+#   Actions → Prod Monitor → Run workflow
+#   (also useful for testing the Telegram setup with workflow_dispatch + force_alert=true)
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_alert:
+        description: "Send a test alert to Telegram regardless of probe outcome"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Allow scheduled runs to overlap minimally; manual runs take priority.
+  group: prod-monitor-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  BACKEND_URL: ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
+  STATE_BRANCH: gh-monitor-state
+
+jobs:
+  # ---------------------------------------------------------------------------
+  health:
+    name: Health probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check /health/live
+        id: live
+        run: |
+          set -o pipefail
+          body=$(curl -fsS --max-time 10 "${BACKEND_URL%/}/health/live")
+          echo "$body"
+          echo "$body" | grep -q '"alive"' || {
+            echo "live response missing 'alive': $body" > "$RUNNER_TEMP/detail.txt"
+            exit 1
+          }
+
+      - name: Check /health/ready
+        id: ready
+        run: |
+          set -o pipefail
+          body=$(curl -fsS --max-time 10 "${BACKEND_URL%/}/health/ready")
+          echo "$body"
+          echo "$body" | grep -q '"ready"' || {
+            echo "ready response missing 'ready': $body" > "$RUNNER_TEMP/detail.txt"
+            exit 1
+          }
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: health
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  # ---------------------------------------------------------------------------
+  synthetic-chat:
+    name: Synthetic chat probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install probe deps
+        run: pip install httpx
+
+      - name: Run synthetic chat probe
+        id: probe
+        env:
+          BACKEND_URL: ${{ env.BACKEND_URL }}
+          MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
+          PROBE_MESSAGE: "hi"
+          PROBE_TIMEOUT_SECONDS: "30"
+          PROBE_FIRST_CHUNK_SECONDS: "20"
+        run: python scripts/monitor/synthetic_chat.py --detail-out "$RUNNER_TEMP/detail.txt"
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: synthetic-chat
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  # ---------------------------------------------------------------------------
+  log-scan:
+    name: Log scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Resolve workspace ID
+        id: ws
+        run: |
+          ws_id=$(az monitor log-analytics workspace show \
+            --resource-group bible-app-rg \
+            --workspace-name "$(az monitor log-analytics workspace list \
+                --resource-group bible-app-rg \
+                --query '[0].name' -o tsv)" \
+            --query customerId -o tsv)
+          [ -n "$ws_id" ] || { echo "::error::could not resolve workspace ID"; exit 2; }
+          echo "id=$ws_id" >> "$GITHUB_OUTPUT"
+
+      - name: Query for backend errors (last 10 min)
+        id: query
+        run: |
+          set -o pipefail
+          query='ContainerAppConsoleLogs_CL
+            | where TimeGenerated > ago(10m)
+            | where ContainerAppName_s == "bible-app-backend"
+            | where Log_s matches regex "(?i)(openrouter error|llm streaming error|anthropic error|internal server error|traceback)"
+            | summarize cnt = count(), sample = any(Log_s)
+            | project cnt, sample'
+          result=$(az monitor log-analytics query \
+            --workspace "${{ steps.ws.outputs.id }}" \
+            --analytics-query "$query" \
+            -o json)
+          echo "$result"
+          cnt=$(echo "$result" | python -c 'import json,sys; rows=json.load(sys.stdin); print(rows[0].get("cnt",0) if rows else 0)')
+          if [ "${cnt:-0}" != "0" ]; then
+            sample=$(echo "$result" | python -c 'import json,sys; rows=json.load(sys.stdin); print((rows[0].get("sample") or "")[:1500])')
+            {
+              echo "$cnt error log line(s) in the last 10m on bible-app-backend."
+              echo ""
+              echo "Sample:"
+              echo "$sample"
+            } > "$RUNNER_TEMP/detail.txt"
+            exit 1
+          fi
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: log-scan
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}

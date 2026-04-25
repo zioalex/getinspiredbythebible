@@ -232,6 +232,32 @@ variable "openrouter_api_key" {
   sensitive   = true
 }
 
+variable "alert_email" {
+  description = <<-EOT
+    Email address that receives critical Azure Monitor alerts (Container App
+    restarts, log-query alerts on backend errors). This is the *backup*
+    delivery channel for the case where GitHub Actions itself is degraded
+    and prod-monitor.yml cannot send Telegram messages. Leave empty to
+    disable Azure Monitor alert delivery (the action group + alerts are
+    skipped entirely).
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "monitor_probe_secret" {
+  description = <<-EOT
+    Shared secret that lets the synthetic monitor probe bypass Turnstile and
+    rate limits via the X-Monitor-Probe-Secret header. Must match the value
+    sent by .github/workflows/prod-monitor.yml (repo secret MONITOR_PROBE_SECRET).
+    Leave empty to disable bypass (the probe will then receive 403 from
+    Turnstile in production).
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "openrouter_model" {
   description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct:free)"
   type        = string

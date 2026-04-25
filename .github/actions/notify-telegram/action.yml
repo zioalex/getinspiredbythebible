@@ -1,0 +1,126 @@
+name: Notify Telegram on probe transition
+description: >
+  Sends a Telegram alert when a monitor probe job transitions pass→fail or
+  fail→pass. Suppresses repeated alerts during sustained outages by stamping
+  the previous state into the GitHub Actions cache.
+
+inputs:
+  job_status:
+    description: "github.job's status — 'success' or 'failure' (or 'cancelled')."
+    required: true
+  job_name:
+    description: "Logical probe name used as the cache key suffix and in messages."
+    required: true
+  state_branch:
+    description: "Reserved (state lives in the Actions cache, not a branch)."
+    required: false
+    default: gh-monitor-state
+  telegram_bot_token:
+    description: "Telegram bot token. Not logged."
+    required: true
+  telegram_chat_id:
+    description: "Telegram chat ID — negative for groups."
+    required: true
+  force_alert:
+    description: "If 'true', always send a test alert regardless of transition."
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Restore previous state
+      id: restore
+      uses: actions/cache/restore@v4
+      with:
+        # Cache key uses run_id so each run gets a fresh entry; restore-keys
+        # falls back to the latest prior cache for this job.
+        key: monitor-state-${{ inputs.job_name }}-${{ github.run_id }}
+        restore-keys: |
+          monitor-state-${{ inputs.job_name }}-
+        path: monitor-state.txt
+
+    - name: Compute transition and send alert
+      id: notify
+      shell: bash
+      env:
+        JOB_STATUS: ${{ inputs.job_status }}
+        JOB_NAME: ${{ inputs.job_name }}
+        TG_TOKEN: ${{ inputs.telegram_bot_token }}
+        TG_CHAT: ${{ inputs.telegram_chat_id }}
+        FORCE_ALERT: ${{ inputs.force_alert }}
+      run: |
+        set -euo pipefail
+
+        # Map job status → simple pass/fail token. Treat 'cancelled' as
+        # neither (don't update state, don't alert).
+        case "$JOB_STATUS" in
+          success) curr=pass ;;
+          failure) curr=fail ;;
+          *)
+            echo "skipping notify: job_status=$JOB_STATUS"
+            exit 0
+            ;;
+        esac
+
+        prev=""
+        if [ -f monitor-state.txt ]; then
+          prev=$(head -c 16 monitor-state.txt | tr -d '[:space:]' || true)
+        fi
+
+        # Decide message
+        msg=""
+        if [ "$FORCE_ALERT" = "true" ]; then
+          msg="🧪 *prod-monitor* test alert from \`${JOB_NAME}\` on \`${GITHUB_SHA::7}\` (status=${curr})"
+        elif [ "$prev" = "" ] && [ "$curr" = "fail" ]; then
+          msg="🚨 *prod-monitor / ${JOB_NAME}* failed (no prior state)"
+        elif [ "$prev" = "pass" ] && [ "$curr" = "fail" ]; then
+          msg="🚨 *prod-monitor / ${JOB_NAME}* failed"
+        elif [ "$prev" = "fail" ] && [ "$curr" = "pass" ]; then
+          msg="✅ *prod-monitor / ${JOB_NAME}* recovered"
+        else
+          echo "no transition (prev=${prev:-none} → curr=${curr}); not alerting"
+        fi
+
+        if [ -n "$msg" ]; then
+          # Append run link
+          msg="${msg}
+        Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          # Append failure detail if the job wrote one
+          detail_file="${RUNNER_TEMP}/detail.txt"
+          if [ -f "$detail_file" ] && [ -s "$detail_file" ]; then
+            detail=$(head -c 1500 "$detail_file")
+            msg="${msg}
+
+        Detail:
+        \`\`\`
+        ${detail}
+        \`\`\`"
+          fi
+
+          if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then
+            echo "::warning::TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set; would send: $msg"
+          else
+            # Use --data-urlencode for text so newlines/markdown survive
+            http=$(curl -sS -o /tmp/tg-resp -w "%{http_code}" \
+              "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              -d "chat_id=${TG_CHAT}" \
+              -d "parse_mode=Markdown" \
+              --data-urlencode "text=${msg}" || echo "000")
+            if [ "$http" != "200" ]; then
+              echo "::warning::Telegram sendMessage returned HTTP ${http}: $(cat /tmp/tg-resp)"
+            else
+              echo "telegram alert sent (${#msg} chars)"
+            fi
+          fi
+        fi
+
+        # Persist the new state for the next run (replace file content)
+        printf '%s' "$curr" > monitor-state.txt
+
+    - name: Save new state
+      uses: actions/cache/save@v4
+      with:
+        key: monitor-state-${{ inputs.job_name }}-${{ github.run_id }}
+        path: monitor-state.txt
