@@ -1026,6 +1026,7 @@ jobs:
         id: e2e
         env:
           FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
+          DATABASE_URL: postgresql://e2e:e2e@localhost/e2e # pragma: allowlist secret
         run: |
           cd api
           python -m pytest tests/e2e/ -m e2e -v --tb=short
