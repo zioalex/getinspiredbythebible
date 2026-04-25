@@ -1,8 +1,7 @@
 name: Notify Telegram on probe transition
 description: >
-  Sends a Telegram alert when a monitor probe job transitions pass→fail or
-  fail→pass. Suppresses repeated alerts during sustained outages by stamping
-  the previous state into the GitHub Actions cache.
+  Sends a Telegram alert when a monitor probe job transitions pass→fail or fail→pass. Suppresses repeated alerts during
+  sustained outages by stamping the previous state into the GitHub Actions cache.
 
 inputs:
   job_status:

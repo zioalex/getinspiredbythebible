@@ -36,22 +36,22 @@ class TestIsMonitorProbe:
 
     def test_missing_header_does_not_bypass(self):
         with patch("utils.monitor_probe.settings") as s:
-            s.monitor_probe_secret = "configured-secret"
+            s.monitor_probe_secret = "configured-secret"  # pragma: allowlist secret
             assert is_monitor_probe(_request_with_header(None)) is False
 
     def test_empty_header_does_not_bypass(self):
         with patch("utils.monitor_probe.settings") as s:
-            s.monitor_probe_secret = "configured-secret"
+            s.monitor_probe_secret = "configured-secret"  # pragma: allowlist secret
             assert is_monitor_probe(_request_with_header("")) is False
 
     def test_mismatched_header_does_not_bypass(self):
         with patch("utils.monitor_probe.settings") as s:
-            s.monitor_probe_secret = "configured-secret"
+            s.monitor_probe_secret = "configured-secret"  # pragma: allowlist secret
             assert is_monitor_probe(_request_with_header("wrong-secret")) is False
 
     def test_matching_header_bypasses(self):
         with patch("utils.monitor_probe.settings") as s:
-            s.monitor_probe_secret = "configured-secret"
+            s.monitor_probe_secret = "configured-secret"  # pragma: allowlist secret
             assert is_monitor_probe(_request_with_header("configured-secret")) is True
 
     def test_compare_is_constant_time(self):
@@ -60,6 +60,6 @@ class TestIsMonitorProbe:
         directly, but we can confirm the matching path returns True for
         equal-length strings and False otherwise."""
         with patch("utils.monitor_probe.settings") as s:
-            s.monitor_probe_secret = "abc-123"
+            s.monitor_probe_secret = "abc-123"  # pragma: allowlist secret
             assert is_monitor_probe(_request_with_header("abc-124")) is False
             assert is_monitor_probe(_request_with_header("abc-1230")) is False

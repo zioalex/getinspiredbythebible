@@ -35,7 +35,8 @@ name: Prod Monitor
 #   Actions → Prod Monitor → Run workflow
 #   (also useful for testing the Telegram setup with workflow_dispatch + force_alert=true)
 
-on:
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -54,7 +55,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BACKEND_URL: ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
+  BACKEND_URL:
+    ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
   STATE_BRANCH: gh-monitor-state
 
 jobs:
@@ -166,20 +168,22 @@ jobs:
         id: query
         run: |
           set -o pipefail
-          query='ContainerAppConsoleLogs_CL
+          err_re='(?i)(openrouter error|llm streaming error|anthropic error'
+          err_re="${err_re}|internal server error|traceback)"
+          query="ContainerAppConsoleLogs_CL
             | where TimeGenerated > ago(10m)
-            | where ContainerAppName_s == "bible-app-backend"
-            | where Log_s matches regex "(?i)(openrouter error|llm streaming error|anthropic error|internal server error|traceback)"
+            | where ContainerAppName_s == \"bible-app-backend\"
+            | where Log_s matches regex \"${err_re}\"
             | summarize cnt = count(), sample = any(Log_s)
-            | project cnt, sample'
+            | project cnt, sample"
           result=$(az monitor log-analytics query \
             --workspace "${{ steps.ws.outputs.id }}" \
             --analytics-query "$query" \
             -o json)
           echo "$result"
-          cnt=$(echo "$result" | python -c 'import json,sys; rows=json.load(sys.stdin); print(rows[0].get("cnt",0) if rows else 0)')
+          cnt=$(echo "$result" | jq -r '.[0].cnt // 0')
           if [ "${cnt:-0}" != "0" ]; then
-            sample=$(echo "$result" | python -c 'import json,sys; rows=json.load(sys.stdin); print((rows[0].get("sample") or "")[:1500])')
+            sample=$(echo "$result" | jq -r '.[0].sample // ""' | head -c 1500)
             {
               echo "$cnt error log line(s) in the last 10m on bible-app-backend."
               echo ""
