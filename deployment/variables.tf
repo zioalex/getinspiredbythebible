@@ -239,10 +239,12 @@ variable "alert_email" {
     delivery channel for the case where GitHub Actions itself is degraded
     and prod-monitor.yml cannot send Telegram messages. Leave empty to
     disable Azure Monitor alert delivery (the action group + alerts are
-    skipped entirely).
+    skipped entirely). Provided via repo secret TF_VAR_ALERT_EMAIL — kept
+    sensitive so the value never appears in terraform plan/apply output.
   EOT
   type        = string
   default     = ""
+  sensitive   = true
 }
 
 variable "monitor_probe_secret" {

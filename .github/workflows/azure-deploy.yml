@@ -447,6 +447,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
 
     steps:
       - name: Checkout
@@ -704,6 +705,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
 
     steps:
       - name: Checkout
@@ -1084,6 +1086,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
 
     steps:
       - name: Checkout
