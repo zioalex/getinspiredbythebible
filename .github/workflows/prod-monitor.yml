@@ -66,6 +66,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      # Required so `uses: ./.github/actions/notify-telegram` can resolve the
+      # local composite action — without checkout, the runner has no repo files.
+      - uses: actions/checkout@v6
+
       - name: Check /health/live
         id: live
         run: |
@@ -141,6 +145,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Required so `uses: ./.github/actions/notify-telegram` can resolve the
+      # local composite action — without checkout, the runner has no repo files.
+      - uses: actions/checkout@v6
+
       - name: Login to Azure
         uses: azure/login@v3
         with:
