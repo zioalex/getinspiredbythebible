@@ -980,7 +980,7 @@ resource "azurerm_cognitive_deployment" "embedding" {
 # -----------------------------------------------------------------------------
 
 resource "azurerm_consumption_budget_resource_group" "main" {
-  count             = var.create_budget_alert ? 1 : 0
+  count             = var.create_budget_alert && length(var.budget_alert_emails) > 0 ? 1 : 0
   name              = "${local.name_prefix}-budget"
   resource_group_id = azurerm_resource_group.main.id
 

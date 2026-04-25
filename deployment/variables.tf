@@ -417,9 +417,15 @@ variable "monthly_budget" {
 }
 
 variable "budget_alert_emails" {
-  description = "Email addresses for budget alerts"
+  description = <<-EOT
+    Email addresses that receive Azure budget alerts. Provided via repo secret
+    TF_VAR_BUDGET_ALERT_EMAILS as a JSON array (e.g. '["alerts@example.com"]')
+    so the value never lands in the checked-in terraform.tfvars. Marked
+    sensitive so plan/apply output redacts it.
+  EOT
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 # -----------------------------------------------------------------------------
