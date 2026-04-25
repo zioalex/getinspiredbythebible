@@ -25,6 +25,8 @@ from fastapi import Depends, HTTPException, Request
 
 from config import settings
 
+from .monitor_probe import is_monitor_probe
+
 logger = logging.getLogger(__name__)
 
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -172,6 +174,14 @@ async def require_turnstile(request: Request) -> None:
 
     # Skip CORS preflight and HEAD requests (harmless, no side effects)
     if request.method in ("HEAD", "OPTIONS"):
+        return
+
+    # Authorized synthetic monitor probe — bypass.
+    if is_monitor_probe(request):
+        logger.info(
+            "Monitor probe — bypassing Turnstile",
+            extra={"path": request.url.path},
+        )
         return
 
     verifier = get_turnstile_verifier()

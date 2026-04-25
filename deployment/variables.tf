@@ -232,6 +232,34 @@ variable "openrouter_api_key" {
   sensitive   = true
 }
 
+variable "alert_email" {
+  description = <<-EOT
+    Email address that receives critical Azure Monitor alerts (Container App
+    restarts, log-query alerts on backend errors). This is the *backup*
+    delivery channel for the case where GitHub Actions itself is degraded
+    and prod-monitor.yml cannot send Telegram messages. Leave empty to
+    disable Azure Monitor alert delivery (the action group + alerts are
+    skipped entirely). Provided via repo secret TF_VAR_ALERT_EMAIL — kept
+    sensitive so the value never appears in terraform plan/apply output.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "monitor_probe_secret" {
+  description = <<-EOT
+    Shared secret that lets the synthetic monitor probe bypass Turnstile and
+    rate limits via the X-Monitor-Probe-Secret header. Must match the value
+    sent by .github/workflows/prod-monitor.yml (repo secret MONITOR_PROBE_SECRET).
+    Leave empty to disable bypass (the probe will then receive 403 from
+    Turnstile in production).
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "openrouter_model" {
   description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct:free)"
   type        = string
@@ -389,9 +417,15 @@ variable "monthly_budget" {
 }
 
 variable "budget_alert_emails" {
-  description = "Email addresses for budget alerts"
+  description = <<-EOT
+    Email addresses that receive Azure budget alerts. Provided via repo secret
+    TF_VAR_BUDGET_ALERT_EMAILS as a JSON array (e.g. '["alerts@example.com"]')
+    so the value never lands in the checked-in terraform.tfvars. Marked
+    sensitive so plan/apply output redacts it.
+  EOT
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 # -----------------------------------------------------------------------------

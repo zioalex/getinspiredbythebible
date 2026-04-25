@@ -112,7 +112,8 @@ enable_application_insights = true
 
 create_budget_alert = true
 monthly_budget      = 50
-budget_alert_emails = ["zioalex@gmail.com"]
+# budget_alert_emails is sourced from repo secret TF_VAR_BUDGET_ALERT_EMAILS
+# (JSON array, e.g. '["alerts@example.com"]'). Defaults to [] if unset.
 
 # -----------------------------------------------------------------------------
 # Custom Domain
