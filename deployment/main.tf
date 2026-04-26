@@ -724,17 +724,24 @@ resource "null_resource" "frontend_custom_domain" {
     hostname       = var.custom_domain_frontend
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
+    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -euo pipefail
-      echo "Adding custom domain ${var.custom_domain_frontend} to ${azurerm_container_app.frontend.name}..."
-      az containerapp hostname add \
-        --name ${azurerm_container_app.frontend.name} \
-        --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_frontend}
+      DOMAIN="${var.custom_domain_frontend}"
+      APP="${azurerm_container_app.frontend.name}"
+      RG="${azurerm_resource_group.main.name}"
+      EXISTING=$(az containerapp show --name "$APP" --resource-group "$RG" \
+        --query "properties.configuration.ingress.customDomains[].name" -o tsv 2>/dev/null || true)
+      if echo "$EXISTING" | grep -qx "$DOMAIN"; then
+        echo "Custom domain $DOMAIN already attached to $APP"
+      else
+        echo "Adding custom domain $DOMAIN to $APP..."
+        az containerapp hostname add --name "$APP" --resource-group "$RG" --hostname "$DOMAIN"
+      fi
     EOT
   }
 
@@ -749,17 +756,24 @@ resource "null_resource" "backend_custom_domain" {
     hostname       = var.custom_domain_backend
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
+    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : (var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : "")
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -euo pipefail
-      echo "Adding custom domain ${var.custom_domain_backend} to ${azurerm_container_app.backend.name}..."
-      az containerapp hostname add \
-        --name ${azurerm_container_app.backend.name} \
-        --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_backend}
+      DOMAIN="${var.custom_domain_backend}"
+      APP="${azurerm_container_app.backend.name}"
+      RG="${azurerm_resource_group.main.name}"
+      EXISTING=$(az containerapp show --name "$APP" --resource-group "$RG" \
+        --query "properties.configuration.ingress.customDomains[].name" -o tsv 2>/dev/null || true)
+      if echo "$EXISTING" | grep -qx "$DOMAIN"; then
+        echo "Custom domain $DOMAIN already attached to $APP"
+      else
+        echo "Adding custom domain $DOMAIN to $APP..."
+        az containerapp hostname add --name "$APP" --resource-group "$RG" --hostname "$DOMAIN"
+      fi
     EOT
   }
 
@@ -814,6 +828,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_frontend
     cert_file      = var.cloudflare_origin_cert_frontend
+    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
@@ -824,13 +839,16 @@ resource "null_resource" "frontend_ssl_cert_bind" {
     command = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
-      echo "Binding SSL certificate to $DOMAIN..."
+      # Wildcard SAN one level up, e.g. api.voxquieta.org -> *.voxquieta.org.
+      # For an apex domain this yields harmless *.tld which won't match any real cert.
+      PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"
+      echo "Binding SSL certificate to $DOMAIN (also matching $PARENT_WILDCARD)..."
 
-      # Find the certificate whose SANs cover this domain, sorted by expiry (newest first)
+      # Find a cert whose SAN equals $DOMAIN or the parent wildcard, newest first.
       CERT_ID=$(az containerapp env certificate list \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --query "[?properties.subjectAlternativeNames[?contains(@, '$DOMAIN')] || properties.subjectAlternativeNames[?contains(@, '*.$DOMAIN')]] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
+        --query "[?contains(properties.subjectAlternativeNames, '$DOMAIN') || contains(properties.subjectAlternativeNames, '$PARENT_WILDCARD')] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
         -o tsv)
 
       if [ -z "$CERT_ID" ]; then
@@ -894,6 +912,7 @@ resource "null_resource" "backend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_backend
     cert_file      = var.cloudflare_origin_cert_backend != "" ? var.cloudflare_origin_cert_backend : var.cloudflare_origin_cert_frontend
+    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : (var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : "")
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
@@ -904,13 +923,14 @@ resource "null_resource" "backend_ssl_cert_bind" {
     command = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
-      echo "Binding SSL certificate to $DOMAIN..."
+      PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"
+      echo "Binding SSL certificate to $DOMAIN (also matching $PARENT_WILDCARD)..."
 
-      # Find the certificate whose SANs cover this domain, sorted by expiry (newest first)
+      # Find a cert whose SAN equals $DOMAIN or the parent wildcard, newest first.
       CERT_ID=$(az containerapp env certificate list \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --query "[?properties.subjectAlternativeNames[?contains(@, '$DOMAIN')] || properties.subjectAlternativeNames[?contains(@, '*.$DOMAIN')]] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
+        --query "[?contains(properties.subjectAlternativeNames, '$DOMAIN') || contains(properties.subjectAlternativeNames, '$PARENT_WILDCARD')] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
         -o tsv)
 
       if [ -z "$CERT_ID" ]; then

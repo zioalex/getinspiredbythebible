@@ -292,8 +292,12 @@ jobs:
       - name: Get Backend URL
         id: backend-url
         run: |
-          # Get the backend URL from Azure Container Apps
-          # IMPORTANT: No fallback - fail fast if backend URL can't be fetched
+          # Production builds bake the public custom domain into the frontend
+          # image (so browsers go through Cloudflare, not the raw Azure FQDN).
+          # PR builds use the raw Azure FQDN since the custom domain may not
+          # resolve to PR preview environments.
+          # Sanity-check the backend by calling the raw FQDN regardless, so a
+          # backend outage still fails the build before we bake a URL in.
           BACKEND_FQDN=$(az containerapp show \
             --name ${{ env.BACKEND_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -305,23 +309,21 @@ jobs:
             exit 1
           fi
 
-          BACKEND_URL="https://$BACKEND_FQDN"
+          RAW_BACKEND_URL="https://$BACKEND_FQDN"
 
-          # VALIDATE: Actually test that this URL is a backend, not frontend
-          echo "Validating backend URL responds correctly..."
-          HEALTH_RESPONSE=$(curl -sf --max-time 30 "$BACKEND_URL/health/live" 2>/dev/null || echo "")
+          echo "Validating backend health via raw FQDN..."
+          HEALTH_RESPONSE=$(curl -sf --max-time 30 "$RAW_BACKEND_URL/health/live" 2>/dev/null || echo "")
           if [ -z "$HEALTH_RESPONSE" ]; then
             if [ "${{ github.event_name }}" == "pull_request" ]; then
               echo "::warning::Backend URL health check failed on PR (backend may be scaled to zero)."
               echo "::warning::Proceeding with build-only validation."
             else
               echo "::error::Backend URL does not respond to /health/live"
-              echo "::error::URL: $BACKEND_URL"
+              echo "::error::URL: $RAW_BACKEND_URL"
               exit 1
             fi
           fi
 
-          # Check it returns expected backend response (not frontend HTML)
           if [ -n "$HEALTH_RESPONSE" ] && echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
             echo "✅ Backend health check passed"
           elif [ -n "$HEALTH_RESPONSE" ]; then
@@ -330,6 +332,22 @@ jobs:
             exit 1
           else
             echo "⚠️ Skipping response validation (no health response received)"
+          fi
+
+          # Choose what to bake into NEXT_PUBLIC_API_URL.
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BACKEND_URL="$RAW_BACKEND_URL"
+            echo "PR build → using raw FQDN"
+          else
+            CUSTOM_DOMAIN_BACKEND=$(
+              grep -E '^[[:space:]]*custom_domain_backend[[:space:]]*=' deployment/terraform.tfvars |
+              sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/'
+            )
+            if [ -z "$CUSTOM_DOMAIN_BACKEND" ]; then
+              echo "::error::custom_domain_backend not set in deployment/terraform.tfvars"
+              exit 1
+            fi
+            BACKEND_URL="https://$CUSTOM_DOMAIN_BACKEND"
           fi
 
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
@@ -550,8 +568,10 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
-              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
+              # Plan-only: warn but don't block PRs on a broken cert secret.
+              # The deploy/destroy jobs hard-fail on this same condition.
+              echo "::warning::cloudflare-origin.pfx cannot be read — cert resources skipped in plan"
+              echo "::warning::Fix: re-export PFX with openssl pkcs12 -export and refresh CLOUDFLARE_ORIGIN_CERT_B64"
               echo "cert_decoded=false" >> $GITHUB_ENV
             fi
           fi
@@ -866,9 +886,14 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
-              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
-              echo "cert_decoded=false" >> $GITHUB_ENV
+              echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX, then refresh the GitHub Actions secret:"
+              echo "::error::  openssl pkcs12 -export -out cloudflare-origin.pfx \\"
+              echo "::error::    -inkey origin-key.pem -in origin-cert.pem \\"
+              echo "::error::    -passout \"pass:\$TF_VAR_cloudflare_origin_cert_password\""
+              echo "::error::  base64 -w0 cloudflare-origin.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::See deployment/README.md > 'Rotating CLOUDFLARE_ORIGIN_CERT_B64' for the full procedure."
+              exit 1
             fi
           fi
 
@@ -952,7 +977,6 @@ jobs:
           fi
 
       - name: Verify Custom Domain HTTPS
-        if: env.cert_decoded == 'true'
         run: |
           set -euo pipefail
           DOMAINS=("voxquieta.org" "api.voxquieta.org")
@@ -963,19 +987,43 @@ jobs:
               --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
             CF_RAY=$(curl -sI --max-time 15 "https://$DOMAIN/health" 2>/dev/null | grep -i 'cf-ray' || echo "")
 
-            if [ "$HTTP_CODE" = "526" ]; then
-              echo "::error::$DOMAIN returned HTTP 526 (Invalid SSL Certificate) — cert binding is wrong"
-              FAILED=1
-            elif [ "$HTTP_CODE" = "000" ]; then
-              echo "::warning::$DOMAIN is unreachable (DNS may not be propagated yet)"
-            elif [ -z "$CF_RAY" ]; then
-              echo "::warning::$DOMAIN responded HTTP $HTTP_CODE but no cf-ray header (not going through Cloudflare)"
-            else
-              echo "$DOMAIN OK — HTTP $HTTP_CODE, $CF_RAY"
-            fi
+            case "$HTTP_CODE" in
+              200)
+                if [ -z "$CF_RAY" ]; then
+                  echo "::error::$DOMAIN returned 200 but no cf-ray header — traffic is bypassing Cloudflare"
+                  FAILED=1
+                else
+                  echo "$DOMAIN OK — HTTP 200, $CF_RAY"
+                fi
+                ;;
+              525)
+                echo "::error::$DOMAIN returned 525 (SSL Handshake Failed) — origin cert missing or not bound"
+                FAILED=1
+                ;;
+              526)
+                echo "::error::$DOMAIN returned HTTP 526 (Invalid SSL Certificate) — origin cert chain is wrong"
+                FAILED=1
+                ;;
+              000)
+                echo "::error::$DOMAIN is unreachable (HTTP 000) — DNS or Cloudflare misconfigured"
+                FAILED=1
+                ;;
+              5*)
+                echo "::error::$DOMAIN returned HTTP $HTTP_CODE — origin error"
+                FAILED=1
+                ;;
+              *)
+                if [ -z "$CF_RAY" ]; then
+                  echo "::error::$DOMAIN responded HTTP $HTTP_CODE with no cf-ray header"
+                  FAILED=1
+                else
+                  echo "$DOMAIN responded HTTP $HTTP_CODE (non-200 but reached Cloudflare), $CF_RAY"
+                fi
+                ;;
+            esac
           done
           if [ "$FAILED" -ne 0 ]; then
-            echo "::error::One or more domains have SSL certificate issues"
+            echo "::error::One or more domains failed the post-deploy SSL/health check"
             exit 1
           fi
 
@@ -1132,9 +1180,14 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
-              echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
-              echo "cert_decoded=false" >> $GITHUB_ENV
+              echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX, then refresh the GitHub Actions secret:"
+              echo "::error::  openssl pkcs12 -export -out cloudflare-origin.pfx \\"
+              echo "::error::    -inkey origin-key.pem -in origin-cert.pem \\"
+              echo "::error::    -passout \"pass:\$TF_VAR_cloudflare_origin_cert_password\""
+              echo "::error::  base64 -w0 cloudflare-origin.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::See deployment/README.md > 'Rotating CLOUDFLARE_ORIGIN_CERT_B64' for the full procedure."
+              exit 1
             fi
           fi
 
