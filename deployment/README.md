@@ -521,6 +521,53 @@ az containerapp logs show \
   --follow
 ```
 
+### Rotating `CLOUDFLARE_ORIGIN_CERT_B64`
+
+When the deploy workflow fails at the **Decode Cloudflare Origin Certificate**
+step with `CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be
+read`, the GitHub Actions secret holds an unreadable PFX (corrupted upload,
+wrong password, or a legacy-format PFX the auto-normalizer in CI couldn't
+convert). Rebuild the secret from the original Cloudflare Origin Cert files:
+
+```bash
+# 0. Make sure you still have origin-cert.pem and origin-key.pem from
+#    "Step 1: Create Cloudflare Origin Certificate" above. If not, create a
+#    new origin cert in Cloudflare Dashboard (it can coexist with the old
+#    one — Cloudflare allows multiple active origin certs per zone) and use
+#    those new files here.
+
+# 1. Re-export the cert as a modern (AES-256) PFX. The password must match
+#    TF_VAR_cloudflare_origin_cert_password (use an empty pass for no
+#    password). OpenSSL 3.x produces a modern PFX by default.
+openssl pkcs12 -export -out cloudflare-origin.pfx \
+  -inkey origin-key.pem -in origin-cert.pem \
+  -passout "pass:$TF_VAR_cloudflare_origin_cert_password"
+
+# 2. Verify the PFX is readable with the same password CI will use.
+openssl pkcs12 -in cloudflare-origin.pfx \
+  -passin "pass:$TF_VAR_cloudflare_origin_cert_password" -noout
+
+# 3. Base64-encode (single line, no wrap) and refresh the GitHub Actions
+#    secret. Requires `gh auth login` and repo write permissions.
+base64 -w0 cloudflare-origin.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64
+
+# 4. (Optional) If the cert password changed, also update:
+#      gh secret set TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD
+```
+
+Re-run the failed deploy. The workflow's bind step will pick up the new cert
+from the Container App Environment automatically — its trigger hashes
+`cloudflare-origin.pfx`, so a refreshed secret triggers re-binding even if
+the underlying cert (SANs, expiry) is unchanged.
+
+**Why the workflow now fails hard instead of warning.** Earlier versions of
+the workflow logged a warning on this condition and skipped the cert upload
+& bind, so production deploys silently shipped without an SSL binding for
+custom domains, surfacing as HTTP 525 from Cloudflare. Hard-failing the
+deploy/destroy jobs makes the regression visible. The plan-only (`tf-plan`)
+job still warns and skips so it doesn't block PR review when the secret is
+broken.
+
 ## 📁 Project Structure
 
 ```

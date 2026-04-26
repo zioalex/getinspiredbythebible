@@ -887,8 +887,12 @@ jobs:
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
-              echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
-              echo "::error::then refresh CLOUDFLARE_ORIGIN_CERT_B64 with base64 -w0 cert.pfx | gh secret set ..."
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX, then refresh the GitHub Actions secret:"
+              echo "::error::  openssl pkcs12 -export -out cloudflare-origin.pfx \\"
+              echo "::error::    -inkey origin-key.pem -in origin-cert.pem \\"
+              echo "::error::    -passout \"pass:\$TF_VAR_cloudflare_origin_cert_password\""
+              echo "::error::  base64 -w0 cloudflare-origin.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::See deployment/README.md > 'Rotating CLOUDFLARE_ORIGIN_CERT_B64' for the full procedure."
               exit 1
             fi
           fi
@@ -1177,8 +1181,12 @@ jobs:
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
-              echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
-              echo "::error::then refresh CLOUDFLARE_ORIGIN_CERT_B64 with base64 -w0 cert.pfx | gh secret set ..."
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX, then refresh the GitHub Actions secret:"
+              echo "::error::  openssl pkcs12 -export -out cloudflare-origin.pfx \\"
+              echo "::error::    -inkey origin-key.pem -in origin-cert.pem \\"
+              echo "::error::    -passout \"pass:\$TF_VAR_cloudflare_origin_cert_password\""
+              echo "::error::  base64 -w0 cloudflare-origin.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::See deployment/README.md > 'Rotating CLOUDFLARE_ORIGIN_CERT_B64' for the full procedure."
               exit 1
             fi
           fi
