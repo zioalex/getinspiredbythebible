@@ -1,5 +1,7 @@
 # Vox Quieta
 
+[![Prod Monitor](https://github.com/zioalex/getinspiredbythebible/actions/workflows/prod-monitor.yml/badge.svg)](https://github.com/zioalex/getinspiredbythebible/actions/workflows/prod-monitor.yml)
+
 A conversational AI that helps people find spiritual encouragement and relevant scripture
 based on their life situations. Built with a modular architecture that supports multiple
 LLM backends.
