@@ -888,7 +888,7 @@ jobs:
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
               echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
-              echo "::error::then refresh the secret: base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::then refresh CLOUDFLARE_ORIGIN_CERT_B64 with base64 -w0 cert.pfx | gh secret set ..."
               exit 1
             fi
           fi
@@ -1178,7 +1178,7 @@ jobs:
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
               echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
-              echo "::error::then refresh the secret: base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::then refresh CLOUDFLARE_ORIGIN_CERT_B64 with base64 -w0 cert.pfx | gh secret set ..."
               exit 1
             fi
           fi
