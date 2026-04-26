@@ -339,7 +339,10 @@ jobs:
             BACKEND_URL="$RAW_BACKEND_URL"
             echo "PR build → using raw FQDN"
           else
-            CUSTOM_DOMAIN_BACKEND=$(grep -E '^[[:space:]]*custom_domain_backend[[:space:]]*=' deployment/terraform.tfvars | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/')
+            CUSTOM_DOMAIN_BACKEND=$(
+              grep -E '^[[:space:]]*custom_domain_backend[[:space:]]*=' deployment/terraform.tfvars |
+              sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/'
+            )
             if [ -z "$CUSTOM_DOMAIN_BACKEND" ]; then
               echo "::error::custom_domain_backend not set in deployment/terraform.tfvars"
               exit 1
@@ -565,11 +568,11 @@ jobs:
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
-              echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
-              echo "::error::Re-export the Cloudflare Origin Cert as PFX and update the secret:"
-              echo "::error::  openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:\$TF_VAR_cloudflare_origin_cert_password"
-              echo "::error::  base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
-              exit 1
+              # Plan-only: warn but don't block PRs on a broken cert secret.
+              # The deploy/destroy jobs hard-fail on this same condition.
+              echo "::warning::cloudflare-origin.pfx cannot be read — cert resources skipped in plan"
+              echo "::warning::Fix: re-export PFX with openssl pkcs12 -export and refresh CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "cert_decoded=false" >> $GITHUB_ENV
             fi
           fi
 
@@ -884,9 +887,8 @@ jobs:
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
-              echo "::error::Re-export the Cloudflare Origin Cert as PFX and update the secret:"
-              echo "::error::  openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:\$TF_VAR_cloudflare_origin_cert_password"
-              echo "::error::  base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
+              echo "::error::then refresh the secret: base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
               exit 1
             fi
           fi
@@ -984,14 +986,14 @@ jobs:
             case "$HTTP_CODE" in
               200)
                 if [ -z "$CF_RAY" ]; then
-                  echo "::error::$DOMAIN returned HTTP 200 but no cf-ray header — traffic is not going through Cloudflare"
+                  echo "::error::$DOMAIN returned 200 but no cf-ray header — traffic is bypassing Cloudflare"
                   FAILED=1
                 else
                   echo "$DOMAIN OK — HTTP 200, $CF_RAY"
                 fi
                 ;;
               525)
-                echo "::error::$DOMAIN returned HTTP 525 (SSL Handshake Failed) — origin cert is missing or not bound on Azure"
+                echo "::error::$DOMAIN returned 525 (SSL Handshake Failed) — origin cert missing or not bound"
                 FAILED=1
                 ;;
               526)
@@ -1175,9 +1177,8 @@ jobs:
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
-              echo "::error::Re-export the Cloudflare Origin Cert as PFX and update the secret:"
-              echo "::error::  openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:\$TF_VAR_cloudflare_origin_cert_password"
-              echo "::error::  base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
+              echo "::error::Re-export the Cloudflare Origin Cert as PFX (openssl pkcs12 -export -out cert.pfx ...)"
+              echo "::error::then refresh the secret: base64 -w0 cert.pfx | gh secret set CLOUDFLARE_ORIGIN_CERT_B64"
               exit 1
             fi
           fi
