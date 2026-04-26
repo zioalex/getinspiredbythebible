@@ -178,12 +178,14 @@ jobs:
           set -o pipefail
           err_re='(?i)(openrouter error|llm streaming error|anthropic error'
           err_re="${err_re}|internal server error|traceback)"
+          # `sample` is a KQL operator; using it as a column name causes
+          # SYN0002. Use `sample_log` instead.
           query="ContainerAppConsoleLogs_CL
             | where TimeGenerated > ago(10m)
             | where ContainerAppName_s == \"bible-app-backend\"
             | where Log_s matches regex \"${err_re}\"
-            | summarize cnt = count(), sample = any(Log_s)
-            | project cnt, sample"
+            | summarize cnt = count(), sample_log = any(Log_s)
+            | project cnt, sample_log"
           result=$(az monitor log-analytics query \
             --workspace "${{ steps.ws.outputs.id }}" \
             --analytics-query "$query" \
@@ -191,7 +193,7 @@ jobs:
           echo "$result"
           cnt=$(echo "$result" | jq -r '.[0].cnt // 0')
           if [ "${cnt:-0}" != "0" ]; then
-            sample=$(echo "$result" | jq -r '.[0].sample // ""' | head -c 1500)
+            sample=$(echo "$result" | jq -r '.[0].sample_log // ""' | head -c 1500)
             {
               echo "$cnt error log line(s) in the last 10m on bible-app-backend."
               echo ""
