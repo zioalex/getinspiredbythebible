@@ -278,6 +278,16 @@
     </notes>
     <cve>CVE-2015-3415</cve>
   </suppress>
+  <suppress>
+    <notes>CVE-2025-70873: False positive. sqlite-2.4.0.aar / sqlite-framework-2.4.0.aar
+      are androidx.sqlite (Java wrapper), not the SQLite C library. The CVE describes
+      an info-disclosure bug in the SQLite zipfile extension (zipfileInflate),
+      a compile-time C extension that Android's bundled SQLite does not enable.
+      Also applies to sqlite-jdbc-3.41.2.2.jar which is a build-time dependency
+      (Gradle/OWASP tooling) and not shipped in the APK.
+    </notes>
+    <cve>CVE-2025-70873</cve>
+  </suppress>
 
   <!--
     sqlite-jdbc-3.41.2.2.jar — build-time dependency only (used by OWASP Dependency Check
