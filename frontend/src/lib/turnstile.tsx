@@ -13,14 +13,22 @@ interface TurnstileContextValue {
   token: string | null;
   isReady: boolean;
   isEnabled: boolean;
+  configLoaded: boolean;
   refreshToken: () => void;
+  // Resolves with the current token (or null if Turnstile is disabled / unavailable).
+  // Waits up to timeoutMs for config to load and a token to arrive; on timeout
+  // returns whatever is currently cached (typically null) so the caller can
+  // fail open and let the backend respond.
+  awaitToken: (timeoutMs?: number) => Promise<string | null>;
 }
 
 const TurnstileContext = createContext<TurnstileContextValue>({
   token: null,
   isReady: false,
   isEnabled: false,
+  configLoaded: false,
   refreshToken: () => {},
+  awaitToken: async () => null,
 });
 
 export function useTurnstile() {
@@ -67,11 +75,75 @@ export function TurnstileProvider({
   const [token, setToken] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [siteKey, setSiteKey] = useState<string | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
+
+  // Refs mirror state so awaitToken (called outside React) can read live values
+  // and notify any pending waiters whenever the relevant state changes.
+  const tokenRef = useRef<string | null>(null);
+  const isEnabledRef = useRef(false);
+  const configLoadedRef = useRef(false);
+  const waitersRef = useRef<Set<() => void>>(new Set());
+
+  const notifyWaiters = useCallback(() => {
+    waitersRef.current.forEach((cb) => cb());
+  }, []);
+
+  useEffect(() => {
+    tokenRef.current = token;
+    notifyWaiters();
+  }, [token, notifyWaiters]);
+  useEffect(() => {
+    isEnabledRef.current = isEnabled;
+    notifyWaiters();
+  }, [isEnabled, notifyWaiters]);
+  useEffect(() => {
+    configLoadedRef.current = configLoaded;
+    notifyWaiters();
+  }, [configLoaded, notifyWaiters]);
+
+  const awaitToken = useCallback(
+    (timeoutMs: number = 5000): Promise<string | null> => {
+      return new Promise((resolve) => {
+        // Returns the token (or null) when we know enough to proceed,
+        // otherwise undefined to keep waiting.
+        const peek = (): string | null | undefined => {
+          if (configLoadedRef.current && !isEnabledRef.current) return null;
+          if (tokenRef.current) return tokenRef.current;
+          return undefined;
+        };
+
+        const immediate = peek();
+        if (immediate !== undefined) {
+          resolve(immediate);
+          return;
+        }
+
+        const onChange = () => {
+          const v = peek();
+          if (v !== undefined) {
+            cleanup();
+            resolve(v);
+          }
+        };
+        const onTimeout = () => {
+          cleanup();
+          resolve(tokenRef.current);
+        };
+        const handle = setTimeout(onTimeout, timeoutMs);
+        const cleanup = () => {
+          clearTimeout(handle);
+          waitersRef.current.delete(onChange);
+        };
+        waitersRef.current.add(onChange);
+      });
+    },
+    [],
+  );
 
   // Fetch config to get Turnstile settings
   useEffect(() => {
@@ -99,6 +171,8 @@ export function TurnstileProvider({
         reportTurnstileError("config_fetch", String(error), apiUrl);
         // Proceed without Turnstile on error
         setIsReady(true);
+      } finally {
+        setConfigLoaded(true);
       }
     };
 
@@ -210,7 +284,14 @@ export function TurnstileProvider({
 
   return (
     <TurnstileContext.Provider
-      value={{ token, isReady, isEnabled, refreshToken }}
+      value={{
+        token,
+        isReady,
+        isEnabled,
+        configLoaded,
+        refreshToken,
+        awaitToken,
+      }}
     >
       {/* Hidden container for the invisible Turnstile widget */}
       {isEnabled && (
