@@ -566,6 +566,12 @@ jobs:
                openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
               # Path relative to TF working dir so filemd5() and az CLI resolve correctly
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              # Deterministic hash from the base64 secret — see deployment/main.tf
+              # null_resource cert_hash triggers. filemd5 of the decoded PFX is
+              # non-deterministic because the openssl pkcs12 -export step above
+              # uses random salt/IV, so plan and apply hashes disagree.
+              CERT_HASH=$(printf '%s' "$CERT_B64" | md5sum | awk '{print $1}')
+              echo "TF_VAR_cloudflare_origin_cert_hash=$CERT_HASH" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               # Plan-only: warn but don't block PRs on a broken cert secret.
@@ -866,7 +872,10 @@ jobs:
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
             # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
-            # format so newer Azure CLI (via azure/login@v3) can deserialize it
+            # format so newer Azure CLI (via azure/login@v3) can deserialize it.
+            # Note: openssl pkcs12 -export uses random salt/IV, so the resulting
+            # PFX bytes differ between runners. cert_hash trigger is computed
+            # from $CERT_B64 below, not from the file, to keep it deterministic.
             PFX_FILE="deployment/cloudflare-origin.pfx"
             CERT_PASS="${TF_VAR_cloudflare_origin_cert_password:-}"
             if openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" \
@@ -884,6 +893,8 @@ jobs:
                openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
               # Path relative to TF working dir so filemd5() and az CLI resolve correctly
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              CERT_HASH=$(printf '%s' "$CERT_B64" | md5sum | awk '{print $1}')
+              echo "TF_VAR_cloudflare_origin_cert_hash=$CERT_HASH" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
@@ -1178,6 +1189,8 @@ jobs:
                openssl pkcs12 -legacy -in "$PFX_FILE" -passin "pass:${CERT_PASS}" -noout 2>/dev/null; then
               # Path relative to TF working dir so filemd5() and az CLI resolve correctly
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
+              CERT_HASH=$(printf '%s' "$CERT_B64" | md5sum | awk '{print $1}')
+              echo "TF_VAR_cloudflare_origin_cert_hash=$CERT_HASH" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
