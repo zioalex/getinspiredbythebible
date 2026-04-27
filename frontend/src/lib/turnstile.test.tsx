@@ -107,10 +107,13 @@ describe("TurnstileProvider build-time site key", () => {
 
 describe("TurnstileProvider initial render", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ security: { turnstile_enabled: false } }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ security: { turnstile_enabled: false } }),
+      }),
+    );
   });
 
   afterEach(() => {
