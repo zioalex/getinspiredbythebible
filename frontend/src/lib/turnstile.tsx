@@ -38,6 +38,11 @@ export function useTurnstile() {
 interface TurnstileProviderProps {
   children: React.ReactNode;
   apiUrl?: string;
+  // Build-time site key. When provided (or when NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  // is set at build time), the provider skips the runtime /config round-trip
+  // and starts the Turnstile widget immediately. Pass an empty string to
+  // explicitly disable Turnstile without falling through to /config.
+  siteKeyOverride?: string;
 }
 
 declare global {
@@ -71,12 +76,27 @@ function reportTurnstileError(type: string, detail: string, apiUrl: string) {
 export function TurnstileProvider({
   children,
   apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  siteKeyOverride,
 }: TurnstileProviderProps) {
+  // Build-time site key takes precedence over the runtime /config fetch.
+  // An empty string is treated as "explicitly disabled at build time" so the
+  // /config round-trip is also skipped.
+  const buildTimeSiteKey =
+    siteKeyOverride ?? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasBuildTimeConfig = buildTimeSiteKey !== undefined;
+  const buildTimeEnabled = !!buildTimeSiteKey;
+
   const [token, setToken] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [configLoaded, setConfigLoaded] = useState(false);
-  const [siteKey, setSiteKey] = useState<string | null>(null);
+  // When Turnstile is disabled at build time, we're already "ready" — no
+  // widget needs to render and no /config response is needed.
+  const [isReady, setIsReady] = useState(
+    hasBuildTimeConfig && !buildTimeEnabled,
+  );
+  const [isEnabled, setIsEnabled] = useState(buildTimeEnabled);
+  const [configLoaded, setConfigLoaded] = useState(hasBuildTimeConfig);
+  const [siteKey, setSiteKey] = useState<string | null>(
+    buildTimeEnabled ? (buildTimeSiteKey as string) : null,
+  );
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const retryCountRef = useRef(0);
@@ -145,8 +165,11 @@ export function TurnstileProvider({
     [],
   );
 
-  // Fetch config to get Turnstile settings
+  // Fetch config to get Turnstile settings (skipped when build-time config is set)
   useEffect(() => {
+    if (hasBuildTimeConfig) {
+      return;
+    }
     const fetchConfig = async () => {
       try {
         const response = await fetch(`${apiUrl}/config`);
@@ -177,7 +200,7 @@ export function TurnstileProvider({
     };
 
     fetchConfig();
-  }, [apiUrl]);
+  }, [apiUrl, hasBuildTimeConfig]);
 
   // Define refreshToken first so it can be used in renderWidget
   const refreshToken = useCallback(() => {
