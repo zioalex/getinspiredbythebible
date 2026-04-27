@@ -203,6 +203,12 @@ variable "cloudflare_origin_cert_password" {
   sensitive   = true
 }
 
+variable "cloudflare_origin_cert_hash" {
+  description = "MD5 of the base64-encoded Cloudflare Origin Certificate, computed by the deploy workflow. Used as a stable trigger value on null_resource cert binds so a rotation forces re-binding. We do not use filemd5() on the decoded PFX because the workflow re-encrypts via openssl pkcs12 -export with random salt/IV, producing different bytes on every runner."
+  type        = string
+  default     = ""
+}
+
 # -----------------------------------------------------------------------------
 # LLM Configuration
 # -----------------------------------------------------------------------------

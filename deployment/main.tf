@@ -724,7 +724,7 @@ resource "null_resource" "frontend_custom_domain" {
     hostname       = var.custom_domain_frontend
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
-    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
   }
 
   provisioner "local-exec" {
@@ -756,7 +756,7 @@ resource "null_resource" "backend_custom_domain" {
     hostname       = var.custom_domain_backend
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
-    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : (var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : "")
+    cert_hash      = var.cloudflare_origin_cert_hash
   }
 
   provisioner "local-exec" {
@@ -800,7 +800,7 @@ resource "null_resource" "frontend_ssl_cert_upload" {
 
   triggers = {
     cert_file      = var.cloudflare_origin_cert_frontend
-    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
     environment    = azurerm_container_app_environment.main.name
     resource_group = azurerm_resource_group.main.name
   }
@@ -828,7 +828,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_frontend
     cert_file      = var.cloudflare_origin_cert_frontend
-    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
@@ -884,7 +884,7 @@ resource "null_resource" "backend_ssl_cert_upload" {
 
   triggers = {
     cert_file      = var.cloudflare_origin_cert_backend
-    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
     environment    = azurerm_container_app_environment.main.name
     resource_group = azurerm_resource_group.main.name
   }
@@ -912,7 +912,7 @@ resource "null_resource" "backend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_backend
     cert_file      = var.cloudflare_origin_cert_backend != "" ? var.cloudflare_origin_cert_backend : var.cloudflare_origin_cert_frontend
-    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : (var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : "")
+    cert_hash      = var.cloudflare_origin_cert_hash
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
