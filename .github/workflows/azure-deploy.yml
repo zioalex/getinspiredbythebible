@@ -367,7 +367,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
-            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
 
       - name: Verify API URL in image
         if: github.event_name != 'pull_request'
