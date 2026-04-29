@@ -16,7 +16,7 @@ unless used as evidence for a contradiction.
 ## Classification Matrix
 
 | WIP file | Status | Evidence |
-|---|---|---|
+| --- | --- | --- |
 | [docs/DONE/PR208-code-review-refactoring.md](docs/DONE/PR208-code-review-refactoring.md) | Implemented | Archived from WIP to DONE on 2026-04-20. Deployment record corroborates completion: [docs/DONE/PR208-BITB-017-deployment-record.md](docs/DONE/PR208-BITB-017-deployment-record.md#L5). |
 | [docs/DONE/BITB-018-ANALYSIS-CI-OLLAMA-TIMEOUT.md](docs/DONE/BITB-018-ANALYSIS-CI-OLLAMA-TIMEOUT.md) | Implemented | Archived from WIP to DONE on 2026-04-20. Resolution record confirms outcome: [docs/DONE/BITB-018-RESOLUTION-CI-OLLAMA-TIMEOUT.md](docs/DONE/BITB-018-RESOLUTION-CI-OLLAMA-TIMEOUT.md#L4). Backlog story resolved: [docs/BACKLOG_STORIES/BITB-018-fix-ci-ollama-timeout.md](docs/BACKLOG_STORIES/BITB-018-fix-ci-ollama-timeout.md#L6). |
 | [docs/DONE/PR-streaming-hnsw-quick-wins.md](docs/DONE/PR-streaming-hnsw-quick-wins.md) | Implemented | Archived from WIP to DONE on 2026-04-20. Companion completion record: [docs/DONE/PR182-streaming-hnsw-quick-wins.md](docs/DONE/PR182-streaming-hnsw-quick-wins.md#L3). |

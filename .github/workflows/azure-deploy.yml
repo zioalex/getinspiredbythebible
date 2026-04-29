@@ -460,10 +460,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
@@ -729,10 +729,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
@@ -864,12 +864,14 @@ jobs:
           echo "  Frontend: $FRONTEND_IMAGE"
 
       - name: Decode Cloudflare Origin Certificate
+        id: decode-cert
         env:
           CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
         run: |
           if [ -z "$CERT_B64" ]; then
             echo "::warning::CLOUDFLARE_ORIGIN_CERT_B64 secret is not set — custom domain SSL will not be configured"
             echo "cert_decoded=false" >> $GITHUB_ENV
+            echo "cert_decoded=false" >> $GITHUB_OUTPUT
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
             # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
@@ -897,6 +899,7 @@ jobs:
               CERT_HASH=$(printf '%s' "$CERT_B64" | md5sum | awk '{print $1}')
               echo "TF_VAR_cloudflare_origin_cert_hash=$CERT_HASH" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_OUTPUT
             else
               echo "::error::CLOUDFLARE_ORIGIN_CERT_B64 is set but the resulting PFX cannot be read."
               echo "::error::Re-export the Cloudflare Origin Cert as PFX, then refresh the GitHub Actions secret:"
@@ -1115,7 +1118,7 @@ jobs:
           echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### E2E Tests (real user via frontend)" >> $GITHUB_STEP_SUMMARY
-          echo "**Frontend:** ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** ${{ vars['FRONTEND_URL'] || 'https://voxquieta.org' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.e2e.outcome }}" == "success" ]; then
             echo "✅ All e2e tests passed" >> $GITHUB_STEP_SUMMARY
@@ -1147,10 +1150,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
