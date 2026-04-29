@@ -37,11 +37,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import retrofit2.HttpException
 import timber.log.Timber
 import java.io.File
@@ -143,7 +145,14 @@ class ChatViewModel @Inject constructor(
         const val MAX_INTERACTIONS = 10
     }
 
-    private val _uiState = MutableStateFlow(ChatUiState())
+    // Read the persisted theme synchronously so the very first composition (and every
+    // Activity re-creation after rotation) uses the correct value.  DataStore serves
+    // subsequent reads from an in-memory cache, so this blocks for < 1 ms after the
+    // first cold-start disk read.  Without this, the state starts as "system" and the
+    // async collect in init{} arrives one frame late, causing a brief theme flash.
+    private val _uiState = MutableStateFlow(
+        ChatUiState(themeMode = runBlocking { themePreferences.themeModeFlow.first() })
+    )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     /**
