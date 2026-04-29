@@ -49,23 +49,32 @@ describe("TurnstileProvider build-time site key", () => {
     });
   });
 
-  it("treats an empty-string site key as explicit build-time disable", async () => {
+  it("falls back to /config when the site key is an empty string", async () => {
+    // Regression guard: an empty `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (which is
+    // what an unconfigured `ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=` Dockerfile
+    // produces) must NOT be treated as "Turnstile disabled" — that would
+    // suppress the widget while the backend still requires a token. Empty
+    // and unset both fall through to the runtime /config fetch.
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        security: { turnstile_enabled: false },
+      }),
+    });
 
     const { result } = renderHook(() => useTurnstile(), {
       wrapper: wrapper(""),
     });
 
-    // Disabled: configLoaded=true, isEnabled=false, isReady=true.
-    expect(result.current.configLoaded).toBe(true);
+    // Empty key → behaves identically to "unset": waits on /config.
+    expect(result.current.configLoaded).toBe(false);
     expect(result.current.isEnabled).toBe(false);
-    expect(result.current.isReady).toBe(true);
 
     await waitFor(() => {
-      expect(fetchMock).not.toHaveBeenCalledWith(
-        expect.stringContaining("/config"),
-      );
+      expect(result.current.configLoaded).toBe(true);
     });
+    expect(fetchMock).toHaveBeenCalledWith("http://test.example/config");
   });
 
   it("falls back to /config fetch when no override is supplied", async () => {
@@ -92,9 +101,22 @@ describe("TurnstileProvider build-time site key", () => {
     expect(fetchMock).toHaveBeenCalledWith("http://test.example/config");
   });
 
-  it("awaitToken resolves with null immediately when build-time disabled", async () => {
+  it("awaitToken resolves with null when /config reports Turnstile disabled", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ security: { turnstile_enabled: false } }),
+      }),
+    );
+
     const { result } = renderHook(() => useTurnstile(), {
-      wrapper: wrapper(""),
+      wrapper: wrapper(undefined),
+    });
+
+    // Wait for /config to resolve.
+    await waitFor(() => {
+      expect(result.current.configLoaded).toBe(true);
     });
 
     let resolved: string | null | undefined;
@@ -134,13 +156,30 @@ describe("TurnstileProvider initial render", () => {
     expect(hidden).not.toBeNull();
   });
 
-  it("does not render the widget container when build-time disabled", () => {
-    const { container } = render(
+  it("does not render the widget container when /config disables Turnstile", async () => {
+    const { container, findByText } = render(
+      <TurnstileProvider apiUrl="http://test.example">
+        <div>app</div>
+      </TurnstileProvider>,
+    );
+    // Wait for /config to resolve so isEnabled is settled.
+    await findByText("app");
+    await waitFor(() => {
+      expect(container.querySelector('div[aria-hidden="true"]')).toBeNull();
+    });
+  });
+
+  it("does not render the widget container when the site key is empty", async () => {
+    // Regression: empty key must not silently disable the widget — it must
+    // fall back to /config, which in this test reports turnstile_enabled=false.
+    const { container, findByText } = render(
       <TurnstileProvider apiUrl="http://test.example" siteKeyOverride="">
         <div>app</div>
       </TurnstileProvider>,
     );
-    const hidden = container.querySelector('div[aria-hidden="true"]');
-    expect(hidden).toBeNull();
+    await findByText("app");
+    await waitFor(() => {
+      expect(container.querySelector('div[aria-hidden="true"]')).toBeNull();
+    });
   });
 });
