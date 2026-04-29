@@ -19,8 +19,16 @@ class TurnstileManager @Inject constructor() {
     private val _resetTrigger = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = Channel.UNLIMITED)
     val resetTrigger: SharedFlow<Unit> = _resetTrigger.asSharedFlow()
 
+    // True when Cloudflare's Turnstile widget fired an error callback, meaning the
+    // challenge cannot be completed. The UI treats this as fail-open: the send button
+    // is re-enabled so the user isn't permanently blocked; the HTTP interceptor already
+    // proceeds without a token, so the backend decides whether to accept the request.
+    private val _hasError = MutableStateFlow(false)
+    val hasError: StateFlow<Boolean> = _hasError.asStateFlow()
+
     fun onTokenReceived(token: String) {
         _tokenFlow.value = token
+        _hasError.value = false
     }
 
     fun onTokenExpired() {
@@ -29,6 +37,7 @@ class TurnstileManager @Inject constructor() {
 
     fun onError(errorCode: String) {
         _tokenFlow.value = null
+        _hasError.value = true
     }
 
     fun currentToken(): String? = _tokenFlow.value

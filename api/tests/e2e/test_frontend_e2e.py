@@ -33,16 +33,11 @@ FRONTEND_URL   Base URL of the frontend to test against.
 """
 
 import os
-import sys
-from pathlib import Path
 
 import httpx
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config import settings
-
-FRONTEND_URL = os.environ.get("FRONTEND_URL", settings.production_frontend_url)
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://voxquieta.org")
 
 # 60 s gives enough headroom for Azure Container Apps cold-start after a fresh
 # deploy.  The previous 30 s limit caused intermittent ReadTimeout failures on

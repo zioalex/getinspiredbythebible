@@ -200,6 +200,13 @@ locals {
       "TURNSTILE_SITE_KEY" = {
         value = var.turnstile_site_key
       }
+    } : {},
+
+    # Synthetic monitor probe bypass (only when secret is provided)
+    var.monitor_probe_secret != "" ? {
+      "MONITOR_PROBE_SECRET" = {
+        secret_name = "monitor-probe-secret" # pragma: allowlist secret
+      }
     } : {}
   )
 
@@ -442,6 +449,26 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 }
 
 # -----------------------------------------------------------------------------
+# Secret Change Trigger
+# -----------------------------------------------------------------------------
+# The backend container app uses ignore_changes = [secret] to avoid false drift
+# from the Azure API never returning secret values.  This terraform_data resource
+# watches a SHA256 hash of the OpenRouter API key so that when it actually
+# changes, terraform_data is replaced, which in turn triggers a replacement of
+# the backend container app via replace_triggered_by.
+
+resource "terraform_data" "backend_secret_trigger" {
+  # Hash all GH-sourced sensitive values that flow into ACA `secret` blocks.
+  # When any of them changes, terraform_data is replaced, which forces a
+  # replacement of azurerm_container_app.backend (via replace_triggered_by),
+  # bypassing the lifecycle { ignore_changes = [secret] } rotation trap.
+  triggers_replace = sha256(join("|", [
+    var.openrouter_api_key,
+    var.monitor_probe_secret,
+  ]))
+}
+
+# -----------------------------------------------------------------------------
 # Container App - Backend (FastAPI)
 # -----------------------------------------------------------------------------
 
@@ -558,6 +585,15 @@ resource "azurerm_container_app" "backend" {
     }
   }
 
+  # Synthetic monitor probe shared secret (only when set)
+  dynamic "secret" {
+    for_each = var.monitor_probe_secret != "" ? [1] : []
+    content {
+      name  = "monitor-probe-secret"
+      value = var.monitor_probe_secret
+    }
+  }
+
   registry {
     server               = azurerm_container_registry.main.login_server
     username             = azurerm_container_registry.main.admin_username
@@ -578,6 +614,10 @@ resource "azurerm_container_app" "backend" {
     # NOTE: to rotate a secret (ACR password, API key, etc.) run:
     #   terraform apply -replace=azurerm_container_app.backend
     ignore_changes = [secret]
+
+    # Automatically replace the backend container app when the OpenRouter
+    # API key changes, even though ignore_changes hides secret drift.
+    replace_triggered_by = [terraform_data.backend_secret_trigger.id]
   }
 
   tags = local.tags
@@ -684,17 +724,24 @@ resource "null_resource" "frontend_custom_domain" {
     hostname       = var.custom_domain_frontend
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
+    cert_hash      = var.cloudflare_origin_cert_hash
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -euo pipefail
-      echo "Adding custom domain ${var.custom_domain_frontend} to ${azurerm_container_app.frontend.name}..."
-      az containerapp hostname add \
-        --name ${azurerm_container_app.frontend.name} \
-        --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_frontend}
+      DOMAIN="${var.custom_domain_frontend}"
+      APP="${azurerm_container_app.frontend.name}"
+      RG="${azurerm_resource_group.main.name}"
+      EXISTING=$(az containerapp show --name "$APP" --resource-group "$RG" \
+        --query "properties.configuration.ingress.customDomains[].name" -o tsv 2>/dev/null || true)
+      if echo "$EXISTING" | grep -qx "$DOMAIN"; then
+        echo "Custom domain $DOMAIN already attached to $APP"
+      else
+        echo "Adding custom domain $DOMAIN to $APP..."
+        az containerapp hostname add --name "$APP" --resource-group "$RG" --hostname "$DOMAIN"
+      fi
     EOT
   }
 
@@ -709,17 +756,24 @@ resource "null_resource" "backend_custom_domain" {
     hostname       = var.custom_domain_backend
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
+    cert_hash      = var.cloudflare_origin_cert_hash
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -euo pipefail
-      echo "Adding custom domain ${var.custom_domain_backend} to ${azurerm_container_app.backend.name}..."
-      az containerapp hostname add \
-        --name ${azurerm_container_app.backend.name} \
-        --resource-group ${azurerm_resource_group.main.name} \
-        --hostname ${var.custom_domain_backend}
+      DOMAIN="${var.custom_domain_backend}"
+      APP="${azurerm_container_app.backend.name}"
+      RG="${azurerm_resource_group.main.name}"
+      EXISTING=$(az containerapp show --name "$APP" --resource-group "$RG" \
+        --query "properties.configuration.ingress.customDomains[].name" -o tsv 2>/dev/null || true)
+      if echo "$EXISTING" | grep -qx "$DOMAIN"; then
+        echo "Custom domain $DOMAIN already attached to $APP"
+      else
+        echo "Adding custom domain $DOMAIN to $APP..."
+        az containerapp hostname add --name "$APP" --resource-group "$RG" --hostname "$DOMAIN"
+      fi
     EOT
   }
 
@@ -746,7 +800,7 @@ resource "null_resource" "frontend_ssl_cert_upload" {
 
   triggers = {
     cert_file      = var.cloudflare_origin_cert_frontend
-    cert_hash      = var.cloudflare_origin_cert_frontend != "" ? filemd5(var.cloudflare_origin_cert_frontend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
     environment    = azurerm_container_app_environment.main.name
     resource_group = azurerm_resource_group.main.name
   }
@@ -774,6 +828,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_frontend
     cert_file      = var.cloudflare_origin_cert_frontend
+    cert_hash      = var.cloudflare_origin_cert_hash
     container_app  = azurerm_container_app.frontend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
@@ -784,13 +839,16 @@ resource "null_resource" "frontend_ssl_cert_bind" {
     command = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
-      echo "Binding SSL certificate to $DOMAIN..."
+      # Wildcard SAN one level up, e.g. api.voxquieta.org -> *.voxquieta.org.
+      # For an apex domain this yields harmless *.tld which won't match any real cert.
+      PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"
+      echo "Binding SSL certificate to $DOMAIN (also matching $PARENT_WILDCARD)..."
 
-      # Find the certificate whose SANs cover this domain, sorted by expiry (newest first)
+      # Find a cert whose SAN equals $DOMAIN or the parent wildcard, newest first.
       CERT_ID=$(az containerapp env certificate list \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --query "[?properties.subjectAlternativeNames[?contains(@, '$DOMAIN')] || properties.subjectAlternativeNames[?contains(@, '*.$DOMAIN')]] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
+        --query "[?contains(properties.subjectAlternativeNames, '$DOMAIN') || contains(properties.subjectAlternativeNames, '$PARENT_WILDCARD')] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
         -o tsv)
 
       if [ -z "$CERT_ID" ]; then
@@ -826,7 +884,7 @@ resource "null_resource" "backend_ssl_cert_upload" {
 
   triggers = {
     cert_file      = var.cloudflare_origin_cert_backend
-    cert_hash      = var.cloudflare_origin_cert_backend != "" ? filemd5(var.cloudflare_origin_cert_backend) : ""
+    cert_hash      = var.cloudflare_origin_cert_hash
     environment    = azurerm_container_app_environment.main.name
     resource_group = azurerm_resource_group.main.name
   }
@@ -854,6 +912,7 @@ resource "null_resource" "backend_ssl_cert_bind" {
   triggers = {
     hostname       = var.custom_domain_backend
     cert_file      = var.cloudflare_origin_cert_backend != "" ? var.cloudflare_origin_cert_backend : var.cloudflare_origin_cert_frontend
+    cert_hash      = var.cloudflare_origin_cert_hash
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
@@ -864,13 +923,14 @@ resource "null_resource" "backend_ssl_cert_bind" {
     command = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
-      echo "Binding SSL certificate to $DOMAIN..."
+      PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"
+      echo "Binding SSL certificate to $DOMAIN (also matching $PARENT_WILDCARD)..."
 
-      # Find the certificate whose SANs cover this domain, sorted by expiry (newest first)
+      # Find a cert whose SAN equals $DOMAIN or the parent wildcard, newest first.
       CERT_ID=$(az containerapp env certificate list \
         --name ${azurerm_container_app_environment.main.name} \
         --resource-group ${azurerm_resource_group.main.name} \
-        --query "[?properties.subjectAlternativeNames[?contains(@, '$DOMAIN')] || properties.subjectAlternativeNames[?contains(@, '*.$DOMAIN')]] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
+        --query "[?contains(properties.subjectAlternativeNames, '$DOMAIN') || contains(properties.subjectAlternativeNames, '$PARENT_WILDCARD')] | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id" \
         -o tsv)
 
       if [ -z "$CERT_ID" ]; then
@@ -940,7 +1000,7 @@ resource "azurerm_cognitive_deployment" "embedding" {
 # -----------------------------------------------------------------------------
 
 resource "azurerm_consumption_budget_resource_group" "main" {
-  count             = var.create_budget_alert ? 1 : 0
+  count             = var.create_budget_alert && length(var.budget_alert_emails) > 0 ? 1 : 0
   name              = "${local.name_prefix}-budget"
   resource_group_id = azurerm_resource_group.main.id
 

@@ -13,14 +13,22 @@ interface TurnstileContextValue {
   token: string | null;
   isReady: boolean;
   isEnabled: boolean;
+  configLoaded: boolean;
   refreshToken: () => void;
+  // Resolves with the current token (or null if Turnstile is disabled / unavailable).
+  // Waits up to timeoutMs for config to load and a token to arrive; on timeout
+  // returns whatever is currently cached (typically null) so the caller can
+  // fail open and let the backend respond.
+  awaitToken: (timeoutMs?: number) => Promise<string | null>;
 }
 
 const TurnstileContext = createContext<TurnstileContextValue>({
   token: null,
   isReady: false,
   isEnabled: false,
+  configLoaded: false,
   refreshToken: () => {},
+  awaitToken: async () => null,
 });
 
 export function useTurnstile() {
@@ -30,6 +38,11 @@ export function useTurnstile() {
 interface TurnstileProviderProps {
   children: React.ReactNode;
   apiUrl?: string;
+  // Build-time site key. When provided (or when NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  // is set at build time), the provider skips the runtime /config round-trip
+  // and starts the Turnstile widget immediately. Pass an empty string to
+  // explicitly disable Turnstile without falling through to /config.
+  siteKeyOverride?: string;
 }
 
 declare global {
@@ -63,18 +76,100 @@ function reportTurnstileError(type: string, detail: string, apiUrl: string) {
 export function TurnstileProvider({
   children,
   apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  siteKeyOverride,
 }: TurnstileProviderProps) {
+  // Build-time site key takes precedence over the runtime /config fetch.
+  // Only a *non-empty* value enables the fast path — an empty string (which
+  // is what an unconfigured `ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=` in the
+  // Dockerfile produces) falls back to /config, same as if the var were
+  // unset. To disable Turnstile entirely, configure the backend to return
+  // `turnstile_enabled: false` from /config; the frontend will pick that up.
+  const rawBuildTimeSiteKey =
+    siteKeyOverride ?? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const buildTimeSiteKey =
+    typeof rawBuildTimeSiteKey === "string" && rawBuildTimeSiteKey.length > 0
+      ? rawBuildTimeSiteKey
+      : null;
+  const hasBuildTimeKey = buildTimeSiteKey !== null;
+
   const [token, setToken] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [siteKey, setSiteKey] = useState<string | null>(null);
+  const [isEnabled, setIsEnabled] = useState(hasBuildTimeKey);
+  const [configLoaded, setConfigLoaded] = useState(hasBuildTimeKey);
+  const [siteKey, setSiteKey] = useState<string | null>(buildTimeSiteKey);
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
 
-  // Fetch config to get Turnstile settings
+  // Refs mirror state so awaitToken (called outside React) can read live values
+  // and notify any pending waiters whenever the relevant state changes.
+  const tokenRef = useRef<string | null>(null);
+  const isEnabledRef = useRef(false);
+  const configLoadedRef = useRef(false);
+  const waitersRef = useRef<Set<() => void>>(new Set());
+
+  const notifyWaiters = useCallback(() => {
+    waitersRef.current.forEach((cb) => cb());
+  }, []);
+
   useEffect(() => {
+    tokenRef.current = token;
+    notifyWaiters();
+  }, [token, notifyWaiters]);
+  useEffect(() => {
+    isEnabledRef.current = isEnabled;
+    notifyWaiters();
+  }, [isEnabled, notifyWaiters]);
+  useEffect(() => {
+    configLoadedRef.current = configLoaded;
+    notifyWaiters();
+  }, [configLoaded, notifyWaiters]);
+
+  const awaitToken = useCallback(
+    (timeoutMs: number = 5000): Promise<string | null> => {
+      return new Promise((resolve) => {
+        // Returns the token (or null) when we know enough to proceed,
+        // otherwise undefined to keep waiting.
+        const peek = (): string | null | undefined => {
+          if (configLoadedRef.current && !isEnabledRef.current) return null;
+          if (tokenRef.current) return tokenRef.current;
+          return undefined;
+        };
+
+        const immediate = peek();
+        if (immediate !== undefined) {
+          resolve(immediate);
+          return;
+        }
+
+        const onChange = () => {
+          const v = peek();
+          if (v !== undefined) {
+            cleanup();
+            resolve(v);
+          }
+        };
+        const onTimeout = () => {
+          cleanup();
+          resolve(tokenRef.current);
+        };
+        const handle = setTimeout(onTimeout, timeoutMs);
+        const cleanup = () => {
+          clearTimeout(handle);
+          waitersRef.current.delete(onChange);
+        };
+        waitersRef.current.add(onChange);
+      });
+    },
+    [],
+  );
+
+  // Fetch config to get Turnstile settings (skipped when build-time config is set)
+  useEffect(() => {
+    if (hasBuildTimeKey) {
+      return;
+    }
     const fetchConfig = async () => {
       try {
         const response = await fetch(`${apiUrl}/config`);
@@ -99,11 +194,13 @@ export function TurnstileProvider({
         reportTurnstileError("config_fetch", String(error), apiUrl);
         // Proceed without Turnstile on error
         setIsReady(true);
+      } finally {
+        setConfigLoaded(true);
       }
     };
 
     fetchConfig();
-  }, [apiUrl]);
+  }, [apiUrl, hasBuildTimeKey]);
 
   // Define refreshToken first so it can be used in renderWidget
   const refreshToken = useCallback(() => {
@@ -210,7 +307,14 @@ export function TurnstileProvider({
 
   return (
     <TurnstileContext.Provider
-      value={{ token, isReady, isEnabled, refreshToken }}
+      value={{
+        token,
+        isReady,
+        isEnabled,
+        configLoaded,
+        refreshToken,
+        awaitToken,
+      }}
     >
       {/* Hidden container for the invisible Turnstile widget */}
       {isEnabled && (

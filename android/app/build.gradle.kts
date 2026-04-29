@@ -17,12 +17,31 @@ android {
     fun gradleProp(name: String, default: String): String =
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+                ?: (project.findProperty("KEYSTORE_PATH") as String?)
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+                ?: (project.findProperty("KEYSTORE_PASSWORD") as String?)
+            val keyAlias = System.getenv("KEY_ALIAS")
+                ?: (project.findProperty("KEY_ALIAS") as String?) ?: "release"
+            val keyPassword = System.getenv("KEY_PASSWORD")
+                ?: (project.findProperty("KEY_PASSWORD") as String?)
+            if (keystorePath != null && keystorePassword != null && keyPassword != null) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "org.voxquieta.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
 
         testInstrumentationRunner = "org.voxquieta.app.HiltTestRunner"
         vectorDrawables {
@@ -45,6 +64,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
             // BASE_URL injected via CI — override with -PbaseUrl=... or env var
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "https://api.voxquieta.org/")}\"")
             // Firebase is enabled only in release builds.

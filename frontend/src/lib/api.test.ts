@@ -11,6 +11,7 @@ import {
   warmupBackend,
   setTurnstileToken,
   setOnTokenConsumed,
+  setTurnstileAwaiter,
   submitFeedback,
   ColdStartError,
   type ChatResponse,
@@ -814,5 +815,97 @@ describe("Turnstile token consumption", () => {
     expect(
       (global.fetch as any).mock.calls[0][1].headers["X-Turnstile-Token"],
     ).toBeUndefined();
+  });
+});
+
+describe("Turnstile awaiter (ensureTurnstileToken)", () => {
+  afterEach(() => {
+    setTurnstileToken(null);
+    setOnTokenConsumed(null);
+    setTurnstileAwaiter(null);
+  });
+
+  it("waits for the awaiter when no cached token is set, then attaches header", async () => {
+    const awaiter = vi.fn().mockResolvedValue("late-token");
+    setTurnstileAwaiter(awaiter);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "ok",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(awaiter).toHaveBeenCalledTimes(1);
+    expect((global.fetch as any).mock.calls[0][1].headers).toEqual(
+      expect.objectContaining({ "X-Turnstile-Token": "late-token" }),
+    );
+  });
+
+  it("skips the awaiter when a token is already cached", async () => {
+    const awaiter = vi.fn().mockResolvedValue("late-token");
+    setTurnstileAwaiter(awaiter);
+    setTurnstileToken("cached-token");
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "ok",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(awaiter).not.toHaveBeenCalled();
+    expect((global.fetch as any).mock.calls[0][1].headers).toEqual(
+      expect.objectContaining({ "X-Turnstile-Token": "cached-token" }),
+    );
+  });
+
+  it("falls open when the awaiter resolves with null (Turnstile disabled)", async () => {
+    const awaiter = vi.fn().mockResolvedValue(null);
+    setTurnstileAwaiter(awaiter);
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "ok",
+        provider: "ollama",
+        model: "llama3",
+      }),
+    });
+
+    await sendMessage("Hello");
+
+    expect(awaiter).toHaveBeenCalledTimes(1);
+    const headers = (global.fetch as any).mock.calls[0][1].headers;
+    expect(headers["X-Turnstile-Token"]).toBeUndefined();
+  });
+
+  it("invokes the awaiter on each Turnstile-gated POST", async () => {
+    const awaiter = vi.fn().mockResolvedValue(null);
+    setTurnstileAwaiter(awaiter);
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await sendMessage("msg");
+    await searchChurches("Zurich");
+    await submitFeedback({
+      message_id: "test",
+      rating: "positive",
+      user_message: "q",
+      assistant_response: "a",
+    });
+
+    expect(awaiter).toHaveBeenCalledTimes(3);
   });
 });

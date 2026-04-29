@@ -136,7 +136,9 @@ describe("Home page responsive layout", () => {
       isReady: true,
       isEnabled: false,
       token: null,
+      configLoaded: true,
       refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
     });
   });
 
@@ -431,7 +433,9 @@ describe("Home page responsive layout", () => {
         isReady: false,
         isEnabled: true,
         token: null,
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       renderWithIntl(<Home />);
@@ -449,13 +453,44 @@ describe("Home page responsive layout", () => {
       });
     });
 
+    it("disables suggested prompts before /config has resolved", () => {
+      // Initial state: config still loading. Until we know whether Turnstile
+      // is enabled, all gated POSTs would race past it without a token.
+      vi.mocked(turnstile.useTurnstile).mockReturnValue({
+        isReady: false,
+        isEnabled: false,
+        token: null,
+        configLoaded: false,
+        refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
+      });
+
+      renderWithIntl(<Home />);
+
+      const prompts = screen
+        .getAllByRole("button")
+        .filter(
+          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+        );
+
+      prompts.forEach((prompt) => {
+        expect(prompt).toBeDisabled();
+      });
+
+      expect(
+        screen.getByText("Preparing secure connection..."),
+      ).toBeInTheDocument();
+    });
+
     it("enables suggested prompts when Turnstile is ready", () => {
       // Mock Turnstile as enabled and ready
       vi.mocked(turnstile.useTurnstile).mockReturnValue({
         isReady: true,
         isEnabled: true,
         token: "test-token",
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       renderWithIntl(<Home />);
@@ -479,7 +514,9 @@ describe("Home page responsive layout", () => {
         isReady: false,
         isEnabled: true,
         token: null,
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       const { container } = renderWithIntl(<Home />);
@@ -498,7 +535,9 @@ describe("Home page responsive layout", () => {
         isReady: true,
         isEnabled: true,
         token: "test-token",
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       const { container } = renderWithIntl(<Home />);
@@ -527,7 +566,9 @@ describe("Home page responsive layout", () => {
         isReady: false,
         isEnabled: true,
         token: null,
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       renderWithIntl(<Home />);
@@ -544,7 +585,9 @@ describe("Home page responsive layout", () => {
         isReady: true,
         isEnabled: true,
         token: "test-token",
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       renderWithIntl(<Home />);
@@ -561,7 +604,9 @@ describe("Home page responsive layout", () => {
         isReady: true,
         isEnabled: false,
         token: null,
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       const { container } = renderWithIntl(<Home />);
@@ -603,7 +648,9 @@ describe("Home page responsive layout", () => {
         isReady: false,
         isEnabled: true,
         token: null,
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       vi.mocked(api.streamMessage).mockImplementation(async function* () {
@@ -643,7 +690,9 @@ describe("Home page responsive layout", () => {
         isReady: true,
         isEnabled: true,
         token: "test-token",
+        configLoaded: true,
         refreshToken: vi.fn(),
+        awaitToken: vi.fn().mockResolvedValue(null),
       });
 
       vi.mocked(api.streamMessage).mockImplementation(async function* () {

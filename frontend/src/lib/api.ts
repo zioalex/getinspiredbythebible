@@ -58,6 +58,14 @@ export async function checkBackendReady(): Promise<boolean> {
 // Turnstile token for bot protection
 let turnstileToken: string | null = null;
 let onTokenConsumed: (() => void) | null = null;
+type TurnstileAwaiter = (timeoutMs?: number) => Promise<string | null>;
+let turnstileAwaiter: TurnstileAwaiter | null = null;
+
+// Default wait for Turnstile-gated POSTs. Mirrors the Android client (PR #439):
+// before firing a POST we briefly wait for the widget to issue a token so the
+// first send after page load (config still loading) doesn't race past it and
+// get bounced as 403 TURNSTILE_REQUIRED.
+const DEFAULT_TURNSTILE_WAIT_MS = 5000;
 
 /**
  * Set the Turnstile token for API requests
@@ -75,6 +83,15 @@ export function setOnTokenConsumed(callback: (() => void) | null): void {
 }
 
 /**
+ * Register a function that resolves with the current Turnstile token,
+ * waiting briefly if config / widget is still loading. Called before
+ * Turnstile-gated POSTs.
+ */
+export function setTurnstileAwaiter(awaiter: TurnstileAwaiter | null): void {
+  turnstileAwaiter = awaiter;
+}
+
+/**
  * Consume the current token (use it once then trigger refresh).
  * Turnstile tokens are single-use — Cloudflare rejects reused tokens
  * with "timeout-or-duplicate".
@@ -83,6 +100,21 @@ function consumeToken(): void {
   if (turnstileToken) {
     turnstileToken = null;
     onTokenConsumed?.();
+  }
+}
+
+/**
+ * Wait briefly for a Turnstile token to be available before sending a
+ * gated POST. No-op if no awaiter is registered (e.g. server-side or
+ * before the React provider mounts).
+ */
+async function ensureTurnstileToken(
+  timeoutMs: number = DEFAULT_TURNSTILE_WAIT_MS,
+): Promise<void> {
+  if (turnstileToken || !turnstileAwaiter) return;
+  const awaited = await turnstileAwaiter(timeoutMs);
+  if (awaited && !turnstileToken) {
+    turnstileToken = awaited;
   }
 }
 
@@ -297,6 +329,7 @@ export async function sendMessage(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    await ensureTurnstileToken();
     const headers = getHeaders();
     consumeToken();
 
@@ -319,9 +352,9 @@ export async function sendMessage(
       // Handle 429 rate limit errors
       if (response.status === 429) {
         const data = await response.json().catch(() => ({}));
-        if (data.error === "session_lifetime_limit") {
+        if (data.detail?.error === "session_lifetime_limit") {
           throw new SessionLimitError(
-            data.message ||
+            data.detail?.message ||
               "Session limit reached. Start a new session to continue.",
           );
         }
@@ -384,6 +417,7 @@ export async function* streamMessage(
   preferredTranslation?: string,
   sessionId?: string,
 ): AsyncGenerator<StreamChunk> {
+  await ensureTurnstileToken();
   const headers = getHeaders();
   consumeToken();
 
@@ -403,9 +437,9 @@ export async function* streamMessage(
     // Handle 429 rate limit errors
     if (response.status === 429) {
       const data = await response.json().catch(() => ({}));
-      if (data.error === "session_lifetime_limit") {
+      if (data.detail?.error === "session_lifetime_limit") {
         throw new SessionLimitError(
-          data.message ||
+          data.detail?.message ||
             "Session limit reached. Start a new session to continue.",
         );
       }
@@ -592,6 +626,7 @@ export async function getTranslations(): Promise<TranslationInfo[]> {
 export async function searchChurches(
   location: string,
 ): Promise<ChurchSearchResponse> {
+  await ensureTurnstileToken();
   const headers = getHeaders();
   consumeToken();
 
@@ -614,6 +649,7 @@ export async function searchChurches(
 export async function submitFeedback(
   feedback: FeedbackRequest,
 ): Promise<FeedbackResponse> {
+  await ensureTurnstileToken();
   const headers = getHeaders();
   consumeToken();
 
@@ -636,6 +672,7 @@ export async function submitFeedback(
 export async function submitContactForm(
   contact: ContactRequest,
 ): Promise<ContactResponse> {
+  await ensureTurnstileToken();
   const headers = getHeaders();
   consumeToken();
 

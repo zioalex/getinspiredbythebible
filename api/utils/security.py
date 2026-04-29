@@ -19,6 +19,7 @@ from fastapi import Depends, HTTPException, Request
 from config import settings
 
 from .logging_config import get_logger
+from .monitor_probe import is_monitor_probe
 from .rate_limiter import get_rate_limiter
 
 logger = get_logger(__name__)
@@ -183,6 +184,13 @@ async def require_rate_limit(request: Request) -> None:
     Raises HTTPException 429 if rate limit exceeded.
     """
     if not settings.rate_limit_enabled:
+        return
+
+    if is_monitor_probe(request):
+        logger.info(
+            "Monitor probe — bypassing rate limit",
+            extra={"path": request.url.path},
+        )
         return
 
     ip_address = get_client_ip(request)

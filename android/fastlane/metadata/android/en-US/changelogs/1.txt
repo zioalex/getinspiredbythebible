@@ -1,0 +1,6 @@
+Initial release of Vox Quieta.
+
+• AI-guided Scripture exploration in 6 languages
+• Full Bible reader with multiple translations
+• Church finder
+• Offline conversation history

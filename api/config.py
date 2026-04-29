@@ -140,6 +140,11 @@ class Settings(BaseSettings):
     # Test secret: 2x0000000000000000000000000000000AA (always fails)
     # Test secret: 3x0000000000000000000000000000000AA (forces interactive challenge)
 
+    # Synthetic monitor probe — shared secret that lets an authorized
+    # server-to-server probe bypass Turnstile and rate limits via the
+    # X-Monitor-Probe-Secret header. Leave None/empty to disable bypass.
+    monitor_probe_secret: str | None = None
+
     # Azure Content Safety Settings
     azure_content_safety_enabled: bool = False  # Enable Azure Content Safety API
     azure_content_safety_endpoint: str | None = None  # Azure endpoint URL
