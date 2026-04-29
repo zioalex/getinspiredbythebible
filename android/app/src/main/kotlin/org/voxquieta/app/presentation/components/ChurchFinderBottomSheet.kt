@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -201,8 +202,9 @@ fun ChurchFinderBottomSheet(
                         }
                     } else {
                         Text(
-                            text = stringResource(
-                                R.string.church_finder_found_count,
+                            text = pluralStringResource(
+                                R.plurals.church_finder_found_count,
+                                churches.size,
                                 churches.size,
                             ),
                             style = MaterialTheme.typography.labelMedium,

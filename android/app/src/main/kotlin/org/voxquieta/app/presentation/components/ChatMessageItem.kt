@@ -297,12 +297,12 @@ internal fun handleVerseLink(
 @Composable
 fun ChatMessageItem(
     message: Message,
-    userMessage: String = "",
     chapterSheetState: ChapterSheetState,
     preferredTranslation: String?,
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
     onDismissSheet: () -> Unit,
     modifier: Modifier = Modifier,
+    userMessage: String = "",
     onRetry: (() -> Unit)? = null,
     onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
     feedbackGiven: String? = null,
