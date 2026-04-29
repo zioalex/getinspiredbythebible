@@ -138,6 +138,27 @@ vox-quieta/
 | `ANTHROPIC_API_KEY` | - | For Claude provider |
 | `OPENROUTER_API_KEY` | - | For OpenRouter provider |
 
+#### Frontend build-time variables
+
+These are inlined into the Next.js bundle at build time (e.g.
+`docker build --build-arg ...` or via the CI env).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Backend API URL. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | _(unset)_ | Cloudflare Turnstile site key. See note below. |
+
+**About `NEXT_PUBLIC_TURNSTILE_SITE_KEY`:** When set, the frontend skips
+the runtime `GET /config` round-trip and starts loading the Turnstile
+widget on first paint — closing the brief window in which a fast first
+message could race past Turnstile and get bounced with
+`403 TURNSTILE_REQUIRED`. The site key is **public by design** and
+visible to every browser that loads the widget; only the backend
+**secret** key (used to call Cloudflare's `siteverify`) must stay
+private. Set the variable to an empty string to explicitly disable
+Turnstile at build time, or leave it unset to fall back to runtime
+`/config`.
+
 ### Switching LLM Providers
 
 #### Using Claude
