@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">Impostazioni</string>
-    <string name="settings_language_title">Lingua</string>
-    <string name="settings_language_subtitle">Seleziona la lingua per i versetti biblici</string>
     <string name="action_open_settings">Impostazioni</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_light">Chiaro</string>
@@ -160,13 +158,11 @@
     <string name="action_copied">Copiato</string>
     <string name="action_feedback_helpful">È stato utile</string>
     <string name="action_feedback_not_helpful">Non è stato utile</string>
-    <string name="feedback_thank_you">Grazie per il tuo feedback!</string>
     <string name="backend_warming_up">Connessione al server… (la prima richiesta potrebbe richiedere fino a 30 s)</string>
     <string name="action_scroll_to_bottom">Scorri verso il basso</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Leggi il capitolo completo</string>
-    <string name="loading_chapter">Caricamento del capitolo…</string>
 
     <!-- Church finder -->
     <string name="church_finder_banner_text">Cerchi una comunità di fede?</string>
@@ -178,12 +174,15 @@
     <string name="church_finder_search_button">Cerca</string>
     <string name="church_finder_location_hint">Usa i nomi delle città in inglese</string>
     <string name="church_finder_enter_location">Inserisci una posizione per cercare</string>
-    <string name="church_finder_found_count">%d chiese trovate</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="one">%d chiesa trovata</item>
+        <item quantity="many">%d milioni di chiese trovate</item>
+        <item quantity="other">%d chiese trovate</item>
+    </plurals>
     <string name="church_finder_no_churches_found">Nessuna chiesa trovata</string>
     <string name="church_finder_no_churches_hint">Prova un\'altra posizione o un termine di ricerca più ampio.</string>
     <string name="church_finder_website">Sito web</string>
     <string name="church_finder_email">E-mail</string>
-    <string name="church_finder_data_credit">Dati delle chiese forniti da DisciplesToday.org</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Contatto</string>
@@ -204,7 +203,6 @@
     <string name="contact_send_button">Invia messaggio</string>
     <string name="contact_success_title">Messaggio inviato con successo!</string>
     <string name="contact_success_description">Grazie per averci contattato. Esamineremo il tuo messaggio a breve.</string>
-    <string name="contact_error_send">Invio del messaggio non riuscito. Riprova.</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">Versetti correlati</string>

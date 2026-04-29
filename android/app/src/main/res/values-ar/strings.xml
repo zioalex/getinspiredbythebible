@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">الإعدادات</string>
-    <string name="settings_language_title">اللغة</string>
-    <string name="settings_language_subtitle">اختر لغة آيات الكتاب المقدس</string>
     <string name="action_open_settings">الإعدادات</string>
     <string name="settings_theme_title">السمة</string>
     <string name="settings_theme_light">فاتح</string>
@@ -160,13 +158,11 @@
     <string name="action_copied">تم النسخ</string>
     <string name="action_feedback_helpful">كان هذا مفيدًا</string>
     <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
-    <string name="feedback_thank_you">شكرًا على تعليقك!</string>
     <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
     <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">اقرأ الفصل الكامل</string>
-    <string name="loading_chapter">جارٍ تحميل الفصل…</string>
 
     <!-- Church Finder -->
     <string name="church_finder_banner_text">هل تبحث عن مجتمع إيماني؟</string>
@@ -178,12 +174,18 @@
     <string name="church_finder_search_button">بحث</string>
     <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>
     <string name="church_finder_enter_location">أدخل موقعاً للبحث</string>
-    <string name="church_finder_found_count">تم العثور على %d كنيسة</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="zero">لم يتم العثور على أي كنيسة</item>
+        <item quantity="one">تم العثور على كنيسة واحدة</item>
+        <item quantity="two">تم العثور على كنيستين</item>
+        <item quantity="few">تم العثور على %d كنائس</item>
+        <item quantity="many">تم العثور على %d كنيسة</item>
+        <item quantity="other">تم العثور على %d كنيسة</item>
+    </plurals>
     <string name="church_finder_no_churches_found">لم يتم العثور على كنائس</string>
     <string name="church_finder_no_churches_hint">جرّب موقعاً مختلفاً أو مصطلح بحث أوسع.</string>
     <string name="church_finder_website">الموقع الإلكتروني</string>
     <string name="church_finder_email">البريد الإلكتروني</string>
-    <string name="church_finder_data_credit">بيانات الكنائس مقدمة من DisciplesToday.org</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">تواصل</string>
@@ -204,7 +206,6 @@
     <string name="contact_send_button">إرسال الرسالة</string>
     <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>
     <string name="contact_success_description">شكراً لتواصلك معنا. سنراجع رسالتك قريباً.</string>
-    <string name="contact_error_send">فشل إرسال الرسالة. يرجى المحاولة مجدداً.</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">آيات ذات صلة</string>

@@ -108,7 +108,7 @@ android {
         //   3. Set abortOnError = true here
         // Note: AGP 8.4.2 does not honour -Dlint.baselines.continue=true for ERROR-severity
         // issues in the same run; run the task twice if needed.
-        abortOnError = false
+        abortOnError = true
         warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
         disable += setOf(

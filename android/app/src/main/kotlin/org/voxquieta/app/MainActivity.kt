@@ -1,5 +1,6 @@
 package org.voxquieta.app
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
@@ -9,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -89,6 +91,7 @@ class MainActivity : ComponentActivity() {
             //   LocalizedActivityContext → Activity → ...
             // This keeps hiltViewModel() working in every NavHost destination.
             val activity = LocalContext.current
+            @SuppressLint("AppBundleLocaleChanges")
             val localizedConfiguration = remember(languageCode) {
                 val locale = Locale(languageCode)
                 Configuration(activity.resources.configuration).also { cfg ->
@@ -113,22 +116,18 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     // Track screen views every time the user navigates to a new destination.
-                    remember(navController) {
-                        navController.addOnDestinationChangedListener(
-                            object : NavController.OnDestinationChangedListener {
-                                override fun onDestinationChanged(
-                                    controller: NavController,
-                                    destination: androidx.navigation.NavDestination,
-                                    arguments: Bundle?,
-                                ) {
-                                    // Strip route args so "chat/{conversationId}" → "chat"
-                                    val screenName = destination.route
-                                        ?.substringBefore("/")
-                                        ?: destination.displayName
-                                    analyticsHelper.setCurrentScreen(screenName)
-                                }
-                            },
-                        )
+                    DisposableEffect(navController) {
+                        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                            // Strip route args so "chat/{conversationId}" → "chat"
+                            val screenName = destination.route
+                                ?.substringBefore("/")
+                                ?: "unknown"
+                            analyticsHelper.setCurrentScreen(screenName)
+                        }
+                        navController.addOnDestinationChangedListener(listener)
+                        onDispose {
+                            navController.removeOnDestinationChangedListener(listener)
+                        }
                     }
 
                     val startDestination = remember {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Splash screen icon — open book with soft light rays, 240×240dp viewport -->
+<!-- Splash screen icon — open book with soft light rays, 200×200dp viewport -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="240dp"
-    android:height="240dp"
+    android:width="200dp"
+    android:height="200dp"
     android:viewportWidth="240"
     android:viewportHeight="240">
 

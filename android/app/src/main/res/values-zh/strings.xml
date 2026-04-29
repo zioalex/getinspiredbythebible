@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">设置</string>
-    <string name="settings_language_title">语言</string>
-    <string name="settings_language_subtitle">选择圣经经文的语言</string>
     <string name="action_open_settings">设置</string>
     <string name="settings_theme_title">主题</string>
     <string name="settings_theme_light">浅色</string>
@@ -160,13 +158,11 @@
     <string name="action_copied">已复制</string>
     <string name="action_feedback_helpful">这很有帮助</string>
     <string name="action_feedback_not_helpful">这没有帮助</string>
-    <string name="feedback_thank_you">感谢您的反馈！</string>
     <string name="backend_warming_up">正在连接服务器……（首次请求可能需要最多30秒）</string>
     <string name="action_scroll_to_bottom">滚动到底部</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">阅读整章</string>
-    <string name="loading_chapter">正在加载章节…</string>
 
     <!-- Church finder -->
     <string name="church_finder_banner_text">正在寻找信仰团体？</string>
@@ -178,12 +174,13 @@
     <string name="church_finder_search_button">搜索</string>
     <string name="church_finder_location_hint">请使用城市的英文名称</string>
     <string name="church_finder_enter_location">输入位置以搜索</string>
-    <string name="church_finder_found_count">找到 %d 个教会</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="other">找到 %d 个教会</item>
+    </plurals>
     <string name="church_finder_no_churches_found">未找到教会</string>
     <string name="church_finder_no_churches_hint">尝试其他地点或更宽泛的搜索词。</string>
     <string name="church_finder_website">网站</string>
     <string name="church_finder_email">电子邮件</string>
-    <string name="church_finder_data_credit">教会数据由 DisciplesToday.org 提供</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">联系</string>
@@ -204,7 +201,6 @@
     <string name="contact_send_button">发送消息</string>
     <string name="contact_success_title">消息发送成功！</string>
     <string name="contact_success_description">感谢您的联系，我们将尽快查看您的消息。</string>
-    <string name="contact_error_send">消息发送失败，请重试。</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">相关经文</string>
