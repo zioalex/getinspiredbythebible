@@ -441,10 +441,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
@@ -697,10 +697,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
@@ -827,12 +827,14 @@ jobs:
           echo "  Frontend: $FRONTEND_IMAGE"
 
       - name: Decode Cloudflare Origin Certificate
+        id: decode-cert
         env:
           CERT_B64: ${{ secrets.CLOUDFLARE_ORIGIN_CERT_B64 }}
         run: |
           if [ -z "$CERT_B64" ]; then
             echo "::warning::CLOUDFLARE_ORIGIN_CERT_B64 secret is not set — custom domain SSL will not be configured"
             echo "cert_decoded=false" >> $GITHUB_ENV
+            echo "cert_decoded=false" >> $GITHUB_OUTPUT
           else
             echo "$CERT_B64" | base64 -d > deployment/cloudflare-origin.pfx
             # Normalize PFX: convert legacy PKCS12 (RC2/3DES from OpenSSL 1.x) to modern AES
@@ -855,10 +857,12 @@ jobs:
               # Path relative to TF working dir so filemd5() and az CLI resolve correctly
               echo "TF_VAR_cloudflare_origin_cert_frontend=cloudflare-origin.pfx" >> $GITHUB_ENV
               echo "cert_decoded=true" >> $GITHUB_ENV
+              echo "cert_decoded=true" >> $GITHUB_OUTPUT
             else
               echo "::warning::cloudflare-origin.pfx cannot be read - SSL cert upload skipped."
               echo "::warning::Fix: openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -passout pass:"
               echo "cert_decoded=false" >> $GITHUB_ENV
+              echo "cert_decoded=false" >> $GITHUB_OUTPUT
             fi
           fi
 
@@ -942,7 +946,7 @@ jobs:
           fi
 
       - name: Verify Custom Domain HTTPS
-        if: env.cert_decoded == 'true'
+        if: ${{ steps.decode-cert.outputs.cert_decoded == 'true' }}
         run: |
           set -euo pipefail
           DOMAINS=("voxquieta.org" "api.voxquieta.org")
@@ -1025,7 +1029,7 @@ jobs:
       - name: Run e2e tests (real user — frontend URL)
         id: e2e
         env:
-          FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
+          FRONTEND_URL: ${{ vars['FRONTEND_URL'] || 'https://voxquieta.org' }}
         run: |
           cd api
           python -m pytest tests/e2e/ -m e2e -v --tb=short
@@ -1044,7 +1048,7 @@ jobs:
           echo "## Smoke Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### E2E Tests (real user via frontend)" >> $GITHUB_STEP_SUMMARY
-          echo "**Frontend:** ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** ${{ vars['FRONTEND_URL'] || 'https://voxquieta.org' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.e2e.outcome }}" == "success" ]; then
             echo "✅ All e2e tests passed" >> $GITHUB_STEP_SUMMARY
@@ -1076,10 +1080,10 @@ jobs:
     env:
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
       TF_VAR_openrouter_api_key: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-      TF_VAR_claude_api_key: ${{ secrets.TF_VAR_CLAUDE_API_KEY }}
+      TF_VAR_claude_api_key: ${{ secrets['TF_VAR_CLAUDE_API_KEY'] }}
       TF_VAR_cloudflare_origin_cert_password: ${{ secrets.TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD }}
       TF_VAR_smtp2go_api_key: ${{ secrets.TF_VAR_SMTP2GO_API_KEY }}
-      TF_VAR_turnstile_site_key: ${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+      TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
 
     steps:
