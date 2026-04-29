@@ -27,15 +27,20 @@
     <application>
 
         <!-- Disable Firebase core auto-init. -->
+        <!-- tools:ignore="MissingClass": class lives in the firebase-common library which is
+             not resolved during debug lint; the entry is only a manifest-merger removal
+             directive (tools:node="remove") so the class never needs to be present. -->
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
             android:authorities="${applicationId}.firebaseinitprovider"
+            tools:ignore="MissingClass"
             tools:node="remove" />
 
         <!-- Disable Crashlytics auto-init. -->
         <provider
             android:name="com.google.firebase.crashlytics.internal.CrashlyticsInitProvider"
             android:authorities="${applicationId}.crashlyticsinitprovider"
+            tools:ignore="MissingClass"
             tools:node="remove" />
 
         <!-- Disable Google Analytics measurement provider (transitive via firebase-analytics-ktx
@@ -45,6 +50,7 @@
         <provider
             android:name="com.google.android.gms.measurement.AppMeasurementContentProvider"
             android:authorities="${applicationId}.google_measurement_service_provider"
+            tools:ignore="MissingClass"
             tools:node="remove" />
 
         <!-- Disable Firebase data-transport SQLite backend initializer (transitive via
@@ -52,6 +58,7 @@
         <provider
             android:name="com.google.android.datatransport.runtime.TransportRuntimeInitializer"
             android:authorities="${applicationId}.transportruntimeinitializer"
+            tools:ignore="MissingClass"
             tools:node="remove" />
 
     </application>
