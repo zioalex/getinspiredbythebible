@@ -78,6 +78,7 @@ fun ContactFormBottomSheet(
     var subjectDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var emailInput by rememberSaveable { mutableStateOf("") }
     var messageInput by rememberSaveable { mutableStateOf("") }
+    var messageTouched by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -190,15 +191,23 @@ fun ContactFormBottomSheet(
             )
 
             // ── Message input ─────────────────────────────────────────────────
+            val messageError = messageTouched && messageInput.isBlank()
             OutlinedTextField(
                 value = messageInput,
-                onValueChange = { messageInput = it },
+                onValueChange = {
+                    messageInput = it
+                    messageTouched = true
+                },
                 label = { Text(stringResource(R.string.contact_message_label)) },
                 placeholder = { Text(stringResource(R.string.contact_message_placeholder)) },
                 minLines = 4,
                 maxLines = 8,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                isError = messageError,
+                supportingText = if (messageError) {
+                    { Text(stringResource(R.string.contact_message_required)) }
+                } else null,
             )
 
             // ── Privacy note ──────────────────────────────────────────────────
@@ -220,6 +229,7 @@ fun ContactFormBottomSheet(
             // ── Send button ───────────────────────────────────────────────────
             Button(
                 onClick = {
+                    messageTouched = true
                     if (messageInput.isNotBlank()) {
                         onSubmit(
                             selectedSubject.value,
