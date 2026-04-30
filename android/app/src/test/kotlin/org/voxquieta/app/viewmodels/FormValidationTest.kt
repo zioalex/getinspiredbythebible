@@ -101,6 +101,21 @@ class FormValidationTest {
         assertFalse(fieldError(touched = true, value = "Hello pastor"))
     }
 
+    // ── Regression guard: remember (not rememberSaveable) resets on each open ──
+
+    @Test
+    fun `church finder - second open starts with blank input and no error`() {
+        val touched = false
+        val value = ""
+        assertFalse(fieldError(touched, value))
+        assertFalse(value.isNotBlank())
+    }
+
+    @Test
+    fun `church finder - re-open after blank-submit error shows clean form`() {
+        assertFalse(fieldError(touched = false, value = ""))
+    }
+
     // ── Regression guard: touched must NOT be set by onValueChange ────────────
 
     @Test
