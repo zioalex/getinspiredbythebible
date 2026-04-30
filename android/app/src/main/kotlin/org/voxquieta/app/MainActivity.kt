@@ -5,9 +5,11 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -50,12 +52,28 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var analyticsHelper: AnalyticsHelper
 
+    // Accessed before setContent{} to drive setKeepOnScreenCondition.
+    // hiltViewModel() inside setContent{} returns the same Activity-scoped instance.
+    private val viewModel: ChatViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install the AndroidX Splash Screen before super.onCreate() so the
-        // splash window is shown immediately from the very first frame.
-        installSplashScreen()
+        // Capture the splash screen handle before super.onCreate() as required by the API.
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Keep the system splash on screen until the backend has responded (translations
+        // loaded) OR the device is offline, but cap at 700 ms so fast devices get a
+        // deliberate beat rather than an instant flash.  The 700 ms windowSplashScreen-
+        // AnimationDuration in themes.xml is the minimum; this condition can dismiss
+        // earlier once the backend is ready.
+        val splashStartMs = SystemClock.elapsedRealtime()
+        splashScreen.setKeepOnScreenCondition {
+            val elapsed = SystemClock.elapsedRealtime() - splashStartMs
+            val backendReady = viewModel.availableTranslations.value.isNotEmpty()
+                    || viewModel.uiState.value.isOffline
+            elapsed < 700L && !backendReady
+        }
 
         // Log the app_open event on every cold start.
         analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
