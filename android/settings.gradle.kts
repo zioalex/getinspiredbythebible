@@ -10,7 +10,6 @@ pluginManagement {
         mavenCentral {
             content {
                 excludeGroupByRegex("com\\.android.*")
-                excludeGroupByRegex("com\\.google.*")
                 excludeGroupByRegex("androidx.*")
             }
         }
@@ -22,22 +21,19 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google {
-            // Fetch all Google/Android/AndroidX artifacts exclusively from Google Maven.
-            // Without this exclusion Gradle also checks mavenCentral() for com.google.*
-            // artifacts, which causes transient 403 failures when GitHub Actions IPs are
-            // rate-limited by Maven Central.
+            // Optimization hint: fetch Android/AndroidX artifacts from Google Maven first.
+            // Note: com.google.* is intentionally NOT included here because many Google
+            // artifacts (Dagger/Hilt, Guava, ErrorProne) live on Maven Central, not Google Maven.
             content {
                 includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
                 includeGroupByRegex("androidx.*")
             }
         }
         mavenCentral {
-            // Mirror of the above: keep Maven Central from being queried for artifacts
-            // that are definitively served by Google Maven.
+            // Exclude artifacts that are definitively Google Maven-only to avoid
+            // unnecessary Maven Central requests (and transient 403 rate-limits).
             content {
                 excludeGroupByRegex("com\\.android.*")
-                excludeGroupByRegex("com\\.google.*")
                 excludeGroupByRegex("androidx.*")
             }
         }
@@ -45,7 +41,6 @@ dependencyResolutionManagement {
             url = uri("https://jitpack.io")
             content {
                 excludeGroupByRegex("com\\.android.*")
-                excludeGroupByRegex("com\\.google.*")
                 excludeGroupByRegex("androidx.*")
             }
         }
