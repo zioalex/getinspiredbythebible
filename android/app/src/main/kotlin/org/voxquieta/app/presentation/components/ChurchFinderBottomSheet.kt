@@ -112,10 +112,7 @@ fun ChurchFinderBottomSheet(
             val locationError = locationTouched && locationInput.isBlank()
             OutlinedTextField(
                 value = locationInput,
-                onValueChange = {
-                    locationInput = it
-                    locationTouched = true
-                },
+                onValueChange = { locationInput = it },
                 label = { Text(stringResource(R.string.church_finder_search_placeholder)) },
                 supportingText = {
                     if (locationError) {
