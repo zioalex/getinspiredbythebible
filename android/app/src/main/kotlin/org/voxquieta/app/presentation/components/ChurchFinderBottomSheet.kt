@@ -69,6 +69,7 @@ fun ChurchFinderBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     var locationInput by rememberSaveable { mutableStateOf("") }
+    var locationTouched by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -108,11 +109,22 @@ fun ChurchFinderBottomSheet(
             }
 
             // ── Location input ───────────────────────────────────────────────
+            val locationError = locationTouched && locationInput.isBlank()
             OutlinedTextField(
                 value = locationInput,
-                onValueChange = { locationInput = it },
+                onValueChange = {
+                    locationInput = it
+                    locationTouched = true
+                },
                 label = { Text(stringResource(R.string.church_finder_search_placeholder)) },
-                supportingText = { Text(stringResource(R.string.church_finder_location_hint)) },
+                supportingText = {
+                    if (locationError) {
+                        Text(stringResource(R.string.church_finder_location_required))
+                    } else {
+                        Text(stringResource(R.string.church_finder_location_hint))
+                    }
+                },
+                isError = locationError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
@@ -120,13 +132,19 @@ fun ChurchFinderBottomSheet(
                     imeAction = ImeAction.Search,
                 ),
                 keyboardActions = KeyboardActions(
-                    onSearch = { if (locationInput.isNotBlank()) onSearch(locationInput) },
+                    onSearch = {
+                        locationTouched = true
+                        if (locationInput.isNotBlank()) onSearch(locationInput)
+                    },
                 ),
             )
 
             // ── Search button ─────────────────────────────────────────────────
             Button(
-                onClick = { if (locationInput.isNotBlank()) onSearch(locationInput) },
+                onClick = {
+                    locationTouched = true
+                    if (locationInput.isNotBlank()) onSearch(locationInput)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = locationInput.isNotBlank() && churchFinderState !is ChurchFinderSheetState.Loading,
             ) {

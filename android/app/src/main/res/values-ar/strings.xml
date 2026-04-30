@@ -173,6 +173,7 @@
     <string name="church_finder_search_placeholder">مدينة بالإنجليزية (مثل: Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">بحث</string>
     <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>
+    <string name="church_finder_location_required">الرجاء إدخال مدينة أو موقع</string>
     <string name="church_finder_enter_location">أدخل موقعاً للبحث</string>
     <plurals name="church_finder_found_count">
         <item quantity="zero">لم يتم العثور على أي كنيسة</item>
@@ -202,6 +203,7 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">الرسالة</string>
     <string name="contact_message_placeholder">شارك أفكارك أو أبلغ عن مشكلة أو اقترح تحسيناً…</string>
+    <string name="contact_message_required">الرجاء إدخال رسالة</string>
     <string name="contact_privacy_note">ستُخزَّن رسالتك لمساعدتنا في تحسين الخدمة.</string>
     <string name="contact_send_button">إرسال الرسالة</string>
     <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>

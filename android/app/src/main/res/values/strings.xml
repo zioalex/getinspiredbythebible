@@ -183,6 +183,7 @@
     <string name="church_finder_search_placeholder">City in English (e.g., Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Search</string>
     <string name="church_finder_location_hint">Use English city names (e.g., Rome, Munich, Vienna)</string>
+    <string name="church_finder_location_required">Please enter a city or location</string>
     <string name="church_finder_enter_location">Enter a location to search</string>
     <plurals name="church_finder_found_count">
         <item quantity="one">Found %d church</item>
@@ -208,6 +209,7 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">Message</string>
     <string name="contact_message_placeholder">Share your thoughts, report an issue, or suggest an improvement…</string>
+    <string name="contact_message_required">Please enter a message</string>
     <string name="contact_privacy_note">Your message will be stored to help us improve the service.</string>
     <string name="contact_send_button">Send Message</string>
     <string name="contact_success_title">Message sent successfully!</string>

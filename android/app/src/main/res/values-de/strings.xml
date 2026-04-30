@@ -173,6 +173,7 @@
     <string name="church_finder_search_placeholder">Stadt auf Englisch (z. B. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Suchen</string>
     <string name="church_finder_location_hint">Bitte englische Städtenamen verwenden</string>
+    <string name="church_finder_location_required">Bitte eine Stadt oder einen Ort eingeben</string>
     <string name="church_finder_enter_location">Ort für die Suche eingeben</string>
     <plurals name="church_finder_found_count">
         <item quantity="one">%d Kirche gefunden</item>
@@ -198,6 +199,7 @@
     <string name="contact_email_placeholder">du@beispiel.de</string>
     <string name="contact_message_label">Nachricht</string>
     <string name="contact_message_placeholder">Teile deine Gedanken, melde ein Problem oder schlage eine Verbesserung vor…</string>
+    <string name="contact_message_required">Bitte eine Nachricht eingeben</string>
     <string name="contact_privacy_note">Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.</string>
     <string name="contact_send_button">Nachricht senden</string>
     <string name="contact_success_title">Nachricht erfolgreich gesendet!</string>
