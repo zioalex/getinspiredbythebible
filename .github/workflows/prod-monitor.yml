@@ -191,7 +191,8 @@ jobs:
           FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         run: |
           set -o pipefail
-          body=$(curl -fsS --max-time 15 "$FRONTEND_URL")
+          # -L: follow redirects (apex domain may redirect to www.)
+          body=$(curl -fsS -L --max-time 15 "$FRONTEND_URL")
           echo "$body" | grep -qi '<html\|<!DOCTYPE' || {
             echo "frontend response does not look like HTML: ${body:0:200}" > "$RUNNER_TEMP/detail.txt"
             exit 1
@@ -247,14 +248,18 @@ jobs:
           set -o pipefail
           err_re='(?i)(openrouter error|llm streaming error|anthropic error'
           err_re="${err_re}|internal server error|traceback"
-          err_re="${err_re}|rate.?limit|quota exceeded|api.?key"
+          err_re="${err_re}|rate.?limit.*(error|exceeded|hit|reached)|quota exceeded"
+          err_re="${err_re}|invalid.?api.?key|api.?key.*(invalid|missing|expired)"
           err_re="${err_re}|embedding.*error|connection.*error|connection refused"
-          err_re="${err_re}|unhandled exception|critical|fatal)"
+          err_re="${err_re}|unhandled exception|critical error|fatal)"
           # `sample` is a KQL operator; using it as a column name causes
           # SYN0002. Use `sample_log` instead.
+          # Exclude INFO-level lines: the monitor probe emits INFO logs that
+          # mention "rate limit" (bypassing it), which would cause false alerts.
           query="ContainerAppConsoleLogs_CL
             | where TimeGenerated > ago(10m)
             | where ContainerAppName_s == \"bible-app-backend\"
+            | where Log_s !matches regex \"\\\\| INFO\\\\s*\\\\|\"
             | where Log_s matches regex \"${err_re}\"
             | summarize cnt = count(), sample_log = any(Log_s)
             | project cnt, sample_log"
