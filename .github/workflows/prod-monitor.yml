@@ -2,12 +2,15 @@ name: Prod Monitor
 
 # Production monitoring + alerting via Telegram.
 #
-# Three independent jobs run every 5 minutes:
+# Five independent jobs run every 5 minutes:
 #   - health        : cheap liveness check (/health/live, /health/ready)
 #   - synthetic-chat: real chat round-trip via /api/v1/chat/stream — catches
 #                     the failure mode where the backend returns HTTP 200 with
 #                     an in-band {"type":"error", ...} SSE chunk (e.g. a bad
 #                     OpenRouter API key).
+#   - verse-search  : semantic search probe via /api/v1/scripture/search —
+#                     validates DB + embedding provider + pgvector are healthy.
+#   - frontend      : checks that the frontend (voxquieta.org) serves HTML.
 #   - log-scan      : Azure Log Analytics KQL query against the backend's
 #                     ContainerAppConsoleLogs_CL for error patterns over the
 #                     last 10 minutes.
@@ -140,6 +143,72 @@ jobs:
           force_alert: ${{ github.event.inputs.force_alert }}
 
   # ---------------------------------------------------------------------------
+  verse-search:
+    name: Verse search probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install probe deps
+        run: pip install httpx
+
+      - name: Run verse search probe
+        id: probe
+        env:
+          BACKEND_URL: ${{ env.BACKEND_URL }}
+          MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
+          SEARCH_QUERY: "love"
+          SEARCH_TIMEOUT_SECONDS: "20"
+        run: python scripts/monitor/synthetic_search.py --detail-out "$RUNNER_TEMP/detail.txt"
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: verse-search
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check frontend is serving HTML
+        id: check
+        env:
+          FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
+        run: |
+          set -o pipefail
+          body=$(curl -fsS --max-time 15 "$FRONTEND_URL")
+          echo "$body" | grep -qi '<html\|<!DOCTYPE' || {
+            echo "frontend response does not look like HTML: ${body:0:200}" > "$RUNNER_TEMP/detail.txt"
+            exit 1
+          }
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: frontend
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  # ---------------------------------------------------------------------------
   log-scan:
     name: Log scan
     runs-on: ubuntu-latest
@@ -177,7 +246,10 @@ jobs:
         run: |
           set -o pipefail
           err_re='(?i)(openrouter error|llm streaming error|anthropic error'
-          err_re="${err_re}|internal server error|traceback)"
+          err_re="${err_re}|internal server error|traceback"
+          err_re="${err_re}|rate.?limit|quota exceeded|api.?key"
+          err_re="${err_re}|embedding.*error|connection.*error|connection refused"
+          err_re="${err_re}|unhandled exception|critical|fatal)"
           # `sample` is a KQL operator; using it as a column name causes
           # SYN0002. Use `sample_log` instead.
           query="ContainerAppConsoleLogs_CL

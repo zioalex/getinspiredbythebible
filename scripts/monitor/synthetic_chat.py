@@ -101,7 +101,12 @@ def main() -> int:
     last_chunk: dict | None = None
 
     try:
-        with httpx.Client(timeout=httpx.Timeout(overall_timeout, read=overall_timeout)) as client:
+        with httpx.Client(timeout=httpx.Timeout(
+            connect=10.0,
+            read=first_chunk_timeout,   # per-read socket timeout = first_chunk_timeout
+            write=10.0,
+            pool=5.0,
+        )) as client:
             with client.stream("POST", url, json=body, headers=headers) as response:
                 if response.status_code != 200:
                     text = response.read().decode("utf-8", errors="replace")[:500]
@@ -148,6 +153,12 @@ def main() -> int:
                         saw_content = True
                     elif chunk_type == "completion":
                         saw_completion = True
+    except httpx.ReadTimeout as e:
+        return fail(
+            f"server unresponsive: no data received within {first_chunk_timeout}s "
+            f"(saw_content={saw_content})",
+            args.detail_out,
+        )
     except httpx.TimeoutException as e:
         return fail(f"httpx timeout: {e}", args.detail_out)
     except httpx.HTTPError as e:
