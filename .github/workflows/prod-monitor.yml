@@ -261,7 +261,7 @@ jobs:
           query="ContainerAppConsoleLogs_CL
             | where TimeGenerated > ago(10m)
             | where ContainerAppName_s == \"bible-app-backend\"
-            | where Log_s matches regex \"(?i)\\\\| (ERROR|WARNING|CRITICAL)\\\\s*\\\\|\"
+            | where Log_s matches regex \"\\\\| (ERROR|WARNING|CRITICAL)\\\\s*\\\\|\"
             | where Log_s matches regex \"${err_re}\"
             | summarize cnt = count(), sample_log = any(Log_s)
             | project cnt, sample_log"
