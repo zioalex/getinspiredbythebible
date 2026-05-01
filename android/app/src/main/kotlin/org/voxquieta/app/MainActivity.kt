@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -27,12 +28,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
+import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.screens.ChatScreen
 import org.voxquieta.app.presentation.screens.ConversationsScreen
 import org.voxquieta.app.presentation.screens.SettingsScreen
 import org.voxquieta.app.presentation.screens.SplashScreen
 import org.voxquieta.app.presentation.theme.VoxQuietaTheme
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
+import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -55,6 +58,12 @@ class MainActivity : ComponentActivity() {
     // Accessed before setContent{} to drive setKeepOnScreenCondition.
     // hiltViewModel() inside setContent{} returns the same Activity-scoped instance.
     private val viewModel: ChatViewModel by viewModels()
+
+    // Mounted globally below in setContent so the Cloudflare Turnstile widget
+    // pre-warms during splash/conversations and any first POST (chat, church
+    // search, feedback) finds a token already cached.
+    @Inject
+    lateinit var turnstileManager: TurnstileManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
@@ -152,39 +161,47 @@ class MainActivity : ComponentActivity() {
                         if (localizedContext.hasSplashBeenSeen()) "conversations" else "splash"
                     }
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                    ) {
-                        composable("splash") {
-                            SplashScreen(
-                                onComplete = {
-                                    localizedContext.markSplashSeen()
-                                    navController.navigate("conversations") {
-                                        popUpTo("splash") { inclusive = true }
-                                    }
-                                },
-                            )
+                    Box {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                        ) {
+                            composable("splash") {
+                                SplashScreen(
+                                    onComplete = {
+                                        localizedContext.markSplashSeen()
+                                        navController.navigate("conversations") {
+                                            popUpTo("splash") { inclusive = true }
+                                        }
+                                    },
+                                )
+                            }
+                            composable("conversations") {
+                                ConversationsScreen(
+                                    onNewConversation = { navController.navigate("chat/new") },
+                                    onSelectConversation = { id -> navController.navigate("chat/$id") },
+                                    onOpenSettings = { navController.navigate("settings") },
+                                )
+                            }
+                            composable("chat/{conversationId}") { backStackEntry ->
+                                val conversationId = backStackEntry.arguments?.getString("conversationId")
+                                ChatScreen(
+                                    conversationId = conversationId,
+                                    onOpenSettings = { navController.navigate("settings") },
+                                )
+                            }
+                            composable("settings") {
+                                SettingsScreen(
+                                    onNavigateBack = { navController.popBackStack() },
+                                )
+                            }
                         }
-                        composable("conversations") {
-                            ConversationsScreen(
-                                onNewConversation = { navController.navigate("chat/new") },
-                                onSelectConversation = { id -> navController.navigate("chat/$id") },
-                                onOpenSettings = { navController.navigate("settings") },
-                            )
-                        }
-                        composable("chat/{conversationId}") { backStackEntry ->
-                            val conversationId = backStackEntry.arguments?.getString("conversationId")
-                            ChatScreen(
-                                conversationId = conversationId,
-                                onOpenSettings = { navController.navigate("settings") },
-                            )
-                        }
-                        composable("settings") {
-                            SettingsScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                            )
-                        }
+
+                        // Activity-scoped Turnstile widget. Stays mounted for the
+                        // life of the activity so any first POST request (regardless
+                        // of which screen the user navigates to first) finds a fresh
+                        // token already cached. The widget itself is 1.dp / invisible.
+                        TurnstileWebView(turnstileManager = turnstileManager)
                     }
                 }
             }

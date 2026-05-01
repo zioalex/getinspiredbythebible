@@ -41,7 +41,6 @@ import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.ContactFormState
-import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 
 /** Theme option shown in the settings section. */
@@ -224,12 +223,8 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // ── Turnstile bot-protection widget (invisible, 1×1 dp) ───────────────
-        // Ensures a valid token is available when the contact form is submitted,
-        // even when the user navigates here without first visiting ChatScreen.
-        // Mirrors the web app where the Turnstile widget is on the same page as
-        // the contact form.
-        TurnstileWebView(turnstileManager = viewModel.turnstileManager)
+        // Turnstile widget is mounted globally in MainActivity, so a token is
+        // already cached by the time the user reaches this screen.
 
         // ── Contact Form bottom sheet ──────────────────────────────────────────
         if (showContactSheet) {
