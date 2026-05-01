@@ -233,5 +233,19 @@
     "lastUpdated": "آخر تحديث: {date}",
     "navPrivacy": "الخصوصية",
     "navTerms": "الشروط"
+  },
+  "Changelog": {
+    "title": "ملاحظات الإصدار",
+    "description": "اكتشف ما هو جديد في Vox Quieta — سجل كامل بالإصدارات والتحسينات.",
+    "empty": "لا توجد إصدارات بعد."
+  },
+  "WhatsNew": {
+    "title": "ما الجديد",
+    "versionLabel": "الإصدار {version}",
+    "dismiss": "حسناً",
+    "viewFullChangelog": "عرض سجل التغييرات الكامل"
+  },
+  "Footer": {
+    "changelog": "سجل التغييرات"
   }
 }

@@ -233,5 +233,19 @@
     "lastUpdated": "最后更新：{date}",
     "navPrivacy": "隐私",
     "navTerms": "条款"
+  },
+  "Changelog": {
+    "title": "发行说明",
+    "description": "了解 Vox Quieta 的最新动态——完整的版本历史和改进记录。",
+    "empty": "暂无发布版本。"
+  },
+  "WhatsNew": {
+    "title": "新功能",
+    "versionLabel": "版本 {version}",
+    "dismiss": "知道了",
+    "viewFullChangelog": "查看完整更新日志"
+  },
+  "Footer": {
+    "changelog": "更新日志"
   }
 }

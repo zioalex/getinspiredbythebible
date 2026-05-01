@@ -233,5 +233,19 @@
     "lastUpdated": "अंतिम अपडेट: {date}",
     "navPrivacy": "गोपनीयता",
     "navTerms": "शर्तें"
+  },
+  "Changelog": {
+    "title": "रिलीज़ नोट्स",
+    "description": "Vox Quieta में क्या नया है — संस्करणों और सुधारों का पूरा इतिहास देखें।",
+    "empty": "अभी तक कोई रिलीज़ नहीं हुई है।"
+  },
+  "WhatsNew": {
+    "title": "क्या नया है",
+    "versionLabel": "संस्करण {version}",
+    "dismiss": "समझ गया",
+    "viewFullChangelog": "पूरा चेंजलॉग देखें"
+  },
+  "Footer": {
+    "changelog": "चेंजलॉग"
   }
 }
