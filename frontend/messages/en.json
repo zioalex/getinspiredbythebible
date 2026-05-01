@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "Get inspired daily by God's Word"
+  },
+  "Legal": {
+    "privacyTitle": "Privacy Policy",
+    "privacyDescription": "Learn how Vox Quieta collects and uses your data.",
+    "termsTitle": "Terms of Service",
+    "termsDescription": "Terms and conditions for using Vox Quieta.",
+    "lastUpdated": "Last updated: {date}",
+    "navPrivacy": "Privacy",
+    "navTerms": "Terms"
   }
 }

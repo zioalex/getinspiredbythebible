@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "매일 하나님의 말씀에서 영감을 받으세요"
+  },
+  "Legal": {
+    "privacyTitle": "개인정보 처리방침",
+    "privacyDescription": "Vox Quieta가 귀하의 데이터를 수집하고 사용하는 방법을 알아보세요.",
+    "termsTitle": "서비스 약관",
+    "termsDescription": "Vox Quieta 이용약관 및 조건.",
+    "lastUpdated": "최종 업데이트: {date}",
+    "navPrivacy": "개인정보",
+    "navTerms": "약관"
   }
 }

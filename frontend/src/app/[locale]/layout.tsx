@@ -10,6 +10,7 @@ import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Footer from "@/components/Footer";
 
 export async function generateMetadata({
   params,
@@ -95,8 +96,9 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <ErrorBoundary>
-              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
-                {children}
+              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
+                <div className="flex-1">{children}</div>
+                <Footer />
               </div>
             </ErrorBoundary>
           </Providers>

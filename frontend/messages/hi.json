@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "परमेश्वर के वचन से हर दिन प्रेरित हों"
+  },
+  "Legal": {
+    "privacyTitle": "गोपनीयता नीति",
+    "privacyDescription": "जानें कि Vox Quieta आपका डेटा कैसे एकत्र और उपयोग करता है।",
+    "termsTitle": "सेवा की शर्तें",
+    "termsDescription": "Vox Quieta के उपयोग के लिए नियम और शर्तें।",
+    "lastUpdated": "अंतिम अपडेट: {date}",
+    "navPrivacy": "गोपनीयता",
+    "navTerms": "शर्तें"
   }
 }

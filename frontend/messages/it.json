@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "Lasciati ispirare ogni giorno dalla Parola di Dio"
+  },
+  "Legal": {
+    "privacyTitle": "Informativa sulla Privacy",
+    "privacyDescription": "Scopri come Vox Quieta raccoglie e utilizza i tuoi dati.",
+    "termsTitle": "Termini di Servizio",
+    "termsDescription": "Termini e condizioni per l'utilizzo di Vox Quieta.",
+    "lastUpdated": "Ultimo aggiornamento: {date}",
+    "navPrivacy": "Privacy",
+    "navTerms": "Termini"
   }
 }
