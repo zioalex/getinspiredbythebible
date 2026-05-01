@@ -142,6 +142,7 @@
     <string name="settings_about_title">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_terms_of_service">Terms of Service</string>
 
     <!-- Offline notice -->
     <string name="offline_notice">You\'re offline. You can read past messages, but sending new ones requires an internet connection.</string>

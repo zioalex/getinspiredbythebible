@@ -145,6 +145,7 @@
     <string name="settings_about_title">के बारे में</string>
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>
+    <string name="settings_terms_of_service">सेवा की शर्तें</string>
 
     <!-- Errors -->
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>

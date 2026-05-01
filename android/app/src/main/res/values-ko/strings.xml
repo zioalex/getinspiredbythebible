@@ -145,6 +145,7 @@
     <string name="settings_about_title">정보</string>
     <string name="settings_version">버전</string>
     <string name="settings_privacy_policy">개인정보 처리방침</string>
+    <string name="settings_terms_of_service">서비스 약관</string>
 
     <!-- Errors -->
     <string name="error_session_limit">이 세션에서 10개의 메시지를 보내셨습니다! 잠시 쉬면서 하나님의 창조물을 즐겨보시는 건 어떨까요? 🌳</string>
