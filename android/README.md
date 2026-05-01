@@ -186,6 +186,84 @@ The resulting AAB is at `app/build/outputs/bundle/release/app-release.aab`.
 Publishing is fully automated via GitHub Actions
 (`.github/workflows/android-publish.yml`) and Fastlane.
 
+> **Before the automated workflow can run**, you must complete the one-time
+> Play Console setup described below. Fastlane can only upload builds to an
+> _existing_ app — it cannot create one.
+
+### One-time Play Console setup
+
+These steps must be done once by a human with a Google Play developer account.
+
+#### 1. Create the app in Play Console
+
+1. Go to [play.google.com/console](https://play.google.com/console) and sign
+   in with the developer account.
+2. Click **Create app**.
+3. Fill in the required fields: app name, default language, app/game type,
+   free/paid status.
+4. Accept the content guidelines and US export laws declarations.
+5. Click **Create app**.
+
+#### 2. Complete the Store listing
+
+Most metadata is already prepared under
+`android/fastlane/metadata/android/en-US/` and will be uploaded automatically
+by Fastlane. However, Play Console requires you to fill in at least the
+following before a build can be published:
+
+- Short description and full description
+- App icon (512×512 PNG)
+- Feature graphic (1024×500 PNG)
+- At least two phone screenshots
+- Privacy policy URL
+
+These assets are in `android/fastlane/metadata/android/en-US/images/`.
+
+#### 3. Complete mandatory app content declarations
+
+In Play Console, under **Policy → App content**, complete:
+
+- **Privacy policy** — provide a URL to your privacy policy
+- **Content rating** — complete the IARC questionnaire
+- **Target audience** — specify target age group
+- **News apps** — confirm whether the app is a news app
+
+#### 4. Set up a Google Play service account for Fastlane
+
+This allows Fastlane (and the CI workflow) to upload builds via the API.
+
+1. In Play Console, go to **Setup → API access**.
+2. Link your Play Console to a Google Cloud project (create one if needed).
+3. Click **Create new service account** → follow the link to Google Cloud
+   Console.
+4. In Google Cloud Console:
+   - Create a service account (e.g. `fastlane-deploy`)
+   - Grant it no Cloud IAM roles (permissions are managed in Play Console)
+   - Create a JSON key and download it
+5. Back in Play Console, click **Grant access** next to the new service account.
+6. Assign the **Release manager** role (or at minimum the **Releases**
+   permission under a custom role).
+7. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
+   GitHub secret:
+
+```bash
+base64 -w 0 play-key.json
+```
+
+#### 5. Upload the first build manually
+
+Google Play requires at least one build to be uploaded manually via the Play
+Console UI before the API (and therefore Fastlane) can be used.
+
+1. Build a signed AAB locally (see [Signing a release build](#signing-a-release-build)).
+2. In Play Console, go to **Testing → Internal testing → Create new release**.
+3. Upload the `.aab` file, add release notes, and save the release.
+
+After this first manual upload, all subsequent releases can be fully automated
+by pushing a `vX.Y.Z` tag.
+
+---
+
 ### Required GitHub secrets
 
 These must be set under **Settings → Secrets and variables → Actions** in the
