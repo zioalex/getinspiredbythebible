@@ -17,21 +17,25 @@ android {
     fun gradleProp(name: String, default: String): String =
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
+    // Resolve release signing inputs once, treating blanks as absent.
+    val releaseKeystorePath = (System.getenv("KEYSTORE_PATH")
+        ?: (project.findProperty("KEYSTORE_PATH") as String?))?.takeIf { it.isNotBlank() }
+    val releaseKeystorePassword = (System.getenv("KEYSTORE_PASSWORD")
+        ?: (project.findProperty("KEYSTORE_PASSWORD") as String?))?.takeIf { it.isNotBlank() }
+    val releaseKeyAlias = (System.getenv("KEY_ALIAS")
+        ?: (project.findProperty("KEY_ALIAS") as String?))?.takeIf { it.isNotBlank() } ?: "release"
+    val releaseKeyPassword = (System.getenv("KEY_PASSWORD")
+        ?: (project.findProperty("KEY_PASSWORD") as String?))?.takeIf { it.isNotBlank() }
+    val releaseSigningConfigured =
+        releaseKeystorePath != null && releaseKeystorePassword != null && releaseKeyPassword != null
+
     signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-                ?: (project.findProperty("KEYSTORE_PATH") as String?)
-            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
-                ?: (project.findProperty("KEYSTORE_PASSWORD") as String?)
-            val keyAlias = System.getenv("KEY_ALIAS")
-                ?: (project.findProperty("KEY_ALIAS") as String?) ?: "release"
-            val keyPassword = System.getenv("KEY_PASSWORD")
-                ?: (project.findProperty("KEY_PASSWORD") as String?)
-            if (keystorePath != null && keystorePassword != null && keyPassword != null) {
-                storeFile = file(keystorePath)
-                storePassword = keystorePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                this.keyAlias = releaseKeyAlias
+                this.keyPassword = releaseKeyPassword
             }
         }
     }
@@ -64,7 +68,30 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                // Fail only when a release signing task is actually requested, so non-signing
+                // tasks (assembleDebug, lint, unit tests, ./gradlew tasks) keep working.
+                gradle.taskGraph.whenReady {
+                    val needsSigning = allTasks.any { task ->
+                        task.project.path == project.path &&
+                            (task.name == "signReleaseBundle" ||
+                                task.name == "packageReleaseBundle" ||
+                                task.name == "signReleaseApk" ||
+                                task.name == "packageRelease" ||
+                                task.name == "bundleRelease" ||
+                                task.name == "assembleRelease")
+                    }
+                    if (needsSigning) {
+                        throw GradleException(
+                            "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD, " +
+                                "KEY_ALIAS and KEY_PASSWORD (env vars or Gradle properties) before " +
+                                "running release tasks (e.g. bundleRelease)."
+                        )
+                    }
+                }
+            }
             // BASE_URL injected via CI — override with -PbaseUrl=... or env var
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "https://api.voxquieta.org/")}\"")
             // Firebase is enabled only in release builds.
