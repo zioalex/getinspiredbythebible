@@ -401,38 +401,18 @@ class ChatViewModelTest {
     }
 
     // -------------------------------------------------------------------------
-    // Turnstile single-use token reset tests
+    // Turnstile fail-open / recovery tests
     // -------------------------------------------------------------------------
-
-    @Test
-    fun `sendMessage resets turnstile token after successful stream`() = runTest {
-        turnstileManager.onTokenReceived("initial-token")
-        every { repository.chatStream(any()) } returns flowOf(
-            StreamChunk(content = "Hello!", done = true),
-        )
-
-        viewModel.sendMessage("Hi")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Token should be cleared (consumed) so the next message gets a fresh one.
-        assertNull(turnstileManager.currentToken())
-        assertFalse(viewModel.uiState.value.isTurnstileReady)
-    }
-
-    @Test
-    fun `sendMessage resets turnstile token after stream error`() = runTest {
-        turnstileManager.onTokenReceived("initial-token")
-        every { repository.chatStream(any()) } returns flow {
-            throw IOException("network failure")
-        }
-
-        viewModel.sendMessage("Hi")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Token must also be cleared on the error path.
-        assertNull(turnstileManager.currentToken())
-        assertFalse(viewModel.uiState.value.isTurnstileReady)
-    }
+    //
+    // Token consumption (clearing the cached token after a request) was moved
+    // out of ChatViewModel and into TurnstileInterceptor — every gated POST
+    // now triggers the reset at the OkHttp layer regardless of which
+    // ViewModel/Repository made the call. The two cases that previously
+    // verified ChatViewModel.onTokenConsumed are now covered by
+    // `TurnstileInterceptorTest.attached-token POST consumes the token after
+    // the response`. The fail-open + recovery tests below stay here because
+    // they're about the ViewModel's UI state (`isTurnstileReady`), not the
+    // single-use bookkeeping.
 
     @Test
     fun `isTurnstileReady is true when turnstile widget errors (fail-open)`() = runTest {

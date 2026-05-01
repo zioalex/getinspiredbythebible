@@ -223,6 +223,15 @@ existing open PR if one already exists for that branch). Do not leave
 commits sitting on a branch without an active PR — work that is not in a
 PR is invisible to review and CI.
 
+**If CI doesn't trigger after pushing or opening a PR, check for merge
+conflicts first.** GitHub does not run workflows on a PR with unresolved
+merge conflicts. Symptoms: empty `get_check_runs` result that stays
+empty for more than a minute or two; the PR page shows "This branch has
+conflicts that must be resolved." Resolution: rebase or merge `main`
+into the branch (`git fetch origin && git merge origin/main`), resolve
+conflicts, push — CI will start. Don't sit waiting for a CI signal that
+will never arrive.
+
 ## Architecture Patterns
 
 ### Provider Abstraction (api/providers/)
