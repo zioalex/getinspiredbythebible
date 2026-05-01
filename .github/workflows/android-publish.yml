@@ -54,7 +54,8 @@ jobs:
             IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
             VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
           else
-            VERSION_NAME="$(grep versionName android/app/build.gradle.kts | head -1 | grep -oP '[\d.]+')"
+            VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
+              | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
             VERSION_CODE="$(grep versionCode android/app/build.gradle.kts | head -1 | grep -oP '\d+')"
           fi
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"

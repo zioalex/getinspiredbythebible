@@ -179,9 +179,74 @@ To build a production AAB for Play Store submission, pass both properties:
 
 The resulting AAB is at `app/build/outputs/bundle/release/app-release.aab`.
 
-In CI the same flags are injected automatically by
-`.github/workflows/android-ci.yml` via the `VERSION_CODE` and `VERSION_NAME`
-repository variables (or secrets) — no manual step needed for tagged releases.
+---
+
+## Publishing to the Play Store
+
+Publishing is fully automated via GitHub Actions
+(`.github/workflows/android-publish.yml`) and Fastlane.
+
+### Required GitHub secrets
+
+These must be set under **Settings → Secrets and variables → Actions** in the
+repository before the workflow can run:
+
+| Secret | Description |
+|---|---|
+| `KEYSTORE_FILE` | Base64-encoded release keystore: `base64 -w 0 release.keystore` |
+| `KEYSTORE_PASSWORD` | Password for the keystore |
+| `KEY_ALIAS` | Key alias inside the keystore (e.g. `release`) |
+| `KEY_PASSWORD` | Password for the key |
+| `GOOGLE_PLAY_JSON_KEY` | Base64-encoded Google Play service account JSON: `base64 -w 0 play-key.json` |
+
+> The Google Play service account needs the **Release manager** role (or at minimum
+> the **Releases** permission) in Google Play Console.
+
+### Track promotion flow
+
+```
+internal  →  beta  →  production
+```
+
+- **internal**: new AAB is uploaded and assigned to internal testers
+- **beta** / **production**: the existing internal build is _promoted_ — no new
+  AAB is built or uploaded
+
+### Step 1 — Upload a new build to internal testing
+
+Push a tag following the `vX.Y.Z` format. The workflow triggers automatically:
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+The workflow will:
+
+1. Build a signed AAB
+2. Set `versionName=1.2.3` and `versionCode=10203` (computed as
+   `MAJOR×10000 + MINOR×100 + PATCH`)
+3. Upload the AAB to the **internal** track on Google Play
+
+### Step 2 — Promote to closed beta
+
+Once the internal build has been reviewed and approved, go to
+GitHub → Actions → Android Publish → Run workflow.
+
+Select track: `beta`, then click _Run workflow_.
+
+Fastlane will promote the current internal build to the **beta** (closed
+testing) track without re-uploading the AAB.
+
+### Step 3 — Promote to production
+
+When the beta build is ready for general availability, go to
+GitHub → Actions → Android Publish → Run workflow.
+
+Select track: `production`, then click _Run workflow_.
+
+Fastlane promotes the beta build to production with an initial 10% rollout
+(`rollout: "0.1"`). Full rollout can be managed from the Google Play Console.
 
 ---
 
