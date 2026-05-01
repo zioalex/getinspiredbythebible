@@ -106,7 +106,7 @@ cd api && uvicorn main:app --reload
 
 ```bash
 ./gradlew installDebug
-adb shell am start -n org.voxquieta.app/.MainActivity
+adb shell am start -n org.voxquieta/.MainActivity
 ```
 
 Or press the green ▶ button in Android Studio.
