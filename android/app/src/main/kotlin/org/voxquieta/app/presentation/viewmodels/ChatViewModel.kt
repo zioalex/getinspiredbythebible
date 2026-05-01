@@ -404,10 +404,11 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .onCompletion {
-                    // Turnstile tokens are single-use: the server consumes the token on the
-                    // first validated request. Always reset after every stream attempt
-                    // (success or error) so the next message obtains a fresh token.
-                    turnstileManager.onTokenConsumed()
+                    // Turnstile token consumption is now centralised in
+                    // TurnstileInterceptor — every gated POST clears the cached
+                    // token and triggers a WebView reset, so each repository
+                    // (chat, church, feedback) inherits the fix without having
+                    // to remember to call onTokenConsumed() here.
                     warmUpJob.cancel()
 
                     if (!didError) {
