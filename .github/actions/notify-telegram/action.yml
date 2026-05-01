@@ -62,23 +62,49 @@ runs:
             ;;
         esac
 
-        prev=""
+        # --- Restore and parse previous state ---
+        prev_raw=""
         if [ -f monitor-state.txt ]; then
-          prev=$(head -c 16 monitor-state.txt | tr -d '[:space:]' || true)
+            prev_raw=$(head -c 32 monitor-state.txt | tr -d '[:space:]' || true)
         fi
 
-        # Decide message
+        # Parse state token and optional timestamp
+        prev_token="${prev_raw%%:*}"   # "pass", "fail", or ""
+        prev_ts=""
+        if [[ "$prev_raw" == *:* ]]; then
+            prev_ts="${prev_raw#*:}"   # unix timestamp of first failure
+        fi
+
+        # --- Decide message ---
         msg=""
+        now=$(date +%s)
+
         if [ "$FORCE_ALERT" = "true" ]; then
-          msg="🧪 *prod-monitor* test alert from \`${JOB_NAME}\` on \`${GITHUB_SHA::7}\` (status=${curr})"
-        elif [ "$prev" = "" ] && [ "$curr" = "fail" ]; then
-          msg="🚨 *prod-monitor / ${JOB_NAME}* failed (no prior state)"
-        elif [ "$prev" = "pass" ] && [ "$curr" = "fail" ]; then
-          msg="🚨 *prod-monitor / ${JOB_NAME}* failed"
-        elif [ "$prev" = "fail" ] && [ "$curr" = "pass" ]; then
-          msg="✅ *prod-monitor / ${JOB_NAME}* recovered"
+            msg="🧪 *prod-monitor* test alert from \`${JOB_NAME}\` (status=${curr})"
+        elif [ "$prev_token" = "" ] && [ "$curr" = "fail" ]; then
+            msg="🚨 *prod-monitor / ${JOB_NAME}* DOWN (no prior state)"
+        elif [ "$prev_token" = "pass" ] && [ "$curr" = "fail" ]; then
+            msg="🚨 *prod-monitor / ${JOB_NAME}* DOWN"
+        elif [ "$prev_token" = "fail" ] && [ "$curr" = "pass" ]; then
+            # Compute how long it was down
+            if [ -n "$prev_ts" ]; then
+                down_for=$(( now - prev_ts ))
+                down_min=$(( down_for / 60 ))
+                msg="✅ *prod-monitor / ${JOB_NAME}* RECOVERED (was down ~${down_min}m)"
+            else
+                msg="✅ *prod-monitor / ${JOB_NAME}* RECOVERED"
+            fi
+        elif [ "$prev_token" = "fail" ] && [ "$curr" = "fail" ]; then
+            # Still failing — re-alert every 30 minutes
+            if [ -n "$prev_ts" ]; then
+                elapsed=$(( now - prev_ts ))
+                if [ "$elapsed" -ge 1800 ]; then
+                    down_min=$(( elapsed / 60 ))
+                    msg="🔴 *prod-monitor / ${JOB_NAME}* still DOWN (${down_min}m)"
+                fi
+            fi
         else
-          echo "no transition (prev=${prev:-none} → curr=${curr}); not alerting"
+            echo "no transition (prev=${prev_token:-none} → curr=${curr}); not alerting"
         fi
 
         if [ -n "$msg" ]; then
@@ -102,21 +128,37 @@ runs:
             echo "::warning::TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set; would send: $msg"
           else
             # Use --data-urlencode for text so newlines/markdown survive
-            http=$(curl -sS -o /tmp/tg-resp -w "%{http_code}" \
+            http=$(curl -sS -o /dev/null -w "%{http_code}" \
               "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
               -d "chat_id=${TG_CHAT}" \
               -d "parse_mode=Markdown" \
               --data-urlencode "text=${msg}" || echo "000")
             if [ "$http" != "200" ]; then
-              echo "::warning::Telegram sendMessage returned HTTP ${http}: $(cat /tmp/tg-resp)"
+              echo "::warning::Telegram sendMessage returned HTTP ${http}"
             else
               echo "telegram alert sent (${#msg} chars)"
             fi
           fi
         fi
 
-        # Persist the new state for the next run (replace file content)
-        printf '%s' "$curr" > monitor-state.txt
+        # --- Save new state ---
+        if [ "$curr" = "fail" ]; then
+            if [ "$prev_token" = "fail" ] && [ -n "$prev_ts" ]; then
+                # Keep original failure timestamp — but reset if we just re-alerted
+                if [ -n "$msg" ]; then
+                    # re-alert was sent; reset the 30min window from now
+                    printf 'fail:%d' "$now" > monitor-state.txt
+                else
+                    # still failing, no re-alert yet — preserve original timestamp
+                    printf '%s' "$prev_raw" > monitor-state.txt
+                fi
+            else
+                # First failure — record timestamp
+                printf 'fail:%d' "$now" > monitor-state.txt
+            fi
+        else
+            printf '%s' "$curr" > monitor-state.txt
+        fi
 
     - name: Save new state
       uses: actions/cache/save@v4

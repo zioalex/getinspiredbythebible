@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">Configuración</string>
-    <string name="settings_language_title">Idioma</string>
-    <string name="settings_language_subtitle">Selecciona el idioma para los versículos bíblicos</string>
     <string name="action_open_settings">Configuración</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_light">Claro</string>
@@ -160,13 +158,11 @@
     <string name="action_copied">Copiado</string>
     <string name="action_feedback_helpful">Esto fue útil</string>
     <string name="action_feedback_not_helpful">Esto no fue útil</string>
-    <string name="feedback_thank_you">¡Gracias por tu comentario!</string>
     <string name="backend_warming_up">Conectando al servidor… (la primera solicitud puede tardar hasta 30 s)</string>
     <string name="action_scroll_to_bottom">Desplazarse hacia abajo</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Leer capítulo completo</string>
-    <string name="loading_chapter">Cargando capítulo…</string>
 
     <!-- Church Finder -->
     <string name="church_finder_banner_text">¿Buscas una comunidad de fe?</string>
@@ -177,13 +173,17 @@
     <string name="church_finder_search_placeholder">Ciudad en inglés (p. ej., Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Buscar</string>
     <string name="church_finder_location_hint">Usa nombres de ciudades en inglés</string>
+    <string name="church_finder_location_required">Por favor ingresa una ciudad o ubicación</string>
     <string name="church_finder_enter_location">Ingresa una ubicación para buscar</string>
-    <string name="church_finder_found_count">Se encontraron %d iglesias</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="one">Se encontró %d iglesia</item>
+        <item quantity="many">Se encontraron %d iglesias</item>
+        <item quantity="other">Se encontraron %d iglesias</item>
+    </plurals>
     <string name="church_finder_no_churches_found">No se encontraron iglesias</string>
     <string name="church_finder_no_churches_hint">Prueba con una ubicación diferente o un término de búsqueda más amplio.</string>
     <string name="church_finder_website">Sitio web</string>
     <string name="church_finder_email">Correo electrónico</string>
-    <string name="church_finder_data_credit">Datos de iglesias proporcionados por DisciplesToday.org</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Contacto</string>
@@ -200,11 +200,11 @@
     <string name="contact_email_placeholder">tu@ejemplo.com</string>
     <string name="contact_message_label">Mensaje</string>
     <string name="contact_message_placeholder">Comparte tus pensamientos, informa un problema o sugiere una mejora…</string>
+    <string name="contact_message_required">Por favor ingresa un mensaje</string>
     <string name="contact_privacy_note">Tu mensaje se almacenará para ayudarnos a mejorar el servicio.</string>
     <string name="contact_send_button">Enviar mensaje</string>
     <string name="contact_success_title">¡Mensaje enviado con éxito!</string>
     <string name="contact_success_description">Gracias por contactarnos. Revisaremos tu mensaje pronto.</string>
-    <string name="contact_error_send">No se pudo enviar el mensaje. Por favor, inténtalo de nuevo.</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">Versículos relacionados</string>

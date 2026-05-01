@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -186,7 +187,7 @@ fun SplashScreen(onComplete: () -> Unit) {
             modifier = Modifier
                 .align(Alignment.Center)
                 .alpha(centerAlpha)
-                .absoluteOffset(y = centerOffsetY),
+                .absoluteOffset { IntOffset(0, centerOffsetY.roundToPx()) },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(

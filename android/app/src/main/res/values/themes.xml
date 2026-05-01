@@ -20,8 +20,10 @@
         <!-- Animated / static icon shown in the centre of the screen -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
 
-        <!-- Duration to show the splash (milliseconds) — 0 means "show until ready" -->
-        <item name="windowSplashScreenAnimationDuration">300</item>
+        <!-- Duration hint for the splash animation (ms). setKeepOnScreenCondition in
+             MainActivity may dismiss earlier if the backend responds fast, or hold longer
+             on a cold start. 700 ms gives a deliberate, perceptible beat at typical speed. -->
+        <item name="windowSplashScreenAnimationDuration">700</item>
 
         <!--
           Brand icon background colour (API 31+).  Setting it to the same warm brown as

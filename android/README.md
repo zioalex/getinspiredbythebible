@@ -164,6 +164,27 @@ export KEY_PASSWORD=your-key-password
 
 ---
 
+## Releasing
+
+`versionCode` and `versionName` are not hard-coded — they are injected as Gradle
+properties so CI can set them without touching source files.  The defaults
+(`versionCode = 1`, `versionName = "1.0.0"`) are only used for local debug builds.
+
+To build a production AAB for Play Store submission, pass both properties:
+
+```bash
+# From the android/ directory
+./gradlew bundleRelease -PversionCode=42 -PversionName=2.1.0
+```
+
+The resulting AAB is at `app/build/outputs/bundle/release/app-release.aab`.
+
+In CI the same flags are injected automatically by
+`.github/workflows/android-ci.yml` via the `VERSION_CODE` and `VERSION_NAME`
+repository variables (or secrets) — no manual step needed for tagged releases.
+
+---
+
 ## Project structure
 
 ```text
