@@ -179,6 +179,24 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+### Conventional Commits enforcement
+
+**Conventional Commits are enforced on every PR** via
+`.github/workflows/commitlint.yml` (`wagoid/commitlint-github-action`). PRs
+whose commit messages do not follow the `type(scope): description` format will
+fail CI. See `commitlint.config.cjs` for the full allowed type list.
+
+### Automated release tagging (release-please)
+
+**Do NOT create `vX.Y.Z` git tags manually.** Semver tags are created
+automatically by [release-please](https://github.com/googleapis/release-please)
+whenever a "Release PR" is merged into `main`. The tag triggers
+`android-publish.yml` which uploads the AAB to the Google Play internal track.
+
+See `docs/RELEASE_PROCESS.md` for the full release flow, the required
+`RELEASE_PLEASE_TOKEN` PAT secret, and instructions for promoting builds to
+beta/production.
+
 ### Git Worktree Pattern
 
 When making code changes (especially for Android or any task that should not
