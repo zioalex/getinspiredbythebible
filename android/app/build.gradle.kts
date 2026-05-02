@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics.gradle)
 }
 
 android {
@@ -17,74 +18,31 @@ android {
     fun gradleProp(name: String, default: String): String =
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
+    // Resolve release signing inputs once, treating blanks as absent.
+    val releaseKeystorePath = (System.getenv("KEYSTORE_PATH")
+        ?: (project.findProperty("KEYSTORE_PATH") as String?))?.takeIf { it.isNotBlank() }
+    val releaseKeystorePassword = (System.getenv("KEYSTORE_PASSWORD")
+        ?: (project.findProperty("KEYSTORE_PASSWORD") as String?))?.takeIf { it.isNotBlank() }
+    val releaseKeyAlias = (System.getenv("KEY_ALIAS")
+        ?: (project.findProperty("KEY_ALIAS") as String?))?.takeIf { it.isNotBlank() } ?: "release"
+    val releaseKeyPassword = (System.getenv("KEY_PASSWORD")
+        ?: (project.findProperty("KEY_PASSWORD") as String?))?.takeIf { it.isNotBlank() }
+    val releaseSigningConfigured =
+        releaseKeystorePath != null && releaseKeystorePassword != null && releaseKeyPassword != null
+
     signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-                ?.takeIf { it.isNotBlank() }
-                ?: (project.findProperty("KEYSTORE_PATH") as String?)?.takeIf { it.isNotBlank() }
-            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
-                ?.takeIf { it.isNotBlank() }
-                ?: (project.findProperty("KEYSTORE_PASSWORD") as String?)?.takeIf { it.isNotBlank() }
-            val keyAlias = System.getenv("KEY_ALIAS")
-                ?.takeIf { it.isNotBlank() }
-                ?: (project.findProperty("KEY_ALIAS") as String?)?.takeIf { it.isNotBlank() }
-                ?: "release"
-            val keyPassword = System.getenv("KEY_PASSWORD")
-                ?.takeIf { it.isNotBlank() }
-                ?: (project.findProperty("KEY_PASSWORD") as String?)?.takeIf { it.isNotBlank() }
-
-            val hasKeystore = keystorePath != null && keystorePassword != null && keyPassword != null
-
-            if (hasKeystore) {
-                storeFile = file(keystorePath!!)
-                storePassword = keystorePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
-            } else {
-                // Fail fast (with a useful message) when the user has asked for a release
-                // build/bundle but hasn't configured a keystore. Without this guard, AGP
-                // crashes later inside :app:signReleaseBundle with a bare NullPointerException.
-                val releaseTaskKeywords = listOf(
-                    "bundleRelease", "assembleRelease", "packageRelease",
-                    "signRelease", "publishRelease",
-                )
-                val isReleaseBuild = gradle.startParameter.taskNames.any { taskName ->
-                    releaseTaskKeywords.any { taskName.contains(it) }
-                }
-                if (isReleaseBuild) {
-                    val partial = listOfNotNull(
-                        if (keystorePath == null) "KEYSTORE_PATH" else null,
-                        if (keystorePassword == null) "KEYSTORE_PASSWORD" else null,
-                        if (keyPassword == null) "KEY_PASSWORD" else null,
-                    ).joinToString(", ")
-                    error(
-                        """
-
-                        Release signing is not configured — cannot produce a signed AAB/APK.
-                        Missing: $partial
-
-                        Set these env vars (or -P<name>=value gradle properties) and re-run:
-                          KEYSTORE_PATH      absolute path to your .jks/.keystore file
-                          KEYSTORE_PASSWORD  keystore password
-                          KEY_ALIAS          key alias (default: "release")
-                          KEY_PASSWORD       key password
-
-                        If you don't have an upload keystore yet, generate one outside the repo:
-                          keytool -genkeypair -v \
-                            -keystore ~/voxquieta-upload.jks \
-                            -alias release \
-                            -keyalg RSA -keysize 2048 -validity 10000
-
-                        See android/README.md → "Signing a release build" for the full Play Store flow.
-                        """.trimIndent()
-                    )
-                }
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                this.keyAlias = releaseKeyAlias
+                this.keyPassword = releaseKeyPassword
             }
         }
     }
 
     defaultConfig {
-        applicationId = "org.voxquieta.app"
+        applicationId = "org.voxquieta"
         minSdk = 26
         targetSdk = 35
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
@@ -111,11 +69,30 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Only attach the signing config when a keystore is actually configured.
-            // The signingConfigs block above already fails fast with a useful message
-            // if a release task is requested without keystore env vars.
-            signingConfigs.getByName("release").takeIf { it.storeFile != null }
-                ?.let { signingConfig = it }
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                // Fail only when a release signing task is actually requested, so non-signing
+                // tasks (assembleDebug, lint, unit tests, ./gradlew tasks) keep working.
+                gradle.taskGraph.whenReady {
+                    val needsSigning = allTasks.any { task ->
+                        task.project.path == project.path &&
+                            (task.name == "signReleaseBundle" ||
+                                task.name == "packageReleaseBundle" ||
+                                task.name == "signReleaseApk" ||
+                                task.name == "packageRelease" ||
+                                task.name == "bundleRelease" ||
+                                task.name == "assembleRelease")
+                    }
+                    if (needsSigning) {
+                        throw GradleException(
+                            "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD, " +
+                                "KEY_ALIAS and KEY_PASSWORD (env vars or Gradle properties) before " +
+                                "running release tasks (e.g. bundleRelease)."
+                        )
+                    }
+                }
+            }
             // BASE_URL injected via CI — override with -PbaseUrl=... or env var
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "https://api.voxquieta.org/")}\"")
             // Firebase is enabled only in release builds.
@@ -159,7 +136,7 @@ android {
         //   3. Set abortOnError = true here
         // Note: AGP 8.4.2 does not honour -Dlint.baselines.continue=true for ERROR-severity
         // issues in the same run; run the task twice if needed.
-        abortOnError = false
+        abortOnError = true
         warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
         disable += setOf(

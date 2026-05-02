@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">Einstellungen</string>
-    <string name="settings_language_title">Sprache</string>
-    <string name="settings_language_subtitle">Wähle die Sprache für Bibelverse</string>
     <string name="action_open_settings">Einstellungen</string>
     <string name="settings_theme_title">Design</string>
     <string name="settings_theme_light">Hell</string>
@@ -147,6 +145,7 @@
     <string name="settings_about_title">Über</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Datenschutzrichtlinie</string>
+    <string name="settings_terms_of_service">Nutzungsbedingungen</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>
@@ -160,13 +159,11 @@
     <string name="action_copied">Kopiert</string>
     <string name="action_feedback_helpful">Das war hilfreich</string>
     <string name="action_feedback_not_helpful">Das war nicht hilfreich</string>
-    <string name="feedback_thank_you">Danke für dein Feedback!</string>
     <string name="backend_warming_up">Verbindung zum Server wird hergestellt… (erste Anfrage kann bis zu 30 s dauern)</string>
     <string name="action_scroll_to_bottom">Nach unten scrollen</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Ganzes Kapitel lesen</string>
-    <string name="loading_chapter">Kapitel wird geladen…</string>
 
     <!-- Church Finder -->
     <string name="church_finder_banner_text">Suchen Sie eine Glaubensgemeinschaft?</string>
@@ -177,13 +174,16 @@
     <string name="church_finder_search_placeholder">Stadt auf Englisch (z. B. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Suchen</string>
     <string name="church_finder_location_hint">Bitte englische Städtenamen verwenden</string>
+    <string name="church_finder_location_required">Bitte eine Stadt oder einen Ort eingeben</string>
     <string name="church_finder_enter_location">Ort für die Suche eingeben</string>
-    <string name="church_finder_found_count">%d Kirchen gefunden</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="one">%d Kirche gefunden</item>
+        <item quantity="other">%d Kirchen gefunden</item>
+    </plurals>
     <string name="church_finder_no_churches_found">Keine Kirchen gefunden</string>
     <string name="church_finder_no_churches_hint">Versuchen Sie einen anderen Ort oder einen allgemeineren Suchbegriff.</string>
     <string name="church_finder_website">Website</string>
     <string name="church_finder_email">E-Mail</string>
-    <string name="church_finder_data_credit">Kirchendaten bereitgestellt von DisciplesToday.org</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Kontakt</string>
@@ -200,11 +200,11 @@
     <string name="contact_email_placeholder">du@beispiel.de</string>
     <string name="contact_message_label">Nachricht</string>
     <string name="contact_message_placeholder">Teile deine Gedanken, melde ein Problem oder schlage eine Verbesserung vor…</string>
+    <string name="contact_message_required">Bitte eine Nachricht eingeben</string>
     <string name="contact_privacy_note">Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.</string>
     <string name="contact_send_button">Nachricht senden</string>
     <string name="contact_success_title">Nachricht erfolgreich gesendet!</string>
     <string name="contact_success_description">Vielen Dank, dass du dich gemeldet hast. Wir werden deine Nachricht bald prüfen.</string>
-    <string name="contact_error_send">Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">Verwandte Verse</string>

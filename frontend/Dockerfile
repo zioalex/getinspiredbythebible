@@ -31,6 +31,13 @@ RUN mkdir -p public
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Optional: Cloudflare Turnstile site key. When set, the frontend skips the
+# runtime /config round-trip and starts loading the Turnstile widget on first
+# paint. The site key is public — only the matching secret key (used by the
+# backend to verify tokens) must stay private.
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+
 # Build the application
 RUN npm run build
 

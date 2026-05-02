@@ -33,11 +33,12 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -67,7 +68,8 @@ fun ChurchFinderBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    var locationInput by rememberSaveable { mutableStateOf("") }
+    var locationInput by remember { mutableStateOf("") }
+    var locationTouched by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -107,11 +109,19 @@ fun ChurchFinderBottomSheet(
             }
 
             // ── Location input ───────────────────────────────────────────────
+            val locationError = locationTouched && locationInput.isBlank()
             OutlinedTextField(
                 value = locationInput,
                 onValueChange = { locationInput = it },
                 label = { Text(stringResource(R.string.church_finder_search_placeholder)) },
-                supportingText = { Text(stringResource(R.string.church_finder_location_hint)) },
+                supportingText = {
+                    if (locationError) {
+                        Text(stringResource(R.string.church_finder_location_required))
+                    } else {
+                        Text(stringResource(R.string.church_finder_location_hint))
+                    }
+                },
+                isError = locationError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
@@ -119,13 +129,19 @@ fun ChurchFinderBottomSheet(
                     imeAction = ImeAction.Search,
                 ),
                 keyboardActions = KeyboardActions(
-                    onSearch = { if (locationInput.isNotBlank()) onSearch(locationInput) },
+                    onSearch = {
+                        locationTouched = true
+                        if (locationInput.isNotBlank()) onSearch(locationInput)
+                    },
                 ),
             )
 
             // ── Search button ─────────────────────────────────────────────────
             Button(
-                onClick = { if (locationInput.isNotBlank()) onSearch(locationInput) },
+                onClick = {
+                    locationTouched = true
+                    if (locationInput.isNotBlank()) onSearch(locationInput)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = locationInput.isNotBlank() && churchFinderState !is ChurchFinderSheetState.Loading,
             ) {
@@ -201,8 +217,9 @@ fun ChurchFinderBottomSheet(
                         }
                     } else {
                         Text(
-                            text = stringResource(
-                                R.string.church_finder_found_count,
+                            text = pluralStringResource(
+                                R.plurals.church_finder_found_count,
+                                churches.size,
                                 churches.size,
                             ),
                             style = MaterialTheme.typography.labelMedium,

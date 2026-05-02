@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">सेटिंग्स</string>
-    <string name="settings_language_title">भाषा</string>
-    <string name="settings_language_subtitle">बाइबिल पदों के लिए भाषा चुनें</string>
     <string name="action_open_settings">सेटिंग्स</string>
     <string name="settings_theme_title">थीम</string>
     <string name="settings_theme_light">हल्का</string>
@@ -147,6 +145,7 @@
     <string name="settings_about_title">के बारे में</string>
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>
+    <string name="settings_terms_of_service">सेवा की शर्तें</string>
 
     <!-- Errors -->
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>
@@ -160,13 +159,11 @@
     <string name="action_copied">कॉपी किया गया</string>
     <string name="action_feedback_helpful">यह उपयोगी था</string>
     <string name="action_feedback_not_helpful">यह उपयोगी नहीं था</string>
-    <string name="feedback_thank_you">आपकी प्रतिक्रिया के लिए धन्यवाद!</string>
     <string name="backend_warming_up">सर्वर से जुड़ रहे हैं… (पहले अनुरोध में 30 सेकंड तक लग सकते हैं)</string>
     <string name="action_scroll_to_bottom">नीचे स्क्रॉल करें</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">पूरा अध्याय पढ़ें</string>
-    <string name="loading_chapter">अध्याय लोड हो रहा है…</string>
 
     <!-- Church finder -->
     <string name="church_finder_banner_text">एक विश्वास समुदाय खोज रहे हैं?</string>
@@ -177,13 +174,16 @@
     <string name="church_finder_search_placeholder">शहर का अंग्रेजी नाम (जैसे Delhi, Mumbai)</string>
     <string name="church_finder_search_button">खोजें</string>
     <string name="church_finder_location_hint">शहरों के अंग्रेजी नामों का उपयोग करें</string>
+    <string name="church_finder_location_required">कृपया एक शहर या स्थान दर्ज करें</string>
     <string name="church_finder_enter_location">खोजने के लिए स्थान दर्ज करें</string>
-    <string name="church_finder_found_count">%d चर्च मिले</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="one">%d चर्च मिला</item>
+        <item quantity="other">%d चर्च मिले</item>
+    </plurals>
     <string name="church_finder_no_churches_found">कोई चर्च नहीं मिला</string>
     <string name="church_finder_no_churches_hint">कोई अन्य स्थान या व्यापक खोज शब्द आज़माएं।</string>
     <string name="church_finder_website">वेबसाइट</string>
     <string name="church_finder_email">ईमेल</string>
-    <string name="church_finder_data_credit">चर्च डेटा DisciplesToday.org द्वारा प्रदान किया गया</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">संपर्क</string>
@@ -200,11 +200,11 @@
     <string name="contact_email_placeholder">aap@udaharan.com</string>
     <string name="contact_message_label">संदेश</string>
     <string name="contact_message_placeholder">अपने विचार साझा करें, कोई समस्या रिपोर्ट करें या सुधार सुझाएं…</string>
+    <string name="contact_message_required">कृपया एक संदेश दर्ज करें</string>
     <string name="contact_privacy_note">आपका संदेश सेवा सुधार के लिए संग्रहीत किया जाएगा।</string>
     <string name="contact_send_button">संदेश भेजें</string>
     <string name="contact_success_title">संदेश सफलतापूर्वक भेजा गया!</string>
     <string name="contact_success_description">संपर्क करने के लिए धन्यवाद। हम जल्द ही आपके संदेश की समीक्षा करेंगे।</string>
-    <string name="contact_error_send">संदेश भेजने में विफल। पुनः प्रयास करें।</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">संबंधित पद</string>

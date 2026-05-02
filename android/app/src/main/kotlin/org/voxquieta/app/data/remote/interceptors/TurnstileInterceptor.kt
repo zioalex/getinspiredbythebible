@@ -28,11 +28,19 @@ class TurnstileInterceptor @Inject constructor(
         val token = turnstileManager.currentToken()
             ?: if (needsToken) awaitTokenOrNull() else null
         return if (token != null) {
-            chain.proceed(
+            val response = chain.proceed(
                 original.newBuilder()
                     .header("X-Turnstile-Token", token)
                     .build()
             )
+            // Turnstile tokens are single-use — Cloudflare rejects reused
+            // tokens with timeout-or-duplicate. Consume here, on every
+            // attached-token request, regardless of upstream HTTP status, so
+            // every call site (chat, church search, feedback, contact) gets
+            // a fresh token next time without each repository having to
+            // remember to call onTokenConsumed().
+            turnstileManager.onTokenConsumed()
+            response
         } else {
             chain.proceed(original)
         }

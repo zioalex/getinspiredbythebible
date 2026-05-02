@@ -100,7 +100,7 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
             cat > android/app/google-services.json <<'PLACEHOLDER'
@@ -114,7 +114,7 @@ jobs:
               {
                 "client_info": {
                   "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": { "package_name": "org.voxquieta.app" }
+                  "android_client_info": { "package_name": "org.voxquieta" }
                 },
                 "oauth_client": [],
                 "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
@@ -165,10 +165,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -233,10 +233,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -282,10 +282,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -386,10 +386,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -483,10 +483,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:
@@ -570,10 +570,10 @@ jobs:
       - name: Write google-services.json
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta.app"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
           PLACEHOLDER
           fi
         env:

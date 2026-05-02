@@ -130,3 +130,4 @@ sslcert/cert.b64
 sslcert/origin-cert.pem
 sslcert/origin-key.pem
 sslcert/cloudflare-origin.pfx
+*.signing

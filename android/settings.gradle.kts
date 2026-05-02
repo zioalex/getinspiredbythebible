@@ -7,7 +7,12 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        mavenCentral()
+        mavenCentral {
+            content {
+                excludeGroupByRegex("com\\.android.*")
+                excludeGroupByRegex("androidx.*")
+            }
+        }
         gradlePluginPortal()
     }
 }
@@ -17,7 +22,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
+        maven {
+            url = uri("https://jitpack.io")
+        }
     }
 }
 

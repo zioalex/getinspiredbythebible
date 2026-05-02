@@ -179,6 +179,36 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+### Git Worktree Pattern
+
+When making code changes (especially for Android or any task that should not
+disturb the main working directory), always use `git worktree` under `/tmp/`:
+
+```bash
+# Create a new worktree from the latest remote main
+git fetch origin
+git worktree add /tmp/<short-name> -b <branch-name> origin/main
+
+# Or check out an existing branch
+git worktree add /tmp/<short-name> origin/<branch-name>
+
+# Work inside the worktree
+cd /tmp/<short-name>
+# … make changes, commit, push …
+
+# Clean up when done
+git worktree remove /tmp/<short-name>
+```
+
+**Why `/tmp/`?** The main working directory
+(`/home/asurace/github/getinspiredbythebible`) is shared and should not be
+modified directly by automated agents. `/tmp/` is writable by GitHub Copilot
+CLI and other agents without permission issues, and is cleaned up automatically
+on reboot.
+
+**Always clean up** worktrees with `git worktree remove` after pushing, to
+avoid stale entries accumulating in `.git/worktrees/`.
+
 ### Branch & PR Hygiene
 
 **Never push to a branch that has a closed or merged PR.** If the PR for
@@ -192,6 +222,15 @@ branch, immediately open a pull request against `main` (or update the
 existing open PR if one already exists for that branch). Do not leave
 commits sitting on a branch without an active PR — work that is not in a
 PR is invisible to review and CI.
+
+**If CI doesn't trigger after pushing or opening a PR, check for merge
+conflicts first.** GitHub does not run workflows on a PR with unresolved
+merge conflicts. Symptoms: empty `get_check_runs` result that stays
+empty for more than a minute or two; the PR page shows "This branch has
+conflicts that must be resolved." Resolution: rebase or merge `main`
+into the branch (`git fetch origin && git merge origin/main`), resolve
+conflicts, push — CI will start. Don't sit waiting for a CI signal that
+will never arrive.
 
 ## Architecture Patterns
 

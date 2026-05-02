@@ -28,10 +28,10 @@ fun ChatInputField(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: (String) -> Unit,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     isTurnstileReady: Boolean = true,
     isSessionLimitReached: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val isEnabled = !isLoading && isTurnstileReady && !isSessionLimitReached
 

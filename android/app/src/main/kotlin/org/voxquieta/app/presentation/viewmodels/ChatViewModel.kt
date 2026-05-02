@@ -37,11 +37,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import retrofit2.HttpException
 import timber.log.Timber
 import java.io.File
@@ -143,7 +145,14 @@ class ChatViewModel @Inject constructor(
         const val MAX_INTERACTIONS = 10
     }
 
-    private val _uiState = MutableStateFlow(ChatUiState())
+    // Read the persisted theme synchronously so the very first composition (and every
+    // Activity re-creation after rotation) uses the correct value.  DataStore serves
+    // subsequent reads from an in-memory cache, so this blocks for < 1 ms after the
+    // first cold-start disk read.  Without this, the state starts as "system" and the
+    // async collect in init{} arrives one frame late, causing a brief theme flash.
+    private val _uiState = MutableStateFlow(
+        ChatUiState(themeMode = runBlocking { themePreferences.themeModeFlow.first() })
+    )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     /**
@@ -350,6 +359,7 @@ class ChatViewModel @Inject constructor(
                 conversationHistory = history,
                 preferredTranslation = translation,
                 sessionId = sessionId,
+                language = _uiState.value.currentLocale.ifBlank { null },
             )
 
             // Show warm-up hint if the backend hasn't responded within 3 seconds.
@@ -404,10 +414,11 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 .onCompletion {
-                    // Turnstile tokens are single-use: the server consumes the token on the
-                    // first validated request. Always reset after every stream attempt
-                    // (success or error) so the next message obtains a fresh token.
-                    turnstileManager.onTokenConsumed()
+                    // Turnstile token consumption is now centralised in
+                    // TurnstileInterceptor — every gated POST clears the cached
+                    // token and triggers a WebView reset, so each repository
+                    // (chat, church, feedback) inherits the fix without having
+                    // to remember to call onTokenConsumed() here.
                     warmUpJob.cancel()
 
                     if (!didError) {

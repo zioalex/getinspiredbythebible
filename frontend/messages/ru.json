@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "Вдохновляйся каждый день Словом Божьим"
+  },
+  "Legal": {
+    "privacyTitle": "Политика конфиденциальности",
+    "privacyDescription": "Узнайте, как Vox Quieta собирает и использует ваши данные.",
+    "termsTitle": "Условия использования",
+    "termsDescription": "Условия и положения использования Vox Quieta.",
+    "lastUpdated": "Последнее обновление: {date}",
+    "navPrivacy": "Конфиденциальность",
+    "navTerms": "Условия"
   }
 }

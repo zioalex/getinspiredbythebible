@@ -33,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,8 +42,9 @@ import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.ContactFormState
-import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
+import org.voxquieta.app.utils.privacyUrl
+import org.voxquieta.app.utils.termsUrl
 
 /** Theme option shown in the settings section. */
 private data class ThemeOption(
@@ -68,6 +70,7 @@ fun SettingsScreen(
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val contactFormState by viewModel.contactFormState.collectAsState()
     val context = LocalContext.current
+    val currentLanguage = LocalConfiguration.current.locales[0].language
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
@@ -210,7 +213,7 @@ fun SettingsScreen(
             }
             TextButton(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_POLICY_URL))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl(currentLanguage)))
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -220,16 +223,24 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
+            TextButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(termsUrl(currentLanguage)))
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_terms_of_service),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // ── Turnstile bot-protection widget (invisible, 1×1 dp) ───────────────
-        // Ensures a valid token is available when the contact form is submitted,
-        // even when the user navigates here without first visiting ChatScreen.
-        // Mirrors the web app where the Turnstile widget is on the same page as
-        // the contact form.
-        TurnstileWebView(turnstileManager = viewModel.turnstileManager)
+        // Turnstile widget is mounted globally in MainActivity, so a token is
+        // already cached by the time the user reaches this screen.
 
         // ── Contact Form bottom sheet ──────────────────────────────────────────
         if (showContactSheet) {

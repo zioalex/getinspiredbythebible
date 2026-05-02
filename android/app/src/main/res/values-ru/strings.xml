@@ -131,8 +131,6 @@
 
     <!-- Settings screen -->
     <string name="settings_title">Настройки</string>
-    <string name="settings_language_title">Язык</string>
-    <string name="settings_language_subtitle">Выберите язык для библейских стихов</string>
     <string name="action_open_settings">Настройки</string>
     <string name="settings_theme_title">Тема</string>
     <string name="settings_theme_light">Светлая</string>
@@ -147,6 +145,7 @@
     <string name="settings_about_title">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
+    <string name="settings_terms_of_service">Условия обслуживания</string>
 
     <!-- Errors -->
     <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
@@ -160,13 +159,11 @@
     <string name="action_copied">Скопировано</string>
     <string name="action_feedback_helpful">Это было полезно</string>
     <string name="action_feedback_not_helpful">Это было бесполезно</string>
-    <string name="feedback_thank_you">Спасибо за ваш отзыв!</string>
     <string name="backend_warming_up">Подключение к серверу… (первый запрос может занять до 30 с)</string>
     <string name="action_scroll_to_bottom">Прокрутить вниз</string>
 
     <!-- Verse detail bottom sheet -->
     <string name="read_full_chapter">Читать всю главу</string>
-    <string name="loading_chapter">Загрузка главы…</string>
 
     <!-- Church finder -->
     <string name="church_finder_banner_text">Ищете общину веры?</string>
@@ -177,13 +174,18 @@
     <string name="church_finder_search_placeholder">Город на английском (напр. Moscow, Rome, Paris)</string>
     <string name="church_finder_search_button">Искать</string>
     <string name="church_finder_location_hint">Используйте названия городов на английском</string>
+    <string name="church_finder_location_required">Пожалуйста, введите город или местоположение</string>
     <string name="church_finder_enter_location">Введите местоположение для поиска</string>
-    <string name="church_finder_found_count">Найдено церквей: %d</string>
+    <plurals name="church_finder_found_count">
+        <item quantity="one">Найдена %d церковь</item>
+        <item quantity="few">Найдено %d церкви</item>
+        <item quantity="many">Найдено церквей: %d</item>
+        <item quantity="other">Найдено церквей: %d</item>
+    </plurals>
     <string name="church_finder_no_churches_found">Церкви не найдены</string>
     <string name="church_finder_no_churches_hint">Попробуйте другое место или более широкий поисковый запрос.</string>
     <string name="church_finder_website">Веб-сайт</string>
     <string name="church_finder_email">Эл. почта</string>
-    <string name="church_finder_data_credit">Данные о церквях предоставлены DisciplesToday.org</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Контакт</string>
@@ -200,11 +202,11 @@
     <string name="contact_email_placeholder">вы@пример.ру</string>
     <string name="contact_message_label">Сообщение</string>
     <string name="contact_message_placeholder">Поделитесь мыслями, сообщите о проблеме или предложите улучшение…</string>
+    <string name="contact_message_required">Пожалуйста, введите сообщение</string>
     <string name="contact_privacy_note">Ваше сообщение будет сохранено для улучшения сервиса.</string>
     <string name="contact_send_button">Отправить сообщение</string>
     <string name="contact_success_title">Сообщение успешно отправлено!</string>
     <string name="contact_success_description">Спасибо за обращение. Мы рассмотрим ваше сообщение в ближайшее время.</string>
-    <string name="contact_error_send">Не удалось отправить сообщение. Повторите попытку.</string>
 
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">Связанные стихи</string>

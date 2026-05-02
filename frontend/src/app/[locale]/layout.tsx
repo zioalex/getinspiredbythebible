@@ -10,6 +10,7 @@ import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Footer from "@/components/Footer";
 
 export async function generateMetadata({
   params,
@@ -66,14 +67,38 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
 
+  // When the Turnstile site key is baked into the build, kick off the script
+  // fetch from <head> so it races with the HTML download and the dynamic
+  // <script> injection in TurnstileProvider hits a warm cache.
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const preloadTurnstile = !!turnstileSiteKey;
+
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
+      <head>
+        {preloadTurnstile && (
+          <>
+            <link
+              rel="preconnect"
+              href="https://challenges.cloudflare.com"
+              crossOrigin="anonymous"
+            />
+            <link
+              rel="preload"
+              as="script"
+              href="https://challenges.cloudflare.com/turnstile/v0/api.js"
+              crossOrigin="anonymous"
+            />
+          </>
+        )}
+      </head>
       <body>
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <ErrorBoundary>
-              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
-                {children}
+              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
+                <div className="flex-1">{children}</div>
+                <Footer />
               </div>
             </ErrorBoundary>
           </Providers>

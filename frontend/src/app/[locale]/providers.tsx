@@ -2,7 +2,11 @@
 
 import { TurnstileProvider } from "@/lib/turnstile";
 import { useEffect, useState } from "react";
-import { setTurnstileToken, setOnTokenConsumed } from "@/lib/api";
+import {
+  setTurnstileToken,
+  setOnTokenConsumed,
+  setTurnstileAwaiter,
+} from "@/lib/api";
 import { useTurnstile } from "@/lib/turnstile";
 import { SplashScreen } from "@/components/SplashScreen";
 
@@ -19,7 +23,7 @@ function setSplashCookie(): void {
 }
 
 function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
-  const { token, refreshToken } = useTurnstile();
+  const { token, refreshToken, awaitToken } = useTurnstile();
 
   // Sync token to API client whenever it changes
   useEffect(() => {
@@ -31,6 +35,13 @@ function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
     setOnTokenConsumed(refreshToken);
     return () => setOnTokenConsumed(null);
   }, [refreshToken]);
+
+  // Register awaiter so POST helpers in api.ts can briefly wait for a token
+  // before firing requests (covers the "first send before /config resolves" race).
+  useEffect(() => {
+    setTurnstileAwaiter(awaitToken);
+    return () => setTurnstileAwaiter(null);
+  }, [awaitToken]);
 
   return <>{children}</>;
 }

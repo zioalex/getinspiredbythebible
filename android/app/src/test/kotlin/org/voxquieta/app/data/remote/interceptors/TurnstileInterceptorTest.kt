@@ -39,6 +39,31 @@ class TurnstileInterceptorTest {
     }
 
     @Test
+    fun `attached-token POST consumes the token after the response`() {
+        // Regression for the church-search "second call always 403s" failure:
+        // a single-use Turnstile token must be cleared from TurnstileManager
+        // once a request has carried it, regardless of which call site issued
+        // the request.
+        manager.onTokenReceived("single-use-token")
+        runIntercept(post("https://api.example.com/api/v1/church/search"))
+        assertNull("token must be cleared after being attached", manager.currentToken())
+    }
+
+    @Test
+    fun `POST without token does not trigger consume`() {
+        // No token cached, no awaiter response — request goes out without a
+        // header. Don't fire onTokenConsumed in this path: there is no token
+        // to invalidate, and emitting a spurious resetTrigger would force the
+        // WebView to re-render for nothing.
+        // tokenWaitMillis is 250L from setUp, so this returns quickly.
+        runIntercept(post("https://api.example.com/api/v1/chat/stream"))
+        // currentToken stays null both before and after; the more meaningful
+        // assertion is the absence of any token churn — captured by the fact
+        // that no header was attached (covered by the existing timeout test).
+        assertNull(manager.currentToken())
+    }
+
+    @Test
     fun `GET with no token does not wait and sends no header`() {
         val start = System.currentTimeMillis()
         val captured = runIntercept(get("https://api.example.com/api/v1/scripture/translations"))

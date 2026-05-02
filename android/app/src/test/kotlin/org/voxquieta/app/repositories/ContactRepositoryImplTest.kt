@@ -4,7 +4,6 @@ import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.ContactRequestDto
 import org.voxquieta.app.data.remote.models.ContactResponseDto
 import org.voxquieta.app.data.repositories.ContactRepositoryImpl
-import org.voxquieta.app.security.TurnstileManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -30,14 +29,12 @@ import java.io.IOException
 class ContactRepositoryImplTest {
 
     private lateinit var api: BibleApiService
-    private lateinit var turnstileManager: TurnstileManager
     private lateinit var repository: ContactRepositoryImpl
 
     @Before
     fun setUp() {
         api = mockk(relaxed = true)
-        turnstileManager = mockk(relaxed = true)
-        repository = ContactRepositoryImpl(api, turnstileManager)
+        repository = ContactRepositoryImpl(api)
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────
@@ -78,23 +75,9 @@ class ContactRepositoryImplTest {
         assertEquals(1, result)
     }
 
-    @Test
-    fun `submitContact calls onTokenConsumed after success`() = runTest {
-        coEvery { api.submitContact(any()) } returns ContactResponseDto(
-            id = 1,
-            subject = "bug",
-            createdAt = "2026-03-01T00:00:00Z",
-        )
-
-        repository.submitContact(
-            subject = "bug",
-            message = "Fix this",
-            email = null,
-            userAgent = null,
-        )
-
-        coVerify { turnstileManager.onTokenConsumed() }
-    }
+    // Token consumption is no longer the repository's concern — it has moved
+    // into TurnstileInterceptor (covered by TurnstileInterceptorTest). The
+    // repository should no longer depend on TurnstileManager at all.
 
     // ── API delegation ────────────────────────────────────────────────────────
 

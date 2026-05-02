@@ -66,8 +66,16 @@ export default function Home() {
   const tChat = useTranslations("Chat");
   const tVerses = useTranslations("Verses");
   const tFeedback = useTranslations("Feedback");
-  const { isReady: turnstileReady, isEnabled: turnstileEnabled } =
-    useTurnstile();
+  const {
+    isReady: turnstileReady,
+    isEnabled: turnstileEnabled,
+    configLoaded: turnstileConfigLoaded,
+  } = useTurnstile();
+  // Block submissions until /config has resolved: until then we don't yet
+  // know whether Turnstile is enabled, and a fast click could fire a POST
+  // without an X-Turnstile-Token header and get bounced as 403.
+  const turnstileBlocked =
+    !turnstileConfigLoaded || (turnstileEnabled && !turnstileReady);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -697,7 +705,7 @@ export default function Home() {
               </p>
 
               {/* Security check loading indicator */}
-              {turnstileEnabled && !turnstileReady && (
+              {turnstileBlocked && (
                 <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Preparing secure connection...</span>
@@ -710,7 +718,7 @@ export default function Home() {
                   <button
                     key={index}
                     onClick={() => submitMessage(prompt)}
-                    disabled={turnstileEnabled && !turnstileReady}
+                    disabled={turnstileBlocked}
                     className="text-left px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {prompt}
@@ -795,7 +803,7 @@ export default function Home() {
                 isLoading ||
                 !input.trim() ||
                 showSessionLimitButton ||
-                (turnstileEnabled && !turnstileReady)
+                turnstileBlocked
               }
               className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >

@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
@@ -63,7 +63,6 @@ import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
-import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
@@ -231,7 +230,7 @@ fun ChatScreen(
                                 },
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.MenuBook,
+                                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                     contentDescription = stringResource(R.string.action_open_verses_panel),
                                 )
                             }
@@ -408,7 +407,9 @@ fun ChatScreen(
                 )
             }
 
-            TurnstileWebView(turnstileManager = viewModel.turnstileManager)
+            // Turnstile WebView is mounted once globally in MainActivity so it
+            // pre-warms during splash/conversations and outlives any single
+            // screen.
 
             // Warm-up hint — shown when loading has been in-progress for >3 s with no response.
             if (uiState.isBackendWarming && uiState.isLoading) {
