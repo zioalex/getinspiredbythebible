@@ -365,7 +365,7 @@ jobs:
             cp CHANGELOG.md frontend/CHANGELOG.md
             echo "Staged $(wc -l < CHANGELOG.md) lines from CHANGELOG.md into frontend/"
           else
-            echo "::notice::No CHANGELOG.md at repo root — /changelog page will render empty state until release-please produces one"
+            echo "::notice::No CHANGELOG.md at repo root — /changelog will render the empty state"
           fi
 
       - name: Build and push frontend
