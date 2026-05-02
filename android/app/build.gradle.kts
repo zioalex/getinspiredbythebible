@@ -20,18 +20,65 @@ android {
     signingConfigs {
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH")
-                ?: (project.findProperty("KEYSTORE_PATH") as String?)
+                ?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("KEYSTORE_PATH") as String?)?.takeIf { it.isNotBlank() }
             val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
-                ?: (project.findProperty("KEYSTORE_PASSWORD") as String?)
+                ?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("KEYSTORE_PASSWORD") as String?)?.takeIf { it.isNotBlank() }
             val keyAlias = System.getenv("KEY_ALIAS")
-                ?: (project.findProperty("KEY_ALIAS") as String?) ?: "release"
+                ?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("KEY_ALIAS") as String?)?.takeIf { it.isNotBlank() }
+                ?: "release"
             val keyPassword = System.getenv("KEY_PASSWORD")
-                ?: (project.findProperty("KEY_PASSWORD") as String?)
-            if (keystorePath != null && keystorePassword != null && keyPassword != null) {
-                storeFile = file(keystorePath)
+                ?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("KEY_PASSWORD") as String?)?.takeIf { it.isNotBlank() }
+
+            val hasKeystore = keystorePath != null && keystorePassword != null && keyPassword != null
+
+            if (hasKeystore) {
+                storeFile = file(keystorePath!!)
                 storePassword = keystorePassword
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
+            } else {
+                // Fail fast (with a useful message) when the user has asked for a release
+                // build/bundle but hasn't configured a keystore. Without this guard, AGP
+                // crashes later inside :app:signReleaseBundle with a bare NullPointerException.
+                val releaseTaskKeywords = listOf(
+                    "bundleRelease", "assembleRelease", "packageRelease",
+                    "signRelease", "publishRelease",
+                )
+                val isReleaseBuild = gradle.startParameter.taskNames.any { taskName ->
+                    releaseTaskKeywords.any { taskName.contains(it) }
+                }
+                if (isReleaseBuild) {
+                    val partial = listOfNotNull(
+                        if (keystorePath == null) "KEYSTORE_PATH" else null,
+                        if (keystorePassword == null) "KEYSTORE_PASSWORD" else null,
+                        if (keyPassword == null) "KEY_PASSWORD" else null,
+                    ).joinToString(", ")
+                    error(
+                        """
+
+                        Release signing is not configured — cannot produce a signed AAB/APK.
+                        Missing: $partial
+
+                        Set these env vars (or -P<name>=value gradle properties) and re-run:
+                          KEYSTORE_PATH      absolute path to your .jks/.keystore file
+                          KEYSTORE_PASSWORD  keystore password
+                          KEY_ALIAS          key alias (default: "release")
+                          KEY_PASSWORD       key password
+
+                        If you don't have an upload keystore yet, generate one outside the repo:
+                          keytool -genkeypair -v \
+                            -keystore ~/voxquieta-upload.jks \
+                            -alias release \
+                            -keyalg RSA -keysize 2048 -validity 10000
+
+                        See android/README.md → "Signing a release build" for the full Play Store flow.
+                        """.trimIndent()
+                    )
+                }
             }
         }
     }
@@ -64,7 +111,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            // Only attach the signing config when a keystore is actually configured.
+            // The signingConfigs block above already fails fast with a useful message
+            // if a release task is requested without keystore env vars.
+            signingConfigs.getByName("release").takeIf { it.storeFile != null }
+                ?.let { signingConfig = it }
             // BASE_URL injected via CI — override with -PbaseUrl=... or env var
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "https://api.voxquieta.org/")}\"")
             // Firebase is enabled only in release builds.
