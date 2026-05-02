@@ -101,6 +101,29 @@ class ChatMapperTest {
         assertTrue(dto.includeSearch)
     }
 
+    @Test
+    fun `ChatRequest toDto maps language when set`() {
+        val request = ChatRequest(
+            message = "Ciao",
+            sessionId = "any-uuid",
+            language = "it",
+        )
+        val dto = request.toDto()
+
+        assertEquals("it", dto.language)
+    }
+
+    @Test
+    fun `ChatRequest toDto maps null language when not set`() {
+        val request = ChatRequest(
+            message = "Hello",
+            sessionId = "any-uuid",
+        )
+        val dto = request.toDto()
+
+        assertNull(dto.language)
+    }
+
     // ── Existing domain mapper tests ──────────────────────────────────────────
 
     @Test

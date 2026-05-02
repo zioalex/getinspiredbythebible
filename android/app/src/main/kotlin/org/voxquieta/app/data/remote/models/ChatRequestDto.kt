@@ -10,6 +10,7 @@ data class ChatRequestDto(
     @SerialName("preferred_translation") val preferredTranslation: String? = null,
     @SerialName("include_search") val includeSearch: Boolean = true,
     @SerialName("session_id") val sessionId: String,
+    @SerialName("language") val language: String? = null,
 )
 
 @Serializable

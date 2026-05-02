@@ -17,6 +17,7 @@ fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     preferredTranslation = preferredTranslation?.ifBlank { null },
     includeSearch = includeSearch,
     sessionId = sessionId,
+    language = language,
 )
 
 fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMessageDto(

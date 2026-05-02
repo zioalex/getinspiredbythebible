@@ -3,6 +3,7 @@ agp = "8.4.2"
 kotlin = "2.0.21"
 firebase-bom = "33.7.0"
 googleServices = "4.4.2"
+firebaseCrashlytics = "3.0.2"
 ksp = "2.0.21-1.0.28"
 hilt = "2.51.1"
 hiltNavigationCompose = "1.2.0"
@@ -109,3 +110,4 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owaspDepCheck" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics-gradle = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

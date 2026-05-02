@@ -106,7 +106,7 @@ cd api && uvicorn main:app --reload
 
 ```bash
 ./gradlew installDebug
-adb shell am start -n org.voxquieta.app/.MainActivity
+adb shell am start -n org.voxquieta/.MainActivity
 ```
 
 Or press the green ▶ button in Android Studio.
@@ -130,6 +130,60 @@ android/app/src/test/kotlin/com/bibleinspiration/
 ├── viewmodels/ChatViewModelTest.kt   # 7 tests
 └── repositories/ChatMapperTest.kt    # 4 tests
 ```
+
+---
+
+## Firebase setup
+
+The app uses Firebase Analytics and Crashlytics in release builds. Firebase is
+**disabled in debug builds** via `BuildConfig.FIREBASE_ENABLED`, so you can
+develop and run tests without any Firebase configuration.
+
+For release builds a real `google-services.json` is required. The file is
+gitignored — it must be provisioned separately for both local builds and CI.
+
+### One-time Firebase project setup
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com).
+2. Create a project (or use an existing one).
+3. Add an **Android app** with package name `org.voxquieta`.
+4. Download `google-services.json` and place it at `android/app/google-services.json`.
+5. Register the release signing certificate's SHA-256 fingerprint in the Firebase
+   app settings (needed for App Check / Dynamic Links if used later):
+
+   ```bash
+   keytool -list -v -keystore ~/path/to/release-key.jks -alias my-key-alias
+   ```
+
+   Copy the `SHA-256` line and paste it into **Firebase → Project settings →
+   Your apps → Android app → Add fingerprint**.
+
+### Local builds
+
+Place the real `google-services.json` at `android/app/google-services.json`.
+The file is listed in `.gitignore` — never commit it.
+
+If you only have the base64-encoded version (e.g. from the CI secret):
+
+```bash
+base64 -d ~/path/to/google-services.json.b64 > android/app/google-services.json
+```
+
+Verify the file contains `"package_name": "org.voxquieta"` (not `org.voxquieta.app`).
+
+### CI secret
+
+The workflow decodes `GOOGLE_SERVICES_JSON` (a base64-encoded GitHub Actions
+secret) into `android/app/google-services.json` before the build step.
+
+To generate or update the secret:
+
+```bash
+base64 -w 0 android/app/google-services.json
+```
+
+Paste the output as the `GOOGLE_SERVICES_JSON` secret under
+**Settings → Secrets and variables → Actions** in the repository.
 
 ---
 
