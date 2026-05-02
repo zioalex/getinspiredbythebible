@@ -825,6 +825,14 @@ class TestChatRequestModel:
         req = ChatRequest(message="Hello", preferred_translation="kjv")
         assert req.preferred_translation == "kjv"
 
+    def test_language_field_defaults_to_none(self):
+        req = ChatRequest(message="Hello")
+        assert req.language is None
+
+    def test_language_field_accepts_code(self):
+        req = ChatRequest(message="Ciao", language="it")
+        assert req.language == "it"
+
 
 class TestConversationMessage:
     """Tests for ConversationMessage Pydantic model."""
@@ -917,3 +925,38 @@ class TestChatServiceModelOverride:
         assert llm.chat.call_count >= 1
         last_call_kwargs = llm.chat.call_args_list[-1].kwargs
         assert last_call_kwargs.get("model_override") is None
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.get_translation_info", return_value={"code": "kjv", "name": "KJV"})
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_explicit_language_overrides_detection(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """When request.language is set, it should be used instead of auto-detected language."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="Dio ti ama!",
+                provider="test",
+                model="test-model",
+            )
+        )
+
+        # detect_language returns "en", but the client explicitly requests Italian
+        request = ChatRequest(message="Tell me about faith", language="it")
+        await service.chat(request)
+
+        # resolve_translation and get_model_override_for_language should have been
+        # called with the client-supplied "it", not the auto-detected "en"
+        mock_resolve.assert_called_once_with(None, "it")
+        mock_override.assert_called_once_with("it")

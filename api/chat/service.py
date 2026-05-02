@@ -61,6 +61,11 @@ class ChatRequest(BaseModel):
     session_id: str | None = Field(
         default=None, max_length=64, pattern=r"^[a-zA-Z0-9\-_]+$"
     )  # Optional session identifier for tracking
+    language: str | None = Field(
+        default=None, max_length=10
+    )  # Explicit language code from the client (e.g. "it", "de"). When present,
+    # overrides server-side language detection so responses are always in the
+    # user's chosen language regardless of what language they type in.
 
     @field_validator("message")
     @classmethod
@@ -277,13 +282,19 @@ Keep it under 100 words."""
 
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
-        translation = resolve_translation(request.preferred_translation, detected_language)
+        # Use the client-supplied language when present; fall back to auto-detection.
+        # This ensures the AI always responds in the language the user selected in the
+        # app, even when they type their question in a different language.
+        effective_language = request.language if request.language else detected_language
+        translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
-        model_override = get_model_override_for_language(detected_language)
+        model_override = get_model_override_for_language(effective_language)
         logger.info(
             "Language detection and translation resolution",
             extra={
                 "detected_language": detected_language,
+                "client_language": request.language,
+                "effective_language": effective_language,
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
@@ -293,7 +304,7 @@ Keep it under 100 words."""
 
         # Content safety check BEFORE LLM call
         await self._check_content_safety(
-            request.message, detected_language, request.session_id, context="chat"
+            request.message, effective_language, request.session_id, context="chat"
         )
 
         # Intent detection: classify before scripture search
@@ -302,7 +313,7 @@ Keep it under 100 words."""
             if detected_intent == "OFF_TOPIC":
                 return await self._handle_off_topic(
                     request,
-                    detected_language,
+                    effective_language,
                     translation,
                     translation_info,
                     total_start,
@@ -328,7 +339,7 @@ Keep it under 100 words."""
             translation,
             verse_refs,
             is_verse_lookup,
-            detected_language=detected_language,
+            detected_language=effective_language,
             model_override=model_override,
         )
 
@@ -339,7 +350,7 @@ Keep it under 100 words."""
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
-            language_code=detected_language,
+            language_code=effective_language,
             prompt_type=prompt_type,
         )
 
@@ -645,13 +656,17 @@ Keep it under 100 words."""
 
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
-        translation = resolve_translation(request.preferred_translation, detected_language)
+        # Use the client-supplied language when present; fall back to auto-detection.
+        effective_language = request.language if request.language else detected_language
+        translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
-        model_override = get_model_override_for_language(detected_language)
+        model_override = get_model_override_for_language(effective_language)
         logger.info(
             "Language detection and translation resolution (stream)",
             extra={
                 "detected_language": detected_language,
+                "client_language": request.language,
+                "effective_language": effective_language,
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
@@ -661,7 +676,7 @@ Keep it under 100 words."""
 
         # Content safety check BEFORE LLM call
         await self._check_content_safety(
-            request.message, detected_language, request.session_id, context="chat stream"
+            request.message, effective_language, request.session_id, context="chat stream"
         )
 
         # Intent detection: short-circuit off-topic before scripture search
@@ -685,7 +700,7 @@ Keep it under 100 words."""
                     user_message=request.message,
                     history=request.conversation_history,
                     search_context="",
-                    language_code=detected_language,
+                    language_code=effective_language,
                     prompt_type="off_topic",
                 )
                 async for chunk in self.llm.chat_stream(
@@ -708,7 +723,7 @@ Keep it under 100 words."""
             translation,
             verse_refs,
             is_verse_lookup,
-            detected_language=detected_language,
+            detected_language=effective_language,
             model_override=model_override,
         )
 
@@ -730,7 +745,7 @@ Keep it under 100 words."""
             user_message=request.message,
             history=request.conversation_history,
             search_context=search_context_prompt,
-            language_code=detected_language,
+            language_code=effective_language,
             prompt_type=prompt_type,
         )
 

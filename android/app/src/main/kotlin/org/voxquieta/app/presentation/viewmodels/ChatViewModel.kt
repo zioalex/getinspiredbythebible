@@ -359,6 +359,7 @@ class ChatViewModel @Inject constructor(
                 conversationHistory = history,
                 preferredTranslation = translation,
                 sessionId = sessionId,
+                language = _uiState.value.currentLocale.ifBlank { null },
             )
 
             // Show warm-up hint if the backend hasn't responded within 3 seconds.
