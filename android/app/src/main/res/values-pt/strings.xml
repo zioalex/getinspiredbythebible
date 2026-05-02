@@ -145,6 +145,7 @@
     <string name="settings_about_title">Sobre</string>
     <string name="settings_version">Versão</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
+    <string name="settings_terms_of_service">Termos de Serviço</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Você teve 10 mensagens nesta sessão! Que tal fazer uma pausa e apreciar a criação de Deus ao ar livre? 🌳</string>

@@ -145,6 +145,7 @@
     <string name="settings_about_title">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
+    <string name="settings_terms_of_service">Условия обслуживания</string>
 
     <!-- Errors -->
     <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>

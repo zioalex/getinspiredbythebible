@@ -145,6 +145,7 @@
     <string name="settings_about_title">حول</string>
     <string name="settings_version">الإصدار</string>
     <string name="settings_privacy_policy">سياسة الخصوصية</string>
+    <string name="settings_terms_of_service">شروط الخدمة</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>

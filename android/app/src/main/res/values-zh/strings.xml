@@ -145,6 +145,7 @@
     <string name="settings_about_title">关于</string>
     <string name="settings_version">版本</string>
     <string name="settings_privacy_policy">隐私政策</string>
+    <string name="settings_terms_of_service">服务条款</string>
 
     <!-- Errors -->
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>
