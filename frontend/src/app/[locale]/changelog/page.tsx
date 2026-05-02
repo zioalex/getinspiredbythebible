@@ -34,7 +34,10 @@ export default async function ChangelogPage({
 
   const t = await getTranslations({ locale, namespace: "Changelog" });
 
-  const changelogPath = resolve(process.cwd(), "../CHANGELOG.md");
+  // Read from public/CHANGELOG.md, which the prebuild script copies from
+  // the repo-root CHANGELOG.md. This works in both local dev and the
+  // production standalone Docker image (which ships the public/ folder).
+  const changelogPath = resolve(process.cwd(), "public", "CHANGELOG.md");
   const content = existsSync(changelogPath)
     ? readFileSync(changelogPath, "utf8")
     : null;

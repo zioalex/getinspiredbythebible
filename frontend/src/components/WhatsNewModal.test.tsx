@@ -3,15 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import WhatsNewModal from "./WhatsNewModal";
 import { renderWithIntl } from "@/test/i18n-helpers";
 
-// Mock next-intl's useLocale
-vi.mock("next-intl", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("next-intl")>();
-  return {
-    ...actual,
-    useLocale: () => "en",
-  };
-});
-
 // Mock @/i18n/navigation Link
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (

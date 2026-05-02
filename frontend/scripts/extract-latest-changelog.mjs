@@ -1,12 +1,23 @@
 #!/usr/bin/env node
 /**
- * Reads the root CHANGELOG.md and extracts the topmost release entry.
+ * Reads the CHANGELOG.md and extracts the topmost release entry.
  * Writes frontend/public/changelog.json with:
  *   { "version": "X.Y.Z", "date": "YYYY-MM-DD", "body": "..." }
- * If CHANGELOG.md is missing or has no entries, writes { "version": null }.
+ * Also copies the full CHANGELOG.md verbatim to frontend/public/CHANGELOG.md
+ * so /[locale]/changelog can read it at build time. The file is shipped via
+ * the standalone Docker image's `public/` folder.
+ *
+ * Looks first in the repo root (local dev), then in the frontend dir
+ * (Docker build: CI is expected to stage CHANGELOG.md into ./frontend
+ * before `docker build` because the build context is ./frontend and the
+ * repo-root CHANGELOG.md is otherwise invisible inside the container).
+ *
+ * If CHANGELOG.md is missing or has no entries, writes { "version": null }
+ * and does not create public/CHANGELOG.md (the page falls back to its
+ * empty state).
  *
  * Run via `prebuild` / `predev` in package.json so next build always has
- * a fresh public/changelog.json.
+ * fresh artifacts in public/.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -15,9 +26,15 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../");
-const changelogPath = resolve(repoRoot, "CHANGELOG.md");
+const candidatePaths = [
+  resolve(repoRoot, "CHANGELOG.md"),
+  resolve(__dirname, "../CHANGELOG.md"),
+];
+const changelogPath =
+  candidatePaths.find((p) => existsSync(p)) ?? candidatePaths[0];
 const outputDir = resolve(__dirname, "../public");
 const outputPath = resolve(outputDir, "changelog.json");
+const outputMarkdownPath = resolve(outputDir, "CHANGELOG.md");
 
 /** Parse topmost ## [X.Y.Z] or ## X.Y.Z entry from a CHANGELOG string. */
 export function parseLatestEntry(content) {
@@ -74,8 +91,10 @@ function main() {
   };
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(outputPath, JSON.stringify(payload, null, 2));
+  // Also ship the full CHANGELOG.md so /[locale]/changelog can render it.
+  writeFileSync(outputMarkdownPath, content);
   console.log(
-    `[extract-latest-changelog] Wrote v${entry.version} to public/changelog.json`,
+    `[extract-latest-changelog] Wrote v${entry.version} to public/changelog.json + full CHANGELOG.md`,
   );
 }
 

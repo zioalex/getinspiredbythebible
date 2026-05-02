@@ -24,8 +24,12 @@ export default function WhatsNewModal() {
     if (typeof window === "undefined") return;
 
     fetch("/changelog.json")
-      .then((r) => r.json())
-      .then((data: ChangelogEntry) => {
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then((data: ChangelogEntry | null) => {
+        if (!data) return;
         if (!data.version) return;
 
         const lastSeen = localStorage.getItem(STORAGE_KEY);
