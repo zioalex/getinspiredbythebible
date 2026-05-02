@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "استلهم يومياً من كلمة الله"
+  },
+  "Legal": {
+    "privacyTitle": "سياسة الخصوصية",
+    "privacyDescription": "تعرّف على كيفية جمع Vox Quieta لبياناتك واستخدامها.",
+    "termsTitle": "شروط الخدمة",
+    "termsDescription": "شروط وأحكام استخدام Vox Quieta.",
+    "lastUpdated": "آخر تحديث: {date}",
+    "navPrivacy": "الخصوصية",
+    "navTerms": "الشروط"
   }
 }

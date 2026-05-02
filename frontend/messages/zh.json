@@ -224,5 +224,14 @@
   "Splash": {
     "title": "Vox Quieta",
     "motto": "每天从上帝的话语中获得灵感"
+  },
+  "Legal": {
+    "privacyTitle": "隐私政策",
+    "privacyDescription": "了解 Vox Quieta 如何收集和使用您的数据。",
+    "termsTitle": "服务条款",
+    "termsDescription": "使用 Vox Quieta 的条款和条件。",
+    "lastUpdated": "最后更新：{date}",
+    "navPrivacy": "隐私",
+    "navTerms": "条款"
   }
 }
