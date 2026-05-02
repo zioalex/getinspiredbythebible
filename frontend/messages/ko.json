@@ -233,5 +233,19 @@
     "lastUpdated": "최종 업데이트: {date}",
     "navPrivacy": "개인정보",
     "navTerms": "약관"
+  },
+  "Changelog": {
+    "title": "릴리즈 노트",
+    "description": "Vox Quieta의 새로운 기능을 확인하세요 — 전체 릴리즈 및 개선 사항 기록.",
+    "empty": "아직 릴리즈가 없습니다."
+  },
+  "WhatsNew": {
+    "title": "새로운 기능",
+    "versionLabel": "버전 {version}",
+    "dismiss": "확인",
+    "viewFullChangelog": "전체 변경 로그 보기"
+  },
+  "Footer": {
+    "changelog": "변경 로그"
   }
 }

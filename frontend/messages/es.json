@@ -233,5 +233,19 @@
     "lastUpdated": "Última actualización: {date}",
     "navPrivacy": "Privacidad",
     "navTerms": "Términos"
+  },
+  "Changelog": {
+    "title": "Notas de versión",
+    "description": "Descubre las novedades de Vox Quieta — historial completo de versiones y mejoras.",
+    "empty": "Aún no hay versiones publicadas."
+  },
+  "WhatsNew": {
+    "title": "Novedades",
+    "versionLabel": "Versión {version}",
+    "dismiss": "Entendido",
+    "viewFullChangelog": "Ver historial completo"
+  },
+  "Footer": {
+    "changelog": "Historial"
   }
 }
