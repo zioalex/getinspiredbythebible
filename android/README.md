@@ -291,7 +291,7 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
    Note the **GCP project number** shown — you'll need it in step 4.
 3. Click **Create new service account** → follow the link to Google Cloud
    Console.
-4. **Enable the Google Play Android Developer API** in your GCP project. The API is *not* enabled by default; without this, every Fastlane upload fails with `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <NUMBER> before or it is disabled`. Enable it at:
+4. **Enable the Google Play Android Developer API** in your GCP project. The API is _not_ enabled by default; without this, every Fastlane upload fails with `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <NUMBER> before or it is disabled`. Enable it at:
 
    ```text
    https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=<YOUR_PROJECT_NUMBER>
@@ -306,8 +306,8 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
 7. Assign the **Admin (all permissions)** role for the first-time setup, or at minimum a custom role that includes:
    - **Releases:** *Create, edit and delete draft releases*
    - **Releases:** *Release apps to testing tracks*
-   - **Releases:** *Release to production, exclude devices and use Play App Signing* (only if you'll promote to production)
-   - **Store presence:** *Edit store listing, pricing & distribution* (only if Fastlane will sync metadata/screenshots)
+   - **Releases:** _Release to production, exclude devices and use Play App Signing_ (only if you'll promote to production)
+   - **Store presence:** _Edit store listing, pricing & distribution_ (only if Fastlane will sync metadata/screenshots)
 
    Without this grant, Fastlane fails with `Google Api Error: Invalid request - The caller does not have permission` even though the API is enabled and the JSON key is valid. Allow ~5 minutes for the new permissions to propagate.
 8. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
@@ -335,7 +335,7 @@ by pushing a `vX.Y.Z` tag.
 |---|---|---|
 | `Could not find aab file at path 'app/build/outputs/bundle/release/app-release.aab'` | Gradle `bundleRelease` step didn't produce the AAB, or the workflow's `working-directory` is not `android/`. | Check the **Build signed AAB** step's logs. The path in `android/fastlane/Fastfile` is module-root-relative; the workflow must invoke `fastlane` from `android/`. |
 | `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <N> before or it is disabled` | The API is not enabled on the GCP project that owns the service account. | Step 4 above — enable the API at the URL printed in the error and wait ~5 min. |
-| `Invalid request - The caller does not have permission` | The service account exists and the API is enabled, but the SA was not granted access (or insufficient permissions) in Play Console. | Step 6–7 above — grant access in **Setup → API access → Grant access**, with the **Admin** role or at minimum the *Release manager* permissions. Wait ~5 min for propagation. |
+| `Invalid request - The caller does not have permission` | The service account exists and the API is enabled, but the SA was not granted access (or insufficient permissions) in Play Console. | Step 6–7 above — grant access in **Setup → API access → Grant access**, with the **Admin** role or at minimum the _Release manager_ permissions. Wait ~5 min for propagation. |
 | `Package <id> not found` | The applicationId in `build.gradle.kts` doesn't match a created app in Play Console, or step 5 (first manual upload) was skipped. | Check the app exists in Play Console with the exact same package name as `applicationId`. Upload one build manually first. |
 | `Only releases with status draft may be created on draft app` | The app in Play Console is still in draft state and you're trying to release to a non-draft track. | Either complete the Play Console questionnaires (privacy policy, content rating, target audience, data safety) so the app exits draft, or use `track: "internal"` which permits draft uploads. |
 | `Version code N has already been used` | Each AAB uploaded to Play Console must have a strictly greater `versionCode` than every previously uploaded one. The first manual upload typically used the gradle default `1`, so subsequent CI dispatches reading the same default collide. | Tag pushes are immune (workflow derives `versionCode = MAJOR*10000 + MINOR*100 + PATCH`). For `workflow_dispatch` runs the workflow now defaults to `${{ github.run_number }}`, which strictly increases per dispatch. To force a specific code (e.g. when run_number drops below the current Play Console maximum), pass `version_code` as a workflow input. |
