@@ -13,6 +13,14 @@ on:
           - internal
           - beta
           - production
+      version_code:
+        description: "Override versionCode (empty = use github.run_number)."
+        required: false
+        type: string
+      version_name:
+        description: "Override versionName (empty = read from build.gradle.kts)."
+        required: false
+        type: string
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
@@ -48,19 +56,44 @@ jobs:
       - name: Write google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
 
-      - name: Compute version code from tag
+      - name: Compute version code and name
         id: version
+        env:
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            TAG="${GITHUB_REF_NAME}"          # e.g. v1.2.3
-            VERSION_NAME="${TAG#v}"           # e.g. 1.2.3
+            # Tag push: derive both from the tag.  v1.2.3 → versionName=1.2.3,
+            # versionCode = MAJOR*10000 + MINOR*100 + PATCH (so v0.1.0 = 100,
+            # v1.2.3 = 10203).
+            TAG="${GITHUB_REF_NAME}"
+            VERSION_NAME="${TAG#v}"
             IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
             VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
           else
-            VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
-              | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
-            VERSION_CODE="$(grep versionCode android/app/build.gradle.kts | head -1 | grep -oP '\d+')"
+            # workflow_dispatch path. Each Play Store upload requires a unique,
+            # monotonically-increasing versionCode.  Reading the gradle default
+            # (= 1) collides with whatever was uploaded manually first, so:
+            #   * Honour an explicit version_code input if the user provided one
+            #     (must be greater than every previously-uploaded code on the
+            #     target track or Play Console rejects the bundle).
+            #   * Otherwise default to ${{ github.run_number }} which strictly
+            #     increases each time this workflow is dispatched.  Note: once
+            #     you cut your first vX.Y.Z tag, the tag formula above takes
+            #     over and dispatches stop running anyway.
+            if [[ -n "$INPUT_VERSION_NAME" ]]; then
+              VERSION_NAME="$INPUT_VERSION_NAME"
+            else
+              VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
+                | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+            fi
+            if [[ -n "$INPUT_VERSION_CODE" ]]; then
+              VERSION_CODE="$INPUT_VERSION_CODE"
+            else
+              VERSION_CODE="${{ github.run_number }}"
+            fi
           fi
+          echo "Using versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}"
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
           echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
 
