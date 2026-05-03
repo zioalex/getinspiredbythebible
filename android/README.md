@@ -288,16 +288,29 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
 
 1. In Play Console, go to **Setup → API access**.
 2. Link your Play Console to a Google Cloud project (create one if needed).
+   Note the **GCP project number** shown — you'll need it in step 4.
 3. Click **Create new service account** → follow the link to Google Cloud
    Console.
-4. In Google Cloud Console:
+4. **Enable the Google Play Android Developer API** in your GCP project. The API is *not* enabled by default; without this, every Fastlane upload fails with `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <NUMBER> before or it is disabled`. Enable it at:
+
+   ```text
+   https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=<YOUR_PROJECT_NUMBER>
+   ```
+
+   Or: GCP Console → **APIs & Services → Library →** search "Google Play Android Developer API" → **Enable**. Allow ~2–5 minutes for the change to propagate.
+5. In Google Cloud Console:
    - Create a service account (e.g. `fastlane-deploy`)
    - Grant it no Cloud IAM roles (permissions are managed in Play Console)
    - Create a JSON key and download it
-5. Back in Play Console, click **Grant access** next to the new service account.
-6. Assign the **Release manager** role (or at minimum the **Releases**
-   permission under a custom role).
-7. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
+6. **Back in Play Console**, click **Grant access** next to the new service account.
+7. Assign the **Admin (all permissions)** role for the first-time setup, or at minimum a custom role that includes:
+   - **Releases:** *Create, edit and delete draft releases*
+   - **Releases:** *Release apps to testing tracks*
+   - **Releases:** *Release to production, exclude devices and use Play App Signing* (only if you'll promote to production)
+   - **Store presence:** *Edit store listing, pricing & distribution* (only if Fastlane will sync metadata/screenshots)
+
+   Without this grant, Fastlane fails with `Google Api Error: Invalid request - The caller does not have permission` even though the API is enabled and the JSON key is valid. Allow ~5 minutes for the new permissions to propagate.
+8. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
    GitHub secret:
 
 ```bash
@@ -315,6 +328,16 @@ Console UI before the API (and therefore Fastlane) can be used.
 
 After this first manual upload, all subsequent releases can be fully automated
 by pushing a `vX.Y.Z` tag.
+
+#### Troubleshooting Fastlane upload errors
+
+| Error message | Cause | Fix |
+|---|---|---|
+| `Could not find aab file at path 'app/build/outputs/bundle/release/app-release.aab'` | Gradle `bundleRelease` step didn't produce the AAB, or the workflow's `working-directory` is not `android/`. | Check the **Build signed AAB** step's logs. The path in `android/fastlane/Fastfile` is module-root-relative; the workflow must invoke `fastlane` from `android/`. |
+| `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <N> before or it is disabled` | The API is not enabled on the GCP project that owns the service account. | Step 4 above — enable the API at the URL printed in the error and wait ~5 min. |
+| `Invalid request - The caller does not have permission` | The service account exists and the API is enabled, but the SA was not granted access (or insufficient permissions) in Play Console. | Step 6–7 above — grant access in **Setup → API access → Grant access**, with the **Admin** role or at minimum the *Release manager* permissions. Wait ~5 min for propagation. |
+| `Package <id> not found` | The applicationId in `build.gradle.kts` doesn't match a created app in Play Console, or step 5 (first manual upload) was skipped. | Check the app exists in Play Console with the exact same package name as `applicationId`. Upload one build manually first. |
+| `Only releases with status draft may be created on draft app` | The app in Play Console is still in draft state and you're trying to release to a non-draft track. | Either complete the Play Console questionnaires (privacy policy, content rating, target audience, data safety) so the app exits draft, or use `track: "internal"` which permits draft uploads. |
 
 ---
 
