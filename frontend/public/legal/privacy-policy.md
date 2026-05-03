@@ -41,10 +41,10 @@ database (Room/SQLite). It is never uploaded to our servers.
 
 ## Third-Party Services
 
-| Service | Purpose | Privacy Policy |
-| --- | --- | --- |
-| Firebase Crashlytics (Google) | Crash reporting | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | Anonymised usage analytics | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Service                       | Purpose                    | Privacy Policy                                                     |
+| ----------------------------- | -------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Crash reporting            | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Anonymised usage analytics | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## Data Retention
 
