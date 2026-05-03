@@ -457,7 +457,12 @@ docker-build-prod-frontend: ## Build and push frontend image to ACR (tagged with
 		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
 		exit 1; \
 	fi
-	@source .env.production && az acr login --name $$ACR_NAME && \
+	@# Stage CHANGELOG.md into the build context (docker build context is ./frontend,
+	@# so the repo-root CHANGELOG.md is otherwise invisible inside the container).
+	@# The trap ensures cleanup even on build failure.
+	@cp CHANGELOG.md frontend/CHANGELOG.md; \
+	trap 'rm -f frontend/CHANGELOG.md' EXIT; \
+	source .env.production && az acr login --name $$ACR_NAME && \
 	docker build --no-cache -t $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) \
 		-t $$ACR_NAME.azurecr.io/bible-frontend:latest \
 		--target production \
