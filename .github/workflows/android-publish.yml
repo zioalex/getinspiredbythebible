@@ -62,36 +62,32 @@ jobs:
           INPUT_VERSION_CODE: ${{ inputs.version_code }}
           INPUT_VERSION_NAME: ${{ inputs.version_name }}
         run: |
+          # versionCode rules from Play Console:
+          #   - Each AAB must use a strictly greater versionCode than every
+          #     previously-uploaded one (across all tracks) or upload is rejected.
+          #   - github.run_number doesn't satisfy this: it stays the same on
+          #     workflow re-runs, and can wrap below the manually-uploaded code.
+          # Solution: derive versionCode from a Unix-epoch timestamp captured at
+          # build time. Always strictly increases per second, never collides
+          # across re-runs, and stays well under Android's 2.1B versionCode max
+          # for the next ~6 years. versionName stays human-readable (from tag
+          # or input or build.gradle.kts).
+          BUILD_EPOCH="$(date +%s)"
+
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            # Tag push: derive both from the tag.  v1.2.3 → versionName=1.2.3,
-            # versionCode = MAJOR*10000 + MINOR*100 + PATCH (so v0.1.0 = 100,
-            # v1.2.3 = 10203).
             TAG="${GITHUB_REF_NAME}"
             VERSION_NAME="${TAG#v}"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
-            VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          elif [[ -n "$INPUT_VERSION_NAME" ]]; then
+            VERSION_NAME="$INPUT_VERSION_NAME"
           else
-            # workflow_dispatch path. Each Play Store upload requires a unique,
-            # monotonically-increasing versionCode.  Reading the gradle default
-            # (= 1) collides with whatever was uploaded manually first, so:
-            #   * Honour an explicit version_code input if the user provided one
-            #     (must be greater than every previously-uploaded code on the
-            #     target track or Play Console rejects the bundle).
-            #   * Otherwise default to ${{ github.run_number }} which strictly
-            #     increases each time this workflow is dispatched.  Note: once
-            #     you cut your first vX.Y.Z tag, the tag formula above takes
-            #     over and dispatches stop running anyway.
-            if [[ -n "$INPUT_VERSION_NAME" ]]; then
-              VERSION_NAME="$INPUT_VERSION_NAME"
-            else
-              VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
-                | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
-            fi
-            if [[ -n "$INPUT_VERSION_CODE" ]]; then
-              VERSION_CODE="$INPUT_VERSION_CODE"
-            else
-              VERSION_CODE="${{ github.run_number }}"
-            fi
+            VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
+              | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          fi
+
+          if [[ -n "$INPUT_VERSION_CODE" ]]; then
+            VERSION_CODE="$INPUT_VERSION_CODE"
+          else
+            VERSION_CODE="$BUILD_EPOCH"
           fi
           echo "Using versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}"
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
