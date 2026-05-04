@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Run Release Please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           # RELEASE_PLEASE_TOKEN must be a PAT with `contents: write` and `workflows: write`
           # so that the tag it creates can trigger the `on: push: tags` in android-publish.yml.
