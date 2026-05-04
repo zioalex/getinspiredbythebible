@@ -304,32 +304,27 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
    - Create a JSON key and download it
 6. **Back in Play Console**, click **Grant access** next to the new service account.
 7. Grant access in Play Console using a **custom role** with these
-   **App permissions** (no Account permissions are needed):
+   **App permissions** (no Account permissions are needed). The category
+   labels below match the current Play Console UI exactly:
 
    | Category | Permission | Required by |
    |---|---|---|
-   | App access | _View app information and download bulk reports_ | All lanes — supply must read the app's current state before any edit; without this, every call fails with `The caller does not have permission` |
-   | Releases | _Create, edit and delete draft apps_ | While the app is in draft state (i.e. pre-launch, before its first production rollout) |
-   | Releases | _Create, edit and delete draft releases_ | `internal` lane — uploads AAB as `release_status: draft` |
+   | App access | _View app information and download bulk reports (read-only)_ | All lanes — supply must read the app's current state before any edit; without this, every call fails with `The caller does not have permission`. _View app quality information (read-only)_ auto-checks as a transitive prerequisite. |
+   | Draft apps | _Create, edit, and delete draft apps_ | While the app is in pre-launch draft state (i.e. before its first production rollout) |
+   | Releases | _Create, edit, and delete draft releases_ | `internal` lane — uploads AAB as `release_status: draft` |
    | Releases | _Release apps to testing tracks_ | `internal` lane (publish to internal track); `beta` lane (promote internal → beta) |
-   | Releases | _Release apps to production, exclude devices and use Play App Signing_ | `production` lane only (promote beta → production with rollout) |
+   | Releases | _Release apps to production, exclude devices, and use Play App Signing_ | `production` lane only (promote beta → production with rollout) |
    | Store presence | _Edit store listing, pricing & distribution_ | `internal` lane — uploads metadata, changelogs, images, screenshots |
 
-   > **Admin is not required** — these permissions are the exact minimum the
-   > three Fastlane lanes exercise. The most commonly-missed item is _View app
-   > information and download bulk reports_ under **App access**: read and
-   > write are separate permissions in Play Console, and supply needs read
-   > access to discover the app before it can do anything else. Omit
-   > _Release apps to production…_ if you never intend to run the `production`
-   > lane via CI, and omit _Create, edit and delete draft apps_ once the app
-   > has been activated by its first production rollout.
-
-   > **Permission labels evolve.** The Play Console UI is updated periodically
-   > and the exact wording above may differ slightly in your console. If a
-   > grant fails with `The caller does not have permission`, the fastest debug
-   > path is to assign Admin temporarily, confirm the upload works, then
-   > uncheck permissions one by one to find the minimal working set for your
-   > current UI.
+   > **Admin is not required.** This is the verified minimum for the three
+   > Fastlane lanes. The two most easily-missed items are _View app information
+   > and download bulk reports_ under **App access** (read and write are
+   > separate permissions in Play Console — supply needs read access to
+   > discover the app before any edit can succeed) and _Create, edit, and
+   > delete draft apps_ under **Draft apps** (needed while the app itself is
+   > pre-launch). Drop _Release apps to production…_ if you don't run the
+   > `production` lane via CI; drop _Create, edit, and delete draft apps_
+   > once the app has been activated by its first production rollout.
 
    Without this grant, Fastlane fails with `Google Api Error: Invalid request - The caller does not have permission` even though the API is enabled and the JSON key is valid. Allow ~5 minutes for the new permissions to propagate.
 8. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
