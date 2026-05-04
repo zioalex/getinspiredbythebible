@@ -151,7 +151,10 @@ class ChatViewModel @Inject constructor(
     // first cold-start disk read.  Without this, the state starts as "system" and the
     // async collect in init{} arrives one frame late, causing a brief theme flash.
     private val _uiState = MutableStateFlow(
-        ChatUiState(themeMode = runBlocking { themePreferences.themeModeFlow.first() })
+        ChatUiState(
+            themeMode = runBlocking { themePreferences.themeModeFlow.first() },
+            currentLocale = languagePreferences.readInitial(),
+        )
     )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 

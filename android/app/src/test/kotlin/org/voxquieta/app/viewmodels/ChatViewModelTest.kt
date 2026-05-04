@@ -95,6 +95,7 @@ class ChatViewModelTest {
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
+        every { languagePreferences.readInitial() } returns "en"
         context = mockk {
             every { getString(R.string.error_network) } returns "Network error. Please check your connection."
             every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
@@ -1398,5 +1399,27 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    // ── Language seeding (new) ────────────────────────────────────────────────
+
+    @Test
+    fun `initial currentLocale is seeded synchronously from languagePreferences readInitial`() {
+        every { languagePreferences.readInitial() } returns "de"
+        every { languagePreferences.languageFlow } returns flowOf("de")
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            bibleApiService,
+            networkMonitor,
+        )
+        assertEquals("de", vm.uiState.value.currentLocale)
     }
 }
