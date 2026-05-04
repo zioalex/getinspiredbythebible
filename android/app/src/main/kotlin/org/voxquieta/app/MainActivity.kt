@@ -6,7 +6,6 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
-import org.voxquieta.app.data.preferences.LanguagePreferences
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,7 +14,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -67,18 +65,6 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var turnstileManager: TurnstileManager
 
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrapContext(newBase, LanguagePreferences.readSync(newBase)))
-    }
-
-    override fun applyOverrideConfiguration(overrideConfiguration: Configuration?) {
-        if (overrideConfiguration != null) {
-            val code = LanguagePreferences.readSync(baseContext)
-            overrideConfiguration.setLocale(java.util.Locale(code))
-        }
-        super.applyOverrideConfiguration(overrideConfiguration)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
         val splashScreen = installSplashScreen()
@@ -107,13 +93,6 @@ class MainActivity : ComponentActivity() {
             val languageCode by viewModel.selectedLanguage.collectAsStateWithLifecycle()
 
             val layoutDirection = LocaleHelper.layoutDirectionFor(languageCode)
-
-            LaunchedEffect(languageCode) {
-                val currentLang = resources.configuration.locales[0].language
-                if (languageCode != currentLang) {
-                    recreate()
-                }
-            }
 
             val darkTheme = when (uiState.themeMode) {
                 "dark" -> true
