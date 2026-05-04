@@ -303,11 +303,19 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
    - Grant it no Cloud IAM roles (permissions are managed in Play Console)
    - Create a JSON key and download it
 6. **Back in Play Console**, click **Grant access** next to the new service account.
-7. Assign the **Admin (all permissions)** role for the first-time setup, or at minimum a custom role that includes:
-   - **Releases:** *Create, edit and delete draft releases*
-   - **Releases:** *Release apps to testing tracks*
-   - **Releases:** _Release to production, exclude devices and use Play App Signing_ (only if you'll promote to production)
-   - **Store presence:** _Edit store listing, pricing & distribution_ (only if Fastlane will sync metadata/screenshots)
+7. Grant access in Play Console using a **custom role** with exactly these four
+   **App permissions** (no Account permissions are needed):
+
+   | Category | Permission | Required by |
+   |---|---|---|
+   | Releases | _Create, edit and delete draft releases_ | `internal` lane — uploads AAB as `release_status: draft` |
+   | Releases | _Release apps to testing tracks_ | `internal` lane (publish to internal track); `beta` lane (promote internal → beta) |
+   | Releases | _Release apps to production, exclude devices and use Play App Signing_ | `production` lane only (promote beta → production with rollout) |
+   | Store presence | _Edit store listing, pricing & distribution_ | `internal` lane — uploads metadata, changelogs, images, screenshots |
+
+   > **Admin is not required.** These four permissions are the exact minimum the
+   > three Fastlane lanes exercise. Omit "Release apps to production…" if you
+   > never intend to run the `production` lane via CI.
 
    Without this grant, Fastlane fails with `Google Api Error: Invalid request - The caller does not have permission` even though the API is enabled and the JSON key is valid. Allow ~5 minutes for the new permissions to propagate.
 8. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
@@ -355,8 +363,8 @@ repository before the workflow can run:
 | `KEY_PASSWORD` | Password for the key |
 | `GOOGLE_PLAY_JSON_KEY` | Base64-encoded Google Play service account JSON: `base64 -w 0 play-key.json` |
 
-> The Google Play service account needs the **Release manager** role (or at minimum
-> the **Releases** permission) in Google Play Console.
+> The Google Play service account needs the four App permissions listed in
+> step 7 of the Play Console setup above — not the Admin role.
 
 ### Track promotion flow
 
