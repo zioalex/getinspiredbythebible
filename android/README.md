@@ -303,11 +303,28 @@ This allows Fastlane (and the CI workflow) to upload builds via the API.
    - Grant it no Cloud IAM roles (permissions are managed in Play Console)
    - Create a JSON key and download it
 6. **Back in Play Console**, click **Grant access** next to the new service account.
-7. Assign the **Admin (all permissions)** role for the first-time setup, or at minimum a custom role that includes:
-   - **Releases:** *Create, edit and delete draft releases*
-   - **Releases:** *Release apps to testing tracks*
-   - **Releases:** _Release to production, exclude devices and use Play App Signing_ (only if you'll promote to production)
-   - **Store presence:** _Edit store listing, pricing & distribution_ (only if Fastlane will sync metadata/screenshots)
+7. Grant access in Play Console using a **custom role** with these
+   **App permissions** (no Account permissions are needed). The category
+   labels below match the current Play Console UI exactly:
+
+   | Category | Permission | Required by |
+   |---|---|---|
+   | App access | _View app information and download bulk reports (read-only)_ | All lanes — supply must read the app's current state before any edit; without this, every call fails with `The caller does not have permission`. _View app quality information (read-only)_ auto-checks as a transitive prerequisite. |
+   | Draft apps | _Create, edit, and delete draft apps_ | While the app is in pre-launch draft state (i.e. before its first production rollout) |
+   | Releases | _Create, edit, and delete draft releases_ | `internal` lane — uploads AAB as `release_status: draft` |
+   | Releases | _Release apps to testing tracks_ | `internal` lane (publish to internal track); `beta` lane (promote internal → beta) |
+   | Releases | _Release apps to production, exclude devices, and use Play App Signing_ | `production` lane only (promote beta → production with rollout) |
+   | Store presence | _Edit store listing, pricing & distribution_ | `internal` lane — uploads metadata, changelogs, images, screenshots |
+
+   > **Admin is not required.** This is the verified minimum for the three
+   > Fastlane lanes. The two most easily-missed items are _View app information
+   > and download bulk reports_ under **App access** (read and write are
+   > separate permissions in Play Console — supply needs read access to
+   > discover the app before any edit can succeed) and _Create, edit, and
+   > delete draft apps_ under **Draft apps** (needed while the app itself is
+   > pre-launch). Drop _Release apps to production…_ if you don't run the
+   > `production` lane via CI; drop _Create, edit, and delete draft apps_
+   > once the app has been activated by its first production rollout.
 
    Without this grant, Fastlane fails with `Google Api Error: Invalid request - The caller does not have permission` even though the API is enabled and the JSON key is valid. Allow ~5 minutes for the new permissions to propagate.
 8. Base64-encode the JSON key and store it as the `GOOGLE_PLAY_JSON_KEY`
@@ -337,7 +354,7 @@ by pushing a `vX.Y.Z` tag.
 | `PERMISSION_DENIED: Google Play Android Developer API has not been used in project <N> before or it is disabled` | The API is not enabled on the GCP project that owns the service account. | Step 4 above — enable the API at the URL printed in the error and wait ~5 min. |
 | `Invalid request - The caller does not have permission` | The service account exists and the API is enabled, but the SA was not granted access (or insufficient permissions) in Play Console. | Step 6–7 above — grant access in **Setup → API access → Grant access**, with the **Admin** role or at minimum the _Release manager_ permissions. Wait ~5 min for propagation. |
 | `Package <id> not found` | The applicationId in `build.gradle.kts` doesn't match a created app in Play Console, or step 5 (first manual upload) was skipped. | Check the app exists in Play Console with the exact same package name as `applicationId`. Upload one build manually first. |
-| `Only releases with status draft may be created on draft app` | The app in Play Console is still in draft state and you're trying to release to a non-draft track. | Either complete the Play Console questionnaires (privacy policy, content rating, target audience, data safety) so the app exits draft, or use `track: "internal"` which permits draft uploads. |
+| `Only releases with status draft may be created on draft app` | The app in Play Console has not yet been activated (no production release ever rolled out), so Play Store rejects any release whose `release_status` is not `draft`. | Handled — the `internal` lane in `android/fastlane/Fastfile` passes `release_status: "draft"` so uploads work while the app is still in its initial draft state. Once the app is activated in Play Console (after the first production rollout), this can be relaxed to `completed` if you want internal-track builds to auto-promote to internal testers without a manual click. |
 | `Version code N has already been used` | Each AAB uploaded to Play Console must have a strictly greater `versionCode` than every previously uploaded one (across all tracks). | The workflow derives `versionCode` from a Unix-epoch timestamp captured at build time (`$(date +%s)`), so every run gets a strictly greater code than any previous run — including re-runs. To force a specific code (e.g. to match an external numbering scheme), pass `version_code` as a `workflow_dispatch` input. `versionName` remains human-readable (from tag, input, or `build.gradle.kts`). |
 
 ---
@@ -355,8 +372,8 @@ repository before the workflow can run:
 | `KEY_PASSWORD` | Password for the key |
 | `GOOGLE_PLAY_JSON_KEY` | Base64-encoded Google Play service account JSON: `base64 -w 0 play-key.json` |
 
-> The Google Play service account needs the **Release manager** role (or at minimum
-> the **Releases** permission) in Google Play Console.
+> The Google Play service account needs the four App permissions listed in
+> step 7 of the Play Console setup above — not the Admin role.
 
 ### Track promotion flow
 
