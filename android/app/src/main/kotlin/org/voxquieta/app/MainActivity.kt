@@ -6,7 +6,6 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
-import org.voxquieta.app.data.preferences.LanguagePreferences
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -30,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
+import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.screens.ChatScreen
 import org.voxquieta.app.presentation.screens.ConversationsScreen
@@ -67,6 +67,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var turnstileManager: TurnstileManager
 
+    // Wrap the base Context so all Resources lookups (including those outside Compose,
+    // e.g. system widgets, Material dialogs) resolve in the user's chosen locale. Reads
+    // synchronously from SharedPreferences via LanguagePreferences.readSync.
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.wrapContext(newBase, LanguagePreferences.readSync(newBase)))
     }
@@ -74,7 +77,7 @@ class MainActivity : ComponentActivity() {
     override fun applyOverrideConfiguration(overrideConfiguration: Configuration?) {
         if (overrideConfiguration != null) {
             val code = LanguagePreferences.readSync(baseContext)
-            overrideConfiguration.setLocale(java.util.Locale(code))
+            overrideConfiguration.setLocale(Locale(code))
         }
         super.applyOverrideConfiguration(overrideConfiguration)
     }
@@ -108,6 +111,11 @@ class MainActivity : ComponentActivity() {
 
             val layoutDirection = LocaleHelper.layoutDirectionFor(languageCode)
 
+            // When the user picks a new language, ChatViewModel.setLocale persists it
+            // synchronously (commit()) before updating uiState, so by the time this
+            // LaunchedEffect fires the recreated Activity's attachBaseContext will read
+            // the new code. The locale-comparison guard skips the no-op first emission
+            // on cold start.
             LaunchedEffect(languageCode) {
                 val currentLang = resources.configuration.locales[0].language
                 if (languageCode != currentLang) {

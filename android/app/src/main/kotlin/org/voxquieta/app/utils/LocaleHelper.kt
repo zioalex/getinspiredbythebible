@@ -1,5 +1,6 @@
 package org.voxquieta.app.utils
 
+import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.ui.unit.LayoutDirection
 import java.util.Locale
@@ -12,12 +13,16 @@ object LocaleHelper {
     fun layoutDirectionFor(languageCode: String): LayoutDirection =
         if (isRtl(languageCode)) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-    /** Wraps [base] with a configuration context for [code], updating the default locale. */
-    fun wrapContext(base: android.content.Context, code: String): android.content.Context {
-        val locale = Locale(code)
-        val config = Configuration(base.resources.configuration)
-        config.setLocale(locale)
+    /**
+     * Returns a [Context] whose [android.content.res.Resources] resolves strings against
+     * [languageCode]. Used from [android.app.Activity.attachBaseContext] so every resource
+     * lookup — including those that bypass Compose's CompositionLocals — picks up the
+     * user's chosen locale.
+     */
+    fun wrapContext(base: Context, languageCode: String): Context {
+        val locale = Locale(languageCode)
         Locale.setDefault(locale)
+        val config = Configuration(base.resources.configuration).apply { setLocale(locale) }
         return base.createConfigurationContext(config)
     }
 }

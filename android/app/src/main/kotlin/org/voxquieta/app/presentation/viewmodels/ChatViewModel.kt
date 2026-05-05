@@ -605,6 +605,12 @@ class ChatViewModel @Inject constructor(
      * Updates the language locale in-memory and persists it via DataStore.
      */
     fun setLocale(locale: String) {
+        // Synchronously commit the SharedPreferences mirror BEFORE updating uiState,
+        // so by the time MainActivity's LaunchedEffect(languageCode) -> recreate()
+        // fires, the new Activity's attachBaseContext (which reads via readSync) sees
+        // the new code on disk. The DataStore mirror is updated async — non-critical
+        // for the recreate path, only used by Flow consumers.
+        languagePreferences.setLanguageSync(locale)
         _uiState.update { it.copy(currentLocale = locale) }
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
