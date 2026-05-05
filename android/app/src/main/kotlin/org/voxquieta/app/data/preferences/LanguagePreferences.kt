@@ -42,20 +42,23 @@ class LanguagePreferences @Inject constructor(
     fun readInitial(): String = readSync(context)
 
     /**
-     * Persists [code] as the selected language.
-     *
-     * Writes the SharedPreferences mirror with `commit()` so that the value is visible
-     * to [readSync] on disk before this call returns. This is required because
-     * [MainActivity.attachBaseContext] reads via [readSync] when the Activity is
-     * recreated after a language change — using `apply()` (async) would race the
-     * recreate and leave the new Activity in the previous locale.
+     * Synchronously writes [code] to the SharedPreferences mirror with `commit()` so
+     * the value is visible to [readSync] before this call returns. Required because
+     * `MainActivity.attachBaseContext` reads via [readSync] on Activity recreate —
+     * `apply()` (async) would race the recreate and leave the new Activity in the
+     * previous locale.
      */
-    suspend fun setLanguage(code: String) {
+    fun setLanguageSync(code: String) {
         @Suppress("ApplySharedPref")
         context.getSharedPreferences(SYNC_PREFS_FILE, MODE_PRIVATE)
             .edit()
             .putString(SYNC_KEY, code)
             .commit()
+    }
+
+    /** Persists [code] to both the SharedPreferences mirror and the DataStore. */
+    suspend fun setLanguage(code: String) {
+        setLanguageSync(code)
         dataStore.edit { prefs ->
             prefs[LANGUAGE_CODE_KEY] = code
         }
