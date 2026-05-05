@@ -605,9 +605,13 @@ class ChatViewModel @Inject constructor(
      * Updates the language locale in-memory and persists it via DataStore.
      */
     fun setLocale(locale: String) {
-        _uiState.update { it.copy(currentLocale = locale) }
+        // Persist FIRST so the recreated Activity's attachBaseContext reads the new
+        // code. Updating uiState before persistence races with MainActivity's
+        // LaunchedEffect(languageCode) -> recreate(): the new Activity instance can
+        // load attachBaseContext before the SharedPreferences write commits.
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
+            _uiState.update { it.copy(currentLocale = locale) }
         }
     }
 
