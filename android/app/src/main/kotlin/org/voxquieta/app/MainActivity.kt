@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.LocalResources
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -140,10 +139,6 @@ class MainActivity : ComponentActivity() {
                     LocalLayoutDirection provides layoutDirection,
                     LocalConfiguration provides localizedConfiguration,
                     LocalContext provides localizedContext,
-                    // Compose UI 1.8+ resolves stringResource() via LocalResources.
-                    // Without this override the picker swaps state but every string
-                    // keeps reading the activity's default Resources.
-                    LocalResources provides localizedContext.resources,
                 ) {
                     val navController = rememberNavController()
 
