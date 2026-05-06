@@ -7,9 +7,7 @@ module.exports = {
       2,
       "always",
       ["feat", "fix", "perf", "revert", "docs", "chore", "build", "ci", "refactor", "test", "style"],
-    "body-max-line-length": [0],
     ],
-    // Dependabot commit messages can exceed 100 chars for grouped/verbose updates
-    "header-max-length": [2, "always", 130],
+    "body-max-line-length": [0],
   },
 };
