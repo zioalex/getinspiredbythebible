@@ -79,6 +79,11 @@ variables:
     description: Allow automatic fallback to paid models
     default: "true"
 
+  LLAMA_GUARD_MODEL:
+    required_in: remote
+    description: OpenRouter model slug for Llama Guard content safety classification
+    default: meta-llama/llama-guard-4-12b
+
   # ---------------------------------------------------------------------------
   # Embedding Configuration
   # ---------------------------------------------------------------------------

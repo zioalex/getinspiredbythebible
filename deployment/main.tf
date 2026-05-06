@@ -98,6 +98,9 @@ locals {
       "ENVIRONMENT" = {
         value = "production"
       }
+      "LLAMA_GUARD_MODEL" = {
+        value = var.llama_guard_model
+      }
       "LLM_PROVIDER" = {
         value = var.llm_provider
       }

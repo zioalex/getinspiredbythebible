@@ -165,6 +165,7 @@ class Settings(BaseSettings):
     # Llama Guard Settings
     # Note: These settings only apply when content_safety_mode is ml_only or hybrid.
     # In keyword_only mode, Llama Guard is never invoked (no external API call).
+    llama_guard_model: str = "meta-llama/llama-guard-4-12b"
     llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency
     llama_guard_timeout: int = 10  # LLM inference timeout (seconds)
 

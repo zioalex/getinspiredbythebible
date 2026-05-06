@@ -17,6 +17,7 @@ services:
       # OpenRouter settings
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      - LLAMA_GUARD_MODEL=${LLAMA_GUARD_MODEL:-meta-llama/llama-guard-4-12b}
       - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       - OPENROUTER_FALLBACK_MODELS=${OPENROUTER_FALLBACK_MODELS:-meta-llama/llama-3.3-70b-instruct}
       - OPENROUTER_ALLOW_FALLBACKS=${OPENROUTER_ALLOW_FALLBACKS:-true}

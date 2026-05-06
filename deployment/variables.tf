@@ -369,6 +369,12 @@ variable "content_safety_enabled" {
   default     = true
 }
 
+variable "llama_guard_model" {
+  description = "OpenRouter model slug for Llama Guard content safety classification"
+  type        = string
+  default     = "meta-llama/llama-guard-4-12b"
+}
+
 variable "content_safety_mode" {
   description = "Content safety pipeline mode: keyword_only (fast, no external call), ml_only (keyword + Llama Guard ~270ms), hybrid (keyword + Llama Guard + Azure Content Safety)"
   type        = string

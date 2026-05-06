@@ -65,11 +65,10 @@ class LlamaGuardProvider:
     """
 
     OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-    MODEL = "meta-llama/llama-guard-4-12b"
     REFERER = settings.production_frontend_url
     APP_TITLE = "VoxQuieta"
 
-    def __init__(self, api_key: str, threshold: float = 0.5, timeout: int = 10):
+    def __init__(self, api_key: str, threshold: float = 0.5, timeout: int = 10, model: str | None = None):
         """
         Initialize Llama Guard provider.
 
@@ -77,10 +76,12 @@ class LlamaGuardProvider:
             api_key: OpenRouter API key
             threshold: Unused (binary safe/unsafe output), kept for interface consistency
             timeout: Request timeout in seconds (default 10)
+            model: Model slug override (default: `settings.llama_guard_model`)
         """
         self.api_key = api_key
         self.threshold = threshold  # unused but kept for interface consistency
         self.timeout = timeout
+        self.model = model or settings.llama_guard_model
 
     def _parse_llama_guard_response(self, response_text: str) -> tuple[bool, list[str]]:
         """
@@ -211,7 +212,7 @@ class LlamaGuardProvider:
                         "X-Title": self.APP_TITLE,
                     },
                     json={
-                        "model": self.MODEL,
+                        "model": self.model,
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0,
                         "max_tokens": 20,
