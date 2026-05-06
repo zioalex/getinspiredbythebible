@@ -14,7 +14,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -29,7 +28,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
-import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.screens.ChatScreen
 import org.voxquieta.app.presentation.screens.ConversationsScreen
@@ -67,21 +65,6 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var turnstileManager: TurnstileManager
 
-    // Wrap the base Context so all Resources lookups (including those outside Compose,
-    // e.g. system widgets, Material dialogs) resolve in the user's chosen locale. Reads
-    // synchronously from SharedPreferences via LanguagePreferences.readSync.
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrapContext(newBase, LanguagePreferences.readSync(newBase)))
-    }
-
-    override fun applyOverrideConfiguration(overrideConfiguration: Configuration?) {
-        if (overrideConfiguration != null) {
-            val code = LanguagePreferences.readSync(baseContext)
-            overrideConfiguration.setLocale(Locale(code))
-        }
-        super.applyOverrideConfiguration(overrideConfiguration)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
         val splashScreen = installSplashScreen()
@@ -110,18 +93,6 @@ class MainActivity : ComponentActivity() {
             val languageCode by viewModel.selectedLanguage.collectAsStateWithLifecycle()
 
             val layoutDirection = LocaleHelper.layoutDirectionFor(languageCode)
-
-            // When the user picks a new language, ChatViewModel.setLocale persists it
-            // synchronously (commit()) before updating uiState, so by the time this
-            // LaunchedEffect fires the recreated Activity's attachBaseContext will read
-            // the new code. The locale-comparison guard skips the no-op first emission
-            // on cold start.
-            LaunchedEffect(languageCode) {
-                val currentLang = resources.configuration.locales[0].language
-                if (languageCode != currentLang) {
-                    recreate()
-                }
-            }
 
             val darkTheme = when (uiState.themeMode) {
                 "dark" -> true
