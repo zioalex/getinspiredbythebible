@@ -18,6 +18,7 @@ from starlette.responses import Response
 from config import settings
 from utils.logging_config import get_logger
 from utils.metrics import api_access_counter
+from utils.monitor_probe import is_monitor_probe
 from utils.turnstile import _get_client_ip
 
 logger = get_logger(__name__)
@@ -129,6 +130,7 @@ class AccessAuditMiddleware(BaseHTTPMiddleware):
     Official sources:
     - Web frontend: Origin/Referer matches an allowed CORS origin
     - Android app: X-Turnstile-Token header present (sent on all requests)
+    - Synthetic monitor: X-Monitor-Probe-Secret matches shared secret
 
     Never blocks requests.
     """
@@ -154,7 +156,10 @@ class AccessAuditMiddleware(BaseHTTPMiddleware):
             referer, allowed_origins
         )
 
-        if origin_match:
+        if is_monitor_probe(request):
+            source = "official"
+            client_type = "monitor"
+        elif origin_match:
             source = "official"
             client_type = "web"
         elif has_turnstile:

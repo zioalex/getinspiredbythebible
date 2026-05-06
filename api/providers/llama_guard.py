@@ -1,12 +1,12 @@
 """
-Llama Guard 3 content safety provider via OpenRouter.
+Llama Guard 4 content safety provider via OpenRouter.
 
-Uses meta-llama/llama-guard-3-8b (purpose-built for content safety classification)
+Uses meta-llama/llama-guard-4-12b (purpose-built for content safety classification)
 via the OpenRouter chat completions API, using the existing OPENROUTER_API_KEY.
 
 No new API keys needed. Cost: $0.02/M tokens (essentially free at our volume).
 
-Llama Guard 3 correctly handles biblical violence context:
+Llama Guard 4 correctly handles biblical violence context:
 - "David killed Goliath" → safe
 - "I want to build a bomb" → unsafe (S9)
 - "I hate all people of a certain race" → unsafe (S10)
@@ -22,7 +22,7 @@ from providers.azure_content_safety import ContentSafetyResult
 
 logger = logging.getLogger(__name__)
 
-# Llama Guard 3 prompt template (critical: must use exact format)
+# Llama Guard 4 prompt template (critical: must use exact format)
 LLAMA_GUARD_PROMPT = """<|begin_of_text|><|start_header_id|>user<|end_header_id|>
 
 Task: Check if there is unsafe content in the 'User' messages in the conversation according to our safety policy with the below categories.
@@ -56,16 +56,16 @@ Provide your safety assessment for the above conversation:
 
 class LlamaGuardProvider:
     """
-    Llama Guard 3 content safety provider via OpenRouter.
+    Llama Guard 4 content safety provider via OpenRouter.
 
-    Uses meta-llama/llama-guard-3-8b for context-aware content moderation that:
+    Uses meta-llama/llama-guard-4-12b for context-aware content moderation that:
     - Distinguishes biblical violence discussion from real harmful intent
     - Detects nuanced harmful intent vs help-seeking
     - Returns binary safe/unsafe with category codes
     """
 
     OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-    MODEL = "meta-llama/llama-guard-3-8b"
+    MODEL = "meta-llama/llama-guard-4-12b"
     REFERER = settings.production_frontend_url
     APP_TITLE = "VoxQuieta"
 
@@ -84,7 +84,7 @@ class LlamaGuardProvider:
 
     def _parse_llama_guard_response(self, response_text: str) -> tuple[bool, list[str]]:
         """
-        Parse Llama Guard 3 response.
+        Parse Llama Guard 4 response.
 
         Expected format:
             safe
@@ -93,7 +93,7 @@ class LlamaGuardProvider:
             S1,S9
 
         Args:
-            response_text: Raw response text from Llama Guard 3
+            response_text: Raw response text from Llama Guard 4
 
         Returns:
             Tuple of (is_safe, violated_categories)
@@ -118,7 +118,7 @@ class LlamaGuardProvider:
         self, is_safe: bool, violated_categories: list[str], text_hash: str
     ) -> ContentSafetyResult:
         """
-        Map Llama Guard 3 categories to ContentSafetyResult.
+        Map Llama Guard 4 categories to ContentSafetyResult.
 
         Category mapping:
         - S1 (Violent Crimes), S2 (Non-Violent Crimes), S9 (Indiscriminate Weapons) → violence_or_threat_detected
@@ -182,7 +182,7 @@ class LlamaGuardProvider:
 
     async def analyze_text(self, text: str, language: str = "en") -> ContentSafetyResult:
         """
-        Analyze text using Llama Guard 3 via OpenRouter.
+        Analyze text using Llama Guard 4 via OpenRouter.
 
         Args:
             text: The text to analyze
@@ -248,14 +248,16 @@ class LlamaGuardProvider:
             raise
 
         except httpx.HTTPError as e:
-            logger.error(
+            status_code = (
+                getattr(e.response, "status_code", None) if hasattr(e, "response") else None
+            )
+            log_fn = logger.warning if status_code == 404 else logger.error
+            log_fn(
                 "Llama Guard API error",
                 extra={
                     "text_hash": text_hash,
                     "error": str(e),
-                    "status_code": (
-                        getattr(e.response, "status_code", None) if hasattr(e, "response") else None
-                    ),
+                    "status_code": status_code,
                 },
             )
             raise
