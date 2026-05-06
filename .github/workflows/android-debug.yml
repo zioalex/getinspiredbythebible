@@ -18,6 +18,21 @@ name: Android Debug Dump
 # yamllint disable-line rule:truthy
 on:
   workflow_dispatch:
+    inputs:
+      custom_command:
+        description: >-
+          Optional shell snippet to run AFTER the standard dumps. Executed from
+          the repo root with bash. Stdout/stderr are captured into
+          custom-command.log inside the artifact. Leave empty to skip.
+        required: false
+        default: ""
+      skip_standard_dumps:
+        description: >-
+          Skip the built-in manifest/dependency dumps and ONLY run
+          custom_command. Useful when you only need a one-off probe.
+        required: false
+        type: boolean
+        default: false
   push:
     branches: ["debug/*"]
 
@@ -41,10 +56,13 @@ jobs:
           distribution: "temurin"
           cache: gradle
 
+      - name: Prepare output dir
+        run: mkdir -p debug-output
+
       - name: Resolve release runtime classpath
+        if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
         run: |
-          mkdir -p ../debug-output
           ./gradlew :app:dependencies --configuration releaseRuntimeClasspath \
             > ../debug-output/dependencies-release.txt 2>&1
           # Highlight the lines most relevant to ad-id / analytics debugging
@@ -55,10 +73,12 @@ jobs:
           } > ../debug-output/dependencies-release-highlights.txt
 
       - name: Build release AAB (produces merged manifest + exploded AARs)
+        if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
         run: ./gradlew :app:bundleRelease --no-daemon
 
       - name: Collect merged release manifest
+        if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
         run: |
           # Path is stable across recent AGP versions; copy whatever we find.
@@ -68,6 +88,7 @@ jobs:
             -exec cp -v {} ../debug-output/ \;
 
       - name: Attribute permissions to declaring AARs
+        if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
         run: |
           out=../debug-output/library-manifests-with-AD_ID.txt
@@ -93,15 +114,36 @@ jobs:
           done < "$out" >> "$out".context
 
       - name: Show effective AGP + Gradle versions
+        if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
         run: |
           ./gradlew --version > ../debug-output/gradle-version.txt
           ./gradlew :app:buildEnvironment > ../debug-output/build-environment.txt 2>&1 || true
 
+      - name: Run custom command
+        if: ${{ inputs.custom_command != '' }}
+        env:
+          CUSTOM_COMMAND: ${{ inputs.custom_command }}
+        run: |
+          # Pass via env var (not interpolated into the script body) so the
+          # snippet can't break out of the YAML quoting and there's no risk
+          # of a stray ${{ ... }} expression being evaluated in a script
+          # context. Captures stdout+stderr and never fails the job — the
+          # exit code is recorded for inspection.
+          {
+            echo "=== custom_command ==="
+            printf '%s\n' "$CUSTOM_COMMAND"
+            echo "=== stdout/stderr ==="
+            bash -lc "$CUSTOM_COMMAND" 2>&1
+            rc=$?
+            echo "=== exit code: $rc ==="
+          } | tee debug-output/custom-command.log
+
       - name: Upload debug artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-${{ github.run_id }}
           path: debug-output/
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: warn
