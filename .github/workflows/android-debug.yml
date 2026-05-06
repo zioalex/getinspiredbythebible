@@ -21,15 +21,14 @@ on:
     inputs:
       custom_command:
         description: >-
-          Optional shell snippet to run AFTER the standard dumps. Executed from
-          the repo root with bash. Stdout/stderr are captured into
-          custom-command.log inside the artifact. Leave empty to skip.
+          Optional shell snippet to run AFTER the standard dumps. Executed from the repo root with bash. Stdout/stderr
+          are captured into custom-command.log inside the artifact. Leave empty to skip.
         required: false
         default: ""
       skip_standard_dumps:
         description: >-
-          Skip the built-in manifest/dependency dumps and ONLY run
-          custom_command. Useful when you only need a one-off probe.
+          Skip the built-in manifest/dependency dumps and ONLY run custom_command. Useful when you only need a one-off
+          probe.
         required: false
         type: boolean
         default: false
