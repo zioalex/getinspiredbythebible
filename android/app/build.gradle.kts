@@ -206,12 +206,7 @@ dependencies {
     // Firebase (BOM ensures all Firebase libraries use compatible versions)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
-    // Exclude play-services-ads-identifier so the AD_ID permission is not
-    // pulled into the merged manifest. App does not use advertising ID; this
-    // prevents Play Console from gating uploads on ad-ID declaration.
-    implementation(libs.firebase.analytics) {
-        exclude(group = "com.google.android.gms", module = "play-services-ads-identifier")
-    }
+    implementation(libs.firebase.analytics)
 
     // --- Testing ---
     testImplementation(libs.junit)
