@@ -8,5 +8,6 @@ module.exports = {
       "always",
       ["feat", "fix", "perf", "revert", "docs", "chore", "build", "ci", "refactor", "test", "style"],
     ],
+    "body-max-line-length": [0],
   },
 };
