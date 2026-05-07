@@ -126,9 +126,9 @@ jobs:
         run: |
           # Pass via env var (not interpolated into the script body) so the
           # snippet can't break out of the YAML quoting and there's no risk
-          # of a stray ${{ ... }} expression being evaluated in a script
-          # context. Captures stdout+stderr and never fails the job — the
-          # exit code is recorded for inspection.
+          # of a stray expression being evaluated in a script context.
+          # Captures stdout+stderr and never fails the job — the exit code
+          # is recorded for inspection.
           {
             echo "=== custom_command ==="
             printf '%s\n' "$CUSTOM_COMMAND"
