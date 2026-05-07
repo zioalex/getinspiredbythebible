@@ -74,7 +74,12 @@ jobs:
       - name: Build release AAB (produces merged manifest + exploded AARs)
         if: ${{ inputs.skip_standard_dumps != true }}
         working-directory: android
-        run: ./gradlew :app:bundleRelease --no-daemon
+        run: |
+          # processReleaseManifest produces the merged manifest without
+          # triggering the release-signing gate that bundleRelease/assembleRelease
+          # require. We don't need a signed AAB to inspect what permissions
+          # would ship — only the merged manifest.
+          ./gradlew :app:processReleaseManifest --no-daemon
 
       - name: Collect merged release manifest
         if: ${{ inputs.skip_standard_dumps != true }}
