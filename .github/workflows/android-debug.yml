@@ -78,8 +78,10 @@ jobs:
           # processReleaseManifest produces the merged manifest without
           # triggering the release-signing gate that bundleRelease/assembleRelease
           # require. We don't need a signed AAB to inspect what permissions
-          # would ship — only the merged manifest.
-          ./gradlew :app:processReleaseManifest --no-daemon
+          # would ship — only the merged manifest. Skip the google-services
+          # plugin's processReleaseGoogleServices task so the workflow doesn't
+          # need the secret-restored google-services.json (it's in .gitignore).
+          ./gradlew :app:processReleaseManifest --no-daemon -x processReleaseGoogleServices
 
       - name: Collect merged release manifest
         if: ${{ inputs.skip_standard_dumps != true }}
