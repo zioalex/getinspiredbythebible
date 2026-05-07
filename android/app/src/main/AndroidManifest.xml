@@ -22,6 +22,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VoxQuieta">
 
+        <!-- Disable Firebase Analytics ad-ID collection at runtime, consistent
+             with the Play Console "does not use ad ID" declaration. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
