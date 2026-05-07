@@ -14,6 +14,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
 
@@ -132,6 +134,21 @@ class MainActivity : ComponentActivity() {
                     private val localizedResources = activity.createConfigurationContext(localizedConfiguration).resources
                     override fun getResources() = localizedResources
                 }
+            }
+
+            // DIAGNOSTIC: confirm StateFlow propagation + localized resources.
+            // Logs once per languageCode change. Read with `adb logcat -s VoxLocale:V`.
+            LaunchedEffect(languageCode) {
+                val sample = R.string.app_name
+                val viaWrapper = localizedContext.resources.getString(sample)
+                val viaActivity = activity.resources.getString(sample)
+                Timber.tag("VoxLocale").i(
+                    "languageCode=%s wrapper.app_name=%s activity.app_name=%s wrapperResLocales=%s",
+                    languageCode,
+                    viaWrapper,
+                    viaActivity,
+                    localizedContext.resources.configuration.locales.toLanguageTags(),
+                )
             }
 
             VoxQuietaTheme(darkTheme = darkTheme) {
