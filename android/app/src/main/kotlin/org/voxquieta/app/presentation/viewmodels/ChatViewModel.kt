@@ -24,6 +24,7 @@ import org.voxquieta.app.domain.repositories.ChurchRepository
 import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -135,6 +136,7 @@ class ChatViewModel @Inject constructor(
     private val sessionPreferences: SessionPreferences,
     private val bibleApiService: BibleApiService,
     private val networkMonitor: NetworkMonitor,
+    private val localeApplier: LocaleApplier,
 ) : ViewModel() {
 
     companion object {
@@ -602,10 +604,13 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Updates the language locale in-memory and persists it via DataStore.
+     * Updates the language locale in-memory, persists it via DataStore, and applies
+     * it system-wide so every stringResource() reflects the new locale after the
+     * Activity recreate that AppCompatDelegate.setApplicationLocales triggers.
      */
     fun setLocale(locale: String) {
         _uiState.update { it.copy(currentLocale = locale) }
+        localeApplier.apply(locale)
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
         }

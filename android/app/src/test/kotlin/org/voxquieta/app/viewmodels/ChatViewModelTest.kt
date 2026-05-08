@@ -26,6 +26,7 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -72,6 +73,9 @@ class ChatViewModelTest {
     private lateinit var sessionPreferences: SessionPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var networkMonitor: NetworkMonitor
+    private val localeApplier: LocaleApplier = object : LocaleApplier {
+        override fun apply(languageTag: String) { /* no-op for unit tests */ }
+    }
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -126,6 +130,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
     }
 
@@ -460,6 +465,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -484,6 +490,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -514,6 +521,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -548,6 +556,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.availableTranslations.value.isEmpty())
@@ -587,6 +596,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -616,6 +626,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1419,6 +1430,7 @@ class ChatViewModelTest {
             sessionPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         assertEquals("de", vm.uiState.value.currentLocale)
     }
