@@ -36,4 +36,3 @@ abstract class LocaleApplierModule {
     @Binds
     abstract fun bindLocaleApplier(impl: AppCompatLocaleApplier): LocaleApplier
 }
-
