@@ -58,6 +58,9 @@ android {
         debug {
             isMinifyEnabled = false
             isDebuggable = true
+            // Separate package name so debug and release can be installed side-by-side
+            // and the release versionCode (Unix timestamp) never blocks a debug install.
+            applicationIdSuffix = ".debug"
             // Default: emulator localhost for local dev. Override with -PbaseUrl=... to hit prod.
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "http://10.0.2.2:8000/")}\"")
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
