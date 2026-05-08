@@ -2,6 +2,7 @@ package org.voxquieta.app.utils
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import android.os.Build
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,7 +18,11 @@ interface LocaleApplier {
 @Singleton
 class AppCompatLocaleApplier @Inject constructor() : LocaleApplier {
     override fun apply(languageTag: String) {
-        Timber.tag("VoxLocale").i("AppCompatLocaleApplier.apply(%s) entering", languageTag)
+        Timber.tag("VoxLocale").i(
+            "AppCompatLocaleApplier.apply(%s) entering; SDK_INT=%d",
+            languageTag,
+            Build.VERSION.SDK_INT,
+        )
         try {
             AppCompatDelegate.setApplicationLocales(
                 LocaleListCompat.forLanguageTags(languageTag)
