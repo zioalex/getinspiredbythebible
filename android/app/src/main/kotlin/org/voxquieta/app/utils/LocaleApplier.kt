@@ -6,19 +6,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Applies a per-app locale at the system level. The implementation uses
- * AppCompatDelegate.setApplicationLocales which:
- *   - Triggers a single Activity recreate so every stringResource() reflects the choice.
- *   - Persists the choice via the platform LocaleManager (API 33+) or AndroidX backport (API 21–32).
- *   - Surfaces the app in the system Settings -> App languages screen.
- *
- * Abstracted behind an interface so unit tests can substitute a no-op implementation
- * (AppCompatDelegate is part of the Android runtime and not present on the JVM test classpath).
- */
 interface LocaleApplier {
     fun apply(languageTag: String)
 }
@@ -26,9 +17,16 @@ interface LocaleApplier {
 @Singleton
 class AppCompatLocaleApplier @Inject constructor() : LocaleApplier {
     override fun apply(languageTag: String) {
-        AppCompatDelegate.setApplicationLocales(
-            LocaleListCompat.forLanguageTags(languageTag)
-        )
+        Timber.tag("VoxLocale").i("AppCompatLocaleApplier.apply(%s) entering", languageTag)
+        try {
+            AppCompatDelegate.setApplicationLocales(
+                LocaleListCompat.forLanguageTags(languageTag)
+            )
+            val applied = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            Timber.tag("VoxLocale").i("AppCompatLocaleApplier.apply done; getApplicationLocales=%s", applied)
+        } catch (t: Throwable) {
+            Timber.tag("VoxLocale").e(t, "AppCompatLocaleApplier.apply threw")
+        }
     }
 }
 
@@ -38,3 +36,4 @@ abstract class LocaleApplierModule {
     @Binds
     abstract fun bindLocaleApplier(impl: AppCompatLocaleApplier): LocaleApplier
 }
+
