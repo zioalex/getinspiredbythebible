@@ -9,6 +9,7 @@ As an Android user, I want the Settings screen to be clean and purposeful, so th
 The Settings screen (`SettingsScreen.kt`) currently includes a full Bible translation radio-button list loaded from the backend. An identical picker already exists as a bottom-sheet modal accessible from the translation chip in the Chat screen header (`TranslationPickerBottomSheet.kt`). Both write to the same `TranslationPreferences` DataStore key (`preferred_translation`), making the Settings version purely redundant.
 
 **Issues with the current layout:**
+
 - The translation list can be very long (many translations), making Settings scroll-heavy.
 - Users don't know which picker is the "canonical" place — it's confusing to have the same control in two places.
 - The in-chat chip is contextually better: users naturally change the Bible version while actively reading/chatting, not in a separate settings screen.
