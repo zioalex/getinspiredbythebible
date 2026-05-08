@@ -1,9 +1,6 @@
 package org.voxquieta.app
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.ContextWrapper
-import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -12,18 +9,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,10 +29,7 @@ import org.voxquieta.app.presentation.screens.SplashScreen
 import org.voxquieta.app.presentation.theme.VoxQuietaTheme
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
-import org.voxquieta.app.utils.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
-import timber.log.Timber
-import java.util.Locale
 import javax.inject.Inject
 
 private fun Context.hasSplashBeenSeen(): Boolean =
@@ -92,9 +81,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: ChatViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsState()
-            val languageCode by viewModel.selectedLanguage.collectAsStateWithLifecycle()
-
-            val layoutDirection = LocaleHelper.layoutDirectionFor(languageCode)
 
             val darkTheme = when (uiState.themeMode) {
                 "dark" -> true
@@ -102,124 +88,75 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            // Build a locale-aware Configuration AND a locale-aware Context so that all
-            // stringResource() calls inside the composition tree resolve strings from the
-            // correct locale's strings.xml without requiring an Activity restart.
-            //
-            // We provide BOTH LocalConfiguration and LocalContext:
-            //   - LocalConfiguration: used by Material3 / Compose internals for layout metrics.
-            //   - LocalContext: used by stringResource() to look up string resources; we wrap
-            //     it with createConfigurationContext() so the Resources object uses the new locale.
-            //
-            // IMPORTANT — Activity context preservation:
-            // hiltViewModel() (via hilt-navigation-compose) calls LocalContext.current and then
-            // walks the ContextWrapper chain looking for a ComponentActivity via findActivity().
-            // createConfigurationContext() wraps the Activity's *baseContext* (not the Activity
-            // itself), which breaks that walk.  We therefore create the localized context by
-            // wrapping the Activity directly, so the chain is:
-            //   LocalizedActivityContext → Activity → ...
-            // This keeps hiltViewModel() working in every NavHost destination.
-            val activity = LocalContext.current
-            @SuppressLint("AppBundleLocaleChanges")
-            val localizedConfiguration = remember(languageCode) {
-                val locale = Locale(languageCode)
-                Configuration(activity.resources.configuration).also { cfg ->
-                    cfg.setLocale(locale)
-                }
-            }
-            // Wrap the Activity (not its baseContext) so the ContextWrapper chain still
-            // contains the ComponentActivity that hiltViewModel() needs.
-            val localizedContext: Context = remember(languageCode) {
-                object : ContextWrapper(activity) {
-                    private val localizedResources = activity.createConfigurationContext(localizedConfiguration).resources
-                    override fun getResources() = localizedResources
-                }
-            }
-
-            // DIAGNOSTIC: confirm StateFlow propagation + localized resources.
-            // Logs once per languageCode change. Read with `adb logcat -s VoxLocale:V`.
-            LaunchedEffect(languageCode) {
-                val sample = R.string.app_name
-                val viaWrapper = localizedContext.resources.getString(sample)
-                val viaActivity = activity.resources.getString(sample)
-                Timber.tag("VoxLocale").i(
-                    "languageCode=%s wrapper.app_name=%s activity.app_name=%s wrapperResLocales=%s",
-                    languageCode,
-                    viaWrapper,
-                    viaActivity,
-                    localizedContext.resources.configuration.locales.toLanguageTags(),
-                )
-            }
-
+            // Locale handling lives at the system level: the picker calls
+            // ChatViewModel.setLocale(...) -> LocaleApplier.apply(...) ->
+            // AppCompatDelegate.setApplicationLocales(...). The platform recreates this
+            // Activity with the new Configuration, so stringResource() and the layout
+            // direction (RTL for Arabic) just work without per-composition wrapping.
             VoxQuietaTheme(darkTheme = darkTheme) {
-                CompositionLocalProvider(
-                    LocalLayoutDirection provides layoutDirection,
-                    LocalConfiguration provides localizedConfiguration,
-                    LocalContext provides localizedContext,
-                ) {
-                    val navController = rememberNavController()
+                val navController = rememberNavController()
+                val context = LocalContext.current
 
-                    // Track screen views every time the user navigates to a new destination.
-                    DisposableEffect(navController) {
-                        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                            // Strip route args so "chat/{conversationId}" → "chat"
-                            val screenName = destination.route
-                                ?.substringBefore("/")
-                                ?: "unknown"
-                            analyticsHelper.setCurrentScreen(screenName)
+                // Track screen views every time the user navigates to a new destination.
+                DisposableEffect(navController) {
+                    val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                        // Strip route args so "chat/{conversationId}" → "chat"
+                        val screenName = destination.route
+                            ?.substringBefore("/")
+                            ?: "unknown"
+                        analyticsHelper.setCurrentScreen(screenName)
+                    }
+                    navController.addOnDestinationChangedListener(listener)
+                    onDispose {
+                        navController.removeOnDestinationChangedListener(listener)
+                    }
+                }
+
+                val startDestination = remember {
+                    if (context.hasSplashBeenSeen()) "conversations" else "splash"
+                }
+
+                Box {
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDestination,
+                    ) {
+                        composable("splash") {
+                            SplashScreen(
+                                onComplete = {
+                                    context.markSplashSeen()
+                                    navController.navigate("conversations") {
+                                        popUpTo("splash") { inclusive = true }
+                                    }
+                                },
+                            )
                         }
-                        navController.addOnDestinationChangedListener(listener)
-                        onDispose {
-                            navController.removeOnDestinationChangedListener(listener)
+                        composable("conversations") {
+                            ConversationsScreen(
+                                onNewConversation = { navController.navigate("chat/new") },
+                                onSelectConversation = { id -> navController.navigate("chat/$id") },
+                                onOpenSettings = { navController.navigate("settings") },
+                            )
+                        }
+                        composable("chat/{conversationId}") { backStackEntry ->
+                            val conversationId = backStackEntry.arguments?.getString("conversationId")
+                            ChatScreen(
+                                conversationId = conversationId,
+                                onOpenSettings = { navController.navigate("settings") },
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                onNavigateBack = { navController.popBackStack() },
+                            )
                         }
                     }
 
-                    val startDestination = remember {
-                        if (localizedContext.hasSplashBeenSeen()) "conversations" else "splash"
-                    }
-
-                    Box {
-                        NavHost(
-                            navController = navController,
-                            startDestination = startDestination,
-                        ) {
-                            composable("splash") {
-                                SplashScreen(
-                                    onComplete = {
-                                        localizedContext.markSplashSeen()
-                                        navController.navigate("conversations") {
-                                            popUpTo("splash") { inclusive = true }
-                                        }
-                                    },
-                                )
-                            }
-                            composable("conversations") {
-                                ConversationsScreen(
-                                    onNewConversation = { navController.navigate("chat/new") },
-                                    onSelectConversation = { id -> navController.navigate("chat/$id") },
-                                    onOpenSettings = { navController.navigate("settings") },
-                                )
-                            }
-                            composable("chat/{conversationId}") { backStackEntry ->
-                                val conversationId = backStackEntry.arguments?.getString("conversationId")
-                                ChatScreen(
-                                    conversationId = conversationId,
-                                    onOpenSettings = { navController.navigate("settings") },
-                                )
-                            }
-                            composable("settings") {
-                                SettingsScreen(
-                                    onNavigateBack = { navController.popBackStack() },
-                                )
-                            }
-                        }
-
-                        // Activity-scoped Turnstile widget. Stays mounted for the
-                        // life of the activity so any first POST request (regardless
-                        // of which screen the user navigates to first) finds a fresh
-                        // token already cached. The widget itself is 1.dp / invisible.
-                        TurnstileWebView(turnstileManager = turnstileManager)
-                    }
+                    // Activity-scoped Turnstile widget. Stays mounted for the
+                    // life of the activity so any first POST request (regardless
+                    // of which screen the user navigates to first) finds a fresh
+                    // token already cached. The widget itself is 1.dp / invisible.
+                    TurnstileWebView(turnstileManager = turnstileManager)
                 }
             }
         }
