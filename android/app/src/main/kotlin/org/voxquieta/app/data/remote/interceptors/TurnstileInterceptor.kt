@@ -27,8 +27,9 @@ class TurnstileInterceptor @Inject constructor(
         val needsToken = original.method.equals("POST", ignoreCase = true)
         val token = turnstileManager.currentToken()
             ?: if (needsToken) awaitTokenOrNull() else null
-        return if (token != null) {
-            val response = chain.proceed(
+
+        val response = if (token != null) {
+            val r = chain.proceed(
                 original.newBuilder()
                     .header("X-Turnstile-Token", token)
                     .build()
@@ -40,10 +41,29 @@ class TurnstileInterceptor @Inject constructor(
             // a fresh token next time without each repository having to
             // remember to call onTokenConsumed().
             turnstileManager.onTokenConsumed()
-            response
+            r
         } else {
             chain.proceed(original)
         }
+
+        // On 403 for any POST the token was missing or stale. The WebView reset
+        // was already triggered by onTokenConsumed() above (or was never needed).
+        // Wait for the fresh token and retry exactly once before surfacing the
+        // error — fail-open: if still no token after the wait, proceed without one.
+        if (response.code == 403 && needsToken) {
+            response.close()
+            val freshToken = awaitTokenOrNull()
+                ?: return chain.proceed(original)
+            val retried = chain.proceed(
+                original.newBuilder()
+                    .header("X-Turnstile-Token", freshToken)
+                    .build()
+            )
+            turnstileManager.onTokenConsumed()
+            return retried
+        }
+
+        return response
     }
 
     // Bounded wait for the Turnstile WebView to deliver a token. Returns null
