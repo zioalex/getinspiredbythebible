@@ -741,3 +741,194 @@ describe("Home page responsive layout", () => {
     });
   });
 });
+
+describe("smart auto-scroll", () => {
+  const mockStreamResponse = () => {
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "scroll-test-id",
+        scripture_context: { query: "", verses: [], passages: [] },
+        provider: "test",
+        model: "test-model",
+      };
+      yield { type: "content" as const, content: "Test response" };
+    });
+  };
+
+  const getMessagesContainer = () =>
+    document.querySelector(
+      '[class*="overflow-y-auto"][class*="px-3"]',
+    ) as HTMLElement;
+
+  const simulateScrolledUp = (container: HTMLElement) => {
+    Object.defineProperty(container, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      value: 0,
+    });
+    fireEvent.scroll(container);
+  };
+
+  const simulateScrolledToBottom = (container: HTMLElement) => {
+    Object.defineProperty(container, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      value: 1950,
+    });
+    fireEvent.scroll(container);
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+      onReady();
+    });
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      configLoaded: true,
+      refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
+    });
+  });
+
+  it("calls scrollIntoView when a message is submitted", async () => {
+    mockStreamResponse();
+    const scrollSpy = vi.mocked(Element.prototype.scrollIntoView);
+    scrollSpy.mockClear();
+
+    const { container } = renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = container.querySelector('button[type="submit"]');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    expect(scrollSpy).toHaveBeenCalled();
+  });
+
+  it("shows scroll-to-bottom button when user scrolls up with messages present", async () => {
+    mockStreamResponse();
+    renderWithIntl(<Home />);
+
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    await act(async () => {
+      simulateScrolledUp(getMessagesContainer());
+    });
+
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+  });
+
+  it("sending a new message resets auto-scroll to follow new content", async () => {
+    mockStreamResponse();
+    const scrollSpy = vi.mocked(Element.prototype.scrollIntoView);
+
+    renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    // Send first message
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "First message" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    // Simulate scrolling up — auto-scroll pauses, button appears
+    await act(async () => {
+      simulateScrolledUp(getMessagesContainer());
+    });
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+
+    scrollSpy.mockClear();
+    mockStreamResponse();
+
+    // Send second message — should reset isUserNearBottom to true
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Second message" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getAllByText("Test response").length).toBeGreaterThan(1),
+    );
+
+    // scrollIntoView must have been called (auto-scroll resumed)
+    expect(scrollSpy).toHaveBeenCalled();
+    // Scroll-to-bottom button must be gone
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
+  });
+
+  it("resumes auto-scroll when user manually scrolls back to bottom", async () => {
+    mockStreamResponse();
+    renderWithIntl(<Home />);
+
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    const container = getMessagesContainer();
+
+    // Scroll up — button appears
+    await act(async () => {
+      simulateScrolledUp(container);
+    });
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+
+    // Scroll back to bottom — button disappears
+    await act(async () => {
+      simulateScrolledToBottom(container);
+    });
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
+  });
+});
