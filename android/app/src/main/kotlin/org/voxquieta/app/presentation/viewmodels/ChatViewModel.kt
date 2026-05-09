@@ -609,6 +609,7 @@ class ChatViewModel @Inject constructor(
      * Activity recreate that AppCompatDelegate.setApplicationLocales triggers.
      */
     fun setLocale(locale: String) {
+        Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
         _uiState.update { it.copy(currentLocale = locale) }
         localeApplier.apply(locale)
         viewModelScope.launch {

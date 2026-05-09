@@ -535,6 +535,31 @@ Testing & Documentation:
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-026: Android Settings UX Improvements
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-05-08
+
+**As an** Android user,
+**I want** the Settings screen to be clean and purposeful,
+**so that** I can find global preferences quickly without redundant controls that already exist in the chat screen.
+
+**Problem:** The Settings screen duplicates the Bible translation picker that already exists as an in-chat bottom sheet. Both write to the same DataStore key, making the Settings version redundant and the page unnecessarily long.
+
+**Acceptance Criteria:**
+
+- [ ] Bible translation radio-button list removed from `SettingsScreen.kt`
+- [ ] Read-only "Current translation" row added with a "Change from the chat screen" hint
+- [ ] "Clear conversation history" button added with confirmation dialog (new Data & Privacy section)
+- [ ] Settings sections reordered: Appearance → Bible → Data & Privacy → Support → Contact → About
+- [ ] In-chat translation chip still persists selection across restarts (no regression)
+- [ ] All existing preference unit tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-026-android-settings-improvements.md`
+
+---
+
 ### 🎯 BITB-006: Add Staging Environment
 
 **Status:** 🎯 Todo
