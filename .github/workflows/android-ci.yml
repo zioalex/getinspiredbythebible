@@ -101,6 +101,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
             cat > android/app/google-services.json <<'PLACEHOLDER'
@@ -175,6 +192,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
@@ -270,6 +304,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
@@ -346,6 +397,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
@@ -477,6 +545,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
@@ -601,6 +686,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
@@ -715,6 +817,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
           {
