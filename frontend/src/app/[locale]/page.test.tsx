@@ -742,7 +742,6 @@ describe("Home page responsive layout", () => {
   });
 });
 
-
 describe("smart auto-scroll", () => {
   const mockStreamResponse = () => {
     vi.mocked(api.streamMessage).mockImplementation(async function* () {
@@ -898,9 +897,7 @@ describe("smart auto-scroll", () => {
     // scrollIntoView must have been called (auto-scroll resumed)
     expect(scrollSpy).toHaveBeenCalled();
     // Scroll-to-bottom button must be gone
-    expect(
-      screen.queryByLabelText("Scroll to bottom"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
   });
 
   it("resumes auto-scroll when user manually scrolls back to bottom", async () => {
@@ -932,8 +929,6 @@ describe("smart auto-scroll", () => {
     await act(async () => {
       simulateScrolledToBottom(container);
     });
-    expect(
-      screen.queryByLabelText("Scroll to bottom"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
   });
 });
