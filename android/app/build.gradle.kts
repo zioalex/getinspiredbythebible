@@ -127,6 +127,12 @@ android {
         // scales to 0 on the test device so infinite animations complete immediately,
         // unblocking waitForIdle() and any Compose test API that calls it internally.
         animationsDisabled = true
+        unitTests {
+            // Return default values (0 / false / null) from Android framework stubs
+            // instead of throwing RuntimeException("Stub!"). Required for any unit test
+            // that transitively touches an Android API (e.g. AppCompatDelegate, Bundle).
+            isReturnDefaultValues = true
+        }
     }
 
     lint {
