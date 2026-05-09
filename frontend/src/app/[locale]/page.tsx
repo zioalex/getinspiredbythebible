@@ -92,7 +92,6 @@ export default function Home() {
   const [isUserNearBottom, setIsUserNearBottom] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const SCROLL_THRESHOLD = 100; // px from bottom to consider "near bottom"
-  const SCROLL_BUTTON_THRESHOLD = 200; // px from bottom to show scroll button
 
   // Feedback state
   const [feedbackGiven, setFeedbackGiven] = useState<
@@ -328,6 +327,7 @@ export default function Home() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setIsUserNearBottom(true); // Reset auto-scroll when user sends a new message
     setInput("");
     setIsLoading(true);
     setIsWarmingUp(false);
@@ -900,10 +900,10 @@ export default function Home() {
         <button
           onClick={handleScrollToBottomClick}
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-gray-800/90 text-white rounded-full shadow-lg hover:bg-gray-900 transition-colors backdrop-blur-sm"
-          aria-label="Scroll to bottom"
+          aria-label={tChat("scrollToBottom")}
         >
           <ChevronDown className="w-4 h-4" />
-          <span className="text-sm font-medium">Scroll to bottom</span>
+          <span className="text-sm font-medium">{tChat("scrollToBottom")}</span>
         </button>
       )}
 

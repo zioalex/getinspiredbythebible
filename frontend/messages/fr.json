@@ -123,7 +123,8 @@
     "errorColdStart": "Je me prépare encore et cela prend plus de temps que prévu. Veuillez réessayer dans un moment — je serai prêt très bientôt !",
     "errorConnection": "Je suis désolé, j'ai des difficultés de connexion en ce moment. Ce pourrait être un problème temporaire — réessayez dans un moment. Si le problème persiste, vous pouvez nous contacter à contact@voxquieta.org",
     "startNewSession": "Commencer une nouvelle session",
-    "sessionLimitMessage": "Tu as envoyé 10 messages dans cette session ! Pourquoi ne pas prendre un moment pour réfléchir à ce que tu as reçu et profiter de la création de Dieu ? 🌳 Quand tu es prêt, démarre une nouvelle session ci-dessous."
+    "sessionLimitMessage": "Tu as envoyé 10 messages dans cette session ! Pourquoi ne pas prendre un moment pour réfléchir à ce que tu as reçu et profiter de la création de Dieu ? 🌳 Quand tu es prêt, démarre une nouvelle session ci-dessous.",
+    "scrollToBottom": "Faire défiler vers le bas"
   },
   "Verses": {
     "scriptureReferences": "Références Bibliques",
