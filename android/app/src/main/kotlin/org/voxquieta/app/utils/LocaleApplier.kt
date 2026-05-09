@@ -1,5 +1,6 @@
 package org.voxquieta.app.utils
 
+import android.annotation.SuppressLint
 import android.app.LocaleManager
 import android.content.Context
 import android.os.Build
@@ -23,6 +24,7 @@ interface LocaleApplier {
 class AppCompatLocaleApplier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : LocaleApplier {
+    @SuppressLint("NewApi")
     override fun apply(languageTag: String) {
         Timber.tag("VoxLocale").i(
             "LocaleApplier.apply(%s) entering; SDK_INT=%d",

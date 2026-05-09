@@ -58,6 +58,9 @@ android {
         debug {
             isMinifyEnabled = false
             isDebuggable = true
+            // Separate package name so debug and release can be installed side-by-side
+            // and the release versionCode (Unix timestamp) never blocks a debug install.
+            applicationIdSuffix = ".debug"
             // Default: emulator localhost for local dev. Override with -PbaseUrl=... to hit prod.
             buildConfigField("String", "BASE_URL", "\"${gradleProp("baseUrl", "http://10.0.2.2:8000/")}\"")
             // Firebase is disabled in debug builds — no crash reports or analytics sent.
@@ -124,6 +127,12 @@ android {
         // scales to 0 on the test device so infinite animations complete immediately,
         // unblocking waitForIdle() and any Compose test API that calls it internally.
         animationsDisabled = true
+        unitTests {
+            // Return default values (0 / false / null) from Android framework stubs
+            // instead of throwing RuntimeException("Stub!"). Required for any unit test
+            // that transitively touches an Android API (e.g. AppCompatDelegate, Bundle).
+            isReturnDefaultValues = true
+        }
     }
 
     lint {
