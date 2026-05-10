@@ -140,6 +140,35 @@ input (`internal` | `beta` | `production`). To promote a build:
 
 ---
 
+## Reviewing a Release PR before merging
+
+The Release PR is the manual review surface — you are not expected to merge
+it blindly.
+
+1. A push to `main` triggers `.github/workflows/release-please.yml`. It
+   opens or updates a single PR on branch `release-please--branches--main`
+   (titled like `chore(main): release X.Y.Z`) that touches
+   `CHANGELOG.md` and `.release-please-manifest.json`.
+2. The follow-up `Lint-fix Release PR` job in the same workflow runs
+   pre-commit (`SKIP=hadolint-docker`) on the PR's changed files and
+   pushes back any auto-fixes (trailing whitespace, EOF, markdownlint
+   `--fix`) as a `chore: lint-fix release-please output` commit. Wait for
+   `Pre-Commit Validation` and `Lint Commit Messages` to go green on the
+   PR before merging.
+3. **To curate the notes**: check the PR branch out locally, edit
+   `CHANGELOG.md`, commit with a `chore:` or `docs:` prefix (so commitlint
+   passes), and push. Force-push is not needed because release-please
+   merges into the existing branch.
+4. Merge the PR. release-please then creates the `vX.Y.Z` tag and the
+   GitHub Release on the next workflow run, which fires
+   `android-publish.yml` (see Overview above).
+
+> ⚠️ **Do not retarget the Release PR's base** to a side branch. release-please
+> only creates tags when its PR merges into the configured release branch
+> (`main`). A staging branch in between silently breaks tagging.
+
+---
+
 ## Seeded version
 
 The manifest was seeded at **`0.1.0`** because no git tags existed in the
