@@ -194,6 +194,43 @@ commits land after the seed).
 
 ---
 
+## Troubleshooting
+
+When release-please misbehaves, the symptom usually maps to a specific
+PAT scope, token configuration, or branch issue. Use this table to
+diagnose quickly.
+
+### Common errors
+
+| Symptom in workflow logs | Likely cause | Fix |
+| ------------------------ | ------------ | --- |
+| `Resource not accessible by personal access token` pointing at `pulls#create-a-pull-request` (the branch ref is created, but PR creation fails) | PAT is missing **Pull requests: Read and write**, has expired, or the repository is not in the PAT's selected-repos list | Regenerate / edit the fine-grained PAT (see [PAT requirement](#pat-requirement--release_please_token)), grant `Pull requests: Read and write`, ensure `zioalex/getinspiredbythebible` is selected, then update the `RELEASE_PLEASE_TOKEN` secret |
+| `Resource not accessible by personal access token` pointing at `issues/labels` | PAT is missing **Issues: Read and write** | Either grant `Issues: Read and write` on the PAT, or rely on the existing `skip-labeling: true` workaround in `.github/workflows/release-please.yml` (lines 41-43) |
+| Release PR merges, tag `vX.Y.Z` is pushed, but `android-publish.yml` does not trigger | The tag was pushed by `GITHUB_TOKEN` (which cannot trigger downstream workflows) instead of the PAT, **or** the PAT is missing **Workflows: Read and write** | Confirm the `release-please-action` step in `.github/workflows/release-please.yml` uses `token: ${{ secrets.RELEASE_PLEASE_TOKEN }}`, and that the PAT has `Workflows: Read and write` |
+| Release PR merges but no tag is created | Release PR base was retargeted off `main` to a side branch | Re-open the PR with base `main`. release-please only tags when its PR merges into the configured release branch |
+| Workflow logs show `Bad credentials` or `401` | PAT expired or was revoked | Regenerate the PAT and update the `RELEASE_PLEASE_TOKEN` secret |
+| Two Release PRs appear, or a stale `release-please--branches--main--release-notes` branch exists | Leftover from older release-please configuration | Delete the stale branch. The current config produces a single PR on branch `release-please--branches--main` (see [Reviewing a Release PR](#reviewing-a-release-pr-before-merging)) |
+| `Lint Commit Messages` fails on the Release PR | A manually-edited commit on the Release PR branch does not follow Conventional Commits | Amend with a `chore:` or `docs:` prefix; see `commitlint.config.cjs` for the allowed types |
+
+### Quick diagnostic checklist
+
+If the release-please workflow run is red, check in this order:
+
+1. **Is `RELEASE_PLEASE_TOKEN` set?** Repo → Settings → Secrets and
+   variables → Actions. Missing secret → workflow falls back to
+   `GITHUB_TOKEN` and downstream tag-triggered jobs will not fire.
+2. **Is the PAT expired?** Fine-grained PATs have a max 1-year lifetime;
+   GitHub sends an email warning ~7 days before expiry.
+3. **Does the PAT cover the repo?** For fine-grained tokens, the repo
+   must be explicitly listed under "Repository access".
+4. **Does the PAT have all four scopes?** Contents (write), Pull
+   requests (write), Issues (write), Workflows (write). See
+   [Creating the PAT](#creating-the-pat).
+5. **Is the Release PR base `main`?** If somebody retargeted it,
+   tagging will silently break.
+
+---
+
 ## Future work (tracked separately)
 
 - Web changelog page surfacing GitHub Releases
