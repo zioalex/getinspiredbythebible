@@ -81,10 +81,12 @@ as a repository secret:
 1. Go to **GitHub → Settings → Developer settings → Personal access tokens →
    Fine-grained tokens**.
 2. Create a token scoped to `zioalex/getinspiredbythebible` with:
-    - **Contents:** Read and write (to push tags and update the manifest)
-    - **Pull requests:** Read and write (to open/update the Release PR)
-    - **Issues:** Read and write (used when release-please applies PR labels)
-    - **Workflows:** Read and write (so the tag push can trigger workflow runs)
+   - **Contents:** Read and write (to push tags and update the manifest)
+   - **Pull requests:** Read and write (to open/update the Release PR)
+   - **Issues:** Read and write (to add `autorelease: pending/tagged` labels —
+     GitHub routes PR label writes through the Issues API even though no
+     issue tracker is used)
+   - **Workflows:** Read and write (so the tag push can trigger workflow runs)
 3. Copy the token value.
 
 ### Adding the secret

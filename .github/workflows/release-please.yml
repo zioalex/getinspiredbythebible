@@ -30,13 +30,13 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           # RELEASE_PLEASE_TOKEN must be a fine-grained PAT with:
-          # - Contents: Read and write
-          # - Pull requests: Read and write
-          # - Issues: Read and write (required for release-please PR labels)
-          # - Workflows: Read and write
-          # so that the tag it creates can trigger the `on: push: tags` in android-publish.yml.
-          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based workflows.
-          # See docs/RELEASE_PROCESS.md for setup instructions.
+          #   contents: write     — push tags, update manifest
+          #   pull-requests: write — open/update the Release PR
+          #   issues: write       — add autorelease labels (GitHub routes PR
+          #                         label writes through the Issues API)
+          #   workflows: write    — tag push triggers android-publish.yml
+          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based
+          # workflows (GitHub security restriction). See docs/RELEASE_PROCESS.md.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           # Work around PAT/organization policies that can block label API access.
           # This keeps release-please functional even when labeling is denied.
