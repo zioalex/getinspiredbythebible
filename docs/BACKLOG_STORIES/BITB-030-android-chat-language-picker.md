@@ -73,4 +73,3 @@ Clear belong with conversation management on the left.
   badge when present) + globe icon. Open the drawer — "Clear
   conversation" appears once a message exists; New chat and Settings
   always appear.
-
