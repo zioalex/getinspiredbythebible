@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.4.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.3.0...v0.4.0) (2026-05-10)
 
-
 ### Features
 
 * Active off-topic filtering via intent detection ([eb208f2](https://github.com/zioalex/getinspiredbythebible/commit/eb208f2a407057d0e0ba8c191f004b7638b04bee))
@@ -104,7 +103,6 @@ All notable changes to this project will be documented in this file.
 * Streaming UI + HNSW Indexes (BITB-013 Quick Wins) ([#182](https://github.com/zioalex/getinspiredbythebible/issues/182)) ([993f348](https://github.com/zioalex/getinspiredbythebible/commit/993f3484d072869c92f5e21885296ab61314b89d))
 * **terraform:** add CONTENT_SAFETY_ENABLED and CONTENT_SAFETY_MODE vars ([#238](https://github.com/zioalex/getinspiredbythebible/issues/238)) ([e904a97](https://github.com/zioalex/getinspiredbythebible/commit/e904a97acfcc7d72fc78f0efc633c9dc7b97fd02))
 * Tighten seed-database auto-trigger to seeding-relevant scripts only ([#155](https://github.com/zioalex/getinspiredbythebible/issues/155)) ([c16798d](https://github.com/zioalex/getinspiredbythebible/commit/c16798d67dc62a0613c23222c5e77b6ed1b175e0))
-
 
 ### Bug Fixes
 
@@ -333,17 +331,14 @@ All notable changes to this project will be documented in this file.
 * **web:** set isReady=false during Turnstile token refresh to prevent chat 403 errors ([#349](https://github.com/zioalex/getinspiredbythebible/issues/349)) ([307e52a](https://github.com/zioalex/getinspiredbythebible/commit/307e52a07211d25cb3b7dd1dd6bdd9595b394f27))
 * **web:** wait briefly for Turnstile token before first POST ([#449](https://github.com/zioalex/getinspiredbythebible/issues/449)) ([1bed5a2](https://github.com/zioalex/getinspiredbythebible/commit/1bed5a2b7b09cc67ba6cfa6ed2aff37e7cdbc10c))
 
-
 ### Performance Improvements
 
 * **seed:** batch verse inserts + add resilience and timeout to seed-database job ([#279](https://github.com/zioalex/getinspiredbythebible/issues/279)) ([eb78826](https://github.com/zioalex/getinspiredbythebible/commit/eb788267c63cd811347a50e5c0afe8122180ca52))
 * tune PostgreSQL for HNSW index builds and query performance ([#187](https://github.com/zioalex/getinspiredbythebible/issues/187)) ([63132a9](https://github.com/zioalex/getinspiredbythebible/commit/63132a98c50e7dd3c4d3161ce96fb8c7461fa9de))
 
-
 ### Reverts
 
 * **android:** restore manifest + build.gradle.kts to pre-AD_ID-fix state ([#491](https://github.com/zioalex/getinspiredbythebible/issues/491)) ([85448a2](https://github.com/zioalex/getinspiredbythebible/commit/85448a2babf981007285d8ecea34b48cf4c16bd1))
-
 
 ### Documentation
 
