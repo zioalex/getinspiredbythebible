@@ -541,6 +541,26 @@ def safety_service_keyword_only(monkeypatch):
     return ContentSafetyService()
 
 
+def test_openai_moderation_provider_requires_openai_api_key(monkeypatch):
+    """OpenAI Moderation does not initialize with only OPENROUTER_API_KEY."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="keyword_only",
+            openai_api_key=None,
+            openrouter_api_key="test-key",  # pragma: allowlist secret
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
+        ),
+    )
+
+    service = ContentSafetyService()
+    provider = service._get_openai_moderation_provider()
+
+    assert provider is None
+
+
 @pytest.fixture
 def safety_service_ml_only(monkeypatch):
     """Create ContentSafetyService with ml_only mode (Llama Guard only, no Azure)."""

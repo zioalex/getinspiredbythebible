@@ -143,7 +143,7 @@ class ContentSafetyService:
         """Lazy-initialize OpenAI Moderation provider."""
         if not self._openai_moderation_initialized:
             self._openai_moderation_initialized = True
-            api_key = settings.openai_api_key or settings.openrouter_api_key
+            api_key = settings.openai_api_key
             if api_key:
                 try:
                     from providers.openai_moderation import OpenAIModerationProvider
@@ -160,7 +160,7 @@ class ContentSafetyService:
             else:
                 logger.warning(
                     "OpenAI Moderation not available: no API key configured "
-                    "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
+                    "(need OPENAI_API_KEY)"
                 )
         return self._openai_moderation_provider
 

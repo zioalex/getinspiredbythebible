@@ -136,6 +136,7 @@ vox-quieta/
 | `EMBEDDING_MODEL` | `mxbai-embed-large` | Embedding model (multilingual, 1024 dims) |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |
 | `ANTHROPIC_API_KEY` | - | For Claude provider |
+| `OPENAI_API_KEY` | - | For OpenAI provider and OpenAI Moderation (content safety `keyword_only`/`hybrid`) |
 | `OPENROUTER_API_KEY` | - | For OpenRouter provider |
 
 #### Frontend build-time variables

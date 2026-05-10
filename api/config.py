@@ -171,8 +171,7 @@ class Settings(BaseSettings):
     # OpenAI Moderation Settings
     # Used as Stage 2 in keyword_only and hybrid modes (ml_only uses Llama Guard instead).
     # Free, no rate limits, ~100-150ms. Endpoint: https://api.openai.com/v1/moderations
-    # Uses OPENAI_API_KEY if set; falls back to OPENROUTER_API_KEY (note: OpenRouter does
-    # not proxy /v1/moderations, so only OPENAI_API_KEY actually works against the real API).
+    # Requires OPENAI_API_KEY. OpenRouter does not proxy /v1/moderations.
     openai_moderation_threshold: float = 0.5  # Block if score >= threshold
     openai_moderation_timeout: int = 3  # Seconds before fail-open fallback
 
