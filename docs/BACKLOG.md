@@ -718,22 +718,23 @@ Testing & Documentation:
 
 ## P3 - Low Priority (Future)
 
-### 🎯 BITB-028: Simplify Church Finder Bottom Sheet Header
+### 🎯 BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
 
 **Status:** 🎯 Todo
 **Size:** XS (< 1 hour)
 **Created:** 2026-05-10
 
-**As an** Android user opening the Church Finder panel,
-**I want** a clean header with an obvious close button,
-**so that** I'm not distracted by unclear secondary text and can dismiss the panel with a single tap.
+**As an** Android user,
+**I want** a clean, single-tap way to dismiss the church-finder banner *and* the bottom sheet,
+**so that** I'm not distracted by unclear secondary text or low-contrast "Dismiss" labels.
 
 **Acceptance Criteria:**
 
 - [ ] Right-side subtitle text removed from the Church Finder bottom sheet header
-- [ ] Close (X) `IconButton` added on the right of the header, dismissing the sheet on tap
-- [ ] Close button has a `contentDescription` for accessibility
-- [ ] Swipe-to-dismiss still works (no regression)
+- [ ] Close (X) `IconButton` added on the right of the bottom sheet header, dismissing the sheet on tap
+- [ ] In-chat suggestion banner replaces the "Dismiss" text label with a clear `Icons.Default.Close` icon
+- [ ] Banner close icon has a `contentDescription` for accessibility
+- [ ] Swipe-to-dismiss still works on the bottom sheet (no regression)
 - [ ] No changes to search behaviour or `ChurchResultCard` content
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-028-church-finder-bottom-sheet-cleanup.md`
