@@ -145,6 +145,15 @@ input (`internal` | `beta` | `production`). To promote a build:
 The Release PR is the manual review surface — you are not expected to merge
 it blindly.
 
+> **Only one branch is created by release-please.** It is named
+> `release-please--branches--main` (no suffix). It modifies exactly two
+> files: `CHANGELOG.md` and `.release-please-manifest.json`. There is no
+> `--release-notes` branch and no `release-notes.md` file in this repo —
+> if you see either, they are stale and should be deleted, not opened as a
+> PR. To read formatted notes for a single release, look at the GitHub
+> Release body created when the Release PR merges (or the corresponding
+> `## [vX.Y.Z]` section of `CHANGELOG.md`).
+
 1. A push to `main` triggers `.github/workflows/release-please.yml`. It
    opens or updates a single PR on branch `release-please--branches--main`
    (titled like `chore(main): release X.Y.Z`) that touches
