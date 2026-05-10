@@ -38,6 +38,9 @@ jobs:
           # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based
           # workflows (GitHub security restriction). See docs/RELEASE_PROCESS.md.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Work around PAT/organization policies that can block label API access.
+          # This keeps release-please functional even when labeling is denied.
+          skip-labeling: true
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 

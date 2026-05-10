@@ -101,6 +101,10 @@ Once the secret is in place, every merge of a Release PR will:
 - Push a `vX.Y.Z` tag using the PAT
 - Trigger `android-publish.yml` → upload to the **internal** Play Store track
 
+> Note: `.github/workflows/release-please.yml` currently sets
+> `skip-labeling: true` to avoid intermittent GitHub API denials on
+> `issues/labels` endpoints, even when PAT permissions look correct.
+
 ---
 
 ## Reading the auto-generated Release PR
