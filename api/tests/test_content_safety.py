@@ -661,7 +661,7 @@ def safety_service_keyword_only_with_openai(monkeypatch):
             azure_content_safety_enabled=False,
             azure_content_safety_endpoint=None,
             azure_content_safety_key=None,
-            openai_api_key="test-key",
+            openai_api_key="test-key",  # pragma: allowlist secret
             openrouter_api_key=None,
             openai_moderation_threshold=0.5,
             openai_moderation_timeout=3,

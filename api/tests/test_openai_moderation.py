@@ -67,7 +67,7 @@ def make_mock_response(scores: dict) -> MagicMock:
 @pytest.mark.asyncio
 async def test_allows_david_killed_goliath():
     """Biblical violence has a very low violence score → allowed."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.02}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -82,7 +82,7 @@ async def test_allows_david_killed_goliath():
 @pytest.mark.asyncio
 async def test_allows_terrorist_plot_in_esther():
     """Historical terrorism reference in scripture → allowed."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.05, "harassment/threatening": 0.03}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -96,7 +96,7 @@ async def test_allows_terrorist_plot_in_esther():
 @pytest.mark.asyncio
 async def test_allows_wars_in_old_testament():
     """Discussion of biblical wars → allowed."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.04}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -110,7 +110,7 @@ async def test_allows_wars_in_old_testament():
 @pytest.mark.asyncio
 async def test_allows_slaughter_of_innocents_biblical():
     """Matthew 2 slaughter of innocents → allowed (biblical)."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.04}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -123,7 +123,7 @@ async def test_allows_slaughter_of_innocents_biblical():
 @pytest.mark.asyncio
 async def test_allows_clean_message():
     """Completely clean message → allowed."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value = make_mock_response(all_clean())
@@ -142,7 +142,7 @@ async def test_allows_clean_message():
 @pytest.mark.asyncio
 async def test_blocks_bomb_threat():
     """Literal bomb threat → blocked as violence_or_threat_detected."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.95, "harassment/threatening": 0.88}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -156,7 +156,7 @@ async def test_blocks_bomb_threat():
 @pytest.mark.asyncio
 async def test_blocks_murder_threat_via_harassment():
     """Murder threat detected via harassment/threatening score → blocked."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "harassment/threatening": 0.92}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -170,7 +170,7 @@ async def test_blocks_murder_threat_via_harassment():
 @pytest.mark.asyncio
 async def test_blocks_hate_speech():
     """Hate speech → blocked as hate_speech_detected."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "hate": 0.88, "hate/threatening": 0.75}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -184,7 +184,7 @@ async def test_blocks_hate_speech():
 @pytest.mark.asyncio
 async def test_blocks_self_harm_instructions():
     """Self-harm instructions → blocked."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "self-harm/instructions": 0.90}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -200,7 +200,10 @@ async def test_blocks_self_harm_instructions():
 @pytest.mark.asyncio
 async def test_blocks_at_threshold_boundary():
     """Score exactly at threshold (0.5) is blocked (>= not >)."""
-    provider = OpenAIModerationProvider(api_key="test-key", threshold=0.5)
+    provider = OpenAIModerationProvider(
+        api_key="test-key",  # pragma: allowlist secret
+        threshold=0.5,
+    )
     scores = {**all_clean(), "violence": 0.5}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -219,7 +222,7 @@ async def test_blocks_at_threshold_boundary():
 @pytest.mark.asyncio
 async def test_allows_self_harm_intent_help_seeking():
     """Self-harm intent without violence/hate → allowed with compassionate flag."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "self-harm/intent": 0.7, "violence": 0.02, "hate": 0.01}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -235,7 +238,10 @@ async def test_allows_self_harm_intent_help_seeking():
 @pytest.mark.asyncio
 async def test_help_seeking_threshold_flag_is_01_not_main_threshold():
     """Self-harm/intent flag triggers at 0.1, not the main threshold (0.5)."""
-    provider = OpenAIModerationProvider(api_key="test-key", threshold=0.5)
+    provider = OpenAIModerationProvider(
+        api_key="test-key",  # pragma: allowlist secret
+        threshold=0.5,
+    )
     # intent is between 0.1 and 0.5 — below block threshold but above flag threshold
     scores = {**all_clean(), "self-harm/intent": 0.15, "violence": 0.01, "hate": 0.01}
 
@@ -256,7 +262,7 @@ async def test_help_seeking_threshold_flag_is_01_not_main_threshold():
 @pytest.mark.asyncio
 async def test_fallback_on_timeout():
     """Timeout raises TimeoutException (orchestrator handles fallback)."""
-    provider = OpenAIModerationProvider(api_key="test-key", timeout=1)
+    provider = OpenAIModerationProvider(api_key="test-key", timeout=1)  # pragma: allowlist secret
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.side_effect = httpx.TimeoutException("timed out")
@@ -268,7 +274,7 @@ async def test_fallback_on_timeout():
 @pytest.mark.asyncio
 async def test_fallback_on_connection_error():
     """Connection error raises HTTPError (orchestrator handles fallback)."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.side_effect = httpx.ConnectError("connection refused")
@@ -280,7 +286,11 @@ async def test_fallback_on_connection_error():
 @pytest.mark.asyncio
 async def test_api_call_format():
     """Verify endpoint, model, and Authorization header are sent correctly."""
-    provider = OpenAIModerationProvider(api_key="sk-test-key", threshold=0.5, timeout=3)
+    provider = OpenAIModerationProvider(
+        api_key="sk-test-key",  # pragma: allowlist secret
+        threshold=0.5,
+        timeout=3,
+    )
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value = make_mock_response(all_clean())
@@ -304,7 +314,7 @@ async def test_api_call_format():
 @pytest.mark.asyncio
 async def test_uses_provided_api_key():
     """Confirm provided API key reaches the Authorization header."""
-    api_key = "sk-specific-test-key"
+    api_key = "sk-specific-test-key"  # pragma: allowlist secret
     provider = OpenAIModerationProvider(api_key=api_key)
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -318,7 +328,7 @@ async def test_uses_provided_api_key():
 @pytest.mark.asyncio
 async def test_categories_stored_as_int_scaled():
     """Category scores are scaled to 0-100 ints in the result."""
-    provider = OpenAIModerationProvider(api_key="test-key")
+    provider = OpenAIModerationProvider(api_key="test-key")  # pragma: allowlist secret
     scores = {**all_clean(), "violence": 0.95}
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
