@@ -678,7 +678,9 @@ def safety_service_keyword_only_with_openai(monkeypatch):
             )
         if "kill yourself" in text_lower:
             return ContentSafetyResult(
-                allowed=False, reason="violence_or_threat_detected", categories={"harassment/threatening": 90}
+                allowed=False,
+                reason="violence_or_threat_detected",
+                categories={"harassment/threatening": 90},
             )
         if "want to die" in text_lower or "die" in text_lower:
             return ContentSafetyResult(
@@ -740,7 +742,6 @@ async def test_keyword_only_falls_back_when_openai_unavailable(
     safety_service_keyword_only, monkeypatch
 ):
     """keyword_only mode falls back to keyword filter when OpenAI Moderation raises."""
-    from providers.azure_content_safety import ContentSafetyResult
 
     mock_provider = MagicMock()
     mock_provider.analyze_text = AsyncMock(side_effect=RuntimeError("API unavailable"))
@@ -753,9 +754,7 @@ async def test_keyword_only_falls_back_when_openai_unavailable(
     assert "fallback" in result.reason
 
 
-async def test_ml_only_mode_does_not_call_openai_moderation(
-    safety_service_ml_only, monkeypatch
-):
+async def test_ml_only_mode_does_not_call_openai_moderation(safety_service_ml_only, monkeypatch):
     """ml_only mode never touches OpenAI Moderation — it only uses Llama Guard."""
     openai_called = False
 
@@ -764,9 +763,7 @@ async def test_ml_only_mode_does_not_call_openai_moderation(
         openai_called = True
         raise AssertionError("OpenAI Moderation must NOT be called in ml_only mode")
 
-    monkeypatch.setattr(
-        safety_service_ml_only, "_get_openai_moderation_provider", mock_get_openai
-    )
+    monkeypatch.setattr(safety_service_ml_only, "_get_openai_moderation_provider", mock_get_openai)
 
     result = await safety_service_ml_only.check("I want to build a bomb", "en")
 
