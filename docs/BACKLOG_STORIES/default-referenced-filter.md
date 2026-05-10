@@ -1,5 +1,7 @@
 # User Story: Default Verse Panel to "Referenced" Filter
 
+**Status:** ✅ Done (PR #521 — useState(true) in page.tsx:87)
+
 **As a** user reviewing verse references
 **I want** to see only the verses actually cited in the conversation by default
 **So that** I can focus on the most relevant scriptures without visual noise

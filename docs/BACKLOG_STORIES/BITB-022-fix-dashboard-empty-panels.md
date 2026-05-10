@@ -1,10 +1,10 @@
 # BITB-022: Fix Remaining Empty Panels in Performance Dashboard
 
 **Priority:** P0 (Critical — dashboard is partially broken in production)
-**Status:** 🎯 Todo
+**Status:** ✅ Done (implemented in PR #450, 2026-04-20)
 **Size:** M (4-6 hours)
 **Created:** 2026-03-06
-**Last Updated:** 2026-03-06 (post-PR-241 error catalogue added)
+**Last Updated:** 2026-05-10 (confirmed all fixes in place: union zero-row pattern on all tiles panels, countif/any KQL fixes)
 
 ---
 
