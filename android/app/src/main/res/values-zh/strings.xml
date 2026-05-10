@@ -142,6 +142,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">支持</string>
     <string name="action_send_diagnostic_report">发送诊断报告</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">报告问题</string>
+    <string name="diagnostic_subtitle">帮助我们找出问题所在。您的回答和应用日志将作为附件添加到邮件中。</string>
+    <string name="diagnostic_doing_label">您当时在做什么?</string>
+    <string name="diagnostic_doing_placeholder">例如:我点击了一节经文,屏幕变成了空白</string>
+    <string name="diagnostic_expected_label">您期望发生什么?</string>
+    <string name="diagnostic_expected_placeholder">例如:经文应在底部面板中打开</string>
+    <string name="diagnostic_attachment_note">将附上调试日志(不包含个人数据)和基本设备信息。</string>
+    <string name="diagnostic_send_email_button">发送带日志的邮件</string>
+    <string name="diagnostic_save_locally_link">或将日志保存到此设备</string>
+    <string name="diagnostic_email_subject">Vox Quieta 错误报告</string>
+    <string name="diagnostic_no_email_app">此设备上未设置邮件应用。日志已改为保存。</string>
+    <string name="diagnostic_save_failed">无法保存诊断日志。</string>
+
     <string name="settings_about_title">关于</string>
     <string name="settings_version">版本</string>
     <string name="settings_privacy_policy">隐私政策</string>

@@ -142,6 +142,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Envoyer un rapport de diagnostic</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Signaler un bug</string>
+    <string name="diagnostic_subtitle">Aidez-nous à comprendre ce qui s\'est mal passé. Vos réponses et le journal de l\'application seront joints à un e-mail.</string>
+    <string name="diagnostic_doing_label">Que faisiez-vous ?</string>
+    <string name="diagnostic_doing_placeholder">ex. J\'ai appuyé sur un verset et l\'écran est devenu blanc</string>
+    <string name="diagnostic_expected_label">À quoi vous attendiez-vous ?</string>
+    <string name="diagnostic_expected_placeholder">ex. Le verset aurait dû s\'ouvrir dans un panneau</string>
+    <string name="diagnostic_attachment_note">Un journal de débogage (sans données personnelles) et des informations de base sur l\'appareil seront joints.</string>
+    <string name="diagnostic_send_email_button">Envoyer l\'e-mail avec le journal</string>
+    <string name="diagnostic_save_locally_link">Ou enregistrer le journal sur cet appareil</string>
+    <string name="diagnostic_email_subject">Rapport de bug Vox Quieta</string>
+    <string name="diagnostic_no_email_app">Aucune application e-mail n\'est configurée. Le journal a été enregistré.</string>
+    <string name="diagnostic_save_failed">Impossible d\'enregistrer le journal de diagnostic.</string>
+
     <string name="settings_about_title">À propos</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>

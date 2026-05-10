@@ -142,6 +142,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">지원</string>
     <string name="action_send_diagnostic_report">진단 보고서 보내기</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">버그 보고</string>
+    <string name="diagnostic_subtitle">무엇이 잘못되었는지 파악하는 데 도움을 주세요. 답변과 앱 로그가 이메일에 첨부됩니다.</string>
+    <string name="diagnostic_doing_label">무엇을 하고 계셨나요?</string>
+    <string name="diagnostic_doing_placeholder">예: 구절을 탭했더니 화면이 비어 버렸어요</string>
+    <string name="diagnostic_expected_label">무엇이 일어나길 기대하셨나요?</string>
+    <string name="diagnostic_expected_placeholder">예: 구절이 패널에서 열려야 했어요</string>
+    <string name="diagnostic_attachment_note">디버그 로그(개인 정보 없음)와 기본 기기 정보가 첨부됩니다.</string>
+    <string name="diagnostic_send_email_button">로그와 함께 이메일 보내기</string>
+    <string name="diagnostic_save_locally_link">또는 이 기기에 로그 저장</string>
+    <string name="diagnostic_email_subject">Vox Quieta 버그 보고</string>
+    <string name="diagnostic_no_email_app">이 기기에 설정된 이메일 앱이 없습니다. 로그가 대신 저장되었습니다.</string>
+    <string name="diagnostic_save_failed">진단 로그를 저장할 수 없습니다.</string>
+
     <string name="settings_about_title">정보</string>
     <string name="settings_version">버전</string>
     <string name="settings_privacy_policy">개인정보 처리방침</string>

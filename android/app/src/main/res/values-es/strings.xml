@@ -142,6 +142,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">Soporte</string>
     <string name="action_send_diagnostic_report">Enviar informe de diagnóstico</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Reportar un error</string>
+    <string name="diagnostic_subtitle">Ayúdanos a corregir lo que falló. Tus respuestas y el registro de la app se adjuntarán a un correo.</string>
+    <string name="diagnostic_doing_label">¿Qué estabas haciendo?</string>
+    <string name="diagnostic_doing_placeholder">p. ej. Toqué un versículo y la pantalla quedó en blanco</string>
+    <string name="diagnostic_expected_label">¿Qué esperabas que ocurriera?</string>
+    <string name="diagnostic_expected_placeholder">p. ej. El versículo debería haberse abierto en un panel</string>
+    <string name="diagnostic_attachment_note">Se adjuntará un registro de depuración (sin datos personales) e información básica del dispositivo.</string>
+    <string name="diagnostic_send_email_button">Enviar correo con el registro</string>
+    <string name="diagnostic_save_locally_link">O guardar el registro en este dispositivo</string>
+    <string name="diagnostic_email_subject">Informe de error de Vox Quieta</string>
+    <string name="diagnostic_no_email_app">No hay ninguna app de correo configurada. El registro se guardó.</string>
+    <string name="diagnostic_save_failed">No se pudo guardar el registro de diagnóstico.</string>
+
     <string name="settings_about_title">Acerca de</string>
     <string name="settings_version">Versión</string>
     <string name="settings_privacy_policy">Política de privacidad</string>
