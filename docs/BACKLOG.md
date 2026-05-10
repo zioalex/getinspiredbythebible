@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-05-10
+**Last Updated:** 2026-05-10 (added BITB-031)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -173,6 +173,40 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-031: Follow-up — Default Verse Panel to "Referenced" (Web fix + Android parity)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-05-10
+**Follow-up to:** PR #521 / `default-referenced-filter.md`
+
+**As a** user reviewing verse references on web or Android,
+**I want** the verse panel to default to "Referenced" verses on every fresh session,
+**so that** I see the verses the AI actually cited first and am not buried under semantically-similar verses.
+
+**Why P1:** PR #521 flipped `useState(false)` → `useState(true)` for
+`showOnlyReferenced` in `frontend/src/app/[locale]/page.tsx`, but the user
+reports the web panel still opens on "All Related" in production. In addition,
+the Android `VersesPanel` (`VersesPanel.kt:159`) still defaults
+`showReferenced` to `false`, so the platforms are inconsistent.
+
+**Acceptance Criteria:**
+
+- [ ] Web: fresh page load shows "Referenced" active with cited verses only;
+  root cause of the post-#521 regression identified and documented (stale
+  bundle / cache vs. citation-matching bug vs. empty `referencedVerses`)
+- [ ] Web: regression test asserts initial-render filter state and content
+- [ ] Android: `VersesPanel` defaults `showReferenced = true` and shows the
+  "Referenced" empty state when no verses are cited (no silent "All Related"
+  fallback)
+- [ ] Behavior verified on both desktop sidebar and mobile slide-over panel,
+  and across en / it / zh / ko locales
+- [ ] Existing frontend vitest and Android `testDebugUnitTest` suites pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-031-default-referenced-filter-followup.md`
+
+---
 
 ### ✅ BITB-021: Instrument LLM and Database Performance Metrics
 
