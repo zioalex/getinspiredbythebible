@@ -740,22 +740,22 @@ Testing & Documentation:
 
 ## P3 - Low Priority (Future)
 
-### 🚧 BITB-030: Add Language Picker to Android ChatScreen
+### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
 **Status:** 🚧 In Progress
-**Size:** XS (< 1 hour)
+**Size:** S (< 4 hours)
 **Created:** 2026-05-10
 
-**As an** Android user chatting on the chat screen,
-**I want** a language selection button in the chat top app bar,
-**so that** I can switch the UI language without first navigating back to the conversations screen.
+**As an** Android user on the Chat screen,
+**I want** the top-right of the screen to expose only the controls I reach for most often (language, Bible version, and the verses panel when present),
+**so that** the top bar stays uncluttered while less-frequent actions live in the left hamburger drawer.
 
 **Acceptance Criteria:**
 
-- [ ] `ChatScreen` `TopAppBar.actions` shows a `Icons.Default.Language` icon with `DropdownMenu` over `LANGUAGE_OPTIONS`
-- [ ] Selection calls `viewModel.setLocale(code)` and highlights the active locale
-- [ ] No new string resources, no changes to other screens / ViewModels / navigation
-- [ ] Existing top-bar actions unchanged
+- [ ] `ChatScreen` `TopAppBar.actions` shows only Bible-version chip, verses panel (conditional), and language picker — in that order
+- [ ] Drawer adds "Clear conversation" entry (visible only when messages exist); New chat / Settings preserved
+- [ ] `chatTopBarPolicy(...)` pure helper covers the visibility rules and is unit-tested
+- [ ] No new string resources, no ViewModel / navigation changes, no other screens touched
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-030-android-chat-language-picker.md`
 

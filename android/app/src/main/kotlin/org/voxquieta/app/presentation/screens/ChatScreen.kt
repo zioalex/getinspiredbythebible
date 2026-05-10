@@ -217,6 +217,10 @@ fun ChatScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val conversations by conversationsViewModel.conversations.collectAsState()
+    val topBarPolicy = chatTopBarPolicy(
+        versesCount = uiState.allVerses.size,
+        messagesCount = uiState.messages.size,
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -224,6 +228,7 @@ fun ChatScreen(
             ChatHistoryDrawer(
                 conversations = conversations,
                 currentConversationId = uiState.currentConversationId,
+                hasMessages = topBarPolicy.showClearConversationInDrawer,
                 onNewChat = {
                     scope.launch { drawerState.close() }
                     onNewConversation()
@@ -235,6 +240,10 @@ fun ChatScreen(
                 onOpenAllConversations = {
                     scope.launch { drawerState.close() }
                     onOpenAllConversations()
+                },
+                onClearConversation = {
+                    scope.launch { drawerState.close() }
+                    viewModel.clearConversation()
                 },
                 onOpenSettings = {
                     scope.launch { drawerState.close() }
@@ -277,7 +286,7 @@ fun ChatScreen(
                         modifier = Modifier.padding(end = 4.dp),
                     )
                     // Verses panel icon — shown when there are related verses.
-                    if (uiState.allVerses.isNotEmpty()) {
+                    if (topBarPolicy.showVersesPanelInTopBar) {
                         IconButton(onClick = { showVersesPanel = true }) {
                             BadgedBox(
                                 badge = {
@@ -290,20 +299,6 @@ fun ChatScreen(
                                 )
                             }
                         }
-                    }
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = viewModel::clearConversation) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.action_clear_conversation),
-                            )
-                        }
-                    }
-                    IconButton(onClick = onNewConversation) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.action_new_chat),
-                        )
                     }
                     // ── Language picker ────────────────────────────────────────
                     Box {
@@ -339,12 +334,6 @@ fun ChatScreen(
                                 )
                             }
                         }
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.action_open_settings),
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -537,9 +526,11 @@ fun ChatScreen(
 private fun ChatHistoryDrawer(
     conversations: List<org.voxquieta.app.domain.models.Conversation>,
     currentConversationId: String?,
+    hasMessages: Boolean,
     onNewChat: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onOpenAllConversations: () -> Unit,
+    onClearConversation: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet {
@@ -607,6 +598,20 @@ private fun ChatHistoryDrawer(
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        if (hasMessages) {
+            NavigationDrawerItem(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                    )
+                },
+                label = { Text(stringResource(R.string.action_clear_conversation)) },
+                selected = false,
+                onClick = onClearConversation,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
         NavigationDrawerItem(
             icon = {
                 Icon(
