@@ -148,6 +148,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">सहायता</string>
     <string name="action_send_diagnostic_report">निदान रिपोर्ट भेजें</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">बग रिपोर्ट करें</string>
+    <string name="diagnostic_subtitle">हमें यह समझने में मदद करें कि क्या गलत हुआ। आपके उत्तर और ऐप लॉग एक ईमेल में संलग्न किए जाएँगे।</string>
+    <string name="diagnostic_doing_label">आप क्या कर रहे थे?</string>
+    <string name="diagnostic_doing_placeholder">उदा. मैंने एक पद पर टैप किया और स्क्रीन खाली हो गई</string>
+    <string name="diagnostic_expected_label">आपने क्या होने की उम्मीद की थी?</string>
+    <string name="diagnostic_expected_placeholder">उदा. पद को एक पैनल में खुलना चाहिए था</string>
+    <string name="diagnostic_attachment_note">एक डिबग लॉग (कोई व्यक्तिगत डेटा नहीं) और बुनियादी डिवाइस जानकारी संलग्न की जाएगी।</string>
+    <string name="diagnostic_send_email_button">लॉग के साथ ईमेल भेजें</string>
+    <string name="diagnostic_save_locally_link">या इस डिवाइस पर लॉग सहेजें</string>
+    <string name="diagnostic_email_subject">Vox Quieta बग रिपोर्ट</string>
+    <string name="diagnostic_no_email_app">इस डिवाइस पर कोई ईमेल ऐप सेट नहीं है। लॉग सहेज लिया गया है।</string>
+    <string name="diagnostic_save_failed">डायग्नोस्टिक लॉग सहेजा नहीं जा सका।</string>
+
     <string name="settings_about_title">के बारे में</string>
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>

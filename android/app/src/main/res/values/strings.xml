@@ -144,6 +144,20 @@
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Send Diagnostic Report</string>
 
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Send a bug report</string>
+    <string name="diagnostic_subtitle">Help us fix what went wrong. Your answers and the app log will be attached to an email.</string>
+    <string name="diagnostic_doing_label">What were you doing?</string>
+    <string name="diagnostic_doing_placeholder">e.g. I tapped a verse chip and the screen went blank</string>
+    <string name="diagnostic_expected_label">What did you expect to happen?</string>
+    <string name="diagnostic_expected_placeholder">e.g. The verse text should have opened in a bottom sheet</string>
+    <string name="diagnostic_attachment_note">A debug log (no personal data) and basic device info will be attached.</string>
+    <string name="diagnostic_send_email_button">Send email with log</string>
+    <string name="diagnostic_save_locally_link">Or save the log to this device</string>
+    <string name="diagnostic_email_subject">Vox Quieta bug report</string>
+    <string name="diagnostic_no_email_app">No email app is set up on this device. The log was saved instead.</string>
+    <string name="diagnostic_save_failed">Could not save the diagnostic log.</string>
+
     <!-- Settings: About section -->
     <string name="settings_about_title">About</string>
     <string name="settings_version">Version</string>

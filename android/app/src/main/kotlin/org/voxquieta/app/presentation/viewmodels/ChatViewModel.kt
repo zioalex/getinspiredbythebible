@@ -147,6 +147,9 @@ class ChatViewModel @Inject constructor(
          * Must match the backend's RATE_LIMIT_SESSION_MAX_REQUESTS setting (default 10).
          */
         const val MAX_INTERACTIONS = 10
+
+        /** Destination address for diagnostic / bug-report emails. */
+        const val BUG_REPORT_EMAIL = "bugs@voxquieta.org"
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -851,24 +854,58 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Debug log export
+    // Diagnostic / bug report
     // ---------------------------------------------------------------------------
 
     /**
-     * Collects in-memory logs from [LogCollector], writes them to a cache file,
-     * and launches the system share sheet so the user can send the log file.
+     * Writes the in-memory log to a cache file, builds an email intent to
+     * [BUG_REPORT_EMAIL] with the user's bug-report answers and basic device
+     * info pre-filled in the body, and attaches the log file. Falls back to
+     * [saveDiagnosticLogLocally] if no email app can handle the intent.
      */
-    fun shareDebugLogs(context: Context) {
+    fun sendDiagnosticEmail(context: Context, whatWereYouDoing: String, whatDidYouExpect: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val log = LogCollector.getLog()
-                val file = File(context.cacheDir, "bible_inspiration_debug.log")
-                file.writeText(log)
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file,
-                )
+                val uri = writeLogToCache(context) ?: return@launch
+                val body = buildBugReportBody(whatWereYouDoing, whatDidYouExpect)
+                val subject = context.getString(R.string.diagnostic_email_subject)
+
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "message/rfc822"
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf(BUG_REPORT_EMAIL))
+                    putExtra(Intent.EXTRA_SUBJECT, subject)
+                    putExtra(Intent.EXTRA_TEXT, body)
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                val chooser = Intent.createChooser(intent, subject).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(chooser)
+                } else {
+                    // No email client installed — fall back to plain share so the
+                    // user still gets their log out of the app.
+                    Timber.w("No email app found; falling back to share sheet")
+                    saveDiagnosticLogLocally(context)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send diagnostic email")
+            }
+        }
+    }
+
+    /**
+     * Writes the diagnostic log to a cache file and opens the system share
+     * sheet so the user can save or send it via any app of their choice.
+     * This is the secondary "save locally" option in the bug-report flow.
+     */
+    fun saveDiagnosticLogLocally(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val uri = writeLogToCache(context) ?: return@launch
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -886,6 +923,47 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    private fun writeLogToCache(context: Context): android.net.Uri? {
+        return try {
+            val log = LogCollector.getLog()
+            val file = File(context.cacheDir, "bible_inspiration_debug.log")
+            file.writeText(log)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write debug log to cache")
+            null
+        }
+    }
+
+    private fun buildBugReportBody(whatWereYouDoing: String, whatDidYouExpect: String): String {
+        val doing = whatWereYouDoing.trim().ifEmpty { "(not provided)" }
+        val expected = whatDidYouExpect.trim().ifEmpty { "(not provided)" }
+        val versionName = try {
+            org.voxquieta.app.BuildConfig.VERSION_NAME
+        } catch (_: Throwable) {
+            "unknown"
+        }
+        return buildString {
+            appendLine("What were you doing?")
+            appendLine(doing)
+            appendLine()
+            appendLine("What did you expect to happen?")
+            appendLine(expected)
+            appendLine()
+            appendLine("---")
+            appendLine("App version: $versionName")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine()
+            appendLine("(The diagnostic log is attached as bible_inspiration_debug.log.)")
+        }
+    }
+
 
     // ---------------------------------------------------------------------------
     // Private helpers
