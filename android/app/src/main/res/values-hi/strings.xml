@@ -176,7 +176,7 @@
     <string name="church_finder_find_church">चर्च खोजें</string>
     <string name="church_finder_dismiss">बंद करें</string>
     <string name="church_finder_modal_title">चर्च खोजें</string>
-    <string name="church_finder_modal_subtitle">अपने पास के विश्वास समुदाय से जुड़ें</string>
+    <string name="action_close_church_finder">चर्च खोजक बंद करें</string>
     <string name="church_finder_search_placeholder">शहर का अंग्रेजी नाम (जैसे Delhi, Mumbai)</string>
     <string name="church_finder_search_button">खोजें</string>
     <string name="church_finder_location_hint">शहरों के अंग्रेजी नामों का उपयोग करें</string>

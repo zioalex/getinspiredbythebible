@@ -176,7 +176,7 @@
     <string name="church_finder_find_church">ابحث عن كنيسة</string>
     <string name="church_finder_dismiss">تجاهل</string>
     <string name="church_finder_modal_title">ابحث عن كنيسة</string>
-    <string name="church_finder_modal_subtitle">تواصل مع مجتمع إيماني بالقرب منك</string>
+    <string name="action_close_church_finder">إغلاق محدد الكنائس</string>
     <string name="church_finder_search_placeholder">مدينة بالإنجليزية (مثل: Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">بحث</string>
     <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>

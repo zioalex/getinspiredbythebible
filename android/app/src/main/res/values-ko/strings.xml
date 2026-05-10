@@ -176,7 +176,7 @@
     <string name="church_finder_find_church">교회 찾기</string>
     <string name="church_finder_dismiss">닫기</string>
     <string name="church_finder_modal_title">교회 찾기</string>
-    <string name="church_finder_modal_subtitle">가까운 신앙 공동체와 연결되세요</string>
+    <string name="action_close_church_finder">교회 찾기 닫기</string>
     <string name="church_finder_search_placeholder">영문 도시명 (예: Seoul, Busan)</string>
     <string name="church_finder_search_button">검색</string>
     <string name="church_finder_location_hint">영문 도시명을 사용하세요</string>

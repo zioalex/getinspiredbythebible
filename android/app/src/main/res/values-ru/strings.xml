@@ -176,7 +176,7 @@
     <string name="church_finder_find_church">Найти церковь</string>
     <string name="church_finder_dismiss">Закрыть</string>
     <string name="church_finder_modal_title">Найти церковь</string>
-    <string name="church_finder_modal_subtitle">Присоединитесь к общине веры рядом с вами</string>
+    <string name="action_close_church_finder">Закрыть поиск церквей</string>
     <string name="church_finder_search_placeholder">Город на английском (напр. Moscow, Rome, Paris)</string>
     <string name="church_finder_search_button">Искать</string>
     <string name="church_finder_location_hint">Используйте названия городов на английском</string>

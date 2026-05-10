@@ -176,7 +176,7 @@
     <string name="church_finder_find_church">Trova una chiesa</string>
     <string name="church_finder_dismiss">Ignora</string>
     <string name="church_finder_modal_title">Trova una chiesa</string>
-    <string name="church_finder_modal_subtitle">Connettiti con una comunità di fede vicino a te</string>
+    <string name="action_close_church_finder">Chiudi cerca chiesa</string>
     <string name="church_finder_search_placeholder">Città in inglese (es. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Cerca</string>
     <string name="church_finder_location_hint">Usa i nomi delle città in inglese</string>
