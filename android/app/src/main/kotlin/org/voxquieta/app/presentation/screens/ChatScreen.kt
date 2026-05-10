@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
@@ -29,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -130,6 +133,9 @@ fun ChatScreen(
 
     // Whether the translation picker bottom sheet should be open.
     var showTranslationPicker by rememberSaveable { mutableStateOf(false) }
+
+    // Whether the language picker dropdown menu should be open.
+    var showLanguageMenu by remember { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -298,6 +304,41 @@ fun ChatScreen(
                             imageVector = Icons.Default.Add,
                             contentDescription = stringResource(R.string.action_new_chat),
                         )
+                    }
+                    // ── Language picker ────────────────────────────────────────
+                    Box {
+                        IconButton(onClick = { showLanguageMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = stringResource(R.string.action_select_language),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
+                        ) {
+                            LANGUAGE_OPTIONS.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = option.displayName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (option.code == uiState.currentLocale) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.setLocale(option.code)
+                                        showLanguageMenu = false
+                                    },
+                                )
+                            }
+                        }
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(

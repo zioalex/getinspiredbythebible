@@ -740,6 +740,27 @@ Testing & Documentation:
 
 ## P3 - Low Priority (Future)
 
+### 🚧 BITB-030: Add Language Picker to Android ChatScreen
+
+**Status:** 🚧 In Progress
+**Size:** XS (< 1 hour)
+**Created:** 2026-05-10
+
+**As an** Android user chatting on the chat screen,
+**I want** a language selection button in the chat top app bar,
+**so that** I can switch the UI language without first navigating back to the conversations screen.
+
+**Acceptance Criteria:**
+
+- [ ] `ChatScreen` `TopAppBar.actions` shows a `Icons.Default.Language` icon with `DropdownMenu` over `LANGUAGE_OPTIONS`
+- [ ] Selection calls `viewModel.setLocale(code)` and highlights the active locale
+- [ ] No new string resources, no changes to other screens / ViewModels / navigation
+- [ ] Existing top-bar actions unchanged
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-030-android-chat-language-picker.md`
+
+---
+
 ### 🎯 BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
 
 **Status:** 🎯 Todo
