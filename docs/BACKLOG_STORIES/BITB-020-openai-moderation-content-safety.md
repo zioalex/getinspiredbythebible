@@ -1,9 +1,16 @@
 # BITB-020: Replace Keyword Filter with OpenAI Free Moderation API
 
 **Priority:** P0 (Critical — unblocks content safety enablement)
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #512 merged 2026-05-10)
 **Size:** M (4-6 hours)
 **Created:** 2026-03-04
+
+**⚠️ Post-merge action required:** Set the following env vars in Azure Container App to activate content safety in production:
+```
+OPENAI_API_KEY=sk-...
+CONTENT_SAFETY_ENABLED=true
+CONTENT_SAFETY_MODE=keyword_only
+```
 
 ---
 
