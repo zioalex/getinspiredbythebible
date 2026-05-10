@@ -81,9 +81,10 @@ as a repository secret:
 1. Go to **GitHub → Settings → Developer settings → Personal access tokens →
    Fine-grained tokens**.
 2. Create a token scoped to `zioalex/getinspiredbythebible` with:
-   - **Contents:** Read and write (to push tags and update the manifest)
-   - **Pull requests:** Read and write (to open/update the Release PR)
-   - **Workflows:** Read and write (so the tag push can trigger workflow runs)
+    - **Contents:** Read and write (to push tags and update the manifest)
+    - **Pull requests:** Read and write (to open/update the Release PR)
+    - **Issues:** Read and write (used when release-please applies PR labels)
+    - **Workflows:** Read and write (so the tag push can trigger workflow runs)
 3. Copy the token value.
 
 ### Adding the secret
@@ -97,6 +98,10 @@ Once the secret is in place, every merge of a Release PR will:
 
 - Push a `vX.Y.Z` tag using the PAT
 - Trigger `android-publish.yml` → upload to the **internal** Play Store track
+
+> Note: `.github/workflows/release-please.yml` currently sets
+> `skip-labeling: true` to avoid intermittent GitHub API denials on
+> `issues/labels` endpoints, even when PAT permissions look correct.
 
 ---
 
