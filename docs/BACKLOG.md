@@ -562,6 +562,28 @@ Testing & Documentation:
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-029: Surface Bible Version Information More Clearly
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-05-10
+
+**As a** user reading AI answers with verse references,
+**I want** the active Bible version to be visible and easy to open,
+**so that** I can quickly confirm which translation is being used.
+
+**Acceptance Criteria:**
+
+- [ ] Active Bible version is shown prominently in the chat experience (web and Android) near verse responses
+- [ ] Tapping/clicking the version indicator opens or navigates to the existing Bible version information surface
+- [ ] If a user asks "which Bible version are you using?" (or equivalent), the assistant points them to the Bible version information location
+- [ ] The "point back to version info" behavior is applied consistently across supported locales
+- [ ] No change to scripture retrieval logic; this story focuses on visibility and response guidance only
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-029-surface-bible-version-information.md`
+
+---
+
 ### 🎯 BITB-026: Android Settings UX Improvements
 
 **Status:** 🎯 Todo
