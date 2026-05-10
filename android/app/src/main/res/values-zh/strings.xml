@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">设置</string>
     <string name="action_open_settings">设置</string>
+    <string name="action_back">返回</string>
+    <string name="action_open_chat_history">打开聊天历史</string>
+    <string name="action_new_chat">新聊天</string>
+    <string name="drawer_chat_history_title">聊天历史</string>
+    <string name="drawer_no_conversations">暂无对话</string>
+    <string name="drawer_see_all_conversations">查看所有对话</string>
     <string name="settings_theme_title">主题</string>
     <string name="settings_theme_light">浅色</string>
     <string name="settings_theme_dark">深色</string>
@@ -170,7 +176,7 @@
     <string name="church_finder_find_church">寻找教会</string>
     <string name="church_finder_dismiss">关闭</string>
     <string name="church_finder_modal_title">寻找教会</string>
-    <string name="church_finder_modal_subtitle">与您附近的信仰团体建立联系</string>
+    <string name="action_close_church_finder">关闭教堂查找器</string>
     <string name="church_finder_search_placeholder">城市（英文名，如 Beijing, Shanghai）</string>
     <string name="church_finder_search_button">搜索</string>
     <string name="church_finder_location_hint">请使用城市的英文名称</string>

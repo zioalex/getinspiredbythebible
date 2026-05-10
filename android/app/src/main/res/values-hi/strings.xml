@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">सेटिंग्स</string>
     <string name="action_open_settings">सेटिंग्स</string>
+    <string name="action_back">वापस</string>
+    <string name="action_open_chat_history">चैट इतिहास खोलें</string>
+    <string name="action_new_chat">नई चैट</string>
+    <string name="drawer_chat_history_title">चैट इतिहास</string>
+    <string name="drawer_no_conversations">अभी तक कोई बातचीत नहीं</string>
+    <string name="drawer_see_all_conversations">सभी बातचीत देखें</string>
     <string name="settings_theme_title">थीम</string>
     <string name="settings_theme_light">हल्का</string>
     <string name="settings_theme_dark">गहरा</string>
@@ -170,7 +176,7 @@
     <string name="church_finder_find_church">चर्च खोजें</string>
     <string name="church_finder_dismiss">बंद करें</string>
     <string name="church_finder_modal_title">चर्च खोजें</string>
-    <string name="church_finder_modal_subtitle">अपने पास के विश्वास समुदाय से जुड़ें</string>
+    <string name="action_close_church_finder">चर्च खोजक बंद करें</string>
     <string name="church_finder_search_placeholder">शहर का अंग्रेजी नाम (जैसे Delhi, Mumbai)</string>
     <string name="church_finder_search_button">खोजें</string>
     <string name="church_finder_location_hint">शहरों के अंग्रेजी नामों का उपयोग करें</string>

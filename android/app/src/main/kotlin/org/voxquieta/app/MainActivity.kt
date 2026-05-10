@@ -10,6 +10,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -112,8 +113,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Single start destination: the splash route resolves the last
+                // conversation (or creates a new one) and replaces itself with
+                // chat/{id} so Back from chat exits the app instead of returning
+                // here.
                 val startDestination = remember {
-                    if (context.hasSplashBeenSeen()) "conversations" else "splash"
+                    if (context.hasSplashBeenSeen()) "resume" else "splash"
                 }
 
                 Box {
@@ -125,17 +130,38 @@ class MainActivity : ComponentActivity() {
                             SplashScreen(
                                 onComplete = {
                                     context.markSplashSeen()
-                                    navController.navigate("conversations") {
+                                    navController.navigate("resume") {
                                         popUpTo("splash") { inclusive = true }
                                     }
                                 },
                             )
                         }
+                        composable("resume") {
+                            // Tiny resolver: looks up the last conversation id
+                            // and replaces itself with the appropriate chat route.
+                            val resumeViewModel: ChatViewModel = hiltViewModel()
+                            LaunchedEffect(Unit) {
+                                val id = resumeViewModel.resolveResumeConversationId()
+                                val target = if (id != null) "chat/$id" else "chat/new"
+                                navController.navigate(target) {
+                                    popUpTo("resume") { inclusive = true }
+                                }
+                            }
+                        }
                         composable("conversations") {
                             ConversationsScreen(
-                                onNewConversation = { navController.navigate("chat/new") },
-                                onSelectConversation = { id -> navController.navigate("chat/$id") },
+                                onNewConversation = {
+                                    navController.navigate("chat/new") {
+                                        popUpTo("conversations") { inclusive = true }
+                                    }
+                                },
+                                onSelectConversation = { id ->
+                                    navController.navigate("chat/$id") {
+                                        popUpTo("conversations") { inclusive = true }
+                                    }
+                                },
                                 onOpenSettings = { navController.navigate("settings") },
+                                onNavigateBack = { navController.popBackStack() },
                             )
                         }
                         composable("chat/{conversationId}") { backStackEntry ->
@@ -143,6 +169,19 @@ class MainActivity : ComponentActivity() {
                             ChatScreen(
                                 conversationId = conversationId,
                                 onOpenSettings = { navController.navigate("settings") },
+                                onOpenAllConversations = { navController.navigate("conversations") },
+                                onSelectConversation = { id ->
+                                    navController.navigate("chat/$id") {
+                                        // Replace current chat in the back stack so Back exits
+                                        // the app rather than walking through every prior chat.
+                                        popUpTo("chat/{conversationId}") { inclusive = true }
+                                    }
+                                },
+                                onNewConversation = {
+                                    navController.navigate("chat/new") {
+                                        popUpTo("chat/{conversationId}") { inclusive = true }
+                                    }
+                                },
                             )
                         }
                         composable("settings") {

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
@@ -134,6 +135,7 @@ class ChatViewModel @Inject constructor(
     private val themePreferences: ThemePreferences,
     private val translationPreferences: TranslationPreferences,
     private val sessionPreferences: SessionPreferences,
+    private val lastConversationPreferences: LastConversationPreferences,
     private val bibleApiService: BibleApiService,
     private val networkMonitor: NetworkMonitor,
     private val localeApplier: LocaleApplier,
@@ -547,12 +549,14 @@ class ChatViewModel @Inject constructor(
         val newId = UUID.randomUUID().toString()
         val conversation = repository.createConversation(id = newId, title = firstMessageText)
         _uiState.update { it.copy(currentConversationId = conversation.id) }
+        lastConversationPreferences.setLastConversationId(conversation.id)
         return conversation.id
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
         viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
                 // Re-derive allVerses from loaded messages (deduplicated).
                 val allVerses = messages
@@ -562,6 +566,23 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
+    }
+
+    /**
+     * Resolve the conversation to land on at app launch.
+     *
+     * Returns the id of the last conversation the user opened if it still exists,
+     * or `null` if there is no prior conversation. The caller decides whether to
+     * navigate to `chat/<id>` or `chat/new`.
+     */
+    suspend fun resolveResumeConversationId(): String? {
+        val candidate = lastConversationPreferences.getLastConversationId() ?: return null
+        val exists = repository.observeConversations().first().any { it.id == candidate }
+        if (!exists) {
+            lastConversationPreferences.setLastConversationId(null)
+            return null
+        }
+        return candidate
     }
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
@@ -697,6 +718,7 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
+                lastConversationPreferences.setLastConversationId(null)
                 repository.deleteConversation(conversationId)
             }
         }

@@ -3,6 +3,7 @@ package org.voxquieta.app.viewmodels
 import android.content.Context
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
@@ -71,6 +72,7 @@ class ChatViewModelTest {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var translationPreferences: TranslationPreferences
     private lateinit var sessionPreferences: SessionPreferences
+    private lateinit var lastConversationPreferences: LastConversationPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var networkMonitor: NetworkMonitor
     private val localeApplier: LocaleApplier = object : LocaleApplier {
@@ -116,6 +118,8 @@ class ChatViewModelTest {
         every { translationPreferences.preferredTranslationFlow } returns flowOf("")
         sessionPreferences = mockk(relaxed = true)
         coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
+        lastConversationPreferences = mockk(relaxed = true)
+        coEvery { lastConversationPreferences.getLastConversationId() } returns null
         bibleApiService = mockk(relaxed = true)
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
         viewModel = ChatViewModel(
@@ -128,6 +132,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -463,6 +468,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -488,6 +494,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -519,6 +526,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -554,6 +562,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -594,6 +603,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -624,6 +634,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
@@ -1428,6 +1439,7 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
             localeApplier,
