@@ -6,6 +6,7 @@
 **Created:** 2026-03-04
 
 **⚠️ Post-merge action required:** Set the following env vars in Azure Container App to activate content safety in production:
+
 ```
 OPENAI_API_KEY=sk-...
 CONTENT_SAFETY_ENABLED=true
