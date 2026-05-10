@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -533,6 +533,33 @@ Testing & Documentation:
 
 ---
 
+### 🎯 BITB-027: Android Chat-First Navigation with History Drawer
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-05-10
+
+**As an** Android user,
+**I want** the app to open directly into the chat experience (resuming my last conversation),
+**so that** I can start interacting immediately with my chat history one tap away behind a drawer.
+
+**Why P1:** Every launch forces users through a list screen before they can interact — this is the primary funnel and directly affects retention.
+
+**Acceptance Criteria:**
+
+- [ ] After `splash`, app navigates directly to `ChatScreen` with the last-used conversation pre-loaded
+- [ ] If no prior conversation exists, a fresh one is created and example prompts are visible
+- [ ] Hamburger icon on **top-left** opens a `ModalNavigationDrawer` listing past conversations + "+ New chat" + Settings link
+- [ ] **"+ New chat"** icon on **top-right** creates a new conversation (replaces back-stack entry)
+- [ ] System Back from resumed chat exits the app (no intermediate conversations list)
+- [ ] Swipe-from-left edge opens the drawer
+- [ ] Last opened conversation id persists in DataStore across app restarts
+- [ ] No regression in deep-links to `chat/{conversationId}`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-027-android-chat-first-navigation.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 ### 🎯 BITB-026: Android Settings UX Improvements
@@ -690,6 +717,28 @@ Testing & Documentation:
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-028: Simplify Church Finder Bottom Sheet Header
+
+**Status:** 🎯 Todo
+**Size:** XS (< 1 hour)
+**Created:** 2026-05-10
+
+**As an** Android user opening the Church Finder panel,
+**I want** a clean header with an obvious close button,
+**so that** I'm not distracted by unclear secondary text and can dismiss the panel with a single tap.
+
+**Acceptance Criteria:**
+
+- [ ] Right-side subtitle text removed from the Church Finder bottom sheet header
+- [ ] Close (X) `IconButton` added on the right of the header, dismissing the sheet on tap
+- [ ] Close button has a `contentDescription` for accessibility
+- [ ] Swipe-to-dismiss still works (no regression)
+- [ ] No changes to search behaviour or `ChurchResultCard` content
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-028-church-finder-bottom-sheet-cleanup.md`
+
+---
 
 ### 🎯 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 
