@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
@@ -29,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -131,6 +134,9 @@ fun ChatScreen(
     // Whether the translation picker bottom sheet should be open.
     var showTranslationPicker by rememberSaveable { mutableStateOf(false) }
 
+    // Whether the language picker dropdown menu should be open.
+    var showLanguageMenu by remember { mutableStateOf(false) }
+
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
         when {
@@ -211,6 +217,10 @@ fun ChatScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val conversations by conversationsViewModel.conversations.collectAsState()
+    val topBarPolicy = chatTopBarPolicy(
+        versesCount = uiState.allVerses.size,
+        messagesCount = uiState.messages.size,
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -218,6 +228,7 @@ fun ChatScreen(
             ChatHistoryDrawer(
                 conversations = conversations,
                 currentConversationId = uiState.currentConversationId,
+                hasMessages = topBarPolicy.showClearConversationInDrawer,
                 onNewChat = {
                     scope.launch { drawerState.close() }
                     onNewConversation()
@@ -229,6 +240,10 @@ fun ChatScreen(
                 onOpenAllConversations = {
                     scope.launch { drawerState.close() }
                     onOpenAllConversations()
+                },
+                onClearConversation = {
+                    scope.launch { drawerState.close() }
+                    viewModel.clearConversation()
                 },
                 onOpenSettings = {
                     scope.launch { drawerState.close() }
@@ -271,7 +286,7 @@ fun ChatScreen(
                         modifier = Modifier.padding(end = 4.dp),
                     )
                     // Verses panel icon — shown when there are related verses.
-                    if (uiState.allVerses.isNotEmpty()) {
+                    if (topBarPolicy.showVersesPanelInTopBar) {
                         IconButton(onClick = { showVersesPanel = true }) {
                             BadgedBox(
                                 badge = {
@@ -285,25 +300,40 @@ fun ChatScreen(
                             }
                         }
                     }
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = viewModel::clearConversation) {
+                    // ── Language picker ────────────────────────────────────────
+                    Box {
+                        IconButton(onClick = { showLanguageMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.action_clear_conversation),
+                                imageVector = Icons.Default.Language,
+                                contentDescription = stringResource(R.string.action_select_language),
                             )
                         }
-                    }
-                    IconButton(onClick = onNewConversation) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.action_new_chat),
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.action_open_settings),
-                        )
+                        DropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
+                        ) {
+                            LANGUAGE_OPTIONS.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = option.displayName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (option.code == uiState.currentLocale) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.setLocale(option.code)
+                                        showLanguageMenu = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -496,9 +526,11 @@ fun ChatScreen(
 private fun ChatHistoryDrawer(
     conversations: List<org.voxquieta.app.domain.models.Conversation>,
     currentConversationId: String?,
+    hasMessages: Boolean,
     onNewChat: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onOpenAllConversations: () -> Unit,
+    onClearConversation: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet {
@@ -566,6 +598,20 @@ private fun ChatHistoryDrawer(
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        if (hasMessages) {
+            NavigationDrawerItem(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                    )
+                },
+                label = { Text(stringResource(R.string.action_clear_conversation)) },
+                selected = false,
+                onClick = onClearConversation,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
         NavigationDrawerItem(
             icon = {
                 Icon(
