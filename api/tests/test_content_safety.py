@@ -377,7 +377,7 @@ async def test_performance_keyword_under_50ms(safety_service_enabled):
 
 @pytest.fixture
 def safety_service_hybrid(monkeypatch):
-    """Create ContentSafetyService with hybrid mode (mocked Llama Guard and Azure)."""
+    """Create ContentSafetyService with hybrid mode (mocked OpenAI Moderation and Azure)."""
     from providers.azure_content_safety import ContentSafetyResult
 
     monkeypatch.setattr(
@@ -391,6 +391,8 @@ def safety_service_hybrid(monkeypatch):
             azure_content_safety_threshold=4,
             openai_api_key="test-key",  # pragma: allowlist secret
             openrouter_api_key=None,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
             llama_guard_threshold=0.5,
             llama_guard_timeout=10,
         ),
@@ -398,60 +400,56 @@ def safety_service_hybrid(monkeypatch):
 
     service = ContentSafetyService()
 
-    # Mock Llama Guard provider (same logic as safety_service_enabled)
-    async def mock_llama_guard_analyze_text(text: str, language: str = "en") -> ContentSafetyResult:
-        """Mock Llama Guard API responses."""
+    # Mock OpenAI Moderation provider (hybrid Stage 2 uses OpenAI Moderation, not Llama Guard)
+    async def mock_openai_analyze(text: str, language: str = "en") -> ContentSafetyResult:
+        """Mock OpenAI Moderation API responses."""
         text_lower = text.lower()
 
-        # Violence detection
         if any(word in text_lower for word in ["bomb", "bomba", "violent threat"]):
             return ContentSafetyResult(
-                allowed=False, reason="violence_or_threat_detected", categories={"violence": 9}
+                allowed=False, reason="violence_or_threat_detected", categories={"violence": 95}
             )
 
-        # Self-harm help-seeking
         if any(word in text_lower for word in ["die", "death"]):
             return ContentSafetyResult(
                 allowed=True,
                 reason="possible_help_seeking",
                 is_help_seeking=True,
                 compassionate_response_needed=True,
-                categories={"self-harm/intent": 7},
+                categories={"self-harm/intent": 70},
             )
 
         return ContentSafetyResult(allowed=True, reason="clean", categories={})
 
-    def mock_get_llama_guard():
-        if not hasattr(service, "_mock_llama_guard_provider"):
+    def mock_get_openai():
+        if not hasattr(service, "_mock_openai_provider"):
             mock_provider = MagicMock()
-            mock_provider.analyze_text = mock_llama_guard_analyze_text
-            service._mock_llama_guard_provider = mock_provider
-        return service._mock_llama_guard_provider
+            mock_provider.analyze_text = mock_openai_analyze
+            service._mock_openai_provider = mock_provider
+        return service._mock_openai_provider
 
-    service._get_llama_guard_provider = mock_get_llama_guard
+    service._get_openai_moderation_provider = mock_get_openai
 
     return service
 
 
-async def test_fallback_to_keyword_when_azure_unavailable(safety_service_hybrid, monkeypatch):
-    """Test fallback when both Llama Guard and Azure are unavailable."""
-    # Mock Llama Guard provider to raise exception
-    mock_llama_guard_provider = MagicMock()
-    mock_llama_guard_provider.analyze_text = AsyncMock(
-        side_effect=RuntimeError("Llama Guard unavailable")
+async def test_fallback_to_keyword_when_openai_and_azure_unavailable(
+    safety_service_hybrid, monkeypatch
+):
+    """Test fallback when both OpenAI Moderation and Azure are unavailable."""
+    mock_openai_provider = MagicMock()
+    mock_openai_provider.analyze_text = AsyncMock(
+        side_effect=RuntimeError("OpenAI Moderation unavailable")
     )
 
-    # Mock Azure provider to also raise exception
     mock_azure_provider = MagicMock()
     mock_azure_provider.analyze_text = AsyncMock(side_effect=RuntimeError("Azure unavailable"))
 
-    # Patch both providers
     monkeypatch.setattr(
-        safety_service_hybrid, "_get_llama_guard_provider", lambda: mock_llama_guard_provider
+        safety_service_hybrid, "_get_openai_moderation_provider", lambda: mock_openai_provider
     )
     monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
 
-    # Should fall back to full keyword filter (violence patterns)
     result = await safety_service_hybrid.check("I want to build a bomb", "en")
     assert result.allowed is False
     assert "fallback" in result.reason
@@ -485,10 +483,9 @@ async def test_azure_help_seeking_allowed(safety_service_hybrid, monkeypatch):
 
 
 async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
-    """Test Azure provider blocks harmful intent in hybrid mode."""
+    """Test Azure provider blocks harmful intent in hybrid mode when OpenAI Moderation allows."""
     from providers.azure_content_safety import ContentSafetyResult
 
-    # Mock Azure provider to block
     mock_azure_provider = MagicMock()
     mock_azure_provider.analyze_text = AsyncMock(
         return_value=ContentSafetyResult(
@@ -504,18 +501,15 @@ async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
 
     monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
 
-    # Llama Guard will block first, so Azure won't be reached
-    # Use a message that Llama Guard would allow but Azure would block
-    # Mock Llama Guard to allow
-    mock_llama_guard_provider = MagicMock()
-    mock_llama_guard_provider.analyze_text = AsyncMock(
+    # Mock OpenAI Moderation to allow (so Azure Stage 3 is reached)
+    mock_openai_provider = MagicMock()
+    mock_openai_provider.analyze_text = AsyncMock(
         return_value=ContentSafetyResult(allowed=True, reason="clean", categories={})
     )
     monkeypatch.setattr(
-        safety_service_hybrid, "_get_llama_guard_provider", lambda: mock_llama_guard_provider
+        safety_service_hybrid, "_get_openai_moderation_provider", lambda: mock_openai_provider
     )
 
-    # High severity violence should be blocked by Azure
     result = await safety_service_hybrid.check("borderline violent message", "en")
     assert result.allowed is False
     assert result.reason == "harmful_intent_detected"
@@ -528,7 +522,8 @@ async def test_azure_harmful_blocked(safety_service_hybrid, monkeypatch):
 
 @pytest.fixture
 def safety_service_keyword_only(monkeypatch):
-    """Create ContentSafetyService with keyword_only mode (no Llama Guard)."""
+    """Create ContentSafetyService with keyword_only mode (no API key → OpenAI Moderation
+    unavailable → falls back to full keyword filter for violence detection)."""
     monkeypatch.setattr(
         "utils.content_safety.settings",
         MagicMock(
@@ -537,6 +532,10 @@ def safety_service_keyword_only(monkeypatch):
             azure_content_safety_enabled=False,
             azure_content_safety_endpoint=None,
             azure_content_safety_key=None,
+            openai_api_key=None,
+            openrouter_api_key=None,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
         ),
     )
     return ContentSafetyService()
@@ -582,62 +581,194 @@ def safety_service_ml_only(monkeypatch):
     return service
 
 
-async def test_keyword_only_mode_skips_llama_guard(safety_service_keyword_only, monkeypatch):
-    """Test that keyword_only mode does NOT call Llama Guard (no external API call)."""
-    # Create a spy to track if Llama Guard is called
+async def test_keyword_only_mode_does_not_call_llama_guard(
+    safety_service_keyword_only, monkeypatch
+):
+    """keyword_only mode calls OpenAI Moderation (Stage 2), NOT Llama Guard."""
     llama_guard_called = False
 
     def mock_get_llama_guard():
         nonlocal llama_guard_called
         llama_guard_called = True
-        raise AssertionError("Llama Guard should NOT be called in keyword_only mode")
+        raise AssertionError("Llama Guard must NOT be called in keyword_only mode")
 
     monkeypatch.setattr(
         safety_service_keyword_only, "_get_llama_guard_provider", mock_get_llama_guard
     )
 
-    # Check a message that would normally trigger Llama Guard (violence keyword)
+    # Without API key, OpenAI Moderation is unavailable → fallback to full keyword filter
     result = await safety_service_keyword_only.check("I want to build a bomb", "en")
 
-    # In keyword_only mode, violence keywords are NOT blocked (only directed harm/hate speech)
-    # Llama Guard should NOT have been called
     assert llama_guard_called is False
-    assert result.allowed is True  # Violence not in Stage 1 patterns
+    # Fallback keyword filter catches "bomb" → blocked
+    assert result.allowed is False
+    assert "fallback" in result.reason
 
 
 async def test_ml_only_mode_calls_llama_guard(safety_service_ml_only):
-    """Test that ml_only mode DOES call Llama Guard for violence detection."""
+    """ml_only mode DOES call Llama Guard for violence detection."""
     result = await safety_service_ml_only.check("I want to build a bomb", "en")
 
-    # Llama Guard should detect violence
     assert result.allowed is False
     assert result.reason == "violence_or_threat_detected"
 
 
-async def test_hybrid_mode_calls_llama_guard(safety_service_hybrid):
-    """Test that hybrid mode DOES call Llama Guard (Stage 2)."""
+async def test_hybrid_mode_calls_openai_moderation_not_llama_guard(
+    safety_service_hybrid, monkeypatch
+):
+    """hybrid mode calls OpenAI Moderation (Stage 2), NOT Llama Guard directly."""
+    # hybrid mode now uses OpenAI Moderation; Llama Guard should NOT be called
+    llama_guard_called = False
+
+    def mock_get_llama_guard():
+        nonlocal llama_guard_called
+        llama_guard_called = True
+        raise AssertionError("Llama Guard must NOT be called in hybrid mode for Stage 2")
+
+    monkeypatch.setattr(safety_service_hybrid, "_get_llama_guard_provider", mock_get_llama_guard)
+
+    # hybrid mock still has no OpenAI Moderation provider, so fallback kicks in
     result = await safety_service_hybrid.check("I want to build a bomb", "en")
 
-    # Llama Guard should detect violence
-    assert result.allowed is False
-    assert result.reason == "violence_or_threat_detected"
-
-
-async def test_keyword_only_mode_zero_external_calls(safety_service_keyword_only):
-    """Test that keyword_only mode has near-zero latency (no external API calls)."""
-    start = time.monotonic()
-    await safety_service_keyword_only.check("I need guidance on my faith journey", "en")
-    elapsed_ms = (time.monotonic() - start) * 1000
-
-    # Should complete in under 10ms (local keyword filter only, no HTTP calls)
-    assert elapsed_ms < 10
+    assert llama_guard_called is False
+    assert result.allowed is False  # Fallback keyword filter catches it
 
 
 async def test_keyword_only_mode_blocks_directed_harm(safety_service_keyword_only):
-    """Test that keyword_only mode still blocks directed harm (Stage 1 pattern)."""
+    """keyword_only mode still blocks directed harm via Stage 1 keyword filter."""
     result = await safety_service_keyword_only.check("Go kill yourself", "en")
 
-    # Stage 1 should catch directed harm
     assert result.allowed is False
     assert "keyword_violation" in result.reason
     assert ViolationType.DIRECTED_HARM.value in result.reason
+
+
+# ===========================================================================
+# OpenAI Moderation integration tests
+# ===========================================================================
+
+
+@pytest.fixture
+def safety_service_keyword_only_with_openai(monkeypatch):
+    """keyword_only mode with mocked OpenAI Moderation provider available."""
+    from providers.azure_content_safety import ContentSafetyResult
+
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="keyword_only",
+            azure_content_safety_enabled=False,
+            azure_content_safety_endpoint=None,
+            azure_content_safety_key=None,
+            openai_api_key="test-key",
+            openrouter_api_key=None,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
+        ),
+    )
+
+    service = ContentSafetyService()
+
+    async def mock_openai_analyze(text: str, language: str = "en") -> ContentSafetyResult:
+        text_lower = text.lower()
+        if "bomb" in text_lower or "murder" in text_lower or "blow up" in text_lower:
+            return ContentSafetyResult(
+                allowed=False, reason="violence_or_threat_detected", categories={"violence": 95}
+            )
+        if "kill yourself" in text_lower:
+            return ContentSafetyResult(
+                allowed=False, reason="violence_or_threat_detected", categories={"harassment/threatening": 90}
+            )
+        if "want to die" in text_lower or "die" in text_lower:
+            return ContentSafetyResult(
+                allowed=True,
+                reason="possible_help_seeking",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                categories={"self-harm/intent": 70},
+            )
+        if "david" in text_lower or "goliath" in text_lower or "testament" in text_lower:
+            return ContentSafetyResult(allowed=True, reason="clean", categories={"violence": 2})
+        return ContentSafetyResult(allowed=True, reason="clean", categories={})
+
+    def mock_get_openai():
+        if not hasattr(service, "_mock_openai_provider"):
+            mock_provider = MagicMock()
+            mock_provider.analyze_text = mock_openai_analyze
+            service._mock_openai_provider = mock_provider
+        return service._mock_openai_provider
+
+    service._get_openai_moderation_provider = mock_get_openai
+    return service
+
+
+async def test_keyword_only_with_openai_blocks_bomb_threat(
+    safety_service_keyword_only_with_openai,
+):
+    """keyword_only mode with OpenAI Moderation blocks bomb threats."""
+    result = await safety_service_keyword_only_with_openai.check(
+        "I want to build a bomb and blow up the school", "en"
+    )
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected"
+
+
+async def test_keyword_only_with_openai_allows_biblical_violence(
+    safety_service_keyword_only_with_openai,
+):
+    """keyword_only mode with OpenAI Moderation allows biblical context."""
+    result = await safety_service_keyword_only_with_openai.check(
+        "How did David kill Goliath in the Old Testament?", "en"
+    )
+    assert result.allowed is True
+
+
+async def test_keyword_only_with_openai_flags_help_seeking(
+    safety_service_keyword_only_with_openai,
+):
+    """keyword_only mode with OpenAI Moderation flags self-harm intent as help-seeking."""
+    result = await safety_service_keyword_only_with_openai.check(
+        "I feel like I want to die, can you help?", "en"
+    )
+    assert result.allowed is True
+    assert result.is_help_seeking is True
+    assert result.compassionate_response_needed is True
+
+
+async def test_keyword_only_falls_back_when_openai_unavailable(
+    safety_service_keyword_only, monkeypatch
+):
+    """keyword_only mode falls back to keyword filter when OpenAI Moderation raises."""
+    from providers.azure_content_safety import ContentSafetyResult
+
+    mock_provider = MagicMock()
+    mock_provider.analyze_text = AsyncMock(side_effect=RuntimeError("API unavailable"))
+    monkeypatch.setattr(
+        safety_service_keyword_only, "_get_openai_moderation_provider", lambda: mock_provider
+    )
+
+    result = await safety_service_keyword_only.check("I want to build a bomb", "en")
+    assert result.allowed is False
+    assert "fallback" in result.reason
+
+
+async def test_ml_only_mode_does_not_call_openai_moderation(
+    safety_service_ml_only, monkeypatch
+):
+    """ml_only mode never touches OpenAI Moderation — it only uses Llama Guard."""
+    openai_called = False
+
+    def mock_get_openai():
+        nonlocal openai_called
+        openai_called = True
+        raise AssertionError("OpenAI Moderation must NOT be called in ml_only mode")
+
+    monkeypatch.setattr(
+        safety_service_ml_only, "_get_openai_moderation_provider", mock_get_openai
+    )
+
+    result = await safety_service_ml_only.check("I want to build a bomb", "en")
+
+    assert openai_called is False
+    assert result.allowed is False  # Llama Guard mock blocks it

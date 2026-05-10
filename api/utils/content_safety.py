@@ -3,8 +3,9 @@ Hybrid Content Safety Service.
 
 Implements a multi-stage content safety pipeline:
 1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech
-2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE) — distinguishes biblical discussion from harmful intent
-3. Azure Content Safety API (optional, context-aware, ~200ms) — additional layer for hybrid mode
+2. OpenAI Moderation API (~100-150ms, FREE) — context-aware, used in keyword_only and hybrid modes
+   OR Llama Guard 3 via OpenRouter (~200-300ms) — used in ml_only mode
+3. Azure Content Safety API (optional, ~200ms) — additional layer for hybrid mode only
 
 CRITICAL DESIGN PRINCIPLE:
 This is a spiritual guidance app. People seeking help for self-harm, addiction,
@@ -63,23 +64,22 @@ class ContentSafetyViolationError(Exception):
 
 class ContentSafetyService:
     """
-    Multi-stage content safety service combining keyword filter, Llama Guard 3, and Azure Content Safety.
+    Multi-stage content safety service.
 
     Decision flow:
     1. Keyword filter (instant, <5ms) — ALL modes:
        Checks ONLY directed harm and hate speech patterns.
        HIGH confidence match → BLOCK immediately.
-       Clean → pass to Stage 2 (if mode includes ML).
+       Clean → pass to Stage 2.
 
-    2. Llama Guard 3 via OpenRouter (context-aware, ~200-300ms, FREE) — ml_only and hybrid modes only:
-       Distinguishes biblical violence ("David killed Goliath") from real threats.
-       Detects nuanced harmful intent vs help-seeking.
-       Falls back to full keyword filter if API unavailable.
-       keyword_only mode skips this stage entirely (no external API call).
+    2. Stage 2 — depends on mode:
+       keyword_only: OpenAI Moderation API (free, ~100-150ms) — context-aware, no false positives.
+       ml_only:      Llama Guard 3 via OpenRouter (~200-300ms) — context-aware, free tier.
+       hybrid:       OpenAI Moderation API (same as keyword_only Stage 2).
+       Falls back to full keyword filter on API failure.
 
-    3. Azure Content Safety (optional, context-aware, ~200ms) — hybrid mode only:
-       Additional layer for hybrid mode.
-       Provides second opinion on borderline cases.
+    3. Azure Content Safety (optional, ~200ms) — hybrid mode only:
+       Additional layer after Stage 2. Requires Azure Content Safety resource.
     """
 
     def __init__(self):
@@ -88,6 +88,8 @@ class ContentSafetyService:
         self._azure_initialized = False
         self._llama_guard_provider = None
         self._llama_guard_initialized = False
+        self._openai_moderation_provider = None
+        self._openai_moderation_initialized = False
 
     def _get_azure_provider(self):
         """Lazy-initialize Azure provider."""
@@ -136,6 +138,31 @@ class ContentSafetyService:
                     "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
                 )
         return self._llama_guard_provider
+
+    def _get_openai_moderation_provider(self):
+        """Lazy-initialize OpenAI Moderation provider."""
+        if not self._openai_moderation_initialized:
+            self._openai_moderation_initialized = True
+            api_key = settings.openai_api_key or settings.openrouter_api_key
+            if api_key:
+                try:
+                    from providers.openai_moderation import OpenAIModerationProvider
+
+                    self._openai_moderation_provider = OpenAIModerationProvider(
+                        api_key=api_key,
+                        threshold=settings.openai_moderation_threshold,
+                        timeout=settings.openai_moderation_timeout,
+                    )
+                    logger.info("OpenAI Moderation provider initialized")
+                except Exception as e:
+                    logger.warning("Failed to initialize OpenAI Moderation provider: %s", e)
+                    self._openai_moderation_provider = None
+            else:
+                logger.warning(
+                    "OpenAI Moderation not available: no API key configured "
+                    "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
+                )
+        return self._openai_moderation_provider
 
     def _full_keyword_fallback(
         self, text: str, language: str, start: float
@@ -307,6 +334,73 @@ class ContentSafetyService:
             # Fallback to full keyword filter
             return self._full_keyword_fallback(text, language, start)
 
+    async def _check_stage2_openai_moderation(
+        self, text: str, language: str, start: float
+    ) -> ContentSafetyCheckResult | None:
+        """
+        Stage 2: OpenAI Moderation API check (keyword_only and hybrid modes).
+
+        Returns ContentSafetyCheckResult if decision made, None to continue to Stage 3 (hybrid).
+        Falls back to full keyword filter on any transport or API error.
+        """
+        provider = self._get_openai_moderation_provider()
+        if not provider:
+            return self._full_keyword_fallback(text, language, start)
+
+        try:
+            result = await provider.analyze_text(text, language)
+            total_ms = (time.monotonic() - start) * 1000
+
+            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+            logger.info(
+                "OpenAI Moderation check complete",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "allowed": result.allowed,
+                    "reason": result.reason,
+                    "is_help_seeking": result.is_help_seeking,
+                    "duration_ms": f"{total_ms:.1f}",
+                },
+            )
+
+            # keyword_only mode: return result directly (no Stage 3)
+            if settings.content_safety_mode == "keyword_only":
+                return ContentSafetyCheckResult(
+                    allowed=result.allowed,
+                    reason=result.reason,
+                    categories=result.categories,
+                    is_help_seeking=result.is_help_seeking,
+                    compassionate_response_needed=result.compassionate_response_needed,
+                    check_duration_ms=total_ms,
+                )
+
+            # hybrid mode: if blocked or help-seeking, return immediately; else pass to Azure
+            if not result.allowed:
+                return ContentSafetyCheckResult(
+                    allowed=False,
+                    reason=result.reason,
+                    categories=result.categories,
+                    check_duration_ms=total_ms,
+                )
+
+            if result.is_help_seeking:
+                return ContentSafetyCheckResult(
+                    allowed=True,
+                    reason=result.reason,
+                    categories=result.categories,
+                    is_help_seeking=True,
+                    compassionate_response_needed=True,
+                    check_duration_ms=total_ms,
+                )
+
+            # Clean result in hybrid mode — continue to Azure Stage 3
+            return None
+
+        except Exception as e:
+            logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
+            return self._full_keyword_fallback(text, language, start)
+
     async def check(
         self, text: str, language: str = "en"
     ) -> ContentSafetyCheckResult:  # noqa: C901
@@ -330,11 +424,18 @@ class ContentSafetyService:
         if stage1_result:
             return stage1_result
 
-        # Stage 2: Llama Guard (ml_only and hybrid modes only — NOT keyword_only)
-        if settings.content_safety_mode in ("hybrid", "ml_only"):
+        # Stage 2: mode-aware provider selection
+        # keyword_only and hybrid → OpenAI Moderation (free, fast, context-aware)
+        # ml_only → Llama Guard 3 (generative LLM, ~200-300ms)
+        if settings.content_safety_mode == "ml_only":
             stage2_result = await self._check_stage2_llama_guard(text, language, start)
-            if stage2_result:
-                return stage2_result
+        elif settings.content_safety_mode in ("keyword_only", "hybrid"):
+            stage2_result = await self._check_stage2_openai_moderation(text, language, start)
+        else:
+            stage2_result = None
+
+        if stage2_result:
+            return stage2_result
 
         # Stage 3: Azure Content Safety (hybrid mode only, additional layer)
         if settings.content_safety_mode == "hybrid":
