@@ -29,10 +29,14 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          # RELEASE_PLEASE_TOKEN must be a PAT with `contents: write` and `workflows: write`
-          # so that the tag it creates can trigger the `on: push: tags` in android-publish.yml.
-          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based workflows.
-          # See docs/RELEASE_PROCESS.md for setup instructions.
+          # RELEASE_PLEASE_TOKEN must be a fine-grained PAT with:
+          #   contents: write     — push tags, update manifest
+          #   pull-requests: write — open/update the Release PR
+          #   issues: write       — add autorelease labels (GitHub routes PR
+          #                         label writes through the Issues API)
+          #   workflows: write    — tag push triggers android-publish.yml
+          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based
+          # workflows (GitHub security restriction). See docs/RELEASE_PROCESS.md.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
