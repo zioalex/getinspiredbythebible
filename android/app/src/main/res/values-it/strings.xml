@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">Impostazioni</string>
     <string name="action_open_settings">Impostazioni</string>
+    <string name="action_back">Indietro</string>
+    <string name="action_open_chat_history">Apri cronologia chat</string>
+    <string name="action_new_chat">Nuova chat</string>
+    <string name="drawer_chat_history_title">Cronologia chat</string>
+    <string name="drawer_no_conversations">Nessuna conversazione</string>
+    <string name="drawer_see_all_conversations">Mostra tutte le conversazioni</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_light">Chiaro</string>
     <string name="settings_theme_dark">Scuro</string>

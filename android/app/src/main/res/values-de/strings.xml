@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">Einstellungen</string>
     <string name="action_open_settings">Einstellungen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_open_chat_history">Chat-Verlauf öffnen</string>
+    <string name="action_new_chat">Neuer Chat</string>
+    <string name="drawer_chat_history_title">Chat-Verlauf</string>
+    <string name="drawer_no_conversations">Noch keine Unterhaltungen</string>
+    <string name="drawer_see_all_conversations">Alle Unterhaltungen anzeigen</string>
     <string name="settings_theme_title">Design</string>
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>

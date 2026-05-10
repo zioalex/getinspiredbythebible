@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">설정</string>
     <string name="action_open_settings">설정</string>
+    <string name="action_back">뒤로</string>
+    <string name="action_open_chat_history">채팅 기록 열기</string>
+    <string name="action_new_chat">새 채팅</string>
+    <string name="drawer_chat_history_title">채팅 기록</string>
+    <string name="drawer_no_conversations">아직 대화가 없습니다</string>
+    <string name="drawer_see_all_conversations">모든 대화 보기</string>
     <string name="settings_theme_title">테마</string>
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>

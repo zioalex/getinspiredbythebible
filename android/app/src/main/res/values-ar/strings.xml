@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">الإعدادات</string>
     <string name="action_open_settings">الإعدادات</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_open_chat_history">فتح سجل الدردشة</string>
+    <string name="action_new_chat">دردشة جديدة</string>
+    <string name="drawer_chat_history_title">سجل الدردشة</string>
+    <string name="drawer_no_conversations">لا توجد محادثات بعد</string>
+    <string name="drawer_see_all_conversations">عرض جميع المحادثات</string>
     <string name="settings_theme_title">السمة</string>
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>

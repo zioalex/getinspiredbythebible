@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">Настройки</string>
     <string name="action_open_settings">Настройки</string>
+    <string name="action_back">Назад</string>
+    <string name="action_open_chat_history">Открыть историю чата</string>
+    <string name="action_new_chat">Новый чат</string>
+    <string name="drawer_chat_history_title">История чата</string>
+    <string name="drawer_no_conversations">Пока нет разговоров</string>
+    <string name="drawer_see_all_conversations">Показать все разговоры</string>
     <string name="settings_theme_title">Тема</string>
     <string name="settings_theme_light">Светлая</string>
     <string name="settings_theme_dark">Тёмная</string>

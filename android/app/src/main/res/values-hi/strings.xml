@@ -132,6 +132,12 @@
     <!-- Settings screen -->
     <string name="settings_title">सेटिंग्स</string>
     <string name="action_open_settings">सेटिंग्स</string>
+    <string name="action_back">वापस</string>
+    <string name="action_open_chat_history">चैट इतिहास खोलें</string>
+    <string name="action_new_chat">नई चैट</string>
+    <string name="drawer_chat_history_title">चैट इतिहास</string>
+    <string name="drawer_no_conversations">अभी तक कोई बातचीत नहीं</string>
+    <string name="drawer_see_all_conversations">सभी बातचीत देखें</string>
     <string name="settings_theme_title">थीम</string>
     <string name="settings_theme_light">हल्का</string>
     <string name="settings_theme_dark">गहरा</string>
