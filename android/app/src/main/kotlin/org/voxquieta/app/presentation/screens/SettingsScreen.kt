@@ -262,7 +262,7 @@ fun SettingsScreen(
         if (showDiagnosticSheet) {
             DiagnosticReportBottomSheet(
                 onSendEmail = { doing, expected ->
-                    viewModel.sendDiagnosticEmail(context, doing, expected)
+                    viewModel.sendDiagnosticEmail(doing, expected)
                     showDiagnosticSheet = false
                 },
                 onSaveLocally = {
