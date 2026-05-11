@@ -58,8 +58,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BACKEND_URL: ${{ vars.BACKEND_URL ||
-    'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }} # yamllint disable-line rule:line-length
+  BACKEND_URL:
+    ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
   STATE_BRANCH: gh-monitor-state
 
 jobs:
