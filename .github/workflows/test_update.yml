@@ -11,10 +11,22 @@ run-name: >-
     branches:
       - main
       - feature/**
+    paths:
+      - "api/**"
+      - "frontend/**"
+      - "docker-compose*.yml"
+      - "scripts/**"
+      - ".github/workflows/test_update.yml"
   push:
     branches:
       - main
       - feature/initial-implementation
+    paths:
+      - "api/**"
+      - "frontend/**"
+      - "docker-compose*.yml"
+      - "scripts/**"
+      - ".github/workflows/test_update.yml"
 
 jobs:
   # Backend API Tests
