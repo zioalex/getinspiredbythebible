@@ -148,6 +148,21 @@
     <!-- Settings support/about section -->
     <string name="settings_support_title">Поддержка</string>
     <string name="action_send_diagnostic_report">Отправить диагностический отчёт</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Сообщить об ошибке</string>
+    <string name="diagnostic_subtitle">Помогите нам разобраться, что пошло не так. Ваши ответы и журнал приложения будут прикреплены к письму.</string>
+    <string name="diagnostic_doing_label">Что вы делали?</string>
+    <string name="diagnostic_doing_placeholder">напр., нажал на стих, и экран стал пустым</string>
+    <string name="diagnostic_expected_label">Что вы ожидали?</string>
+    <string name="diagnostic_expected_placeholder">напр., стих должен был открыться в панели</string>
+    <string name="diagnostic_attachment_note">К письму будут прикреплены журнал отладки (без личных данных) и базовая информация об устройстве.</string>
+    <string name="diagnostic_send_email_button">Отправить письмо с журналом</string>
+    <string name="diagnostic_save_locally_link">Или сохранить журнал на этом устройстве</string>
+    <string name="diagnostic_email_subject">Отчёт об ошибке Vox Quieta</string>
+    <string name="diagnostic_no_email_app">На устройстве не настроено почтовое приложение. Журнал сохранён локально.</string>
+    <string name="diagnostic_save_failed">Не удалось сохранить журнал диагностики.</string>
+
     <string name="settings_about_title">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>

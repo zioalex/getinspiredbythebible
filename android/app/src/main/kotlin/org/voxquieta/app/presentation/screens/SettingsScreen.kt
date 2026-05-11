@@ -42,6 +42,7 @@ import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.ContactFormState
+import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
@@ -72,6 +73,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val currentLanguage = LocalConfiguration.current.locales[0].language
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
+    var showDiagnosticSheet by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -163,7 +165,7 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
-                onClick = { viewModel.shareDebugLogs(context) },
+                onClick = { showDiagnosticSheet = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.action_send_diagnostic_report))
@@ -253,6 +255,21 @@ fun SettingsScreen(
                     showContactSheet = false
                     viewModel.resetContactForm()
                 },
+            )
+        }
+
+        // ── Diagnostic report bottom sheet ─────────────────────────────────────
+        if (showDiagnosticSheet) {
+            DiagnosticReportBottomSheet(
+                onSendEmail = { doing, expected ->
+                    viewModel.sendDiagnosticEmail(doing, expected)
+                    showDiagnosticSheet = false
+                },
+                onSaveLocally = {
+                    viewModel.saveDiagnosticLogLocally(context)
+                    showDiagnosticSheet = false
+                },
+                onDismiss = { showDiagnosticSheet = false },
             )
         }
     }

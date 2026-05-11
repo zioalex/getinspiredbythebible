@@ -14,6 +14,7 @@ import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
@@ -852,24 +853,43 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Debug log export
+    // Diagnostic / bug report
     // ---------------------------------------------------------------------------
 
     /**
-     * Collects in-memory logs from [LogCollector], writes them to a cache file,
-     * and launches the system share sheet so the user can send the log file.
+     * Sends a bug report through the app's built-in contact/email pipeline
+     * (same backend path used by the contact form) with the user's answers,
+     * device metadata, and current diagnostic log in the message body.
      */
-    fun shareDebugLogs(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
+        viewModelScope.launch {
             try {
                 val log = LogCollector.getLog()
-                val file = File(context.cacheDir, "bible_inspiration_debug.log")
-                file.writeText(log)
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file,
+                val body = buildBugReportBody(whatWereYouDoing, whatDidYouExpect, log)
+                contactRepository.submitContact(
+                    subject = ContactSubject.BUG,
+                    message = body,
+                    email = null,
+                    userAgent = "Android/${android.os.Build.VERSION.RELEASE} " +
+                        "(SDK ${android.os.Build.VERSION.SDK_INT}; " +
+                        "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL})",
                 )
+                Timber.i("Diagnostic bug report submitted")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send diagnostic email")
+            }
+        }
+    }
+
+    /**
+     * Writes the diagnostic log to a cache file and opens the system share
+     * sheet so the user can save or send it via any app of their choice.
+     * This is the secondary "save locally" option in the bug-report flow.
+     */
+    fun saveDiagnosticLogLocally(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val uri = writeLogToCache(context) ?: return@launch
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -887,6 +907,53 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    private fun writeLogToCache(context: Context): android.net.Uri? {
+        return try {
+            val log = LogCollector.getLog()
+            val file = File(context.cacheDir, "bible_inspiration_debug.log")
+            file.writeText(log)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write debug log to cache")
+            null
+        }
+    }
+
+    private fun buildBugReportBody(
+        whatWereYouDoing: String,
+        whatDidYouExpect: String,
+        diagnosticLog: String,
+    ): String {
+        val doing = whatWereYouDoing.trim().ifEmpty { "(not provided)" }
+        val expected = whatDidYouExpect.trim().ifEmpty { "(not provided)" }
+        val log = diagnosticLog.ifBlank { "(no log entries captured)" }
+        val versionName = try {
+            org.voxquieta.app.BuildConfig.VERSION_NAME
+        } catch (_: Throwable) {
+            "unknown"
+        }
+        return buildString {
+            appendLine("What were you doing?")
+            appendLine(doing)
+            appendLine()
+            appendLine("What did you expect to happen?")
+            appendLine(expected)
+            appendLine()
+            appendLine("---")
+            appendLine("App version: $versionName")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine()
+            appendLine("Diagnostic log:")
+            appendLine(log)
+        }
+    }
+
 
     // ---------------------------------------------------------------------------
     // Private helpers

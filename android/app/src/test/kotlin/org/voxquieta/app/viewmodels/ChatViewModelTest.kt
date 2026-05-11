@@ -10,6 +10,7 @@ import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
 import org.voxquieta.app.domain.models.ChatRequest
@@ -28,6 +29,7 @@ import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.LocaleApplier
+import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -141,6 +143,7 @@ class ChatViewModelTest {
 
     @After
     fun tearDown() {
+        LogCollector.clear()
         Dispatchers.resetMain()
     }
 
@@ -1324,6 +1327,30 @@ class ChatViewModelTest {
 
         assertTrue(viewModel.contactFormState.value is ContactFormState.Idle)
         coVerify(exactly = 0) { contactRepository.submitContact(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `sendDiagnosticEmail submits bug report via contact repository`() = runTest {
+        val infoPriority = 4
+        val mockSubmissionId = 99
+        val messageSlot = slot<String>()
+        LogCollector.log(priority = infoPriority, tag = "Test", message = "Diagnostic line", t = null)
+        coEvery { contactRepository.submitContact(any(), capture(messageSlot), any(), any()) } returns mockSubmissionId
+
+        viewModel.sendDiagnosticEmail("Opening settings", "Bottom sheet should stay open")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            contactRepository.submitContact(
+                subject = ContactSubject.BUG,
+                message = any(),
+                email = null,
+                userAgent = any(),
+            )
+        }
+        assertTrue(messageSlot.captured.contains("What were you doing?\nOpening settings"))
+        assertTrue(messageSlot.captured.contains("What did you expect to happen?\nBottom sheet should stay open"))
+        assertTrue(messageSlot.captured.contains("Diagnostic log:\nI/Test: Diagnostic line"))
     }
 
     // ── allVerses (GAP-011) ───────────────────────────────────────────────────
