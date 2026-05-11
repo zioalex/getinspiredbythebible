@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Conditions d'utilisation
 
-*Cette traduction est fournie à titre informatif. En cas de divergence, la version anglaise prévaut.*
+_Cette traduction est fournie à titre informatif. En cas de divergence, la version anglaise prévaut._
 
 Dernière mise à jour : 20 avril 2026
 

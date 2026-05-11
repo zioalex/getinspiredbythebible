@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Datenschutzrichtlinie
 
-*Diese Übersetzung dient nur zu Informationszwecken. Bei Widersprüchen gilt die englische Fassung.*
+_Diese Übersetzung dient nur zu Informationszwecken. Bei Widersprüchen gilt die englische Fassung._
 
 Letzte Aktualisierung: 20. April 2026
 
@@ -37,10 +37,10 @@ Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** in einer 
 
 ## Drittanbieterdienste
 
-| Dienst | Zweck | Datenschutzrichtlinie |
-|---|---|---|
-| Firebase Crashlytics (Google) | Absturzberichte | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | Anonymisierte Nutzungsanalysen | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Dienst                        | Zweck                          | Datenschutzrichtlinie                                              |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Absturzberichte                | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Anonymisierte Nutzungsanalysen | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## Datenspeicherung
 

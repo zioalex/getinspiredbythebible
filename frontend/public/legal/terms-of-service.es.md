@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Términos de servicio
 
-*Esta traducción se proporciona a efectos informativos. En caso de discrepancia, prevalece la versión en inglés.*
+_Esta traducción se proporciona a efectos informativos. En caso de discrepancia, prevalece la versión en inglés._
 
 Última actualización: 20 de abril de 2026
 

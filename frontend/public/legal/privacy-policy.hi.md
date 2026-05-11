@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # गोपनीयता नीति
 
-*यह अनुवाद केवल सूचनात्मक उद्देश्यों के लिए प्रदान किया गया है। किसी भी विरोधाभास की स्थिति में, अंग्रेज़ी संस्करण मान्य होगा।*
+_यह अनुवाद केवल सूचनात्मक उद्देश्यों के लिए प्रदान किया गया है। किसी भी विरोधाभास की स्थिति में, अंग्रेज़ी संस्करण मान्य होगा।_
 
 अंतिम अपडेट: 20 अप्रैल 2026
 
@@ -37,10 +37,10 @@ Vox Quieta ("हम", "हमें", "हमारा") एक निःशु�
 
 ## तृतीय-पक्ष सेवाएं
 
-| सेवा | उद्देश्य | गोपनीयता नीति |
-|---|---|---|
-| Firebase Crashlytics (Google) | क्रैश रिपोर्टिंग | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | अनाम उपयोग विश्लेषण | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| सेवा                          | उद्देश्य            | गोपनीयता नीति                                                      |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | क्रैश रिपोर्टिंग    | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | अनाम उपयोग विश्लेषण | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## डेटा प्रतिधारण
 

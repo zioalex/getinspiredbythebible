@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Informativa sulla privacy
 
-*Questa traduzione è fornita a scopo informativo. In caso di discrepanza fa fede la versione inglese.*
+_Questa traduzione è fornita a scopo informativo. In caso di discrepanza fa fede la versione inglese._
 
 Ultimo aggiornamento: 20 aprile 2026
 
@@ -37,10 +37,10 @@ La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispos
 
 ## Servizi di terze parti
 
-| Servizio | Scopo | Informativa sulla privacy |
-|---|---|---|
-| Firebase Crashlytics (Google) | Segnalazione di crash | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | Analisi anonima dell'utilizzo | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Servizio                      | Scopo                         | Informativa sulla privacy                                          |
+| ----------------------------- | ----------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Segnalazione di crash         | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Analisi anonima dell'utilizzo | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## Conservazione dei dati
 

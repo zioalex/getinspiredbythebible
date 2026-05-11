@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Politique de confidentialité
 
-*Cette traduction est fournie à titre informatif. En cas de divergence, la version anglaise prévaut.*
+_Cette traduction est fournie à titre informatif. En cas de divergence, la version anglaise prévaut._
 
 Dernière mise à jour : 20 avril 2026
 
@@ -37,10 +37,10 @@ L'historique des conversations est stocké **uniquement en local sur votre appar
 
 ## Services tiers
 
-| Service | Objectif | Politique de confidentialité |
-|---|---|---|
-| Firebase Crashlytics (Google) | Rapports de plantage | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | Analyses d'utilisation anonymisées | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Service                       | Objectif                           | Politique de confidentialité                                       |
+| ----------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Rapports de plantage               | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Analyses d'utilisation anonymisées | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## Conservation des données
 

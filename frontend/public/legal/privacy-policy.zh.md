@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # 隐私政策
 
-*本译文仅供参考。如有歧义，以英文版本为准。*
+_本译文仅供参考。如有歧义，以英文版本为准。_
 
 最后更新：2026 年 4 月 20 日
 
@@ -37,10 +37,10 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 
 ## 第三方服务
 
-| 服务 | 用途 | 隐私政策 |
-|---|---|---|
-| Firebase Crashlytics（Google） | 崩溃报告 | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics（Google） | 匿名使用分析 | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| 服务                           | 用途         | 隐私政策                                                           |
+| ------------------------------ | ------------ | ------------------------------------------------------------------ |
+| Firebase Crashlytics（Google） | 崩溃报告     | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics（Google）   | 匿名使用分析 | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## 数据保留
 

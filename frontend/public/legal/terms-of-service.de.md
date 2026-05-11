@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Nutzungsbedingungen
 
-*Diese Übersetzung dient nur zu Informationszwecken. Bei Widersprüchen gilt die englische Fassung.*
+_Diese Übersetzung dient nur zu Informationszwecken. Bei Widersprüchen gilt die englische Fassung._
 
 Letzte Aktualisierung: 20. April 2026
 

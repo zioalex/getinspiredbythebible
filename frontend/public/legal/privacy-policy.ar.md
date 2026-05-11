@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # سياسة الخصوصية
 
-*تُقدَّم هذه الترجمة لأغراض إعلامية فحسب. في حالة أي تعارض، تسود النسخة الإنجليزية.*
+_تُقدَّم هذه الترجمة لأغراض إعلامية فحسب. في حالة أي تعارض، تسود النسخة الإنجليزية._
 
 آخر تحديث: 20 أبريل 2026
 
@@ -37,10 +37,10 @@ Vox Quieta (يُشار إليها فيما يلي بـ"نحن" و"لنا" و"ا�
 
 ## خدمات الطرف الثالث
 
-| الخدمة | الغرض | سياسة الخصوصية |
-|---|---|---|
-| Firebase Crashlytics (Google) | تقارير الأعطال | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | تحليلات الاستخدام المجهولة | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| الخدمة                        | الغرض                      | سياسة الخصوصية                                                     |
+| ----------------------------- | -------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | تقارير الأعطال             | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | تحليلات الاستخدام المجهولة | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## الاحتفاظ بالبيانات
 

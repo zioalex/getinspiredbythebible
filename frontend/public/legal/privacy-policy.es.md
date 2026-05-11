@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Política de privacidad
 
-*Esta traducción se proporciona a efectos informativos. En caso de discrepancia, prevalece la versión en inglés.*
+_Esta traducción se proporciona a efectos informativos. En caso de discrepancia, prevalece la versión en inglés._
 
 Última actualización: 20 de abril de 2026
 
@@ -37,10 +37,10 @@ El historial de conversaciones se almacena **solo localmente en tu dispositivo**
 
 ## Servicios de terceros
 
-| Servicio | Propósito | Política de privacidad |
-|---|---|---|
-| Firebase Crashlytics (Google) | Informes de fallos | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | Análisis de uso anonimizado | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Servicio                      | Propósito                   | Política de privacidad                                             |
+| ----------------------------- | --------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Informes de fallos          | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Análisis de uso anonimizado | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## Retención de datos
 

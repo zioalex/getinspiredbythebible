@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # 개인정보 처리방침
 
-*이 번역문은 정보 제공 목적으로만 제공됩니다. 내용이 상충하는 경우 영어 원본이 우선합니다.*
+_이 번역문은 정보 제공 목적으로만 제공됩니다. 내용이 상충하는 경우 영어 원본이 우선합니다._
 
 최종 수정일: 2026년 4월 20일
 
@@ -37,10 +37,10 @@ Vox Quieta(이하 "당사", "우리")는 무료 성경 영감 앱입니다. 당�
 
 ## 제3자 서비스
 
-| 서비스 | 목적 | 개인정보 처리방침 |
-|---|---|---|
-| Firebase Crashlytics (Google) | 충돌 보고 | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google) | 익명화된 사용 분석 | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| 서비스                        | 목적               | 개인정보 처리방침                                                  |
+| ----------------------------- | ------------------ | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | 충돌 보고          | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | 익명화된 사용 분석 | [policies.google.com/privacy](https://policies.google.com/privacy) |
 
 ## 데이터 보존
 
