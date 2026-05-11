@@ -2,7 +2,7 @@ name: Backfill release tags (one-time)
 
 # Run manually once to create the missing v0.1.0–v0.7.0 tags.
 # Delete this file after the tags have been created.
-on:
+"on":
   workflow_dispatch:
 
 permissions:
