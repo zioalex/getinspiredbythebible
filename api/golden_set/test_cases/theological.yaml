@@ -8,7 +8,8 @@ cases:
     expectations:
       must_contain_scripture: true
       min_verses_cited: 1
-      expected_books: ["Romans", "Job", "Psalms", "2 Corinthians", "James", "John"]
+      expected_books:
+        ["Romans", "Job", "Psalms", "2 Corinthians", "James", "John"]
       must_not_contain:
         - "God wants you to suffer"
         - "you deserve"

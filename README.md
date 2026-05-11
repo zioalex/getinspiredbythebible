@@ -464,4 +464,4 @@ The following files and directories are excluded from version control (see `.git
 
 ---
 
-*"Your word is a lamp for my feet, a light on my path."* - Psalm 119:105
+_"Your word is a lamp for my feet, a light on my path."_ - Psalm 119:105
