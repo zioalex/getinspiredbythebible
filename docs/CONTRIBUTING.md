@@ -4,13 +4,13 @@
 
 Most workflows are path-filtered so they only run when relevant files change:
 
-| Workflow | Runs when these paths change |
-|---|---|
-| `android-ci.yml` | `android/**`, the workflow file itself |
-| `azure-deploy.yml` | `api/**`, `frontend/**`, `scripts/**`, `deployment/**`, the workflow file |
-| `test_update.yml` | `api/**`, `frontend/**`, `docker-compose*.yml`, `scripts/**`, the workflow file |
-| `pre-commit.yml` | every PR (lints docs, configs, and code) |
-| `commitlint.yml` | every PR (lints commit messages) |
+| Workflow           | Runs when these paths change                                                    |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `android-ci.yml`   | `android/**`, the workflow file itself                                          |
+| `azure-deploy.yml` | `api/**`, `frontend/**`, `scripts/**`, `deployment/**`, the workflow file       |
+| `test_update.yml`  | `api/**`, `frontend/**`, `docker-compose*.yml`, `scripts/**`, the workflow file |
+| `pre-commit.yml`   | every PR (lints docs, configs, and code)                                        |
+| `commitlint.yml`   | every PR (lints commit messages)                                                |
 
 A PR that changes **only** files under `docs/` (e.g. a backlog story) will skip
 `android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only
