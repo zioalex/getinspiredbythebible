@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Termos de Serviço
 
-_Esta tradução é fornecida para fins informativos. Em caso de divergência, prevalece a versão em inglês._
+> _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
 Última atualização: 20 de abril de 2026
 

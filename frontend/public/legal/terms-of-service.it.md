@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Termini di servizio
 
-_Questa traduzione è fornita a scopo informativo. In caso di discrepanza fa fede la versione inglese._
+> _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
 Ultimo aggiornamento: 20 aprile 2026
 

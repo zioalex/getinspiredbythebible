@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Datenschutzrichtlinie
 
-_Diese Übersetzung dient nur zu Informationszwecken. Bei Widersprüchen gilt die englische Fassung._
+> _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
 Letzte Aktualisierung: 20. April 2026
 

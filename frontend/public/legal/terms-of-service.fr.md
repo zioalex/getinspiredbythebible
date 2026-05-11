@@ -4,7 +4,7 @@ lastUpdated: 2026-04-20
 
 # Conditions d'utilisation
 
-_Cette traduction est fournie à titre informatif. En cas de divergence, la version anglaise prévaut._
+> _Cette traduction a été générée par intelligence artificielle et est fournie à titre de commodité uniquement. En cas d'omission, d'ambiguïté ou de contradiction avec l'original anglais, la version anglaise fait foi et prévaut._
 
 Dernière mise à jour : 20 avril 2026
 
