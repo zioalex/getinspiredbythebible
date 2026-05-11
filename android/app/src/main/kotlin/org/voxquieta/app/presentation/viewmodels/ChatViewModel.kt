@@ -861,7 +861,7 @@ class ChatViewModel @Inject constructor(
      * device metadata, and current diagnostic log in the message body.
      */
     fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val log = LogCollector.getLog()
                 val body = buildBugReportBody(whatWereYouDoing, whatDidYouExpect, log)
