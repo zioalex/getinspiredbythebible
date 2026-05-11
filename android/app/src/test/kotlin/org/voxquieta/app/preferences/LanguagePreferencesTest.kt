@@ -75,14 +75,20 @@ class LanguagePreferencesTest {
     // ── Default value ─────────────────────────────────────────────────────────
 
     @Test
-    fun `default language code is en`() = runTest(testDispatcher) {
+    fun `default language code is empty string`() = runTest(testDispatcher) {
         val code = languagePreferences.languageFlow.first()
-        assertEquals("en", code)
+        assertEquals("", code)
     }
 
     @Test
-    fun `DEFAULT_LANGUAGE constant equals en`() {
-        assertEquals("en", LanguagePreferences.DEFAULT_LANGUAGE)
+    fun `DEFAULT_LANGUAGE constant is empty string`() {
+        assertEquals("", LanguagePreferences.DEFAULT_LANGUAGE)
+    }
+
+    @Test
+    fun `setLanguage can persist en as an explicit user choice`() = runTest(testDispatcher) {
+        languagePreferences.setLanguage("en")
+        assertEquals("en", languagePreferences.languageFlow.first())
     }
 
     // ── Single set ────────────────────────────────────────────────────────────

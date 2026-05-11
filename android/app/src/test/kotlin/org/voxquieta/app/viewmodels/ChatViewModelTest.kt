@@ -1446,4 +1446,68 @@ class ChatViewModelTest {
         )
         assertEquals("de", vm.uiState.value.currentLocale)
     }
+
+    @Test
+    fun `sendMessage omits language when currentLocale is empty`() = runTest {
+        every { languagePreferences.readInitial() } returns ""
+        every { languagePreferences.languageFlow } returns flowOf("")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Ciao come stai?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(requestSlot.captured.language)
+    }
+
+    @Test
+    fun `sendMessage sends language when user explicitly selected a code`() = runTest {
+        every { languagePreferences.readInitial() } returns "it"
+        every { languagePreferences.languageFlow } returns flowOf("it")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("it", requestSlot.captured.language)
+    }
 }
