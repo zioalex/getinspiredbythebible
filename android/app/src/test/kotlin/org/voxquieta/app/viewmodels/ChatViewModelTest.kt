@@ -1331,9 +1331,11 @@ class ChatViewModelTest {
 
     @Test
     fun `sendDiagnosticEmail submits bug report via contact repository`() = runTest {
+        val infoPriority = 4
+        val mockSubmissionId = 99
         val messageSlot = slot<String>()
-        LogCollector.log(priority = 4, tag = "Test", message = "Diagnostic line", t = null)
-        coEvery { contactRepository.submitContact(any(), capture(messageSlot), any(), any()) } returns 99
+        LogCollector.log(priority = infoPriority, tag = "Test", message = "Diagnostic line", t = null)
+        coEvery { contactRepository.submitContact(any(), capture(messageSlot), any(), any()) } returns mockSubmissionId
 
         viewModel.sendDiagnosticEmail("Opening settings", "Bottom sheet should stay open")
         testDispatcher.scheduler.advanceUntilIdle()
