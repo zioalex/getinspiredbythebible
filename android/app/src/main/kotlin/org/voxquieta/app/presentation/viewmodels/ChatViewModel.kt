@@ -76,7 +76,8 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currentLocale: String = "en",
+    // Empty string = no explicit user preference; backend auto-detects from message text.
+    val currentLocale: String = "",
     val isTurnstileReady: Boolean = false,
     /** ID of the currently active conversation; null when no conversation has started. */
     val currentConversationId: String? = null,
