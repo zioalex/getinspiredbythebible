@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Segnalazione bug Vox Quieta</string>
     <string name="diagnostic_no_email_app">Nessuna app email configurata. Il log è stato salvato.</string>
     <string name="diagnostic_save_failed">Impossibile salvare il log diagnostico.</string>
+    <string name="diagnostic_success_title">Segnalazione inviata</string>
+    <string name="diagnostic_success_description">Grazie — abbiamo ricevuto la tua segnalazione e la esamineremo a breve.</string>
 
     <string name="settings_about_title">Informazioni</string>
     <string name="settings_version">Versione</string>

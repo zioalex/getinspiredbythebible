@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Отчёт об ошибке Vox Quieta</string>
     <string name="diagnostic_no_email_app">На устройстве не настроено почтовое приложение. Журнал сохранён локально.</string>
     <string name="diagnostic_save_failed">Не удалось сохранить журнал диагностики.</string>
+    <string name="diagnostic_success_title">Отчёт отправлен</string>
+    <string name="diagnostic_success_description">Спасибо — мы получили ваш отчёт и скоро его рассмотрим.</string>
 
     <string name="settings_about_title">О приложении</string>
     <string name="settings_version">Версия</string>

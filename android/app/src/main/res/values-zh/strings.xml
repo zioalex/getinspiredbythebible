@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Vox Quieta 错误报告</string>
     <string name="diagnostic_no_email_app">此设备上未设置邮件应用。日志已改为保存。</string>
     <string name="diagnostic_save_failed">无法保存诊断日志。</string>
+    <string name="diagnostic_success_title">错误报告已发送</string>
+    <string name="diagnostic_success_description">感谢您 — 我们已收到您的报告，将尽快审阅。</string>
 
     <string name="settings_about_title">关于</string>
     <string name="settings_version">版本</string>

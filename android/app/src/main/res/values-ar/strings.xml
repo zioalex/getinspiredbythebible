@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">تقرير خطأ Vox Quieta</string>
     <string name="diagnostic_no_email_app">لا يوجد تطبيق بريد إلكتروني مهيأ على هذا الجهاز. تم حفظ السجل بدلاً من ذلك.</string>
     <string name="diagnostic_save_failed">تعذّر حفظ سجل التشخيص.</string>
+    <string name="diagnostic_success_title">تم إرسال تقرير الخطأ</string>
+    <string name="diagnostic_success_description">شكرًا — تلقّينا تقريرك وسنراجعه قريبًا.</string>
 
     <string name="settings_about_title">حول</string>
     <string name="settings_version">الإصدار</string>

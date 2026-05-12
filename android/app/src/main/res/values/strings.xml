@@ -157,6 +157,8 @@
     <string name="diagnostic_email_subject">Vox Quieta bug report</string>
     <string name="diagnostic_no_email_app">No email app is set up on this device. The log was saved instead.</string>
     <string name="diagnostic_save_failed">Could not save the diagnostic log.</string>
+    <string name="diagnostic_success_title">Bug report sent</string>
+    <string name="diagnostic_success_description">Thanks — we received your report and will review it soon.</string>
 
     <!-- Settings: About section -->
     <string name="settings_about_title">About</string>

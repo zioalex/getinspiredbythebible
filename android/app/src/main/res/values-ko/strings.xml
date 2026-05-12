@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Vox Quieta 버그 보고</string>
     <string name="diagnostic_no_email_app">이 기기에 설정된 이메일 앱이 없습니다. 로그가 대신 저장되었습니다.</string>
     <string name="diagnostic_save_failed">진단 로그를 저장할 수 없습니다.</string>
+    <string name="diagnostic_success_title">버그 보고서를 보냈습니다</string>
+    <string name="diagnostic_success_description">감사합니다 — 보고서를 받았으며 곧 검토하겠습니다.</string>
 
     <string name="settings_about_title">정보</string>
     <string name="settings_version">버전</string>

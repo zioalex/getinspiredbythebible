@@ -223,6 +223,13 @@ class ChatViewModel @Inject constructor(
     private val _contactFormState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
     val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
 
+    // Diagnostic-report submission reuses the generic submit-lifecycle states
+    // from [ContactFormState] because the flow is the same: Idle → Submitting →
+    // Success / Error. The bottom sheet renders a spinner, success screen or
+    // inline error message based on this state.
+    private val _diagnosticReportState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
+    val diagnosticReportState: StateFlow<ContactFormState> = _diagnosticReportState.asStateFlow()
+
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
         // errored (fail-open): the interceptor already forwards requests without a
@@ -857,11 +864,16 @@ class ChatViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
 
     /**
-     * Sends a bug report through the app's built-in contact/email pipeline
-     * (same backend path used by the contact form) with the user's answers,
-     * device metadata, and current diagnostic log in the message body.
+     * Sends a bug report through the app's built-in contact pipeline (same
+     * backend path used by the contact form) with the user's answers, device
+     * metadata, and current diagnostic log in the message body.
+     *
+     * Transitions [diagnosticReportState] through Submitting → Success or
+     * Error so the bottom sheet can show a spinner, a success screen, or an
+     * inline error message.
      */
     fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
+        _diagnosticReportState.value = ContactFormState.Submitting
         viewModelScope.launch {
             try {
                 val log = LogCollector.getLog()
@@ -874,11 +886,20 @@ class ChatViewModel @Inject constructor(
                         "(SDK ${android.os.Build.VERSION.SDK_INT}; " +
                         "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL})",
                 )
+                _diagnosticReportState.value = ContactFormState.Success
                 Timber.i("Diagnostic bug report submitted")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to send diagnostic email")
+                _diagnosticReportState.value = ContactFormState.Error(
+                    mapExceptionToMessage(e),
+                )
             }
         }
+    }
+
+    /** Resets the diagnostic-report state to [ContactFormState.Idle]. */
+    fun resetDiagnosticReport() {
+        _diagnosticReportState.value = ContactFormState.Idle
     }
 
     /**
