@@ -17,8 +17,30 @@ without that visibility.
 
 The repo-root `CHANGELOG.md` is the canonical source — it's
 release-please-managed, updated on every release, and already structured by
-version. Bundling it into the APK keeps the Android changelog automatically
-in sync with releases (no separate hand-maintained list) and works offline.
+version. Bundling a **pre-parsed JSON** derivation of it into the APK keeps
+the Android changelog automatically in sync with releases (no separate
+hand-maintained list), works offline, and avoids shipping a Markdown
+renderer on Android just to display release notes.
+
+## Approach: pre-bundled JSON asset
+
+Generate a `changelog.json` file at build time that contains **all**
+release entries (not just the latest, which is what
+`frontend/public/changelog.json` already holds — that single-entry artifact
+is intentional for the frontend's "What's New" modal). The Android module
+will read this JSON from `assets/` and render it as native Compose UI.
+
+Shape:
+
+```json
+[
+  { "version": "0.8.0", "date": "2026-05-08", "body": "### Features\n- …\n" },
+  { "version": "0.7.0", "date": "2026-04-22", "body": "…" }
+]
+```
+
+The `body` stays as Markdown text — the v1 Android screen renders it as
+plain text. No new Markdown dependency required.
 
 ## Proposed Changes
 
@@ -30,19 +52,36 @@ Privacy Policy, and Terms of Service (lines 190–241). Add a third
 `ChangelogScreen`. Keep it grouped with About — it's reference info, not a
 preference.
 
-### 2. Bundle the repo-root `CHANGELOG.md` into the APK at build time
+### 2. Generate the pre-bundled `changelog.json` asset at build time
 
-Mirror the prior-art pattern in
-`frontend/scripts/extract-latest-changelog.mjs`. Add a Gradle task to the
-Android module's build script that:
+Mirror the pattern in `frontend/scripts/extract-latest-changelog.mjs`, but
+emit **all** entries. Recommended split of work:
 
-- Copies `CHANGELOG.md` from the repo root to
-  `android/app/src/main/assets/CHANGELOG.md` before the Android `preBuild`
-  task runs.
-- Makes `preBuild` depend on the new task so the asset is always fresh.
-- **Fails soft**: if the source file is missing (e.g. someone checking out
-  only the `android/` subtree), log a warning and let the build continue —
-  the screen will show its empty-state fallback.
+- **Generalize the existing script** (or add a sibling
+  `scripts/extract-all-changelog.mjs` at the repo root) that reuses the
+  same `parseLatestEntry` regex in a loop, walking every `^## ` heading
+  in `CHANGELOG.md` and emitting an array. Keep the parser logic shared
+  so it stays in sync with release-please's heading format.
+- **Add a Gradle task** to the Android module's build script that:
+  - Runs the Node script (or, simpler, parses the markdown directly in
+    Gradle/Kotlin if you want to avoid a Node dependency in the Android
+    build — see "Alternative" below).
+  - Writes the JSON to `android/app/src/main/assets/changelog.json`
+    before the Android `preBuild` task runs.
+  - Makes `preBuild` depend on the new task so the asset is always
+    fresh.
+  - **Fails soft**: if the source `CHANGELOG.md` is missing (e.g. someone
+    checking out only the `android/` subtree), write
+    `{ "entries": [] }` and continue — the screen shows its empty-state
+    fallback.
+
+> **Recommended path**: do the parse in pure Gradle/Kotlin so the Android
+> build doesn't require Node. The grammar is simple enough (single regex)
+> that this is a few dozen lines.
+>
+> **Alternative path**: shell out to `node frontend/scripts/extract-all-changelog.mjs`
+> from a Gradle `Exec` task. Reuses the parser; adds a Node toolchain
+> requirement to Android builds.
 
 > Implementer note: verify the actual module build script path. Likely
 > `android/app/build.gradle.kts`; could be `build.gradle` if the module
@@ -52,23 +91,22 @@ Android module's build script that:
 
 - Location:
   `android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChangelogScreen.kt`.
-- Reads the asset via `context.assets.open("CHANGELOG.md")`. Wrap the read
-  in a try/catch — return an empty list if the asset is missing.
-- Parses the Markdown into a list of release entries by splitting on the
-  `^## ` heading pattern (matches `## [0.8.0]` and `## 0.8.0` — same regex
-  that `frontend/scripts/extract-latest-changelog.mjs` already uses; consider
-  porting that logic).
-- Renders the entries in a `LazyColumn`. Each entry shows the version + date
-  as a header and the body below.
+- Reads the asset via `context.assets.open("changelog.json")`. Wrap the
+  read in a try/catch — return an empty list if the asset is missing or
+  unparseable.
+- Deserialize with `kotlinx.serialization` into a
+  `List<ChangelogEntry>` where
+  `data class ChangelogEntry(val version: String, val date: String?, val body: String)`.
+- Renders the entries in a `LazyColumn`. Each card shows version + date as
+  a header and the body below.
 
-**v1 rendering — recommended:** render the body as plain text inside a
-`Text(style = MaterialTheme.typography.bodyMedium)` (or in a monospaced
-block) without a Markdown library. Trade-off: bullets and links won't be
-clickable, but it avoids adding a new dependency and the content is short.
+**v1 rendering — recommended:** render `body` as plain text in
+`Text(style = MaterialTheme.typography.bodyMedium)`. The body is short
+Markdown (mostly bullet lists) — readable as plain text. No new dependency.
 
 Alternative: pull in a lightweight Compose Markdown renderer
-(e.g. `compose-markdown` or `markdown-compose`) for richer formatting.
-Defer this unless v1 reads poorly in QA.
+(e.g. `compose-markdown`) for richer formatting. Defer unless v1 reads
+poorly in QA.
 
 ### 4. Navigation wiring
 
@@ -96,13 +134,13 @@ auto-generated), matching the frontend's behaviour.
 
 - [ ] Settings shows a "What's New" entry in the About section that opens a
       new screen.
-- [ ] The Changelog screen renders the contents of repo-root `CHANGELOG.md`
-      that was bundled at build time.
-- [ ] When `CHANGELOG.md` is missing from the assets, the screen shows the
+- [ ] The Changelog screen lists every release present in the repo-root
+      `CHANGELOG.md`, rendered from the bundled `changelog.json` asset.
+- [ ] When `changelog.json` is missing or empty, the screen shows the
       `changelog_empty` fallback instead of crashing.
 - [ ] The Gradle task runs automatically before `preBuild` — running
-      `./gradlew clean assembleDebug` produces an APK that contains
-      `assets/CHANGELOG.md` matching the repo-root file.
+      `./gradlew clean assembleDebug` produces an APK that contains a
+      non-empty `assets/changelog.json` matching the repo-root markdown.
 - [ ] All 11 locales (English + 10 variants) have translated values for the
       new strings.
 - [ ] `./gradlew assembleDebug` succeeds.
@@ -113,7 +151,8 @@ auto-generated), matching the frontend's behaviour.
 
 | File | Change |
 |---|---|
-| `android/app/build.gradle.kts` (verify path) | Add Gradle task to copy `CHANGELOG.md` into `src/main/assets/`; wire it as a `preBuild` dependency |
+| `android/app/build.gradle.kts` (verify path) | Add Gradle task to parse repo-root `CHANGELOG.md` into `src/main/assets/changelog.json`; wire it as a `preBuild` dependency |
+| `frontend/scripts/extract-latest-changelog.mjs` *(optional)* | If reusing the Node parser: extract `parseAllEntries` so it can be shared between frontend single-entry output and Android all-entries output |
 | `android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SettingsScreen.kt` | Add `onNavigateToChangelog` parameter; add "What's New" `TextButton` in the About section |
 | `android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChangelogScreen.kt` | New file — load asset, parse, render |
 | Navigation graph (e.g. `MainActivity.kt` or `presentation/navigation/*.kt`) | Register the new route and wire `onNavigateToChangelog` |
