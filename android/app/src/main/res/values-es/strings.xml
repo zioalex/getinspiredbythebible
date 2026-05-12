@@ -144,6 +144,11 @@
     <string name="settings_theme_system">Predeterminado del sistema</string>
     <string name="bible_translation_section">Traducción Bíblica</string>
     <string name="bible_translation_default">Predeterminada</string>
+    <string name="settings_current_translation">Traducción actual</string>
+    <string name="settings_bible_change_from_chat">Cambiar desde la pantalla de chat</string>
+    <string name="settings_data_privacy_title">Datos y privacidad</string>
+    <string name="settings_clear_history_title">¿Borrar el historial?</string>
+    <string name="settings_clear_history_message">Todas las conversaciones se eliminarán permanentemente.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Soporte</string>

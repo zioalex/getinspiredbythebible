@@ -144,6 +144,11 @@
     <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
     <string name="bible_translation_section">बाइबिल अनुवाद</string>
     <string name="bible_translation_default">डिफ़ॉल्ट</string>
+    <string name="settings_current_translation">वर्तमान अनुवाद</string>
+    <string name="settings_bible_change_from_chat">चैट स्क्रीन से बदलें</string>
+    <string name="settings_data_privacy_title">डेटा और गोपनीयता</string>
+    <string name="settings_clear_history_title">इतिहास मिटाएं?</string>
+    <string name="settings_clear_history_message">सभी बातचीत स्थायी रूप से हटा दी जाएंगी।</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">सहायता</string>
