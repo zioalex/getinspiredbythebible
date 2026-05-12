@@ -14,12 +14,15 @@ both reuse `R.string.action_cancel` ("Cancel") for the only action on
 that screen:
 
 - `android/app/src/main/kotlin/org/voxquieta/app/presentation/components/DiagnosticReportBottomSheet.kt:119-121`
+
   ```kotlin
   Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
       Text(stringResource(R.string.action_cancel))
   }
   ```
+
 - `android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ContactFormBottomSheet.kt:140-142`
+
   ```kotlin
   Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
       Text(stringResource(R.string.action_cancel))

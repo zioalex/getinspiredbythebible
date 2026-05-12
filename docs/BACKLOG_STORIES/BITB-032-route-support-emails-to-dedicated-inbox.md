@@ -25,13 +25,17 @@ they aren't lost in a general contact mailbox.
 ## Background — How the email recipient is wired
 
 - **Setting**: `api/config.py:92`
+
   ```python
   contact_notification_email: str = "contact@voxquieta.org"
   ```
+
 - **Usage**: `api/utils/email_service.py:142` and `:215` —
+
   ```python
   to_email = settings.contact_notification_email
   ```
+
   Used for both contact-form submissions and negative-feedback (thumbs
   down) notifications.
 - **Env override**: documented in `deployment/README.md:863` —
@@ -45,9 +49,11 @@ they aren't lost in a general contact mailbox.
 Change the single setting that drives both flows.
 
 1. **Update the default** in `api/config.py`:
+
    ```python
    contact_notification_email: str = "support@voxquieta.org"
    ```
+
 2. **Update the deployed environment value** of
    `CONTACT_NOTIFICATION_EMAIL` to `support@voxquieta.org` in whichever
    deployment system holds it (e.g. Container Apps env config / Terraform
@@ -109,7 +115,7 @@ Revisit only if support volume makes a single inbox unworkable.
   identity stays the same.
 - Changing `frontend/messages/*.json:124` (`errorConnection`) — those are
   user-facing fallback contact addresses ("if the problem persists, you
-  can reach us at contact@voxquieta.org") and a separate decision.
+  can reach us at `contact@voxquieta.org`) and a separate decision.
   Flagged here so we don't accidentally couple them.
 - iOS app (no current iOS support email flow).
 - A separate `support_notification_email` setting (see "Why not"

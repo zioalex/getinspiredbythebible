@@ -59,9 +59,10 @@ emit **all** entries. Recommended split of work:
 
 - **Generalize the existing script** (or add a sibling
   `scripts/extract-all-changelog.mjs` at the repo root) that reuses the
-  same `parseLatestEntry` regex in a loop, walking every `^## ` heading
-  in `CHANGELOG.md` and emitting an array. Keep the parser logic shared
-  so it stays in sync with release-please's heading format.
+  same `parseLatestEntry` regex in a loop, walking every line that
+  starts with `##` in `CHANGELOG.md` and emitting an array. Keep the
+  parser logic shared so it stays in sync with release-please's heading
+  format.
 - **Add a Gradle task** to the Android module's build script that:
   - Runs the Node script (or, simpler, parses the markdown directly in
     Gradle/Kotlin if you want to avoid a Node dependency in the Android
@@ -82,7 +83,7 @@ emit **all** entries. Recommended split of work:
 > **Alternative path**: shell out to `node frontend/scripts/extract-all-changelog.mjs`
 > from a Gradle `Exec` task. Reuses the parser; adds a Node toolchain
 > requirement to Android builds.
-
+>
 > Implementer note: verify the actual module build script path. Likely
 > `android/app/build.gradle.kts`; could be `build.gradle` if the module
 > hasn't been migrated to KTS.
