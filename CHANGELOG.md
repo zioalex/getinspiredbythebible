@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.8.0...v0.9.0) (2026-05-12)
+
+
+### Features
+
+* **android:** redesign Settings UX (BITB-026) ([#539](https://github.com/zioalex/getinspiredbythebible/issues/539)) ([6235c48](https://github.com/zioalex/getinspiredbythebible/commit/6235c48a14aa1880ecbd8978095a91c644d34069))
+
 ## [0.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.7.0...v0.8.0) (2026-05-12)
 
 ### Features
