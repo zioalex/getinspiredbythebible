@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.7.0...v0.8.0) (2026-05-12)
+
+### Features
+
+* **android:** bug-report email flow for "Send Diagnostic Report" ([#531](https://github.com/zioalex/getinspiredbythebible/issues/531)) ([c8d4a71](https://github.com/zioalex/getinspiredbythebible/commit/c8d4a71897ccc0f74af9967e907a3a6b5c1c0852))
+* **legal:** translate Privacy Policy and Terms of Service into 10 languages (BITB-027) ([#532](https://github.com/zioalex/getinspiredbythebible/issues/532)) ([b7d4ed8](https://github.com/zioalex/getinspiredbythebible/commit/b7d4ed88bcf94d1cd73c0c0d8aaf9257bd71fa03))
+
+### Bug Fixes
+
+* **android:** auto-detect language when user has not set an explicit preference ([#530](https://github.com/zioalex/getinspiredbythebible/issues/530)) ([290a107](https://github.com/zioalex/getinspiredbythebible/commit/290a107fc399de889d295ae51a3b9b19351f2cea))
+* **android:** show submitting/success/error feedback in diagnostic report sheet ([#540](https://github.com/zioalex/getinspiredbythebible/issues/540)) ([6616d42](https://github.com/zioalex/getinspiredbythebible/commit/6616d42bb13cc84f98e961931ba5275841a1067e))
+* **release:** correct CHANGELOG deltas and fix tag creation ([#537](https://github.com/zioalex/getinspiredbythebible/issues/537)) ([f4a45b3](https://github.com/zioalex/getinspiredbythebible/commit/f4a45b3f20413db9915d626fd07893d32f31c89b))
+
 ## [0.7.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.6.0...v0.7.0) (2026-05-11)
 
 No user-visible changes in this release (infrastructure/pipeline fixes only).
