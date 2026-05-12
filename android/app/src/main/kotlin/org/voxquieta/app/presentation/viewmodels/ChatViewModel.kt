@@ -726,6 +726,15 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /** Deletes ALL conversations from DB and resets in-memory state. */
+    fun clearAllConversations() {
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(null)
+            repository.clearAllConversations()
+        }
+    }
+
     // ---------------------------------------------------------------------------
     // Chapter sheet
     // ---------------------------------------------------------------------------

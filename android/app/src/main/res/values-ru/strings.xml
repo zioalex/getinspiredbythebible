@@ -144,6 +144,11 @@
     <string name="settings_theme_system">Системная</string>
     <string name="bible_translation_section">Перевод Библии</string>
     <string name="bible_translation_default">По умолчанию</string>
+    <string name="settings_current_translation">Текущий перевод</string>
+    <string name="settings_bible_change_from_chat">Изменить в чате</string>
+    <string name="settings_data_privacy_title">Данные и конфиденциальность</string>
+    <string name="settings_clear_history_title">Очистить историю?</string>
+    <string name="settings_clear_history_message">Все беседы будут удалены навсегда.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Поддержка</string>
