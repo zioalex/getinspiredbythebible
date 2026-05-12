@@ -144,6 +144,11 @@
     <string name="settings_theme_system">跟随系统</string>
     <string name="bible_translation_section">圣经译本</string>
     <string name="bible_translation_default">默认</string>
+    <string name="settings_current_translation">当前译本</string>
+    <string name="settings_bible_change_from_chat">从聊天界面更改</string>
+    <string name="settings_data_privacy_title">数据与隐私</string>
+    <string name="settings_clear_history_title">清除对话记录？</string>
+    <string name="settings_clear_history_message">所有对话将被永久删除。</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">支持</string>
