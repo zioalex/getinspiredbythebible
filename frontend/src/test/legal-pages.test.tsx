@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
+import { existsSync } from "fs";
+import { join } from "path";
 import enMessages from "../../messages/en.json";
 
 // Mock next-intl server functions used in server components
@@ -81,4 +83,36 @@ describe("Terms page", () => {
       screen.getByRole("heading", { name: /terms of service/i }),
     ).toBeTruthy();
   });
+});
+
+// Verify that a localized file exists for every non-English locale so the
+// legal pages never silently fall back to English for a translated locale.
+const legalDir = join(process.cwd(), "public", "legal");
+const nonEnglishLocales = [
+  "ar",
+  "de",
+  "es",
+  "fr",
+  "hi",
+  "it",
+  "ko",
+  "pt",
+  "ru",
+  "zh",
+];
+
+describe("Localized legal documents", () => {
+  for (const locale of nonEnglishLocales) {
+    it(`privacy-policy.${locale}.md exists`, () => {
+      expect(existsSync(join(legalDir, `privacy-policy.${locale}.md`))).toBe(
+        true,
+      );
+    });
+
+    it(`terms-of-service.${locale}.md exists`, () => {
+      expect(existsSync(join(legalDir, `terms-of-service.${locale}.md`))).toBe(
+        true,
+      );
+    });
+  }
 });

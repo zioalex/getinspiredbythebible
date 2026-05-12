@@ -2,7 +2,8 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
 export default function Footer() {
-  const t = useTranslations("Legal");
+  const tLegal = useTranslations("Legal");
+  const tFooter = useTranslations("Footer");
 
   return (
     <footer className="border-t border-gray-200 bg-white py-6 mt-8">
@@ -11,13 +12,19 @@ export default function Footer() {
           href="/privacy"
           className="hover:text-primary-700 transition-colors"
         >
-          {t("navPrivacy")}
+          {tLegal("navPrivacy")}
         </Link>
         <Link
           href="/terms"
           className="hover:text-primary-700 transition-colors"
         >
-          {t("navTerms")}
+          {tLegal("navTerms")}
+        </Link>
+        <Link
+          href="/changelog"
+          className="hover:text-primary-700 transition-colors"
+        >
+          {tFooter("changelog")}
         </Link>
       </div>
     </footer>

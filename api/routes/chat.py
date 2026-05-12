@@ -12,7 +12,6 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
-from utils.content_safety import ContentSafetyViolationError
 from utils.logging_config import get_logger
 from utils.metrics import (
     chat_messages_counter,
@@ -71,16 +70,6 @@ async def chat(
         await track_session(db, request.session_id, user_agent=user_agent, language=language)
 
         return response
-    except ContentSafetyViolationError as e:
-        logger.warning("Content safety violation blocked request: %s", e.reason)
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "content_safety_violation",
-                "message": e.user_message,
-                "categories": e.categories,
-            },
-        ) from e
     except RuntimeError as e:
         # Handle "all models rate limited" from OpenRouter fallback
         if "All models rate limited" in str(e):
@@ -130,9 +119,6 @@ async def chat_stream(
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"
             yield "data: [DONE]\n\n"
-        except ContentSafetyViolationError as e:
-            logger.warning("Content safety violation in stream: %s", e.reason)
-            yield f"data: {json.dumps({'type': 'error', 'error': e.user_message, 'error_code': 'content_safety_violation'})}\n\n"
         except RuntimeError as e:
             # Handle "all models rate limited" from OpenRouter fallback
             if "All models rate limited" in str(e):

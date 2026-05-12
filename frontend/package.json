@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/extract-latest-changelog.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/extract-latest-changelog.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -40,7 +42,7 @@
     "postcss": "^8.5.13",
     "tailwindcss": "^3.4.1",
     "typescript": "~5.9.3",
-    "vitest": "^3.0.0"
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "minimatch": ">=10.2.1"

@@ -1,0 +1,155 @@
+name: Android Debug Dump
+
+# Manually-triggered diagnostic workflow that produces the artifacts you need
+# to reason about Android build inputs without a local Android toolchain:
+#
+#   - merged AndroidManifest.xml for release (so you can grep for permissions
+#     like AD_ID and confirm what actually ships in the AAB)
+#   - releaseRuntimeClasspath dependency tree (every Maven coord pulled in,
+#     including transitives — useful to find which AAR declares a permission)
+#   - per-AAR library manifests (so you can attribute a permission to its
+#     declaring module)
+#   - the merger blame report (which library "won" each merge decision)
+#
+# Trigger from the Actions tab → "Android Debug Dump" → Run workflow, or push
+# to a branch matching `debug/*`. Outputs land as a single zip artifact named
+# `android-debug-<run id>` retained for 14 days.
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+    inputs:
+      custom_command:
+        description: >-
+          Optional shell snippet to run AFTER the standard dumps. Executed from the repo root with bash. Stdout/stderr
+          are captured into custom-command.log inside the artifact. Leave empty to skip.
+        required: false
+        default: ""
+      skip_standard_dumps:
+        description: >-
+          Skip the built-in manifest/dependency dumps and ONLY run custom_command. Useful when you only need a one-off
+          probe.
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches: ["debug/*"]
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    name: Dump merged manifest + dependency graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Prepare output dir
+        run: mkdir -p debug-output
+
+      - name: Resolve release runtime classpath
+        if: ${{ inputs.skip_standard_dumps != true }}
+        working-directory: android
+        run: |
+          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath \
+            > ../debug-output/dependencies-release.txt 2>&1
+          # Highlight the lines most relevant to ad-id / analytics debugging
+          {
+            echo "=== Lines mentioning ads-identifier / measurement / analytics / AD_ID ==="
+            grep -E "ads-identifier|measurement|analytics" \
+              ../debug-output/dependencies-release.txt | sort -u || true
+          } > ../debug-output/dependencies-release-highlights.txt
+
+      - name: Build release AAB (produces merged manifest + exploded AARs)
+        if: ${{ inputs.skip_standard_dumps != true }}
+        working-directory: android
+        run: |
+          # processReleaseManifest produces the merged manifest without
+          # triggering the release-signing gate that bundleRelease/assembleRelease
+          # require. We don't need a signed AAB to inspect what permissions
+          # would ship — only the merged manifest. Skip the google-services
+          # plugin's processReleaseGoogleServices task so the workflow doesn't
+          # need the secret-restored google-services.json (it's in .gitignore).
+          ./gradlew :app:processReleaseManifest --no-daemon -x processReleaseGoogleServices
+
+      - name: Collect merged release manifest
+        if: ${{ inputs.skip_standard_dumps != true }}
+        working-directory: android
+        run: |
+          # Path is stable across recent AGP versions; copy whatever we find.
+          find app/build/intermediates/merged_manifest/release -type f \
+            -exec cp -v {} ../debug-output/ \;
+          find app/build/intermediates -name "manifest-merger-*-report.txt" \
+            -exec cp -v {} ../debug-output/ \;
+
+      - name: Attribute permissions to declaring AARs
+        if: ${{ inputs.skip_standard_dumps != true }}
+        working-directory: android
+        run: |
+          out=../debug-output/library-manifests-with-AD_ID.txt
+          : > "$out"
+          # Look in every place AGP unpacks library manifests so we don't miss
+          # a directory rename across AGP versions.
+          for root in \
+              app/build/intermediates/exploded-aar \
+              app/build/intermediates/merged_manifests \
+              app/build/intermediates/library_manifest \
+              app/build/intermediates/aar_libs_directory; do
+            [ -d "$root" ] || continue
+            find "$root" -name AndroidManifest.xml -print0 \
+              | xargs -0 grep -lE "AD_ID" 2>/dev/null >> "$out" || true
+          done
+          echo "=== AARs whose library manifest declares AD_ID ==="
+          cat "$out"
+          echo "=== Their actual <uses-permission> lines ==="
+          while read -r m; do
+            [ -z "$m" ] && continue
+            echo "--- $m ---"
+            grep -nE "AD_ID|uses-permission" "$m" || true
+          done < "$out" >> "$out".context
+
+      - name: Show effective AGP + Gradle versions
+        if: ${{ inputs.skip_standard_dumps != true }}
+        working-directory: android
+        run: |
+          ./gradlew --version > ../debug-output/gradle-version.txt
+          ./gradlew :app:buildEnvironment > ../debug-output/build-environment.txt 2>&1 || true
+
+      - name: Run custom command
+        if: ${{ inputs.custom_command != '' }}
+        env:
+          CUSTOM_COMMAND: ${{ inputs.custom_command }}
+        run: |
+          # Pass via env var (not interpolated into the script body) so the
+          # snippet can't break out of the YAML quoting and there's no risk
+          # of a stray expression being evaluated in a script context.
+          # Captures stdout+stderr and never fails the job — the exit code
+          # is recorded for inspection.
+          {
+            echo "=== custom_command ==="
+            printf '%s\n' "$CUSTOM_COMMAND"
+            echo "=== stdout/stderr ==="
+            bash -lc "$CUSTOM_COMMAND" 2>&1
+            rc=$?
+            echo "=== exit code: $rc ==="
+          } | tee debug-output/custom-command.log
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-${{ github.run_id }}
+          path: debug-output/
+          retention-days: 14
+          if-no-files-found: warn

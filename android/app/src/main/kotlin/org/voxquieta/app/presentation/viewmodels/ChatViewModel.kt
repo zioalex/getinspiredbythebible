@@ -7,12 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
@@ -24,6 +26,7 @@ import org.voxquieta.app.domain.repositories.ChurchRepository
 import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,7 +77,8 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currentLocale: String = "en",
+    // Empty string = no explicit user preference; backend auto-detects from message text.
+    val currentLocale: String = "",
     val isTurnstileReady: Boolean = false,
     /** ID of the currently active conversation; null when no conversation has started. */
     val currentConversationId: String? = null,
@@ -133,8 +137,10 @@ class ChatViewModel @Inject constructor(
     private val themePreferences: ThemePreferences,
     private val translationPreferences: TranslationPreferences,
     private val sessionPreferences: SessionPreferences,
+    private val lastConversationPreferences: LastConversationPreferences,
     private val bibleApiService: BibleApiService,
     private val networkMonitor: NetworkMonitor,
+    private val localeApplier: LocaleApplier,
 ) : ViewModel() {
 
     companion object {
@@ -151,7 +157,10 @@ class ChatViewModel @Inject constructor(
     // first cold-start disk read.  Without this, the state starts as "system" and the
     // async collect in init{} arrives one frame late, causing a brief theme flash.
     private val _uiState = MutableStateFlow(
-        ChatUiState(themeMode = runBlocking { themePreferences.themeModeFlow.first() })
+        ChatUiState(
+            themeMode = runBlocking { themePreferences.themeModeFlow.first() },
+            currentLocale = languagePreferences.readInitial(),
+        )
     )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -213,6 +222,13 @@ class ChatViewModel @Inject constructor(
 
     private val _contactFormState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
     val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
+
+    // Diagnostic-report submission reuses the generic submit-lifecycle states
+    // from [ContactFormState] because the flow is the same: Idle → Submitting →
+    // Success / Error. The bottom sheet renders a spinner, success screen or
+    // inline error message based on this state.
+    private val _diagnosticReportState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
+    val diagnosticReportState: StateFlow<ContactFormState> = _diagnosticReportState.asStateFlow()
 
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
@@ -542,12 +558,14 @@ class ChatViewModel @Inject constructor(
         val newId = UUID.randomUUID().toString()
         val conversation = repository.createConversation(id = newId, title = firstMessageText)
         _uiState.update { it.copy(currentConversationId = conversation.id) }
+        lastConversationPreferences.setLastConversationId(conversation.id)
         return conversation.id
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
         viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
                 // Re-derive allVerses from loaded messages (deduplicated).
                 val allVerses = messages
@@ -557,6 +575,23 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
+    }
+
+    /**
+     * Resolve the conversation to land on at app launch.
+     *
+     * Returns the id of the last conversation the user opened if it still exists,
+     * or `null` if there is no prior conversation. The caller decides whether to
+     * navigate to `chat/<id>` or `chat/new`.
+     */
+    suspend fun resolveResumeConversationId(): String? {
+        val candidate = lastConversationPreferences.getLastConversationId() ?: return null
+        val exists = repository.observeConversations().first().any { it.id == candidate }
+        if (!exists) {
+            lastConversationPreferences.setLastConversationId(null)
+            return null
+        }
+        return candidate
     }
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
@@ -599,10 +634,14 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Updates the language locale in-memory and persists it via DataStore.
+     * Updates the language locale in-memory, persists it via DataStore, and applies
+     * it system-wide so every stringResource() reflects the new locale after the
+     * Activity recreate that AppCompatDelegate.setApplicationLocales triggers.
      */
     fun setLocale(locale: String) {
+        Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
         _uiState.update { it.copy(currentLocale = locale) }
+        localeApplier.apply(locale)
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
         }
@@ -688,8 +727,18 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
+                lastConversationPreferences.setLastConversationId(null)
                 repository.deleteConversation(conversationId)
             }
+        }
+    }
+
+    /** Deletes ALL conversations from DB and resets in-memory state. */
+    fun clearAllConversations() {
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(null)
+            repository.clearAllConversations()
         }
     }
 
@@ -820,24 +869,57 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Debug log export
+    // Diagnostic / bug report
     // ---------------------------------------------------------------------------
 
     /**
-     * Collects in-memory logs from [LogCollector], writes them to a cache file,
-     * and launches the system share sheet so the user can send the log file.
+     * Sends a bug report through the app's built-in contact pipeline (same
+     * backend path used by the contact form) with the user's answers, device
+     * metadata, and current diagnostic log in the message body.
+     *
+     * Transitions [diagnosticReportState] through Submitting → Success or
+     * Error so the bottom sheet can show a spinner, a success screen, or an
+     * inline error message.
      */
-    fun shareDebugLogs(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
+        _diagnosticReportState.value = ContactFormState.Submitting
+        viewModelScope.launch {
             try {
                 val log = LogCollector.getLog()
-                val file = File(context.cacheDir, "bible_inspiration_debug.log")
-                file.writeText(log)
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file,
+                val body = buildBugReportBody(whatWereYouDoing, whatDidYouExpect, log)
+                contactRepository.submitContact(
+                    subject = ContactSubject.BUG,
+                    message = body,
+                    email = null,
+                    userAgent = "Android/${android.os.Build.VERSION.RELEASE} " +
+                        "(SDK ${android.os.Build.VERSION.SDK_INT}; " +
+                        "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL})",
                 )
+                _diagnosticReportState.value = ContactFormState.Success
+                Timber.i("Diagnostic bug report submitted")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send diagnostic email")
+                _diagnosticReportState.value = ContactFormState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the diagnostic-report state to [ContactFormState.Idle]. */
+    fun resetDiagnosticReport() {
+        _diagnosticReportState.value = ContactFormState.Idle
+    }
+
+    /**
+     * Writes the diagnostic log to a cache file and opens the system share
+     * sheet so the user can save or send it via any app of their choice.
+     * This is the secondary "save locally" option in the bug-report flow.
+     */
+    fun saveDiagnosticLogLocally(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val uri = writeLogToCache(context) ?: return@launch
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -855,6 +937,53 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    private fun writeLogToCache(context: Context): android.net.Uri? {
+        return try {
+            val log = LogCollector.getLog()
+            val file = File(context.cacheDir, "bible_inspiration_debug.log")
+            file.writeText(log)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write debug log to cache")
+            null
+        }
+    }
+
+    private fun buildBugReportBody(
+        whatWereYouDoing: String,
+        whatDidYouExpect: String,
+        diagnosticLog: String,
+    ): String {
+        val doing = whatWereYouDoing.trim().ifEmpty { "(not provided)" }
+        val expected = whatDidYouExpect.trim().ifEmpty { "(not provided)" }
+        val log = diagnosticLog.ifBlank { "(no log entries captured)" }
+        val versionName = try {
+            org.voxquieta.app.BuildConfig.VERSION_NAME
+        } catch (_: Throwable) {
+            "unknown"
+        }
+        return buildString {
+            appendLine("What were you doing?")
+            appendLine(doing)
+            appendLine()
+            appendLine("What did you expect to happen?")
+            appendLine(expected)
+            appendLine()
+            appendLine("---")
+            appendLine("App version: $versionName")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine()
+            appendLine("Diagnostic log:")
+            appendLine(log)
+        }
+    }
+
 
     // ---------------------------------------------------------------------------
     // Private helpers

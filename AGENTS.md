@@ -179,6 +179,24 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+### Conventional Commits enforcement
+
+**Conventional Commits are enforced on every PR** via
+`.github/workflows/commitlint.yml` (`wagoid/commitlint-github-action`). PRs
+whose commit messages do not follow the `type(scope): description` format will
+fail CI. See `commitlint.config.cjs` for the full allowed type list.
+
+### Automated release tagging (release-please)
+
+**Do NOT create `vX.Y.Z` git tags manually.** Semver tags are created
+automatically by [release-please](https://github.com/googleapis/release-please)
+whenever a "Release PR" is merged into `main`. The tag triggers
+`android-publish.yml` which uploads the AAB to the Google Play internal track.
+
+See `docs/RELEASE_PROCESS.md` for the full release flow, the required
+`RELEASE_PLEASE_TOKEN` PAT secret, and instructions for promoting builds to
+beta/production.
+
 ### Git Worktree Pattern
 
 When making code changes (especially for Android or any task that should not
@@ -208,6 +226,17 @@ on reboot.
 
 **Always clean up** worktrees with `git worktree remove` after pushing, to
 avoid stale entries accumulating in `.git/worktrees/`.
+
+### Backlog Hygiene
+
+**The backlog is always kept in sync — no exceptions.**
+
+- `docs/BACKLOG.md` is the canonical prioritized list. `docs/BACKLOG_STORIES/` holds the detailed story files.
+- **When creating a new story:** create the full story file in `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md` *and* add a summary entry (status, size, date, one-liner, acceptance criteria, link to full story) in `docs/BACKLOG.md` under the correct priority section.
+- **When completing a story:** update its status to `✅ Done` in `docs/BACKLOG.md`, add the PR number and completion date, and move the full story file to `docs/DONE/` if the folder exists.
+- **When cancelling a story:** mark it `❌ Cancelled` in `docs/BACKLOG.md` with a short reason.
+- **Always update `Last Updated`** at the top of `docs/BACKLOG.md` whenever you touch the file.
+- **Story IDs are sequential.** Before creating a new story, check the highest existing `BITB-NNN` number in `docs/BACKLOG_STORIES/` and increment by one.
 
 ### Branch & PR Hygiene
 

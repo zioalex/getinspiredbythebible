@@ -132,16 +132,44 @@
     <!-- Settings screen -->
     <string name="settings_title">الإعدادات</string>
     <string name="action_open_settings">الإعدادات</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_open_chat_history">فتح سجل الدردشة</string>
+    <string name="action_new_chat">دردشة جديدة</string>
+    <string name="drawer_chat_history_title">سجل الدردشة</string>
+    <string name="drawer_no_conversations">لا توجد محادثات بعد</string>
+    <string name="drawer_see_all_conversations">عرض جميع المحادثات</string>
     <string name="settings_theme_title">السمة</string>
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>
     <string name="settings_theme_system">إعداد النظام</string>
     <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
     <string name="bible_translation_default">افتراضية</string>
+    <string name="settings_current_translation">الترجمة الحالية</string>
+    <string name="settings_bible_change_from_chat">التغيير من شاشة الدردشة</string>
+    <string name="settings_data_privacy_title">البيانات والخصوصية</string>
+    <string name="settings_clear_history_title">مسح سجل المحادثات؟</string>
+    <string name="settings_clear_history_message">سيتم حذف جميع المحادثات نهائيًا.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">الدعم</string>
     <string name="action_send_diagnostic_report">إرسال تقرير تشخيصي</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">الإبلاغ عن خطأ</string>
+    <string name="diagnostic_subtitle">ساعدنا في فهم ما حدث. ستُرفق إجاباتك وسجل التطبيق برسالة بريد إلكتروني.</string>
+    <string name="diagnostic_doing_label">ماذا كنت تفعل؟</string>
+    <string name="diagnostic_doing_placeholder">مثلاً: نقرت على آية فأصبحت الشاشة فارغة</string>
+    <string name="diagnostic_expected_label">ماذا كنت تتوقع أن يحدث؟</string>
+    <string name="diagnostic_expected_placeholder">مثلاً: كان من المفترض أن تُفتح الآية في لوحة سفلية</string>
+    <string name="diagnostic_attachment_note">سيتم إرفاق سجل تصحيح (بدون بيانات شخصية) ومعلومات أساسية عن الجهاز.</string>
+    <string name="diagnostic_send_email_button">إرسال البريد الإلكتروني مع السجل</string>
+    <string name="diagnostic_save_locally_link">أو حفظ السجل على هذا الجهاز</string>
+    <string name="diagnostic_email_subject">تقرير خطأ Vox Quieta</string>
+    <string name="diagnostic_no_email_app">لا يوجد تطبيق بريد إلكتروني مهيأ على هذا الجهاز. تم حفظ السجل بدلاً من ذلك.</string>
+    <string name="diagnostic_save_failed">تعذّر حفظ سجل التشخيص.</string>
+    <string name="diagnostic_success_title">تم إرسال تقرير الخطأ</string>
+    <string name="diagnostic_success_description">شكرًا — تلقّينا تقريرك وسنراجعه قريبًا.</string>
+
     <string name="settings_about_title">حول</string>
     <string name="settings_version">الإصدار</string>
     <string name="settings_privacy_policy">سياسة الخصوصية</string>
@@ -170,7 +198,7 @@
     <string name="church_finder_find_church">ابحث عن كنيسة</string>
     <string name="church_finder_dismiss">تجاهل</string>
     <string name="church_finder_modal_title">ابحث عن كنيسة</string>
-    <string name="church_finder_modal_subtitle">تواصل مع مجتمع إيماني بالقرب منك</string>
+    <string name="action_close_church_finder">إغلاق محدد الكنائس</string>
     <string name="church_finder_search_placeholder">مدينة بالإنجليزية (مثل: Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">بحث</string>
     <string name="church_finder_location_hint">استخدم أسماء المدن بالإنجليزية</string>

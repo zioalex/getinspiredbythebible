@@ -13,6 +13,22 @@ on:
           - internal
           - beta
           - production
+      version_code:
+        description: "Override versionCode (empty = use github.run_number)."
+        required: false
+        type: string
+      version_name:
+        description: "Override versionName (empty = read from build.gradle.kts)."
+        required: false
+        type: string
+      release_status:
+        description: "Play Store release status (draft = save only; completed = make available to testers)."
+        required: false
+        default: "draft"
+        type: choice
+        options:
+          - draft
+          - completed
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
@@ -48,19 +64,40 @@ jobs:
       - name: Write google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
 
-      - name: Compute version code from tag
+      - name: Compute version code and name
         id: version
+        env:
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
         run: |
+          # versionCode rules from Play Console:
+          #   - Each AAB must use a strictly greater versionCode than every
+          #     previously-uploaded one (across all tracks) or upload is rejected.
+          #   - github.run_number doesn't satisfy this: it stays the same on
+          #     workflow re-runs, and can wrap below the manually-uploaded code.
+          # Solution: derive versionCode from a Unix-epoch timestamp captured at
+          # build time. Always strictly increases per second, never collides
+          # across re-runs, and stays well under Android's 2.1B versionCode max
+          # for the next ~6 years. versionName stays human-readable (from tag
+          # or input or build.gradle.kts).
+          BUILD_EPOCH="$(date +%s)"
+
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            TAG="${GITHUB_REF_NAME}"          # e.g. v1.2.3
-            VERSION_NAME="${TAG#v}"           # e.g. 1.2.3
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
-            VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+            TAG="${GITHUB_REF_NAME}"
+            VERSION_NAME="${TAG#v}"
+          elif [[ -n "$INPUT_VERSION_NAME" ]]; then
+            VERSION_NAME="$INPUT_VERSION_NAME"
           else
             VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
               | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
-            VERSION_CODE="$(grep versionCode android/app/build.gradle.kts | head -1 | grep -oP '\d+')"
           fi
+
+          if [[ -n "$INPUT_VERSION_CODE" ]]; then
+            VERSION_CODE="$INPUT_VERSION_CODE"
+          else
+            VERSION_CODE="$BUILD_EPOCH"
+          fi
+          echo "Using versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}"
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
           echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
 
@@ -105,6 +142,7 @@ jobs:
         working-directory: android
         env:
           GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
+          RELEASE_STATUS: ${{ inputs.release_status || 'draft' }}
         run: fastlane ${{ steps.lane.outputs.lane }}
 
       - name: Upload AAB artifact

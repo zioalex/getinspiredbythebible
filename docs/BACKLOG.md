@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -533,7 +533,81 @@ Testing & Documentation:
 
 ---
 
+### 🎯 BITB-027: Android Chat-First Navigation with History Drawer
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-05-10
+
+**As an** Android user,
+**I want** the app to open directly into the chat experience (resuming my last conversation),
+**so that** I can start interacting immediately with my chat history one tap away behind a drawer.
+
+**Why P1:** Every launch forces users through a list screen before they can interact — this is the primary funnel and directly affects retention.
+
+**Acceptance Criteria:**
+
+- [ ] After `splash`, app navigates directly to `ChatScreen` with the last-used conversation pre-loaded
+- [ ] If no prior conversation exists, a fresh one is created and example prompts are visible
+- [ ] Hamburger icon on **top-left** opens a `ModalNavigationDrawer` listing past conversations + "+ New chat" + Settings link
+- [ ] **"+ New chat"** icon on **top-right** creates a new conversation (replaces back-stack entry)
+- [ ] System Back from resumed chat exits the app (no intermediate conversations list)
+- [ ] Swipe-from-left edge opens the drawer
+- [ ] Last opened conversation id persists in DataStore across app restarts
+- [ ] No regression in deep-links to `chat/{conversationId}`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-027-android-chat-first-navigation.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-029: Surface Bible Version Information More Clearly
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-05-10
+
+**As a** user reading AI answers with verse references,
+**I want** the active Bible version to be visible and easy to open,
+**so that** I can quickly confirm which translation is being used.
+
+**Acceptance Criteria:**
+
+- [ ] Active Bible version is shown prominently in the chat experience (web and Android) near verse responses
+- [ ] Tapping/clicking the version indicator opens or navigates to the existing Bible version information surface
+- [ ] If a user asks "which Bible version are you using?" (or equivalent), the assistant points them to the Bible version information location
+- [ ] The "point back to version info" behavior is applied consistently across supported locales
+- [ ] No change to scripture retrieval logic; this story focuses on visibility and response guidance only
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-029-surface-bible-version-information.md`
+
+---
+
+### 🎯 BITB-026: Android Settings UX Improvements
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-05-08
+
+**As an** Android user,
+**I want** the Settings screen to be clean and purposeful,
+**so that** I can find global preferences quickly without redundant controls that already exist in the chat screen.
+
+**Problem:** The Settings screen duplicates the Bible translation picker that already exists as an in-chat bottom sheet. Both write to the same DataStore key, making the Settings version redundant and the page unnecessarily long.
+
+**Acceptance Criteria:**
+
+- [ ] Bible translation radio-button list removed from `SettingsScreen.kt`
+- [ ] Read-only "Current translation" row added with a "Change from the chat screen" hint
+- [ ] "Clear conversation history" button added with confirmation dialog (new Data & Privacy section)
+- [ ] Settings sections reordered: Appearance → Bible → Data & Privacy → Support → Contact → About
+- [ ] In-chat translation chip still persists selection across restarts (no regression)
+- [ ] All existing preference unit tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-026-android-settings-improvements.md`
+
+---
 
 ### 🎯 BITB-006: Add Staging Environment
 
@@ -665,6 +739,50 @@ Testing & Documentation:
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hours)
+**Created:** 2026-05-10
+
+**As an** Android user on the Chat screen,
+**I want** the top-right of the screen to expose only the controls I reach for most often (language, Bible version, and the verses panel when present),
+**so that** the top bar stays uncluttered while less-frequent actions live in the left hamburger drawer.
+
+**Acceptance Criteria:**
+
+- [ ] `ChatScreen` `TopAppBar.actions` shows only Bible-version chip, verses panel (conditional), and language picker — in that order
+- [ ] Drawer adds "Clear conversation" entry (visible only when messages exist); New chat / Settings preserved
+- [ ] `chatTopBarPolicy(...)` pure helper covers the visibility rules and is unit-tested
+- [ ] No new string resources, no ViewModel / navigation changes, no other screens touched
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-030-android-chat-language-picker.md`
+
+---
+
+### 🎯 BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
+
+**Status:** 🎯 Todo
+**Size:** XS (< 1 hour)
+**Created:** 2026-05-10
+
+**As an** Android user,
+**I want** a clean, single-tap way to dismiss the church-finder banner *and* the bottom sheet,
+**so that** I'm not distracted by unclear secondary text or low-contrast "Dismiss" labels.
+
+**Acceptance Criteria:**
+
+- [ ] Right-side subtitle text removed from the Church Finder bottom sheet header
+- [ ] Close (X) `IconButton` added on the right of the bottom sheet header, dismissing the sheet on tap
+- [ ] In-chat suggestion banner replaces the "Dismiss" text label with a clear `Icons.Default.Close` icon
+- [ ] Banner close icon has a `contentDescription` for accessibility
+- [ ] Swipe-to-dismiss still works on the bottom sheet (no regression)
+- [ ] No changes to search behaviour or `ChurchResultCard` content
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-028-church-finder-bottom-sheet-cleanup.md`
+
+---
 
 ### 🎯 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 

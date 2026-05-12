@@ -3,12 +3,14 @@ package org.voxquieta.app.viewmodels
 import android.content.Context
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
 import org.voxquieta.app.domain.models.ChatRequest
@@ -26,6 +28,8 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
+import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -70,8 +74,12 @@ class ChatViewModelTest {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var translationPreferences: TranslationPreferences
     private lateinit var sessionPreferences: SessionPreferences
+    private lateinit var lastConversationPreferences: LastConversationPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var networkMonitor: NetworkMonitor
+    private val localeApplier: LocaleApplier = object : LocaleApplier {
+        override fun apply(languageTag: String) { /* no-op for unit tests */ }
+    }
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -95,6 +103,7 @@ class ChatViewModelTest {
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
+        every { languagePreferences.readInitial() } returns "en"
         context = mockk {
             every { getString(R.string.error_network) } returns "Network error. Please check your connection."
             every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
@@ -111,6 +120,8 @@ class ChatViewModelTest {
         every { translationPreferences.preferredTranslationFlow } returns flowOf("")
         sessionPreferences = mockk(relaxed = true)
         coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
+        lastConversationPreferences = mockk(relaxed = true)
+        coEvery { lastConversationPreferences.getLastConversationId() } returns null
         bibleApiService = mockk(relaxed = true)
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
         viewModel = ChatViewModel(
@@ -123,13 +134,16 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
     }
 
     @After
     fun tearDown() {
+        LogCollector.clear()
         Dispatchers.resetMain()
     }
 
@@ -457,8 +471,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -481,8 +497,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -511,8 +529,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -545,8 +565,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.availableTranslations.value.isEmpty())
@@ -584,8 +606,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -613,8 +637,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1303,6 +1329,64 @@ class ChatViewModelTest {
         coVerify(exactly = 0) { contactRepository.submitContact(any(), any(), any(), any()) }
     }
 
+    @Test
+    fun `sendDiagnosticEmail submits bug report via contact repository`() = runTest {
+        val infoPriority = 4
+        val mockSubmissionId = 99
+        val messageSlot = slot<String>()
+        LogCollector.log(priority = infoPriority, tag = "Test", message = "Diagnostic line", t = null)
+        coEvery { contactRepository.submitContact(any(), capture(messageSlot), any(), any()) } returns mockSubmissionId
+
+        viewModel.sendDiagnosticEmail("Opening settings", "Bottom sheet should stay open")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            contactRepository.submitContact(
+                subject = ContactSubject.BUG,
+                message = any(),
+                email = null,
+                userAgent = any(),
+            )
+        }
+        assertTrue(messageSlot.captured.contains("What were you doing?\nOpening settings"))
+        assertTrue(messageSlot.captured.contains("What did you expect to happen?\nBottom sheet should stay open"))
+        assertTrue(messageSlot.captured.contains("Diagnostic log:\nI/Test: Diagnostic line"))
+    }
+
+    @Test
+    fun `sendDiagnosticEmail transitions state to Success on success`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 42
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+    }
+
+    @Test
+    fun `sendDiagnosticEmail transitions state to Error on failure`() = runTest {
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws IOException("no network")
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `resetDiagnosticReport returns state to Idle`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
+        viewModel.sendDiagnosticEmail("Doing", "Expected")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+
+        viewModel.resetDiagnosticReport()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Idle)
+    }
+
     // ── allVerses (GAP-011) ───────────────────────────────────────────────────
 
     @Test
@@ -1398,5 +1482,93 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    // ── Language seeding (new) ────────────────────────────────────────────────
+
+    @Test
+    fun `initial currentLocale is seeded synchronously from languagePreferences readInitial`() {
+        every { languagePreferences.readInitial() } returns "de"
+        every { languagePreferences.languageFlow } returns flowOf("de")
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        assertEquals("de", vm.uiState.value.currentLocale)
+    }
+
+    @Test
+    fun `sendMessage omits language when currentLocale is empty`() = runTest {
+        every { languagePreferences.readInitial() } returns ""
+        every { languagePreferences.languageFlow } returns flowOf("")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Ciao come stai?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(requestSlot.captured.language)
+    }
+
+    @Test
+    fun `sendMessage sends language when user explicitly selected a code`() = runTest {
+        every { languagePreferences.readInitial() } returns "it"
+        every { languagePreferences.languageFlow } returns flowOf("it")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("it", requestSlot.captured.language)
     }
 }

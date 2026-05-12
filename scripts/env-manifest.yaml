@@ -48,6 +48,13 @@ variables:
     description: Anthropic API key for Claude
     sensitive: true
 
+  # OpenAI-specific
+  OPENAI_API_KEY:
+    required_in: both
+    condition: LLM_PROVIDER=openai
+    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes)
+    sensitive: true
+
   # OpenRouter-specific
   OPENROUTER_API_KEY:
     required_in: both

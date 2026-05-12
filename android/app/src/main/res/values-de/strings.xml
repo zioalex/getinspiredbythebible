@@ -132,16 +132,44 @@
     <!-- Settings screen -->
     <string name="settings_title">Einstellungen</string>
     <string name="action_open_settings">Einstellungen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_open_chat_history">Chat-Verlauf öffnen</string>
+    <string name="action_new_chat">Neuer Chat</string>
+    <string name="drawer_chat_history_title">Chat-Verlauf</string>
+    <string name="drawer_no_conversations">Noch keine Unterhaltungen</string>
+    <string name="drawer_see_all_conversations">Alle Unterhaltungen anzeigen</string>
     <string name="settings_theme_title">Design</string>
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_theme_system">Systemstandard</string>
     <string name="bible_translation_section">Bibelübersetzung</string>
     <string name="bible_translation_default">Standard</string>
+    <string name="settings_current_translation">Aktuelle Übersetzung</string>
+    <string name="settings_bible_change_from_chat">Im Chat-Bildschirm ändern</string>
+    <string name="settings_data_privacy_title">Daten &amp; Datenschutz</string>
+    <string name="settings_clear_history_title">Verlauf löschen?</string>
+    <string name="settings_clear_history_message">Alle Gespräche werden dauerhaft gelöscht.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Diagnosebericht senden</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Fehler melden</string>
+    <string name="diagnostic_subtitle">Hilf uns herauszufinden, was schiefgelaufen ist. Deine Antworten und das App-Protokoll werden an eine E-Mail angehängt.</string>
+    <string name="diagnostic_doing_label">Was hast du gerade gemacht?</string>
+    <string name="diagnostic_doing_placeholder">z. B. Ich habe auf einen Vers getippt und der Bildschirm wurde leer</string>
+    <string name="diagnostic_expected_label">Was hattest du erwartet?</string>
+    <string name="diagnostic_expected_placeholder">z. B. Der Vers sollte sich in einem Bereich öffnen</string>
+    <string name="diagnostic_attachment_note">Ein Debug-Protokoll (ohne persönliche Daten) und grundlegende Geräteinformationen werden angehängt.</string>
+    <string name="diagnostic_send_email_button">E-Mail mit Protokoll senden</string>
+    <string name="diagnostic_save_locally_link">Oder Protokoll auf diesem Gerät speichern</string>
+    <string name="diagnostic_email_subject">Vox Quieta Fehlerbericht</string>
+    <string name="diagnostic_no_email_app">Auf diesem Gerät ist keine E-Mail-App eingerichtet. Das Protokoll wurde stattdessen gespeichert.</string>
+    <string name="diagnostic_save_failed">Das Diagnoseprotokoll konnte nicht gespeichert werden.</string>
+    <string name="diagnostic_success_title">Fehlerbericht gesendet</string>
+    <string name="diagnostic_success_description">Danke — wir haben deinen Bericht erhalten und werden ihn bald prüfen.</string>
+
     <string name="settings_about_title">Über</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Datenschutzrichtlinie</string>
@@ -170,7 +198,7 @@
     <string name="church_finder_find_church">Kirche finden</string>
     <string name="church_finder_dismiss">Schließen</string>
     <string name="church_finder_modal_title">Kirche finden</string>
-    <string name="church_finder_modal_subtitle">Treten Sie einer Glaubensgemeinschaft in Ihrer Nähe bei</string>
+    <string name="action_close_church_finder">Kirchensuche schließen</string>
     <string name="church_finder_search_placeholder">Stadt auf Englisch (z. B. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Suchen</string>
     <string name="church_finder_location_hint">Bitte englische Städtenamen verwenden</string>
