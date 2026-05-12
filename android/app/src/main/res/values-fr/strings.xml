@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Rapport de bug Vox Quieta</string>
     <string name="diagnostic_no_email_app">Aucune application e-mail n\'est configurée. Le journal a été enregistré.</string>
     <string name="diagnostic_save_failed">Impossible d\'enregistrer le journal de diagnostic.</string>
+    <string name="diagnostic_success_title">Rapport envoyé</string>
+    <string name="diagnostic_success_description">Merci — nous avons reçu votre rapport et nous l\'examinerons sous peu.</string>
 
     <string name="settings_about_title">À propos</string>
     <string name="settings_version">Version</string>

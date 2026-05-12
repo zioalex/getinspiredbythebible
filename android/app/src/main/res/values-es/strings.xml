@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Informe de error de Vox Quieta</string>
     <string name="diagnostic_no_email_app">No hay ninguna app de correo configurada. El registro se guardó.</string>
     <string name="diagnostic_save_failed">No se pudo guardar el registro de diagnóstico.</string>
+    <string name="diagnostic_success_title">Informe enviado</string>
+    <string name="diagnostic_success_description">Gracias — hemos recibido tu informe y lo revisaremos pronto.</string>
 
     <string name="settings_about_title">Acerca de</string>
     <string name="settings_version">Versión</string>

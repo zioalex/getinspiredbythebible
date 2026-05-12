@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Vox Quieta Fehlerbericht</string>
     <string name="diagnostic_no_email_app">Auf diesem Gerät ist keine E-Mail-App eingerichtet. Das Protokoll wurde stattdessen gespeichert.</string>
     <string name="diagnostic_save_failed">Das Diagnoseprotokoll konnte nicht gespeichert werden.</string>
+    <string name="diagnostic_success_title">Fehlerbericht gesendet</string>
+    <string name="diagnostic_success_description">Danke — wir haben deinen Bericht erhalten und werden ihn bald prüfen.</string>
 
     <string name="settings_about_title">Über</string>
     <string name="settings_version">Version</string>

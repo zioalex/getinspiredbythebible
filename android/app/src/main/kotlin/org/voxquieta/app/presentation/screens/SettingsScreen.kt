@@ -70,6 +70,7 @@ fun SettingsScreen(
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val contactFormState by viewModel.contactFormState.collectAsState()
+    val diagnosticReportState by viewModel.diagnosticReportState.collectAsState()
     val context = LocalContext.current
     val currentLanguage = LocalConfiguration.current.locales[0].language
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
@@ -261,15 +262,19 @@ fun SettingsScreen(
         // ── Diagnostic report bottom sheet ─────────────────────────────────────
         if (showDiagnosticSheet) {
             DiagnosticReportBottomSheet(
+                formState = diagnosticReportState,
                 onSendEmail = { doing, expected ->
                     viewModel.sendDiagnosticEmail(doing, expected)
-                    showDiagnosticSheet = false
                 },
                 onSaveLocally = {
                     viewModel.saveDiagnosticLogLocally(context)
                     showDiagnosticSheet = false
+                    viewModel.resetDiagnosticReport()
                 },
-                onDismiss = { showDiagnosticSheet = false },
+                onDismiss = {
+                    showDiagnosticSheet = false
+                    viewModel.resetDiagnosticReport()
+                },
             )
         }
     }

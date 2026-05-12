@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,13 +41,17 @@ import org.voxquieta.app.R
  * Bottom sheet that lets the user file a bug report. Collects two short answers
  * (what they were doing / what they expected) and offers two actions:
  *
- *  1. Primary — open an email composer with the answers prefilled and the
- *     diagnostic log attached.
- *  2. Secondary — save the log to local storage via the system share sheet.
+ *  1. Primary — submit the report through the built-in contact pipeline
+ *     (same backend path the contact form uses). The sheet stays open and
+ *     reflects [formState] so the user sees a spinner, a success screen, or
+ *     an inline error message rather than the sheet silently closing.
+ *  2. Secondary — save the full diagnostic log locally via the system share
+ *     sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagnosticReportBottomSheet(
+    formState: ContactFormState,
     onSendEmail: (whatWereYouDoing: String, whatDidYouExpect: String) -> Unit,
     onSaveLocally: () -> Unit,
     onDismiss: () -> Unit,
@@ -91,6 +96,35 @@ fun DiagnosticReportBottomSheet(
                 }
             }
 
+            // ── Success state ─────────────────────────────────────────────────
+            if (formState is ContactFormState.Success) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.diagnostic_success_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = stringResource(R.string.diagnostic_success_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                }
+                return@Column
+            }
+
+            val isSubmitting = formState is ContactFormState.Submitting
+
             OutlinedTextField(
                 value = doingInput,
                 onValueChange = { doingInput = it },
@@ -100,6 +134,7 @@ fun DiagnosticReportBottomSheet(
                 maxLines = 6,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                enabled = !isSubmitting,
             )
 
             OutlinedTextField(
@@ -111,6 +146,7 @@ fun DiagnosticReportBottomSheet(
                 maxLines = 6,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                enabled = !isSubmitting,
             )
 
             Text(
@@ -119,17 +155,36 @@ fun DiagnosticReportBottomSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // ── Error ─────────────────────────────────────────────────────────
+            if (formState is ContactFormState.Error) {
+                Text(
+                    text = formState.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
             Button(
                 onClick = { onSendEmail(doingInput, expectedInput) },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = !isSubmitting,
             ) {
-                Text(stringResource(R.string.diagnostic_send_email_button))
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text(stringResource(R.string.diagnostic_send_email_button))
+                }
             }
 
             // Secondary, less prominent option to save the raw log without sending.
             TextButton(
                 onClick = onSaveLocally,
                 modifier = Modifier.fillMaxWidth(),
+                enabled = !isSubmitting,
             ) {
                 Text(
                     text = stringResource(R.string.diagnostic_save_locally_link),

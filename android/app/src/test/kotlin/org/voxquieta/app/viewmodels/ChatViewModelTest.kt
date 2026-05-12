@@ -1353,6 +1353,40 @@ class ChatViewModelTest {
         assertTrue(messageSlot.captured.contains("Diagnostic log:\nI/Test: Diagnostic line"))
     }
 
+    @Test
+    fun `sendDiagnosticEmail transitions state to Success on success`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 42
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+    }
+
+    @Test
+    fun `sendDiagnosticEmail transitions state to Error on failure`() = runTest {
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws IOException("no network")
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `resetDiagnosticReport returns state to Idle`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
+        viewModel.sendDiagnosticEmail("Doing", "Expected")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+
+        viewModel.resetDiagnosticReport()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Idle)
+    }
+
     // ── allVerses (GAP-011) ───────────────────────────────────────────────────
 
     @Test

@@ -162,6 +162,8 @@
     <string name="diagnostic_email_subject">Relatório de erro Vox Quieta</string>
     <string name="diagnostic_no_email_app">Nenhum app de e-mail configurado. O log foi salvo.</string>
     <string name="diagnostic_save_failed">Não foi possível salvar o log de diagnóstico.</string>
+    <string name="diagnostic_success_title">Relatório enviado</string>
+    <string name="diagnostic_success_description">Obrigado — recebemos seu relatório e o analisaremos em breve.</string>
 
     <string name="settings_about_title">Sobre</string>
     <string name="settings_version">Versão</string>
