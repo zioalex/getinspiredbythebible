@@ -36,6 +36,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -578,6 +579,60 @@ class ChatViewModelTest {
 
         assertEquals(1, vm.availableTranslations.value.size)
         assertEquals("ESV", vm.availableTranslations.value[0].id)
+    }
+
+    @Test
+    fun `fetchTranslationsWithRetry propagates CancellationException without retrying`() = runTest {
+        // Use a local mock so the setUp viewModel's pending coroutines (which share the
+        // class-level bibleApiService mock) don't contribute extra invocations to the count.
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } throws CancellationException("scope cancelled")
+
+        ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // CancellationException must be re-thrown, not caught as a transient error:
+        // if it were swallowed, all 3 retry attempts would execute.
+        coVerify(exactly = 1) { localApiService.getTranslations() }
+    }
+
+    @Test
+    fun `fetchBookNamesWithRetry propagates CancellationException without retrying`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getBookNames() } throws CancellationException("scope cancelled")
+
+        ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { localApiService.getBookNames() }
     }
 
     @Test
