@@ -15,8 +15,10 @@ import org.voxquieta.app.domain.models.FeedbackRating
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.StreamChunk
 import org.voxquieta.app.domain.repositories.ChatRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
@@ -33,7 +35,7 @@ class ChatRepositoryImpl @Inject constructor(
         // runs within a coroutine context, then forward each parsed chunk downstream.
         val responseBody = api.chatStream(request.toDto())
         responseBody.toChunkFlow().collect { emit(it.toDomain()) }
-    }
+    }.flowOn(Dispatchers.IO)
 
     // ── Persistence ───────────────────────────────────────────────────────────
 

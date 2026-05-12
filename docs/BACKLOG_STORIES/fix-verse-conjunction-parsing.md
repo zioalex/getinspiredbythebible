@@ -1,5 +1,7 @@
 # User Story: Fix Verse Reference Parsing for Multi-Language Conjunctions
 
+**Status:** ✅ Done (CONJUNCTIONS set in verseExtraction.ts + ChatMessage.tsx; backend verse_parser.py naturally excludes conjunctions as they are not in ALL_BOOK_NAMES)
+
 **As a** user reading AI responses in Italian, Spanish, German, or French
 **I want** verse references like "Salmi 51:6 e 51:17" to be parsed correctly
 **So that** I can click on verse references without encountering broken links

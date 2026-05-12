@@ -132,16 +132,44 @@
     <!-- Settings screen -->
     <string name="settings_title">सेटिंग्स</string>
     <string name="action_open_settings">सेटिंग्स</string>
+    <string name="action_back">वापस</string>
+    <string name="action_open_chat_history">चैट इतिहास खोलें</string>
+    <string name="action_new_chat">नई चैट</string>
+    <string name="drawer_chat_history_title">चैट इतिहास</string>
+    <string name="drawer_no_conversations">अभी तक कोई बातचीत नहीं</string>
+    <string name="drawer_see_all_conversations">सभी बातचीत देखें</string>
     <string name="settings_theme_title">थीम</string>
     <string name="settings_theme_light">हल्का</string>
     <string name="settings_theme_dark">गहरा</string>
     <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
     <string name="bible_translation_section">बाइबिल अनुवाद</string>
     <string name="bible_translation_default">डिफ़ॉल्ट</string>
+    <string name="settings_current_translation">वर्तमान अनुवाद</string>
+    <string name="settings_bible_change_from_chat">चैट स्क्रीन से बदलें</string>
+    <string name="settings_data_privacy_title">डेटा और गोपनीयता</string>
+    <string name="settings_clear_history_title">इतिहास मिटाएं?</string>
+    <string name="settings_clear_history_message">सभी बातचीत स्थायी रूप से हटा दी जाएंगी।</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">सहायता</string>
     <string name="action_send_diagnostic_report">निदान रिपोर्ट भेजें</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">बग रिपोर्ट करें</string>
+    <string name="diagnostic_subtitle">हमें यह समझने में मदद करें कि क्या गलत हुआ। आपके उत्तर और ऐप लॉग एक ईमेल में संलग्न किए जाएँगे।</string>
+    <string name="diagnostic_doing_label">आप क्या कर रहे थे?</string>
+    <string name="diagnostic_doing_placeholder">उदा. मैंने एक पद पर टैप किया और स्क्रीन खाली हो गई</string>
+    <string name="diagnostic_expected_label">आपने क्या होने की उम्मीद की थी?</string>
+    <string name="diagnostic_expected_placeholder">उदा. पद को एक पैनल में खुलना चाहिए था</string>
+    <string name="diagnostic_attachment_note">एक डिबग लॉग (कोई व्यक्तिगत डेटा नहीं) और बुनियादी डिवाइस जानकारी संलग्न की जाएगी।</string>
+    <string name="diagnostic_send_email_button">लॉग के साथ ईमेल भेजें</string>
+    <string name="diagnostic_save_locally_link">या इस डिवाइस पर लॉग सहेजें</string>
+    <string name="diagnostic_email_subject">Vox Quieta बग रिपोर्ट</string>
+    <string name="diagnostic_no_email_app">इस डिवाइस पर कोई ईमेल ऐप सेट नहीं है। लॉग सहेज लिया गया है।</string>
+    <string name="diagnostic_save_failed">डायग्नोस्टिक लॉग सहेजा नहीं जा सका।</string>
+    <string name="diagnostic_success_title">बग रिपोर्ट भेज दी गई</string>
+    <string name="diagnostic_success_description">धन्यवाद — हमें आपकी रिपोर्ट मिल गई है और हम जल्द ही इसकी समीक्षा करेंगे।</string>
+
     <string name="settings_about_title">के बारे में</string>
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>
@@ -170,7 +198,7 @@
     <string name="church_finder_find_church">चर्च खोजें</string>
     <string name="church_finder_dismiss">बंद करें</string>
     <string name="church_finder_modal_title">चर्च खोजें</string>
-    <string name="church_finder_modal_subtitle">अपने पास के विश्वास समुदाय से जुड़ें</string>
+    <string name="action_close_church_finder">चर्च खोजक बंद करें</string>
     <string name="church_finder_search_placeholder">शहर का अंग्रेजी नाम (जैसे Delhi, Mumbai)</string>
     <string name="church_finder_search_button">खोजें</string>
     <string name="church_finder_location_hint">शहरों के अंग्रेजी नामों का उपयोग करें</string>

@@ -129,14 +129,41 @@
     <!-- Settings screen -->
     <string name="settings_title">Settings</string>
     <string name="action_open_settings">Settings</string>
+    <string name="action_back">Back</string>
+    <string name="action_open_chat_history">Open chat history</string>
+    <string name="action_new_chat">New chat</string>
+    <string name="drawer_chat_history_title">Chat history</string>
+    <string name="drawer_no_conversations">No conversations yet</string>
+    <string name="drawer_see_all_conversations">See all conversations</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_system">System default</string>
     <string name="bible_translation_section">Bible Translation</string>
     <string name="bible_translation_default">Default</string>
+    <string name="settings_current_translation">Current translation</string>
+    <string name="settings_bible_change_from_chat">Change from the chat screen</string>
+    <string name="settings_data_privacy_title">Data &amp; Privacy</string>
+    <string name="settings_clear_history_title">Clear conversation history?</string>
+    <string name="settings_clear_history_message">This will permanently delete all your conversations.</string>
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Send Diagnostic Report</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Send a bug report</string>
+    <string name="diagnostic_subtitle">Help us fix what went wrong. Your answers and the app log will be included in the report we send.</string>
+    <string name="diagnostic_doing_label">What were you doing?</string>
+    <string name="diagnostic_doing_placeholder">e.g. I tapped a verse chip and the screen went blank</string>
+    <string name="diagnostic_expected_label">What did you expect to happen?</string>
+    <string name="diagnostic_expected_placeholder">e.g. The verse text should have opened in a bottom sheet</string>
+    <string name="diagnostic_attachment_note">A debug log (no personal data) and basic device info will be included.</string>
+    <string name="diagnostic_send_email_button">Send report with log</string>
+    <string name="diagnostic_save_locally_link">Or save the log to this device</string>
+    <string name="diagnostic_email_subject">Vox Quieta bug report</string>
+    <string name="diagnostic_no_email_app">No email app is set up on this device. The log was saved instead.</string>
+    <string name="diagnostic_save_failed">Could not save the diagnostic log.</string>
+    <string name="diagnostic_success_title">Bug report sent</string>
+    <string name="diagnostic_success_description">Thanks — we received your report and will review it soon.</string>
 
     <!-- Settings: About section -->
     <string name="settings_about_title">About</string>
@@ -180,7 +207,7 @@
     <string name="church_finder_find_church">Find a Church</string>
     <string name="church_finder_dismiss">Dismiss</string>
     <string name="church_finder_modal_title">Find a Church</string>
-    <string name="church_finder_modal_subtitle">Connect with a faith community near you</string>
+    <string name="action_close_church_finder">Close church finder</string>
     <string name="church_finder_search_placeholder">City in English (e.g., Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Search</string>
     <string name="church_finder_location_hint">Use English city names (e.g., Rome, Munich, Vienna)</string>

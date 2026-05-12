@@ -16,8 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiOff
@@ -26,12 +29,19 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -41,6 +51,7 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -67,6 +78,7 @@ import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
+import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +86,11 @@ import kotlinx.coroutines.launch
 fun ChatScreen(
     conversationId: String? = null,
     onOpenSettings: () -> Unit = {},
+    onOpenAllConversations: () -> Unit = {},
+    onSelectConversation: (String) -> Unit = {},
+    onNewConversation: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
+    conversationsViewModel: ConversationsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val chapterSheetState by viewModel.chapterSheetState.collectAsState()
@@ -117,6 +133,9 @@ fun ChatScreen(
 
     // Whether the translation picker bottom sheet should be open.
     var showTranslationPicker by rememberSaveable { mutableStateOf(false) }
+
+    // Whether the language picker dropdown menu should be open.
+    var showLanguageMenu by remember { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     LaunchedEffect(conversationId) {
@@ -196,6 +215,43 @@ fun ChatScreen(
         preferredTranslation.uppercase()
     }
 
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val conversations by conversationsViewModel.conversations.collectAsState()
+    val topBarPolicy = chatTopBarPolicy(
+        versesCount = uiState.allVerses.size,
+        messagesCount = uiState.messages.size,
+    )
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ChatHistoryDrawer(
+                conversations = conversations,
+                currentConversationId = uiState.currentConversationId,
+                hasMessages = topBarPolicy.showClearConversationInDrawer,
+                onNewChat = {
+                    scope.launch { drawerState.close() }
+                    onNewConversation()
+                },
+                onSelectConversation = { id ->
+                    scope.launch { drawerState.close() }
+                    onSelectConversation(id)
+                },
+                onOpenAllConversations = {
+                    scope.launch { drawerState.close() }
+                    onOpenAllConversations()
+                },
+                onClearConversation = {
+                    scope.launch { drawerState.close() }
+                    viewModel.clearConversation()
+                },
+                onOpenSettings = {
+                    scope.launch { drawerState.close() }
+                    onOpenSettings()
+                },
+            )
+        },
+    ) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -204,6 +260,14 @@ fun ChatScreen(
                         text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.titleMedium,
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.action_open_chat_history),
+                        )
+                    }
                 },
                 actions = {
                     // Bible translation chip — always visible so users can switch versions.
@@ -222,7 +286,7 @@ fun ChatScreen(
                         modifier = Modifier.padding(end = 4.dp),
                     )
                     // Verses panel icon — shown when there are related verses.
-                    if (uiState.allVerses.isNotEmpty()) {
+                    if (topBarPolicy.showVersesPanelInTopBar) {
                         IconButton(onClick = { showVersesPanel = true }) {
                             BadgedBox(
                                 badge = {
@@ -236,19 +300,40 @@ fun ChatScreen(
                             }
                         }
                     }
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = viewModel::clearConversation) {
+                    // ── Language picker ────────────────────────────────────────
+                    Box {
+                        IconButton(onClick = { showLanguageMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.action_clear_conversation),
+                                imageVector = Icons.Default.Language,
+                                contentDescription = stringResource(R.string.action_select_language),
                             )
                         }
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.action_open_settings),
-                        )
+                        DropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
+                        ) {
+                            LANGUAGE_OPTIONS.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = option.displayName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (option.code == uiState.currentLocale) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.setLocale(option.code)
+                                        showLanguageMenu = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -433,5 +518,112 @@ fun ChatScreen(
                 isSessionLimitReached = uiState.isSessionLimitReached,
             )
         }
+    }
+    } // ModalNavigationDrawer
+}
+
+@Composable
+private fun ChatHistoryDrawer(
+    conversations: List<org.voxquieta.app.domain.models.Conversation>,
+    currentConversationId: String?,
+    hasMessages: Boolean,
+    onNewChat: () -> Unit,
+    onSelectConversation: (String) -> Unit,
+    onOpenAllConversations: () -> Unit,
+    onClearConversation: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    ModalDrawerSheet {
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.drawer_chat_history_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        )
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.action_new_chat)) },
+            selected = false,
+            onClick = onNewChat,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        if (conversations.isEmpty()) {
+            Text(
+                text = stringResource(R.string.drawer_no_conversations),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+        } else {
+            // Show up to 20 recent conversations; the "See all" link below
+            // navigates to the full list when there are more.
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth(),
+            ) {
+                items(
+                    items = conversations.take(20),
+                    key = { it.id },
+                ) { conversation ->
+                    NavigationDrawerItem(
+                        label = {
+                            Text(
+                                text = conversation.title,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        selected = conversation.id == currentConversationId,
+                        onClick = { onSelectConversation(conversation.id) },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        colors = NavigationDrawerItemDefaults.colors(),
+                    )
+                }
+            }
+            if (conversations.size > 20) {
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.drawer_see_all_conversations)) },
+                    selected = false,
+                    onClick = onOpenAllConversations,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+        }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        if (hasMessages) {
+            NavigationDrawerItem(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                    )
+                },
+                label = { Text(stringResource(R.string.action_clear_conversation)) },
+                selected = false,
+                onClick = onClearConversation,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.action_open_settings)) },
+            selected = false,
+            onClick = onOpenSettings,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

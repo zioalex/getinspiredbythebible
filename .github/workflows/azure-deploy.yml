@@ -353,6 +353,21 @@ jobs:
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
           echo "✅ Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
 
+      - name: Stage CHANGELOG.md into frontend/ for docker build context
+        # The frontend Dockerfile uses `context: ./frontend`, so the repo-root
+        # CHANGELOG.md is otherwise invisible to `next build` inside the
+        # container. The prebuild script (extract-latest-changelog.mjs) looks
+        # in ./CHANGELOG.md as a fallback when the repo-root copy is missing,
+        # so this step makes the file reachable. Without it, the /changelog
+        # page renders the empty state in production.
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            cp CHANGELOG.md frontend/CHANGELOG.md
+            echo "Staged $(wc -l < CHANGELOG.md) lines from CHANGELOG.md into frontend/"
+          else
+            echo "::notice::No CHANGELOG.md at repo root — /changelog will render the empty state"
+          fi
+
       - name: Build and push frontend
         uses: docker/build-push-action@v7
         with:

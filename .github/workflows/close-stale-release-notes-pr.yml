@@ -1,0 +1,55 @@
+name: Close stale release-notes PRs
+
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close-release-notes-pr:
+    name: Close stale release-notes PR
+    runs-on: ubuntu-latest
+    if: endsWith(github.head_ref, '--release-notes')
+
+    steps:
+      - name: Close PR and explain
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                "## Stale branch — closing automatically",
+                "",
+                "This PR was opened from a branch ending in `--release-notes`.",
+                "That branch is **not** created by release-please automation.",
+                "",
+                "release-please only ever creates one branch:",
+                "`release-please--branches--main` (no suffix).",
+                "It modifies exactly two files: `CHANGELOG.md` and",
+                "`.release-please-manifest.json`.",
+                "",
+                "There is no `release-notes.md` file in this repo — if you see one,",
+                "it was created by a Copilot session or another tool and should be",
+                "discarded. The authoritative release notes are in:",
+                "- `CHANGELOG.md` (updated by release-please when the Release PR merges)",
+                "- The GitHub Release body (created automatically on tag push)",
+                "",
+                "See `docs/RELEASE_PROCESS.md` for the full release flow.",
+                "",
+                "Please delete the `" + context.payload.pull_request.head.ref + "` branch.",
+              ].join("\n"),
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: "closed",
+            });

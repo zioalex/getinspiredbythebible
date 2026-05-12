@@ -123,7 +123,8 @@
     "errorColdStart": "아직 준비 중이며 예상보다 오래 걸리고 있습니다. 잠시 후 다시 시도해 주세요 - 곧 준비될 것입니다!",
     "errorConnection": "죄송합니다, 지금 연결에 문제가 있습니다. 일시적인 문제일 수 있습니다 - 잠시 후 다시 시도해 주세요. 문제가 지속되면 contact@voxquieta.org로 연락하실 수 있습니다",
     "startNewSession": "새 세션 시작",
-    "sessionLimitMessage": "이 세션에서 메시지 10개를 보내셨습니다! 잠시 멈추고 받은 것을 묵상하며, 밖에 나가 하나님의 창조물을 즐겨보는 건 어떨까요? 🌳 준비가 되면 아래에서 새 세션을 시작하세요."
+    "sessionLimitMessage": "이 세션에서 메시지 10개를 보내셨습니다! 잠시 멈추고 받은 것을 묵상하며, 밖에 나가 하나님의 창조물을 즐겨보는 건 어떨까요? 🌳 준비가 되면 아래에서 새 세션을 시작하세요.",
+    "scrollToBottom": "아래로 스크롤"
   },
   "Verses": {
     "scriptureReferences": "성경 참조",
@@ -233,5 +234,19 @@
     "lastUpdated": "최종 업데이트: {date}",
     "navPrivacy": "개인정보",
     "navTerms": "약관"
+  },
+  "Changelog": {
+    "title": "릴리즈 노트",
+    "description": "Vox Quieta의 새로운 기능을 확인하세요 — 전체 릴리즈 및 개선 사항 기록.",
+    "empty": "아직 릴리즈가 없습니다."
+  },
+  "WhatsNew": {
+    "title": "새로운 기능",
+    "versionLabel": "버전 {version}",
+    "dismiss": "확인",
+    "viewFullChangelog": "전체 변경 로그 보기"
+  },
+  "Footer": {
+    "changelog": "변경 로그"
   }
 }

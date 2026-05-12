@@ -162,6 +162,7 @@ Query → Semantic Search (top 50) → Cross-Encoder Re-rank → Top 5
 **Goal**: Understand what type of answer the user needs.
 
 **Intent Types**:
+
 | Intent | Example | Search Strategy |
 |--------|---------|-----------------|
 | **Comfort** | "I'm grieving" | Psalms, promises, hope verses |

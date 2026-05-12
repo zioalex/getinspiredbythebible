@@ -123,7 +123,8 @@
     "errorColdStart": "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!",
     "errorConnection": "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at contact@voxquieta.org",
     "startNewSession": "Start New Session",
-    "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below."
+    "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
+    "scrollToBottom": "Scroll to bottom"
   },
   "Verses": {
     "scriptureReferences": "Scripture References",
@@ -233,5 +234,19 @@
     "lastUpdated": "Last updated: {date}",
     "navPrivacy": "Privacy",
     "navTerms": "Terms"
+  },
+  "Changelog": {
+    "title": "Release notes",
+    "description": "See what's new in Vox Quieta — a full history of releases and improvements.",
+    "empty": "No releases yet."
+  },
+  "WhatsNew": {
+    "title": "What's new",
+    "versionLabel": "Version {version}",
+    "dismiss": "Got it",
+    "viewFullChangelog": "View full changelog"
+  },
+  "Footer": {
+    "changelog": "Changelog"
   }
 }

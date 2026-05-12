@@ -11,6 +11,7 @@ import { routing } from "@/i18n/routing";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Footer from "@/components/Footer";
+import WhatsNewModal from "@/components/WhatsNewModal";
 
 export async function generateMetadata({
   params,
@@ -100,6 +101,7 @@ export default async function LocaleLayout({
                 <div className="flex-1">{children}</div>
                 <Footer />
               </div>
+              <WhatsNewModal />
             </ErrorBoundary>
           </Providers>
         </NextIntlClientProvider>

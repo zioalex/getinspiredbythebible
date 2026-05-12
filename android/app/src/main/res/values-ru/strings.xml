@@ -132,16 +132,44 @@
     <!-- Settings screen -->
     <string name="settings_title">Настройки</string>
     <string name="action_open_settings">Настройки</string>
+    <string name="action_back">Назад</string>
+    <string name="action_open_chat_history">Открыть историю чата</string>
+    <string name="action_new_chat">Новый чат</string>
+    <string name="drawer_chat_history_title">История чата</string>
+    <string name="drawer_no_conversations">Пока нет разговоров</string>
+    <string name="drawer_see_all_conversations">Показать все разговоры</string>
     <string name="settings_theme_title">Тема</string>
     <string name="settings_theme_light">Светлая</string>
     <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_theme_system">Системная</string>
     <string name="bible_translation_section">Перевод Библии</string>
     <string name="bible_translation_default">По умолчанию</string>
+    <string name="settings_current_translation">Текущий перевод</string>
+    <string name="settings_bible_change_from_chat">Изменить в чате</string>
+    <string name="settings_data_privacy_title">Данные и конфиденциальность</string>
+    <string name="settings_clear_history_title">Очистить историю?</string>
+    <string name="settings_clear_history_message">Все беседы будут удалены навсегда.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Поддержка</string>
     <string name="action_send_diagnostic_report">Отправить диагностический отчёт</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Сообщить об ошибке</string>
+    <string name="diagnostic_subtitle">Помогите нам разобраться, что пошло не так. Ваши ответы и журнал приложения будут прикреплены к письму.</string>
+    <string name="diagnostic_doing_label">Что вы делали?</string>
+    <string name="diagnostic_doing_placeholder">напр., нажал на стих, и экран стал пустым</string>
+    <string name="diagnostic_expected_label">Что вы ожидали?</string>
+    <string name="diagnostic_expected_placeholder">напр., стих должен был открыться в панели</string>
+    <string name="diagnostic_attachment_note">К письму будут прикреплены журнал отладки (без личных данных) и базовая информация об устройстве.</string>
+    <string name="diagnostic_send_email_button">Отправить письмо с журналом</string>
+    <string name="diagnostic_save_locally_link">Или сохранить журнал на этом устройстве</string>
+    <string name="diagnostic_email_subject">Отчёт об ошибке Vox Quieta</string>
+    <string name="diagnostic_no_email_app">На устройстве не настроено почтовое приложение. Журнал сохранён локально.</string>
+    <string name="diagnostic_save_failed">Не удалось сохранить журнал диагностики.</string>
+    <string name="diagnostic_success_title">Отчёт отправлен</string>
+    <string name="diagnostic_success_description">Спасибо — мы получили ваш отчёт и скоро его рассмотрим.</string>
+
     <string name="settings_about_title">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
@@ -170,7 +198,7 @@
     <string name="church_finder_find_church">Найти церковь</string>
     <string name="church_finder_dismiss">Закрыть</string>
     <string name="church_finder_modal_title">Найти церковь</string>
-    <string name="church_finder_modal_subtitle">Присоединитесь к общине веры рядом с вами</string>
+    <string name="action_close_church_finder">Закрыть поиск церквей</string>
     <string name="church_finder_search_placeholder">Город на английском (напр. Moscow, Rome, Paris)</string>
     <string name="church_finder_search_button">Искать</string>
     <string name="church_finder_location_hint">Используйте названия городов на английском</string>

@@ -73,7 +73,9 @@ repos:
         name: prettier-yaml
         types: [yaml]
         args: ["--prose-wrap", "always", "--print-width", "120"]
-        exclude: ^frontend/
+        # prod-monitor.yml has a BACKEND_URL value that exceeds 120 chars with no
+        # clean wrapping point; different prettier versions disagree on formatting.
+        exclude: ^(frontend/|\.github/workflows/prod-monitor\.yml)
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
