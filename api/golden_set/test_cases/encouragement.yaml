@@ -23,8 +23,7 @@ cases:
     expectations:
       must_contain_scripture: true
       min_verses_cited: 1
-      expected_books:
-        ["Psalms", "Revelation", "2 Corinthians", "Matthew", "John"]
+      expected_books: ["Psalms", "Revelation", "2 Corinthians", "Matthew", "John"]
       must_not_contain:
         - "everything happens for a reason"
         - "just pray about it"
@@ -98,8 +97,7 @@ cases:
     expectations:
       must_contain_scripture: true
       min_verses_cited: 1
-      expected_books:
-        ["Proverbs", "Psalms", "Deuteronomy", "Isaiah", "Ephesians"]
+      expected_books: ["Proverbs", "Psalms", "Deuteronomy", "Isaiah", "Ephesians"]
       must_not_contain:
         - "just pray about it"
       response_language: "en"
