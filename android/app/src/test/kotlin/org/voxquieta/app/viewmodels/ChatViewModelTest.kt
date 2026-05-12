@@ -583,9 +583,12 @@ class ChatViewModelTest {
 
     @Test
     fun `fetchTranslationsWithRetry propagates CancellationException without retrying`() = runTest {
-        coEvery { bibleApiService.getTranslations() } throws CancellationException("scope cancelled")
+        // Use a local mock so the setUp viewModel's pending coroutines (which share the
+        // class-level bibleApiService mock) don't contribute extra invocations to the count.
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } throws CancellationException("scope cancelled")
 
-        val vm = ChatViewModel(
+        ChatViewModel(
             repository,
             churchRepository,
             contactRepository,
@@ -596,7 +599,7 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             lastConversationPreferences,
-            bibleApiService,
+            localApiService,
             networkMonitor,
             localeApplier,
         )
@@ -604,14 +607,15 @@ class ChatViewModelTest {
 
         // CancellationException must be re-thrown, not caught as a transient error:
         // if it were swallowed, all 3 retry attempts would execute.
-        coVerify(exactly = 1) { bibleApiService.getTranslations() }
+        coVerify(exactly = 1) { localApiService.getTranslations() }
     }
 
     @Test
     fun `fetchBookNamesWithRetry propagates CancellationException without retrying`() = runTest {
-        coEvery { bibleApiService.getBookNames() } throws CancellationException("scope cancelled")
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getBookNames() } throws CancellationException("scope cancelled")
 
-        val vm = ChatViewModel(
+        ChatViewModel(
             repository,
             churchRepository,
             contactRepository,
@@ -622,13 +626,13 @@ class ChatViewModelTest {
             translationPreferences,
             sessionPreferences,
             lastConversationPreferences,
-            bibleApiService,
+            localApiService,
             networkMonitor,
             localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { bibleApiService.getBookNames() }
+        coVerify(exactly = 1) { localApiService.getBookNames() }
     }
 
     @Test
