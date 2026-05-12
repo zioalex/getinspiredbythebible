@@ -2,6 +2,7 @@ package org.voxquieta.app.data.streaming
 
 import org.voxquieta.app.data.remote.models.StreamChunkDto
 import org.voxquieta.app.data.remote.models.VerseDto
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
@@ -107,6 +108,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                     }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.w(e, "SSE: failed to parse chunk: %s", data)
             }
         }
