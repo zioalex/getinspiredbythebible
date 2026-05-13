@@ -1,5 +1,7 @@
 # BITB-031: Android Settings — "What's New" / Changelog Screen
 
+**Status:** 🚧 In Progress (PR #546 open — 2026-05-13)
+
 ## User Story
 
 As an Android user, I want to see a "What's New" / Changelog section in the
