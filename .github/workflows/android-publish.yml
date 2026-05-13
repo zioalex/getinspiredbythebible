@@ -7,7 +7,7 @@ on:
       track:
         description: "Play Store track to publish to"
         required: true
-        default: "internal"
+        default: "production"
         type: choice
         options:
           - internal
@@ -22,13 +22,12 @@ on:
         required: false
         type: string
       release_status:
-        description: "Play Store release status (draft = save only; completed = make available to testers)."
+        description:
+          "Release status override: 'draft' or 'completed'. Empty = per-track default (internal/beta=completed,
+          production=draft)."
         required: false
-        default: "draft"
-        type: choice
-        options:
-          - draft
-          - completed
+        type: string
+        default: ""
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
@@ -133,7 +132,9 @@ jobs:
         id: lane
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            echo "lane=internal" >> "$GITHUB_OUTPUT"
+            # Tag pushes always go to production. The :production lane defaults
+            # release_status=draft, so a human still clicks "Start rollout".
+            echo "lane=production" >> "$GITHUB_OUTPUT"
           else
             echo "lane=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
           fi
@@ -142,7 +143,9 @@ jobs:
         working-directory: android
         env:
           GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
-          RELEASE_STATUS: ${{ inputs.release_status || 'draft' }}
+          # Empty value falls through to the lane-specific default in Fastfile
+          # (internal/beta = completed, production = draft).
+          RELEASE_STATUS: ${{ inputs.release_status }}
         run: fastlane ${{ steps.lane.outputs.lane }}
 
       - name: Upload AAB artifact

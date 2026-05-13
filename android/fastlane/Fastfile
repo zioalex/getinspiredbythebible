@@ -1,12 +1,20 @@
 default_platform(:android)
 
+# Resolve release_status with a sane per-lane default. ENV.fetch returns ""
+# (not the default) when the var is set to empty, so handle that explicitly:
+# CI sets RELEASE_STATUS to the workflow input value, which may be empty.
+def release_status_for(default)
+  raw = ENV["RELEASE_STATUS"].to_s
+  raw.empty? ? default : raw
+end
+
 platform :android do
   desc "Upload AAB to Play Store internal testing track"
   lane :internal do
     upload_to_play_store(
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
-      release_status: ENV.fetch("RELEASE_STATUS", "draft"),
+      release_status: release_status_for("completed"),
       skip_upload_apk: true,
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
@@ -15,24 +23,32 @@ platform :android do
     )
   end
 
-  desc "Promote internal build to closed beta track"
+  desc "Upload AAB to Play Store closed beta track"
   lane :beta do
     upload_to_play_store(
-      track: "internal",
-      track_promote_to: "beta",
-      skip_upload_aab: true,
+      track: "beta",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
       skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
     )
   end
 
-  desc "Promote beta build to production"
+  desc "Upload AAB to Play Store production track (defaults to draft for manual rollout)"
   lane :production do
     upload_to_play_store(
-      track: "beta",
-      track_promote_to: "production",
-      rollout: "0.1",
-      skip_upload_aab: true,
+      track: "production",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("draft"),
+      rollout: ENV.fetch("ROLLOUT", "1.0"),
       skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
     )
   end
 end
