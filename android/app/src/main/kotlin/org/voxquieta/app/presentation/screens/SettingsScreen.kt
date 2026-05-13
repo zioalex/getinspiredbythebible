@@ -64,6 +64,7 @@ private val themeOptions = listOf(
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onOpenChangelog: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -263,6 +264,15 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.settings_terms_of_service),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            TextButton(
+                onClick = onOpenChangelog,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_changelog_link),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }

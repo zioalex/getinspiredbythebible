@@ -234,3 +234,67 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BITB-031: generate assets/changelog.json from repo-root CHANGELOG.md so the
+// in-app "What's New" screen can render release notes without network access.
+// Re-runs only when CHANGELOG.md changes (incremental build safe).
+// ─────────────────────────────────────────────────────────────────────────────
+val generateChangelogJson by tasks.registering {
+    val changelogFile = rootProject.projectDir.parentFile.resolve("CHANGELOG.md")
+    val outputFile = layout.projectDirectory
+        .file("src/main/assets/changelog.json").asFile
+
+    inputs.file(changelogFile).withPropertyName("changelog")
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
+        .optional()
+    outputs.file(outputFile).withPropertyName("output")
+
+    doLast {
+        outputFile.parentFile.mkdirs()
+        if (!changelogFile.exists()) {
+            outputFile.writeText("[]")
+            return@doLast
+        }
+        val content = changelogFile.readText(Charsets.UTF_8)
+        val headerRe = Regex(
+            """^##\s+\[?(\d+\.\d+\.\d+[^\]\s]*)\]?(?:\([^)]*\))?(?:\s*[-–—]\s*(\d{4}-\d{2}-\d{2})|\s+\((\d{4}-\d{2}-\d{2})\))?\s*$""",
+            setOf(RegexOption.MULTILINE),
+        )
+        val matches = headerRe.findAll(content).toList()
+        val entries = matches.mapIndexed { idx, m ->
+            val version = m.groupValues[1]
+            val date = m.groupValues[2].ifBlank { m.groupValues[3] }
+            val bodyStart = m.range.last + 1
+            val bodyEnd = if (idx + 1 < matches.size) matches[idx + 1].range.first else content.length
+            val body = content.substring(bodyStart, bodyEnd).trim()
+            Triple(version, date, body)
+        }
+        fun esc(s: String) = buildString {
+            for (c in s) when (c) {
+                '\\' -> append("\\\\")
+                '"'  -> append("\\\"")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> if (c.code < 0x20) append("\\u%04x".format(c.code)) else append(c)
+            }
+        }
+        val json = buildString {
+            append("[\n")
+            entries.forEachIndexed { i, (v, d, b) ->
+                append("  {")
+                append("\"version\":\"").append(esc(v)).append("\",")
+                append("\"date\":\"").append(esc(d)).append("\",")
+                append("\"body\":\"").append(esc(b)).append("\"")
+                append("}")
+                if (i < entries.size - 1) append(",")
+                append("\n")
+            }
+            append("]\n")
+        }
+        outputFile.writeText(json, Charsets.UTF_8)
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }

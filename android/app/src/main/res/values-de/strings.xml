@@ -174,6 +174,9 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Datenschutzrichtlinie</string>
     <string name="settings_terms_of_service">Nutzungsbedingungen</string>
+    <string name="settings_changelog_title">Was ist neu</string>
+    <string name="settings_changelog_link">Was ist neu</string>
+    <string name="changelog_empty">Es sind noch keine Versionshinweise verfügbar.</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>

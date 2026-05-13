@@ -174,6 +174,9 @@
     <string name="settings_version">Versão</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
     <string name="settings_terms_of_service">Termos de Serviço</string>
+    <string name="settings_changelog_title">Novidades</string>
+    <string name="settings_changelog_link">Novidades</string>
+    <string name="changelog_empty">Ainda não há notas de versão disponíveis.</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Você teve 10 mensagens nesta sessão! Que tal fazer uma pausa e apreciar a criação de Deus ao ar livre? 🌳</string>
