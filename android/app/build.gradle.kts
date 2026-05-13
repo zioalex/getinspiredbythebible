@@ -52,6 +52,13 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Bundle native debug symbols into the AAB so Play Console can
+        // de-obfuscate native (NDK) crashes and ANRs. Resolves the
+        // "you've not uploaded debug symbols" warning at upload time.
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
     }
 
     buildTypes {
