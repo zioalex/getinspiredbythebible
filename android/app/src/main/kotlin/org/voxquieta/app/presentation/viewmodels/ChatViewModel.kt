@@ -31,6 +31,7 @@ import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -284,6 +285,7 @@ class ChatViewModel @Inject constructor(
                 _availableTranslations.value = response.translations
                 return
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 val isLastAttempt = attempt == maxAttempts - 1
                 if (isLastAttempt) {
                     Timber.w(e, "Failed to fetch translations after $maxAttempts attempts; defaulting to empty list")
@@ -318,6 +320,7 @@ class ChatViewModel @Inject constructor(
                 _bookNames.value = response
                 return
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 val isLastAttempt = attempt == maxAttempts - 1
                 if (isLastAttempt) {
                     Timber.w(e, "Failed to fetch book names after $maxAttempts attempts; falling back to default regex")
@@ -715,6 +718,7 @@ class ChatViewModel @Inject constructor(
                 }
                 Timber.i("Feedback submitted: messageId=%s rating=%s", assistantMsg.messageId, rating)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit feedback")
                 _uiState.update { it.copy(isFeedbackSubmitting = false) }
             }
@@ -733,6 +737,15 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /** Deletes ALL conversations from DB and resets in-memory state. */
+    fun clearAllConversations() {
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(null)
+            repository.clearAllConversations()
+        }
+    }
+
     // ---------------------------------------------------------------------------
     // Chapter sheet
     // ---------------------------------------------------------------------------
@@ -748,6 +761,7 @@ class ChatViewModel @Inject constructor(
                 val response = bibleApiService.getChapter(book, chapter, translation)
                 _chapterSheetState.value = ChapterSheetState.Success(response)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "loadChapter error: $book $chapter")
                 _chapterSheetState.value = ChapterSheetState.Error(mapExceptionToMessage(e))
             }
@@ -809,6 +823,7 @@ class ChatViewModel @Inject constructor(
                     location = location.trim(),
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "searchChurches error for location=$location")
                 _churchFinderSheetState.value = ChurchFinderSheetState.Error(
                     mapExceptionToMessage(e),
@@ -846,6 +861,7 @@ class ChatViewModel @Inject constructor(
                 _contactFormState.value = ContactFormState.Success
                 Timber.i("Contact submitted: subject=%s", subject)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit contact form")
                 _contactFormState.value = ContactFormState.Error(
                     mapExceptionToMessage(e),
@@ -889,6 +905,7 @@ class ChatViewModel @Inject constructor(
                 _diagnosticReportState.value = ContactFormState.Success
                 Timber.i("Diagnostic bug report submitted")
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to send diagnostic email")
                 _diagnosticReportState.value = ContactFormState.Error(
                     mapExceptionToMessage(e),
@@ -924,6 +941,7 @@ class ChatViewModel @Inject constructor(
                     },
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to share debug logs")
             }
         }

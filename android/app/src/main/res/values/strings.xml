@@ -141,6 +141,11 @@
     <string name="settings_theme_system">System default</string>
     <string name="bible_translation_section">Bible Translation</string>
     <string name="bible_translation_default">Default</string>
+    <string name="settings_current_translation">Current translation</string>
+    <string name="settings_bible_change_from_chat">Change from the chat screen</string>
+    <string name="settings_data_privacy_title">Data &amp; Privacy</string>
+    <string name="settings_clear_history_title">Clear conversation history?</string>
+    <string name="settings_clear_history_message">This will permanently delete all your conversations.</string>
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Send Diagnostic Report</string>
 
@@ -165,6 +170,9 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_terms_of_service">Terms of Service</string>
+    <string name="settings_changelog_title">What\'s New</string>
+    <string name="settings_changelog_link">What\'s New</string>
+    <string name="changelog_empty">No release notes are available yet.</string>
 
     <!-- Offline notice -->
     <string name="offline_notice">You\'re offline. You can read past messages, but sending new ones requires an internet connection.</string>

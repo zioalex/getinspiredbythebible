@@ -144,6 +144,11 @@
     <string name="settings_theme_system">Predefinito di sistema</string>
     <string name="bible_translation_section">Traduzione Biblica</string>
     <string name="bible_translation_default">Predefinita</string>
+    <string name="settings_current_translation">Traduzione attuale</string>
+    <string name="settings_bible_change_from_chat">Cambia dalla schermata di chat</string>
+    <string name="settings_data_privacy_title">Dati e privacy</string>
+    <string name="settings_clear_history_title">Cancellare la cronologia?</string>
+    <string name="settings_clear_history_message">Tutte le conversazioni verranno eliminate definitivamente.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Supporto</string>
@@ -169,6 +174,9 @@
     <string name="settings_version">Versione</string>
     <string name="settings_privacy_policy">Informativa sulla privacy</string>
     <string name="settings_terms_of_service">Termini di servizio</string>
+    <string name="settings_changelog_title">Novità</string>
+    <string name="settings_changelog_link">Novità</string>
+    <string name="changelog_empty">Nessuna nota di rilascio è ancora disponibile.</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Hai avuto 10 messaggi in questa sessione! Perché non fare una pausa e goderti il creato di Dio all\'aria aperta? 🌳</string>

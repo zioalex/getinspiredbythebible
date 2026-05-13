@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
 import org.voxquieta.app.presentation.components.TurnstileWebView
+import org.voxquieta.app.presentation.screens.ChangelogScreen
 import org.voxquieta.app.presentation.screens.ChatScreen
 import org.voxquieta.app.presentation.screens.ConversationsScreen
 import org.voxquieta.app.presentation.screens.SettingsScreen
@@ -186,6 +187,12 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(
+                                onNavigateBack = { navController.popBackStack() },
+                                onOpenChangelog = { navController.navigate("changelog") },
+                            )
+                        }
+                        composable("changelog") {
+                            ChangelogScreen(
                                 onNavigateBack = { navController.popBackStack() },
                             )
                         }

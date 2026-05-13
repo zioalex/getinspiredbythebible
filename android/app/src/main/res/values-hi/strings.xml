@@ -144,6 +144,11 @@
     <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
     <string name="bible_translation_section">बाइबिल अनुवाद</string>
     <string name="bible_translation_default">डिफ़ॉल्ट</string>
+    <string name="settings_current_translation">वर्तमान अनुवाद</string>
+    <string name="settings_bible_change_from_chat">चैट स्क्रीन से बदलें</string>
+    <string name="settings_data_privacy_title">डेटा और गोपनीयता</string>
+    <string name="settings_clear_history_title">इतिहास मिटाएं?</string>
+    <string name="settings_clear_history_message">सभी बातचीत स्थायी रूप से हटा दी जाएंगी।</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">सहायता</string>
@@ -169,6 +174,9 @@
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>
     <string name="settings_terms_of_service">सेवा की शर्तें</string>
+    <string name="settings_changelog_title">नया क्या है</string>
+    <string name="settings_changelog_link">नया क्या है</string>
+    <string name="changelog_empty">अभी कोई रिलीज़ नोट्स उपलब्ध नहीं हैं।</string>
 
     <!-- Errors -->
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>

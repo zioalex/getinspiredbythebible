@@ -144,6 +144,11 @@
     <string name="settings_theme_system">إعداد النظام</string>
     <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
     <string name="bible_translation_default">افتراضية</string>
+    <string name="settings_current_translation">الترجمة الحالية</string>
+    <string name="settings_bible_change_from_chat">التغيير من شاشة الدردشة</string>
+    <string name="settings_data_privacy_title">البيانات والخصوصية</string>
+    <string name="settings_clear_history_title">مسح سجل المحادثات؟</string>
+    <string name="settings_clear_history_message">سيتم حذف جميع المحادثات نهائيًا.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">الدعم</string>
@@ -169,6 +174,9 @@
     <string name="settings_version">الإصدار</string>
     <string name="settings_privacy_policy">سياسة الخصوصية</string>
     <string name="settings_terms_of_service">شروط الخدمة</string>
+    <string name="settings_changelog_title">ما الجديد</string>
+    <string name="settings_changelog_link">ما الجديد</string>
+    <string name="changelog_empty">لا تتوفر ملاحظات إصدار حتى الآن.</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
