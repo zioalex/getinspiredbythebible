@@ -32,7 +32,7 @@ azure-ai-contentsafety==1.0.0
 python-dotenv==1.2.2
 numpy==1.26.4
 lingua-language-detector==2.2.0
-pyyaml>=6.0
+pyyaml>=6.0.3
 
 # Testing
 pytest==9.0.3
