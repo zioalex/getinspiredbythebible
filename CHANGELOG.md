@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.5.0...v1.5.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **android-publish:** skip rollout param when release_status is draft ([#549](https://github.com/zioalex/getinspiredbythebible/issues/549)) ([57995b7](https://github.com/zioalex/getinspiredbythebible/commit/57995b7fc2ac95521629c1db12e844c2010a56bc))
+* **android:** rename post-send dismiss button from Cancel to Done (BITB-033) ([#548](https://github.com/zioalex/getinspiredbythebible/issues/548)) ([56a88ad](https://github.com/zioalex/getinspiredbythebible/commit/56a88ad6d9142bfc522d8f88abfd6ef4ff75489e))
+* **ui:** compact Bible version selector and default verses to Cited ([#551](https://github.com/zioalex/getinspiredbythebible/issues/551)) ([45b35b3](https://github.com/zioalex/getinspiredbythebible/commit/45b35b34604e44e0204645577926d65656663b94))
+
 ## [1.5.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.9.0...v1.5.0) (2026-05-13)
 
 ### Features
