@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">Это навсегда удалит всю историю бесед.</string>
     <string name="conversations_clear_all_confirm">Удалить всё</string>
     <string name="action_cancel">Отмена</string>
+    <string name="action_done">Готово</string>
     <string name="action_new_conversation">Новая беседа</string>
     <string name="action_clear_all_conversations">Удалить все беседы</string>
     <string name="action_delete_conversation">Удалить беседу</string>

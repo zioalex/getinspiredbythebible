@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">سيؤدي هذا إلى حذف محفوظات المحادثة بالكامل نهائيًا.</string>
     <string name="conversations_clear_all_confirm">مسح الكل</string>
     <string name="action_cancel">إلغاء</string>
+    <string name="action_done">تم</string>
     <string name="action_new_conversation">محادثة جديدة</string>
     <string name="action_clear_all_conversations">مسح جميع المحادثات</string>
     <string name="action_delete_conversation">حذف المحادثة</string>

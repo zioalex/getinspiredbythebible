@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">Se eliminará permanentemente todo el historial de conversaciones.</string>
     <string name="conversations_clear_all_confirm">Borrar todo</string>
     <string name="action_cancel">Cancelar</string>
+    <string name="action_done">Hecho</string>
     <string name="action_new_conversation">Nueva conversación</string>
     <string name="action_clear_all_conversations">Borrar todas las conversaciones</string>
     <string name="action_delete_conversation">Eliminar conversación</string>

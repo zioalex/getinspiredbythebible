@@ -122,6 +122,7 @@
     <string name="conversations_clear_all_message">This will permanently delete all conversation history.</string>
     <string name="conversations_clear_all_confirm">Clear all</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
     <string name="action_new_conversation">New conversation</string>
     <string name="action_clear_all_conversations">Clear all conversations</string>
     <string name="action_delete_conversation">Delete conversation</string>
