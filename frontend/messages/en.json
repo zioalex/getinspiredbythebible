@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "Get inspired daily by God's Word",
-    "bibleVersion": "Bible version:",
-    "autoDetect": "Auto-detect",
+    "bibleVersion": "Bible version",
     "newChat": "New Chat"
   },
   "Welcome": {
@@ -129,7 +128,7 @@
   "Verses": {
     "scriptureReferences": "Scripture References",
     "verseCount": "{count, plural, =1 {1 verse} other {# verses}}",
-    "referenced": "Referenced",
+    "referenced": "Cited",
     "allRelated": "All Related ({count})",
     "noVersesReferenced": "No verses referenced yet.",
     "noVersesReferencedHint": "Verses will appear here when mentioned in the chat.",

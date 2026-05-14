@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "Lasciati ispirare ogni giorno dalla Parola di Dio",
-    "bibleVersion": "Versione biblica:",
-    "autoDetect": "Rileva automaticamente",
+    "bibleVersion": "Versione biblica",
     "newChat": "Nuova Chat"
   },
   "Welcome": {

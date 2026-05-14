@@ -370,7 +370,7 @@ describe("Home page responsive layout", () => {
       });
 
       // Panel filter buttons (desktop sidebar also has them)
-      const referencedButtons = screen.getAllByText("Referenced");
+      const referencedButtons = screen.getAllByText("Cited");
       expect(referencedButtons.length).toBeGreaterThanOrEqual(2);
     });
 

@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "Inspírate cada día con la Palabra de Dios",
-    "bibleVersion": "Versión de la Biblia:",
-    "autoDetect": "Detectar automáticamente",
+    "bibleVersion": "Versión de la Biblia",
     "newChat": "Nueva Conversación"
   },
   "Welcome": {
