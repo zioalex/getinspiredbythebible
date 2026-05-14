@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.9.0...v1.5.0) (2026-05-13)
+
+### Features
+
+* **android:** in-app What's New / Changelog screen (BITB-031) ([#546](https://github.com/zioalex/getinspiredbythebible/issues/546)) ([a0d7f51](https://github.com/zioalex/getinspiredbythebible/commit/a0d7f51350acaf4ed8c74088f3fa43e1569f16c5))
+
+### Bug Fixes
+
+* **android:** re-throw CancellationException in all coroutine catch blocks ([#543](https://github.com/zioalex/getinspiredbythebible/issues/543)) ([7342401](https://github.com/zioalex/getinspiredbythebible/commit/7342401ef54a0c0d702d62f6305e58d09a8f4626))
+
 ## [0.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v0.8.0...v0.9.0) (2026-05-12)
 
 ### Features
