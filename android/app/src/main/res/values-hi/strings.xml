@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">यह सभी बातचीत इतिहास हमेशा के लिए हटा देगा।</string>
     <string name="conversations_clear_all_confirm">सब हटाएं</string>
     <string name="action_cancel">रद्द करें</string>
+    <string name="action_done">हो गया</string>
     <string name="action_new_conversation">नई बातचीत</string>
     <string name="action_clear_all_conversations">सभी बातचीत साफ करें</string>
     <string name="action_delete_conversation">बातचीत हटाएं</string>

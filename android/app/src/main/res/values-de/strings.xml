@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">Dadurch wird der gesamte Gesprächsverlauf dauerhaft gelöscht.</string>
     <string name="conversations_clear_all_confirm">Alle löschen</string>
     <string name="action_cancel">Abbrechen</string>
+    <string name="action_done">Fertig</string>
     <string name="action_new_conversation">Neues Gespräch</string>
     <string name="action_clear_all_conversations">Alle Gespräche löschen</string>
     <string name="action_delete_conversation">Gespräch löschen</string>

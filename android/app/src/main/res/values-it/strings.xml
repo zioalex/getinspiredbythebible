@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">Questo eliminerà definitivamente tutta la cronologia delle conversazioni.</string>
     <string name="conversations_clear_all_confirm">Cancella tutto</string>
     <string name="action_cancel">Annulla</string>
+    <string name="action_done">Fatto</string>
     <string name="action_new_conversation">Nuova conversazione</string>
     <string name="action_clear_all_conversations">Cancella tutte le conversazioni</string>
     <string name="action_delete_conversation">Elimina conversazione</string>

@@ -125,6 +125,7 @@
     <string name="conversations_clear_all_message">这将永久删除所有对话记录。</string>
     <string name="conversations_clear_all_confirm">全部删除</string>
     <string name="action_cancel">取消</string>
+    <string name="action_done">完成</string>
     <string name="action_new_conversation">新对话</string>
     <string name="action_clear_all_conversations">清除所有对话</string>
     <string name="action_delete_conversation">删除对话</string>
