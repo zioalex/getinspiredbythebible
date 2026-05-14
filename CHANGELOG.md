@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.5.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.5.0...v1.5.1) (2026-05-14)
 
-
 ### Bug Fixes
 
 * **android-publish:** skip rollout param when release_status is draft ([#549](https://github.com/zioalex/getinspiredbythebible/issues/549)) ([57995b7](https://github.com/zioalex/getinspiredbythebible/commit/57995b7fc2ac95521629c1db12e844c2010a56bc))
