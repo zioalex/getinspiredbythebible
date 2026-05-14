@@ -179,9 +179,8 @@ describe("Home page responsive layout", () => {
 
       renderWithIntl(<Home />);
 
-      const select = await screen.findByLabelText<HTMLSelectElement>(
-        "Bible version",
-      );
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
       expect(select.value).toBe("");
       const placeholder = Array.from(select.options).find(
         (o) => o.value === "",
@@ -213,7 +212,9 @@ describe("Home page responsive layout", () => {
       // Wait for translations to load so the select is enabled.
       await screen.findByLabelText("Bible version");
 
-      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
       await act(async () => {
         fireEvent.change(input, { target: { value: "hello" } });
       });
