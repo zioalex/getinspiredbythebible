@@ -39,16 +39,20 @@ platform :android do
 
   desc "Upload AAB to Play Store production track (defaults to draft for manual rollout)"
   lane :production do
-    upload_to_play_store(
+    status = release_status_for("draft")
+    params = {
       track: "production",
       aab: "app/build/outputs/bundle/release/app-release.aab",
-      release_status: release_status_for("draft"),
-      rollout: ENV.fetch("ROLLOUT", "1.0"),
+      release_status: status,
       skip_upload_apk: true,
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: false,
-    )
+    }
+    # Play Store rejects rollout + draft together. Only attach a rollout
+    # percentage when the release is actually going live.
+    params[:rollout] = ENV.fetch("ROLLOUT", "1.0") unless status == "draft"
+    upload_to_play_store(**params)
   end
 end
