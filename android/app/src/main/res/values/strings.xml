@@ -250,7 +250,7 @@
     <!-- Verses sidebar panel -->
     <string name="action_open_verses_panel">Related verses</string>
     <string name="verses_panel_title">Related Verses</string>
-    <string name="verses_filter_referenced">Referenced</string>
+    <string name="verses_filter_referenced">Cited</string>
     <string name="verses_filter_all_related">All Related (%d)</string>
     <string name="verses_panel_empty">No verses found for this filter.</string>
 

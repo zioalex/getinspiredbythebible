@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "每天从上帝的话语中获得灵感",
-    "bibleVersion": "圣经版本：",
-    "autoDetect": "自动检测",
+    "bibleVersion": "圣经版本",
     "newChat": "新对话"
   },
   "Welcome": {

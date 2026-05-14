@@ -649,20 +649,18 @@ export default function Home() {
 
               {/* Translation Selector - always visible, disabled when loading */}
               <div className="flex items-center gap-2">
-                <span className="hidden md:inline text-xs text-gray-500">
-                  {tHeader("bibleVersion")}
-                </span>
                 <select
                   value={selectedTranslation}
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
+                  aria-label={tHeader("bibleVersion")}
                   className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                     translations.length === 0
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                       : "bg-white text-gray-600"
                   }`}
                 >
-                  <option value="">{tHeader("autoDetect")}</option>
+                  <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (
                     <option key={t.code} value={t.code}>
                       {t.language} - {t.short_name}
