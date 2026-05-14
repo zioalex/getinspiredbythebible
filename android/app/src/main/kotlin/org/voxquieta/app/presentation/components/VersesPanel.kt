@@ -156,7 +156,7 @@ fun VersesPanel(
     localizedToEnglish: Map<String, String> = emptyMap(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var showReferenced by rememberSaveable { mutableStateOf(false) }
+    var showReferenced by rememberSaveable { mutableStateOf(true) }
 
     val displayedVerses = if (showReferenced) {
         referencedVerses(allVerses, messages, localizedToEnglish)
