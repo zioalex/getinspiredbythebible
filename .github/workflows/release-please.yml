@@ -2,13 +2,14 @@ name: Release Please
 
 # yamllint disable-line rule:truthy
 on:
-  # Gated on Android CI: release-please only runs after Android CI completes
-  # successfully on main. A red Android CI never produces a Release PR update
-  # or a tag — so a release tag is structurally proof of green CI on its SHA.
-  workflow_run:
-    workflows: ["Android CI"]
+  # Fires immediately on every push to main. The CI gate is enforced at
+  # publish time by android-publish.yml's verify-release-gate job, which
+  # validates the tagged commit's versionName and checks Android CI on the
+  # parent commit for release-please merge commits (whose own diff is just
+  # CHANGELOG + version bump). This avoids a ~11-min wait between Release-PR
+  # merge and tag/publish caused by the previous workflow_run gate.
+  push:
     branches: [main]
-    types: [completed]
 
 permissions:
   contents: write
@@ -22,7 +23,6 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
 
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
