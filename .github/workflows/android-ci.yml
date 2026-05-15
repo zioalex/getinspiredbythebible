@@ -8,9 +8,10 @@ on:
       - "android/**"
       - ".github/workflows/android-ci.yml"
   push:
+    # No paths filter on main: every commit landing on main must produce an
+    # Android-CI verdict so release-please (workflow_run-gated) and the
+    # publish-time CI-green check have a definitive status to read.
     branches: [main]
-    paths:
-      - "android/**"
   workflow_dispatch:
 
 run-name: >-

@@ -40,11 +40,48 @@ run-name: >-
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
+  # Defence-in-depth: even though release-please is gated on Android CI via
+  # workflow_run, a manually-pushed tag (or future trigger misconfiguration)
+  # could still fire this workflow. Re-verify that Android CI succeeded for
+  # the tagged commit before building or uploading anything to Play Store.
+  # Skipped for workflow_dispatch runs — those are operator-initiated and
+  # may legitimately want to publish off a non-main branch.
+  verify-ci-green:
+    name: Verify Android CI is green
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Check Android CI conclusion for this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${GITHUB_SHA}"
+          echo "Looking up Android CI status for commit ${SHA}"
+          # Find the most recent "Android CI" workflow run for this SHA.
+          # We sort by run_started_at and take the last entry so re-runs win.
+          CONCLUSION=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=100" \
+            --jq '[.workflow_runs[] | select(.name=="Android CI")]
+                  | sort_by(.run_started_at) | last | .conclusion // "missing"')
+          echo "Android CI conclusion: ${CONCLUSION}"
+          if [ "${CONCLUSION}" != "success" ]; then
+            echo "❌ Refusing to publish: Android CI for ${SHA} is '${CONCLUSION}'."
+            echo "   Release tags must be created from commits with a green Android CI run."
+            exit 1
+          fi
+          echo "✅ Android CI succeeded for ${SHA} — proceeding with publish."
+
   publish:
     name: Build & Publish AAB
     runs-on: ubuntu-latest
+    needs: [verify-ci-green]
+    # `needs` skips dependents when the dep itself is skipped (workflow_dispatch
+    # path). Use always() + explicit conclusion check so dispatch runs proceed
+    # while a real verify-ci-green failure still blocks publish.
+    if: always() && (needs.verify-ci-green.result == 'success' || needs.verify-ci-green.result == 'skipped')
 
     steps:
       - name: Checkout
