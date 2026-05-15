@@ -59,7 +59,7 @@ Three layers ensure that a red Android CI cannot produce a release:
 > it could fire and create the tag). The merge commit's diff is mechanical,
 > so checking the parent's CI at publish time gives the same safety
 > property with no wait.
-
+>
 > Recommended follow-up (repo settings, not in code): enable branch
 > protection on `main` requiring the `Android CI` status check before merge,
 > so a red PR cannot land in the first place.
