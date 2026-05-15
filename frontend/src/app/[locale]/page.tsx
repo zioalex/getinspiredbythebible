@@ -10,6 +10,7 @@ import {
   BookOpen,
   X,
   ChevronDown,
+  Square,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import ChatMessage from "@/components/ChatMessage";
@@ -87,6 +88,8 @@ export default function Home() {
   const [showOnlyReferenced, setShowOnlyReferenced] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Smart auto-scroll state
   const [isUserNearBottom, setIsUserNearBottom] = useState(true);
@@ -333,6 +336,9 @@ export default function Home() {
     setIsWarmingUp(false);
     setBackendReady(true); // Streaming doesn't have cold start issues with min_replicas=1
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       // Convert messages to the API format (without extra fields)
       const apiMessages: Message[] = messages.map((m) => ({
@@ -365,7 +371,9 @@ export default function Home() {
         apiMessages,
         selectedTranslation || undefined,
         sessionId,
+        controller.signal,
       )) {
+        if (controller.signal.aborted) break;
         if (chunk.type === "error") {
           throw new Error(chunk.error || "Stream error");
         }
@@ -476,8 +484,19 @@ export default function Home() {
         return newCount;
       });
 
+      abortControllerRef.current = null;
       setIsLoading(false);
     } catch (error) {
+      abortControllerRef.current = null;
+      // User-initiated cancellation: keep partial content, don't show an error.
+      if (
+        controller.signal.aborted ||
+        (error instanceof DOMException && error.name === "AbortError")
+      ) {
+        setIsWarmingUp(false);
+        setIsLoading(false);
+        return;
+      }
       console.error("Failed to send message:", error);
       setIsWarmingUp(false);
 
@@ -505,6 +524,31 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submitMessage(input);
+  };
+
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
+  };
+
+  // Auto-resize the chat textarea up to a cap so multi-line input grows
+  // naturally as the user types and shrinks back when content is removed.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const max = 160; // ~8 lines
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, [input]);
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter sends, Shift+Enter inserts a newline. Don't interfere while the IME
+    // is composing (e.g. CJK input) — that Enter is for the composer to commit.
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      if (!isLoading) {
+        void submitMessage(input);
+      }
+    }
   };
 
   const handleNewChat = () => {
@@ -786,27 +830,38 @@ export default function Home() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex gap-3">
-            <input
-              type="text"
+          <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               placeholder={tChat("inputPlaceholder")}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled={isLoading || showSessionLimitButton}
+              rows={1}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
+              disabled={showSessionLimitButton}
             />
-            <button
-              type="submit"
-              disabled={
-                isLoading ||
-                !input.trim() ||
-                showSessionLimitButton ||
-                turnstileBlocked
-              }
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={handleStop}
+                aria-label={tChat("stopGenerating")}
+                title={tChat("stopGenerating")}
+                className="px-6 py-3 bg-gray-700 text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2"
+              >
+                <Square className="w-5 h-5" fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={
+                  !input.trim() || showSessionLimitButton || turnstileBlocked
+                }
+                className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            )}
           </form>
           <p className="text-xs text-gray-400 mt-2 text-center">
             {tChat("disclaimer")}

@@ -231,6 +231,13 @@ class ChatViewModel @Inject constructor(
     private val _diagnosticReportState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
     val diagnosticReportState: StateFlow<ContactFormState> = _diagnosticReportState.asStateFlow()
 
+    /**
+     * The currently running send-message coroutine. Cancelling this job interrupts
+     * the SSE stream so the user can stop generation mid-response. The partial
+     * assistant content collected so far is preserved by [onCompletion].
+     */
+    private var streamJob: Job? = null
+
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
         // errored (fail-open): the interceptor already forwards requests without a
@@ -358,7 +365,7 @@ class ChatViewModel @Inject constructor(
             )
         }
 
-        viewModelScope.launch {
+        streamJob = viewModelScope.launch {
             // Ensure a conversation row exists before persisting messages.
             val conversationId = ensureConversation(trimmed)
 
@@ -548,6 +555,16 @@ class ChatViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    /**
+     * Cancels the in-flight streaming response, if any. The partial assistant
+     * message accumulated so far is kept and persisted via the onCompletion
+     * handler in [sendMessage], so the user sees what was produced before they
+     * stopped generation.
+     */
+    fun cancelStream() {
+        streamJob?.takeIf { it.isActive }?.cancel()
     }
 
     /**

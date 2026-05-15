@@ -123,7 +123,8 @@
     "errorConnection": "Lamento, estou com dificuldades de ligação neste momento. Pode ser um problema temporário — tente novamente em breve. Se o problema persistir, pode contactar-nos em contact@voxquieta.org",
     "startNewSession": "Iniciar Nova Sessão",
     "sessionLimitMessage": "Você enviou 10 mensagens nesta sessão! Que tal tirar um momento para refletir sobre o que recebeu e aproveitar a criação de Deus? 🌳 Quando estiver pronto, inicie uma nova sessão abaixo.",
-    "scrollToBottom": "Rolar para baixo"
+    "scrollToBottom": "Rolar para baixo",
+    "stopGenerating": "Parar geração"
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",

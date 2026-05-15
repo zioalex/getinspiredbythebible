@@ -4,6 +4,7 @@
     <string name="splash_motto">每天从上帝的话语中获得灵感</string>
     <string name="chat_input_hint">分享您心中所想…</string>
     <string name="chat_send_button">发送</string>
+    <string name="chat_stop_button">停止</string>
     <string name="action_clear_conversation">清除对话</string>
     <string name="welcome_title">每天从上帝的话语中获得灵感</string>
     <string name="welcome_subtitle">将你的重担带到上帝的话语前。圣经在生命的每个季节都带来安慰、力量和盼望。</string>

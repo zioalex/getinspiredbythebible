@@ -4,6 +4,7 @@
     <string name="splash_motto">매일 하나님의 말씀에서 영감을 받으세요</string>
     <string name="chat_input_hint">마음에 있는 것을 나눠주세요…</string>
     <string name="chat_send_button">보내기</string>
+    <string name="chat_stop_button">중지</string>
     <string name="action_clear_conversation">대화 지우기</string>
     <string name="welcome_title">매일 하나님의 말씀에서 영감을 받으세요</string>
     <string name="welcome_subtitle">하나님의 말씀에 당신의 짐을 가져오세요. 성경은 삶의 모든 계절에 위로, 힘, 소망을 전합니다.</string>
