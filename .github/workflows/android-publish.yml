@@ -43,26 +43,70 @@ permissions:
   actions: read
 
 jobs:
-  # Defence-in-depth: even though release-please is gated on Android CI via
-  # workflow_run, that gate is not race-free — release-please tags the current
-  # HEAD of main, which may have moved past the SHA that satisfied the gate.
-  # When the Release PR merges, the merge commit pushes to main, Android CI
-  # starts on it, and release-please (fired by a *prior* Android CI success)
-  # tags the new HEAD before its CI finishes. So we poll: wait up to 45 min
-  # for the most recent Android CI run on ${GITHUB_SHA} to complete, then
-  # enforce conclusion == success. Skipped for workflow_dispatch — operator-
-  # initiated publishes may legitimately run off a non-main branch.
-  verify-ci-green:
-    name: Verify Android CI is green
+  # Authoritative gate for tag-triggered publishes. Two checks:
+  #
+  #  1. Version sanity: assert `.release-please-manifest.json` matches the tag
+  #     (e.g. tag v1.6.1 ↔ manifest "." = "1.6.1"). Catches release-please tag-
+  #     format misconfiguration or any drift between the merged Release PR's
+  #     manifest and the pushed tag.
+  #
+  #  2. Android CI green: wait up to 45 min for Android CI on the *target*
+  #     commit to complete with conclusion=success. For release-please merge
+  #     commits (subject matches "chore(main): release") the target is the
+  #     parent SHA — release-please's own diff is just CHANGELOG + manifest,
+  #     so the meaningful CI verdict belongs to the previous main commit,
+  #     which already passed Android CI by the time the Release PR was merged.
+  #     For any other tag (e.g. a manually-pushed v*.*.* tag) the target is
+  #     ${GITHUB_SHA} itself.
+  #
+  # Skipped for workflow_dispatch — operator-initiated publishes may
+  # legitimately run off a non-main branch.
+  verify-release-gate:
+    name: Verify release gate
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     timeout-minutes: 50
+    outputs:
+      target_sha: ${{ steps.target.outputs.sha }}
     steps:
-      - name: Poll Android CI status for this commit
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2 # need parent commit for release-please detection
+
+      - name: Verify manifest version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          EXPECTED="${TAG#v}"
+          ACTUAL=$(jq -r '."."' .release-please-manifest.json)
+          echo "Tag: ${TAG} → expected manifest version=${EXPECTED}"
+          echo "Found in .release-please-manifest.json: ${ACTUAL}"
+          if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+            echo "❌ Version mismatch: manifest has '${ACTUAL}' but tag says '${EXPECTED}'."
+            echo "   Refusing to publish — release-please tag/manifest are out of sync."
+            exit 1
+          fi
+          echo "✅ Manifest version matches tag."
+
+      - name: Determine target SHA for Android CI check
+        id: target
+        run: |
+          MSG=$(git log -1 --pretty=%s "${GITHUB_SHA}")
+          echo "Commit subject: ${MSG}"
+          if echo "${MSG}" | grep -qE '^chore\((main|master)\): release'; then
+            PARENT=$(git rev-parse "${GITHUB_SHA}^")
+            echo "Release-please commit — checking Android CI on parent ${PARENT}."
+            echo "sha=${PARENT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Non-release-please tag — checking Android CI on ${GITHUB_SHA}."
+            echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Poll Android CI status for target commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SHA="${GITHUB_SHA}"
+          SHA="${{ steps.target.outputs.sha }}"
           DEADLINE=$(( $(date +%s) + 2700 )) # 45 min — Android CI itself caps at 55 min
           POLL_INTERVAL=30
           echo "Waiting for Android CI to complete on commit ${SHA}"
@@ -97,11 +141,11 @@ jobs:
   publish:
     name: Build & Publish AAB
     runs-on: ubuntu-latest
-    needs: [verify-ci-green]
+    needs: [verify-release-gate]
     # `needs` skips dependents when the dep itself is skipped (workflow_dispatch
     # path). Use always() + explicit conclusion check so dispatch runs proceed
-    # while a real verify-ci-green failure still blocks publish.
-    if: always() && (needs.verify-ci-green.result == 'success' || needs.verify-ci-green.result == 'skipped')
+    # while a real verify-release-gate failure still blocks publish.
+    if: always() && (needs.verify-release-gate.result == 'success' || needs.verify-release-gate.result == 'skipped')
 
     steps:
       - name: Checkout

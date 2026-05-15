@@ -12,25 +12,30 @@ The flow is:
 Conventional Commits on main
         │
         ▼
-Android CI runs on every main commit
+Android CI runs on every main commit  (verdict stored as a check-run)
         │
-        ▼  (only on success)
-release-please opens/updates a "Release PR"
+        ▼
+release-please opens/updates a "Release PR"  (fires on push: main)
         │
-        ▼  (maintainer merges the Release PR → Android CI runs on merge commit)
-release-please pushes a semver tag  (e.g. v0.2.0) — only if that CI is green
+        ▼  (maintainer merges the Release PR)
+release-please pushes a semver tag  (e.g. v0.2.0) at the merge commit
         │
         ▼
 android-publish.yml fires on push: tags: v*.*.*
         │
-        ▼  (verify-ci-green job re-checks Android CI for the tagged commit)
+        ▼  verify-release-gate:
+        │    • assert .release-please-manifest.json matches the tag version
+        │    • poll Android CI for the *parent* commit (release-please diffs
+        │      are CHANGELOG + manifest only; the parent is the real shipping
+        │      code and already has a green Android CI verdict)
+        ▼
 Internal track uploaded to Google Play
 ```
 
 No manual `git tag` is required.
 **Do NOT push `vX.Y.Z` tags by hand** — release-please manages them, and the
-publish workflow's `verify-ci-green` job will refuse to publish any tag whose
-commit does not have a successful `Android CI` run.
+publish workflow's `verify-release-gate` job will refuse to publish any tag
+whose target commit does not have a successful `Android CI` run.
 
 ### CI gating (defence in depth)
 
@@ -38,13 +43,23 @@ Three layers ensure that a red Android CI cannot produce a release:
 
 1. **Android CI runs on every push to `main`** (no `paths:` filter on the
    `push` trigger), so every main commit has a definitive verdict.
-2. **release-please is triggered by `workflow_run`** on `Android CI`
-   completion with `conclusion == 'success'`. A red main commit never
-   refreshes the Release PR and never produces a tag.
-3. **`android-publish.yml` re-verifies** Android CI's conclusion for the
-   tagged commit via the Checks API before building or uploading the AAB.
-   This catches manually-pushed tags and any future trigger misconfiguration.
+2. **`android-publish.yml`'s `verify-release-gate`** is the authoritative
+   pre-publish check. For release-please merge commits (whose own diff is
+   mechanical: CHANGELOG + manifest), it polls Android CI on the **parent**
+   commit — the actual shipping code, which by construction has already
+   passed CI by the time the Release PR is merged. For any other tag
+   (e.g. manually pushed) it polls Android CI on the tag's own commit.
+3. **Version sanity**: the same job asserts that `.release-please-manifest.json`
+   matches the pushed tag (`v1.6.1` ↔ `"."`: `"1.6.1"`), catching any drift
+   between the merged Release PR's manifest and the tag.
 
+> Why not gate `release-please` itself on `Android CI` via `workflow_run`?
+> We used to, but it added ~11 min of latency between Release-PR merge and
+> publish (release-please waited for Android CI on the merge commit before
+> it could fire and create the tag). The merge commit's diff is mechanical,
+> so checking the parent's CI at publish time gives the same safety
+> property with no wait.
+>
 > Recommended follow-up (repo settings, not in code): enable branch
 > protection on `main` requiring the `Android CI` status check before merge,
 > so a red PR cannot land in the first place.
