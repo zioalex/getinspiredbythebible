@@ -20,6 +20,9 @@ platform :android do
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      # Commit the edit fully so no half-open edit blocks the next run with a
+      # generic "Precondition check failed" error.
+      changes_not_sent_for_review: false,
     )
   end
 
@@ -34,6 +37,7 @@ platform :android do
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
     )
   end
 
@@ -49,10 +53,28 @@ platform :android do
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
     }
     # Play Store rejects rollout + draft together. Only attach a rollout
     # percentage when the release is actually going live.
     params[:rollout] = ENV.fetch("ROLLOUT", "1.0") unless status == "draft"
     upload_to_play_store(**params)
+  end
+
+  desc "Dry-run validate against Play Store (no edit committed, no AAB uploaded)"
+  # Useful after a manual Play Console cleanup: confirms auth, AAB integrity,
+  # and edit-preconditions without actually committing any changes. Runs against
+  # the internal track because supply requires a track to anchor the validation.
+  lane :validate do
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      validate_only: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
   end
 end
