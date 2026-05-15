@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.6.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.0...v1.6.1) (2026-05-15)
 
-
 ### Bug Fixes
 
 * **ci:** poll Android CI status in verify-ci-green to handle race ([#560](https://github.com/zioalex/getinspiredbythebible/issues/560)) ([99941cd](https://github.com/zioalex/getinspiredbythebible/commit/99941cde88905363ba440c74166301bcbcfa5d4a))
