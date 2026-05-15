@@ -195,10 +195,10 @@ Add next to the existing `android-test` target:
 
 ```make
 android-test-compose: ## Run Android Compose/Robolectric UI tests (local only, not in CI)
-	@echo "$(BLUE)Running Android Compose UI tests...$(NC)"
-	@cd android && ./gradlew testDebugCompose --no-daemon
-	@echo "$(GREEN)✓ Android Compose UI tests complete$(NC)"
-	@echo "$(YELLOW)Report: android/app/build/reports/tests/testDebugCompose/index.html$(NC)"
+ @echo "$(BLUE)Running Android Compose UI tests...$(NC)"
+ @cd android && ./gradlew testDebugCompose --no-daemon
+ @echo "$(GREEN)✓ Android Compose UI tests complete$(NC)"
+ @echo "$(YELLOW)Report: android/app/build/reports/tests/testDebugCompose/index.html$(NC)"
 ```
 
 Append `android-test-compose` to the `.PHONY` line at the top. Do **not**
