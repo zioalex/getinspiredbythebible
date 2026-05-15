@@ -12,20 +12,42 @@ The flow is:
 Conventional Commits on main
         │
         ▼
+Android CI runs on every main commit
+        │
+        ▼  (only on success)
 release-please opens/updates a "Release PR"
         │
-        ▼  (maintainer merges the Release PR)
-release-please pushes a semver tag  (e.g. v0.2.0)
+        ▼  (maintainer merges the Release PR → Android CI runs on merge commit)
+release-please pushes a semver tag  (e.g. v0.2.0) — only if that CI is green
         │
         ▼
 android-publish.yml fires on push: tags: v*.*.*
         │
-        ▼
+        ▼  (verify-ci-green job re-checks Android CI for the tagged commit)
 Internal track uploaded to Google Play
 ```
 
 No manual `git tag` is required.
-**Do NOT push `vX.Y.Z` tags by hand** — release-please manages them.
+**Do NOT push `vX.Y.Z` tags by hand** — release-please manages them, and the
+publish workflow's `verify-ci-green` job will refuse to publish any tag whose
+commit does not have a successful `Android CI` run.
+
+### CI gating (defence in depth)
+
+Three layers ensure that a red Android CI cannot produce a release:
+
+1. **Android CI runs on every push to `main`** (no `paths:` filter on the
+   `push` trigger), so every main commit has a definitive verdict.
+2. **release-please is triggered by `workflow_run`** on `Android CI`
+   completion with `conclusion == 'success'`. A red main commit never
+   refreshes the Release PR and never produces a tag.
+3. **`android-publish.yml` re-verifies** Android CI's conclusion for the
+   tagged commit via the Checks API before building or uploading the AAB.
+   This catches manually-pushed tags and any future trigger misconfiguration.
+
+> Recommended follow-up (repo settings, not in code): enable branch
+> protection on `main` requiring the `Android CI` status check before merge,
+> so a red PR cannot land in the first place.
 
 ---
 
