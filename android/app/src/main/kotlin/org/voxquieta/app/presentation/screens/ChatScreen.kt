@@ -209,11 +209,8 @@ fun ChatScreen(
     }
 
     // Label shown on the translation chip: the short ID (e.g. "KJV") or "Bible Version".
-    val translationLabel = if (preferredTranslation.isBlank()) {
-        stringResource(R.string.translation_picker_title)
-    } else {
-        preferredTranslation.uppercase()
-    }
+    val translationLabel = translationChipLabel(preferredTranslation)
+        ?: stringResource(R.string.translation_picker_title)
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val conversations by conversationsViewModel.conversations.collectAsState()
