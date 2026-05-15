@@ -44,35 +44,55 @@ permissions:
 
 jobs:
   # Defence-in-depth: even though release-please is gated on Android CI via
-  # workflow_run, a manually-pushed tag (or future trigger misconfiguration)
-  # could still fire this workflow. Re-verify that Android CI succeeded for
-  # the tagged commit before building or uploading anything to Play Store.
-  # Skipped for workflow_dispatch runs — those are operator-initiated and
-  # may legitimately want to publish off a non-main branch.
+  # workflow_run, that gate is not race-free — release-please tags the current
+  # HEAD of main, which may have moved past the SHA that satisfied the gate.
+  # When the Release PR merges, the merge commit pushes to main, Android CI
+  # starts on it, and release-please (fired by a *prior* Android CI success)
+  # tags the new HEAD before its CI finishes. So we poll: wait up to 45 min
+  # for the most recent Android CI run on ${GITHUB_SHA} to complete, then
+  # enforce conclusion == success. Skipped for workflow_dispatch — operator-
+  # initiated publishes may legitimately run off a non-main branch.
   verify-ci-green:
     name: Verify Android CI is green
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    timeout-minutes: 50
     steps:
-      - name: Check Android CI conclusion for this commit
+      - name: Poll Android CI status for this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA="${GITHUB_SHA}"
-          echo "Looking up Android CI status for commit ${SHA}"
-          # Find the most recent "Android CI" workflow run for this SHA.
-          # We sort by run_started_at and take the last entry so re-runs win.
-          CONCLUSION=$(gh api \
-            "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=100" \
-            --jq '[.workflow_runs[] | select(.name=="Android CI")]
-                  | sort_by(.run_started_at) | last | .conclusion // "missing"')
-          echo "Android CI conclusion: ${CONCLUSION}"
-          if [ "${CONCLUSION}" != "success" ]; then
-            echo "❌ Refusing to publish: Android CI for ${SHA} is '${CONCLUSION}'."
-            echo "   Release tags must be created from commits with a green Android CI run."
-            exit 1
-          fi
-          echo "✅ Android CI succeeded for ${SHA} — proceeding with publish."
+          DEADLINE=$(( $(date +%s) + 2700 )) # 45 min — Android CI itself caps at 55 min
+          POLL_INTERVAL=30
+          echo "Waiting for Android CI to complete on commit ${SHA}"
+          while :; do
+            # Most recent "Android CI" workflow run for this SHA (re-runs win).
+            # Emit "status|conclusion" so we can branch on both fields. The
+            # "missing" sentinel covers the case where no run exists yet.
+            LINE=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name=="Android CI")]
+                    | sort_by(.run_started_at) | last
+                    | if . == null then "missing|" else "\(.status)|\(.conclusion // "")" end')
+            STATUS="${LINE%|*}"
+            CONCLUSION="${LINE#*|}"
+            echo "Android CI status=${STATUS} conclusion=${CONCLUSION}"
+            if [ "${STATUS}" = "completed" ]; then
+              if [ "${CONCLUSION}" = "success" ]; then
+                echo "✅ Android CI succeeded for ${SHA} — proceeding with publish."
+                exit 0
+              fi
+              echo "❌ Refusing to publish: Android CI for ${SHA} concluded as '${CONCLUSION}'."
+              exit 1
+            fi
+            if [ "$(date +%s)" -ge "${DEADLINE}" ]; then
+              echo "❌ Timed out waiting for Android CI on ${SHA} (last status=${STATUS})."
+              exit 1
+            fi
+            echo "Sleeping ${POLL_INTERVAL}s before re-polling..."
+            sleep "${POLL_INTERVAL}"
+          done
 
   publish:
     name: Build & Publish AAB
