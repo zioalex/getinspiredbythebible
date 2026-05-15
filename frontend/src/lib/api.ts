@@ -416,6 +416,7 @@ export async function* streamMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk> {
   await ensureTurnstileToken();
   const headers = getHeaders();
@@ -431,6 +432,7 @@ export async function* streamMessage(
       preferred_translation: preferredTranslation,
       session_id: sessionId,
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -453,6 +455,10 @@ export async function* streamMessage(
   const decoder = new TextDecoder();
 
   while (true) {
+    if (signal?.aborted) {
+      await reader.cancel().catch(() => {});
+      return;
+    }
     const { done, value } = await reader.read();
     if (done) break;
 

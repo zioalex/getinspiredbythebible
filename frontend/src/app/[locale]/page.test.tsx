@@ -329,6 +329,7 @@ describe("Home page responsive layout", () => {
         expect.any(Array),
         undefined,
         expect.any(String),
+        expect.any(AbortSignal),
       );
 
       // Verify the response is displayed
@@ -817,6 +818,7 @@ describe("Home page responsive layout", () => {
         expect.any(Array),
         undefined,
         expect.any(String),
+        expect.any(AbortSignal),
       );
 
       // Verify the response is displayed

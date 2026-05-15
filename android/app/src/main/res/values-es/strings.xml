@@ -4,6 +4,7 @@
     <string name="splash_motto">Inspírate cada día con la Palabra de Dios</string>
     <string name="chat_input_hint">Comparte lo que llevas en el corazón…</string>
     <string name="chat_send_button">Enviar</string>
+    <string name="chat_stop_button">Detener</string>
     <string name="action_clear_conversation">Borrar conversación</string>
     <string name="welcome_title">Inspírate cada día con la Palabra de Dios</string>
     <string name="welcome_subtitle">Trae tus cargas a la Palabra de Dios. Las Escrituras hablan consuelo, fortaleza y esperanza en cada etapa de la vida.</string>

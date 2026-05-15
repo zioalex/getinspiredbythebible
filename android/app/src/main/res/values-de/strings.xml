@@ -4,6 +4,7 @@
     <string name="splash_motto">Lass dich täglich von Gottes Wort inspirieren</string>
     <string name="chat_input_hint">Teile, was dir auf dem Herzen liegt…</string>
     <string name="chat_send_button">Senden</string>
+    <string name="chat_stop_button">Stoppen</string>
     <string name="action_clear_conversation">Gespräch löschen</string>
     <string name="welcome_title">Lass dich täglich von Gottes Wort inspirieren</string>
     <string name="welcome_subtitle">Bringe deine Lasten zu Gottes Wort. Die Heilige Schrift spricht Trost, Kraft und Hoffnung in jede Lebenslage.</string>

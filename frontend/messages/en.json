@@ -123,7 +123,8 @@
     "errorConnection": "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at contact@voxquieta.org",
     "startNewSession": "Start New Session",
     "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "stopGenerating": "Stop generating"
   },
   "Verses": {
     "scriptureReferences": "Scripture References",

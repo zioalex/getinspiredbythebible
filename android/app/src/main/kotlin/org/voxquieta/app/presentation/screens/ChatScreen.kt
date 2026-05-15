@@ -510,6 +510,7 @@ fun ChatScreen(
                     viewModel.sendMessage(text)
                     inputText = ""
                 },
+                onStop = { viewModel.cancelStream() },
                 isLoading = uiState.isLoading,
                 isTurnstileReady = uiState.isTurnstileReady,
                 isSessionLimitReached = uiState.isSessionLimitReached,

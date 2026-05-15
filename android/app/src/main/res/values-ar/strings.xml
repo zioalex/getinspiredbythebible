@@ -4,6 +4,7 @@
     <string name="splash_motto">استلهم يومياً من كلمة الله</string>
     <string name="chat_input_hint">شارك ما يدور في خاطرك…</string>
     <string name="chat_send_button">إرسال</string>
+    <string name="chat_stop_button">إيقاف</string>
     <string name="action_clear_conversation">مسح المحادثة</string>
     <string name="welcome_title">استلهم يومياً من كلمة الله</string>
     <string name="welcome_subtitle">أحضر أثقالك إلى كلمة الله. الكتاب المقدس يتكلم بالعزاء والقوة والأمل في كل موسم من مواسم الحياة.</string>

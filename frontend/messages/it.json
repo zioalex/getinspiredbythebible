@@ -123,7 +123,8 @@
     "errorConnection": "Mi dispiace, ho problemi di connessione. Potrebbe essere un problema temporaneo: riprova tra un momento. Se il problema persiste, puoi contattarci a contact@voxquieta.org",
     "startNewSession": "Avvia nuova sessione",
     "sessionLimitMessage": "Hai inviato 10 messaggi in questa sessione! Perché non ti prendi un momento per riflettere su ciò che hai ricevuto e goderti il creato di Dio? 🌳 Quando sei pronto, avvia una nuova sessione qui sotto.",
-    "scrollToBottom": "Scorri in basso"
+    "scrollToBottom": "Scorri in basso",
+    "stopGenerating": "Interrompi generazione"
   },
   "Verses": {
     "scriptureReferences": "Riferimenti Scritturali",

@@ -123,7 +123,8 @@
     "errorConnection": "Es tut mir leid, ich habe gerade Verbindungsprobleme. Dies könnte ein vorübergehendes Problem sein – bitte versuche es gleich noch einmal. Wenn das Problem weiterhin besteht, erreichst du uns unter contact@voxquieta.org",
     "startNewSession": "Neue Sitzung starten",
     "sessionLimitMessage": "Du hast in dieser Sitzung 10 Nachrichten gesendet! Warum nimmst du dir nicht einen Moment Zeit, um über das Gehörte nachzudenken und Gottes Schöpfung zu genießen? 🌳 Wenn du bereit bist, starte unten eine neue Sitzung.",
-    "scrollToBottom": "Nach unten scrollen"
+    "scrollToBottom": "Nach unten scrollen",
+    "stopGenerating": "Generierung stoppen"
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",

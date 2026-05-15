@@ -4,6 +4,7 @@
     <string name="splash_motto">Вдохновляйся каждый день Словом Божьим</string>
     <string name="chat_input_hint">Поделитесь тем, что у вас на сердце…</string>
     <string name="chat_send_button">Отправить</string>
+    <string name="chat_stop_button">Остановить</string>
     <string name="action_clear_conversation">Очистить беседу</string>
     <string name="welcome_title">Вдохновляйся каждый день Словом Божьим</string>
     <string name="welcome_subtitle">Принесите свои тяготы к Слову Божьему. Писание несёт утешение, силу и надежду в каждый период жизни.</string>

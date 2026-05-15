@@ -4,6 +4,7 @@
     <string name="splash_motto">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="chat_input_hint">Partagez ce qui est sur votre cœur…</string>
     <string name="chat_send_button">Envoyer</string>
+    <string name="chat_stop_button">Arrêter</string>
     <string name="action_clear_conversation">Effacer la conversation</string>
     <string name="welcome_title">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="welcome_subtitle">Apportez vos fardeaux à la Parole de Dieu. L\'Écriture apporte réconfort, force et espoir à chaque saison de la vie.</string>
