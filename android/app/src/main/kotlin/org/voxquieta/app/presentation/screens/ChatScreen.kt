@@ -208,9 +208,9 @@ fun ChatScreen(
         )
     }
 
-    // Label shown on the translation chip: the short ID (e.g. "KJV") or "Auto".
+    // Label shown on the translation chip: the short ID (e.g. "KJV") or "Bible Version".
     val translationLabel = if (preferredTranslation.isBlank()) {
-        stringResource(R.string.translation_auto)
+        stringResource(R.string.translation_picker_title)
     } else {
         preferredTranslation.uppercase()
     }
