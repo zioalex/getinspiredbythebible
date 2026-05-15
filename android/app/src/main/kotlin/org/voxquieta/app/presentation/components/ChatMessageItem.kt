@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
@@ -411,11 +412,13 @@ fun ChatMessageItem(
                         // (b) Streaming with partial content — show text + blinking cursor
                         !isUser && message.isStreaming && message.content.isNotEmpty() -> {
                             Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = message.content,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = textColor,
-                                )
+                                SelectionContainer {
+                                    Text(
+                                        text = message.content,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = textColor,
+                                    )
+                                }
                                 Text(
                                     text = "▌",
                                     style = MaterialTheme.typography.bodyLarge,
@@ -434,6 +437,7 @@ fun ChatMessageItem(
                                 markdown = injectVerseLinks(message.content, verseRefRegex),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
+                                isTextSelectable = true,
                                 onLinkClicked = { url ->
                                     val parsed = parseVerseLink(url, preferredTranslation)
                                     if (parsed != null) {
