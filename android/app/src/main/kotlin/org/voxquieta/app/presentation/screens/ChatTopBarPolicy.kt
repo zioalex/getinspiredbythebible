@@ -44,3 +44,16 @@ internal fun chatTopBarPolicy(
     showVersesPanelInTopBar = versesCount > 0,
     showClearConversationInDrawer = messagesCount > 0,
 )
+
+/**
+ * Returns the display ID for the translation chip, or `null` when no translation
+ * has been selected (i.e. the backend should auto-detect from the user's locale).
+ *
+ * The composable resolves `null` to the localised `translation_picker_title` string
+ * ("Bible Version"), matching the web placeholder introduced in #551.
+ *
+ * @param preferredTranslation the raw value stored in [TranslationPreferences] —
+ *   an empty string means "no preference / auto-detect".
+ */
+internal fun translationChipLabel(preferredTranslation: String): String? =
+    if (preferredTranslation.isBlank()) null else preferredTranslation.uppercase()
