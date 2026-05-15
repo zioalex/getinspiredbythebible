@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.6.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.5.1...v1.6.0) (2026-05-15)
 
-
 ### Features
 
 * **chat:** BITB-035 interruptible streaming + multi-line input (web + Android) ([#557](https://github.com/zioalex/getinspiredbythebible/issues/557)) ([c4cb0a6](https://github.com/zioalex/getinspiredbythebible/commit/c4cb0a62d0fe3e417eca646d2dc49104ba59c94c))
-
 
 ### Bug Fixes
 
