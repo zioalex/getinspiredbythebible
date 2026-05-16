@@ -34,6 +34,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -457,52 +459,58 @@ class ChatViewModel @Inject constructor(
                             messageId = metadataMessageId,
                             versesCited = finalVersesCited,
                         )
-                        // Persist finished assistant message and bump conversation timestamp.
-                        repository.saveMessage(conversationId, finalAssistant)
-                        repository.touchConversation(conversationId)
+                        // Use NonCancellable so that DB writes and the isLoading reset always
+                        // complete even when the coroutine was cancelled by the Stop button.
+                        // Without this, the first suspending call (saveMessage) throws
+                        // CancellationException and isLoading stays true permanently.
+                        withContext(NonCancellable) {
+                            // Persist finished assistant message and bump conversation timestamp.
+                            repository.saveMessage(conversationId, finalAssistant)
+                            repository.touchConversation(conversationId)
 
-                        _uiState.update { state ->
-                            val newCount = state.interactionCount + 1
-                            // Detect the exact moment the session limit is reached so we can
-                            // proactively block the input and show the invitation message —
-                            // no need for the user to attempt a failing 11th request.
-                            val sessionLimitJustReached =
-                                !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
-                            // Append new verses, deduplicating by reference only (not translation)
-                            // so each verse appears once regardless of which translation it came from.
-                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
-                            val dedupedNew = finalVerses.filterNot { v ->
-                                "${v.book}${v.chapter}:${v.verse}" in existingRefs
-                            }
-                            // When the limit is just reached, append a synthetic assistant
-                            // message so the user sees the invitation in the conversation.
-                            val limitMessage = if (sessionLimitJustReached) {
-                                Message(
-                                    id = UUID.randomUUID().toString(),
-                                    role = Message.Role.ASSISTANT,
-                                    content = context.getString(R.string.error_session_limit),
+                            _uiState.update { state ->
+                                val newCount = state.interactionCount + 1
+                                // Detect the exact moment the session limit is reached so we can
+                                // proactively block the input and show the invitation message —
+                                // no need for the user to attempt a failing 11th request.
+                                val sessionLimitJustReached =
+                                    !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
+                                // Append new verses, deduplicating by reference only (not translation)
+                                // so each verse appears once regardless of which translation it came from.
+                                val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
+                                val dedupedNew = finalVerses.filterNot { v ->
+                                    "${v.book}${v.chapter}:${v.verse}" in existingRefs
+                                }
+                                // When the limit is just reached, append a synthetic assistant
+                                // message so the user sees the invitation in the conversation.
+                                val limitMessage = if (sessionLimitJustReached) {
+                                    Message(
+                                        id = UUID.randomUUID().toString(),
+                                        role = Message.Role.ASSISTANT,
+                                        content = context.getString(R.string.error_session_limit),
+                                    )
+                                } else null
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) finalAssistant else msg
+                                    } + listOfNotNull(limitMessage),
+                                    isLoading = false,
+                                    isBackendWarming = false,
+                                    interactionCount = newCount,
+                                    isSessionLimitReached = state.isSessionLimitReached || sessionLimitJustReached,
+                                    // Show the banner exactly once, at interaction 3.
+                                    // Using == rather than >= prevents re-showing the banner
+                                    // after it has been dismissed (banner=false, inline=false).
+                                    showChurchFinderBanner = !state.showChurchFinderBanner &&
+                                        !state.showChurchFinderInlineCard &&
+                                        newCount == 3,
+                                    // Show the inline card after 5 interactions if the banner
+                                    // was already dismissed without opening the sheet.
+                                    showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
+                                        (newCount >= 5 && !state.showChurchFinderBanner),
+                                    allVerses = state.allVerses + dedupedNew,
                                 )
-                            } else null
-                            state.copy(
-                                messages = state.messages.map { msg ->
-                                    if (msg.id == assistantId) finalAssistant else msg
-                                } + listOfNotNull(limitMessage),
-                                isLoading = false,
-                                isBackendWarming = false,
-                                interactionCount = newCount,
-                                isSessionLimitReached = state.isSessionLimitReached || sessionLimitJustReached,
-                                // Show the banner exactly once, at interaction 3.
-                                // Using == rather than >= prevents re-showing the banner
-                                // after it has been dismissed (banner=false, inline=false).
-                                showChurchFinderBanner = !state.showChurchFinderBanner &&
-                                    !state.showChurchFinderInlineCard &&
-                                    newCount == 3,
-                                // Show the inline card after 5 interactions if the banner
-                                // was already dismissed without opening the sheet.
-                                showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
-                                    (newCount >= 5 && !state.showChurchFinderBanner),
-                                allVerses = state.allVerses + dedupedNew,
-                            )
+                            }
                         }
                     }
                 }
