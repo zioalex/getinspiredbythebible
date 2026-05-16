@@ -1024,9 +1024,10 @@ class TestRecordDurationMetrics:
         span = self._make_span()
         start = time.perf_counter() - 0.005
 
-        with patch.object(db_query_duration_histogram, "record") as mock_query, patch.object(
-            db_search_duration_histogram, "record"
-        ) as mock_search:
+        with (
+            patch.object(db_query_duration_histogram, "record") as mock_query,
+            patch.object(db_search_duration_histogram, "record") as mock_search,
+        ):
             _record_duration(span, start, "get_verse", 1, "kjv")
 
         mock_query.assert_called_once()

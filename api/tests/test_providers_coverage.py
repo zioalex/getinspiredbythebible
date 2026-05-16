@@ -189,16 +189,23 @@ class TestClaudeProvider:
 
         from utils.metrics import llm_total_duration_histogram, llm_ttft_histogram
 
-        with patch.object(llm_ttft_histogram, "record") as mock_ttft, patch.object(
-            llm_total_duration_histogram, "record"
-        ) as mock_total:
-            chunks = [chunk async for chunk in provider.chat_stream([ChatMessage(role="user", content="Hi")])]
+        with (
+            patch.object(llm_ttft_histogram, "record") as mock_ttft,
+            patch.object(llm_total_duration_histogram, "record") as mock_total,
+        ):
+            chunks = [
+                chunk
+                async for chunk in provider.chat_stream([ChatMessage(role="user", content="Hi")])
+            ]
 
         assert chunks == ["Hello", " world"]
         mock_ttft.assert_called_once()
         ttft_value = mock_ttft.call_args[0][0]
         assert ttft_value >= 0
-        assert mock_ttft.call_args[0][1] == {"provider": "claude", "model": "claude-sonnet-4-20250514"}
+        assert mock_ttft.call_args[0][1] == {
+            "provider": "claude",
+            "model": "claude-sonnet-4-20250514",
+        }
         mock_total.assert_called_once()
         assert mock_total.call_args[0][0] >= 0
 
@@ -215,7 +222,9 @@ class TestClaudeProvider:
             mock_anthropic.AsyncAnthropic.return_value = mock_client
             from providers.claude import ClaudeProvider
 
-            provider = ClaudeProvider(api_key="test-key", model="claude-sonnet-4-20250514")  # pragma: allowlist secret
+            provider = ClaudeProvider(
+                api_key="test-key", model="claude-sonnet-4-20250514"
+            )  # pragma: allowlist secret
 
             mock_stream = AsyncMock()
             mock_stream.__aenter__ = AsyncMock(side_effect=FakeRateLimitError("rate limited"))
@@ -362,9 +371,10 @@ class TestOllamaProvider:
 
         from utils.metrics import llm_total_duration_histogram, llm_ttft_histogram
 
-        with patch.object(llm_ttft_histogram, "record") as mock_ttft, patch.object(
-            llm_total_duration_histogram, "record"
-        ) as mock_total:
+        with (
+            patch.object(llm_ttft_histogram, "record") as mock_ttft,
+            patch.object(llm_total_duration_histogram, "record") as mock_total,
+        ):
             with patch.object(provider, "_get_client") as mock_get_client:
                 mock_client = AsyncMock()
                 mock_client.stream = MagicMock(return_value=mock_stream_response)
@@ -372,7 +382,9 @@ class TestOllamaProvider:
 
                 chunks = [
                     chunk
-                    async for chunk in provider.chat_stream([ChatMessage(role="user", content="Hi")])
+                    async for chunk in provider.chat_stream(
+                        [ChatMessage(role="user", content="Hi")]
+                    )
                 ]
 
         assert chunks == ["Hello", " world"]
