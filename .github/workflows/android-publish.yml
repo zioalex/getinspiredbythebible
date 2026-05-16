@@ -111,12 +111,16 @@ jobs:
           POLL_INTERVAL=30
           echo "Waiting for Android CI to complete on commit ${SHA}"
           while :; do
-            # Most recent "Android CI" workflow run for this SHA (re-runs win).
+            # Most recent android-ci.yml workflow run for this SHA (re-runs win).
+            # Filter by .path, not .name: the workflow_runs API returns the
+            # *run* name (which uses our dynamic run-name template, e.g.
+            # "Android CI (main)"), not the workflow's static name. .path is
+            # the workflow file path and is invariant.
             # Emit "status|conclusion" so we can branch on both fields. The
             # "missing" sentinel covers the case where no run exists yet.
             LINE=$(gh api \
               "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=100" \
-              --jq '[.workflow_runs[] | select(.name=="Android CI")]
+              --jq '[.workflow_runs[] | select(.path==".github/workflows/android-ci.yml")]
                     | sort_by(.run_started_at) | last
                     | if . == null then "missing|" else "\(.status)|\(.conclusion // "")" end')
             STATUS="${LINE%|*}"
