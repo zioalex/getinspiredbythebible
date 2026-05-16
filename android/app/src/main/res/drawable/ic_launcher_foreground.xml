@@ -5,52 +5,58 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Halo at ray source -->
-    <path android:fillColor="#F8D040" android:alpha="0.50"
-        android:pathData="M54,20 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-    <path android:fillColor="#FFE880"
-        android:pathData="M54,20 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <!-- Halo glow at ray source (54, 20) -->
+    <path
+        android:fillColor="#F8D040"
+        android:fillAlpha="0.50"
+        android:pathData="M49,20 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <path
+        android:fillColor="#FFE880"
+        android:pathData="M52,20 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
 
-    <!-- Rays fanning down from top-centre -->
-    <line android:x1="54" android:y1="20" android:x2="16" android:y2="86"
-        android:strokeColor="#D99820" android:strokeWidth="1.2" android:strokeAlpha="0.40" />
-    <line android:x1="54" android:y1="20" android:x2="29" android:y2="84"
-        android:strokeColor="#EBA830" android:strokeWidth="1.8" android:strokeAlpha="0.58" />
-    <line android:x1="54" android:y1="20" android:x2="42" android:y2="80"
-        android:strokeColor="#F5C842" android:strokeWidth="2.6" android:strokeAlpha="0.75" />
-    <line android:x1="54" android:y1="20" android:x2="54" android:y2="79"
-        android:strokeColor="#FFE880" android:strokeWidth="3.4" android:strokeAlpha="0.96" />
-    <line android:x1="54" android:y1="20" android:x2="66" android:y2="80"
-        android:strokeColor="#F5C842" android:strokeWidth="2.6" android:strokeAlpha="0.75" />
-    <line android:x1="54" android:y1="20" android:x2="79" android:y2="84"
-        android:strokeColor="#EBA830" android:strokeWidth="1.8" android:strokeAlpha="0.58" />
-    <line android:x1="54" android:y1="20" android:x2="92" android:y2="86"
-        android:strokeColor="#D99820" android:strokeWidth="1.2" android:strokeAlpha="0.40" />
+    <!-- Rays from (54,20) fanning down -->
+    <path android:strokeColor="#D99820" android:strokeWidth="1.2" android:strokeAlpha="0.40"
+        android:pathData="M54,20 L16,86" />
+    <path android:strokeColor="#EBA830" android:strokeWidth="1.8" android:strokeAlpha="0.58"
+        android:pathData="M54,20 L29,84" />
+    <path android:strokeColor="#F5C842" android:strokeWidth="2.6" android:strokeAlpha="0.75"
+        android:pathData="M54,20 L42,80" />
+    <path android:strokeColor="#FFE880" android:strokeWidth="3.4" android:strokeAlpha="0.96"
+        android:pathData="M54,20 L54,79" />
+    <path android:strokeColor="#F5C842" android:strokeWidth="2.6" android:strokeAlpha="0.75"
+        android:pathData="M54,20 L66,80" />
+    <path android:strokeColor="#EBA830" android:strokeWidth="1.8" android:strokeAlpha="0.58"
+        android:pathData="M54,20 L79,84" />
+    <path android:strokeColor="#D99820" android:strokeWidth="1.2" android:strokeAlpha="0.40"
+        android:pathData="M54,20 L92,86" />
 
     <!-- Open Bible — left page -->
-    <path android:fillColor="#F8EDD0"
+    <path
+        android:fillColor="#F8EDD0"
         android:pathData="M13,87 Q12.5,79 15.5,78.5 L51,78 L51,87 Q35,86.4 13,87 Z" />
     <!-- Open Bible — right page -->
-    <path android:fillColor="#F0E2C0"
+    <path
+        android:fillColor="#F0E2C0"
         android:pathData="M95,87 Q95.5,79 92.5,78.5 L57,78 L57,87 Q73,86.4 95,87 Z" />
     <!-- Spine -->
-    <path android:fillColor="#C4A060"
+    <path
+        android:fillColor="#C4A060"
         android:pathData="M50.5,78 L57.5,78 L57.5,87 L50.5,87 Z" />
 
     <!-- Left page lines -->
-    <line android:x1="15" android:y1="80.5" android:x2="50" android:y2="80.2"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
-    <line android:x1="15" android:y1="82.5" android:x2="50" android:y2="82.2"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
-    <line android:x1="15" android:y1="84.5" android:x2="50" android:y2="84.2"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M15,80.5 L50,80.2" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M15,82.5 L50,82.2" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M15,84.5 L50,84.2" />
 
     <!-- Right page lines -->
-    <line android:x1="58" android:y1="80.2" android:x2="93" android:y2="80.5"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
-    <line android:x1="58" android:y1="82.2" android:x2="93" android:y2="82.5"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
-    <line android:x1="58" android:y1="84.2" android:x2="93" android:y2="84.5"
-        android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M58,80.2 L93,80.5" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M58,82.2 L93,82.5" />
+    <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
+        android:pathData="M58,84.2 L93,84.5" />
 
 </vector>
