@@ -76,6 +76,17 @@ Critical variables:
 
 ## Testing
 
+> **Rule: every code change must ship with tests. No exceptions.**
+>
+> - Bug fix → add a regression test that would have caught the bug
+> - New feature → add tests covering the happy path and key edge cases
+> - Refactor → ensure existing tests still pass; add tests for any newly
+>   reachable behaviour
+>
+> Do not open or update a PR without tests. CI running green is necessary
+> but not sufficient — reviewers will reject PRs that lack coverage for
+> the changed code.
+
 ### Backend Tests
 
 ```bash
