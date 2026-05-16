@@ -265,9 +265,14 @@ jobs:
         id: lane
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            # Tag pushes always go to production. The :production lane defaults
-            # release_status=draft, so a human still clicks "Start rollout".
-            echo "lane=production" >> "$GITHUB_OUTPUT"
+            # Tag pushes (release-please tags) go to the **internal** track
+            # until the app has an established production presence. Promoting
+            # straight to production for the first time triggers Play Console
+            # precondition errors (no prior production release to compare
+            # against) and is operationally risky — we want internal testers
+            # to validate each tag before any production rollout. Promote to
+            # beta/production manually via workflow_dispatch when ready.
+            echo "lane=internal" >> "$GITHUB_OUTPUT"
           else
             echo "lane=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
           fi
