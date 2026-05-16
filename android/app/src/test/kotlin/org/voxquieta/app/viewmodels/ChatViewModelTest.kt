@@ -39,6 +39,7 @@ import io.mockk.slot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -1537,6 +1538,84 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    // ── cancelStream / Stop button ────────────────────────────────────────────
+
+    @Test
+    fun `cancelStream resets isLoading so the user can send further messages`() = runTest {
+        // A flow that emits one partial chunk then suspends — simulates a long SSE
+        // stream interrupted by the Stop button.
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Partial answer…", done = false))
+            awaitCancellation()
+        }
+
+        viewModel.sendMessage("Hello")
+        // Run until the coroutine blocks on awaitCancellation().
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isLoading)
+
+        // Simulate the user tapping Stop.
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // isLoading must be false so the Send button reappears and new messages can be sent.
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `cancelStream preserves the partial assistant message content`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Only the beginning", done = false))
+            awaitCancellation()
+        }
+
+        viewModel.sendMessage("Tell me something")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistantMsg = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Only the beginning", assistantMsg.content)
+        assertFalse(assistantMsg.isStreaming)
+    }
+
+    @Test
+    fun `cancelStream is a no-op when no stream is active`() = runTest {
+        // streamJob is null at this point — must not throw.
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+    }
+
+    @Test
+    fun `sendMessage succeeds after a previous stream was cancelled`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flow {
+                emit(StreamChunk(content = "First partial", done = false))
+                awaitCancellation()
+            },
+            flowOf(StreamChunk(content = "Second complete", done = true)),
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isLoading)
+
+        viewModel.sendMessage("Second question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        val lastAssistant = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Second complete", lastAssistant.content)
     }
 
     // ── Language seeding (new) ────────────────────────────────────────────────
