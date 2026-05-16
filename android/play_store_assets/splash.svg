@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1242 2208" width="1242" height="2208">
+  <defs>
+    <clipPath id="splash-clip">
+      <rect x="0" y="0" width="1242" height="2208"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1242" height="2208" fill="#2A1608"/>
+
+  <!-- Ray source halo -->
+  <circle cx="621" cy="320" r="160" fill="#C8860A" opacity="0.08"/>
+  <circle cx="621" cy="320" r="100" fill="#F0B830" opacity="0.15"/>
+  <circle cx="621" cy="320" r="55"  fill="#F8D040" opacity="0.40"/>
+  <circle cx="621" cy="320" r="22"  fill="#FFE880" opacity="0.85"/>
+  <circle cx="621" cy="320" r="8"   fill="#FFFFFF"/>
+
+  <!-- Rays — 11 beams -->
+  <g stroke-linecap="round" clip-path="url(#splash-clip)">
+    <line x1="621" y1="320" x2="-80"  y2="1600" stroke="#A06808" stroke-width="10" opacity="0.20"/>
+    <line x1="621" y1="320" x2="80"   y2="1560" stroke="#B87C18" stroke-width="14" opacity="0.30"/>
+    <line x1="621" y1="320" x2="240"  y2="1520" stroke="#D09828" stroke-width="20" opacity="0.44"/>
+    <line x1="621" y1="320" x2="400"  y2="1480" stroke="#E8B038" stroke-width="28" opacity="0.60"/>
+    <line x1="621" y1="320" x2="510"  y2="1450" stroke="#F5C842" stroke-width="36" opacity="0.78"/>
+    <line x1="621" y1="320" x2="621"  y2="1440" stroke="#FFE880" stroke-width="44" opacity="0.96"/>
+    <line x1="621" y1="320" x2="732"  y2="1450" stroke="#F5C842" stroke-width="36" opacity="0.78"/>
+    <line x1="621" y1="320" x2="842"  y2="1480" stroke="#E8B038" stroke-width="28" opacity="0.60"/>
+    <line x1="621" y1="320" x2="1002" y2="1520" stroke="#D09828" stroke-width="20" opacity="0.44"/>
+    <line x1="621" y1="320" x2="1162" y2="1560" stroke="#B87C18" stroke-width="14" opacity="0.30"/>
+    <line x1="621" y1="320" x2="1322" y2="1600" stroke="#A06808" stroke-width="10" opacity="0.20"/>
+  </g>
+
+  <!-- Floor glow beneath bible -->
+  <ellipse cx="621" cy="1660" rx="520" ry="55" fill="#7A4A08" opacity="0.25"/>
+
+  <!-- Open Bible — left page -->
+  <path d="M100 1700 Q90 1590 150 1580 L606 1572 L606 1700 Q400 1694 100 1700 Z" fill="#F8EDD0"/>
+  <!-- Open Bible — right page -->
+  <path d="M1142 1700 Q1152 1590 1092 1580 L636 1572 L636 1700 Q842 1694 1142 1700 Z" fill="#F0E2C0"/>
+  <!-- Spine -->
+  <rect x="604" y="1572" width="34" height="128" rx="7" fill="#C4A060"/>
+
+  <!-- Left page lines -->
+  <line x1="130" y1="1598" x2="600" y2="1593" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="130" y1="1618" x2="600" y2="1613" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="130" y1="1638" x2="600" y2="1633" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="130" y1="1658" x2="600" y2="1653" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="130" y1="1678" x2="600" y2="1673" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+
+  <!-- Right page lines -->
+  <line x1="642" y1="1593" x2="1112" y2="1598" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="642" y1="1613" x2="1112" y2="1618" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="642" y1="1633" x2="1112" y2="1638" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="642" y1="1653" x2="1112" y2="1658" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+  <line x1="642" y1="1673" x2="1112" y2="1678" stroke="#C4A060" stroke-width="4" opacity="0.42"/>
+
+  <!-- App name -->
+  <text x="621" y="1840" font-family="Georgia, serif" font-size="120" font-weight="bold"
+        fill="#F5C842" text-anchor="middle" letter-spacing="18">VOX QUIETA</text>
+
+  <!-- Tagline -->
+  <text x="621" y="1930" font-family="Georgia, serif" font-size="52"
+        fill="#C4A060" text-anchor="middle" letter-spacing="3">Get Inspired daily by God's Word</text>
+</svg>
