@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.2...v1.6.3) (2026-05-16)
+
+
+### Bug Fixes
+
+* **android:** correct app branding with golden bible icon and rays ([#569](https://github.com/zioalex/getinspiredbythebible/issues/569)) ([#572](https://github.com/zioalex/getinspiredbythebible/issues/572)) ([9e28516](https://github.com/zioalex/getinspiredbythebible/commit/9e28516c5c22052267a9e498d62d568cae5ef4ce))
+* **ci:** filter Android CI runs by .path, not .name ([#570](https://github.com/zioalex/getinspiredbythebible/issues/570)) ([909abb3](https://github.com/zioalex/getinspiredbythebible/commit/909abb3e4ba73198d2736b3cff6a2af293733d4b))
+
+
+### Documentation
+
+* **agents:** require conventional-commits format on PR titles ([#568](https://github.com/zioalex/getinspiredbythebible/issues/568)) ([#573](https://github.com/zioalex/getinspiredbythebible/issues/573)) ([7a01368](https://github.com/zioalex/getinspiredbythebible/commit/7a013685da40e5dbad6eb72e02a34aaf5223f411))
+
 ## [1.6.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.1...v1.6.2) (2026-05-16)
 
 ### Bug Fixes
