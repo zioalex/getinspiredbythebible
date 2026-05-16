@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.1...v1.6.2) (2026-05-16)
+
+
+### Bug Fixes
+
+* **android:** wrap message persistence in NonCancellable context ([#565](https://github.com/zioalex/getinspiredbythebible/issues/565)) ([#567](https://github.com/zioalex/getinspiredbythebible/issues/567)) ([8214925](https://github.com/zioalex/getinspiredbythebible/commit/82149256521c94cdad20a8c682f29423aaac94e1))
+
+
+### Documentation
+
+* **agents:** add failure-forecaster subagent for 12-month risk audits ([#563](https://github.com/zioalex/getinspiredbythebible/issues/563)) ([2a5c2c7](https://github.com/zioalex/getinspiredbythebible/commit/2a5c2c7694f04b9689c78f01823a3cffb456b732))
+
 ## [1.6.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.0...v1.6.1) (2026-05-15)
 
 ### Bug Fixes
