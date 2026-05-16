@@ -164,11 +164,11 @@ Use these as tone/format anchors. Do not copy them verbatim — they exist to ca
 
 **Dependency rot finding:**
 
-> ESLint pinned to `^8.57.0` in `package.json:42`. ESLint 8.x reached end-of-life on 2024-10-05 (https://eslint.org/version-support/). Project uses `.eslintrc.json` (legacy config), which ESLint 9 removed in favor of flat config. **Forecast**: linting still works today but receives no security patches; CI will break the day a transitive dep requires ESLint 9 peer. ETA 3–6 months. **Mitigation**: migrate to flat config (`eslint.config.js`) and bump to `^9.x` — see `https://eslint.org/docs/latest/use/configure/migration-guide`.
+> ESLint pinned to `^8.57.0` in `package.json:42`. ESLint 8.x reached end-of-life on 2024-10-05 (<https://eslint.org/version-support/>). Project uses `.eslintrc.json` (legacy config), which ESLint 9 removed in favor of flat config. **Forecast**: linting still works today but receives no security patches; CI will break the day a transitive dep requires ESLint 9 peer. ETA 3–6 months. **Mitigation**: migrate to flat config (`eslint.config.js`) and bump to `^9.x` — see `https://eslint.org/docs/latest/use/configure/migration-guide`.
 
 **Hardcoded model finding:**
 
-> `backend/app/config.py:88` pins `default_chat_model = "claude-sonnet-4-20250514"`. Anthropic has historically retired dated model snapshots ~12 months after release (https://docs.anthropic.com/en/docs/about-claude/model-deprecations). **Forecast**: API returns 404 or auto-routes to a newer snapshot with different behavior around May 2026. **Mitigation**: replace dated ID with the family alias `claude-sonnet-4` or read from `ANTHROPIC_MODEL` env var.
+> `backend/app/config.py:88` pins `default_chat_model = "claude-sonnet-4-20250514"`. Anthropic has historically retired dated model snapshots ~12 months after release (<https://docs.anthropic.com/en/docs/about-claude/model-deprecations>). **Forecast**: API returns 404 or auto-routes to a newer snapshot with different behavior around May 2026. **Mitigation**: replace dated ID with the family alias `claude-sonnet-4` or read from `ANTHROPIC_MODEL` env var.
 
 **Vendor risk finding:**
 
