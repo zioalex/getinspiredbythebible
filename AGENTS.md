@@ -197,6 +197,14 @@ Deploys to Azure on push to `main`.
 whose commit messages do not follow the `type(scope): description` format will
 fail CI. See `commitlint.config.cjs` for the full allowed type list.
 
+**The PR title itself must also be a conventional commit.** This repo uses
+squash-merge, so the PR title becomes the commit subject on `main`.
+`release-please` scans only top-level commit subjects — a non-conventional
+PR title produces an unrecognised commit and the change is silently dropped
+from the next release's changelog (this happened on #565 → v1.6.2). The
+`Lint PR Title` job in `commitlint.yml` blocks merging until the title is a
+valid conventional commit; rename the PR if it fails.
+
 ### Automated release tagging (release-please)
 
 **Do NOT create `vX.Y.Z` git tags manually.** Semver tags are created
