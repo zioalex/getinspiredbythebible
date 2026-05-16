@@ -58,6 +58,19 @@ platform :android do
     # Play Store rejects rollout + draft together. Only attach a rollout
     # percentage when the release is actually going live.
     params[:rollout] = ENV.fetch("ROLLOUT", "1.0") unless status == "draft"
+
+    # Pre-flight: dry-run the upload first so a Play Console precondition
+    # failure (stuck draft / unsubmitted edit / half-open `inProgress` edit)
+    # surfaces with the actual FAILED_PRECONDITION reason *before* we
+    # commit a real edit. Avoids burning a versionCode every time we hit a
+    # stuck Play Console state. The :validate lane below is functionally
+    # equivalent but anchored to internal — keep both: this guards every
+    # production publish automatically; :validate stays available for
+    # operator-initiated dry-runs after a manual cleanup.
+    upload_to_play_store(
+      **params.merge(validate_only: true, rollout: nil),
+    )
+
     upload_to_play_store(**params)
   end
 
