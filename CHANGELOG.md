@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.6.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.3...v1.6.4) (2026-05-16)
 
-
 ### Bug Fixes
 
 * **android-publish:** default tag publishes to internal + validate_only pre-flight ([#574](https://github.com/zioalex/getinspiredbythebible/issues/574)) ([ff92366](https://github.com/zioalex/getinspiredbythebible/commit/ff923665813a89e19a5ae14ac1d1236a6f9e4a36))
