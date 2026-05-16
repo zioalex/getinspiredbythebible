@@ -223,8 +223,9 @@ class TestClaudeProvider:
             from providers.claude import ClaudeProvider
 
             provider = ClaudeProvider(
-                api_key="test-key", model="claude-sonnet-4-20250514"
-            )  # pragma: allowlist secret
+                api_key="test-key",  # pragma: allowlist secret
+                model="claude-sonnet-4-20250514",
+            )
 
             mock_stream = AsyncMock()
             mock_stream.__aenter__ = AsyncMock(side_effect=FakeRateLimitError("rate limited"))
