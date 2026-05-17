@@ -190,6 +190,25 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+#### Choosing the right type: `feat` vs `chore`
+
+> **If a user can see or feel the change → `feat:`**
+> **If only the codebase or pipeline changes → `chore:`/`ci:`/`build:`**
+
+`chore:` is hidden in the changelog (`"hidden": true` in `release-please-config.json`).
+Using it for user-visible work causes those changes to be silently absent from the
+release notes. When in doubt, prefer `feat:`.
+
+| Change | Correct type |
+|--------|-------------|
+| New icon, splash screen, or graphics | `feat:` |
+| New screen or UI component | `feat:` |
+| Copy/text change visible to the user | `feat:` |
+| Bug the user could observe | `fix:` |
+| Internal refactor with no user impact | `chore:` |
+| CI workflow or tooling change | `ci:` |
+| Dependency bump | `build:` |
+
 ### Conventional Commits enforcement
 
 **Conventional Commits are enforced on every PR** via
@@ -346,3 +365,4 @@ and chapter number. Chinese also uses guillemet notation `<<BookName>>`.
    end-of-file-fixer exclude `frontend/` (handled by Prettier instead)
 8. **Android string validation** - CI checks that all strings in `values/strings.xml` exist in every locale directory
 9. **Never push to closed/merged PR branches** - Always create a fresh branch from `main` for new work
+10. **`chore:` hides from changelog** - Asset, graphic, and UI changes that users can see must use `feat:`, not `chore:`. Using `chore:` for user-visible work causes the change to be silently dropped from release notes by release-please (see Git Conventions → Choosing the right type)
