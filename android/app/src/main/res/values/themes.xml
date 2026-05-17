@@ -10,7 +10,7 @@
 
       Colours:
         background  #2A1608  — dark warm brown (matches new brand)
-        icon        @drawable/ic_splash_icon  — open bible with rays, centred
+        icon        @drawable/ic_splash_bible — open bible with rays, centred
         iconBg      #2A1608  — same as background so the icon blends in (API 31+)
     -->
     <style name="Theme.VoxQuieta.Splash" parent="Theme.SplashScreen">
@@ -18,7 +18,7 @@
         <item name="windowSplashScreenBackground">#2A1608</item>
 
         <!-- Animated / static icon shown in the centre of the screen -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bible</item>
 
         <!-- Duration hint for the splash animation (ms). setKeepOnScreenCondition in
              MainActivity may dismiss earlier if the backend responds fast, or hold longer
