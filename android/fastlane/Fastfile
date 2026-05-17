@@ -41,6 +41,21 @@ platform :android do
     )
   end
 
+  desc "Upload AAB to a named closed testing track (set CLOSED_TESTING_TRACK env var; defaults to 'alpha')"
+  lane :closed_testing do
+    upload_to_play_store(
+      track: ENV.fetch("CLOSED_TESTING_TRACK", "alpha"),
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
+    )
+  end
+
   desc "Upload AAB to Play Store open testing (beta) track"
   lane :beta do
     upload_to_play_store(

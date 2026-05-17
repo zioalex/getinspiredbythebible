@@ -12,6 +12,14 @@ on:
         description: "Override versionName (empty = read from build.gradle.kts)."
         required: false
         type: string
+      track:
+        description: "Closed testing track to publish to. Run the workflow once and check the 'List available Play Store tracks' step to confirm the exact API trackId for custom tracks."
+        required: false
+        type: choice
+        default: "alpha"
+        options:
+          - alpha
+          - extend testing
       release_status:
         description: "Release status: 'completed' (live to testers) or 'draft'."
         required: false
@@ -21,7 +29,7 @@ on:
           - completed
           - draft
 
-run-name: "Android Closed Testing (${{ inputs.release_status || 'completed' }})"
+run-name: "Android Closed Testing → ${{ inputs.track || 'alpha' }} (${{ inputs.release_status || 'completed' }})"
 
 permissions:
   contents: read
@@ -103,6 +111,41 @@ jobs:
         run: |
           echo "${{ secrets.GOOGLE_PLAY_JSON_KEY }}" | base64 --decode > /tmp/google-play-key.json
 
+      - name: List available Play Store tracks
+        continue-on-error: true
+        run: |
+          pip install --quiet google-auth google-api-python-client
+          python3 << 'PYEOF'
+          import json
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          with open('/tmp/google-play-key.json') as f:
+              creds_data = json.load(f)
+
+          creds = service_account.Credentials.from_service_account_info(
+              creds_data,
+              scopes=['https://www.googleapis.com/auth/androidpublisher']
+          )
+          service = build('androidpublisher', 'v3', credentials=creds)
+
+          # A temporary edit is required by the API to list tracks.
+          edit = service.edits().insert(packageName='org.voxquieta').execute()
+          edit_id = edit['id']
+
+          tracks = service.edits().tracks().list(
+              packageName='org.voxquieta', editId=edit_id
+          ).execute()
+
+          print("Available Play Store tracks (use trackId value in the track dropdown):")
+          for t in sorted(tracks.get('tracks', []), key=lambda x: x['track']):
+              print(f"  trackId: \"{t['track']}\"")
+
+          # Abandon the edit — no changes committed to Play Console.
+          service.edits().delete(packageName='org.voxquieta', editId=edit_id).execute()
+          print("Edit abandoned — no changes committed.")
+          PYEOF
+
       - name: Stage latest CHANGELOG entry as release notes
         run: |
           set -e
@@ -120,17 +163,18 @@ jobs:
           cat android/fastlane/metadata/android/en-US/changelogs/default.txt
           echo
 
-      - name: Upload to Play Store (closed testing / alpha track)
+      - name: Upload to Play Store (closed testing)
         working-directory: android
         env:
           GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
+          CLOSED_TESTING_TRACK: ${{ inputs.track || 'alpha' }}
           RELEASE_STATUS: ${{ inputs.release_status || 'completed' }}
           FASTLANE_HIDE_TIMESTAMP: "true"
           FASTLANE_SKIP_UPDATE_CHECK: "true"
           SUPPLY_VERBOSE: "true"
         run: |
           set -o pipefail
-          fastlane alpha --verbose 2>&1 | tee /tmp/fastlane.log
+          fastlane closed_testing --verbose 2>&1 | tee /tmp/fastlane.log
 
       - name: Upload Fastlane log on failure
         if: failure()
