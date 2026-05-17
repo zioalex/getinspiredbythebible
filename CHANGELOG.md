@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.6.6](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.5...v1.6.6) (2026-05-17)
 
-
 ### Documentation
 
 * **agents:** clarify feat vs chore commit type choice ([#579](https://github.com/zioalex/getinspiredbythebible/issues/579)) ([37560d7](https://github.com/zioalex/getinspiredbythebible/commit/37560d741a201295e7ff52ab552c13141d870b57))
