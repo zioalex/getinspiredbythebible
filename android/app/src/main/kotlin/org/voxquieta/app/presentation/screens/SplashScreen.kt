@@ -191,13 +191,13 @@ fun SplashScreen(onComplete: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_splash_icon),
+                painter = painterResource(id = R.drawable.ic_splash_bible),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.size(64.dp),
+                tint = Color.Unspecified,
+                modifier = Modifier.size(200.dp),
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = stringResource(R.string.app_name),
