@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
-  "date": "2026-05-03",
-  "body": "### Features\n\n* Initial public release of Vox Quieta — multilingual Bible inspiration app.\n* Multilingual support across 11 locales (en, it, de, es, fr, pt, ar, ru, zh, hi, ko).\n* Privacy policy and terms of service pages with per-locale routing.\n* AI-powered scripture recommendations via semantic search.\n* Changelog page at /[locale]/changelog with release history."
+  "version": "1.6.4",
+  "date": "2026-05-16",
+  "body": "### Bug Fixes\n\n* **android-publish:** default tag publishes to internal + validate_only pre-flight ([#574](https://github.com/zioalex/getinspiredbythebible/issues/574)) ([ff92366](https://github.com/zioalex/getinspiredbythebible/commit/ff923665813a89e19a5ae14ac1d1236a6f9e4a36))"
 }
