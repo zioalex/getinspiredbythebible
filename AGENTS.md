@@ -190,7 +190,7 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
-#### Choosing the right type: `feat` vs `chore`
+### Choosing the right type: `feat` vs `chore`
 
 > **If a user can see or feel the change → `feat:`**
 > **If only the codebase or pipeline changes → `chore:`/`ci:`/`build:`**
