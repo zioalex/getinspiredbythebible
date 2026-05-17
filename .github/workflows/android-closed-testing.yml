@@ -13,7 +13,9 @@ on:
         required: false
         type: string
       track:
-        description: "Closed testing track to publish to. Run the workflow once and check the 'List available Play Store tracks' step to confirm the exact API trackId for custom tracks."
+        description:
+          "Closed testing track to publish to. Run the workflow once and check the 'List available Play Store tracks'
+          step to confirm the exact API trackId for custom tracks."
         required: false
         type: choice
         default: "alpha"
