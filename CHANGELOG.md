@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.7.0...v1.8.0) (2026-05-17)
 
-
 ### Features
 
 * **android:** add warm radial gradient to icon outer space ([#582](https://github.com/zioalex/getinspiredbythebible/issues/582)) ([ed49c51](https://github.com/zioalex/getinspiredbythebible/commit/ed49c513aa1def9dfdfc199ac1315b416549150a))
