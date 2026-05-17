@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.6.5](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.4...v1.6.5) (2026-05-17)
 
-
 ### Bug Fixes
 
 * **frontend:** pass UI locale to chat API so AI responds in selected language ([#577](https://github.com/zioalex/getinspiredbythebible/issues/577)) ([d959a14](https://github.com/zioalex/getinspiredbythebible/commit/d959a142ba62ab6a545420445ae24523ce54bf59))
