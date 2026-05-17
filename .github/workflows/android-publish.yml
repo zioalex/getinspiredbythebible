@@ -12,6 +12,7 @@ on:
         options:
           - validate
           - internal
+          - alpha
           - beta
           - production
       version_code:

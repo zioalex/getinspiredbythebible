@@ -1,0 +1,151 @@
+name: Android Closed Testing
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Override versionCode (empty = Unix epoch timestamp)."
+        required: false
+        type: string
+      version_name:
+        description: "Override versionName (empty = read from build.gradle.kts)."
+        required: false
+        type: string
+      release_status:
+        description: "Release status: 'completed' (live to testers) or 'draft'."
+        required: false
+        type: choice
+        default: "completed"
+        options:
+          - completed
+          - draft
+
+run-name: "Android Closed Testing (${{ inputs.release_status || 'completed' }})"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-upload:
+    name: Build AAB & Upload to Closed Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 --decode > /tmp/release.keystore
+
+      - name: Write google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+
+      - name: Compute version code and name
+        id: version
+        env:
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          BUILD_EPOCH="$(date +%s)"
+
+          if [[ -n "$INPUT_VERSION_NAME" ]]; then
+            VERSION_NAME="$INPUT_VERSION_NAME"
+          else
+            VERSION_NAME="$(grep versionName android/app/build.gradle.kts \
+              | head -1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          fi
+
+          if [[ -n "$INPUT_VERSION_CODE" ]]; then
+            VERSION_CODE="$INPUT_VERSION_CODE"
+          else
+            VERSION_CODE="$BUILD_EPOCH"
+          fi
+
+          echo "Using versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed AAB
+        working-directory: android
+        env:
+          KEYSTORE_PATH: /tmp/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease \
+            -PversionCode="${{ steps.version.outputs.version_code }}" \
+            -PversionName="${{ steps.version.outputs.version_name }}" \
+            -PbaseUrl="https://api.voxquieta.org/"
+
+      - name: Set up Ruby for Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: android
+
+      - name: Install Fastlane
+        working-directory: android
+        run: gem install fastlane --no-document
+
+      - name: Decode Google Play JSON key
+        run: |
+          echo "${{ secrets.GOOGLE_PLAY_JSON_KEY }}" | base64 --decode > /tmp/google-play-key.json
+
+      - name: Stage latest CHANGELOG entry as release notes
+        run: |
+          set -e
+          mkdir -p android/fastlane/metadata/android/en-US/changelogs
+          awk '
+            /^## / { n++; if (n == 1) next; if (n == 2) exit }
+            n == 1 { print }
+          ' CHANGELOG.md | head -c 500 \
+            > android/fastlane/metadata/android/en-US/changelogs/default.txt
+          if [ ! -s android/fastlane/metadata/android/en-US/changelogs/default.txt ]; then
+            echo "Bug fixes and improvements." \
+              > android/fastlane/metadata/android/en-US/changelogs/default.txt
+          fi
+          echo "--- release notes ---"
+          cat android/fastlane/metadata/android/en-US/changelogs/default.txt
+          echo
+
+      - name: Upload to Play Store (closed testing / alpha track)
+        working-directory: android
+        env:
+          GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
+          RELEASE_STATUS: ${{ inputs.release_status || 'completed' }}
+          FASTLANE_HIDE_TIMESTAMP: "true"
+          FASTLANE_SKIP_UPDATE_CHECK: "true"
+          SUPPLY_VERBOSE: "true"
+        run: |
+          set -o pipefail
+          fastlane alpha --verbose 2>&1 | tee /tmp/fastlane.log
+
+      - name: Upload Fastlane log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fastlane-log-closed-testing-${{ github.run_id }}
+          path: |
+            /tmp/fastlane.log
+            android/fastlane/report.xml
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-closed-testing-${{ steps.version.outputs.version_name }}.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
