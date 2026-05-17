@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.7.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.6...v1.7.0) (2026-05-17)
 
-
 ### Features
 
 * **android:** add closed testing workflow for Play Store releases ([#581](https://github.com/zioalex/getinspiredbythebible/issues/581)) ([2c23c88](https://github.com/zioalex/getinspiredbythebible/commit/2c23c887fbbbd88513010a98e285b79ccae63b83))
