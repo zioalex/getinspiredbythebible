@@ -12,7 +12,7 @@ import {
   ChevronDown,
   Square,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -62,6 +62,7 @@ interface ChatMessage {
 }
 
 export default function Home() {
+  const locale = useLocale();
   const tHeader = useTranslations("Header");
   const tWelcome = useTranslations("Welcome");
   const tChat = useTranslations("Chat");
@@ -371,6 +372,7 @@ export default function Home() {
         apiMessages,
         selectedTranslation || undefined,
         sessionId,
+        locale,
         controller.signal,
       )) {
         if (controller.signal.aborted) break;

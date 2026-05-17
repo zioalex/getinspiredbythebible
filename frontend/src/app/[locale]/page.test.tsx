@@ -329,6 +329,7 @@ describe("Home page responsive layout", () => {
         expect.any(Array),
         undefined,
         expect.any(String),
+        "en",
         expect.any(AbortSignal),
       );
 
@@ -818,6 +819,7 @@ describe("Home page responsive layout", () => {
         expect.any(Array),
         undefined,
         expect.any(String),
+        "en",
         expect.any(AbortSignal),
       );
 

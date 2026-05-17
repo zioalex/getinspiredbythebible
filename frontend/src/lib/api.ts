@@ -416,6 +416,7 @@ export async function* streamMessage(
   history: Message[] = [],
   preferredTranslation?: string,
   sessionId?: string,
+  language?: string,
   signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk> {
   await ensureTurnstileToken();
@@ -431,6 +432,7 @@ export async function* streamMessage(
       include_search: true,
       preferred_translation: preferredTranslation,
       session_id: sessionId,
+      language,
     }),
     signal,
   });
