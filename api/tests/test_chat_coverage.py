@@ -964,7 +964,10 @@ class TestChatServiceModelOverride:
     @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="it")
     @patch("chat.service.resolve_translation", return_value="ita1927")
-    @patch("chat.service.get_translation_info", return_value={"code": "ita1927", "name": "Italian Bible"})
+    @patch(
+        "chat.service.get_translation_info",
+        return_value={"code": "ita1927", "name": "Italian Bible"},
+    )
     @patch("chat.service.get_model_override_for_language", return_value=None)
     @patch("chat.service.is_verse_lookup_request", return_value=False)
     @patch("chat.service.extract_references", return_value=([], None))
@@ -992,7 +995,7 @@ class TestChatServiceModelOverride:
             )
         )
 
-        # No language override — backend should use detect_language("Ciao come stai")
+        # No language override - backend should use detect_language("Ciao come stai")
         request = ChatRequest(message="Ciao come stai")
         assert request.language is None
         await service.chat(request)
