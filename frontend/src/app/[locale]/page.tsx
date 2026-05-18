@@ -366,17 +366,14 @@ export default function Home() {
         return [...prev, placeholderMessage];
       });
 
-      // Stream the response — omit language so the backend auto-detects
-      // from the message text. This lets Italian speakers get Italian replies
-      // even when the UI locale is English.
-      for await (const chunk of streamMessage(
-        userMessageContent,
-        apiMessages,
-        selectedTranslation || undefined,
+      // Stream the response. We deliberately omit `language` so the backend
+      // auto-detects it from the message text — this lets Italian speakers
+      // get Italian replies even when the UI locale is English.
+      for await (const chunk of streamMessage(userMessageContent, apiMessages, {
+        preferredTranslation: selectedTranslation || undefined,
         sessionId,
-        undefined,
-        controller.signal,
-      )) {
+        signal: controller.signal,
+      })) {
         if (controller.signal.aborted) break;
         if (chunk.type === "error") {
           throw new Error(chunk.error || "Stream error");

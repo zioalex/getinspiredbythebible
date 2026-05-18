@@ -227,8 +227,8 @@ describe("Home page responsive layout", () => {
         expect(api.streamMessage).toHaveBeenCalled();
       });
       const call = vi.mocked(api.streamMessage).mock.calls[0];
-      // streamMessage(userMessageContent, apiMessages, translation, sessionId)
-      expect(call[2]).toBeUndefined();
+      // streamMessage(userMessageContent, apiMessages, { preferredTranslation, ... })
+      expect(call[2]?.preferredTranslation).toBeUndefined();
     });
   });
 
@@ -323,15 +323,20 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // Verify streamMessage was called with the prompt text
+      // Verify streamMessage was called with the prompt text. `language` is
+      // intentionally absent from the options object so the backend
+      // auto-detects it from the message.
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
-        undefined,
-        expect.any(String),
-        undefined, // language omitted so backend auto-detects from message
-        expect.any(AbortSignal),
+        expect.objectContaining({
+          preferredTranslation: undefined,
+          sessionId: expect.any(String),
+          signal: expect.any(AbortSignal),
+        }),
       );
+      const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
+      expect(opts?.language).toBeUndefined();
 
       // Verify the response is displayed
       await waitFor(() => {
@@ -813,15 +818,19 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // streamMessage should have been called
+      // streamMessage should have been called. `language` is intentionally
+      // absent from the options object so the backend auto-detects it.
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
-        undefined,
-        expect.any(String),
-        undefined, // language omitted so backend auto-detects from message
-        expect.any(AbortSignal),
+        expect.objectContaining({
+          preferredTranslation: undefined,
+          sessionId: expect.any(String),
+          signal: expect.any(AbortSignal),
+        }),
       );
+      const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
+      expect(opts?.language).toBeUndefined();
 
       // Verify the response is displayed
       await waitFor(() => {
