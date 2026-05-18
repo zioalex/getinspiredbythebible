@@ -366,13 +366,15 @@ export default function Home() {
         return [...prev, placeholderMessage];
       });
 
-      // Stream the response
+      // Stream the response — omit language so the backend auto-detects
+      // from the message text. This lets Italian speakers get Italian replies
+      // even when the UI locale is English.
       for await (const chunk of streamMessage(
         userMessageContent,
         apiMessages,
         selectedTranslation || undefined,
         sessionId,
-        locale,
+        undefined,
         controller.signal,
       )) {
         if (controller.signal.aborted) break;
