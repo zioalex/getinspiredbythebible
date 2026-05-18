@@ -960,3 +960,47 @@ class TestChatServiceModelOverride:
         # called with the client-supplied "it", not the auto-detected "en"
         mock_resolve.assert_called_once_with(None, "it")
         mock_override.assert_called_once_with("it")
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="ita1927")
+    @patch(
+        "chat.service.get_translation_info",
+        return_value={"code": "ita1927", "name": "Italian Bible"},
+    )
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_no_language_uses_detected_language(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """When request.language is None, the detected language should be used.
+
+        Regression test for the P0 bug where the frontend was sending the UI
+        locale (e.g. "en") which overrode auto-detection, causing Italian-typing
+        users to receive English responses.
+        """
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="Dio ti ama!",
+                provider="test",
+                model="test-model",
+            )
+        )
+
+        # No language override - backend should use detect_language("Ciao come stai")
+        request = ChatRequest(message="Ciao come stai")
+        assert request.language is None
+        await service.chat(request)
+
+        # resolve_translation and model override should have been called with the
+        # auto-detected "it", not any client-supplied locale.
+        mock_resolve.assert_called_once_with(None, "it")
+        mock_override.assert_called_once_with("it")

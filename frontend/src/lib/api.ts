@@ -411,13 +411,26 @@ export interface StreamChunk {
 /**
  * Stream a chat response with metadata
  */
+export interface StreamMessageOptions {
+  preferredTranslation?: string;
+  sessionId?: string;
+  /**
+   * Explicit language override (e.g. when the user picks one in a language
+   * picker). Omit to let the backend auto-detect from the message text.
+   */
+  language?: string;
+  signal?: AbortSignal;
+}
+
 export async function* streamMessage(
   message: string,
   history: Message[] = [],
-  preferredTranslation?: string,
-  sessionId?: string,
-  language?: string,
-  signal?: AbortSignal,
+  {
+    preferredTranslation,
+    sessionId,
+    language,
+    signal,
+  }: StreamMessageOptions = {},
 ): AsyncGenerator<StreamChunk> {
   await ensureTurnstileToken();
   const headers = getHeaders();

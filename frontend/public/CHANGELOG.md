@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.7.0...v1.8.0) (2026-05-17)
+
+### Features
+
+- **android:** add warm radial gradient to icon outer space ([#582](https://github.com/zioalex/getinspiredbythebible/issues/582)) ([ed49c51](https://github.com/zioalex/getinspiredbythebible/commit/ed49c513aa1def9dfdfc199ac1315b416549150a))
+
+## [1.7.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.6...v1.7.0) (2026-05-17)
+
+### Features
+
+- **android:** add closed testing workflow for Play Store releases ([#581](https://github.com/zioalex/getinspiredbythebible/issues/581)) ([2c23c88](https://github.com/zioalex/getinspiredbythebible/commit/2c23c887fbbbd88513010a98e285b79ccae63b83))
+
+## [1.6.6](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.5...v1.6.6) (2026-05-17)
+
+### Documentation
+
+- **agents:** clarify feat vs chore commit type choice ([#579](https://github.com/zioalex/getinspiredbythebible/issues/579)) ([37560d7](https://github.com/zioalex/getinspiredbythebible/commit/37560d741a201295e7ff52ab552c13141d870b57))
+
+## [1.6.5](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.4...v1.6.5) (2026-05-17)
+
+### Bug Fixes
+
+- **frontend:** pass UI locale to chat API so AI responds in selected language ([#577](https://github.com/zioalex/getinspiredbythebible/issues/577)) ([d959a14](https://github.com/zioalex/getinspiredbythebible/commit/d959a142ba62ab6a545420445ae24523ce54bf59))
+
 ## [1.6.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.6.3...v1.6.4) (2026-05-16)
 
 ### Bug Fixes
