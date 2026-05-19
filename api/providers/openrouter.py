@@ -4,11 +4,13 @@ OpenRouter provides access to various LLMs including free models via an OpenAI-c
 """
 
 import time
-from typing import AsyncIterator, cast
+from typing import Any, AsyncIterator, cast
 
-from openai import APIStatusError, AsyncOpenAI, RateLimitError
+import httpx
+from openai import APIStatusError, APITimeoutError, AsyncOpenAI, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 
+from utils.circuit_breaker import CircuitBreaker
 from utils.logging_config import get_logger
 from utils.metrics import (
     llm_fallback_counter,
@@ -16,11 +18,36 @@ from utils.metrics import (
     llm_tokens_per_second_histogram,
     llm_total_duration_histogram,
     llm_ttft_histogram,
+    openrouter_fallback_counter,
 )
 
 from .base import ChatMessage, LLMProvider, LLMResponse
 
 logger = get_logger(__name__)
+
+
+class _BreakerOpen(Exception):
+    """Sentinel: circuit breaker tripped, do not call the primary model."""
+
+
+def _classify_failure(e: Exception) -> str:
+    """Categorize a failure for metric labelling."""
+    if isinstance(e, _BreakerOpen):
+        return "breaker_open"
+    if isinstance(e, RateLimitError):
+        return "rate_limit"
+    if isinstance(e, (APITimeoutError, httpx.TimeoutException)):
+        return "timeout"
+    if isinstance(e, APIStatusError):
+        status = getattr(e, "status_code", None)
+        if status == 404:
+            return "model_404"
+        if status == 503:
+            return "upstream_503"
+        if status == 429:
+            return "rate_limit"
+        return f"api_status_{status}"
+    return "other"
 
 
 class OpenRouterProvider(LLMProvider):
@@ -59,11 +86,22 @@ class OpenRouterProvider(LLMProvider):
         self.fallback_models = fallback_models or []
         self.allow_fallbacks = allow_fallbacks
         self.preferred_min_throughput_p50 = preferred_min_throughput_p50
-        # Disable SDK auto-retry for rate limits - we handle fallbacks ourselves
+        # Explicit timeouts so we never hang on a stuck upstream.
+        # connect 5s catches DNS/TCP issues fast; read 60s is generous enough
+        # for streaming first-token latency on slower free-tier models.
         self._client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
-            max_retries=0,
+            timeout=httpx.Timeout(60.0, connect=5.0),
+            max_retries=2,
+        )
+        # Breaker trips after 5 consecutive primary-model failures within the
+        # cooldown window. When open, chat()/chat_stream() jump straight to
+        # the fallback list instead of paying the primary-call timeout.
+        self._breaker = CircuitBreaker(
+            name="openrouter_primary",
+            failure_threshold=5,
+            cooldown_seconds=30.0,
         )
         logger.info(
             f"OpenRouterProvider initialized: model={model}, "
@@ -154,6 +192,9 @@ class OpenRouterProvider(LLMProvider):
             if "no model" in error_msg or "model not found" in error_msg:
                 logger.warning(f"Model unavailable error: {e}")
                 return True
+        if isinstance(e, (APITimeoutError, httpx.TimeoutException)):
+            logger.warning(f"OpenRouter primary call timed out: {e}")
+            return True
         return False
 
     def _should_try_fallback(self, e: Exception) -> bool:
@@ -183,7 +224,19 @@ class OpenRouterProvider(LLMProvider):
         else:
             model_to_use, extra_body = self._get_model_and_extra_body()
 
+        # If the breaker is open, skip the primary call entirely and jump
+        # straight to the fallback list. This trades fidelity for not paying
+        # the primary timeout on every request during a sustained outage.
+        breaker_skip_primary = (
+            self._breaker.is_open()
+            and self.fallback_models
+            and self.allow_fallbacks
+            and not model_override
+        )
+
         try:
+            if breaker_skip_primary:
+                raise _BreakerOpen()
             response = await self._client.chat.completions.create(
                 model=model_to_use,
                 messages=converted_messages,  # type: ignore[arg-type]
@@ -191,9 +244,12 @@ class OpenRouterProvider(LLMProvider):
                 max_tokens=max_tokens,
                 extra_body=extra_body,
             )
-        except (RateLimitError, APIStatusError) as e:
+            self._breaker.record_success()
+        except (RateLimitError, APIStatusError, APITimeoutError, _BreakerOpen) as e:
             # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
-            should_fallback = self._should_try_fallback(e)
+            should_fallback = isinstance(e, _BreakerOpen) or self._should_try_fallback(e)
+            if not isinstance(e, _BreakerOpen):
+                self._breaker.record_failure()
 
             if (
                 should_fallback
@@ -201,9 +257,17 @@ class OpenRouterProvider(LLMProvider):
                 and self.allow_fallbacks
                 and not model_override
             ):
-                logger.warning(
-                    f"Server-side routing failed, trying client-side fallback. "
-                    f"Model={model_to_use}, Error: {e}"
+                if not isinstance(e, _BreakerOpen):
+                    logger.warning(
+                        f"Server-side routing failed, trying client-side fallback. "
+                        f"Model={model_to_use}, Error: {e}"
+                    )
+                openrouter_fallback_counter.add(
+                    1,
+                    {
+                        "reason": _classify_failure(e),
+                        "stream": "false",
+                    },
                 )
                 for fallback_model in self.fallback_models:
                     try:
@@ -214,6 +278,8 @@ class OpenRouterProvider(LLMProvider):
                             temperature=temperature,
                             max_tokens=max_tokens,
                         )
+                        # Fallback success path — keep at INFO, not ERROR, so
+                        # the log-based alert doesn't fire on every hiccup.
                         logger.info(f"Client-side fallback to {fallback_model} succeeded")
                         # Return response with the fallback model name
                         content = response.choices[0].message.content or ""
@@ -232,14 +298,24 @@ class OpenRouterProvider(LLMProvider):
                             f"Client-side fallback {fallback_model} failed: {fallback_error}"
                         )
                         continue
-                # All fallbacks exhausted
+                # All fallbacks exhausted — this *is* an error condition
+                logger.error(
+                    "All OpenRouter models unavailable. primary=%s fallbacks=%s",
+                    self.model,
+                    self.fallback_models,
+                )
                 raise RuntimeError(
                     "All models unavailable or rate limited. "
                     f"Primary: {self.model}, "
                     f"Fallbacks: {self.fallback_models}. "
                     "Check model names at https://openrouter.ai/models"
-                ) from e
+                ) from (e if not isinstance(e, _BreakerOpen) else None)
             else:
+                if isinstance(e, _BreakerOpen):
+                    # Breaker open but no fallbacks available — surface as a clear error
+                    raise RuntimeError(
+                        "OpenRouter circuit breaker open and no fallback models configured"
+                    )
                 # No fallbacks configured or not a recoverable error
                 raise
 
@@ -315,6 +391,23 @@ class OpenRouterProvider(LLMProvider):
         current_model = model_to_use
         fallback_index = 0
 
+        # If the breaker is open, skip primary and start at first fallback.
+        if (
+            self._breaker.is_open()
+            and self.fallback_models
+            and self.allow_fallbacks
+            and not model_override
+        ):
+            logger.info(
+                "OpenRouter breaker open; skipping primary, starting at first fallback"
+            )
+            current_model = self.fallback_models[0]
+            fallback_index = 1
+            extra_body = None
+            openrouter_fallback_counter.add(
+                1, {"reason": "breaker_open", "stream": "true"}
+            )
+
         while True:
             try:
                 stream = cast(
@@ -358,18 +451,26 @@ class OpenRouterProvider(LLMProvider):
                     )
                 if used_fallback:
                     llm_fallback_counter.add(1, {"provider": "openrouter", "model": current_model})
+                # Successful stream — primary succeeded (or we recovered) → reset breaker.
+                if current_model == model_to_use:
+                    self._breaker.record_success()
 
                 return  # Success, exit the generator
 
-            except (RateLimitError, APIStatusError) as e:
+            except (RateLimitError, APIStatusError, APITimeoutError) as e:
                 # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
                 should_fallback = self._should_try_fallback(e)
+                if current_model == model_to_use:
+                    self._breaker.record_failure()
 
                 if not should_fallback:
                     # Not a recoverable error, re-raise
                     raise
 
                 logger.warning(f"Server-side routing failed in streaming: {e}")
+                openrouter_fallback_counter.add(
+                    1, {"reason": _classify_failure(e), "stream": "true"}
+                )
 
                 # Try next fallback model
                 if (
@@ -384,7 +485,12 @@ class OpenRouterProvider(LLMProvider):
                     logger.info(f"Client-side streaming fallback to: {current_model}")
                     continue
                 else:
-                    # No more fallbacks
+                    # No more fallbacks — this is a real failure
+                    logger.error(
+                        "All OpenRouter streaming models unavailable. tried=%s,%s",
+                        model_to_use,
+                        self.fallback_models[:fallback_index],
+                    )
                     raise RuntimeError(
                         "All models unavailable in streaming. "
                         f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
@@ -448,6 +554,21 @@ class OpenRouterProvider(LLMProvider):
         Note: This makes a minimal API call to verify connectivity.
         Uses native models array with provider preferences if configured.
         """
+        result = await self.health_check_detailed()
+        return result["healthy"]
+
+    async def health_check_detailed(self) -> dict[str, Any]:
+        """
+        Structured health check — distinguishes 404 (model gone) from
+        timeout / network failure, so /health/ready can surface the cause.
+        """
+        # Breaker state is itself a useful signal.
+        if self._breaker.is_open():
+            return {
+                "healthy": False,
+                "reason": "breaker_open",
+                "breaker_state": self._breaker.state,
+            }
         try:
             model_to_use, extra_body = self._get_model_and_extra_body()
             response = await self._client.chat.completions.create(
@@ -456,9 +577,18 @@ class OpenRouterProvider(LLMProvider):
                 max_tokens=10,
                 extra_body=extra_body,
             )
-            return response is not None
-        except Exception:
-            return False
+            return {
+                "healthy": response is not None,
+                "reason": "ok" if response is not None else "empty_response",
+                "breaker_state": self._breaker.state,
+            }
+        except Exception as e:
+            return {
+                "healthy": False,
+                "reason": _classify_failure(e),
+                "breaker_state": self._breaker.state,
+                "error": str(e),
+            }
 
     async def close(self) -> None:
         """Close the OpenAI HTTP client."""
