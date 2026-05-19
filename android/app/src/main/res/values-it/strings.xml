@@ -182,6 +182,7 @@
 
     <!-- Errors -->
     <string name="error_session_limit">Hai avuto 10 messaggi in questa sessione! Perché non fare una pausa e goderti il creato di Dio all\'aria aperta? 🌳</string>
+    <string name="error_content_blocked">Non sono riuscito a rispondere a questo messaggio — il nostro sistema di sicurezza lo ha trattenuto e potrebbe aver semplicemente frainteso le tue parole. Prova a riformulare il tuo pensiero, e se qualcosa non ti convince scrivici a contact@voxquieta.org. Siamo contenti che tu sia qui.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Seleziona lingua</string>

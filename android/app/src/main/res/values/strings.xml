@@ -185,6 +185,7 @@
     <string name="error_server">Server error. Please try again later.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
     <string name="error_session_limit">You\'ve had 10 messages in this session! Why not take a break and enjoy God\'s creation outside? 🌳</string>
+    <string name="error_content_blocked">I wasn\'t able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We\'re glad you\'re here.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Select language</string>
