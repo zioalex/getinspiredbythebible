@@ -493,9 +493,9 @@ async def test_llama_guard_timeout_trips_breaker():
         await provider.analyze_text("hello world")
 
 
-def test_content_safety_narrow_exception_handling():
+@pytest.mark.asyncio
+async def test_content_safety_narrow_exception_handling():
     """Non-network errors from Llama Guard must propagate, not be swallowed."""
-    import asyncio
     from unittest.mock import AsyncMock, MagicMock
 
     from utils.content_safety import ContentSafetyService
@@ -507,6 +507,4 @@ def test_content_safety_narrow_exception_handling():
     service._get_llama_guard_provider = MagicMock(return_value=fake_provider)
 
     with pytest.raises(ValueError):
-        asyncio.get_event_loop().run_until_complete(
-            service._check_stage2_llama_guard("hi", "en", 0.0)
-        )
+        await service._check_stage2_llama_guard("hi", "en", 0.0)
