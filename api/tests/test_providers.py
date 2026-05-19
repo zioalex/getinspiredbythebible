@@ -447,9 +447,7 @@ async def test_openrouter_fallback_on_404_no_error_log(caplog):
     success_response.usage = MagicMock(prompt_tokens=1, completion_tokens=1)
     success_response.model = "fallback-1"
 
-    provider._client.chat.completions.create = AsyncMock(
-        side_effect=[err, success_response]
-    )
+    provider._client.chat.completions.create = AsyncMock(side_effect=[err, success_response])
 
     from providers.base import ChatMessage
 

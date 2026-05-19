@@ -26,13 +26,13 @@ from .base import ChatMessage, LLMProvider, LLMResponse
 logger = get_logger(__name__)
 
 
-class _BreakerOpen(Exception):
+class _BreakerOpenError(Exception):
     """Sentinel: circuit breaker tripped, do not call the primary model."""
 
 
 def _classify_failure(e: Exception) -> str:
     """Categorize a failure for metric labelling."""
-    if isinstance(e, _BreakerOpen):
+    if isinstance(e, _BreakerOpenError):
         return "breaker_open"
     if isinstance(e, RateLimitError):
         return "rate_limit"
@@ -201,7 +201,7 @@ class OpenRouterProvider(LLMProvider):
         """Check if we should try fallback models for this error."""
         return self._is_rate_limit_error(e) or self._is_model_unavailable_error(e)
 
-    async def chat(
+    async def chat(  # noqa: C901
         self,
         messages: list[ChatMessage],
         temperature: float = 0.7,
@@ -236,7 +236,7 @@ class OpenRouterProvider(LLMProvider):
 
         try:
             if breaker_skip_primary:
-                raise _BreakerOpen()
+                raise _BreakerOpenError()
             response = await self._client.chat.completions.create(
                 model=model_to_use,
                 messages=converted_messages,  # type: ignore[arg-type]
@@ -245,10 +245,10 @@ class OpenRouterProvider(LLMProvider):
                 extra_body=extra_body,
             )
             self._breaker.record_success()
-        except (RateLimitError, APIStatusError, APITimeoutError, _BreakerOpen) as e:
+        except (RateLimitError, APIStatusError, APITimeoutError, _BreakerOpenError) as e:
             # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
-            should_fallback = isinstance(e, _BreakerOpen) or self._should_try_fallback(e)
-            if not isinstance(e, _BreakerOpen):
+            should_fallback = isinstance(e, _BreakerOpenError) or self._should_try_fallback(e)
+            if not isinstance(e, _BreakerOpenError):
                 self._breaker.record_failure()
 
             if (
@@ -257,7 +257,7 @@ class OpenRouterProvider(LLMProvider):
                 and self.allow_fallbacks
                 and not model_override
             ):
-                if not isinstance(e, _BreakerOpen):
+                if not isinstance(e, _BreakerOpenError):
                     logger.warning(
                         f"Server-side routing failed, trying client-side fallback. "
                         f"Model={model_to_use}, Error: {e}"
@@ -309,9 +309,9 @@ class OpenRouterProvider(LLMProvider):
                     f"Primary: {self.model}, "
                     f"Fallbacks: {self.fallback_models}. "
                     "Check model names at https://openrouter.ai/models"
-                ) from (e if not isinstance(e, _BreakerOpen) else None)
+                ) from (e if not isinstance(e, _BreakerOpenError) else None)
             else:
-                if isinstance(e, _BreakerOpen):
+                if isinstance(e, _BreakerOpenError):
                     # Breaker open but no fallbacks available — surface as a clear error
                     raise RuntimeError(
                         "OpenRouter circuit breaker open and no fallback models configured"
@@ -398,15 +398,11 @@ class OpenRouterProvider(LLMProvider):
             and self.allow_fallbacks
             and not model_override
         ):
-            logger.info(
-                "OpenRouter breaker open; skipping primary, starting at first fallback"
-            )
+            logger.info("OpenRouter breaker open; skipping primary, starting at first fallback")
             current_model = self.fallback_models[0]
             fallback_index = 1
             extra_body = None
-            openrouter_fallback_counter.add(
-                1, {"reason": "breaker_open", "stream": "true"}
-            )
+            openrouter_fallback_counter.add(1, {"reason": "breaker_open", "stream": "true"})
 
         while True:
             try:

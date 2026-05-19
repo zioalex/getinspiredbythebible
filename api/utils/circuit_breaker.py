@@ -95,7 +95,5 @@ class CircuitBreaker:
             new_state.value,
             self._consecutive_failures,
         )
-        circuit_breaker_state_counter.add(
-            1, {"breaker": self.name, "to_state": new_state.value}
-        )
+        circuit_breaker_state_counter.add(1, {"breaker": self.name, "to_state": new_state.value})
         self._state = new_state
