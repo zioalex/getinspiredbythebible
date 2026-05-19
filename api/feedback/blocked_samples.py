@@ -130,7 +130,7 @@ async def purge_expired_blocked_samples() -> int:
                 delete(BlockedMessageSample).where(BlockedMessageSample.expires_at < now)
             )
             await db.commit()
-            return result.rowcount or 0
+            return int(getattr(result, "rowcount", 0) or 0)
         except Exception:
             await db.rollback()
             return 0
