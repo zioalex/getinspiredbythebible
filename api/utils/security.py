@@ -280,7 +280,11 @@ async def check_content_filter(request: Request) -> None:
 
         raise HTTPException(
             status_code=400,
-            detail={"error": "Message blocked", "message": reason},
+            detail={
+                "error": "content_blocked",
+                "code": "content_blocked",
+                "message": reason,
+            },
         )
 
 

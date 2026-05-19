@@ -123,6 +123,7 @@
     "errorConnection": "Lo siento, estoy teniendo problemas de conexión en este momento. Podría ser un problema temporal: inténtalo de nuevo en un momento. Si el problema persiste, puedes contactarnos en contact@voxquieta.org",
     "startNewSession": "Iniciar Nueva Sesión",
     "sessionLimitMessage": "¡Has enviado 10 mensajes en esta sesión! ¿Por qué no te tomas un momento para reflexionar sobre lo que has recibido y disfrutar de la creación de Dios? 🌳 Cuando estés listo, inicia una nueva sesión a continuación.",
+    "contentBlockedMessage": "No pude responder a ese mensaje — nuestro sistema de seguridad lo retuvo y es posible que simplemente haya malinterpretado tus palabras. Intenta reformular tu idea, y si algo no se siente bien, escríbenos a contact@voxquieta.org. Nos alegra que estés aquí.",
     "scrollToBottom": "Desplazarse hacia abajo",
     "stopGenerating": "Detener generación"
   },
