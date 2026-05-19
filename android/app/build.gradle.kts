@@ -236,7 +236,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
-    testImplementation(libs.androidx.ui.test.manifest)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -332,14 +331,12 @@ tasks.register<Test>("testDebugCompose") {
     description = "Runs Robolectric/Compose UI tests (*ComposeTest classes only)."
     group = "verification"
 
-    val baseTask = tasks.named<Test>("testDebugUnitTest").get()
-    testClassesDirs = baseTask.testClassesDirs
-    classpath = baseTask.classpath
-
     include("**/*ComposeTest.class")
     useJUnit()
 
-    dependsOn("compileDebugUnitTestKotlin", "processDebugUnitTestJavaRes")
+    // Depend only on compilation — not on testDebugUnitTest itself so running
+    // testDebugCompose does NOT also execute the full unit-test suite.
+    dependsOn("compileDebugUnitTestKotlin")
 
     reports.html.outputLocation.set(
         layout.buildDirectory.dir("reports/tests/testDebugCompose"),
@@ -347,6 +344,17 @@ tasks.register<Test>("testDebugCompose") {
     reports.junitXml.outputLocation.set(
         layout.buildDirectory.dir("test-results/testDebugCompose"),
     )
+}
+
+// Wire testClassesDirs and classpath after AGP has fully configured testDebugUnitTest.
+// Using afterEvaluate guarantees all AGP afterEvaluate blocks have run first, so the
+// base task's FileCollections are fully populated before we copy the references.
+afterEvaluate {
+    val base = tasks.named<Test>("testDebugUnitTest")
+    tasks.named<Test>("testDebugCompose").configure {
+        testClassesDirs = base.get().testClassesDirs
+        classpath = base.get().classpath
+    }
 }
 // testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
 // cannot accidentally block existing CI pipelines.

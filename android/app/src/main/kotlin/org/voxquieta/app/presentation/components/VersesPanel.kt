@@ -137,6 +137,7 @@ internal const val DEFAULT_SHOW_REFERENCED: Boolean = true
  * Extracted from [VersesPanel] so Compose UI tests can mount this directly
  * without needing a [ModalBottomSheet] (which has Robolectric rendering caveats).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun VersesPanelContent(
     allVerses: List<Verse>,
