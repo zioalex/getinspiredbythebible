@@ -154,6 +154,5 @@ class BlockedMessageSample(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<BlockedMessageSample(id={self.id}, stage='{self.stage}', "
-            f"hits={self.hit_count})>"
+            f"<BlockedMessageSample(id={self.id}, stage='{self.stage}', " f"hits={self.hit_count})>"
         )
