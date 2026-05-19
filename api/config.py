@@ -178,8 +178,9 @@ class Settings(BaseSettings):
     # Blocked-message sample capture (for filter tuning).
     # Stores a privacy-minimal record of messages the safety system blocked:
     # truncated text, stage/categories, hashed session id, TTL-bounded.
-    # Disable in tests and when running locally without a database.
-    blocked_sample_capture_enabled: bool = True
+    # Default off — operators opt in per environment so tests and local dev
+    # don't accidentally write capture rows.
+    blocked_sample_capture_enabled: bool = False
     blocked_sample_retention_days: int = 30
     blocked_sample_max_chars: int = 500
 

@@ -71,10 +71,6 @@ async def record_blocked_sample(
         now = datetime.now(UTC)
         expires = now + timedelta(days=settings.blocked_sample_retention_days)
 
-        # `categories` may arrive as a dict (Azure-style) or a list
-        # (OpenAI/Llama Guard); JSONB accepts both.
-        cats: dict | list | None = categories
-
         async with async_session_factory() as db:
             try:
                 existing = await db.execute(
@@ -96,7 +92,7 @@ async def record_blocked_sample(
                             created_at=now,
                             expires_at=expires,
                             stage=stage,
-                            categories=cats,
+                            categories=categories,
                             severity=severity,
                             language=language,
                             message_text=capped,
