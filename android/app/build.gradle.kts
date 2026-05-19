@@ -350,11 +350,10 @@ tasks.register<Test>("testDebugCompose") {
 // Using afterEvaluate guarantees all AGP afterEvaluate blocks have run first, so the
 // base task's FileCollections are fully populated before we copy the references.
 afterEvaluate {
-    val base = tasks.named<Test>("testDebugUnitTest")
-    tasks.named<Test>("testDebugCompose").configure {
-        testClassesDirs = base.get().testClassesDirs
-        classpath = base.get().classpath
-    }
+    val base = tasks.named<Test>("testDebugUnitTest").get()
+    val compose = tasks.named<Test>("testDebugCompose").get()
+    compose.testClassesDirs = base.testClassesDirs
+    compose.classpath = base.classpath
 }
 // testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
 // cannot accidentally block existing CI pipelines.
