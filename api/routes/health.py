@@ -254,23 +254,47 @@ async def readiness_probe():
     """
     Readiness probe for Kubernetes/orchestration.
 
-    Returns 200 if the app can serve requests (dependencies are available).
-    Returns 503 if critical dependencies are unavailable.
+    Returns 200 if the app can serve requests, 503 only if critical
+    dependencies are unavailable.
 
-    Use this for traffic routing - if this fails, stop sending traffic.
+    Lenient by design: returns 200 when LLM **or** embedding is unhealthy
+    (single-dependency degradation should not bounce the pod). Returns 503
+    only when the database is unhealthy, or when **both** LLM and embedding
+    are down. The response body always lists each dependency's state so
+    Azure can scrape it for dependency-failure alerts (in addition to the
+    metric-based alerts on `llama_guard_fallback_total` /
+    `openrouter_fallback_total`).
     """
-    # Only check database for readiness - it's the critical dependency
-    # LLM/Embedding can fail gracefully
-    db_health = await check_database_health()
+    db_health, llm_health, embedding_health = await asyncio.gather(
+        check_database_health(),
+        check_llm_health(),
+        check_embedding_health(),
+    )
 
-    if db_health.status == "unhealthy":
+    dependencies = {
+        "database": db_health.status,
+        "llm": llm_health.status,
+        "embedding": embedding_health.status,
+    }
+
+    db_down = db_health.status == "unhealthy"
+    both_inference_down = (
+        llm_health.status == "unhealthy" and embedding_health.status == "unhealthy"
+    )
+
+    if db_down or both_inference_down:
         return JSONResponse(
             status_code=503,
             content={
                 "status": "not_ready",
-                "reason": "database_unavailable",
-                "error": db_health.error,
+                "reason": "database_unavailable" if db_down else "inference_unavailable",
+                "dependencies": dependencies,
+                "error": db_health.error if db_down else None,
             },
         )
 
-    return {"status": "ready", "database_latency_ms": db_health.latency_ms}
+    return {
+        "status": "ready",
+        "database_latency_ms": db_health.latency_ms,
+        "dependencies": dependencies,
+    }

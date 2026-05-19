@@ -384,3 +384,127 @@ def test_openrouter_should_try_fallback():
         body={},
     )
     assert provider._should_try_fallback(rate_error) is True
+
+
+# ── Post-incident hardening tests (2026-05-15) ────────────────────────────
+
+
+def test_circuit_breaker_opens_after_threshold():
+    """Breaker should open after N consecutive failures and short-circuit calls."""
+    from utils.circuit_breaker import CircuitBreaker
+
+    cb = CircuitBreaker(name="test", failure_threshold=3, cooldown_seconds=60.0)
+    assert cb.is_open() is False
+    for _ in range(2):
+        cb.record_failure()
+    assert cb.is_open() is False  # not yet at threshold
+    cb.record_failure()
+    assert cb.is_open() is True
+    # Success after cooldown closes the breaker
+    cb._opened_at -= 120.0  # simulate cooldown elapsed
+    assert cb.is_open() is False  # transitions to half-open
+    cb.record_success()
+    assert cb.state == "closed"
+
+
+def test_circuit_breaker_half_open_failure_reopens():
+    from utils.circuit_breaker import CircuitBreaker
+
+    cb = CircuitBreaker(name="test2", failure_threshold=1, cooldown_seconds=60.0)
+    cb.record_failure()
+    assert cb.state == "open"
+    cb._opened_at -= 120.0
+    cb.is_open()  # transitions to half-open
+    assert cb.state == "half_open"
+    cb.record_failure()
+    assert cb.state == "open"
+
+
+@pytest.mark.asyncio
+async def test_openrouter_fallback_on_404_no_error_log(caplog):
+    """When primary returns 404 and a fallback succeeds, no ERROR-level log fires."""
+    import logging
+    from unittest.mock import AsyncMock, MagicMock
+
+    from openai import APIStatusError
+
+    provider = OpenRouterProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        model="primary-model",
+        fallback_models=["fallback-1"],
+    )
+
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_response_404.headers = {}
+    err = APIStatusError(message="Not found", response=mock_response_404, body={})
+
+    # Successful fallback response
+    success_response = MagicMock()
+    success_response.choices = [MagicMock()]
+    success_response.choices[0].message.content = "hello"
+    success_response.choices[0].finish_reason = "stop"
+    success_response.usage = MagicMock(prompt_tokens=1, completion_tokens=1)
+    success_response.model = "fallback-1"
+
+    provider._client.chat.completions.create = AsyncMock(side_effect=[err, success_response])
+
+    from providers.base import ChatMessage
+
+    with caplog.at_level(logging.WARNING):
+        result = await provider.chat([ChatMessage(role="user", content="hi")])
+
+    assert result.model == "fallback-1"
+    error_records = [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert error_records == [], f"unexpected ERROR logs: {error_records}"
+
+
+@pytest.mark.asyncio
+async def test_llama_guard_timeout_trips_breaker():
+    """Repeated Llama Guard timeouts should trip the circuit breaker."""
+    from unittest.mock import AsyncMock, patch
+
+    import httpx
+
+    from providers.llama_guard import LlamaGuardProvider
+
+    provider = LlamaGuardProvider(
+        api_key="sk-or-v1-test-key",  # pragma: allowlist secret
+        timeout=1,
+    )
+
+    # Patch the post call to always time out. provider.analyze_text creates a
+    # new AsyncClient inside an `async with`, so we patch the class method.
+    with patch.object(
+        httpx.AsyncClient,
+        "post",
+        new=AsyncMock(side_effect=httpx.TimeoutException("timed out")),
+    ):
+        for _ in range(provider._breaker.failure_threshold):
+            with pytest.raises(httpx.TimeoutException):
+                await provider.analyze_text("hello world")
+
+    assert provider._breaker.state == "open"
+
+    # Once open, the next call raises CircuitOpenError without an HTTP attempt
+    from utils.circuit_breaker import CircuitOpenError
+
+    with pytest.raises(CircuitOpenError):
+        await provider.analyze_text("hello world")
+
+
+@pytest.mark.asyncio
+async def test_content_safety_narrow_exception_handling():
+    """Non-network errors from Llama Guard must propagate, not be swallowed."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from utils.content_safety import ContentSafetyService
+
+    service = ContentSafetyService()
+
+    fake_provider = MagicMock()
+    fake_provider.analyze_text = AsyncMock(side_effect=ValueError("programmer bug"))
+    service._get_llama_guard_provider = MagicMock(return_value=fake_provider)
+
+    with pytest.raises(ValueError):
+        await service._check_stage2_llama_guard("hi", "en", 0.0)

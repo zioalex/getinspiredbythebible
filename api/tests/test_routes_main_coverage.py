@@ -318,23 +318,32 @@ class TestReadinessProbe:
     """Tests for readiness_probe endpoint."""
 
     @pytest.mark.asyncio
+    @patch("routes.health.check_embedding_health")
+    @patch("routes.health.check_llm_health")
     @patch("routes.health.check_database_health")
-    async def test_ready(self, mock_db_health):
+    async def test_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
         from routes.health import ComponentHealth, readiness_probe
 
         mock_db_health.return_value = ComponentHealth(status="healthy", latency_ms=5.0)
+        mock_llm_health.return_value = ComponentHealth(status="healthy", latency_ms=10.0)
+        mock_embedding_health.return_value = ComponentHealth(status="healthy", latency_ms=8.0)
         result = await readiness_probe()
         assert result["status"] == "ready"
         assert result["database_latency_ms"] == 5.0
+        assert result["dependencies"]["database"] == "healthy"
 
     @pytest.mark.asyncio
+    @patch("routes.health.check_embedding_health")
+    @patch("routes.health.check_llm_health")
     @patch("routes.health.check_database_health")
-    async def test_not_ready(self, mock_db_health):
+    async def test_not_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
         from routes.health import ComponentHealth, readiness_probe
 
         mock_db_health.return_value = ComponentHealth(
             status="unhealthy", error="Connection refused"
         )
+        mock_llm_health.return_value = ComponentHealth(status="healthy")
+        mock_embedding_health.return_value = ComponentHealth(status="healthy")
         result = await readiness_probe()
         assert result.status_code == 503
         body = result.body
