@@ -1,6 +1,6 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
-	validate-env validate-env-strict \
+	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
@@ -244,6 +244,9 @@ validate-env-strict: install-deps ## Validate env vars (strict mode - warnings a
 	@echo "$(BLUE)Validating environment variables (strict mode)...$(NC)"
 	@$(CURDIR)/$(PYTHON) scripts/validate-env.py --strict
 	@echo "$(GREEN)✓ Environment validation complete$(NC)"
+
+export-blocked-samples: install-deps ## Export captured blocked-message samples (read-only). Usage: make export-blocked-samples ARGS="--format csv --since 2026-05-01". Requires DATABASE_URL.
+	@$(CURDIR)/$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
