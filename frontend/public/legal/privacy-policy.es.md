@@ -45,6 +45,14 @@ El historial de conversaciones se almacena **solo localmente en tu dispositivo**
 ## Retención de datos
 
 - **Mensajes del chat**: no se conservan en nuestros servidores.
+- **Mensajes bloqueados por nuestro sistema de seguridad**: cuando nuestro
+  sistema de seguridad bloquea un mensaje, puede conservarse un registro
+  mínimo en cuanto a privacidad durante un breve período (hasta 30 días)
+  para ayudarnos a mejorar el filtro. El registro contiene el texto del
+  mensaje (con longitud limitada), la etapa de seguridad que lo bloqueó
+  y un hash unidireccional del identificador de sesión. No almacenamos
+  tu dirección IP, tu cuenta ni ninguna cadena user-agent junto con
+  estos registros, y solo se usan para ajustar el filtro de seguridad.
 - **Informes de fallos y análisis**: conservados por Google hasta 14 meses según su política estándar.
 - **Historial local de conversaciones**: almacenado en tu dispositivo hasta que lo elimines mediante la aplicación o desinstales la aplicación.
 

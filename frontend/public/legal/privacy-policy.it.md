@@ -45,6 +45,15 @@ La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispos
 ## Conservazione dei dati
 
 - **Messaggi della chat**: non conservati sui nostri server.
+- **Messaggi bloccati dal nostro sistema di sicurezza**: quando il nostro
+  sistema di sicurezza blocca un messaggio, può essere conservato un record
+  minimo dal punto di vista della privacy per un breve periodo (fino a 30
+  giorni) per aiutarci a migliorare il filtro. Il record contiene il testo
+  del messaggio (con lunghezza massima), quale stadio di sicurezza lo ha
+  bloccato e un hash unidirezionale dell'identificatore di sessione. Non
+  memorizziamo il tuo indirizzo IP, il tuo account né alcuna stringa
+  user-agent con questi record, e non vengono utilizzati per scopi diversi
+  dalla messa a punto del filtro di sicurezza.
 - **Segnalazioni di crash e analisi**: conservati da Google fino a 14 mesi secondo la loro policy standard.
 - **Cronologia locale delle conversazioni**: archiviata sul tuo dispositivo fino a quando non la elimini tramite l'app o disinstalli l'app.
 

@@ -175,6 +175,15 @@ class Settings(BaseSettings):
     openai_moderation_threshold: float = 0.5  # Block if score >= threshold
     openai_moderation_timeout: int = 3  # Seconds before fail-open fallback
 
+    # Blocked-message sample capture (for filter tuning).
+    # Stores a privacy-minimal record of messages the safety system blocked:
+    # truncated text, stage/categories, hashed session id, TTL-bounded.
+    # Default off — operators opt in per environment so tests and local dev
+    # don't accidentally write capture rows.
+    blocked_sample_capture_enabled: bool = False
+    blocked_sample_retention_days: int = 30
+    blocked_sample_max_chars: int = 500
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
