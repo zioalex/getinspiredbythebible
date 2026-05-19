@@ -115,14 +115,20 @@ cd frontend && npm run build           # Build check
 
 ```bash
 cd android && ./gradlew testDebugUnitTest --no-daemon
+cd android && ./gradlew testDebugCompose --no-daemon   # Robolectric Compose UI tests (BITB-034)
 cd android && ./gradlew lint
 ```
+
+Compose UI tests follow the `*ComposeTest.kt` filename convention and run via the dedicated
+`testDebugCompose` Gradle task. They are isolated from the standard `testDebugUnitTest` job.
+See `android/COMPOSE_TESTS.md` for the full tier description and rollout plan.
 
 ### All at once
 
 ```bash
-make test           # Backend + frontend
-make android-test   # Android unit tests
+make test                  # Backend + frontend
+make android-test          # Android JVM unit tests
+make android-test-compose  # Android Compose UI tests (Robolectric — separate tier)
 ```
 
 ## Code Style & Linting
@@ -174,6 +180,17 @@ Format commands: `make format` (auto-fix Python + frontend)
 | `dependency-check` | OWASP Dependency-Check (CVE threshold 7.0) |
 | `apk-security-check` | Manifest security flags |
 | `build` | Production APK (gated by security checks) |
+
+### Android Compose UI Tests (`android-compose-tests.yml`)
+
+Independent workflow — **not a required check** while the tier stabilises.
+
+| Job | What it does |
+| ----- | ------------- |
+| `compose-ui-tests` | Robolectric `testDebugCompose` — `*ComposeTest.kt` classes only |
+
+Artifacts uploaded on every run: HTML report + JUnit XML (14-day retention).
+See `android/COMPOSE_TESTS.md` for the tier design and promotion checklist.
 
 ### Deployment (`azure-deploy.yml`)
 

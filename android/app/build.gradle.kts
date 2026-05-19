@@ -156,6 +156,9 @@ android {
             // instead of throwing RuntimeException("Stub!"). Required for any unit test
             // that transitively touches an Android API (e.g. AppCompatDelegate, Bundle).
             isReturnDefaultValues = true
+            // Merge Android resources into the test classpath so Robolectric can resolve
+            // stringResource() calls and other resource lookups (BITB-034).
+            isIncludeAndroidResources = true
         }
     }
 
@@ -246,6 +249,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric-backed Compose UI tests (BITB-034)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -322,3 +329,8 @@ val generateChangelogJson by tasks.registering {
 }
 
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
+
+// BITB-034: Robolectric/Compose UI tests run via testDebugUnitTest (no custom task needed).
+// The android-compose-tests.yml workflow uses --tests filtering to isolate *ComposeTest
+// classes without requiring a separate Gradle task registration.
+// See: .github/workflows/android-compose-tests.yml
