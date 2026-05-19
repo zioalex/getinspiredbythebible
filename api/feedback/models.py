@@ -7,7 +7,7 @@ from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -116,4 +116,44 @@ class ContactSubmission(Base):
     def __repr__(self) -> str:
         return (
             f"<ContactSubmission(id={self.id}, subject='{self.subject}', status='{self.status}')>"
+        )
+
+
+class BlockedMessageSample(Base):
+    """
+    Privacy-minimal record of a message the safety system blocked.
+
+    Captured to fine-tune the multi-stage filter pipeline (keyword filter,
+    OpenAI Moderation, Llama Guard, Azure Content Safety). Designed so a
+    single user cannot be re-identified or amplified:
+
+    - No raw IP, user id, or user-agent — only `session_id_hash`.
+    - Text is capped (see settings.blocked_sample_max_chars) and deduplicated
+      by sha256, so repeats increment `hit_count` instead of adding rows.
+    - Rows are deleted after `expires_at` (TTL set from
+      settings.blocked_sample_retention_days).
+    - Writes are gated by settings.blocked_sample_capture_enabled.
+    """
+
+    __tablename__ = "blocked_message_samples"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    stage: Mapped[str] = mapped_column(String(40))
+    categories: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    severity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    message_text: Mapped[str] = mapped_column(Text)
+    message_sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    session_id_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    hit_count: Mapped[int] = mapped_column(Integer, default=1)
+    reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (Index("ix_blocked_message_samples_stage_created", "stage", "created_at"),)
+
+    def __repr__(self) -> str:
+        return (
+            f"<BlockedMessageSample(id={self.id}, stage='{self.stage}', "
+            f"hits={self.hit_count})>"
         )

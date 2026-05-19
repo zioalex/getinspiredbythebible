@@ -117,6 +117,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Database initialization failed", extra={"error": str(e)})
 
+    # Best-effort: purge expired blocked-message samples on startup.
+    # Acts as a lightweight TTL job for environments without a scheduler.
+    try:
+        from feedback.blocked_samples import purge_expired_blocked_samples
+
+        deleted = await purge_expired_blocked_samples()
+        if deleted:
+            logger.info("Purged expired blocked-message samples", extra={"deleted": deleted})
+    except Exception as e:
+        logger.warning("Blocked-sample purge failed at startup: %s", e)
+
     yield
 
     # Shutdown
