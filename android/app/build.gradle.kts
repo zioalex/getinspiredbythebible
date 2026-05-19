@@ -139,6 +139,9 @@ android {
             // instead of throwing RuntimeException("Stub!"). Required for any unit test
             // that transitively touches an Android API (e.g. AppCompatDelegate, Bundle).
             isReturnDefaultValues = true
+            // Merge Android resources into the test classpath so Robolectric can resolve
+            // stringResource() calls and other resource lookups (BITB-034).
+            isIncludeAndroidResources = true
         }
     }
 
@@ -229,6 +232,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric-backed Compose UI tests (BITB-034)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -305,3 +312,51 @@ val generateChangelogJson by tasks.registering {
 }
 
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BITB-034: Compose UI test tier (Robolectric-backed).
+//
+// Convention: any test class file ending in "ComposeTest.kt" belongs to the
+// new tier. Regular *Test.kt classes stay in testDebugUnitTest.
+//
+// Run locally:  ./gradlew testDebugCompose --no-daemon
+//               make android-test-compose
+// CI:           .github/workflows/android-compose-tests.yml (non-required check)
+// ─────────────────────────────────────────────────────────────────────────────
+tasks.named<Test>("testDebugUnitTest") {
+    exclude("**/*ComposeTest.class")
+}
+
+tasks.register<Test>("testDebugCompose") {
+    description = "Runs Robolectric/Compose UI tests (*ComposeTest classes only)."
+    group = "verification"
+
+    include("**/*ComposeTest.class")
+    useJUnit()
+
+    // Depend only on compilation — not on testDebugUnitTest itself so running
+    // testDebugCompose does NOT also execute the full unit-test suite.
+    dependsOn("compileDebugUnitTestKotlin")
+
+    reports.html.outputLocation.set(
+        layout.buildDirectory.dir("reports/tests/testDebugCompose"),
+    )
+    reports.junitXml.outputLocation.set(
+        layout.buildDirectory.dir("test-results/testDebugCompose"),
+    )
+}
+
+// Wire testClassesDirs and classpath after AGP has fully configured testDebugUnitTest.
+// Using afterEvaluate guarantees all AGP afterEvaluate blocks have run first, so the
+// base task's FileCollections are fully populated before we copy the references.
+//
+// Both properties use setFrom() — the correct Gradle 8.x API for mutating a
+// ConfigurableFileCollection without replacing the collection object itself.
+afterEvaluate {
+    val base = tasks.findByName("testDebugUnitTest") as? Test ?: return@afterEvaluate
+    val compose = tasks.findByName("testDebugCompose") as? Test ?: return@afterEvaluate
+    compose.testClassesDirs.setFrom(base.testClassesDirs)
+    compose.classpath = base.classpath
+}
+// testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
+// cannot accidentally block existing CI pipelines.
