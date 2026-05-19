@@ -540,6 +540,63 @@
     <cvssBelow>10</cvssBelow>
   </suppress>
 
+  <suppress>
+    <notes>False positive / test-only: org.conscrypt:conscrypt-openjdk-uber.
+      Conscrypt is a Robolectric transitive dependency providing TLS support for
+      the simulated Android environment. testImplementation only, NOT shipped in the APK.
+      CVEs in conscrypt-openjdk-uber do not affect Android end users.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.conscrypt/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: com.ibm.icu:icu4j.
+      ICU4J is a Robolectric transitive dependency for Unicode/locale support in the
+      simulated Android environment. testImplementation only, NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.ibm\.icu/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: net.java.dev.jna and net.java.dev.jna:jna-platform.
+      JNA (Java Native Access) is a Robolectric transitive dependency used for
+      native interop in the test environment. testImplementation only, NOT in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/net\.java\.dev\.jna/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: com.almworks.sqlite4java artifacts.
+      sqlite4java is a Robolectric transitive dependency providing SQLite access for
+      the Android test environment. testImplementation only, NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.almworks\.sqlite4java/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.xerial:sqlite-jdbc.
+      SQLite JDBC is used by OWASP Dependency Check itself (build-time scanning tool)
+      and may also be a Robolectric transitive dep. NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.xerial/sqlite-jdbc.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.xerial.snappy:snappy-java.
+      snappy-java is a compression library used by build-time tools (e.g. Gradle
+      caching, Robolectric transitive deps). NOT shipped in the APK.
+      CVE-2023-34455 (CVSS 7.5) and similar are for the server-side snappy compression
+      library, not applicable to Android client apps.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.xerial\.snappy/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
   <!--
     ============================================================
     Build-time-only Gradle plugin dependencies (NOT in the APK)

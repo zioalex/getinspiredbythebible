@@ -327,12 +327,21 @@ tasks.named<Test>("testDebugUnitTest") {
     exclude("**/*ComposeTest.class")
 }
 
+// Lazy provider for testDebugUnitTest — resolved only when testDebugCompose is realized.
+// Avoids afterEvaluate (incompatible with org.gradle.configuration-cache=true in Gradle 8.x).
+val unitTestProvider: TaskProvider<Test> = tasks.named<Test>("testDebugUnitTest")
+
 tasks.register<Test>("testDebugCompose") {
     description = "Runs Robolectric/Compose UI tests (*ComposeTest classes only)."
     group = "verification"
 
     include("**/*ComposeTest.class")
     useJUnit()
+
+    // Wire classpath/testClassesDirs via lazy providers so this is configuration-cache safe.
+    // setFrom() accepts Provider<*> — Gradle resolves it at task-graph execution time.
+    testClassesDirs.setFrom(unitTestProvider.map { it.testClassesDirs })
+    classpath = files(unitTestProvider.map { it.classpath })
 
     // Depend only on compilation — not on testDebugUnitTest itself so running
     // testDebugCompose does NOT also execute the full unit-test suite.
@@ -344,19 +353,6 @@ tasks.register<Test>("testDebugCompose") {
     reports.junitXml.outputLocation.set(
         layout.buildDirectory.dir("test-results/testDebugCompose"),
     )
-}
-
-// Wire testClassesDirs and classpath after AGP has fully configured testDebugUnitTest.
-// Using afterEvaluate guarantees all AGP afterEvaluate blocks have run first, so the
-// base task's FileCollections are fully populated before we copy the references.
-//
-// Both properties use setFrom() — the correct Gradle 8.x API for mutating a
-// ConfigurableFileCollection without replacing the collection object itself.
-afterEvaluate {
-    val base = tasks.findByName("testDebugUnitTest") as? Test ?: return@afterEvaluate
-    val compose = tasks.findByName("testDebugCompose") as? Test ?: return@afterEvaluate
-    compose.testClassesDirs.setFrom(base.testClassesDirs)
-    compose.classpath = base.classpath
 }
 // testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
 // cannot accidentally block existing CI pipelines.
