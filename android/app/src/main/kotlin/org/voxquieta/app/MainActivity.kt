@@ -77,8 +77,12 @@ class MainActivity : ComponentActivity() {
             elapsed < 700L && !backendReady
         }
 
-        // Log the app_open event on every cold start.
-        analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
+        // Log app_open only on a genuine cold start, not on Activity recreations
+        // triggered by locale changes (AppCompatDelegate.setApplicationLocales recreates
+        // the Activity on SDK < 33), rotation, or other config changes.
+        if (savedInstanceState == null) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
+        }
 
         setContent {
             val viewModel: ChatViewModel = hiltViewModel()
