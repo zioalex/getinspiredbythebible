@@ -36,6 +36,7 @@ import {
   getOrCreateSessionId,
   resetSessionId,
   ColdStartError,
+  ContentBlockedError,
   SessionLimitError,
   checkBackendReady,
   warmupBackend,
@@ -509,6 +510,18 @@ export default function Home() {
         };
         setMessages((prev) => [...prev, errorMessage]);
         setShowSessionLimitButton(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Safety system blocked the message — show a warm notification
+      // inviting the user to rephrase and to get in touch if something feels wrong.
+      if (error instanceof ContentBlockedError) {
+        const errorMessage: ChatMessage = {
+          role: "assistant",
+          content: tChat("contentBlockedMessage"),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
         setIsLoading(false);
         return;
       }

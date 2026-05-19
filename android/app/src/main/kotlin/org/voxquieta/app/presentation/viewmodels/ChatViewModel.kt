@@ -1043,6 +1043,14 @@ class ChatViewModel @Inject constructor(
                 context.getString(R.string.error_server)
             }
         }
+        e is HttpException && e.code() == 400 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            if (body.contains("content_blocked")) {
+                context.getString(R.string.error_content_blocked)
+            } else {
+                context.getString(R.string.error_server)
+            }
+        }
         e is HttpException ->
             context.getString(R.string.error_server)
         e is IOException ->
