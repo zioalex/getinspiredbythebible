@@ -352,7 +352,7 @@ tasks.register<Test>("testDebugCompose") {
 afterEvaluate {
     val base = tasks.named<Test>("testDebugUnitTest").get()
     val compose = tasks.named<Test>("testDebugCompose").get()
-    compose.testClassesDirs = base.testClassesDirs
+    compose.testClassesDirs.setFrom(base.testClassesDirs)
     compose.classpath = base.classpath
 }
 // testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
