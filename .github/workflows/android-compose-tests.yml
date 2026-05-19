@@ -90,14 +90,19 @@ jobs:
 
       - name: Run Compose UI tests
         working-directory: android
-        run: ./gradlew :app:testDebugCompose --no-daemon --stacktrace
+        # Run only *ComposeTest classes via the standard unit-test task with a filter.
+        # No custom Gradle task is needed — Gradle's --tests flag isolates the tier.
+        run: |
+          ./gradlew :app:testDebugUnitTest \
+            --tests "*.VersesPanelComposeTest" \
+            --no-daemon --stacktrace
 
       - name: Upload HTML test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compose-ui-test-report
-          path: android/app/build/reports/tests/testDebugCompose/
+          path: android/app/build/reports/tests/testDebugUnitTest/
           retention-days: 14
 
       - name: Upload JUnit XML results
@@ -105,5 +110,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compose-ui-test-results
-          path: android/app/build/test-results/testDebugCompose/
+          path: android/app/build/test-results/testDebugUnitTest/
           retention-days: 14

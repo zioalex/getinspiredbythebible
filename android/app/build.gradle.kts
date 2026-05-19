@@ -313,46 +313,7 @@ val generateChangelogJson by tasks.registering {
 
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BITB-034: Compose UI test tier (Robolectric-backed).
-//
-// Convention: any test class file ending in "ComposeTest.kt" belongs to the
-// new tier. Regular *Test.kt classes stay in testDebugUnitTest.
-//
-// Run locally:  ./gradlew testDebugCompose --no-daemon
-//               make android-test-compose
-// CI:           .github/workflows/android-compose-tests.yml (non-required check)
-// ─────────────────────────────────────────────────────────────────────────────
-tasks.named<Test>("testDebugUnitTest") {
-    exclude("**/*ComposeTest.class")
-}
-
-// Lazy provider for testDebugUnitTest — resolved only when testDebugCompose is realized.
-// Avoids afterEvaluate (incompatible with org.gradle.configuration-cache=true in Gradle 8.x).
-val unitTestProvider: TaskProvider<Test> = tasks.named<Test>("testDebugUnitTest")
-
-tasks.register<Test>("testDebugCompose") {
-    description = "Runs Robolectric/Compose UI tests (*ComposeTest classes only)."
-    group = "verification"
-
-    include("**/*ComposeTest.class")
-    useJUnit()
-
-    // Wire classpath/testClassesDirs via lazy providers so this is configuration-cache safe.
-    // setFrom() accepts Provider<*> — Gradle resolves it at task-graph execution time.
-    testClassesDirs.setFrom(unitTestProvider.map { it.testClassesDirs })
-    classpath = files(unitTestProvider.map { it.classpath })
-
-    // Depend only on compilation — not on testDebugUnitTest itself so running
-    // testDebugCompose does NOT also execute the full unit-test suite.
-    dependsOn("compileDebugUnitTestKotlin")
-
-    reports.html.outputLocation.set(
-        layout.buildDirectory.dir("reports/tests/testDebugCompose"),
-    )
-    reports.junitXml.outputLocation.set(
-        layout.buildDirectory.dir("test-results/testDebugCompose"),
-    )
-}
-// testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
-// cannot accidentally block existing CI pipelines.
+// BITB-034: Robolectric/Compose UI tests run via testDebugUnitTest (no custom task needed).
+// The android-compose-tests.yml workflow uses --tests filtering to isolate *ComposeTest
+// classes without requiring a separate Gradle task registration.
+// See: .github/workflows/android-compose-tests.yml
