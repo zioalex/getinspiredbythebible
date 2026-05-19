@@ -18,6 +18,22 @@ android {
     fun gradleProp(name: String, default: String): String =
         (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() } ?: default
 
+    // Read the canonical version from the release-please manifest at the
+    // repo root. Keeps the Android closed-testing track in sync with the
+    // rest of the repo without needing CI to inject `-PversionName=...`.
+    val manifestVersionName: String = run {
+        val manifestFile = rootProject.projectDir.parentFile?.resolve(".release-please-manifest.json")
+        val fallback = "1.0.0"
+        if (manifestFile == null || !manifestFile.exists()) {
+            fallback
+        } else {
+            val text = manifestFile.readText(Charsets.UTF_8)
+            // Single-source manifest shape: { ".": "1.8.0" }
+            val match = Regex("""\"\.\"\s*:\s*\"([^\"]+)\"""").find(text)
+            match?.groupValues?.get(1) ?: fallback
+        }
+    }
+
     // Resolve release signing inputs once, treating blanks as absent.
     val releaseKeystorePath = (System.getenv("KEYSTORE_PATH")
         ?: (project.findProperty("KEYSTORE_PATH") as String?))?.takeIf { it.isNotBlank() }
@@ -46,7 +62,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
+        versionName = (project.findProperty("versionName") as String?)?.takeIf { it.isNotBlank() }
+            ?: manifestVersionName
 
         testInstrumentationRunner = "org.voxquieta.app.HiltTestRunner"
         vectorDrawables {
