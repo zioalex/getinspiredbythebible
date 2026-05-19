@@ -130,3 +130,24 @@ api_access_counter = meter.create_counter(
     description="Total API requests by source classification (official/unofficial)",
     unit="1",
 )
+
+# ── External dependency resilience metrics ───────────────────────────────
+# These exist so log-based alerts can be replaced with metric-based alerts:
+# alert when the fallback rate spikes, not when ERROR logs appear.
+llama_guard_fallback_counter = meter.create_counter(
+    name="llama_guard.fallback_total",
+    description="Count of Llama Guard failures that fell back to the keyword filter",
+    unit="1",
+)
+
+openrouter_fallback_counter = meter.create_counter(
+    name="openrouter.fallback_total",
+    description="Count of OpenRouter primary-model failures that triggered client-side fallback",
+    unit="1",
+)
+
+circuit_breaker_state_counter = meter.create_counter(
+    name="circuit_breaker.state_transitions",
+    description="Circuit breaker state transitions (open/half_open/closed)",
+    unit="1",
+)
