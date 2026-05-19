@@ -4,13 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [1.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.8.0...v1.9.0) (2026-05-19)
 
-
 ### Features
 
 * **android:** add Robolectric/Compose UI test tier (BITB-034) ([#591](https://github.com/zioalex/getinspiredbythebible/issues/591)) ([7fd0908](https://github.com/zioalex/getinspiredbythebible/commit/7fd090874ec399a8160444f5734a14d95f9e5c1b))
 * **safety:** privacy-friendly capture of blocked messages for tuning ([#594](https://github.com/zioalex/getinspiredbythebible/issues/594)) ([eb9ae21](https://github.com/zioalex/getinspiredbythebible/commit/eb9ae21cff60496afcf12c8ce0275dd6bcfce107))
 * **safety:** warm notification when defenses block a message ([#593](https://github.com/zioalex/getinspiredbythebible/issues/593)) ([5c344d8](https://github.com/zioalex/getinspiredbythebible/commit/5c344d8ca4cd8a11762f1f319faa47053b0552b5))
-
 
 ### Bug Fixes
 
