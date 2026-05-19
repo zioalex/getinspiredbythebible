@@ -139,6 +139,9 @@ android {
             // instead of throwing RuntimeException("Stub!"). Required for any unit test
             // that transitively touches an Android API (e.g. AppCompatDelegate, Bundle).
             isReturnDefaultValues = true
+            // Merge Android resources into the test classpath so Robolectric can resolve
+            // stringResource() calls and other resource lookups (BITB-034).
+            isIncludeAndroidResources = true
         }
     }
 
@@ -229,6 +232,11 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric-backed Compose UI tests (BITB-034)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.androidx.ui.test.manifest)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -305,3 +313,40 @@ val generateChangelogJson by tasks.registering {
 }
 
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BITB-034: Compose UI test tier (Robolectric-backed).
+//
+// Convention: any test class file ending in "ComposeTest.kt" belongs to the
+// new tier. Regular *Test.kt classes stay in testDebugUnitTest.
+//
+// Run locally:  ./gradlew testDebugCompose --no-daemon
+//               make android-test-compose
+// CI:           .github/workflows/android-compose-tests.yml (non-required check)
+// ─────────────────────────────────────────────────────────────────────────────
+tasks.named<Test>("testDebugUnitTest") {
+    exclude("**/*ComposeTest.class")
+}
+
+tasks.register<Test>("testDebugCompose") {
+    description = "Runs Robolectric/Compose UI tests (*ComposeTest classes only)."
+    group = "verification"
+
+    val baseTask = tasks.named<Test>("testDebugUnitTest").get()
+    testClassesDirs = baseTask.testClassesDirs
+    classpath = baseTask.classpath
+
+    include("**/*ComposeTest.class")
+    useJUnit()
+
+    dependsOn("compileDebugUnitTestKotlin", "processDebugUnitTestJavaRes")
+
+    reports.html.outputLocation.set(
+        layout.buildDirectory.dir("reports/tests/testDebugCompose"),
+    )
+    reports.junitXml.outputLocation.set(
+        layout.buildDirectory.dir("test-results/testDebugCompose"),
+    )
+}
+// testDebugCompose is intentionally NOT wired into the `check` lifecycle so it
+// cannot accidentally block existing CI pipelines.

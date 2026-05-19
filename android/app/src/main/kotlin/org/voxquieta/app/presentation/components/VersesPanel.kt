@@ -126,10 +126,109 @@ internal fun referencedVerses(
 }
 
 /**
+ * Default value for the "Referenced" / "All Related" segment control.
+ * Extracted as a constant so JVM unit tests and Compose UI tests can assert
+ * the expected default without rendering the full composable (BITB-034).
+ */
+internal const val DEFAULT_SHOW_REFERENCED: Boolean = true
+
+/**
+ * The scrollable body of the verses panel — title, segment control, verse list.
+ * Extracted from [VersesPanel] so Compose UI tests can mount this directly
+ * without needing a [ModalBottomSheet] (which has Robolectric rendering caveats).
+ */
+@Composable
+internal fun VersesPanelContent(
+    allVerses: List<Verse>,
+    messages: List<Message>,
+    chapterSheetState: ChapterSheetState,
+    preferredTranslation: String?,
+    onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
+    onDismissSheet: () -> Unit,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+) {
+    var showReferenced by rememberSaveable { mutableStateOf(DEFAULT_SHOW_REFERENCED) }
+
+    val displayedVerses = if (showReferenced) {
+        referencedVerses(allVerses, messages, localizedToEnglish)
+    } else {
+        allVerses
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp),
+    ) {
+        // Title row
+        Text(
+            text = stringResource(R.string.verses_panel_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
+        // Segment control — "Cited" | "All Related (N)"
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilterChip(
+                selected = showReferenced,
+                onClick = { showReferenced = true },
+                label = { Text(stringResource(R.string.verses_filter_referenced)) },
+            )
+            FilterChip(
+                selected = !showReferenced,
+                onClick = { showReferenced = false },
+                label = {
+                    Text(
+                        stringResource(
+                            R.string.verses_filter_all_related,
+                            allVerses.size,
+                        ),
+                    )
+                },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(4.dp))
+
+        if (displayedVerses.isEmpty()) {
+            Text(
+                text = stringResource(R.string.verses_panel_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(displayedVerses, key = { "${it.book}${it.chapter}:${it.verse}" }) { verse ->
+                    VerseChip(
+                        verse = verse,
+                        preferredTranslation = preferredTranslation,
+                        chapterState = chapterSheetState,
+                        onLoadChapter = onLoadChapter,
+                        onDismissSheet = onDismissSheet,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
  * A `ModalBottomSheet` displaying all verses referenced in the current conversation.
  *
- * Provides a "Referenced" / "All Related" segment control:
- * - **Referenced**: only verses explicitly cited in assistant message text.
+ * Provides a "Cited" / "All Related" segment control:
+ * - **Cited**: only verses explicitly cited in assistant message text.
  * - **All Related**: every verse returned by the backend across all messages.
  *
  * @param allVerses            All unique verses across finished assistant messages.
@@ -156,84 +255,18 @@ fun VersesPanel(
     localizedToEnglish: Map<String, String> = emptyMap(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var showReferenced by rememberSaveable { mutableStateOf(true) }
-
-    val displayedVerses = if (showReferenced) {
-        referencedVerses(allVerses, messages, localizedToEnglish)
-    } else {
-        allVerses
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp),
-        ) {
-            // Title row
-            Text(
-                text = stringResource(R.string.verses_panel_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-
-            // Segment control — "Referenced" | "All Related (N)"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FilterChip(
-                    selected = showReferenced,
-                    onClick = { showReferenced = true },
-                    label = { Text(stringResource(R.string.verses_filter_referenced)) },
-                )
-                FilterChip(
-                    selected = !showReferenced,
-                    onClick = { showReferenced = false },
-                    label = {
-                        Text(
-                            stringResource(
-                                R.string.verses_filter_all_related,
-                                allVerses.size,
-                            ),
-                        )
-                    },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(4.dp))
-
-            if (displayedVerses.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.verses_panel_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(displayedVerses, key = { "${it.book}${it.chapter}:${it.verse}" }) { verse ->
-                        VerseChip(
-                            verse = verse,
-                            preferredTranslation = preferredTranslation,
-                            chapterState = chapterSheetState,
-                            onLoadChapter = onLoadChapter,
-                            onDismissSheet = onDismissSheet,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        }
+        VersesPanelContent(
+            allVerses = allVerses,
+            messages = messages,
+            chapterSheetState = chapterSheetState,
+            preferredTranslation = preferredTranslation,
+            onLoadChapter = onLoadChapter,
+            onDismissSheet = onDismissSheet,
+            localizedToEnglish = localizedToEnglish,
+        )
     }
 }
