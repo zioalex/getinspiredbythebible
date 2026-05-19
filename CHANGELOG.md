@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.8.0...v1.9.0) (2026-05-19)
+
+### Features
+
+* **android:** add Robolectric/Compose UI test tier (BITB-034) ([#591](https://github.com/zioalex/getinspiredbythebible/issues/591)) ([7fd0908](https://github.com/zioalex/getinspiredbythebible/commit/7fd090874ec399a8160444f5734a14d95f9e5c1b))
+* **safety:** privacy-friendly capture of blocked messages for tuning ([#594](https://github.com/zioalex/getinspiredbythebible/issues/594)) ([eb9ae21](https://github.com/zioalex/getinspiredbythebible/commit/eb9ae21cff60496afcf12c8ce0275dd6bcfce107))
+* **safety:** warm notification when defenses block a message ([#593](https://github.com/zioalex/getinspiredbythebible/issues/593)) ([5c344d8](https://github.com/zioalex/getinspiredbythebible/commit/5c344d8ca4cd8a11762f1f319faa47053b0552b5))
+
+### Bug Fixes
+
+* **android:** fix analytics over-counting and locale-revert-to-English bugs ([#590](https://github.com/zioalex/getinspiredbythebible/issues/590)) ([d3960fa](https://github.com/zioalex/getinspiredbythebible/commit/d3960fab4a1309394700b3f468afffc9b37b76b7))
+* **api:** harden external API dependency paths after 2026-05-15 incident ([#592](https://github.com/zioalex/getinspiredbythebible/issues/592)) ([7d7bf73](https://github.com/zioalex/getinspiredbythebible/commit/7d7bf73cf76672d586bcf1c65198048c6e3ea9bd))
+* **chat:** auto-detect message language instead of forcing UI locale ([#585](https://github.com/zioalex/getinspiredbythebible/issues/585)) ([f13ce81](https://github.com/zioalex/getinspiredbythebible/commit/f13ce81eeb25bc7f101409213f2307cb8f504f49))
+
 ## [1.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.7.0...v1.8.0) (2026-05-17)
 
 ### Features
