@@ -5,17 +5,6 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!--
-        Wrap all artwork in a group that scales it into the adaptive-icon
-        safe zone (inner ~66dp). Without this, launchers crop the Bible at
-        the bottom of the viewport and only the rays remain visible.
-    -->
-    <group
-        android:pivotX="54"
-        android:pivotY="54"
-        android:scaleX="0.80"
-        android:scaleY="0.80">
-
     <!-- Halo glow at ray source (54, 20) -->
     <path
         android:fillColor="#F8D040"
@@ -70,5 +59,4 @@
     <path android:strokeColor="#C4A060" android:strokeWidth="0.5" android:strokeAlpha="0.45"
         android:pathData="M58,84.2 L93,84.5" />
 
-    </group>
 </vector>
