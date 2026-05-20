@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.9.0...v1.10.0) (2026-05-20)
+
+### Features
+
+* **ops:** blocked-sample exporter + pg_cron TTL purge ([#597](https://github.com/zioalex/getinspiredbythebible/issues/597)) ([c820a22](https://github.com/zioalex/getinspiredbythebible/commit/c820a2279dbb54f258bfaf13c51d985167a51983))
+
+### Bug Fixes
+
+* **android:** restore Compose test tier isolation (BITB-034) ([#598](https://github.com/zioalex/getinspiredbythebible/issues/598)) ([c87e4c1](https://github.com/zioalex/getinspiredbythebible/commit/c87e4c14578b85954dd0535f595ce5ec6a9383e8))
+* **android:** show the raster PNG launcher icon on all API levels ([#599](https://github.com/zioalex/getinspiredbythebible/issues/599)) ([193a153](https://github.com/zioalex/getinspiredbythebible/commit/193a1537ae159d53dfa3558730412a8ce2c8d60f))
+
 ## [1.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.8.0...v1.9.0) (2026-05-19)
 
 ### Features
