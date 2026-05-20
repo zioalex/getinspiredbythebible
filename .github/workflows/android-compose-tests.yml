@@ -90,11 +90,13 @@ jobs:
 
       - name: Run Compose UI tests
         working-directory: android
-        # Run only *ComposeTest classes via the standard unit-test task with a filter.
-        # No custom Gradle task is needed — Gradle's --tests flag isolates the tier.
+        # -PcomposeTestsOnly disables the *ComposeTest exclusion that normally keeps these
+        # classes out of the required Unit Tests check. Combined with --tests "*ComposeTest"
+        # this runs only Compose UI tests without touching the standard unit-test tier.
         run: |
           ./gradlew :app:testDebugUnitTest \
-            --tests "*.VersesPanelComposeTest" \
+            -PcomposeTestsOnly \
+            --tests "*ComposeTest" \
             --no-daemon --stacktrace
 
       - name: Upload HTML test report
