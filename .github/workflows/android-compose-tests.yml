@@ -92,9 +92,10 @@ jobs:
         working-directory: android
         # Run only *ComposeTest classes via the standard unit-test task with a filter.
         # No custom Gradle task is needed — Gradle's --tests flag isolates the tier.
+        # The "*ComposeTest" wildcard matches any class following the BITB-034 naming convention.
         run: |
           ./gradlew :app:testDebugUnitTest \
-            --tests "*.VersesPanelComposeTest" \
+            --tests "*ComposeTest" \
             --no-daemon --stacktrace
 
       - name: Upload HTML test report

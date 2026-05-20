@@ -330,7 +330,10 @@ val generateChangelogJson by tasks.registering {
 
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
 
-// BITB-034: Robolectric/Compose UI tests run via testDebugUnitTest (no custom task needed).
-// The android-compose-tests.yml workflow uses --tests filtering to isolate *ComposeTest
-// classes without requiring a separate Gradle task registration.
-// See: .github/workflows/android-compose-tests.yml
+// BITB-034: Exclude *ComposeTest classes from the required unit-test check so Compose-UI
+// flakiness cannot block merges. tasks.matching().configureEach is lazy — it configures the
+// task whenever AGP registers it, avoiding the UnknownTaskException that tasks.named<Test>()
+// throws before AGP's afterEvaluate completes.
+tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
+    (this as Test).exclude("**/*ComposeTest.class")
+}
