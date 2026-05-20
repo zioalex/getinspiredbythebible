@@ -331,9 +331,11 @@ val generateChangelogJson by tasks.registering {
 tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
 
 // BITB-034: Exclude *ComposeTest classes from the required unit-test check so Compose-UI
-// flakiness cannot block merges. tasks.matching().configureEach is lazy — it configures the
-// task whenever AGP registers it, avoiding the UnknownTaskException that tasks.named<Test>()
-// throws before AGP's afterEvaluate completes.
+// flakiness cannot block merges. The exclusion is skipped when -PcomposeTestsOnly is passed
+// so the compose-tests workflow can still target these classes via --tests "*ComposeTest".
+// tasks.matching().configureEach is lazy — safe to call before AGP registers the task.
 tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
-    (this as Test).exclude("**/*ComposeTest.class")
+    if (!providers.gradleProperty("composeTestsOnly").isPresent) {
+        (this as Test).exclude("**/*ComposeTest.class")
+    }
 }
