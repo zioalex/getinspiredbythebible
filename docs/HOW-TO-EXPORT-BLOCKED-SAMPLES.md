@@ -112,10 +112,31 @@ WHERE id IN (1, 2, 3);
 
 - The exporter does only `SELECT` queries. It will not modify rows or
   trigger TTL purges.
-- Purges run on app startup. To force one without restarting, call
-  `purge_expired_blocked_samples()` from a Python REPL with `DATABASE_URL`
-  configured, or just `DELETE FROM blocked_message_samples WHERE
-  expires_at < now();` from SQL.
+- Expired rows are deleted by a `pg_cron` job that runs daily at 03:15
+  UTC (`scripts/migrations/005_schedule_blocked_samples_purge.sql`).
+  The app-side startup purge in `api/main.py` is kept as a backstop so
+  rows are also cleaned up after a deploy or restart.
+- To force a purge between scheduled runs:
+
+  ```sql
+  DELETE FROM blocked_message_samples WHERE expires_at < now();
+  ```
+
 - The table holds at most one row per distinct message within the
   retention window, so volume is bounded by the variety of blocked
   messages, not by traffic.
+
+## Enabling the pg_cron job (one-time, operator)
+
+1. `deployment/main.tf` already adds `pg_cron` to the `azure.extensions`
+   parameter and points `cron.database_name` at the app database.
+   Apply the Terraform plan and restart the Postgres flexible server
+   when prompted by Azure.
+2. Run `scripts/migrations/005_schedule_blocked_samples_purge.sql` as
+   a superuser to register the schedule. The migration is idempotent.
+3. Verify with:
+
+   ```sql
+   SELECT jobname, schedule FROM cron.job
+   WHERE jobname = 'purge-blocked-message-samples';
+   ```
