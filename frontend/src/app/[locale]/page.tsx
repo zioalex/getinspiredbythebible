@@ -686,7 +686,7 @@ export default function Home() {
   return (
     <main className="flex h-dvh">
       {/* Main Chat Area */}
-      <div className="flex-1 min-w-0 flex flex-col max-w-4xl mx-auto">
+      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-hidden">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
@@ -712,7 +712,7 @@ export default function Home() {
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
-                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 max-w-[8rem] sm:max-w-none truncate focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                     translations.length === 0
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                       : "bg-white text-gray-600"
