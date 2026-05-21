@@ -3,13 +3,14 @@
 module.exports = {
   extends: ["@commitlint/config-conventional"],
   rules: {
-    "body-max-line-length": [2, "always", 200],
     "type-enum": [
       2,
       "always",
       ["feat", "fix", "perf", "revert", "docs", "chore", "build", "ci", "refactor", "test", "style", "merge"],
     ],
-    // Disable line-length check on commit body — URLs frequently exceed 100 chars.
+    // Disable line-length checks — URLs and Dependabot group-update titles
+    // frequently exceed the 100-char default from config-conventional.
+    "header-max-length": [0],
     "body-max-line-length": [0],
   },
 };
