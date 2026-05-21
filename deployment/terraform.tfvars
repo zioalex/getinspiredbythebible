@@ -126,7 +126,7 @@ custom_domain_backend  = "api.voxquieta.org"
 smtp2go_enabled            = true
 smtp2go_sender_email       = "noreply@voxquieta.org"
 smtp2go_sender_name        = "Vox Quieta"
-contact_notification_email = "contact@voxquieta.org"
+contact_notification_email = "support@voxquieta.org"
 
 # -----------------------------------------------------------------------------
 # Cloudflare Turnstile (Bot Protection)

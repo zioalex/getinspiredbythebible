@@ -466,7 +466,7 @@ variable "smtp2go_sender_name" {
 variable "contact_notification_email" {
   description = "Email address to receive contact form notifications"
   type        = string
-  default     = "contact@voxquieta.org"
+  default     = "support@voxquieta.org"
 }
 
 # -----------------------------------------------------------------------------
