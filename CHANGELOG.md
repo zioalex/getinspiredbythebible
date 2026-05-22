@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.10.0...v1.11.0) (2026-05-22)
+
+### Features
+
+* **api:** guide assistant to Bible version selector when asked (BITB-029) ([#605](https://github.com/zioalex/getinspiredbythebible/issues/605)) ([2929249](https://github.com/zioalex/getinspiredbythebible/commit/29292498d8bd5ca514c257f442283fdd7fe56e1a))
+
 ## [1.10.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.9.0...v1.10.0) (2026-05-20)
 
 ### Features
