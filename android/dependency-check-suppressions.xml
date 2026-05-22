@@ -483,6 +483,122 @@
 
   <!--
     ============================================================
+    Robolectric test framework (BITB-034) — test-only, NOT in APK
+    ============================================================
+
+    org.robolectric:robolectric and its entire transitive dependency tree are
+    declared as testImplementation only. None of these JARs are packaged into
+    the release APK or shipped to end users.
+
+    The OWASP CLI scans the full Gradle module cache (~/.gradle/caches/modules-2/
+    files-2.1/) which includes test-scoped artifacts downloaded by prior CI jobs.
+    All CVEs flagged against these JARs are therefore inapplicable to the
+    shipped application. We suppress by packageUrl so new Robolectric releases
+    don't require individual CVE entries.
+
+    Notable transitive artifacts covered:
+      org.robolectric:robolectric, android-all, android-all-instrumented,
+        shadows-*, nativeruntime, utils, sandbox, pluginapi, resources
+      com.google.android.apps.common.testing.accessibility.framework:*
+      net.bytebuddy:byte-buddy (ASM-based bytecode generation)
+      org.ow2.asm:asm* (bytecode manipulation, used by Robolectric shadow weaving)
+  -->
+  <suppress>
+    <notes>False positive / test-only: org.robolectric artifacts (all modules).
+      Robolectric is a testImplementation dependency that is NOT shipped in the APK.
+      CVEs in any org.robolectric JAR do not affect end users.
+      cvssBelow:10 suppresses all CVE matches.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.robolectric/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: com.google.android.apps.common.testing.accessibility.framework
+      accessibility-test-framework is pulled in by Robolectric as a test-only transitive dep.
+      NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.google\.android\.apps\.common\.testing\.accessibility\.framework/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: net.bytebuddy artifacts.
+      ByteBuddy is a transitive dep of Robolectric / Mockito used only in tests.
+      NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/net\.bytebuddy/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.ow2.asm artifacts.
+      OW2 ASM is a bytecode-manipulation library used by Robolectric for shadow
+      class weaving. testImplementation only, NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.ow2\.asm/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.conscrypt:conscrypt-openjdk-uber.
+      Conscrypt is a Robolectric transitive dependency providing TLS support for
+      the simulated Android environment. testImplementation only, NOT shipped in the APK.
+      CVEs in conscrypt-openjdk-uber do not affect Android end users.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.conscrypt/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: com.ibm.icu:icu4j.
+      ICU4J is a Robolectric transitive dependency for Unicode/locale support in the
+      simulated Android environment. testImplementation only, NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.ibm\.icu/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: net.java.dev.jna and net.java.dev.jna:jna-platform.
+      JNA (Java Native Access) is a Robolectric transitive dependency used for
+      native interop in the test environment. testImplementation only, NOT in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/net\.java\.dev\.jna/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: com.almworks.sqlite4java artifacts.
+      sqlite4java is a Robolectric transitive dependency providing SQLite access for
+      the Android test environment. testImplementation only, NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/com\.almworks\.sqlite4java/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.xerial:sqlite-jdbc.
+      SQLite JDBC is used by OWASP Dependency Check itself (build-time scanning tool)
+      and may also be a Robolectric transitive dep. NOT shipped in the APK.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.xerial/sqlite-jdbc.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <suppress>
+    <notes>False positive / test-only: org.xerial.snappy:snappy-java.
+      snappy-java is a compression library used by build-time tools (e.g. Gradle
+      caching, Robolectric transitive deps). NOT shipped in the APK.
+      CVE-2023-34455 (CVSS 7.5) and similar are for the server-side snappy compression
+      library, not applicable to Android client apps.
+    </notes>
+    <packageUrl regex="true">pkg:maven/org\.xerial\.snappy/.*</packageUrl>
+    <cvssBelow>10</cvssBelow>
+  </suppress>
+
+  <!--
+    ============================================================
     Build-time-only Gradle plugin dependencies (NOT in the APK)
     ============================================================
   -->

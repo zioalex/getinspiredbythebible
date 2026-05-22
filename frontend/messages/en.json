@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "Get inspired daily by God's Word",
-    "bibleVersion": "Bible version:",
-    "autoDetect": "Auto-detect",
+    "bibleVersion": "Bible version",
     "newChat": "New Chat"
   },
   "Welcome": {
@@ -123,12 +122,15 @@
     "errorColdStart": "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!",
     "errorConnection": "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at contact@voxquieta.org",
     "startNewSession": "Start New Session",
-    "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below."
+    "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
+    "contentBlockedMessage": "I wasn't able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We're glad you're here.",
+    "scrollToBottom": "Scroll to bottom",
+    "stopGenerating": "Stop generating"
   },
   "Verses": {
     "scriptureReferences": "Scripture References",
     "verseCount": "{count, plural, =1 {1 verse} other {# verses}}",
-    "referenced": "Referenced",
+    "referenced": "Cited",
     "allRelated": "All Related ({count})",
     "noVersesReferenced": "No verses referenced yet.",
     "noVersesReferencedHint": "Verses will appear here when mentioned in the chat.",

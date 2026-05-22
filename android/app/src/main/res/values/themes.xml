@@ -9,16 +9,16 @@
       the windowSplashScreen* attributes on API < 31.
 
       Colours:
-        background  #874A30  — app primary warm brown  (matches web primary-700)
-        icon        @drawable/ic_splash_icon  — white cross, centred
-        iconBg      #874A30  — same as background so the icon circle blends in (API 31+)
+        background  #2A1608  — dark warm brown (matches new brand)
+        icon        @drawable/ic_splash_bible — open bible with rays, centred
+        iconBg      #2A1608  — same as background so the icon blends in (API 31+)
     -->
     <style name="Theme.VoxQuieta.Splash" parent="Theme.SplashScreen">
         <!-- Background colour of the splash window -->
-        <item name="windowSplashScreenBackground">#874A30</item>
+        <item name="windowSplashScreenBackground">#2A1608</item>
 
         <!-- Animated / static icon shown in the centre of the screen -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bible</item>
 
         <!-- Duration hint for the splash animation (ms). setKeepOnScreenCondition in
              MainActivity may dismiss earlier if the backend responds fast, or hold longer
@@ -26,12 +26,11 @@
         <item name="windowSplashScreenAnimationDuration">700</item>
 
         <!--
-          Brand icon background colour (API 31+).  Setting it to the same warm brown as
-          the window background makes the circular icon container invisible, so the cross
-          appears to float directly on the warm backdrop — matching the launcher icon
-          adaptive-icon style.
+          Brand icon background colour (API 31+).  Setting it to the same dark brown as
+          the window background makes the circular icon container invisible, so the art
+          appears to float directly on the dark backdrop.
         -->
-        <item name="windowSplashScreenIconBackgroundColor">#874A30</item>
+        <item name="windowSplashScreenIconBackgroundColor">#2A1608</item>
 
         <!-- Theme to switch to after the splash screen exits -->
         <item name="postSplashScreenTheme">@style/Theme.VoxQuieta</item>

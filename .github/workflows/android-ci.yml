@@ -8,9 +8,10 @@ on:
       - "android/**"
       - ".github/workflows/android-ci.yml"
   push:
+    # No paths filter on main: every commit landing on main must produce an
+    # Android-CI verdict so release-please (workflow_run-gated) and the
+    # publish-time CI-green check have a definitive status to read.
     branches: [main]
-    paths:
-      - "android/**"
   workflow_dispatch:
 
 run-name: >-
@@ -101,6 +102,23 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
             cat > android/app/google-services.json <<'PLACEHOLDER'
@@ -115,6 +133,15 @@ jobs:
                 "client_info": {
                   "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
                   "android_client_info": { "package_name": "org.voxquieta" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": { "package_name": "org.voxquieta.debug" }
                 },
                 "oauth_client": [],
                 "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
@@ -166,9 +193,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:
@@ -234,9 +305,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:
@@ -283,9 +398,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:
@@ -387,9 +546,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:
@@ -433,7 +636,7 @@ jobs:
       - name: TruffleHog OSS scan
         # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
         # env vars set by GitHub Actions — no explicit base/head needed.
-        uses: trufflesecurity/trufflehog@v3.94.3
+        uses: trufflesecurity/trufflehog@v3.95.3
         with:
           extra_args: --only-verified
 
@@ -484,9 +687,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:
@@ -571,9 +818,53 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
+            python3 - <<'PYEOF'
+          import json, copy
+          with open('android/app/google-services.json') as f:
+              d = json.load(f)
+          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          if 'org.voxquieta.debug' not in pkgs:
+              for c in d['client']:
+                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                      dbg = copy.deepcopy(c)
+                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                      d['client'].append(dbg)
+                      break
+              with open('android/app/google-services.json', 'w') as f:
+                  json.dump(d, f, indent=2)
+          PYEOF
           else
             cat > android/app/google-services.json <<'PLACEHOLDER'
-          {"project_info":{"project_number":"000000000000","project_id":"voxquieta-placeholder","storage_bucket":"voxquieta-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"org.voxquieta"}},"oauth_client":[],"api_key":[{"current_key":"PLACEHOLDER_KEY"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "voxquieta-placeholder",
+              "storage_bucket": "voxquieta-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {"package_name": "org.voxquieta"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                  "android_client_info": {"package_name": "org.voxquieta.debug"}
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
           PLACEHOLDER
           fi
         env:

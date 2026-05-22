@@ -1,10 +1,10 @@
 # BITB-021: Instrument LLM and Database Performance Metrics
 
 **Priority:** P1 (High — dashboard is deployed but shows no data)
-**Status:** 🚧 In Progress (dashboard/workbook dependencies complete; backend metrics instrumentation pending)
+**Status:** ✅ Done (metrics defined, all providers instrumented, repository instrumented, integration tests added)
 **Size:** M (4-6 hours)
 **Created:** 2026-03-06
-**Updated:** 2026-04-20
+**Updated:** 2026-05-16
 
 ---
 

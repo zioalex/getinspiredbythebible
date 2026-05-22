@@ -147,3 +147,58 @@ The `TOPIC_BOOST_FACTOR` controls the multiplicative boost per matching topic:
 
 - `0.2` = 20% boost per topic (default)
 - Example: verse with 2 matching topics → `score * 1.4`
+
+---
+
+## Migration 005: Schedule daily purge of `blocked_message_samples`
+
+**File:** `005_schedule_blocked_samples_purge.sql`
+**Date:** 2026-05-19
+**Purpose:** Replace startup-only TTL with a `pg_cron`-driven daily DELETE
+so expired `blocked_message_samples` rows are reclaimed even when the API
+container does not restart for long stretches.
+
+### Prerequisites
+
+1. `pg_cron` must be allow-listed via the `azure.extensions` server
+   parameter (`deployment/main.tf` already includes it alongside
+   `vector,uuid-ossp`). Restart the Postgres flexible server after
+   updating this parameter.
+2. `cron.database_name` must point at the app database (managed by the
+   `cron_database_name` resource in `deployment/main.tf`). Restart again.
+3. Run the migration as a superuser:
+
+```bash
+psql $DATABASE_URL -f scripts/migrations/005_schedule_blocked_samples_purge.sql
+```
+
+### Behaviour
+
+- Job name: `purge-blocked-message-samples`
+- Schedule: `15 3 * * *` (daily, 03:15 UTC)
+- Statement: `DELETE FROM blocked_message_samples WHERE expires_at < now()`
+- Idempotent: re-running the migration replaces any existing schedule of
+  the same name.
+- The app-side startup purge in `api/main.py` is kept as a backstop.
+
+### Rollback (Migration 005)
+
+```sql
+SELECT cron.unschedule('purge-blocked-message-samples');
+-- Optional: remove pg_cron from azure.extensions in Terraform.
+```
+
+### Verify
+
+```sql
+SELECT jobid, jobname, schedule, command
+FROM cron.job
+WHERE jobname = 'purge-blocked-message-samples';
+
+-- Recent runs:
+SELECT runid, jobid, status, start_time, end_time, return_message
+FROM cron.job_run_details
+WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'purge-blocked-message-samples')
+ORDER BY start_time DESC
+LIMIT 5;
+```
