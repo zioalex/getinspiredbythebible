@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +32,12 @@ fun ChatInputField(
     isLoading: Boolean = false,
     isTurnstileReady: Boolean = true,
     isSessionLimitReached: Boolean = false,
+    onStop: () -> Unit = {},
 ) {
-    val isEnabled = !isLoading && isTurnstileReady && !isSessionLimitReached
+    val canSend = !isLoading && isTurnstileReady && !isSessionLimitReached
 
     fun submit() {
-        if (value.isNotBlank() && isEnabled) {
+        if (value.isNotBlank() && canSend) {
             onSend(value)
         }
     }
@@ -53,27 +54,40 @@ fun ChatInputField(
             modifier = Modifier.weight(1f),
             placeholder = { Text(stringResource(R.string.chat_input_hint)) },
             shape = RoundedCornerShape(24.dp),
+            // Multi-line: Enter inserts a newline (ImeAction.Default), the Send
+            // button is the only way to submit. maxLines caps visible height.
             maxLines = 5,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { submit() }),
-            enabled = isEnabled,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+            // Keep the text field editable while generation is running so the
+            // user can already type the next message. We just block submit.
+            enabled = !isSessionLimitReached,
         )
 
         Spacer(Modifier.width(8.dp))
 
-        IconButton(
-            onClick = { submit() },
-            enabled = value.isNotBlank() && isEnabled,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = stringResource(R.string.chat_send_button),
-                tint = if (value.isNotBlank() && isEnabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-            )
+        if (isLoading) {
+            IconButton(onClick = onStop) {
+                Icon(
+                    imageVector = Icons.Filled.Stop,
+                    contentDescription = stringResource(R.string.chat_stop_button),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else {
+            IconButton(
+                onClick = { submit() },
+                enabled = value.isNotBlank() && canSend,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = stringResource(R.string.chat_send_button),
+                    tint = if (value.isNotBlank() && canSend) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
+                )
+            }
         }
     }
 }

@@ -3,12 +3,14 @@ package org.voxquieta.app.viewmodels
 import android.content.Context
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
 import org.voxquieta.app.domain.models.ChatRequest
@@ -26,14 +28,18 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
+import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -70,8 +76,12 @@ class ChatViewModelTest {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var translationPreferences: TranslationPreferences
     private lateinit var sessionPreferences: SessionPreferences
+    private lateinit var lastConversationPreferences: LastConversationPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var networkMonitor: NetworkMonitor
+    private val localeApplier: LocaleApplier = object : LocaleApplier {
+        override fun apply(languageTag: String) { /* no-op for unit tests */ }
+    }
     private lateinit var viewModel: ChatViewModel
 
     private val stubConversation = Conversation(
@@ -95,6 +105,7 @@ class ChatViewModelTest {
         turnstileManager = TurnstileManager()
         languagePreferences = mockk(relaxed = true)
         every { languagePreferences.languageFlow } returns flowOf("en")
+        every { languagePreferences.readInitial() } returns "en"
         context = mockk {
             every { getString(R.string.error_network) } returns "Network error. Please check your connection."
             every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
@@ -111,6 +122,8 @@ class ChatViewModelTest {
         every { translationPreferences.preferredTranslationFlow } returns flowOf("")
         sessionPreferences = mockk(relaxed = true)
         coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
+        lastConversationPreferences = mockk(relaxed = true)
+        coEvery { lastConversationPreferences.getLastConversationId() } returns null
         bibleApiService = mockk(relaxed = true)
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
         viewModel = ChatViewModel(
@@ -123,13 +136,16 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
     }
 
     @After
     fun tearDown() {
+        LogCollector.clear()
         Dispatchers.resetMain()
     }
 
@@ -457,8 +473,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -481,8 +499,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -511,8 +531,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -545,8 +567,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.availableTranslations.value.isEmpty())
@@ -556,6 +580,60 @@ class ChatViewModelTest {
 
         assertEquals(1, vm.availableTranslations.value.size)
         assertEquals("ESV", vm.availableTranslations.value[0].id)
+    }
+
+    @Test
+    fun `fetchTranslationsWithRetry propagates CancellationException without retrying`() = runTest {
+        // Use a local mock so the setUp viewModel's pending coroutines (which share the
+        // class-level bibleApiService mock) don't contribute extra invocations to the count.
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } throws CancellationException("scope cancelled")
+
+        ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // CancellationException must be re-thrown, not caught as a transient error:
+        // if it were swallowed, all 3 retry attempts would execute.
+        coVerify(exactly = 1) { localApiService.getTranslations() }
+    }
+
+    @Test
+    fun `fetchBookNamesWithRetry propagates CancellationException without retrying`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getBookNames() } throws CancellationException("scope cancelled")
+
+        ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { localApiService.getBookNames() }
     }
 
     @Test
@@ -584,8 +662,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -613,8 +693,10 @@ class ChatViewModelTest {
             themePreferences,
             translationPreferences,
             sessionPreferences,
+            lastConversationPreferences,
             bibleApiService,
             networkMonitor,
+            localeApplier,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1303,6 +1385,64 @@ class ChatViewModelTest {
         coVerify(exactly = 0) { contactRepository.submitContact(any(), any(), any(), any()) }
     }
 
+    @Test
+    fun `sendDiagnosticEmail submits bug report via contact repository`() = runTest {
+        val infoPriority = 4
+        val mockSubmissionId = 99
+        val messageSlot = slot<String>()
+        LogCollector.log(priority = infoPriority, tag = "Test", message = "Diagnostic line", t = null)
+        coEvery { contactRepository.submitContact(any(), capture(messageSlot), any(), any()) } returns mockSubmissionId
+
+        viewModel.sendDiagnosticEmail("Opening settings", "Bottom sheet should stay open")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            contactRepository.submitContact(
+                subject = ContactSubject.BUG,
+                message = any(),
+                email = null,
+                userAgent = any(),
+            )
+        }
+        assertTrue(messageSlot.captured.contains("What were you doing?\nOpening settings"))
+        assertTrue(messageSlot.captured.contains("What did you expect to happen?\nBottom sheet should stay open"))
+        assertTrue(messageSlot.captured.contains("Diagnostic log:\nI/Test: Diagnostic line"))
+    }
+
+    @Test
+    fun `sendDiagnosticEmail transitions state to Success on success`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 42
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+    }
+
+    @Test
+    fun `sendDiagnosticEmail transitions state to Error on failure`() = runTest {
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws IOException("no network")
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `resetDiagnosticReport returns state to Idle`() = runTest {
+        coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
+        viewModel.sendDiagnosticEmail("Doing", "Expected")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Success)
+
+        viewModel.resetDiagnosticReport()
+
+        assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Idle)
+    }
+
     // ── allVerses (GAP-011) ───────────────────────────────────────────────────
 
     @Test
@@ -1398,5 +1538,171 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.allVerses.isEmpty())
+    }
+
+    // ── cancelStream / Stop button ────────────────────────────────────────────
+
+    @Test
+    fun `cancelStream resets isLoading so the user can send further messages`() = runTest {
+        // A flow that emits one partial chunk then suspends — simulates a long SSE
+        // stream interrupted by the Stop button.
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Partial answer…", done = false))
+            awaitCancellation()
+        }
+
+        viewModel.sendMessage("Hello")
+        // Run until the coroutine blocks on awaitCancellation().
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isLoading)
+
+        // Simulate the user tapping Stop.
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // isLoading must be false so the Send button reappears and new messages can be sent.
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `cancelStream preserves the partial assistant message content`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Only the beginning", done = false))
+            awaitCancellation()
+        }
+
+        viewModel.sendMessage("Tell me something")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistantMsg = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Only the beginning", assistantMsg.content)
+        assertFalse(assistantMsg.isStreaming)
+    }
+
+    @Test
+    fun `cancelStream is a no-op when no stream is active`() = runTest {
+        // streamJob is null at this point — must not throw.
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+    }
+
+    @Test
+    fun `sendMessage succeeds after a previous stream was cancelled`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flow {
+                emit(StreamChunk(content = "First partial", done = false))
+                awaitCancellation()
+            },
+            flowOf(StreamChunk(content = "Second complete", done = true)),
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isLoading)
+
+        viewModel.sendMessage("Second question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        val lastAssistant = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Second complete", lastAssistant.content)
+    }
+
+    // ── Language seeding (new) ────────────────────────────────────────────────
+
+    @Test
+    fun `initial currentLocale is seeded synchronously from languagePreferences readInitial`() {
+        every { languagePreferences.readInitial() } returns "de"
+        every { languagePreferences.languageFlow } returns flowOf("de")
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        assertEquals("de", vm.uiState.value.currentLocale)
+    }
+
+    @Test
+    fun `sendMessage omits language when currentLocale is empty`() = runTest {
+        every { languagePreferences.readInitial() } returns ""
+        every { languagePreferences.languageFlow } returns flowOf("")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Ciao come stai?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(requestSlot.captured.language)
+    }
+
+    @Test
+    fun `sendMessage sends language when user explicitly selected a code`() = runTest {
+        every { languagePreferences.readInitial() } returns "it"
+        every { languagePreferences.languageFlow } returns flowOf("it")
+        val requestSlot = slot<ChatRequest>()
+        every { repository.chatStream(capture(requestSlot)) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("it", requestSlot.captured.language)
     }
 }

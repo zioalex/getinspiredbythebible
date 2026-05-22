@@ -38,6 +38,18 @@ export class SessionLimitError extends Error {
 }
 
 /**
+ * Error thrown when the safety system blocks a message.
+ * UI should render a warm, reassuring notification and invite the user to
+ * rephrase or contact support — not a generic API error.
+ */
+export class ContentBlockedError extends Error {
+  constructor(message: string = "Message blocked by safety filter") {
+    super(message);
+    this.name = "ContentBlockedError";
+  }
+}
+
+/**
  * Check if the backend is ready
  */
 export async function checkBackendReady(): Promise<boolean> {
@@ -359,6 +371,13 @@ export async function sendMessage(
           );
         }
       }
+      // 400 from the content filter: surface a warm notification, not a raw error.
+      if (response.status === 400) {
+        const data = await response.json().catch(() => ({}));
+        if (data.detail?.error === "content_blocked") {
+          throw new ContentBlockedError(data.detail?.message);
+        }
+      }
       // 503 Service Unavailable often indicates cold start
       if (response.status === 503 || response.status === 502) {
         throw new ColdStartError("Backend is starting up");
@@ -411,11 +430,26 @@ export interface StreamChunk {
 /**
  * Stream a chat response with metadata
  */
+export interface StreamMessageOptions {
+  preferredTranslation?: string;
+  sessionId?: string;
+  /**
+   * Explicit language override (e.g. when the user picks one in a language
+   * picker). Omit to let the backend auto-detect from the message text.
+   */
+  language?: string;
+  signal?: AbortSignal;
+}
+
 export async function* streamMessage(
   message: string,
   history: Message[] = [],
-  preferredTranslation?: string,
-  sessionId?: string,
+  {
+    preferredTranslation,
+    sessionId,
+    language,
+    signal,
+  }: StreamMessageOptions = {},
 ): AsyncGenerator<StreamChunk> {
   await ensureTurnstileToken();
   const headers = getHeaders();
@@ -430,7 +464,9 @@ export async function* streamMessage(
       include_search: true,
       preferred_translation: preferredTranslation,
       session_id: sessionId,
+      language,
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -444,6 +480,13 @@ export async function* streamMessage(
         );
       }
     }
+    // 400 from the content filter: surface a warm notification, not a raw error.
+    if (response.status === 400) {
+      const data = await response.json().catch(() => ({}));
+      if (data.detail?.error === "content_blocked") {
+        throw new ContentBlockedError(data.detail?.message);
+      }
+    }
     throw new Error(`API error: ${response.status}`);
   }
 
@@ -453,6 +496,10 @@ export async function* streamMessage(
   const decoder = new TextDecoder();
 
   while (true) {
+    if (signal?.aborted) {
+      await reader.cancel().catch(() => {});
+      return;
+    }
     const { done, value } = await reader.read();
     if (done) break;
 

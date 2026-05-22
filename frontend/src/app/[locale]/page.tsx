@@ -10,8 +10,9 @@ import {
   BookOpen,
   X,
   ChevronDown,
+  Square,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -35,6 +36,7 @@ import {
   getOrCreateSessionId,
   resetSessionId,
   ColdStartError,
+  ContentBlockedError,
   SessionLimitError,
   checkBackendReady,
   warmupBackend,
@@ -61,6 +63,7 @@ interface ChatMessage {
 }
 
 export default function Home() {
+  const locale = useLocale();
   const tHeader = useTranslations("Header");
   const tWelcome = useTranslations("Welcome");
   const tChat = useTranslations("Chat");
@@ -84,15 +87,16 @@ export default function Home() {
   // null = checking, true = ready, false = warming up
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
-  const [showOnlyReferenced, setShowOnlyReferenced] = useState(false); // Default to showing all related verses
+  const [showOnlyReferenced, setShowOnlyReferenced] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Smart auto-scroll state
   const [isUserNearBottom, setIsUserNearBottom] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const SCROLL_THRESHOLD = 100; // px from bottom to consider "near bottom"
-  const SCROLL_BUTTON_THRESHOLD = 200; // px from bottom to show scroll button
 
   // Feedback state
   const [feedbackGiven, setFeedbackGiven] = useState<
@@ -328,10 +332,14 @@ export default function Home() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setIsUserNearBottom(true); // Reset auto-scroll when user sends a new message
     setInput("");
     setIsLoading(true);
     setIsWarmingUp(false);
     setBackendReady(true); // Streaming doesn't have cold start issues with min_replicas=1
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       // Convert messages to the API format (without extra fields)
@@ -359,13 +367,15 @@ export default function Home() {
         return [...prev, placeholderMessage];
       });
 
-      // Stream the response
-      for await (const chunk of streamMessage(
-        userMessageContent,
-        apiMessages,
-        selectedTranslation || undefined,
+      // Stream the response. We deliberately omit `language` so the backend
+      // auto-detects it from the message text — this lets Italian speakers
+      // get Italian replies even when the UI locale is English.
+      for await (const chunk of streamMessage(userMessageContent, apiMessages, {
+        preferredTranslation: selectedTranslation || undefined,
         sessionId,
-      )) {
+        signal: controller.signal,
+      })) {
+        if (controller.signal.aborted) break;
         if (chunk.type === "error") {
           throw new Error(chunk.error || "Stream error");
         }
@@ -476,8 +486,19 @@ export default function Home() {
         return newCount;
       });
 
+      abortControllerRef.current = null;
       setIsLoading(false);
     } catch (error) {
+      abortControllerRef.current = null;
+      // User-initiated cancellation: keep partial content, don't show an error.
+      if (
+        controller.signal.aborted ||
+        (error instanceof DOMException && error.name === "AbortError")
+      ) {
+        setIsWarmingUp(false);
+        setIsLoading(false);
+        return;
+      }
       console.error("Failed to send message:", error);
       setIsWarmingUp(false);
 
@@ -489,6 +510,18 @@ export default function Home() {
         };
         setMessages((prev) => [...prev, errorMessage]);
         setShowSessionLimitButton(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Safety system blocked the message — show a warm notification
+      // inviting the user to rephrase and to get in touch if something feels wrong.
+      if (error instanceof ContentBlockedError) {
+        const errorMessage: ChatMessage = {
+          role: "assistant",
+          content: tChat("contentBlockedMessage"),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
         setIsLoading(false);
         return;
       }
@@ -505,6 +538,31 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submitMessage(input);
+  };
+
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
+  };
+
+  // Auto-resize the chat textarea up to a cap so multi-line input grows
+  // naturally as the user types and shrinks back when content is removed.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const max = 160; // ~8 lines
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, [input]);
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter sends, Shift+Enter inserts a newline. Don't interfere while the IME
+    // is composing (e.g. CJK input) — that Enter is for the composer to commit.
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      if (!isLoading) {
+        void submitMessage(input);
+      }
+    }
   };
 
   const handleNewChat = () => {
@@ -649,20 +707,18 @@ export default function Home() {
 
               {/* Translation Selector - always visible, disabled when loading */}
               <div className="flex items-center gap-2">
-                <span className="hidden md:inline text-xs text-gray-500">
-                  {tHeader("bibleVersion")}
-                </span>
                 <select
                   value={selectedTranslation}
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
+                  aria-label={tHeader("bibleVersion")}
                   className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                     translations.length === 0
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                       : "bg-white text-gray-600"
                   }`}
                 >
-                  <option value="">{tHeader("autoDetect")}</option>
+                  <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (
                     <option key={t.code} value={t.code}>
                       {t.language} - {t.short_name}
@@ -788,27 +844,38 @@ export default function Home() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex gap-3">
-            <input
-              type="text"
+          <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               placeholder={tChat("inputPlaceholder")}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled={isLoading || showSessionLimitButton}
+              rows={1}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
+              disabled={showSessionLimitButton}
             />
-            <button
-              type="submit"
-              disabled={
-                isLoading ||
-                !input.trim() ||
-                showSessionLimitButton ||
-                turnstileBlocked
-              }
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={handleStop}
+                aria-label={tChat("stopGenerating")}
+                title={tChat("stopGenerating")}
+                className="px-6 py-3 bg-gray-700 text-white rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2"
+              >
+                <Square className="w-5 h-5" fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={
+                  !input.trim() || showSessionLimitButton || turnstileBlocked
+                }
+                className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            )}
           </form>
           <p className="text-xs text-gray-400 mt-2 text-center">
             {tChat("disclaimer")}
@@ -900,10 +967,10 @@ export default function Home() {
         <button
           onClick={handleScrollToBottomClick}
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-gray-800/90 text-white rounded-full shadow-lg hover:bg-gray-900 transition-colors backdrop-blur-sm"
-          aria-label="Scroll to bottom"
+          aria-label={tChat("scrollToBottom")}
         >
           <ChevronDown className="w-4 h-4" />
-          <span className="text-sm font-medium">Scroll to bottom</span>
+          <span className="text-sm font-medium">{tChat("scrollToBottom")}</span>
         </button>
       )}
 

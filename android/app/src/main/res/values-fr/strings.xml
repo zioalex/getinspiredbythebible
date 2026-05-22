@@ -4,6 +4,7 @@
     <string name="splash_motto">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="chat_input_hint">Partagez ce qui est sur votre cœur…</string>
     <string name="chat_send_button">Envoyer</string>
+    <string name="chat_stop_button">Arrêter</string>
     <string name="action_clear_conversation">Effacer la conversation</string>
     <string name="welcome_title">Laisse-toi inspirer chaque jour par la Parole de Dieu</string>
     <string name="welcome_subtitle">Apportez vos fardeaux à la Parole de Dieu. L\'Écriture apporte réconfort, force et espoir à chaque saison de la vie.</string>
@@ -125,6 +126,7 @@
     <string name="conversations_clear_all_message">Tout l\'historique des conversations sera définitivement supprimé.</string>
     <string name="conversations_clear_all_confirm">Tout effacer</string>
     <string name="action_cancel">Annuler</string>
+    <string name="action_done">Terminé</string>
     <string name="action_new_conversation">Nouvelle conversation</string>
     <string name="action_clear_all_conversations">Effacer toutes les conversations</string>
     <string name="action_delete_conversation">Supprimer la conversation</string>
@@ -132,23 +134,55 @@
     <!-- Settings screen -->
     <string name="settings_title">Paramètres</string>
     <string name="action_open_settings">Paramètres</string>
+    <string name="action_back">Retour</string>
+    <string name="action_open_chat_history">Ouvrir l\'historique des chats</string>
+    <string name="action_new_chat">Nouveau chat</string>
+    <string name="drawer_chat_history_title">Historique des chats</string>
+    <string name="drawer_no_conversations">Aucune conversation pour le moment</string>
+    <string name="drawer_see_all_conversations">Voir toutes les conversations</string>
     <string name="settings_theme_title">Thème</string>
     <string name="settings_theme_light">Clair</string>
     <string name="settings_theme_dark">Sombre</string>
     <string name="settings_theme_system">Défaut du système</string>
     <string name="bible_translation_section">Traduction Biblique</string>
     <string name="bible_translation_default">Par défaut</string>
+    <string name="settings_current_translation">Traduction actuelle</string>
+    <string name="settings_bible_change_from_chat">Changer depuis l\'écran de chat</string>
+    <string name="settings_data_privacy_title">Données et confidentialité</string>
+    <string name="settings_clear_history_title">Effacer l\'historique ?</string>
+    <string name="settings_clear_history_message">Toutes les conversations seront supprimées définitivement.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Support</string>
     <string name="action_send_diagnostic_report">Envoyer un rapport de diagnostic</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Signaler un bug</string>
+    <string name="diagnostic_subtitle">Aidez-nous à comprendre ce qui s\'est mal passé. Vos réponses et le journal de l\'application seront joints à un e-mail.</string>
+    <string name="diagnostic_doing_label">Que faisiez-vous ?</string>
+    <string name="diagnostic_doing_placeholder">ex. J\'ai appuyé sur un verset et l\'écran est devenu blanc</string>
+    <string name="diagnostic_expected_label">À quoi vous attendiez-vous ?</string>
+    <string name="diagnostic_expected_placeholder">ex. Le verset aurait dû s\'ouvrir dans un panneau</string>
+    <string name="diagnostic_attachment_note">Un journal de débogage (sans données personnelles) et des informations de base sur l\'appareil seront joints.</string>
+    <string name="diagnostic_send_email_button">Envoyer l\'e-mail avec le journal</string>
+    <string name="diagnostic_save_locally_link">Ou enregistrer le journal sur cet appareil</string>
+    <string name="diagnostic_email_subject">Rapport de bug Vox Quieta</string>
+    <string name="diagnostic_no_email_app">Aucune application e-mail n\'est configurée. Le journal a été enregistré.</string>
+    <string name="diagnostic_save_failed">Impossible d\'enregistrer le journal de diagnostic.</string>
+    <string name="diagnostic_success_title">Rapport envoyé</string>
+    <string name="diagnostic_success_description">Merci — nous avons reçu votre rapport et nous l\'examinerons sous peu.</string>
+
     <string name="settings_about_title">À propos</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>
     <string name="settings_terms_of_service">Conditions d\'utilisation</string>
+    <string name="settings_changelog_title">Nouveautés</string>
+    <string name="settings_changelog_link">Nouveautés</string>
+    <string name="changelog_empty">Aucune note de version n\'est disponible pour le moment.</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Vous avez eu 10 messages dans cette session ! Pourquoi ne pas faire une pause et profiter de la création de Dieu en plein air ? 🌳</string>
+    <string name="error_content_blocked">Je n\'ai pas pu répondre à ce message — notre système de sécurité l\'a retenu et a peut-être simplement mal compris tes mots. Essaie de reformuler ta pensée, et si quelque chose te semble étrange, écris-nous à contact@voxquieta.org. Heureux de t\'accueillir ici.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Sélectionner la langue</string>
@@ -170,7 +204,7 @@
     <string name="church_finder_find_church">Trouver une église</string>
     <string name="church_finder_dismiss">Ignorer</string>
     <string name="church_finder_modal_title">Trouver une église</string>
-    <string name="church_finder_modal_subtitle">Rejoignez une communauté de foi près de chez vous</string>
+    <string name="action_close_church_finder">Fermer le sélecteur d\'églises</string>
     <string name="church_finder_search_placeholder">Ville en anglais (ex. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Rechercher</string>
     <string name="church_finder_location_hint">Utilisez les noms de villes en anglais</string>

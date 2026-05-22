@@ -138,7 +138,7 @@ fun ContactFormBottomSheet(
                     )
                     Spacer(Modifier.height(8.dp))
                     Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.action_cancel))
+                        Text(stringResource(R.string.action_done))
                     }
                 }
                 return@Column

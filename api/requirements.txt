@@ -7,7 +7,7 @@ pydantic-settings==2.13.1
 # Database
 sqlalchemy==2.0.49
 asyncpg==0.31.0
-psycopg2-binary==2.9.11
+psycopg2-binary==2.9.12
 pgvector==0.4.2
 
 # HTTP Client (for LLM providers)
@@ -32,11 +32,11 @@ azure-ai-contentsafety==1.0.0
 python-dotenv==1.2.2
 numpy==1.26.4
 lingua-language-detector==2.2.0
-pyyaml>=6.0
+pyyaml>=6.0.3
 
 # Testing
 pytest==9.0.3
 pytest-asyncio==1.3.0
 
 # CORS
-python-multipart==0.0.26
+python-multipart==0.0.27

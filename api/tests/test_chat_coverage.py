@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from chat.prompts import (
+    BIBLE_VERSION_GUIDANCE,
     LANGUAGE_NAMES,
     SYSTEM_PROMPT,
     build_conversation_context,
@@ -328,6 +329,42 @@ class TestSystemPromptConstant:
 
     def test_system_prompt_is_english(self):
         assert "writing in English" in SYSTEM_PROMPT
+
+
+class TestBibleVersionGuidance:
+    """BITB-029: assistant must point users to the UI Bible-version selector
+    rather than improvising version details."""
+
+    def test_guidance_constant_mentions_selector(self):
+        assert "Bible version selector" in BIBLE_VERSION_GUIDANCE
+        assert "header" in BIBLE_VERSION_GUIDANCE.lower()
+        assert "chip" in BIBLE_VERSION_GUIDANCE.lower()
+
+    def test_guidance_forbids_naming_versions(self):
+        assert "Do NOT name" in BIBLE_VERSION_GUIDANCE
+        assert "invent" in BIBLE_VERSION_GUIDANCE.lower()
+
+    def test_guidance_does_not_assert_specific_translation(self):
+        assert "I am using" not in BIBLE_VERSION_GUIDANCE
+        assert "We use the" not in BIBLE_VERSION_GUIDANCE
+
+    def test_system_prompt_contains_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Bible Version Questions" in result
+        assert "version selector" in result.lower()
+
+    def test_system_prompt_contains_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Bible Version Questions" in result, f"missing for lang={lang}"
+
+    def test_verse_lookup_prompt_contains_guidance(self):
+        result = get_verse_lookup_prompt("en")
+        assert "Bible Version Questions" in result
+
+    def test_prayer_lookup_prompt_contains_guidance(self):
+        result = get_prayer_lookup_prompt("en")
+        assert "Bible Version Questions" in result
 
 
 # ==================== Chat Service Tests ====================
@@ -958,5 +995,49 @@ class TestChatServiceModelOverride:
 
         # resolve_translation and get_model_override_for_language should have been
         # called with the client-supplied "it", not the auto-detected "en"
+        mock_resolve.assert_called_once_with(None, "it")
+        mock_override.assert_called_once_with("it")
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="ita1927")
+    @patch(
+        "chat.service.get_translation_info",
+        return_value={"code": "ita1927", "name": "Italian Bible"},
+    )
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_no_language_uses_detected_language(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """When request.language is None, the detected language should be used.
+
+        Regression test for the P0 bug where the frontend was sending the UI
+        locale (e.g. "en") which overrode auto-detection, causing Italian-typing
+        users to receive English responses.
+        """
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="Dio ti ama!",
+                provider="test",
+                model="test-model",
+            )
+        )
+
+        # No language override - backend should use detect_language("Ciao come stai")
+        request = ChatRequest(message="Ciao come stai")
+        assert request.language is None
+        await service.chat(request)
+
+        # resolve_translation and model override should have been called with the
+        # auto-detected "it", not any client-supplied locale.
         mock_resolve.assert_called_once_with(None, "it")
         mock_override.assert_called_once_with("it")
