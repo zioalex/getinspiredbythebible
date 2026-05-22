@@ -27,3 +27,31 @@ jobs:
         uses: wagoid/commitlint-github-action@v6
         with:
           configFile: commitlint.config.cjs
+
+  commitlint-pr-title:
+    # PR titles become the commit subject on squash-merge — which is what
+    # release-please scans on main. If the title isn't a conventional commit
+    # the merge ends up unclassified and silently absent from the next
+    # release's changelog (cf. #565 → v1.6.2). This job lints the title with
+    # the same commitlint.config.cjs the commit job uses, so type-enum and
+    # other rules stay in one place.
+    name: Lint PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.x"
+
+      - name: Install commitlint
+        run: npm install --no-save --no-audit --no-fund @commitlint/cli @commitlint/config-conventional
+
+      - name: Lint PR title against commitlint.config.cjs
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "${PR_TITLE}" | npx --no-install commitlint --config commitlint.config.cjs

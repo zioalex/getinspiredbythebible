@@ -374,7 +374,17 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_client" {
 resource "azurerm_postgresql_flexible_server_configuration" "extensions" {
   name      = "azure.extensions"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "vector,uuid-ossp"
+  value     = "vector,uuid-ossp,pg_cron"
+}
+
+# Run pg_cron jobs against the application database (default is `postgres`).
+# Used by scripts/migrations/005_schedule_blocked_samples_purge.sql to TTL
+# the blocked_message_samples table without depending on app restarts.
+resource "azurerm_postgresql_flexible_server_configuration" "cron_database_name" {
+  name       = "cron.database_name"
+  server_id  = azurerm_postgresql_flexible_server.main.id
+  value      = var.db_name
+  depends_on = [azurerm_postgresql_flexible_server_configuration.extensions]
 }
 
 # -----------------------------------------------------------------------------

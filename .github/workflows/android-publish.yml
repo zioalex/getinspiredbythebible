@@ -5,12 +5,14 @@ on:
   workflow_dispatch:
     inputs:
       track:
-        description: "Play Store track to publish to"
+        description: "Play Store track to publish to (validate = dry-run, no edit committed)."
         required: true
-        default: "internal"
+        default: "production"
         type: choice
         options:
+          - validate
           - internal
+          - alpha
           - beta
           - production
       version_code:
@@ -21,6 +23,13 @@ on:
         description: "Override versionName (empty = read from build.gradle.kts)."
         required: false
         type: string
+      release_status:
+        description:
+          "Release status override: 'draft' or 'completed'. Empty = per-track default (internal/beta=completed,
+          production=draft)."
+        required: false
+        type: string
+        default: ""
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
@@ -32,18 +41,123 @@ run-name: >-
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
+  # Authoritative gate for tag-triggered publishes. Two checks:
+  #
+  #  1. Version sanity: assert `.release-please-manifest.json` matches the tag
+  #     (e.g. tag v1.6.1 ↔ manifest "." = "1.6.1"). Catches release-please tag-
+  #     format misconfiguration or any drift between the merged Release PR's
+  #     manifest and the pushed tag.
+  #
+  #  2. Android CI green: wait up to 45 min for Android CI on the *target*
+  #     commit to complete with conclusion=success. For release-please merge
+  #     commits (subject matches "chore(main): release") the target is the
+  #     parent SHA — release-please's own diff is just CHANGELOG + manifest,
+  #     so the meaningful CI verdict belongs to the previous main commit,
+  #     which already passed Android CI by the time the Release PR was merged.
+  #     For any other tag (e.g. a manually-pushed v*.*.* tag) the target is
+  #     ${GITHUB_SHA} itself.
+  #
+  # Skipped for workflow_dispatch — operator-initiated publishes may
+  # legitimately run off a non-main branch.
+  verify-release-gate:
+    name: Verify release gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    timeout-minutes: 50
+    outputs:
+      target_sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2 # need parent commit for release-please detection
+
+      - name: Verify manifest version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          EXPECTED="${TAG#v}"
+          ACTUAL=$(jq -r '."."' .release-please-manifest.json)
+          echo "Tag: ${TAG} → expected manifest version=${EXPECTED}"
+          echo "Found in .release-please-manifest.json: ${ACTUAL}"
+          if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+            echo "❌ Version mismatch: manifest has '${ACTUAL}' but tag says '${EXPECTED}'."
+            echo "   Refusing to publish — release-please tag/manifest are out of sync."
+            exit 1
+          fi
+          echo "✅ Manifest version matches tag."
+
+      - name: Determine target SHA for Android CI check
+        id: target
+        run: |
+          MSG=$(git log -1 --pretty=%s "${GITHUB_SHA}")
+          echo "Commit subject: ${MSG}"
+          if echo "${MSG}" | grep -qE '^chore\((main|master)\): release'; then
+            PARENT=$(git rev-parse "${GITHUB_SHA}^")
+            echo "Release-please commit — checking Android CI on parent ${PARENT}."
+            echo "sha=${PARENT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Non-release-please tag — checking Android CI on ${GITHUB_SHA}."
+            echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Poll Android CI status for target commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ steps.target.outputs.sha }}"
+          DEADLINE=$(( $(date +%s) + 2700 )) # 45 min — Android CI itself caps at 55 min
+          POLL_INTERVAL=30
+          echo "Waiting for Android CI to complete on commit ${SHA}"
+          while :; do
+            # Most recent android-ci.yml workflow run for this SHA (re-runs win).
+            # Filter by .path, not .name: the workflow_runs API returns the
+            # *run* name (which uses our dynamic run-name template, e.g.
+            # "Android CI (main)"), not the workflow's static name. .path is
+            # the workflow file path and is invariant.
+            # Emit "status|conclusion" so we can branch on both fields. The
+            # "missing" sentinel covers the case where no run exists yet.
+            LINE=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=100" \
+              --jq '[.workflow_runs[] | select(.path==".github/workflows/android-ci.yml")]
+                    | sort_by(.run_started_at) | last
+                    | if . == null then "missing|" else "\(.status)|\(.conclusion // "")" end')
+            STATUS="${LINE%|*}"
+            CONCLUSION="${LINE#*|}"
+            echo "Android CI status=${STATUS} conclusion=${CONCLUSION}"
+            if [ "${STATUS}" = "completed" ]; then
+              if [ "${CONCLUSION}" = "success" ]; then
+                echo "✅ Android CI succeeded for ${SHA} — proceeding with publish."
+                exit 0
+              fi
+              echo "❌ Refusing to publish: Android CI for ${SHA} concluded as '${CONCLUSION}'."
+              exit 1
+            fi
+            if [ "$(date +%s)" -ge "${DEADLINE}" ]; then
+              echo "❌ Timed out waiting for Android CI on ${SHA} (last status=${STATUS})."
+              exit 1
+            fi
+            echo "Sleeping ${POLL_INTERVAL}s before re-polling..."
+            sleep "${POLL_INTERVAL}"
+          done
+
   publish:
     name: Build & Publish AAB
     runs-on: ubuntu-latest
+    needs: [verify-release-gate]
+    # `needs` skips dependents when the dep itself is skipped (workflow_dispatch
+    # path). Use always() + explicit conclusion check so dispatch runs proceed
+    # while a real verify-release-gate failure still blocks publish.
+    if: always() && (needs.verify-release-gate.result == 'success' || needs.verify-release-gate.result == 'skipped')
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: "17"
           distribution: "temurin"
@@ -121,10 +235,44 @@ jobs:
         run: |
           echo "${{ secrets.GOOGLE_PLAY_JSON_KEY }}" | base64 --decode > /tmp/google-play-key.json
 
+      - name: Stage latest CHANGELOG entry as default release notes
+        # Writes the most-recent CHANGELOG.md release section to
+        # android/fastlane/metadata/android/en-US/changelogs/default.txt so
+        # fastlane-supply picks it up for whatever versionCode this build uses.
+        # Missing/empty release notes is one of the precondition-check failure
+        # modes on tracks that require them.
+        run: |
+          set -e
+          mkdir -p android/fastlane/metadata/android/en-US/changelogs
+          # Extract the body of the first "## " section in CHANGELOG.md
+          # (skip the section header itself; stop at the next "## ").
+          # Then trim to the 500-char Play Store maximum.
+          awk '
+            /^## / { n++; if (n == 1) next; if (n == 2) exit }
+            n == 1 { print }
+          ' CHANGELOG.md | head -c 500 \
+            > android/fastlane/metadata/android/en-US/changelogs/default.txt
+          # Fall back to a generic note if the extraction produced nothing.
+          if [ ! -s android/fastlane/metadata/android/en-US/changelogs/default.txt ]; then
+            echo "Bug fixes and improvements." \
+              > android/fastlane/metadata/android/en-US/changelogs/default.txt
+          fi
+          echo "--- release notes (default.txt) ---"
+          cat android/fastlane/metadata/android/en-US/changelogs/default.txt
+          echo
+          echo "--- end release notes ---"
+
       - name: Determine Fastlane lane
         id: lane
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            # Tag pushes (release-please tags) go to the **internal** track
+            # until the app has an established production presence. Promoting
+            # straight to production for the first time triggers Play Console
+            # precondition errors (no prior production release to compare
+            # against) and is operationally risky — we want internal testers
+            # to validate each tag before any production rollout. Promote to
+            # beta/production manually via workflow_dispatch when ready.
             echo "lane=internal" >> "$GITHUB_OUTPUT"
           else
             echo "lane=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
@@ -134,10 +282,38 @@ jobs:
         working-directory: android
         env:
           GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
-        run: fastlane ${{ steps.lane.outputs.lane }}
+          # Empty value falls through to the lane-specific default in Fastfile
+          # (internal/beta = completed, production = draft).
+          RELEASE_STATUS: ${{ inputs.release_status }}
+          # Hide noisy fastlane banner, skip auto-update check, and make
+          # supply log the underlying google-api-client HTTP request/response.
+          # When upload_to_play_store returns a generic "Precondition check
+          # failed", the verbose log contains the actual FAILED_PRECONDITION
+          # detail string that identifies which precondition is unmet.
+          FASTLANE_HIDE_TIMESTAMP: "true"
+          FASTLANE_SKIP_UPDATE_CHECK: "true"
+          SUPPLY_VERBOSE: "true"
+        run: |
+          set -o pipefail
+          fastlane ${{ steps.lane.outputs.lane }} --verbose 2>&1 \
+            | tee /tmp/fastlane.log
+
+      - name: Upload Fastlane log on failure
+        # Captures the verbose fastlane log + any report.xml so the underlying
+        # Google Play API HTTP response body is available for post-mortem when
+        # upload_to_play_store fails.
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fastlane-log-${{ github.run_id }}
+          path: |
+            /tmp/fastlane.log
+            android/fastlane/report.xml
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-${{ steps.version.outputs.version_name }}.aab
           path: android/app/build/outputs/bundle/release/app-release.aab

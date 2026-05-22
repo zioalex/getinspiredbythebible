@@ -166,6 +166,70 @@ describe("Home page responsive layout", () => {
       expect(newChatText.className).toContain("hidden");
       expect(newChatText.className).toContain("md:inline");
     });
+
+    it('translation selector defaults to the empty "Bible version" option (auto-detect)', async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+
+      renderWithIntl(<Home />);
+
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
+      expect(select.value).toBe("");
+      const placeholder = Array.from(select.options).find(
+        (o) => o.value === "",
+      );
+      expect(placeholder?.textContent).toBe("Bible version");
+    });
+
+    it("sends translation=undefined to streamMessage when placeholder is selected", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-auto",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield { type: "content" as const, content: "ok" };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      // Wait for translations to load so the select is enabled.
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      await waitFor(() => {
+        expect(api.streamMessage).toHaveBeenCalled();
+      });
+      const call = vi.mocked(api.streamMessage).mock.calls[0];
+      // streamMessage(userMessageContent, apiMessages, { preferredTranslation, ... })
+      expect(call[2]?.preferredTranslation).toBeUndefined();
+    });
   });
 
   describe("responsive main container", () => {
@@ -259,13 +323,20 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // Verify streamMessage was called with the prompt text
+      // Verify streamMessage was called with the prompt text. `language` is
+      // intentionally absent from the options object so the backend
+      // auto-detects it from the message.
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
-        undefined,
-        expect.any(String),
+        expect.objectContaining({
+          preferredTranslation: undefined,
+          sessionId: expect.any(String),
+          signal: expect.any(AbortSignal),
+        }),
       );
+      const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
+      expect(opts?.language).toBeUndefined();
 
       // Verify the response is displayed
       await waitFor(() => {
@@ -370,8 +441,31 @@ describe("Home page responsive layout", () => {
       });
 
       // Panel filter buttons (desktop sidebar also has them)
-      const referencedButtons = screen.getAllByText("Referenced");
+      const referencedButtons = screen.getAllByText("Cited");
       expect(referencedButtons.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("defaults the verse filter to Cited (not All Related)", async () => {
+      await renderHomeWithVerses();
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show scripture references"));
+      });
+
+      const citedButtons = screen.getAllByText("Cited");
+      const allButtons = screen
+        .getAllByRole("button")
+        .filter((b) => /^All Related \(/.test(b.textContent ?? ""));
+
+      // Active button uses primary background; inactive uses white.
+      expect(citedButtons.length).toBeGreaterThanOrEqual(1);
+      expect(allButtons.length).toBeGreaterThanOrEqual(1);
+      for (const btn of citedButtons) {
+        expect(btn.className).toContain("bg-primary-100");
+      }
+      for (const btn of allButtons) {
+        expect(btn.className).toContain("bg-white");
+      }
     });
 
     it("panel has lg:hidden class so it only shows on mobile", async () => {
@@ -724,13 +818,19 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // streamMessage should have been called
+      // streamMessage should have been called. `language` is intentionally
+      // absent from the options object so the backend auto-detects it.
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
-        undefined,
-        expect.any(String),
+        expect.objectContaining({
+          preferredTranslation: undefined,
+          sessionId: expect.any(String),
+          signal: expect.any(AbortSignal),
+        }),
       );
+      const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
+      expect(opts?.language).toBeUndefined();
 
       // Verify the response is displayed
       await waitFor(() => {
@@ -739,5 +839,196 @@ describe("Home page responsive layout", () => {
         ).toBeInTheDocument();
       });
     });
+  });
+});
+
+describe("smart auto-scroll", () => {
+  const mockStreamResponse = () => {
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "scroll-test-id",
+        scripture_context: { query: "", verses: [], passages: [] },
+        provider: "test",
+        model: "test-model",
+      };
+      yield { type: "content" as const, content: "Test response" };
+    });
+  };
+
+  const getMessagesContainer = () =>
+    document.querySelector(
+      '[class*="overflow-y-auto"][class*="px-3"]',
+    ) as HTMLElement;
+
+  const simulateScrolledUp = (container: HTMLElement) => {
+    Object.defineProperty(container, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      value: 0,
+    });
+    fireEvent.scroll(container);
+  };
+
+  const simulateScrolledToBottom = (container: HTMLElement) => {
+    Object.defineProperty(container, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      value: 1950,
+    });
+    fireEvent.scroll(container);
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+      onReady();
+    });
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      configLoaded: true,
+      refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
+    });
+  });
+
+  it("calls scrollIntoView when a message is submitted", async () => {
+    mockStreamResponse();
+    const scrollSpy = vi.mocked(Element.prototype.scrollIntoView);
+    scrollSpy.mockClear();
+
+    const { container } = renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = container.querySelector('button[type="submit"]');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    expect(scrollSpy).toHaveBeenCalled();
+  });
+
+  it("shows scroll-to-bottom button when user scrolls up with messages present", async () => {
+    mockStreamResponse();
+    renderWithIntl(<Home />);
+
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    await act(async () => {
+      simulateScrolledUp(getMessagesContainer());
+    });
+
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+  });
+
+  it("sending a new message resets auto-scroll to follow new content", async () => {
+    mockStreamResponse();
+    const scrollSpy = vi.mocked(Element.prototype.scrollIntoView);
+
+    renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    // Send first message
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "First message" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    // Simulate scrolling up — auto-scroll pauses, button appears
+    await act(async () => {
+      simulateScrolledUp(getMessagesContainer());
+    });
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+
+    scrollSpy.mockClear();
+    mockStreamResponse();
+
+    // Send second message — should reset isUserNearBottom to true
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Second message" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getAllByText("Test response").length).toBeGreaterThan(1),
+    );
+
+    // scrollIntoView must have been called (auto-scroll resumed)
+    expect(scrollSpy).toHaveBeenCalled();
+    // Scroll-to-bottom button must be gone
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
+  });
+
+  it("resumes auto-scroll when user manually scrolls back to bottom", async () => {
+    mockStreamResponse();
+    renderWithIntl(<Home />);
+
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Test response")).toBeInTheDocument(),
+    );
+
+    const container = getMessagesContainer();
+
+    // Scroll up — button appears
+    await act(async () => {
+      simulateScrolledUp(container);
+    });
+    expect(screen.getByLabelText("Scroll to bottom")).toBeInTheDocument();
+
+    // Scroll back to bottom — button disappears
+    await act(async () => {
+      simulateScrolledToBottom(container);
+    });
+    expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
   });
 });

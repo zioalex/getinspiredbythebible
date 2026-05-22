@@ -172,6 +172,76 @@ class TestClaudeProvider:
         assert chunks == ["Hello", " world"]
 
     @pytest.mark.asyncio
+    async def test_chat_stream_records_ttft_and_total_duration(self):
+        """Claude chat_stream should record TTFT and total duration metrics."""
+        provider, mock_client = self._make_provider()
+
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__ = AsyncMock(return_value=mock_stream)
+        mock_stream.__aexit__ = AsyncMock(return_value=False)
+
+        async def text_stream_gen():
+            yield "Hello"
+            yield " world"
+
+        mock_stream.text_stream = text_stream_gen()
+        mock_client.messages.stream = MagicMock(return_value=mock_stream)
+
+        from utils.metrics import llm_total_duration_histogram, llm_ttft_histogram
+
+        with (
+            patch.object(llm_ttft_histogram, "record") as mock_ttft,
+            patch.object(llm_total_duration_histogram, "record") as mock_total,
+        ):
+            chunks = [
+                chunk
+                async for chunk in provider.chat_stream([ChatMessage(role="user", content="Hi")])
+            ]
+
+        assert chunks == ["Hello", " world"]
+        mock_ttft.assert_called_once()
+        ttft_value = mock_ttft.call_args[0][0]
+        assert ttft_value >= 0
+        assert mock_ttft.call_args[0][1] == {
+            "provider": "claude",
+            "model": "claude-sonnet-4-20250514",
+        }
+        mock_total.assert_called_once()
+        assert mock_total.call_args[0][0] >= 0
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_records_rate_limit_on_429(self):
+        """Claude chat_stream should record rate limit metric when RateLimitError is raised."""
+
+        class FakeRateLimitError(Exception):
+            pass
+
+        with patch("providers.claude.anthropic") as mock_anthropic:
+            mock_anthropic.RateLimitError = FakeRateLimitError
+            mock_client = AsyncMock()
+            mock_anthropic.AsyncAnthropic.return_value = mock_client
+            from providers.claude import ClaudeProvider
+
+            provider = ClaudeProvider(
+                api_key="test-key",  # pragma: allowlist secret
+                model="claude-sonnet-4-20250514",
+            )
+
+            mock_stream = AsyncMock()
+            mock_stream.__aenter__ = AsyncMock(side_effect=FakeRateLimitError("rate limited"))
+            mock_stream.__aexit__ = AsyncMock(return_value=False)
+            mock_client.messages.stream = MagicMock(return_value=mock_stream)
+
+            from utils.metrics import llm_rate_limit_counter
+
+            with patch.object(llm_rate_limit_counter, "add") as mock_add:
+                with pytest.raises(FakeRateLimitError):
+                    async for _ in provider.chat_stream([ChatMessage(role="user", content="Hi")]):
+                        pass
+
+            mock_add.assert_called_once_with(1, {"provider": "claude"})
+
+    @pytest.mark.asyncio
     async def test_health_check_success(self):
         """Claude health_check should return True on success."""
         provider, mock_client = self._make_provider()
@@ -283,6 +353,47 @@ class TestOllamaProvider:
                 chunks.append(chunk)
 
         assert chunks == ["Hello", " world"]
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_records_ttft_and_total_duration(self):
+        """Ollama chat_stream should record TTFT and total duration metrics."""
+        provider = self._make_provider()
+
+        async def mock_aiter_lines():
+            yield '{"message": {"content": "Hello"}}'
+            yield '{"message": {"content": " world"}}'
+            yield '{"done": true}'
+
+        mock_stream_response = AsyncMock()
+        mock_stream_response.raise_for_status = MagicMock()
+        mock_stream_response.aiter_lines = mock_aiter_lines
+        mock_stream_response.__aenter__ = AsyncMock(return_value=mock_stream_response)
+        mock_stream_response.__aexit__ = AsyncMock(return_value=False)
+
+        from utils.metrics import llm_total_duration_histogram, llm_ttft_histogram
+
+        with (
+            patch.object(llm_ttft_histogram, "record") as mock_ttft,
+            patch.object(llm_total_duration_histogram, "record") as mock_total,
+        ):
+            with patch.object(provider, "_get_client") as mock_get_client:
+                mock_client = AsyncMock()
+                mock_client.stream = MagicMock(return_value=mock_stream_response)
+                mock_get_client.return_value = mock_client
+
+                chunks = [
+                    chunk
+                    async for chunk in provider.chat_stream(
+                        [ChatMessage(role="user", content="Hi")]
+                    )
+                ]
+
+        assert chunks == ["Hello", " world"]
+        mock_ttft.assert_called_once()
+        assert mock_ttft.call_args[0][0] >= 0
+        assert mock_ttft.call_args[0][1] == {"provider": "ollama", "model": "llama3:8b"}
+        mock_total.assert_called_once()
+        assert mock_total.call_args[0][0] >= 0
 
     @pytest.mark.asyncio
     async def test_health_check_model_available(self):

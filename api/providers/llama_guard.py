@@ -19,6 +19,7 @@ import httpx
 
 from config import settings
 from providers.azure_content_safety import ContentSafetyResult
+from utils.circuit_breaker import CircuitBreaker, CircuitOpenError
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,14 @@ class LlamaGuardProvider:
         self.api_key = api_key
         self.threshold = threshold  # unused but kept for interface consistency
         self.timeout = timeout
+        # Trip after 5 consecutive failures; cooldown 30s. When open,
+        # analyze_text() raises CircuitOpenError immediately so callers can
+        # fall back to the keyword filter without paying the 10s timeout.
+        self._breaker = CircuitBreaker(
+            name="llama_guard",
+            failure_threshold=5,
+            cooldown_seconds=30.0,
+        )
 
     def _parse_llama_guard_response(self, response_text: str) -> tuple[bool, list[str]]:
         """
@@ -192,10 +201,14 @@ class LlamaGuardProvider:
             ContentSafetyResult with decision
 
         Raises:
+            CircuitOpenError: If breaker is open (caller should use fallback immediately)
             httpx.HTTPError: If API call fails
             httpx.TimeoutException: If API call times out
         """
         text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+
+        if self._breaker.is_open():
+            raise CircuitOpenError("llama_guard circuit breaker open")
 
         # Format prompt with user message
         prompt = LLAMA_GUARD_PROMPT.format(user_message=text[:2000])
@@ -237,10 +250,12 @@ class LlamaGuardProvider:
                 # Parse response
                 is_safe, violated_categories = self._parse_llama_guard_response(response_text)
 
+                self._breaker.record_success()
                 # Map to result
                 return self._map_categories_to_result(is_safe, violated_categories, text_hash)
 
         except httpx.TimeoutException:
+            self._breaker.record_failure()
             logger.warning(
                 "Llama Guard API timeout",
                 extra={"text_hash": text_hash, "timeout": self.timeout},
@@ -248,7 +263,11 @@ class LlamaGuardProvider:
             raise
 
         except httpx.HTTPError as e:
-            logger.error(
+            self._breaker.record_failure()
+            # Demoted from ERROR to WARNING: the caller has a keyword fallback,
+            # so a transient HTTP failure is not by itself an alertable error.
+            # The metric counter in content_safety.py is the alert signal.
+            logger.warning(
                 "Llama Guard API error",
                 extra={
                     "text_hash": text_hash,

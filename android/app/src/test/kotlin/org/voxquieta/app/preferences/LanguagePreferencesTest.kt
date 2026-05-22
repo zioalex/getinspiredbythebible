@@ -1,9 +1,13 @@
 package org.voxquieta.app.preferences
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -33,6 +37,25 @@ class LanguagePreferencesTest {
 
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var languagePreferences: LanguagePreferences
+    private lateinit var fakeCtx: Context
+    private val sharedStorage = mutableMapOf<String, String?>()
+
+    private fun fakeContext(storage: MutableMap<String, String?> = mutableMapOf()): Context {
+        val editor = mockk<SharedPreferences.Editor>(relaxed = true)
+        val prefs = mockk<SharedPreferences>(relaxed = true)
+        every { prefs.getString(any(), any()) } answers {
+            storage[firstArg<String>()] ?: secondArg<String?>()
+        }
+        every { prefs.edit() } returns editor
+        every { editor.putString(any(), any<String>()) } answers {
+            storage[firstArg<String>()] = secondArg<String>()
+            editor
+        }
+        every { editor.apply() } returns Unit
+        val ctx = mockk<Context>()
+        every { ctx.getSharedPreferences(any(), any()) } returns prefs
+        return ctx
+    }
 
     @Before
     fun setUp() {
@@ -40,7 +63,8 @@ class LanguagePreferencesTest {
             scope = testScope,
             produceFile = { tmpFolder.newFile("test_language_prefs.preferences_pb") },
         )
-        languagePreferences = LanguagePreferences(dataStore)
+        fakeCtx = fakeContext(sharedStorage)
+        languagePreferences = LanguagePreferences(dataStore, fakeCtx)
     }
 
     @After
@@ -51,14 +75,20 @@ class LanguagePreferencesTest {
     // ── Default value ─────────────────────────────────────────────────────────
 
     @Test
-    fun `default language code is en`() = runTest(testDispatcher) {
+    fun `default language code is empty string`() = runTest(testDispatcher) {
         val code = languagePreferences.languageFlow.first()
-        assertEquals("en", code)
+        assertEquals("", code)
     }
 
     @Test
-    fun `DEFAULT_LANGUAGE constant equals en`() {
-        assertEquals("en", LanguagePreferences.DEFAULT_LANGUAGE)
+    fun `DEFAULT_LANGUAGE constant is empty string`() {
+        assertEquals("", LanguagePreferences.DEFAULT_LANGUAGE)
+    }
+
+    @Test
+    fun `setLanguage can persist en as an explicit user choice`() = runTest(testDispatcher) {
+        languagePreferences.setLanguage("en")
+        assertEquals("en", languagePreferences.languageFlow.first())
     }
 
     // ── Single set ────────────────────────────────────────────────────────────
@@ -156,10 +186,37 @@ class LanguagePreferencesTest {
             languagePreferences.setLanguage("ko")
 
             // Simulate a new instance reusing the same DataStore (e.g. after DI re-creation).
-            val anotherInstance = LanguagePreferences(dataStore)
+            val anotherInstance = LanguagePreferences(dataStore, fakeCtx)
             assertEquals(
                 "ko",
                 anotherInstance.languageFlow.first(),
             )
+        }
+
+    // ── SharedPreferences sync (new) ──────────────────────────────────────────
+
+    @Test
+    fun `readSync returns DEFAULT_LANGUAGE when SharedPreferences is empty`() {
+        assertEquals(LanguagePreferences.DEFAULT_LANGUAGE, LanguagePreferences.readSync(fakeCtx))
+    }
+
+    @Test
+    fun `setLanguage mirrors code to SharedPreferences synchronously`() = runTest(testDispatcher) {
+        languagePreferences.setLanguage("de")
+        assertEquals("de", LanguagePreferences.readSync(fakeCtx))
+    }
+
+    @Test
+    fun `readInitial returns code previously written by setLanguage`() = runTest(testDispatcher) {
+        languagePreferences.setLanguage("fr")
+        assertEquals("fr", languagePreferences.readInitial())
+    }
+
+    @Test
+    fun `readSync returns persisted value across LanguagePreferences instances sharing context`() =
+        runTest(testDispatcher) {
+            languagePreferences.setLanguage("ko")
+            val anotherInstance = LanguagePreferences(dataStore, fakeCtx)
+            assertEquals("ko", anotherInstance.readInitial())
         }
 }

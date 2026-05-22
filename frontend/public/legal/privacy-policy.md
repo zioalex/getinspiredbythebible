@@ -49,6 +49,13 @@ database (Room/SQLite). It is never uploaded to our servers.
 ## Data Retention
 
 - **Chat messages**: Not retained on our servers.
+- **Messages blocked by our safety system**: When our safety system blocks a
+  message, a privacy-minimal record may be kept for a short time (up to 30
+  days) so we can improve the filter. The record contains the message text
+  (capped in length), which safety stage blocked it, and a one-way hash of
+  the session identifier. We do not store your IP address, account, or
+  any user-agent string with these records, and they are not used for any
+  purpose other than tuning the safety filter.
 - **Crash reports & analytics**: Retained by Google for up to 14 months per their standard policy.
 - **Local conversation history**: Stored on your device until you delete it via the app or uninstall the app.
 
