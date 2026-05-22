@@ -296,6 +296,31 @@ SOURCE_ATTRIBUTION_EXAMPLES = {
     ),
 }
 
+# ---------------------------------------------------------------------------
+# Bible version guidance (BITB-029)
+# ---------------------------------------------------------------------------
+# Appended to every system prompt so the assistant never improvises Bible-
+# version details when users ask "which Bible are you using?" — instead it
+# directs them to the version selector already visible in the UI (header
+# dropdown on web, version chip on mobile).
+BIBLE_VERSION_GUIDANCE = """
+## Bible Version Questions
+When the user asks which Bible version, translation, or edition is being used \
+(for example: "what Bible version are you using?", "which translation is this?", \
+"are you using KJV/NIV/ESV?"), follow these rules strictly:
+
+- Do NOT name, guess, or invent a specific Bible version, translation, or edition.
+- Do NOT claim to use any particular translation by name.
+- Briefly explain that the answers draw from whichever Bible translation the user \
+has selected in the app.
+- Point them to the Bible version selector in the user interface:
+  - On the web app: the version dropdown in the top header bar.
+  - On the mobile app: the Bible version chip at the top of the chat screen.
+- Invite them to switch translations there at any time if they prefer a different one.
+- Keep the answer to two or three sentences, warm and concise, then return to \
+the spiritual conversation.
+"""
+
 
 def get_system_prompt(language_code: str = "en") -> str:
     """
@@ -325,9 +350,12 @@ def get_system_prompt(language_code: str = "en") -> str:
     )
     source_instruction = f"{biblical_ex}\n\n{non_biblical_ex}"
 
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        language_instruction=language_instruction,
-        source_instruction=source_instruction,
+    return (
+        SYSTEM_PROMPT_TEMPLATE.format(
+            language_instruction=language_instruction,
+            source_instruction=source_instruction,
+        )
+        + BIBLE_VERSION_GUIDANCE
     )
 
 
@@ -358,7 +386,10 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+    return (
+        VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def get_prayer_lookup_prompt(language_code: str = "en") -> str:
@@ -384,7 +415,10 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+    return (
+        PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def build_search_context_prompt(search_results: dict) -> str:

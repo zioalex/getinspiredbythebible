@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Run Release Please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           # RELEASE_PLEASE_TOKEN must be a fine-grained PAT with:
           #   contents: write     — push tags, update manifest
