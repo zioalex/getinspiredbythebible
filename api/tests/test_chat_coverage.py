@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from chat.prompts import (
+    BIBLE_VERSION_GUIDANCE,
     LANGUAGE_NAMES,
     SYSTEM_PROMPT,
     build_conversation_context,
@@ -328,6 +329,42 @@ class TestSystemPromptConstant:
 
     def test_system_prompt_is_english(self):
         assert "writing in English" in SYSTEM_PROMPT
+
+
+class TestBibleVersionGuidance:
+    """BITB-029: assistant must point users to the UI Bible-version selector
+    rather than improvising version details."""
+
+    def test_guidance_constant_mentions_selector(self):
+        assert "Bible version selector" in BIBLE_VERSION_GUIDANCE
+        assert "header" in BIBLE_VERSION_GUIDANCE.lower()
+        assert "chip" in BIBLE_VERSION_GUIDANCE.lower()
+
+    def test_guidance_forbids_naming_versions(self):
+        assert "Do NOT name" in BIBLE_VERSION_GUIDANCE
+        assert "invent" in BIBLE_VERSION_GUIDANCE.lower()
+
+    def test_guidance_does_not_assert_specific_translation(self):
+        assert "I am using" not in BIBLE_VERSION_GUIDANCE
+        assert "We use the" not in BIBLE_VERSION_GUIDANCE
+
+    def test_system_prompt_contains_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Bible Version Questions" in result
+        assert "version selector" in result.lower()
+
+    def test_system_prompt_contains_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Bible Version Questions" in result, f"missing for lang={lang}"
+
+    def test_verse_lookup_prompt_contains_guidance(self):
+        result = get_verse_lookup_prompt("en")
+        assert "Bible Version Questions" in result
+
+    def test_prayer_lookup_prompt_contains_guidance(self):
+        result = get_prayer_lookup_prompt("en")
+        assert "Bible Version Questions" in result
 
 
 # ==================== Chat Service Tests ====================
