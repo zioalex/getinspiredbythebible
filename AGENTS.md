@@ -316,6 +316,41 @@ into the branch (`git fetch origin && git merge origin/main`), resolve
 conflicts, push — CI will start. Don't sit waiting for a CI signal that
 will never arrive.
 
+### Dependabot PR Maintenance
+
+When triaging Dependabot PRs, **always check for file conflicts** before
+and after rebasing — conflicts are common even when the PR only bumps one
+dependency. Standard checklist:
+
+1. **Check CI status** for each open Dependabot PR
+   (`pull_request_read method=get_check_runs`). Common failures:
+
+   - `npm ci` fails with `Missing: @swc/helpers@0.5.21 from lock file` —
+     Dependabot's npm environment omits the `node_modules/next-intl/node_modules/@swc/helpers`
+     entry. Fix: check out the branch, run `cd frontend && npm install --package-lock-only`,
+     commit, and push.
+   - `Lint PR Title` fails — PR title exceeds 100 chars or is non-conventional.
+     Fix: rename via `mcp__github__update_pull_request`.
+
+2. **Resolve file conflicts before rebasing.** `update_pull_request_branch`
+   returns a 422 error when there is a merge conflict between the PR branch
+   and `main`. Common conflict files:
+
+   - **`commitlint.config.cjs`** — if main added a new commit type (e.g. `"merge"`)
+     while Dependabot only added `"body-max-line-length": [0]`.
+     Fix: push `main`'s version of the file to the Dependabot branch
+     (`mcp__github__push_files`), then retry `update_pull_request_branch`.
+   - **`frontend/package-lock.json`** — if main bumped a dev dependency (e.g. `vitest`)
+     or refreshed the lockfile while a Dependabot PR bumped a runtime dependency
+     in the same file.
+     Fix: take `main`'s `package.json`, apply the Dependabot version bump,
+     run `cd frontend && npm install --package-lock-only`, and push the resulting
+     `package.json` + `package-lock.json` to the Dependabot branch.
+
+3. **Rebase all PRs** with `update_pull_request_branch` after conflicts are
+   resolved. PRs that are already up-to-date with main (no new commits since
+   the base) will succeed immediately; others get a merge-main commit.
+
 ## Architecture Patterns
 
 ### Provider Abstraction (api/providers/)
