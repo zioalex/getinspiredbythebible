@@ -1,7 +1,7 @@
 # BITB-017: Skip Terraform Apply When No Changes Detected
 
 **Priority:** P2 (Medium)
-**Status:** 🎯 Todo
+**Status:** ✅ Done (has_changes == 'true' gate in azure-deploy.yml line 738)
 **Size:** S (< 2 hours)
 **Created:** 2026-03-04
 

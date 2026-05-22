@@ -1,37 +1,123 @@
 default_platform(:android)
 
+# Resolve release_status with a sane per-lane default. ENV.fetch returns ""
+# (not the default) when the var is set to empty, so handle that explicitly:
+# CI sets RELEASE_STATUS to the workflow input value, which may be empty.
+def release_status_for(default)
+  raw = ENV["RELEASE_STATUS"].to_s
+  raw.empty? ? default : raw
+end
+
 platform :android do
   desc "Upload AAB to Play Store internal testing track"
   lane :internal do
     upload_to_play_store(
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
       skip_upload_apk: true,
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      # Commit the edit fully so no half-open edit blocks the next run with a
+      # generic "Precondition check failed" error.
+      changes_not_sent_for_review: false,
     )
   end
 
-  desc "Promote internal build to closed beta track"
+  desc "Upload AAB to Play Store closed testing (alpha) track"
+  lane :alpha do
+    upload_to_play_store(
+      track: "alpha",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
+    )
+  end
+
+  desc "Upload AAB to a named closed testing track (set CLOSED_TESTING_TRACK env var; defaults to 'alpha')"
+  lane :closed_testing do
+    upload_to_play_store(
+      track: ENV.fetch("CLOSED_TESTING_TRACK", "alpha"),
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
+    )
+  end
+
+  desc "Upload AAB to Play Store open testing (beta) track"
   lane :beta do
     upload_to_play_store(
-      track: "internal",
-      track_promote_to: "beta",
-      skip_upload_aab: true,
+      track: "beta",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: release_status_for("completed"),
       skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
     )
   end
 
-  desc "Promote beta build to production"
+  desc "Upload AAB to Play Store production track (defaults to draft for manual rollout)"
   lane :production do
-    upload_to_play_store(
-      track: "beta",
-      track_promote_to: "production",
-      rollout: "0.1",
-      skip_upload_aab: true,
+    status = release_status_for("draft")
+    params = {
+      track: "production",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: status,
       skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      changes_not_sent_for_review: false,
+    }
+    # Play Store rejects rollout + draft together. Only attach a rollout
+    # percentage when the release is actually going live.
+    params[:rollout] = ENV.fetch("ROLLOUT", "1.0") unless status == "draft"
+
+    # Pre-flight: dry-run the upload first so a Play Console precondition
+    # failure (stuck draft / unsubmitted edit / half-open `inProgress` edit)
+    # surfaces with the actual FAILED_PRECONDITION reason *before* we
+    # commit a real edit. Avoids burning a versionCode every time we hit a
+    # stuck Play Console state. The :validate lane below is functionally
+    # equivalent but anchored to internal — keep both: this guards every
+    # production publish automatically; :validate stays available for
+    # operator-initiated dry-runs after a manual cleanup.
+    upload_to_play_store(
+      **params.merge(validate_only: true, rollout: nil),
+    )
+
+    upload_to_play_store(**params)
+  end
+
+  desc "Dry-run validate against Play Store (no edit committed, no AAB uploaded)"
+  # Useful after a manual Play Console cleanup: confirms auth, AAB integrity,
+  # and edit-preconditions without actually committing any changes. Runs against
+  # the internal track because supply requires a track to anchor the validation.
+  lane :validate do
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      validate_only: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
     )
   end
 end

@@ -278,9 +278,26 @@ async def check_content_filter(request: Request) -> None:
             details=reason,
         )
 
+        # Best-effort capture for filter tuning (no PII, TTL-bounded).
+        try:
+            from feedback.blocked_samples import record_blocked_sample
+
+            await record_blocked_sample(
+                message=message,
+                stage="keyword",
+                categories=[violation_type.value],
+                session_id=session_id,
+            )
+        except Exception:
+            pass  # capture must never affect the user response
+
         raise HTTPException(
             status_code=400,
-            detail={"error": "Message blocked", "message": reason},
+            detail={
+                "error": "content_blocked",
+                "code": "content_blocked",
+                "message": reason,
+            },
         )
 
 

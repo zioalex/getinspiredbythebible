@@ -2,13 +2,22 @@ name: Release Please
 
 # yamllint disable-line rule:truthy
 on:
+  # Fires immediately on every push to main. The CI gate is enforced at
+  # publish time by android-publish.yml's verify-release-gate job, which
+  # validates the tagged commit's versionName and checks Android CI on the
+  # parent commit for release-please merge commits (whose own diff is just
+  # CHANGELOG + version bump). This avoids a ~11-min wait between Release-PR
+  # merge and tag/publish caused by the previous workflow_run gate.
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release-please:
@@ -18,16 +27,21 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      pr: ${{ steps.release.outputs.pr }}
 
     steps:
       - name: Run Release Please
         id: release
         uses: googleapis/release-please-action@v5
         with:
-          # RELEASE_PLEASE_TOKEN must be a PAT with `contents: write` and `workflows: write`
-          # so that the tag it creates can trigger the `on: push: tags` in android-publish.yml.
-          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based workflows.
-          # See docs/RELEASE_PROCESS.md for setup instructions.
+          # RELEASE_PLEASE_TOKEN must be a fine-grained PAT with:
+          #   contents: write     — push tags, update manifest
+          #   pull-requests: write — open/update the Release PR
+          #   issues: write       — add autorelease labels (GitHub routes PR
+          #                         label writes through the Issues API)
+          #   workflows: write    — tag push triggers android-publish.yml
+          # GITHUB_TOKEN-created tags do NOT trigger downstream tag-based
+          # workflows (GitHub security restriction). See docs/RELEASE_PROCESS.md.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
@@ -37,6 +51,69 @@ jobs:
           # secrets.GITHUB_TOKEN) and uncomment the step below. It dispatches the
           # android-publish workflow explicitly when a release is created, working
           # around the limitation that GITHUB_TOKEN-pushed tags don't trigger workflows.
+
+  lint-fix-release-pr:
+    name: Lint-fix Release PR
+    runs-on: ubuntu-latest
+    needs: release-please
+    # release-please-action v4 sets `pr` when it opens or updates a PR.
+    if: needs.release-please.outputs.pr != ''
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout release-please PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: release-please--branches--main
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.x"
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Determine changed files vs main
+        id: changed
+        run: |
+          git fetch origin main --depth=1
+          files=$(git diff --name-only origin/main...HEAD | tr '\n' ' ')
+          echo "files=${files}" >> "$GITHUB_OUTPUT"
+
+      - name: Run pre-commit on changed files (auto-fix)
+        if: steps.changed.outputs.files != ''
+        run: |
+          SKIP=hadolint-docker pre-commit run \
+            --files ${{ steps.changed.outputs.files }} || true
+
+      - name: Commit and push fixes if any
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "chore: lint-fix release-please output"
+            git push origin HEAD:release-please--branches--main
+          fi
 
 # yamllint disable rule:comments-indentation
 # ── Fallback job (approach b) — uncomment if not using a PAT ─────────────────────────────

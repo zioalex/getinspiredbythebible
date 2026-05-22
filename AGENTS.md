@@ -76,6 +76,17 @@ Critical variables:
 
 ## Testing
 
+> **Rule: every code change must ship with tests. No exceptions.**
+>
+> - Bug fix → add a regression test that would have caught the bug
+> - New feature → add tests covering the happy path and key edge cases
+> - Refactor → ensure existing tests still pass; add tests for any newly
+>   reachable behaviour
+>
+> Do not open or update a PR without tests. CI running green is necessary
+> but not sufficient — reviewers will reject PRs that lack coverage for
+> the changed code.
+
 ### Backend Tests
 
 ```bash
@@ -104,14 +115,20 @@ cd frontend && npm run build           # Build check
 
 ```bash
 cd android && ./gradlew testDebugUnitTest --no-daemon
+cd android && ./gradlew testDebugCompose --no-daemon   # Robolectric Compose UI tests (BITB-034)
 cd android && ./gradlew lint
 ```
+
+Compose UI tests follow the `*ComposeTest.kt` filename convention and run via the dedicated
+`testDebugCompose` Gradle task. They are isolated from the standard `testDebugUnitTest` job.
+See `android/COMPOSE_TESTS.md` for the full tier description and rollout plan.
 
 ### All at once
 
 ```bash
-make test           # Backend + frontend
-make android-test   # Android unit tests
+make test                  # Backend + frontend
+make android-test          # Android JVM unit tests
+make android-test-compose  # Android Compose UI tests (Robolectric — separate tier)
 ```
 
 ## Code Style & Linting
@@ -164,6 +181,17 @@ Format commands: `make format` (auto-fix Python + frontend)
 | `apk-security-check` | Manifest security flags |
 | `build` | Production APK (gated by security checks) |
 
+### Android Compose UI Tests (`android-compose-tests.yml`)
+
+Independent workflow — **not a required check** while the tier stabilises.
+
+| Job | What it does |
+| ----- | ------------- |
+| `compose-ui-tests` | Robolectric `testDebugCompose` — `*ComposeTest.kt` classes only |
+
+Artifacts uploaded on every run: HTML report + JUnit XML (14-day retention).
+See `android/COMPOSE_TESTS.md` for the tier design and promotion checklist.
+
 ### Deployment (`azure-deploy.yml`)
 
 Deploys to Azure on push to `main`.
@@ -179,12 +207,39 @@ Deploys to Azure on push to `main`.
   - `docs: add BITB-025 backlog item`
 - **Branch naming:** `feature/description`, `fix/description`, or `claude/description`
 
+### Choosing the right type: `feat` vs `chore`
+
+> **If a user can see or feel the change → `feat:`**
+> **If only the codebase or pipeline changes → `chore:`/`ci:`/`build:`**
+
+`chore:` is hidden in the changelog (`"hidden": true` in `release-please-config.json`).
+Using it for user-visible work causes those changes to be silently absent from the
+release notes. When in doubt, prefer `feat:`.
+
+| Change | Correct type |
+|--------|-------------|
+| New icon, splash screen, or graphics | `feat:` |
+| New screen or UI component | `feat:` |
+| Copy/text change visible to the user | `feat:` |
+| Bug the user could observe | `fix:` |
+| Internal refactor with no user impact | `chore:` |
+| CI workflow or tooling change | `ci:` |
+| Dependency bump | `build:` |
+
 ### Conventional Commits enforcement
 
 **Conventional Commits are enforced on every PR** via
 `.github/workflows/commitlint.yml` (`wagoid/commitlint-github-action`). PRs
 whose commit messages do not follow the `type(scope): description` format will
 fail CI. See `commitlint.config.cjs` for the full allowed type list.
+
+**The PR title itself must also be a conventional commit.** This repo uses
+squash-merge, so the PR title becomes the commit subject on `main`.
+`release-please` scans only top-level commit subjects — a non-conventional
+PR title produces an unrecognised commit and the change is silently dropped
+from the next release's changelog (this happened on #565 → v1.6.2). The
+`Lint PR Title` job in `commitlint.yml` blocks merging until the title is a
+valid conventional commit; rename the PR if it fails.
 
 ### Automated release tagging (release-please)
 
@@ -226,6 +281,17 @@ on reboot.
 
 **Always clean up** worktrees with `git worktree remove` after pushing, to
 avoid stale entries accumulating in `.git/worktrees/`.
+
+### Backlog Hygiene
+
+**The backlog is always kept in sync — no exceptions.**
+
+- `docs/BACKLOG.md` is the canonical prioritized list. `docs/BACKLOG_STORIES/` holds the detailed story files.
+- **When creating a new story:** create the full story file in `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md` *and* add a summary entry (status, size, date, one-liner, acceptance criteria, link to full story) in `docs/BACKLOG.md` under the correct priority section.
+- **When completing a story:** update its status to `✅ Done` in `docs/BACKLOG.md`, add the PR number and completion date, and move the full story file to `docs/DONE/` if the folder exists.
+- **When cancelling a story:** mark it `❌ Cancelled` in `docs/BACKLOG.md` with a short reason.
+- **Always update `Last Updated`** at the top of `docs/BACKLOG.md` whenever you touch the file.
+- **Story IDs are sequential.** Before creating a new story, check the highest existing `BITB-NNN` number in `docs/BACKLOG_STORIES/` and increment by one.
 
 ### Branch & PR Hygiene
 
@@ -316,3 +382,4 @@ and chapter number. Chinese also uses guillemet notation `<<BookName>>`.
    end-of-file-fixer exclude `frontend/` (handled by Prettier instead)
 8. **Android string validation** - CI checks that all strings in `values/strings.xml` exist in every locale directory
 9. **Never push to closed/merged PR branches** - Always create a fresh branch from `main` for new work
+10. **`chore:` hides from changelog** - Asset, graphic, and UI changes that users can see must use `feat:`, not `chore:`. Using `chore:` for user-visible work causes the change to be silently dropped from release notes by release-please (see Git Conventions → Choosing the right type)

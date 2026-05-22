@@ -5,9 +5,11 @@ This service combines scripture search, LLM generation, and
 conversation management to create meaningful spiritual dialogues.
 """
 
+import asyncio
 import hashlib
 import time
 import uuid
+from dataclasses import dataclass
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field, field_validator
@@ -16,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from scripture import ScriptureSearchService, SearchResults
-from utils.content_safety import ContentSafetyViolationError, get_content_safety_service
+from utils.content_safety import get_content_safety_service
 from utils.language import (
     detect_language,
     get_model_override_for_language,
@@ -35,6 +37,8 @@ from .prompts import (
     OFF_TOPIC_PROMPT,
     build_search_context_prompt,
     detect_intent_prompt,
+    get_blocked_response,
+    get_compassionate_addendum,
     get_prayer_lookup_prompt,
     get_system_prompt,
     get_verse_lookup_prompt,
@@ -87,6 +91,16 @@ class ChatResponse(BaseModel):
     model: str
     detected_translation: str | None = None
     translation_info: dict | None = None
+
+
+@dataclass
+class _SafetyOutcome:
+    """Result from _check_content_safety — replaces the old raise-or-return-bool pattern."""
+
+    allowed: bool
+    compassionate: bool
+    reason: str
+    categories: dict[str, int]
 
 
 class ChatService:
@@ -145,9 +159,9 @@ class ChatService:
         detected_language: str,
         session_id: str | None,
         context: str = "chat",
-    ) -> bool:
+    ) -> _SafetyOutcome:
         """
-        Check message for harmful content and raise if violation found.
+        Check message for harmful content.
 
         Args:
             message: The user's message to check
@@ -156,17 +170,19 @@ class ChatService:
             context: Context label for log messages (e.g., 'chat' or 'chat stream')
 
         Returns:
-            True if help-seeking/compassionate response is needed, False otherwise.
-            Raises ContentSafetyViolationError if message is not safe.
+            _SafetyOutcome with allowed/compassionate flags and reason.
+            Never raises — callers handle blocked content by streaming a synthetic response.
         """
         if not settings.content_safety_enabled:
-            return False
+            return _SafetyOutcome(
+                allowed=True, compassionate=False, reason="disabled", categories={}
+            )
 
         safety_service = get_content_safety_service()
         safety_result = await safety_service.check(message, detected_language)
+        text_hash = hashlib.sha256(message.encode()).hexdigest()[:16]
 
         if not safety_result.allowed:
-            text_hash = hashlib.sha256(message.encode()).hexdigest()[:16]
             logger.warning(
                 f"Content safety violation in {context}",
                 extra={
@@ -177,21 +193,38 @@ class ChatService:
                     "session_id": session_id,
                 },
             )
-            raise ContentSafetyViolationError(
-                message=(
-                    "We're here to help. If you're struggling or in crisis, please reach out: "
-                    "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
-                ),
-                categories=safety_result.categories,
+            # Best-effort capture for filter tuning (no PII, TTL-bounded).
+            try:
+                from feedback.blocked_samples import record_blocked_sample
+
+                await record_blocked_sample(
+                    message=message,
+                    stage="content_safety",
+                    categories=safety_result.categories,
+                    language=detected_language,
+                    session_id=session_id,
+                )
+            except Exception:
+                pass
+            return _SafetyOutcome(
+                allowed=False,
+                compassionate=False,
                 reason=safety_result.reason,
+                categories=safety_result.categories,
             )
 
         if safety_result.compassionate_response_needed:
             logger.info(
-                f"Help-seeking message detected in {context}, will use compassionate response"
+                f"Help-seeking message detected in {context}, injecting compassionate prompt",
+                extra={"text_hash": text_hash, "language": detected_language},
             )
 
-        return safety_result.compassionate_response_needed
+        return _SafetyOutcome(
+            allowed=True,
+            compassionate=safety_result.compassionate_response_needed,
+            reason=safety_result.reason,
+            categories=safety_result.categories,
+        )
 
     async def _expand_query(
         self, user_message: str, language: str, model_override: str | None = None
@@ -303,9 +336,13 @@ Keep it under 100 words."""
         )
 
         # Content safety check BEFORE LLM call
-        await self._check_content_safety(
+        safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat"
         )
+        if not safety.allowed:
+            return self._build_blocked_response(
+                safety, effective_language, translation, translation_info
+            )
 
         # Intent detection: classify before scripture search
         if settings.content_filter_intent_detection:
@@ -318,6 +355,7 @@ Keep it under 100 words."""
                     translation_info,
                     total_start,
                     model_override,
+                    compassionate_mode=safety.compassionate,
                 )
 
         # Check if this is a verse/prayer lookup request
@@ -352,6 +390,7 @@ Keep it under 100 words."""
             search_context=search_context_prompt,
             language_code=effective_language,
             prompt_type=prompt_type,
+            compassionate_mode=safety.compassionate,
         )
 
         # Step 3: Generate response
@@ -419,6 +458,7 @@ Keep it under 100 words."""
         translation_info: dict | None,
         total_start: float,
         model_override: str | None = None,
+        compassionate_mode: bool = False,
     ) -> ChatResponse:
         """Generate a warm redirect response for off-topic messages, skipping scripture search."""
         logger.info("Off-topic message detected, skipping scripture search")
@@ -428,6 +468,7 @@ Keep it under 100 words."""
             search_context="",
             language_code=detected_language,
             prompt_type="off_topic",
+            compassionate_mode=compassionate_mode,
         )
         response = await self.llm.chat(
             messages=messages,
@@ -450,6 +491,63 @@ Keep it under 100 words."""
             detected_translation=translation,
             translation_info=translation_info,
         )
+
+    def _build_blocked_response(
+        self,
+        outcome: _SafetyOutcome,
+        language: str,
+        translation: str,
+        translation_info: dict | None,
+    ) -> "ChatResponse":
+        """Return a warm pre-written ChatResponse for blocked content (no LLM call)."""
+        message = get_blocked_response(outcome.reason, language)
+        logger.info(
+            "Returning synthetic blocked-content response",
+            extra={"reason": outcome.reason, "language": language},
+        )
+        return ChatResponse(
+            message_id=str(uuid.uuid4()),
+            message=message,
+            scripture_context=None,
+            provider="content_safety",
+            model="content_safety",
+            detected_translation=translation,
+            translation_info=translation_info,
+        )
+
+    async def _stream_blocked_response(
+        self,
+        outcome: _SafetyOutcome,
+        message_id: str,
+        language: str,
+        translation: str,
+        translation_info: dict | None,
+    ) -> AsyncIterator[dict]:
+        """Yield SSE-compatible chunks for a blocked-content synthetic response."""
+        text = get_blocked_response(outcome.reason, language)
+        logger.info(
+            "Streaming synthetic blocked-content response",
+            extra={"reason": outcome.reason, "language": language},
+        )
+        yield {
+            "type": "metadata",
+            "message_id": message_id,
+            "scripture_context": None,
+            "provider": "content_safety",
+            "model": "content_safety",
+            "detected_translation": translation,
+            "translation_info": translation_info,
+        }
+        # Chunk by ~3-word segments to match real streaming cadence
+        words = text.split(" ")
+        chunk_size = 3
+        for i in range(0, len(words), chunk_size):
+            piece = " ".join(words[i : i + chunk_size])
+            if i + chunk_size < len(words):
+                piece += " "
+            yield {"type": "content", "content": piece}
+            await asyncio.sleep(0)  # cooperative yield, no real delay
+        yield {"type": "completion", "verses_cited": []}
 
     async def _search_scripture(  # noqa: C901
         self,
@@ -675,9 +773,15 @@ Keep it under 100 words."""
         )
 
         # Content safety check BEFORE LLM call
-        await self._check_content_safety(
+        safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat stream"
         )
+        if not safety.allowed:
+            async for chunk in self._stream_blocked_response(
+                safety, message_id, effective_language, translation, translation_info
+            ):
+                yield chunk
+            return
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:
@@ -702,14 +806,15 @@ Keep it under 100 words."""
                     search_context="",
                     language_code=effective_language,
                     prompt_type="off_topic",
+                    compassionate_mode=safety.compassionate,
                 )
-                async for chunk in self.llm.chat_stream(
+                async for token in self.llm.chat_stream(
                     messages=messages,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
                     model_override=model_override,
                 ):
-                    yield {"type": "content", "content": chunk}
+                    yield {"type": "content", "content": token}
                 yield {"type": "completion", "verses_cited": []}
                 return
 
@@ -747,18 +852,19 @@ Keep it under 100 words."""
             search_context=search_context_prompt,
             language_code=effective_language,
             prompt_type=prompt_type,
+            compassionate_mode=safety.compassionate,
         )
 
         # Step 4: Stream response content and accumulate full response
         full_response = ""
-        async for chunk in self.llm.chat_stream(
+        async for token in self.llm.chat_stream(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
             model_override=model_override,
         ):
-            full_response += chunk
-            yield {"type": "content", "content": chunk}
+            full_response += token
+            yield {"type": "content", "content": token}
 
         # Step 5: Extract cited verses (dual-source) and yield completion event
         structured = parse_structured_citations(full_response)
@@ -810,6 +916,7 @@ Keep it under 100 words."""
         search_context: str = "",
         language_code: str = "en",
         prompt_type: str = "default",
+        compassionate_mode: bool = False,
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -820,6 +927,7 @@ Keep it under 100 words."""
             search_context: Optional scripture context from search
             language_code: Detected language code for response language
             prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic")
+            compassionate_mode: When True, appends COMPASSIONATE_RESPONSE_ADDENDUM to system prompt
 
         Returns:
             List of ChatMessage objects for the LLM
@@ -830,6 +938,7 @@ Keep it under 100 words."""
                 "language_code": language_code,
                 "prompt_type": prompt_type,
                 "has_search_context": bool(search_context),
+                "compassionate_mode": compassionate_mode,
             },
         )
 
@@ -844,6 +953,9 @@ Keep it under 100 words."""
             system_prompt = get_prayer_lookup_prompt(language_code)
         else:
             system_prompt = get_system_prompt(language_code)
+
+        if compassionate_mode:
+            system_prompt = system_prompt + get_compassionate_addendum()
 
         system_content = system_prompt
         if search_context:

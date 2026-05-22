@@ -107,7 +107,8 @@ frontend/.playwright/
 
 # AI agent / tooling artifacts
 .acpx-prompt-*.txt
-.claude/
+.claude/*
+!.claude/agents/
 verify_acpx_claude.txt
 
 # Patch files and conflict rejects

@@ -4,6 +4,7 @@
     <string name="splash_motto">Inspire-se diariamente pela Palavra de Deus</string>
     <string name="chat_input_hint">Compartilhe o que está no seu coração…</string>
     <string name="chat_send_button">Enviar</string>
+    <string name="chat_stop_button">Parar</string>
     <string name="action_clear_conversation">Limpar conversa</string>
     <string name="welcome_title">Inspire-se diariamente pela Palavra de Deus</string>
     <string name="welcome_subtitle">Traga os seus fardos à Palavra de Deus. A Escritura fala conforto, força e esperança em cada fase da vida.</string>
@@ -125,6 +126,7 @@
     <string name="conversations_clear_all_message">Isso excluirá permanentemente todo o histórico de conversas.</string>
     <string name="conversations_clear_all_confirm">Apagar tudo</string>
     <string name="action_cancel">Cancelar</string>
+    <string name="action_done">Concluído</string>
     <string name="action_new_conversation">Nova conversa</string>
     <string name="action_clear_all_conversations">Apagar todas as conversas</string>
     <string name="action_delete_conversation">Excluir conversa</string>
@@ -132,23 +134,55 @@
     <!-- Settings screen -->
     <string name="settings_title">Configurações</string>
     <string name="action_open_settings">Configurações</string>
+    <string name="action_back">Voltar</string>
+    <string name="action_open_chat_history">Abrir histórico de chats</string>
+    <string name="action_new_chat">Novo chat</string>
+    <string name="drawer_chat_history_title">Histórico de chats</string>
+    <string name="drawer_no_conversations">Sem conversas ainda</string>
+    <string name="drawer_see_all_conversations">Ver todas as conversas</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Escuro</string>
     <string name="settings_theme_system">Padrão do sistema</string>
     <string name="bible_translation_section">Tradução Bíblica</string>
     <string name="bible_translation_default">Padrão</string>
+    <string name="settings_current_translation">Tradução atual</string>
+    <string name="settings_bible_change_from_chat">Alterar a partir do chat</string>
+    <string name="settings_data_privacy_title">Dados e privacidade</string>
+    <string name="settings_clear_history_title">Apagar o histórico?</string>
+    <string name="settings_clear_history_message">Todas as conversas serão eliminadas permanentemente.</string>
 
     <!-- Settings support/about section -->
     <string name="settings_support_title">Suporte</string>
     <string name="action_send_diagnostic_report">Enviar relatório de diagnóstico</string>
+
+    <!-- Diagnostic report bottom sheet -->
+    <string name="diagnostic_title">Reportar um erro</string>
+    <string name="diagnostic_subtitle">Ajude-nos a entender o que deu errado. Suas respostas e o log do app serão anexados a um e-mail.</string>
+    <string name="diagnostic_doing_label">O que você estava fazendo?</string>
+    <string name="diagnostic_doing_placeholder">ex. Toquei em um versículo e a tela ficou em branco</string>
+    <string name="diagnostic_expected_label">O que você esperava que acontecesse?</string>
+    <string name="diagnostic_expected_placeholder">ex. O versículo deveria ter aberto em um painel</string>
+    <string name="diagnostic_attachment_note">Um log de depuração (sem dados pessoais) e informações básicas do dispositivo serão anexados.</string>
+    <string name="diagnostic_send_email_button">Enviar e-mail com o log</string>
+    <string name="diagnostic_save_locally_link">Ou salvar o log neste dispositivo</string>
+    <string name="diagnostic_email_subject">Relatório de erro Vox Quieta</string>
+    <string name="diagnostic_no_email_app">Nenhum app de e-mail configurado. O log foi salvo.</string>
+    <string name="diagnostic_save_failed">Não foi possível salvar o log de diagnóstico.</string>
+    <string name="diagnostic_success_title">Relatório enviado</string>
+    <string name="diagnostic_success_description">Obrigado — recebemos seu relatório e o analisaremos em breve.</string>
+
     <string name="settings_about_title">Sobre</string>
     <string name="settings_version">Versão</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
     <string name="settings_terms_of_service">Termos de Serviço</string>
+    <string name="settings_changelog_title">Novidades</string>
+    <string name="settings_changelog_link">Novidades</string>
+    <string name="changelog_empty">Ainda não há notas de versão disponíveis.</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Você teve 10 mensagens nesta sessão! Que tal fazer uma pausa e apreciar a criação de Deus ao ar livre? 🌳</string>
+    <string name="error_content_blocked">Não consegui responder a essa mensagem — nosso sistema de segurança a reteve e pode simplesmente ter interpretado mal suas palavras. Tente reformular sua ideia e, se algo ainda parecer estranho, escreva para nós em contact@voxquieta.org. Ficamos felizes por você estar aqui.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Selecionar idioma</string>
@@ -170,7 +204,7 @@
     <string name="church_finder_find_church">Encontrar uma Igreja</string>
     <string name="church_finder_dismiss">Ignorar</string>
     <string name="church_finder_modal_title">Encontrar uma Igreja</string>
-    <string name="church_finder_modal_subtitle">Conecte-se com uma comunidade de fé perto de você</string>
+    <string name="action_close_church_finder">Fechar busca de igrejas</string>
     <string name="church_finder_search_placeholder">Cidade em inglês (ex. Rome, Munich, Zurich)</string>
     <string name="church_finder_search_button">Pesquisar</string>
     <string name="church_finder_location_hint">Use nomes de cidades em inglês</string>

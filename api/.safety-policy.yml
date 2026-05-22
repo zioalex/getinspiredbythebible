@@ -1,0 +1,8 @@
+security:
+  ignore-cvss-severity-below: 0
+  ignore-cvss-unknown-severity: false
+  ignore-vulnerabilities:
+    70612:
+      reason: "Historical pip vendored dependency CVE - no longer present in current pip"
+      expires: "2030-01-01"
+  continue-on-vulnerability-error: false

@@ -153,20 +153,36 @@ class Settings(BaseSettings):
 
     # Content Safety Mode
     # Content safety pipeline mode:
-    #   keyword_only — Stage 1 only (fast local keyword filter, no external API call).
-    #                  Use this when you want safety with zero added latency.
+    #   keyword_only — Stage 1 (directed harm + hate speech keywords) +
+    #                  Stage 2 (OpenAI Moderation API, ~100-150ms, free).
+    #                  Recommended production setting: context-aware, no false positives.
     #   ml_only      — Stage 1 + Stage 2 (Llama Guard 3 via OpenRouter, ~270ms overhead).
     #                  Best balance of accuracy and cost (free tier available).
-    #   hybrid       — Stage 1 + Stage 2 + Stage 3 (Azure Content Safety, additional layer).
+    #   hybrid       — Stage 1 + Stage 2 (OpenAI Moderation) + Stage 3 (Azure Content Safety).
     #                  Maximum accuracy, requires Azure Content Safety resource.
     content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
 
     # Llama Guard Settings
-    # Note: These settings only apply when content_safety_mode is ml_only or hybrid.
-    # In keyword_only mode, Llama Guard is never invoked (no external API call).
+    # Note: These settings only apply when content_safety_mode is ml_only.
     llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency
     llama_guard_timeout: int = 10  # LLM inference timeout (seconds)
+
+    # OpenAI Moderation Settings
+    # Used as Stage 2 in keyword_only and hybrid modes (ml_only uses Llama Guard instead).
+    # Free, no rate limits, ~100-150ms. Endpoint: https://api.openai.com/v1/moderations
+    # Requires OPENAI_API_KEY. OpenRouter does not proxy /v1/moderations.
+    openai_moderation_threshold: float = 0.5  # Block if score >= threshold
+    openai_moderation_timeout: int = 3  # Seconds before fail-open fallback
+
+    # Blocked-message sample capture (for filter tuning).
+    # Stores a privacy-minimal record of messages the safety system blocked:
+    # truncated text, stage/categories, hashed session id, TTL-bounded.
+    # Default off — operators opt in per environment so tests and local dev
+    # don't accidentally write capture rows.
+    blocked_sample_capture_enabled: bool = False
+    blocked_sample_retention_days: int = 30
+    blocked_sample_max_chars: int = 500
 
     @field_validator("database_url")
     @classmethod
