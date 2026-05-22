@@ -386,7 +386,10 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction) + BIBLE_VERSION_GUIDANCE
+    return (
+        VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def get_prayer_lookup_prompt(language_code: str = "en") -> str:
@@ -412,7 +415,10 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction) + BIBLE_VERSION_GUIDANCE
+    return (
+        PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def build_search_context_prompt(search_results: dict) -> str:
