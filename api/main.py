@@ -55,6 +55,18 @@ setup_logging()
 logger = get_logger(__name__)
 
 
+async def _purge_blocked_samples_at_startup() -> None:
+    """Best-effort TTL sweep for blocked-message samples on app start."""
+    try:
+        from feedback.blocked_samples import purge_expired_blocked_samples
+
+        deleted = await purge_expired_blocked_samples()
+        if deleted:
+            logger.info("Purged expired blocked-message samples", extra={"deleted": deleted})
+    except Exception as e:
+        logger.warning("Blocked-sample purge failed at startup: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -116,6 +128,8 @@ async def lifespan(app: FastAPI):
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error("Database initialization failed", extra={"error": str(e)})
+
+    await _purge_blocked_samples_at_startup()
 
     yield
 

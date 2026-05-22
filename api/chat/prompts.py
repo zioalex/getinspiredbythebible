@@ -296,6 +296,31 @@ SOURCE_ATTRIBUTION_EXAMPLES = {
     ),
 }
 
+# ---------------------------------------------------------------------------
+# Bible version guidance (BITB-029)
+# ---------------------------------------------------------------------------
+# Appended to every system prompt so the assistant never improvises Bible-
+# version details when users ask "which Bible are you using?" — instead it
+# directs them to the version selector already visible in the UI (header
+# dropdown on web, version chip on mobile).
+BIBLE_VERSION_GUIDANCE = """
+## Bible Version Questions
+When the user asks which Bible version, translation, or edition is being used \
+(for example: "what Bible version are you using?", "which translation is this?", \
+"are you using KJV/NIV/ESV?"), follow these rules strictly:
+
+- Do NOT name, guess, or invent a specific Bible version, translation, or edition.
+- Do NOT claim to use any particular translation by name.
+- Briefly explain that the answers draw from whichever Bible translation the user \
+has selected in the app.
+- Point them to the Bible version selector in the user interface:
+  - On the web app: the version dropdown in the top header bar.
+  - On the mobile app: the Bible version chip at the top of the chat screen.
+- Invite them to switch translations there at any time if they prefer a different one.
+- Keep the answer to two or three sentences, warm and concise, then return to \
+the spiritual conversation.
+"""
+
 
 def get_system_prompt(language_code: str = "en") -> str:
     """
@@ -325,9 +350,12 @@ def get_system_prompt(language_code: str = "en") -> str:
     )
     source_instruction = f"{biblical_ex}\n\n{non_biblical_ex}"
 
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        language_instruction=language_instruction,
-        source_instruction=source_instruction,
+    return (
+        SYSTEM_PROMPT_TEMPLATE.format(
+            language_instruction=language_instruction,
+            source_instruction=source_instruction,
+        )
+        + BIBLE_VERSION_GUIDANCE
     )
 
 
@@ -358,7 +386,10 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+    return (
+        VERSE_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def get_prayer_lookup_prompt(language_code: str = "en") -> str:
@@ -384,7 +415,10 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
             f"Do NOT mix {language_name} with English or any other language."
         )
 
-    return PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+    return (
+        PRAYER_LOOKUP_SYSTEM_PROMPT.format(language_instruction=language_instruction)
+        + BIBLE_VERSION_GUIDANCE
+    )
 
 
 def build_search_context_prompt(search_results: dict) -> str:
@@ -549,3 +583,378 @@ When in doubt between OFF_TOPIC and another category, choose the other category.
 User message: "{user_message}"
 
 Respond with ONLY the category name, nothing else."""
+
+
+# ---------------------------------------------------------------------------
+# Content-safety response helpers (BITB-027)
+# ---------------------------------------------------------------------------
+
+# Appended to the system prompt when the safety pipeline allows a message but
+# flags it as help-seeking (compassionate_response_needed=True).  Written in
+# English because the base SYSTEM_PROMPT_TEMPLATE already instructs the LLM to
+# reply in the user's language.
+COMPASSIONATE_RESPONSE_ADDENDUM = """
+
+## URGENT — This user may be in deep distress
+The content-safety system detected that this user may be experiencing serious
+emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
+1. Acknowledge their pain explicitly and with full empathy — do NOT jump straight to Bible verses
+2. Affirm they are not alone and that reaching out took courage
+3. Include crisis resources naturally in your response:
+   - US: call or text 988 (Suicide & Crisis Lifeline)
+   - International: https://findahelpline.com
+4. Offer scripture ONLY after the user feels heard — choose verses about God's
+   nearness in suffering (Psalm 34:18, Psalm 46:1, Matthew 11:28, Isaiah 41:10)
+5. Gently encourage them to reach out to a trusted person, counselor, or pastor"""
+
+
+# Pre-written localized responses for content the safety pipeline BLOCKS
+# (allowed=False).  Indexed by (category, language_code).
+# Falls back: requested language → "en" → BLOCKED_RESPONSE_TEMPLATES["generic"]["en"].
+_BLOCKED_RESPONSE_TEMPLATES: dict[str, dict[str, str]] = {
+    "self_harm_blocked": {
+        "en": (
+            "I can hear that something very heavy may be weighing on you, and I'm truly sorry. "
+            "Your life is precious and deeply valued by God.\n\n"
+            "Please reach out for immediate support right now:\n"
+            "- **US:** call or text **988** (Suicide & Crisis Lifeline, free, 24/7)\n"
+            "- **International:** https://findahelpline.com\n\n"
+            "You don't have to face this alone. A real person is ready to listen."
+        ),
+        "it": (
+            "Sento che qualcosa di molto pesante ti sta gravando, e ne sono davvero dispiaciuto. "
+            "La tua vita è preziosa e profondamente amata da Dio.\n\n"
+            "Ti chiedo di contattare subito qualcuno che possa aiutarti:\n"
+            "- **Italia:** Telefono Amico **02 2327 2327** (tutti i giorni, 10–24)\n"
+            "- **Internazionale:** https://findahelpline.com\n\n"
+            "Non devi affrontare questo da solo. C'è qualcuno pronto ad ascoltarti."
+        ),
+        "de": (
+            "Ich spüre, dass etwas sehr Schweres auf dir lastet, und es tut mir sehr leid. "
+            "Dein Leben ist kostbar und von Gott tief geliebt.\n\n"
+            "Bitte wende dich sofort an jemanden, der helfen kann:\n"
+            "- **Deutschland:** Telefonseelsorge **0800 111 0 111** (kostenlos, 24/7)\n"
+            "- **International:** https://findahelpline.com\n\n"
+            "Du musst das nicht alleine tragen. Ein echtes Gespräch wartet auf dich."
+        ),
+        "es": (
+            "Siento que algo muy pesado te está agobiando, y lo siento mucho. "
+            "Tu vida es preciosa y profundamente amada por Dios.\n\n"
+            "Por favor, contacta ahora mismo con alguien que pueda ayudarte:\n"
+            "- **España:** Teléfono de la Esperanza **717 003 717** (24 horas)\n"
+            "- **Internacional:** https://findahelpline.com\n\n"
+            "No tienes que enfrentar esto solo. Hay alguien dispuesto a escucharte."
+        ),
+        "fr": (
+            "Je sens que quelque chose de très lourd pèse sur toi, et j'en suis sincèrement désolé. "
+            "Ta vie est précieuse et profondément aimée de Dieu.\n\n"
+            "Je t'encourage à contacter immédiatement quelqu'un qui peut t'aider :\n"
+            "- **France :** 3114 — Numéro national de prévention du suicide (24h/24)\n"
+            "- **International :** https://findahelpline.com\n\n"
+            "Tu n'as pas à traverser cela seul. Une personne est prête à t'écouter."
+        ),
+        "pt": (
+            "Sinto que algo muito pesado está te sobrecarregando, e sinto muito por isso. "
+            "A sua vida é preciosa e profundamente amada por Deus.\n\n"
+            "Por favor, entre em contato agora com alguém que possa ajudar:\n"
+            "- **Brasil:** CVV **188** (gratuito, 24h) ou https://www.cvv.org.br\n"
+            "- **Internacional:** https://findahelpline.com\n\n"
+            "Você não precisa enfrentar isso sozinho. Há alguém pronto para ouvir."
+        ),
+        "ar": (
+            "أشعر أن شيئاً ثقيلاً جداً يُثقل كاهلك، وأنا آسف جداً لذلك. "
+            "حياتك ثمينة ومحبوبة من الله بعمق.\n\n"
+            "أرجو أن تتواصل الآن مع شخص يستطيع مساعدتك:\n"
+            "- **دولي:** https://findahelpline.com\n\n"
+            "لست وحدك في هذا. هناك شخص مستعد للاستماع إليك."
+        ),
+    },
+    "violence_or_threat": {
+        "en": (
+            "I'm here to share biblical wisdom and spiritual guidance, "
+            "and I'm not able to help with anything that could lead to harm.\n\n"
+            "If anger, frustration, or pain is at the root of what you're feeling, "
+            "I'd genuinely love to walk through that with you. "
+            "The Bible has a lot to say about finding peace and releasing burdens — "
+            "feel free to share what's really going on in your heart."
+        ),
+        "it": (
+            "Sono qui per condividere saggezza biblica e guida spirituale, "
+            "e non posso aiutare con nulla che possa causare danno.\n\n"
+            "Se alla base c'è rabbia, frustrazione o dolore, "
+            "sarei felice di camminare insieme a te attraverso questo. "
+            "La Bibbia ha molto da dire sulla pace e sul lasciare andare i pesi — "
+            "sentiti libero di condividere ciò che sta davvero nel tuo cuore."
+        ),
+        "de": (
+            "Ich bin hier, um biblische Weisheit und geistliche Begleitung zu teilen, "
+            "und kann bei nichts helfen, das zu Schaden führen könnte.\n\n"
+            "Wenn Wut, Frustration oder Schmerz der Ursprung dessen ist, was du fühlst, "
+            "würde ich gerne gemeinsam mit dir durch diese Zeit gehen. "
+            "Die Bibel hat viel über Frieden und das Loslassen von Lasten zu sagen — "
+            "teile gerne mit, was wirklich in deinem Herzen vorgeht."
+        ),
+        "es": (
+            "Estoy aquí para compartir sabiduría bíblica y guía espiritual, "
+            "y no puedo ayudar con nada que pueda causar daño.\n\n"
+            "Si la ira, la frustración o el dolor están en la raíz de lo que sientes, "
+            "me encantaría acompañarte en eso. "
+            "La Biblia tiene mucho que decir sobre encontrar paz y soltar cargas — "
+            "siéntete libre de compartir lo que realmente está en tu corazón."
+        ),
+        "fr": (
+            "Je suis ici pour partager la sagesse biblique et un accompagnement spirituel, "
+            "et je ne peux pas aider avec quoi que ce soit qui pourrait causer du tort.\n\n"
+            "Si la colère, la frustration ou la douleur est au cœur de ce que tu ressens, "
+            "je serais heureux de l'explorer avec toi. "
+            "La Bible a beaucoup à dire sur la paix et le dépôt de nos fardeaux — "
+            "n'hésite pas à partager ce qui se passe vraiment dans ton cœur."
+        ),
+        "pt": (
+            "Estou aqui para compartilhar sabedoria bíblica e orientação espiritual, "
+            "e não posso ajudar com nada que possa causar dano.\n\n"
+            "Se raiva, frustração ou dor estão na raiz do que você está sentindo, "
+            "eu adoraria caminhar por isso com você. "
+            "A Bíblia tem muito a dizer sobre encontrar paz e soltar fardos — "
+            "sinta-se à vontade para compartilhar o que realmente está no seu coração."
+        ),
+        "ar": (
+            "أنا هنا لمشاركة الحكمة الكتابية والإرشاد الروحي، "
+            "ولا أستطيع المساعدة في أي شيء قد يؤدي إلى أذى.\n\n"
+            "إذا كان الغضب أو الإحباط أو الألم في جذر ما تشعر به، "
+            "سيسعدني أن أمشي معك خلال ذلك. "
+            "للكتاب المقدس الكثير ليقوله عن إيجاد السلام وإلقاء الأثقال — "
+            "لا تتردد في مشاركة ما يجري حقاً في قلبك."
+        ),
+    },
+    "hate_speech": {
+        "en": (
+            "This space is built on the belief that every person is made in God's image "
+            "and deserves dignity and respect.\n\n"
+            "I'm not able to engage with messages that target or demean people. "
+            "If there's something on your heart about faith, scripture, or life's questions, "
+            "I'm genuinely here to help."
+        ),
+        "it": (
+            "Questo spazio è costruito sulla convinzione che ogni persona è creata a immagine di Dio "
+            "e merita dignità e rispetto.\n\n"
+            "Non posso rispondere a messaggi che prendono di mira o umiliano le persone. "
+            "Se c'è qualcosa nel tuo cuore riguardo alla fede, alle Scritture o alle domande della vita, "
+            "sono sinceramente qui per aiutarti."
+        ),
+        "de": (
+            "Dieser Raum basiert auf der Überzeugung, dass jeder Mensch im Bild Gottes geschaffen ist "
+            "und Würde und Respekt verdient.\n\n"
+            "Ich kann mich nicht mit Nachrichten befassen, die Menschen angreifen oder herabsetzen. "
+            "Wenn du etwas auf dem Herzen hast über Glauben, Schrift oder Lebensfragen, "
+            "bin ich aufrichtig hier, um zu helfen."
+        ),
+        "es": (
+            "Este espacio está construido sobre la creencia de que cada persona está hecha a imagen de Dios "
+            "y merece dignidad y respeto.\n\n"
+            "No puedo participar en mensajes que ataquen o degraden a las personas. "
+            "Si hay algo en tu corazón sobre la fe, las Escrituras o las preguntas de la vida, "
+            "genuinamente estoy aquí para ayudar."
+        ),
+        "fr": (
+            "Cet espace est fondé sur la conviction que chaque personne est faite à l'image de Dieu "
+            "et mérite dignité et respect.\n\n"
+            "Je ne peux pas m'engager avec des messages qui ciblent ou rabaissent des personnes. "
+            "S'il y a quelque chose sur ton cœur concernant la foi, les Écritures ou les questions de la vie, "
+            "je suis sincèrement là pour aider."
+        ),
+        "pt": (
+            "Este espaço é construído na crença de que cada pessoa é feita à imagem de Deus "
+            "e merece dignidade e respeito.\n\n"
+            "Não posso me envolver com mensagens que visem ou diminuam pessoas. "
+            "Se há algo no seu coração sobre fé, escritura ou as perguntas da vida, "
+            "genuinamente estou aqui para ajudar."
+        ),
+        "ar": (
+            "هذه المساحة مبنية على الإيمان بأن كل إنسان مخلوق على صورة الله "
+            "ويستحق الكرامة والاحترام.\n\n"
+            "لا أستطيع التعامل مع الرسائل التي تستهدف أو تحتقر الناس. "
+            "إذا كان هناك شيء في قلبك عن الإيمان أو الكتاب المقدس أو أسئلة الحياة، "
+            "فأنا هنا حقاً للمساعدة."
+        ),
+    },
+    "directed_harm": {
+        "en": (
+            "I'm sorry you're feeling this way — whatever is happening, "
+            "you don't have to carry it alone.\n\n"
+            "I'm not able to respond to messages that wish harm on anyone, "
+            "but I am here if you want to talk about what's really going on. "
+            "God's ear is always open, and so is mine."
+        ),
+        "it": (
+            "Mi dispiace che tu ti senta così — qualunque cosa stia succedendo, "
+            "non devi portarla da solo.\n\n"
+            "Non posso rispondere a messaggi che augurano del male a qualcuno, "
+            "ma sono qui se vuoi parlare di quello che sta davvero succedendo. "
+            "L'orecchio di Dio è sempre aperto, e anche il mio."
+        ),
+        "de": (
+            "Es tut mir leid, dass du dich so fühlst — was auch immer gerade passiert, "
+            "du musst es nicht alleine tragen.\n\n"
+            "Ich kann nicht auf Nachrichten reagieren, die jemandem Schaden wünschen, "
+            "aber ich bin hier, wenn du über das reden möchtest, was wirklich passiert. "
+            "Gottes Ohr ist immer offen, und meins auch."
+        ),
+        "es": (
+            "Siento que te sientas así — lo que sea que esté pasando, "
+            "no tienes que cargarlo solo.\n\n"
+            "No puedo responder a mensajes que desean daño a alguien, "
+            "pero estoy aquí si quieres hablar sobre lo que realmente está pasando. "
+            "El oído de Dios siempre está abierto, y el mío también."
+        ),
+        "fr": (
+            "Je suis désolé que tu te sentes ainsi — quoi qu'il se passe, "
+            "tu n'as pas à le porter seul.\n\n"
+            "Je ne peux pas répondre aux messages qui souhaitent du mal à quelqu'un, "
+            "mais je suis là si tu veux parler de ce qui se passe vraiment. "
+            "L'oreille de Dieu est toujours ouverte, et la mienne aussi."
+        ),
+        "pt": (
+            "Sinto que você está se sentindo assim — o que quer que esteja acontecendo, "
+            "você não precisa carregar isso sozinho.\n\n"
+            "Não posso responder a mensagens que desejam dano a alguém, "
+            "mas estou aqui se quiser falar sobre o que está realmente acontecendo. "
+            "O ouvido de Deus está sempre aberto, e o meu também."
+        ),
+        "ar": (
+            "أنا آسف لشعورك هكذا — مهما كان ما يحدث، "
+            "لا يجب أن تحمله وحدك.\n\n"
+            "لا أستطيع الرد على الرسائل التي تتمنى الأذى لأي شخص، "
+            "لكنني هنا إذا أردت التحدث عما يجري حقاً. "
+            "أذن الله دائماً مفتوحة، وكذلك أذني."
+        ),
+    },
+    "sexual_content": {
+        "en": (
+            "I'm here to help with spiritual guidance, biblical wisdom, and questions of faith. "
+            "This type of content is outside what I can engage with.\n\n"
+            "If there's something on your heart about God, scripture, or your faith journey, "
+            "I'm genuinely here to help."
+        ),
+        "it": (
+            "Sono qui per aiutare con la guida spirituale, la saggezza biblica e le domande di fede. "
+            "Questo tipo di contenuto è al di fuori di ciò con cui posso interagire.\n\n"
+            "Se c'è qualcosa nel tuo cuore riguardo a Dio, alle Scritture o al tuo percorso di fede, "
+            "sono sinceramente qui per aiutarti."
+        ),
+        "de": (
+            "Ich bin hier, um bei spiritueller Führung, biblischer Weisheit und Glaubensfragen zu helfen. "
+            "Diese Art von Inhalt liegt außerhalb dessen, womit ich mich befassen kann.\n\n"
+            "Wenn du etwas auf dem Herzen hast über Gott, die Schrift oder deinen Glaubensweg, "
+            "bin ich aufrichtig hier, um zu helfen."
+        ),
+        "es": (
+            "Estoy aquí para ayudar con orientación espiritual, sabiduría bíblica y preguntas de fe. "
+            "Este tipo de contenido está fuera de lo que puedo abordar.\n\n"
+            "Si hay algo en tu corazón sobre Dios, las Escrituras o tu camino de fe, "
+            "genuinamente estoy aquí para ayudar."
+        ),
+        "fr": (
+            "Je suis ici pour aider avec l'accompagnement spirituel, la sagesse biblique et les questions de foi. "
+            "Ce type de contenu est en dehors de ce avec quoi je peux m'engager.\n\n"
+            "S'il y a quelque chose sur ton cœur concernant Dieu, les Écritures ou ton chemin de foi, "
+            "je suis sincèrement là pour aider."
+        ),
+        "pt": (
+            "Estou aqui para ajudar com orientação espiritual, sabedoria bíblica e questões de fé. "
+            "Este tipo de conteúdo está fora do que posso abordar.\n\n"
+            "Se há algo no seu coração sobre Deus, escritura ou sua jornada de fé, "
+            "genuinamente estou aqui para ajudar."
+        ),
+        "ar": (
+            "أنا هنا للمساعدة في الإرشاد الروحي والحكمة الكتابية وأسئلة الإيمان. "
+            "هذا النوع من المحتوى خارج نطاق ما يمكنني التعامل معه.\n\n"
+            "إذا كان هناك شيء في قلبك عن الله أو الكتاب المقدس أو رحلة إيمانك، "
+            "فأنا هنا حقاً للمساعدة."
+        ),
+    },
+    "generic": {
+        "en": (
+            "I'm here to share biblical wisdom and spiritual companionship, "
+            "and I'm not able to help with this particular request.\n\n"
+            "If there's something on your heart about faith, scripture, or life's questions, "
+            "I'm genuinely here to listen and help."
+        ),
+        "it": (
+            "Sono qui per condividere saggezza biblica e accompagnamento spirituale, "
+            "e non posso aiutare con questa particolare richiesta.\n\n"
+            "Se c'è qualcosa nel tuo cuore riguardo alla fede, alle Scritture o alle domande della vita, "
+            "sono sinceramente qui per ascoltarti e aiutarti."
+        ),
+        "de": (
+            "Ich bin hier, um biblische Weisheit und geistliche Begleitung zu teilen, "
+            "und kann bei dieser speziellen Anfrage nicht helfen.\n\n"
+            "Wenn du etwas auf dem Herzen hast über Glauben, Schrift oder Lebensfragen, "
+            "bin ich aufrichtig hier, um zuzuhören und zu helfen."
+        ),
+        "es": (
+            "Estoy aquí para compartir sabiduría bíblica y compañía espiritual, "
+            "y no puedo ayudar con esta solicitud en particular.\n\n"
+            "Si hay algo en tu corazón sobre la fe, las Escrituras o las preguntas de la vida, "
+            "genuinamente estoy aquí para escuchar y ayudar."
+        ),
+        "fr": (
+            "Je suis ici pour partager la sagesse biblique et un accompagnement spirituel, "
+            "et je ne peux pas aider avec cette demande particulière.\n\n"
+            "S'il y a quelque chose sur ton cœur concernant la foi, les Écritures ou les questions de la vie, "
+            "je suis sincèrement là pour écouter et aider."
+        ),
+        "pt": (
+            "Estou aqui para compartilhar sabedoria bíblica e companhia espiritual, "
+            "e não posso ajudar com esta solicitação específica.\n\n"
+            "Se há algo no seu coração sobre fé, escritura ou as perguntas da vida, "
+            "genuinamente estou aqui para ouvir e ajudar."
+        ),
+        "ar": (
+            "أنا هنا لمشاركة الحكمة الكتابية والرفقة الروحية، "
+            "ولا أستطيع المساعدة في هذا الطلب بالذات.\n\n"
+            "إذا كان هناك شيء في قلبك عن الإيمان أو الكتاب المقدس أو أسئلة الحياة، "
+            "فأنا هنا حقاً للاستماع والمساعدة."
+        ),
+    },
+}
+
+
+def _map_reason_to_category(reason: str) -> str:
+    r = reason.lower()
+    if "self_harm" in r or "self-harm" in r:
+        return "self_harm_blocked"
+    if "violence" in r or "weapon" in r:
+        return "violence_or_threat"
+    if "hate" in r:
+        return "hate_speech"
+    if "directed_harm" in r:
+        return "directed_harm"
+    if "sexual" in r:
+        return "sexual_content"
+    return "generic"
+
+
+def get_compassionate_addendum() -> str:
+    """Return the compassionate-response system-prompt addendum."""
+    return COMPASSIONATE_RESPONSE_ADDENDUM
+
+
+def get_blocked_response(reason: str, language_code: str = "en") -> str:
+    """
+    Return a localized pre-written response for blocked content.
+
+    Args:
+        reason: ContentSafetyCheckResult.reason string
+        language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+
+    Returns:
+        Localized message string; falls back to English then generic.
+    """
+    category = _map_reason_to_category(reason)
+    by_lang = _BLOCKED_RESPONSE_TEMPLATES.get(category, _BLOCKED_RESPONSE_TEMPLATES["generic"])
+    return (
+        by_lang.get(language_code)
+        or by_lang.get("en")
+        or _BLOCKED_RESPONSE_TEMPLATES["generic"]["en"]
+    )

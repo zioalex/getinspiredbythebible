@@ -254,6 +254,7 @@ chat(request) →
 **Pattern:** Repository Pattern with async SQLAlchemy
 
 **Key Operations:**
+
 | Method | Description |
 |--------|-------------|
 | `get_verse()` | Single verse by reference |
@@ -630,6 +631,7 @@ frontend/src/
 ### 7.3 API Client (`lib/api.ts`)
 
 **Functions:**
+
 | Function | Description |
 |----------|-------------|
 | `sendMessage()` | POST to `/api/v1/chat` |

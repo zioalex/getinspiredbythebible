@@ -13,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,7 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
-import org.voxquieta.app.presentation.components.ContactFormState
+import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
@@ -62,6 +64,7 @@ private val themeOptions = listOf(
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onOpenChangelog: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -69,9 +72,21 @@ fun SettingsScreen(
     val availableTranslations by viewModel.availableTranslations.collectAsState()
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val contactFormState by viewModel.contactFormState.collectAsState()
+    val diagnosticReportState by viewModel.diagnosticReportState.collectAsState()
     val context = LocalContext.current
     val currentLanguage = LocalConfiguration.current.locales[0].language
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
+    var showDiagnosticSheet by rememberSaveable { mutableStateOf(false) }
+    var showClearHistoryDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Resolve current translation display name for the read-only row.
+    val currentTranslationName = when {
+        preferredTranslation.isBlank() -> stringResource(R.string.bible_translation_default)
+        else -> availableTranslations
+            .firstOrNull { it.id == preferredTranslation }
+            ?.name
+            ?: preferredTranslation.uppercase()
+    }
 
     Scaffold(
         topBar = {
@@ -103,7 +118,7 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // ── Theme section ─────────────────────────────────────────────────
+            // ── Appearance section ─────────────────────────────────────────────
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.settings_theme_title),
@@ -119,7 +134,7 @@ fun SettingsScreen(
                 )
             }
 
-            // ── Bible Translation section ──────────────────────────────────────
+            // ── Bible section ──────────────────────────────────────────────────
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(R.string.bible_translation_section),
@@ -127,35 +142,52 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            if (availableTranslations.isEmpty()) {
-                // Loading or error state — show a single "Default" option selected.
-                TranslationRow(
-                    label = stringResource(R.string.bible_translation_default),
-                    sublabel = null,
-                    selected = true,
-                    onSelect = { viewModel.setPreferredTranslation("") },
-                )
-            } else {
-                // "Default" (no preference) row first.
-                TranslationRow(
-                    label = stringResource(R.string.bible_translation_default),
-                    sublabel = null,
-                    selected = preferredTranslation.isBlank(),
-                    onSelect = { viewModel.setPreferredTranslation("") },
-                )
-                availableTranslations.forEach { translation ->
-                    TranslationRow(
-                        label = translation.name,
-                        sublabel = translation.language.uppercase(),
-                        selected = translation.id == preferredTranslation,
-                        onSelect = { viewModel.setPreferredTranslation(translation.id) },
+            // Read-only row showing the active translation; the in-chat chip is
+            // the canonical place to change it.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_current_translation),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_bible_change_from_chat),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Text(
+                    text = currentTranslationName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
+            // ── Data & Privacy section ─────────────────────────────────────────
             Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.settings_data_privacy_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { showClearHistoryDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(stringResource(R.string.action_clear_all_conversations))
+            }
 
             // ── Support section ────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(R.string.settings_support_title),
                 style = MaterialTheme.typography.titleSmall,
@@ -163,13 +195,13 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
-                onClick = { viewModel.shareDebugLogs(context) },
+                onClick = { showDiagnosticSheet = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.action_send_diagnostic_report))
             }
 
-            // ── Contact section ────────────────────────────────────────────────
+            // ── Get in Touch section ───────────────────────────────────────────
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(R.string.contact_section_title),
@@ -235,12 +267,48 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
+            TextButton(
+                onClick = onOpenChangelog,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_changelog_link),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
         // Turnstile widget is mounted globally in MainActivity, so a token is
         // already cached by the time the user reaches this screen.
+
+        // ── Clear history confirmation dialog ──────────────────────────────────
+        if (showClearHistoryDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearHistoryDialog = false },
+                title = { Text(stringResource(R.string.settings_clear_history_title)) },
+                text = { Text(stringResource(R.string.settings_clear_history_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearAllConversations()
+                            showClearHistoryDialog = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.action_clear_all_conversations))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearHistoryDialog = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
 
         // ── Contact Form bottom sheet ──────────────────────────────────────────
         if (showContactSheet) {
@@ -252,6 +320,25 @@ fun SettingsScreen(
                 onDismiss = {
                     showContactSheet = false
                     viewModel.resetContactForm()
+                },
+            )
+        }
+
+        // ── Diagnostic report bottom sheet ─────────────────────────────────────
+        if (showDiagnosticSheet) {
+            DiagnosticReportBottomSheet(
+                formState = diagnosticReportState,
+                onSendEmail = { doing, expected ->
+                    viewModel.sendDiagnosticEmail(doing, expected)
+                },
+                onSaveLocally = {
+                    viewModel.saveDiagnosticLogLocally(context)
+                    showDiagnosticSheet = false
+                    viewModel.resetDiagnosticReport()
+                },
+                onDismiss = {
+                    showDiagnosticSheet = false
+                    viewModel.resetDiagnosticReport()
                 },
             )
         }
@@ -279,38 +366,5 @@ private fun ThemeRow(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = 8.dp),
         )
-    }
-}
-
-@Composable
-private fun TranslationRow(
-    label: String,
-    sublabel: String?,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onSelect,
-        )
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            if (sublabel != null) {
-                Text(
-                    text = sublabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
     }
 }

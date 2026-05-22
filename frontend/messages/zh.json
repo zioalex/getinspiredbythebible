@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "每天从上帝的话语中获得灵感",
-    "bibleVersion": "圣经版本：",
-    "autoDetect": "自动检测",
+    "bibleVersion": "圣经版本",
     "newChat": "新对话"
   },
   "Welcome": {
@@ -123,7 +122,10 @@
     "errorColdStart": "我还在准备中，比预期花的时间更长。请稍后再试——我很快就会准备好！",
     "errorConnection": "很抱歉，我目前连接遇到问题。这可能是暂时的问题——请稍后再试。如果问题持续，请联系我们：contact@voxquieta.org",
     "startNewSession": "开始新会话",
-    "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。"
+    "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。",
+    "contentBlockedMessage": "这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。",
+    "scrollToBottom": "滚动到底部",
+    "stopGenerating": "停止生成"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",

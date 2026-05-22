@@ -50,6 +50,7 @@ For your Bible Chat app with a **$50/month budget**, here's the detailed analysi
 | **Total** | | **~$38** |
 
 **Or with managed PostgreSQL:**
+
 | Resource | SKU | Monthly Cost |
 |----------|-----|--------------|
 | VM | B1s (1 vCPU, 1GB) | ~$7 |
@@ -167,6 +168,7 @@ For your Bible Chat app with a **$50/month budget**, here's the detailed analysi
 | **Total** | | **~$64** ❌ Over budget |
 
 **Cheaper alternative (self-hosted DB):**
+
 | Resource | Details | Monthly Cost |
 |----------|---------|--------------|
 | AKS + Node | B2s | ~$30 |

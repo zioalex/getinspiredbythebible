@@ -7,12 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import org.voxquieta.app.R
 import org.voxquieta.app.data.preferences.LanguagePreferences
+import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
+import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
@@ -24,12 +26,16 @@ import org.voxquieta.app.domain.repositories.ChurchRepository
 import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -74,7 +80,8 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currentLocale: String = "en",
+    // Empty string = no explicit user preference; backend auto-detects from message text.
+    val currentLocale: String = "",
     val isTurnstileReady: Boolean = false,
     /** ID of the currently active conversation; null when no conversation has started. */
     val currentConversationId: String? = null,
@@ -133,8 +140,10 @@ class ChatViewModel @Inject constructor(
     private val themePreferences: ThemePreferences,
     private val translationPreferences: TranslationPreferences,
     private val sessionPreferences: SessionPreferences,
+    private val lastConversationPreferences: LastConversationPreferences,
     private val bibleApiService: BibleApiService,
     private val networkMonitor: NetworkMonitor,
+    private val localeApplier: LocaleApplier,
 ) : ViewModel() {
 
     companion object {
@@ -217,6 +226,20 @@ class ChatViewModel @Inject constructor(
     private val _contactFormState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
     val contactFormState: StateFlow<ContactFormState> = _contactFormState.asStateFlow()
 
+    // Diagnostic-report submission reuses the generic submit-lifecycle states
+    // from [ContactFormState] because the flow is the same: Idle → Submitting →
+    // Success / Error. The bottom sheet renders a spinner, success screen or
+    // inline error message based on this state.
+    private val _diagnosticReportState = MutableStateFlow<ContactFormState>(ContactFormState.Idle)
+    val diagnosticReportState: StateFlow<ContactFormState> = _diagnosticReportState.asStateFlow()
+
+    /**
+     * The currently running send-message coroutine. Cancelling this job interrupts
+     * the SSE stream so the user can stop generation mid-response. The partial
+     * assistant content collected so far is preserved by [onCompletion].
+     */
+    private var streamJob: Job? = null
+
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
         // errored (fail-open): the interceptor already forwards requests without a
@@ -271,6 +294,7 @@ class ChatViewModel @Inject constructor(
                 _availableTranslations.value = response.translations
                 return
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 val isLastAttempt = attempt == maxAttempts - 1
                 if (isLastAttempt) {
                     Timber.w(e, "Failed to fetch translations after $maxAttempts attempts; defaulting to empty list")
@@ -305,6 +329,7 @@ class ChatViewModel @Inject constructor(
                 _bookNames.value = response
                 return
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 val isLastAttempt = attempt == maxAttempts - 1
                 if (isLastAttempt) {
                     Timber.w(e, "Failed to fetch book names after $maxAttempts attempts; falling back to default regex")
@@ -342,7 +367,7 @@ class ChatViewModel @Inject constructor(
             )
         }
 
-        viewModelScope.launch {
+        streamJob = viewModelScope.launch {
             // Ensure a conversation row exists before persisting messages.
             val conversationId = ensureConversation(trimmed)
 
@@ -434,52 +459,58 @@ class ChatViewModel @Inject constructor(
                             messageId = metadataMessageId,
                             versesCited = finalVersesCited,
                         )
-                        // Persist finished assistant message and bump conversation timestamp.
-                        repository.saveMessage(conversationId, finalAssistant)
-                        repository.touchConversation(conversationId)
+                        // Use NonCancellable so that DB writes and the isLoading reset always
+                        // complete even when the coroutine was cancelled by the Stop button.
+                        // Without this, the first suspending call (saveMessage) throws
+                        // CancellationException and isLoading stays true permanently.
+                        withContext(NonCancellable) {
+                            // Persist finished assistant message and bump conversation timestamp.
+                            repository.saveMessage(conversationId, finalAssistant)
+                            repository.touchConversation(conversationId)
 
-                        _uiState.update { state ->
-                            val newCount = state.interactionCount + 1
-                            // Detect the exact moment the session limit is reached so we can
-                            // proactively block the input and show the invitation message —
-                            // no need for the user to attempt a failing 11th request.
-                            val sessionLimitJustReached =
-                                !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
-                            // Append new verses, deduplicating by reference only (not translation)
-                            // so each verse appears once regardless of which translation it came from.
-                            val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
-                            val dedupedNew = finalVerses.filterNot { v ->
-                                "${v.book}${v.chapter}:${v.verse}" in existingRefs
-                            }
-                            // When the limit is just reached, append a synthetic assistant
-                            // message so the user sees the invitation in the conversation.
-                            val limitMessage = if (sessionLimitJustReached) {
-                                Message(
-                                    id = UUID.randomUUID().toString(),
-                                    role = Message.Role.ASSISTANT,
-                                    content = context.getString(R.string.error_session_limit),
+                            _uiState.update { state ->
+                                val newCount = state.interactionCount + 1
+                                // Detect the exact moment the session limit is reached so we can
+                                // proactively block the input and show the invitation message —
+                                // no need for the user to attempt a failing 11th request.
+                                val sessionLimitJustReached =
+                                    !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
+                                // Append new verses, deduplicating by reference only (not translation)
+                                // so each verse appears once regardless of which translation it came from.
+                                val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
+                                val dedupedNew = finalVerses.filterNot { v ->
+                                    "${v.book}${v.chapter}:${v.verse}" in existingRefs
+                                }
+                                // When the limit is just reached, append a synthetic assistant
+                                // message so the user sees the invitation in the conversation.
+                                val limitMessage = if (sessionLimitJustReached) {
+                                    Message(
+                                        id = UUID.randomUUID().toString(),
+                                        role = Message.Role.ASSISTANT,
+                                        content = context.getString(R.string.error_session_limit),
+                                    )
+                                } else null
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) finalAssistant else msg
+                                    } + listOfNotNull(limitMessage),
+                                    isLoading = false,
+                                    isBackendWarming = false,
+                                    interactionCount = newCount,
+                                    isSessionLimitReached = state.isSessionLimitReached || sessionLimitJustReached,
+                                    // Show the banner exactly once, at interaction 3.
+                                    // Using == rather than >= prevents re-showing the banner
+                                    // after it has been dismissed (banner=false, inline=false).
+                                    showChurchFinderBanner = !state.showChurchFinderBanner &&
+                                        !state.showChurchFinderInlineCard &&
+                                        newCount == 3,
+                                    // Show the inline card after 5 interactions if the banner
+                                    // was already dismissed without opening the sheet.
+                                    showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
+                                        (newCount >= 5 && !state.showChurchFinderBanner),
+                                    allVerses = state.allVerses + dedupedNew,
                                 )
-                            } else null
-                            state.copy(
-                                messages = state.messages.map { msg ->
-                                    if (msg.id == assistantId) finalAssistant else msg
-                                } + listOfNotNull(limitMessage),
-                                isLoading = false,
-                                isBackendWarming = false,
-                                interactionCount = newCount,
-                                isSessionLimitReached = state.isSessionLimitReached || sessionLimitJustReached,
-                                // Show the banner exactly once, at interaction 3.
-                                // Using == rather than >= prevents re-showing the banner
-                                // after it has been dismissed (banner=false, inline=false).
-                                showChurchFinderBanner = !state.showChurchFinderBanner &&
-                                    !state.showChurchFinderInlineCard &&
-                                    newCount == 3,
-                                // Show the inline card after 5 interactions if the banner
-                                // was already dismissed without opening the sheet.
-                                showChurchFinderInlineCard = state.showChurchFinderInlineCard ||
-                                    (newCount >= 5 && !state.showChurchFinderBanner),
-                                allVerses = state.allVerses + dedupedNew,
-                            )
+                            }
                         }
                     }
                 }
@@ -535,6 +566,16 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
+     * Cancels the in-flight streaming response, if any. The partial assistant
+     * message accumulated so far is kept and persisted via the onCompletion
+     * handler in [sendMessage], so the user sees what was produced before they
+     * stopped generation.
+     */
+    fun cancelStream() {
+        streamJob?.takeIf { it.isActive }?.cancel()
+    }
+
+    /**
      * Returns the current conversation ID, creating a new conversation in Room
      * if one doesn't exist yet. Should be called on the first message of a session.
      */
@@ -545,12 +586,14 @@ class ChatViewModel @Inject constructor(
         val newId = UUID.randomUUID().toString()
         val conversation = repository.createConversation(id = newId, title = firstMessageText)
         _uiState.update { it.copy(currentConversationId = conversation.id) }
+        lastConversationPreferences.setLastConversationId(conversation.id)
         return conversation.id
     }
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
         viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
                 // Re-derive allVerses from loaded messages (deduplicated).
                 val allVerses = messages
@@ -560,6 +603,23 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
+    }
+
+    /**
+     * Resolve the conversation to land on at app launch.
+     *
+     * Returns the id of the last conversation the user opened if it still exists,
+     * or `null` if there is no prior conversation. The caller decides whether to
+     * navigate to `chat/<id>` or `chat/new`.
+     */
+    suspend fun resolveResumeConversationId(): String? {
+        val candidate = lastConversationPreferences.getLastConversationId() ?: return null
+        val exists = repository.observeConversations().first().any { it.id == candidate }
+        if (!exists) {
+            lastConversationPreferences.setLastConversationId(null)
+            return null
+        }
+        return candidate
     }
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
@@ -602,12 +662,22 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Updates the language locale in-memory and persists it via DataStore.
+     * Updates the language locale in-memory, persists it via DataStore, and applies
+     * it system-wide so every stringResource() reflects the new locale after the
+     * Activity recreate that AppCompatDelegate.setApplicationLocales triggers.
+     *
+     * Persistence must complete before localeApplier.apply() triggers recreation.
+     * If apply() fires first, the init-block languageFlow collector sees the old
+     * DataStore value and overwrites _uiState back to the previous locale for the
+     * duration of the recreation window, causing a visible revert to the old language.
      */
     fun setLocale(locale: String) {
+        if (locale == _uiState.value.currentLocale) return
+        Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
         _uiState.update { it.copy(currentLocale = locale) }
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
+            localeApplier.apply(locale)
         }
     }
 
@@ -679,6 +749,7 @@ class ChatViewModel @Inject constructor(
                 }
                 Timber.i("Feedback submitted: messageId=%s rating=%s", assistantMsg.messageId, rating)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit feedback")
                 _uiState.update { it.copy(isFeedbackSubmitting = false) }
             }
@@ -691,8 +762,18 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
+                lastConversationPreferences.setLastConversationId(null)
                 repository.deleteConversation(conversationId)
             }
+        }
+    }
+
+    /** Deletes ALL conversations from DB and resets in-memory state. */
+    fun clearAllConversations() {
+        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        viewModelScope.launch {
+            lastConversationPreferences.setLastConversationId(null)
+            repository.clearAllConversations()
         }
     }
 
@@ -711,6 +792,7 @@ class ChatViewModel @Inject constructor(
                 val response = bibleApiService.getChapter(book, chapter, translation)
                 _chapterSheetState.value = ChapterSheetState.Success(response)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "loadChapter error: $book $chapter")
                 _chapterSheetState.value = ChapterSheetState.Error(mapExceptionToMessage(e))
             }
@@ -772,6 +854,7 @@ class ChatViewModel @Inject constructor(
                     location = location.trim(),
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "searchChurches error for location=$location")
                 _churchFinderSheetState.value = ChurchFinderSheetState.Error(
                     mapExceptionToMessage(e),
@@ -809,6 +892,7 @@ class ChatViewModel @Inject constructor(
                 _contactFormState.value = ContactFormState.Success
                 Timber.i("Contact submitted: subject=%s", subject)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit contact form")
                 _contactFormState.value = ContactFormState.Error(
                     mapExceptionToMessage(e),
@@ -823,24 +907,58 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Debug log export
+    // Diagnostic / bug report
     // ---------------------------------------------------------------------------
 
     /**
-     * Collects in-memory logs from [LogCollector], writes them to a cache file,
-     * and launches the system share sheet so the user can send the log file.
+     * Sends a bug report through the app's built-in contact pipeline (same
+     * backend path used by the contact form) with the user's answers, device
+     * metadata, and current diagnostic log in the message body.
+     *
+     * Transitions [diagnosticReportState] through Submitting → Success or
+     * Error so the bottom sheet can show a spinner, a success screen, or an
+     * inline error message.
      */
-    fun shareDebugLogs(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
+        _diagnosticReportState.value = ContactFormState.Submitting
+        viewModelScope.launch {
             try {
                 val log = LogCollector.getLog()
-                val file = File(context.cacheDir, "bible_inspiration_debug.log")
-                file.writeText(log)
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file,
+                val body = buildBugReportBody(whatWereYouDoing, whatDidYouExpect, log)
+                contactRepository.submitContact(
+                    subject = ContactSubject.BUG,
+                    message = body,
+                    email = null,
+                    userAgent = "Android/${android.os.Build.VERSION.RELEASE} " +
+                        "(SDK ${android.os.Build.VERSION.SDK_INT}; " +
+                        "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL})",
                 )
+                _diagnosticReportState.value = ContactFormState.Success
+                Timber.i("Diagnostic bug report submitted")
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Timber.e(e, "Failed to send diagnostic email")
+                _diagnosticReportState.value = ContactFormState.Error(
+                    mapExceptionToMessage(e),
+                )
+            }
+        }
+    }
+
+    /** Resets the diagnostic-report state to [ContactFormState.Idle]. */
+    fun resetDiagnosticReport() {
+        _diagnosticReportState.value = ContactFormState.Idle
+    }
+
+    /**
+     * Writes the diagnostic log to a cache file and opens the system share
+     * sheet so the user can save or send it via any app of their choice.
+     * This is the secondary "save locally" option in the bug-report flow.
+     */
+    fun saveDiagnosticLogLocally(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val uri = writeLogToCache(context) ?: return@launch
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -854,10 +972,58 @@ class ChatViewModel @Inject constructor(
                     },
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Failed to share debug logs")
             }
         }
     }
+
+    private fun writeLogToCache(context: Context): android.net.Uri? {
+        return try {
+            val log = LogCollector.getLog()
+            val file = File(context.cacheDir, "bible_inspiration_debug.log")
+            file.writeText(log)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write debug log to cache")
+            null
+        }
+    }
+
+    private fun buildBugReportBody(
+        whatWereYouDoing: String,
+        whatDidYouExpect: String,
+        diagnosticLog: String,
+    ): String {
+        val doing = whatWereYouDoing.trim().ifEmpty { "(not provided)" }
+        val expected = whatDidYouExpect.trim().ifEmpty { "(not provided)" }
+        val log = diagnosticLog.ifBlank { "(no log entries captured)" }
+        val versionName = try {
+            org.voxquieta.app.BuildConfig.VERSION_NAME
+        } catch (_: Throwable) {
+            "unknown"
+        }
+        return buildString {
+            appendLine("What were you doing?")
+            appendLine(doing)
+            appendLine()
+            appendLine("What did you expect to happen?")
+            appendLine(expected)
+            appendLine()
+            appendLine("---")
+            appendLine("App version: $versionName")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine()
+            appendLine("Diagnostic log:")
+            appendLine(log)
+        }
+    }
+
 
     // ---------------------------------------------------------------------------
     // Private helpers
@@ -873,6 +1039,14 @@ class ChatViewModel @Inject constructor(
             if (body.contains("session_lifetime_limit")) {
                 _uiState.update { it.copy(isSessionLimitReached = true, isLoading = false) }
                 context.getString(R.string.error_session_limit)
+            } else {
+                context.getString(R.string.error_server)
+            }
+        }
+        e is HttpException && e.code() == 400 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            if (body.contains("content_blocked")) {
+                context.getString(R.string.error_content_blocked)
             } else {
                 context.getString(R.string.error_server)
             }

@@ -24,7 +24,11 @@ class LanguagePreferences @Inject constructor(
 ) {
     companion object {
         private val LANGUAGE_CODE_KEY = stringPreferencesKey("language_code")
-        const val DEFAULT_LANGUAGE = "en"
+        // Empty string means "no explicit user preference — let the backend auto-detect
+        // language from the message text".  A blank value is mapped to null in the API
+        // request (ChatViewModel.sendMessage: currentLocale.ifBlank { null }), so the
+        // backend receives no language hint and auto-detects correctly.
+        const val DEFAULT_LANGUAGE = ""
         private const val SYNC_PREFS_FILE = "language_sync_prefs"
         private const val SYNC_KEY = "language_code"
 
@@ -33,7 +37,11 @@ class LanguagePreferences @Inject constructor(
                 .getString(SYNC_KEY, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
     }
 
-    /** A [Flow] that emits the currently persisted language code (default: "en"). */
+    /**
+     * A [Flow] that emits the currently persisted language code.
+     * Default is empty string, meaning no explicit preference (backend auto-detects).
+     * A non-empty value (e.g. "it", "en") means the user explicitly chose that language.
+     */
     val languageFlow: Flow<String> = dataStore.data.map { prefs ->
         prefs[LANGUAGE_CODE_KEY] ?: DEFAULT_LANGUAGE
     }

@@ -6,8 +6,7 @@
   "Header": {
     "title": "Vox Quieta",
     "subtitle": "Inspire-se diariamente pela Palavra de Deus",
-    "bibleVersion": "Versão da Bíblia:",
-    "autoDetect": "Detetar automaticamente",
+    "bibleVersion": "Versão da Bíblia",
     "newChat": "Nova Conversa"
   },
   "Welcome": {
@@ -123,7 +122,10 @@
     "errorColdStart": "Ainda estou a preparar-me e está a demorar mais do que o esperado. Por favor, tente novamente em breve — estarei pronto em breve!",
     "errorConnection": "Lamento, estou com dificuldades de ligação neste momento. Pode ser um problema temporário — tente novamente em breve. Se o problema persistir, pode contactar-nos em contact@voxquieta.org",
     "startNewSession": "Iniciar Nova Sessão",
-    "sessionLimitMessage": "Você enviou 10 mensagens nesta sessão! Que tal tirar um momento para refletir sobre o que recebeu e aproveitar a criação de Deus? 🌳 Quando estiver pronto, inicie uma nova sessão abaixo."
+    "sessionLimitMessage": "Você enviou 10 mensagens nesta sessão! Que tal tirar um momento para refletir sobre o que recebeu e aproveitar a criação de Deus? 🌳 Quando estiver pronto, inicie uma nova sessão abaixo.",
+    "contentBlockedMessage": "Não consegui responder a essa mensagem — nosso sistema de segurança a reteve e pode simplesmente ter interpretado mal suas palavras. Tente reformular sua ideia e, se algo ainda parecer estranho, escreva para nós em contact@voxquieta.org. Ficamos felizes por você estar aqui.",
+    "scrollToBottom": "Rolar para baixo",
+    "stopGenerating": "Parar geração"
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",

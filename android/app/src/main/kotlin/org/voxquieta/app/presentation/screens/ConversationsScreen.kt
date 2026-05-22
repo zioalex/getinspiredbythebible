@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
@@ -61,6 +62,7 @@ fun ConversationsScreen(
     onNewConversation: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onOpenSettings: () -> Unit = {},
+    onNavigateBack: (() -> Unit)? = null,
     viewModel: ConversationsViewModel = hiltViewModel(),
     chatViewModel: ChatViewModel = hiltViewModel(),
 ) {
@@ -95,6 +97,16 @@ fun ConversationsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.conversations_title), style = MaterialTheme.typography.titleMedium) },
+                navigationIcon = {
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
+                    }
+                },
                 actions = {
                     if (conversations.isNotEmpty()) {
                         IconButton(onClick = { showClearAllDialog = true }) {

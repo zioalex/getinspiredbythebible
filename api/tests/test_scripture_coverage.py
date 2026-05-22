@@ -987,3 +987,78 @@ class TestSearchResults:
         assert sr.query == "love"
         assert sr.verses == []
         assert sr.passages == []
+
+
+# ==================== Metrics Wiring Tests ====================
+
+
+class TestRecordDurationMetrics:
+    """Verify _record_duration correctly wires duration/slow-query metrics."""
+
+    def _make_span(self):
+        return MagicMock()
+
+    def test_search_operation_records_search_histogram(self):
+        import time
+
+        from scripture.repository import _record_duration
+        from utils.metrics import db_search_duration_histogram
+
+        span = self._make_span()
+        start = time.perf_counter() - 0.005  # ~5 ms ago
+
+        with patch.object(db_search_duration_histogram, "record") as mock_record:
+            _record_duration(span, start, "semantic_search_verses", 10, "kjv")
+
+        mock_record.assert_called_once()
+        duration_ms, attrs = mock_record.call_args[0]
+        assert duration_ms > 0
+        assert attrs == {"operation": "semantic_search_verses", "translation": "kjv"}
+
+    def test_non_search_operation_records_query_histogram(self):
+        import time
+
+        from scripture.repository import _record_duration
+        from utils.metrics import db_query_duration_histogram, db_search_duration_histogram
+
+        span = self._make_span()
+        start = time.perf_counter() - 0.005
+
+        with (
+            patch.object(db_query_duration_histogram, "record") as mock_query,
+            patch.object(db_search_duration_histogram, "record") as mock_search,
+        ):
+            _record_duration(span, start, "get_verse", 1, "kjv")
+
+        mock_query.assert_called_once()
+        assert mock_query.call_args[0][0] > 0
+        assert mock_query.call_args[0][1] == {"operation": "get_verse"}
+        mock_search.assert_not_called()
+
+    def test_slow_query_increments_slow_counter(self):
+        import time
+
+        from scripture.repository import _record_duration
+        from utils.metrics import db_slow_queries_counter
+
+        span = self._make_span()
+        start = time.perf_counter() - 0.5  # 500 ms ago — well above 100 ms threshold
+
+        with patch.object(db_slow_queries_counter, "add") as mock_add:
+            _record_duration(span, start, "get_verse", 1, None)
+
+        mock_add.assert_called_once_with(1, {"operation": "get_verse"})
+
+    def test_fast_query_does_not_increment_slow_counter(self):
+        import time
+
+        from scripture.repository import _record_duration
+        from utils.metrics import db_slow_queries_counter
+
+        span = self._make_span()
+        start = time.perf_counter() - 0.001  # ~1 ms ago — below 100 ms threshold
+
+        with patch.object(db_slow_queries_counter, "add") as mock_add:
+            _record_duration(span, start, "get_verse", 1, None)
+
+        mock_add.assert_not_called()
