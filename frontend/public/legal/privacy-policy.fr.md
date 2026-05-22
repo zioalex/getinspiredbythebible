@@ -45,6 +45,16 @@ L'historique des conversations est stocké **uniquement en local sur votre appar
 ## Conservation des données
 
 - **Messages de chat** : non conservés sur nos serveurs.
+- **Messages bloqués par notre système de sécurité** : lorsque notre
+  système de sécurité bloque un message, un enregistrement minimal du
+  point de vue de la confidentialité peut être conservé brièvement
+  (jusqu'à 30 jours) pour nous aider à améliorer le filtre.
+  L'enregistrement contient le texte du message (avec une longueur
+  limitée), l'étape de sécurité qui l'a bloqué et un hachage à sens
+  unique de l'identifiant de session. Nous ne stockons ni votre
+  adresse IP, ni votre compte, ni aucune chaîne user-agent avec ces
+  enregistrements, et ils ne sont utilisés que pour affiner le filtre
+  de sécurité.
 - **Rapports de plantage et analyses** : conservés par Google jusqu'à 14 mois conformément à leur politique standard.
 - **Historique local des conversations** : stocké sur votre appareil jusqu'à ce que vous le supprimiez via l'application ou désinstalliez l'application.
 

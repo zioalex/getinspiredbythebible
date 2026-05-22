@@ -45,6 +45,15 @@ Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** in einer 
 ## Datenspeicherung
 
 - **Chat-Nachrichten**: nicht auf unseren Servern gespeichert.
+- **Vom Sicherheitssystem blockierte Nachrichten**: Wenn unser
+  Sicherheitssystem eine Nachricht blockiert, kann ein
+  datenschutzminimaler Eintrag kurzzeitig (bis zu 30 Tage) aufbewahrt
+  werden, damit wir den Filter verbessern können. Der Eintrag enthält
+  den Nachrichtentext (in der Länge begrenzt), welche Sicherheitsstufe
+  ihn blockiert hat, und einen Einweg-Hash der Sitzungs-ID. Wir
+  speichern weder deine IP-Adresse noch deinen Account noch einen
+  User-Agent-String mit diesen Einträgen, und sie werden ausschließlich
+  zur Verbesserung des Sicherheitsfilters verwendet.
 - **Absturzberichte und Analysen**: von Google bis zu 14 Monate gemäß deren Standardrichtlinie aufbewahrt.
 - **Lokaler Gesprächsverlauf**: auf deinem Gerät gespeichert, bis du ihn über die App löschst oder die App deinstallierst.
 

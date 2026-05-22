@@ -182,6 +182,7 @@
 
     <!-- Errors -->
     <string name="error_session_limit">이 세션에서 10개의 메시지를 보내셨습니다! 잠시 쉬면서 하나님의 창조물을 즐겨보시는 건 어떨까요? 🌳</string>
+    <string name="error_content_blocked">이 메시지에는 답변을 드리지 못했어요 — 저희 안전 시스템이 막아 두었는데, 당신의 표현을 잘못 읽었을 수도 있어요. 다른 말로 다시 한 번 표현해 주시고, 그래도 이상하다고 느껴지시면 contact@voxquieta.org 로 알려 주세요. 이곳을 찾아 주셔서 감사합니다.</string>
 
     <!-- Actions -->
     <string name="action_select_language">언어 선택</string>

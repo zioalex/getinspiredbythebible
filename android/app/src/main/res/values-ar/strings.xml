@@ -182,6 +182,7 @@
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
+    <string name="error_content_blocked">لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.</string>
 
     <!-- Actions -->
     <string name="action_select_language">اختر اللغة</string>

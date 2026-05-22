@@ -193,6 +193,19 @@ class ChatService:
                     "session_id": session_id,
                 },
             )
+            # Best-effort capture for filter tuning (no PII, TTL-bounded).
+            try:
+                from feedback.blocked_samples import record_blocked_sample
+
+                await record_blocked_sample(
+                    message=message,
+                    stage="content_safety",
+                    categories=safety_result.categories,
+                    language=detected_language,
+                    session_id=session_id,
+                )
+            except Exception:
+                pass
             return _SafetyOutcome(
                 allowed=False,
                 compassionate=False,

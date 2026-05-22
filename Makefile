@@ -1,8 +1,8 @@
 .PHONY: help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
-	validate-env validate-env-strict \
+	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	android-test android-build android-build-prod android-lint android-clean android-security-check \
+	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
 
@@ -157,6 +157,12 @@ android-test: ## Run Android unit tests (requires JDK 17)
 	@cd android && ./gradlew testDebugUnitTest --no-daemon
 	@echo "$(GREEN)✓ Android unit tests complete$(NC)"
 
+android-test-compose: ## Run Android Compose UI tests via Robolectric — separate from android-test (requires JDK 17)
+	@echo "$(BLUE)Running Android Compose UI tests...$(NC)"
+	@cd android && ./gradlew testDebugCompose --no-daemon
+	@echo "$(GREEN)✓ Android Compose UI tests complete$(NC)"
+	@echo "$(YELLOW)Report: android/app/build/reports/tests/testDebugCompose/index.html$(NC)"
+
 android-build: ## Build Android debug APK pointing at local dev backend (requires JDK 17)
 	@echo "$(BLUE)Building Android debug APK (local backend: http://10.0.2.2:8000/)...$(NC)"
 	@cd android && ./gradlew assembleDebug --no-daemon
@@ -238,6 +244,9 @@ validate-env-strict: install-deps ## Validate env vars (strict mode - warnings a
 	@echo "$(BLUE)Validating environment variables (strict mode)...$(NC)"
 	@$(CURDIR)/$(PYTHON) scripts/validate-env.py --strict
 	@echo "$(GREEN)✓ Environment validation complete$(NC)"
+
+export-blocked-samples: install-deps ## Export captured blocked-message samples (read-only). Usage: make export-blocked-samples ARGS="--format csv --since 2026-05-01". Requires DATABASE_URL.
+	@$(CURDIR)/$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"

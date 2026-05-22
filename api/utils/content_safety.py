@@ -27,11 +27,30 @@ import hashlib
 import time
 from dataclasses import dataclass, field
 
+import httpx
+
 from config import settings
+from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
+from utils.metrics import llama_guard_fallback_counter
 from utils.security import MultiLanguageContentFilter
 
 logger = get_logger(__name__)
+
+
+def _classify_llama_guard_failure(e: Exception) -> str:
+    """Categorize a Llama Guard failure for fallback-metric labelling."""
+    if isinstance(e, CircuitOpenError):
+        return "breaker_open"
+    if isinstance(e, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(e, httpx.HTTPStatusError):
+        status = getattr(e.response, "status_code", None)
+        return f"http_{status}" if status else "http_error"
+    if isinstance(e, httpx.HTTPError):
+        # Covers RemoteDisconnected → httpx.RemoteProtocolError, etc.
+        return type(e).__name__.lower()
+    return "other"
 
 
 @dataclass
@@ -329,9 +348,16 @@ class ContentSafetyService:
             # For hybrid mode, continue to Azure (Stage 3)
             return None
 
-        except Exception as e:
-            logger.warning("Llama Guard API unavailable, falling back: %s", e)
-            # Fallback to full keyword filter
+        except (httpx.TimeoutException, httpx.HTTPError, CircuitOpenError) as e:
+            # Narrow: only fall back on known transient/network/breaker failures.
+            # Anything else (programmer error, ValueError, etc.) propagates.
+            reason = _classify_llama_guard_failure(e)
+            llama_guard_fallback_counter.add(1, {"reason": reason})
+            logger.warning(
+                "Llama Guard unavailable (%s), falling back to keyword filter: %s",
+                reason,
+                e,
+            )
             return self._full_keyword_fallback(text, language, start)
 
     async def _check_stage2_openai_moderation(

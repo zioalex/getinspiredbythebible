@@ -36,6 +36,7 @@ import {
   getOrCreateSessionId,
   resetSessionId,
   ColdStartError,
+  ContentBlockedError,
   SessionLimitError,
   checkBackendReady,
   warmupBackend,
@@ -366,15 +367,14 @@ export default function Home() {
         return [...prev, placeholderMessage];
       });
 
-      // Stream the response
-      for await (const chunk of streamMessage(
-        userMessageContent,
-        apiMessages,
-        selectedTranslation || undefined,
+      // Stream the response. We deliberately omit `language` so the backend
+      // auto-detects it from the message text — this lets Italian speakers
+      // get Italian replies even when the UI locale is English.
+      for await (const chunk of streamMessage(userMessageContent, apiMessages, {
+        preferredTranslation: selectedTranslation || undefined,
         sessionId,
-        locale,
-        controller.signal,
-      )) {
+        signal: controller.signal,
+      })) {
         if (controller.signal.aborted) break;
         if (chunk.type === "error") {
           throw new Error(chunk.error || "Stream error");
@@ -510,6 +510,18 @@ export default function Home() {
         };
         setMessages((prev) => [...prev, errorMessage]);
         setShowSessionLimitButton(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Safety system blocked the message — show a warm notification
+      // inviting the user to rephrase and to get in touch if something feels wrong.
+      if (error instanceof ContentBlockedError) {
+        const errorMessage: ChatMessage = {
+          role: "assistant",
+          content: tChat("contentBlockedMessage"),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
         setIsLoading(false);
         return;
       }

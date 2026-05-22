@@ -665,13 +665,19 @@ class ChatViewModel @Inject constructor(
      * Updates the language locale in-memory, persists it via DataStore, and applies
      * it system-wide so every stringResource() reflects the new locale after the
      * Activity recreate that AppCompatDelegate.setApplicationLocales triggers.
+     *
+     * Persistence must complete before localeApplier.apply() triggers recreation.
+     * If apply() fires first, the init-block languageFlow collector sees the old
+     * DataStore value and overwrites _uiState back to the previous locale for the
+     * duration of the recreation window, causing a visible revert to the old language.
      */
     fun setLocale(locale: String) {
+        if (locale == _uiState.value.currentLocale) return
         Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
         _uiState.update { it.copy(currentLocale = locale) }
-        localeApplier.apply(locale)
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
+            localeApplier.apply(locale)
         }
     }
 
@@ -1033,6 +1039,14 @@ class ChatViewModel @Inject constructor(
             if (body.contains("session_lifetime_limit")) {
                 _uiState.update { it.copy(isSessionLimitReached = true, isLoading = false) }
                 context.getString(R.string.error_session_limit)
+            } else {
+                context.getString(R.string.error_server)
+            }
+        }
+        e is HttpException && e.code() == 400 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            if (body.contains("content_blocked")) {
+                context.getString(R.string.error_content_blocked)
             } else {
                 context.getString(R.string.error_server)
             }
