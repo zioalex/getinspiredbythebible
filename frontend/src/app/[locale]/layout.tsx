@@ -97,7 +97,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <ErrorBoundary>
-              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
+              <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col overflow-x-hidden">
                 <div className="flex-1">{children}</div>
                 <Footer />
               </div>
