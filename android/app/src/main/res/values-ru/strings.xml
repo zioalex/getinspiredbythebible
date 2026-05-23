@@ -236,6 +236,7 @@
     <string name="contact_email_placeholder">вы@пример.ру</string>
     <string name="contact_message_label">Сообщение</string>
     <string name="contact_message_placeholder">Поделитесь мыслями, сообщите о проблеме или предложите улучшение…</string>
+    <string name="contact_message_placeholder_bug">Шаги для воспроизведения:\n1. \n\nОжидаемое поведение:\n\nФактическое поведение:\n\nБраузер / устройство (необязательно):</string>
     <string name="contact_message_required">Пожалуйста, введите сообщение</string>
     <string name="contact_privacy_note">Ваше сообщение будет сохранено для улучшения сервиса.</string>
     <string name="contact_send_button">Отправить сообщение</string>

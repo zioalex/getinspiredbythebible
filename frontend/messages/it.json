@@ -209,6 +209,7 @@
     "subjectOther": "Altro",
     "messageLabel": "Messaggio",
     "messagePlaceholder": "Condividi i tuoi pensieri, segnala un problema o suggerisci un miglioramento...",
+    "messagePlaceholderBug": "Passi per riprodurre:\n1. \n\nComportamento atteso:\n\nComportamento effettivo:\n\nBrowser / dispositivo (opzionale):",
     "privacyNote": "Il tuo messaggio verrà conservato per aiutarci a migliorare il servizio.",
     "sending": "Invio in corso...",
     "sendMessage": "Invia Messaggio",

@@ -209,6 +209,7 @@
     "subjectOther": "Sonstiges",
     "messageLabel": "Nachricht",
     "messagePlaceholder": "Teile deine Gedanken mit, melde ein Problem oder schlage eine Verbesserung vor...",
+    "messagePlaceholderBug": "Schritte zum Reproduzieren:\n1. \n\nErwartetes Verhalten:\n\nTatsächliches Verhalten:\n\nBrowser / Gerät (optional):",
     "privacyNote": "Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.",
     "sending": "Wird gesendet...",
     "sendMessage": "Nachricht senden",

@@ -233,6 +233,7 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">消息</string>
     <string name="contact_message_placeholder">分享您的想法、报告问题或建议改进…</string>
+    <string name="contact_message_placeholder_bug">重现步骤：\n1. \n\n预期行为：\n\n实际行为：\n\n浏览器 / 设备（可选）：</string>
     <string name="contact_message_required">请输入消息</string>
     <string name="contact_privacy_note">您的消息将被存储以帮助我们改进服务。</string>
     <string name="contact_send_button">发送消息</string>

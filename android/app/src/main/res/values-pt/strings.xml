@@ -235,6 +235,7 @@
     <string name="contact_email_placeholder">voce@exemplo.com</string>
     <string name="contact_message_label">Mensagem</string>
     <string name="contact_message_placeholder">Compartilhe seus pensamentos, relate um problema ou sugira uma melhoria…</string>
+    <string name="contact_message_placeholder_bug">Passos para reproduzir:\n1. \n\nComportamento esperado:\n\nComportamento real:\n\nNavegador / dispositivo (opcional):</string>
     <string name="contact_message_required">Por favor, insira uma mensagem</string>
     <string name="contact_privacy_note">Sua mensagem será armazenada para nos ajudar a melhorar o serviço.</string>
     <string name="contact_send_button">Enviar mensagem</string>

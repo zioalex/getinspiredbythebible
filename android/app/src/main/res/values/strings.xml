@@ -243,6 +243,7 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">Message</string>
     <string name="contact_message_placeholder">Share your thoughts, report an issue, or suggest an improvement…</string>
+    <string name="contact_message_placeholder_bug">Steps to reproduce:\n1. \n\nExpected behavior:\n\nActual behavior:\n\nBrowser / device (optional):</string>
     <string name="contact_message_required">Please enter a message</string>
     <string name="contact_privacy_note">Your message will be stored to help us improve the service.</string>
     <string name="contact_send_button">Send Message</string>
