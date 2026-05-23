@@ -1,5 +1,7 @@
 # BITB-032: Route Support/Diagnostic Emails to `support@voxquieta.org`
 
+**Status:** ✅ Done — code change merged; activate by provisioning `support@voxquieta.org` mailbox and applying Terraform.
+
 ## User Story
 
 As the product team, I want contact-form submissions and diagnostic bug
