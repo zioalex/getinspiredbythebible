@@ -328,8 +328,8 @@ fun SettingsScreen(
         if (showDiagnosticSheet) {
             DiagnosticReportBottomSheet(
                 formState = diagnosticReportState,
-                onSendEmail = { doing, expected ->
-                    viewModel.sendDiagnosticEmail(doing, expected)
+                onSendEmail = { doing, expected, email ->
+                    viewModel.sendDiagnosticEmail(doing, expected, email)
                 },
                 onSaveLocally = {
                     viewModel.saveDiagnosticLogLocally(context)

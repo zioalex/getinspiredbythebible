@@ -919,7 +919,7 @@ class ChatViewModel @Inject constructor(
      * Error so the bottom sheet can show a spinner, a success screen, or an
      * inline error message.
      */
-    fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String) {
+    fun sendDiagnosticEmail(whatWereYouDoing: String, whatDidYouExpect: String, email: String? = null) {
         _diagnosticReportState.value = ContactFormState.Submitting
         viewModelScope.launch {
             try {
@@ -928,7 +928,7 @@ class ChatViewModel @Inject constructor(
                 contactRepository.submitContact(
                     subject = ContactSubject.BUG,
                     message = body,
-                    email = null,
+                    email = email,
                     userAgent = "Android/${android.os.Build.VERSION.RELEASE} " +
                         "(SDK ${android.os.Build.VERSION.SDK_INT}; " +
                         "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL})",
