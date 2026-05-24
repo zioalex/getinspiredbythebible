@@ -104,6 +104,34 @@ platform :android do
     upload_to_play_store(**params)
   end
 
+  desc "Promote an already-uploaded versionCode from one track to another (no rebuild)"
+  # Promotes the *exact* build that was validated on the source track to the
+  # destination track, instead of re-uploading a freshly-built AAB. This is the
+  # production path: the artifact that production users receive is bit-for-bit
+  # the one closed testers approved. Production starts as 'draft' by default so
+  # a human reviews it in Play Console before going live; ROLLOUT enables a
+  # phased rollout once the release is set to 'completed'.
+  lane :promote do
+    status = release_status_for("draft")
+    params = {
+      version_code: Integer(ENV.fetch("PROMOTE_VERSION_CODE")),
+      track: ENV.fetch("PROMOTE_FROM", "extend testing"),
+      track_promote_to: ENV.fetch("PROMOTE_TO", "production"),
+      track_promote_release_status: status,
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    }
+    # Play Store rejects rollout + draft together. Only attach a rollout
+    # percentage when the promoted release is actually going live.
+    params[:rollout] = ENV.fetch("ROLLOUT", "0.1") unless status == "draft"
+
+    upload_to_play_store(**params)
+  end
+
   desc "Dry-run validate against Play Store (no edit committed, no AAB uploaded)"
   # Useful after a manual Play Console cleanup: confirms auth, AAB integrity,
   # and edit-preconditions without actually committing any changes. Runs against

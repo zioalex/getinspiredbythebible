@@ -29,8 +29,12 @@ android-publish.yml fires on push: tags: v*.*.*
         │      are CHANGELOG + manifest only; the parent is the real shipping
         │      code and already has a green Android CI verdict)
         ▼
-Internal track uploaded to Google Play
+Uploaded to the Google Play track named by the
+ANDROID_AUTO_TRACK repo variable (default: internal)
 ```
+
+The track a tag publishes to is a **single dial** — the `ANDROID_AUTO_TRACK`
+Actions variable. See [The publishing ladder](#the-publishing-ladder) below.
 
 No manual `git tag` is required.
 **Do NOT push `vX.Y.Z` tags by hand** — release-please manages them, and the
@@ -136,7 +140,8 @@ as a repository secret:
 Once the secret is in place, every merge of a Release PR will:
 
 - Push a `vX.Y.Z` tag using the PAT
-- Trigger `android-publish.yml` → upload to the **internal** Play Store track
+- Trigger `android-publish.yml` → upload to the Play Store track named by the
+  `ANDROID_AUTO_TRACK` variable (see [The publishing ladder](#the-publishing-ladder))
 
 > Note: `.github/workflows/release-please.yml` currently sets
 > `skip-labeling: true` to avoid intermittent GitHub API denials on
@@ -165,22 +170,84 @@ On merge of the Release PR:
 
 1. release-please pushes tag `vX.Y.Z`
 2. `android-publish.yml` triggers on `push: tags: v[0-9]+.[0-9]+.[0-9]+`
-3. The workflow builds a signed AAB and uploads it to the **internal** track on
-   Google Play
+3. The workflow builds a signed AAB and uploads it to the track named by the
+   `ANDROID_AUTO_TRACK` repo variable (see below)
 
-### Manual promotion to beta / production
+### The publishing ladder
+
+A Google Play app climbs a ladder of tracks before reaching all users:
+
+```
+internal  →  closed testing (e.g. "extend testing")  →  beta (open)  →  production
+```
+
+Rather than hardcode which track tags publish to, the pipeline reads a single
+**Actions repository variable**, `ANDROID_AUTO_TRACK`. The tag-triggered
+publish routes to the matching Fastlane lane:
+
+| `ANDROID_AUTO_TRACK` value | Goes to |
+| -------------------------- | ------- |
+| _unset / empty_            | `internal` (safe default) |
+| `internal`                 | Internal testing |
+| `alpha`                    | Closed testing (built-in alpha track) |
+| `extend testing` (or any other custom trackId) | That closed testing track |
+| `beta`                     | Open testing |
+| `production`               | Production |
+
+**To advance the app up the ladder, change the variable — no code change:**
+
+1. Go to **Repo → Settings → Secrets and variables → Actions → Variables**.
+2. Edit (or create) `ANDROID_AUTO_TRACK` and set it to the target trackId.
+3. The next merged Release PR publishes straight to that track.
+
+> **Current value:** `extend testing` — the app is in closed testing with the
+> extended group. Every release now reaches those testers automatically.
+>
+> **Confirming a custom trackId:** any value that is not
+> `internal`/`alpha`/`beta`/`production` is treated as a closed-testing track
+> and passed through verbatim. Make sure it matches the Play Console trackId
+> exactly. The **List available Play Store tracks** step in
+> `android-closed-testing.yml` prints the exact trackIds for the app.
+
+### Reaching production
+
+Google requires a (new) developer account to run a **closed test with at least
+12 testers for at least 14 continuous days** before the production track
+unlocks. Until that gate is satisfied, keep `ANDROID_AUTO_TRACK` on the closed
+track and let testers accumulate days.
+
+Once eligible, **promote the exact build that testers approved** — do not ship
+a freshly-built AAB to production. Use the **Android Promote** workflow
+(`android-promote.yml`), which runs the Fastfile `promote` lane and moves an
+existing `versionCode` between tracks without rebuilding:
+
+1. Find the `versionCode` of the build to promote (Play Console → the release
+   on the closed track, or the AAB artifact name / build log of the run that
+   published it).
+2. Go to **Repository → Actions → Android Promote → Run workflow**.
+3. Fill in `promote_version_code`, `promote_from` (default `extend testing`),
+   `promote_to` (default `production`), `release_status` (default `draft`), and
+   `rollout` (phased fraction, applied only when status is `completed`).
+4. With `draft`, review the staged release in Play Console, then set the
+   rollout live there (or re-run with `release_status: completed` and a
+   `rollout` fraction for a phased launch).
+
+### Manual one-off publish (workflow_dispatch)
 
 `android-publish.yml` also has a `workflow_dispatch` trigger with a `track`
-input (`internal` | `beta` | `production`). To promote a build:
+input (`validate` | `internal` | `alpha` | `beta` | `production`) for ad-hoc
+builds. To publish a fresh build to a specific track:
 
-1. Go to **Repository → Actions → Android Publish**.
-2. Click **Run workflow**.
-3. Select the desired track and click **Run workflow**.
+1. Go to **Repository → Actions → Android Publish → Run workflow**.
+2. Select the desired track and click **Run workflow**.
 
 > **Note:** The `workflow_dispatch` path does not bump the version — it uses the
 > `versionName` and `versionCode` from `android/app/build.gradle.kts`. For a
 > manual dispatch to have the correct version, ensure `build.gradle.kts` matches
 > the version you intend to publish, or use the tag-triggered path instead.
+>
+> For production, prefer **Android Promote** over a fresh `production` dispatch
+> so the artifact users get is the one that was actually tested.
 
 ---
 
