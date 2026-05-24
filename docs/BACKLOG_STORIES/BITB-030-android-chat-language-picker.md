@@ -1,6 +1,6 @@
 # BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (ChatTopBarPolicy.kt enforces Language + Bible version only; extras moved to drawer; verified 2026-05-24)
 **Priority:** P3
 **Size:** S (< 4 hours)
 **Created:** 2026-05-10

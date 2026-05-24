@@ -1,5 +1,7 @@
 # BITB-026: Android Settings UX Improvements
 
+**Status:** ✅ Done (SettingsScreen.kt already has read-only translation row, clear-history button with confirm dialog, reordered sections; verified 2026-05-24)
+
 ## User Story
 
 As an Android user, I want the Settings screen to be clean and purposeful, so that I can find global preferences quickly without redundant controls that already exist in the chat screen.

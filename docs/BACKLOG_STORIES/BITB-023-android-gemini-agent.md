@@ -1,7 +1,7 @@
 # BITB-023: Add Gemini 2.5 Pro Android Agent to opencode.json
 
 **Priority:** P1 (High)
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #609 merged 2026-05-24 — android-gemini agent backed by Qwen3 Coder via OpenRouter added to opencode.json)
 **Size:** S (< 2 hours)
 **Created:** 2026-03-06
 
