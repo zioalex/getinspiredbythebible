@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.12.0...v1.13.0) (2026-05-24)
+
+### Features
+
+* **android:** make tag publish track configurable and add production promotion ([#613](https://github.com/zioalex/getinspiredbythebible/issues/613)) ([26eff02](https://github.com/zioalex/getinspiredbythebible/commit/26eff02d6cc47700c8ca4165c6851c8eb4b84b4e))
+* **contact-form:** add required fields for bug reports with structured layout ([#616](https://github.com/zioalex/getinspiredbythebible/issues/616)) ([3f47edc](https://github.com/zioalex/getinspiredbythebible/commit/3f47edc63bb1c128560da62aefdc60ad47166018))
+
 ## [1.12.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.11.0...v1.12.0) (2026-05-24)
 
 ### Features
