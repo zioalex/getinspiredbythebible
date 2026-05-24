@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.voxquieta.app.R
 
@@ -52,13 +53,14 @@ import org.voxquieta.app.R
 @Composable
 fun DiagnosticReportBottomSheet(
     formState: ContactFormState,
-    onSendEmail: (whatWereYouDoing: String, whatDidYouExpect: String) -> Unit,
+    onSendEmail: (whatWereYouDoing: String, whatDidYouExpect: String, email: String?) -> Unit,
     onSaveLocally: () -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     var doingInput by rememberSaveable { mutableStateOf("") }
     var expectedInput by rememberSaveable { mutableStateOf("") }
+    var emailInput by rememberSaveable { mutableStateOf("") }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -124,6 +126,7 @@ fun DiagnosticReportBottomSheet(
             }
 
             val isSubmitting = formState is ContactFormState.Submitting
+            val formValid = doingInput.isNotBlank() && expectedInput.isNotBlank()
 
             OutlinedTextField(
                 value = doingInput,
@@ -155,6 +158,20 @@ fun DiagnosticReportBottomSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            OutlinedTextField(
+                value = emailInput,
+                onValueChange = { emailInput = it },
+                label = { Text(stringResource(R.string.contact_email_label)) },
+                placeholder = { Text(stringResource(R.string.contact_email_placeholder)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done,
+                ),
+                enabled = !isSubmitting,
+            )
+
             // ── Error ─────────────────────────────────────────────────────────
             if (formState is ContactFormState.Error) {
                 Text(
@@ -165,9 +182,9 @@ fun DiagnosticReportBottomSheet(
             }
 
             Button(
-                onClick = { onSendEmail(doingInput, expectedInput) },
+                onClick = { onSendEmail(doingInput, expectedInput, emailInput.ifBlank { null }) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isSubmitting,
+                enabled = formValid && !isSubmitting,
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(

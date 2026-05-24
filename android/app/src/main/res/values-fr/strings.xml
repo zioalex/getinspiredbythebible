@@ -235,7 +235,10 @@
     <string name="contact_email_placeholder">vous@exemple.fr</string>
     <string name="contact_message_label">Message</string>
     <string name="contact_message_placeholder">Partagez vos pensées, signalez un problème ou suggérez une amélioration…</string>
-    <string name="contact_message_placeholder_bug">Étapes pour reproduire :\n1. \n\nComportement attendu :\n\nComportement observé :\n\nNavigateur / appareil (optionnel) :</string>
+    <string name="contact_bug_steps_label">Étapes pour reproduire</string>
+    <string name="contact_bug_steps_placeholder">p. ex. 1. Ouvrir l’app, 2. Toucher un verset, 3. ...</string>
+    <string name="contact_bug_expected_label">Comportement attendu vs. observé</string>
+    <string name="contact_bug_expected_placeholder">p. ex. Le verset devait s’ouvrir, mais l’app s’est figée</string>
     <string name="contact_message_required">Veuillez entrer un message</string>
     <string name="contact_privacy_note">Votre message sera enregistré pour nous aider à améliorer le service.</string>
     <string name="contact_send_button">Envoyer le message</string>

@@ -234,7 +234,10 @@
     <string name="contact_email_placeholder">du@beispiel.de</string>
     <string name="contact_message_label">Nachricht</string>
     <string name="contact_message_placeholder">Teile deine Gedanken, melde ein Problem oder schlage eine Verbesserung vor…</string>
-    <string name="contact_message_placeholder_bug">Schritte zum Reproduzieren:\n1. \n\nErwartetes Verhalten:\n\nTatsächliches Verhalten:\n\nBrowser / Gerät (optional):</string>
+    <string name="contact_bug_steps_label">Schritte zum Reproduzieren</string>
+    <string name="contact_bug_steps_placeholder">z. B. 1. App öffnen, 2. Auf einen Vers tippen, 3. ...</string>
+    <string name="contact_bug_expected_label">Erwartetes vs. tatsächliches Verhalten</string>
+    <string name="contact_bug_expected_placeholder">z. B. Erwartet: Vers öffnet sich, aber die App fror ein</string>
     <string name="contact_message_required">Bitte eine Nachricht eingeben</string>
     <string name="contact_privacy_note">Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.</string>
     <string name="contact_send_button">Nachricht senden</string>
