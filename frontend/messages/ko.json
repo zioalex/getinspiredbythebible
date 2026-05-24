@@ -209,6 +209,7 @@
     "subjectOther": "기타",
     "messageLabel": "메시지",
     "messagePlaceholder": "생각을 나누고, 문제를 신고하거나, 개선 사항을 제안해 주세요...",
+    "messagePlaceholderBug": "재현 단계:\n1. \n\n예상 동작:\n\n실제 동작:\n\n브라우저 / 기기 (선택 사항):",
     "privacyNote": "서비스 개선을 위해 메시지가 저장됩니다.",
     "sending": "전송 중...",
     "sendMessage": "메시지 보내기",

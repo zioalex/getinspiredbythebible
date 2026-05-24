@@ -192,11 +192,16 @@ fun ContactFormBottomSheet(
 
             // ── Message input ─────────────────────────────────────────────────
             val messageError = messageTouched && messageInput.isBlank()
+            val messagePlaceholderRes = if (selectedSubject.value == ContactSubject.BUG) {
+                R.string.contact_message_placeholder_bug
+            } else {
+                R.string.contact_message_placeholder
+            }
             OutlinedTextField(
                 value = messageInput,
                 onValueChange = { messageInput = it },
                 label = { Text(stringResource(R.string.contact_message_label)) },
-                placeholder = { Text(stringResource(R.string.contact_message_placeholder)) },
+                placeholder = { Text(stringResource(messagePlaceholderRes)) },
                 minLines = 4,
                 maxLines = 8,
                 modifier = Modifier.fillMaxWidth(),

@@ -234,6 +234,7 @@
     <string name="contact_email_placeholder">aap@udaharan.com</string>
     <string name="contact_message_label">संदेश</string>
     <string name="contact_message_placeholder">अपने विचार साझा करें, कोई समस्या रिपोर्ट करें या सुधार सुझाएं…</string>
+    <string name="contact_message_placeholder_bug">पुनः उत्पन्न करने के चरण:\n1. \n\nअपेक्षित व्यवहार:\n\nवास्तविक व्यवहार:\n\nब्राउज़र / डिवाइस (वैकल्पिक):</string>
     <string name="contact_message_required">कृपया एक संदेश दर्ज करें</string>
     <string name="contact_privacy_note">आपका संदेश सेवा सुधार के लिए संग्रहीत किया जाएगा।</string>
     <string name="contact_send_button">संदेश भेजें</string>

@@ -35,6 +35,8 @@ export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isBug = subject === "bug";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -186,7 +188,9 @@ export default function ContactForm() {
                   id="contact-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t("messagePlaceholder")}
+                  placeholder={
+                    isBug ? t("messagePlaceholderBug") : t("messagePlaceholder")
+                  }
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   disabled={isSubmitting}
