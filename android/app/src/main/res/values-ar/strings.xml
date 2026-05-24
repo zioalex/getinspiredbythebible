@@ -238,7 +238,10 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">الرسالة</string>
     <string name="contact_message_placeholder">شارك أفكارك أو أبلغ عن مشكلة أو اقترح تحسيناً…</string>
-    <string name="contact_message_placeholder_bug">خطوات إعادة الإنتاج:\n1. \n\nالسلوك المتوقع:\n\nالسلوك الفعلي:\n\nالمتصفح / الجهاز (اختياري):</string>
+    <string name="contact_bug_steps_label">خطوات إعادة الإنتاج</string>
+    <string name="contact_bug_steps_placeholder">مثال: 1. افتح التطبيق، 2. اضغط على آية، 3. ...</string>
+    <string name="contact_bug_expected_label">السلوك المتوقع مقابل الفعلي</string>
+    <string name="contact_bug_expected_placeholder">مثال: توقعت أن تُفتح الآية، لكن التطبيق توقف</string>
     <string name="contact_message_required">الرجاء إدخال رسالة</string>
     <string name="contact_privacy_note">ستُخزَّن رسالتك لمساعدتنا في تحسين الخدمة.</string>
     <string name="contact_send_button">إرسال الرسالة</string>

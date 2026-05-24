@@ -78,7 +78,19 @@ fun ContactFormBottomSheet(
     var subjectDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var emailInput by rememberSaveable { mutableStateOf("") }
     var messageInput by rememberSaveable { mutableStateOf("") }
-    var messageTouched by rememberSaveable { mutableStateOf(false) }
+    var bugStepsInput by rememberSaveable { mutableStateOf("") }
+    var bugBehaviorInput by rememberSaveable { mutableStateOf("") }
+    var fieldsTouched by rememberSaveable { mutableStateOf(false) }
+
+    val isBug = selectedSubject.value == ContactSubject.BUG
+    val bugStepsLabel = stringResource(R.string.contact_bug_steps_label)
+    val bugExpectedLabel = stringResource(R.string.contact_bug_expected_label)
+
+    val formValid = if (isBug) {
+        bugStepsInput.isNotBlank() && bugBehaviorInput.isNotBlank()
+    } else {
+        messageInput.isNotBlank()
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -176,7 +188,50 @@ fun ContactFormBottomSheet(
                 }
             }
 
-            // ── Email input (optional) ────────────────────────────────────────
+            // ── Message input ─────────────────────────────────────────────────
+            // Bug reports collect two structured required fields; everything else
+            // uses a single free-form message.
+            if (isBug) {
+                OutlinedTextField(
+                    value = bugStepsInput,
+                    onValueChange = { bugStepsInput = it },
+                    label = { Text(bugStepsLabel) },
+                    placeholder = { Text(stringResource(R.string.contact_bug_steps_placeholder)) },
+                    minLines = 3,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                    isError = fieldsTouched && bugStepsInput.isBlank(),
+                )
+                OutlinedTextField(
+                    value = bugBehaviorInput,
+                    onValueChange = { bugBehaviorInput = it },
+                    label = { Text(bugExpectedLabel) },
+                    placeholder = { Text(stringResource(R.string.contact_bug_expected_placeholder)) },
+                    minLines = 3,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                    isError = fieldsTouched && bugBehaviorInput.isBlank(),
+                )
+            } else {
+                OutlinedTextField(
+                    value = messageInput,
+                    onValueChange = { messageInput = it },
+                    label = { Text(stringResource(R.string.contact_message_label)) },
+                    placeholder = { Text(stringResource(R.string.contact_message_placeholder)) },
+                    minLines = 4,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                    isError = fieldsTouched && messageInput.isBlank(),
+                    supportingText = if (fieldsTouched && messageInput.isBlank()) {
+                        { Text(stringResource(R.string.contact_message_required)) }
+                    } else null,
+                )
+            }
+
+            // ── Email input (optional) — shown last ───────────────────────────
             OutlinedTextField(
                 value = emailInput,
                 onValueChange = { emailInput = it },
@@ -188,28 +243,6 @@ fun ContactFormBottomSheet(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
                 ),
-            )
-
-            // ── Message input ─────────────────────────────────────────────────
-            val messageError = messageTouched && messageInput.isBlank()
-            val messagePlaceholderRes = if (selectedSubject.value == ContactSubject.BUG) {
-                R.string.contact_message_placeholder_bug
-            } else {
-                R.string.contact_message_placeholder
-            }
-            OutlinedTextField(
-                value = messageInput,
-                onValueChange = { messageInput = it },
-                label = { Text(stringResource(R.string.contact_message_label)) },
-                placeholder = { Text(stringResource(messagePlaceholderRes)) },
-                minLines = 4,
-                maxLines = 8,
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                isError = messageError,
-                supportingText = if (messageError) {
-                    { Text(stringResource(R.string.contact_message_required)) }
-                } else null,
             )
 
             // ── Privacy note ──────────────────────────────────────────────────
@@ -231,17 +264,23 @@ fun ContactFormBottomSheet(
             // ── Send button ───────────────────────────────────────────────────
             Button(
                 onClick = {
-                    messageTouched = true
-                    if (messageInput.isNotBlank()) {
+                    fieldsTouched = true
+                    if (formValid) {
+                        val messageBody = if (isBug) {
+                            "$bugStepsLabel:\n${bugStepsInput.trim()}\n\n" +
+                                "$bugExpectedLabel:\n${bugBehaviorInput.trim()}"
+                        } else {
+                            messageInput
+                        }
                         onSubmit(
                             selectedSubject.value,
-                            messageInput,
+                            messageBody,
                             emailInput.ifBlank { null },
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = messageInput.isNotBlank() && formState !is ContactFormState.Submitting,
+                enabled = formValid && formState !is ContactFormState.Submitting,
             ) {
                 if (formState is ContactFormState.Submitting) {
                     CircularProgressIndicator(

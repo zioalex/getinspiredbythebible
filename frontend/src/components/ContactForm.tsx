@@ -31,6 +31,8 @@ export default function ContactForm() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState<Subject>("spiritual");
   const [message, setMessage] = useState("");
+  const [bugSteps, setBugSteps] = useState("");
+  const [bugBehavior, setBugBehavior] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,16 @@ export default function ContactForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+
+    if (isBug) {
+      if (!bugSteps.trim() || !bugBehavior.trim()) return;
+    } else if (!message.trim()) {
+      return;
+    }
+
+    const messageBody = isBug
+      ? `${t("bugStepsLabel")}:\n${bugSteps.trim()}\n\n${t("bugExpectedLabel")}:\n${bugBehavior.trim()}`
+      : message.trim();
 
     setIsSubmitting(true);
     setError(null);
@@ -48,7 +59,7 @@ export default function ContactForm() {
       const request: ContactRequest = {
         email: email.trim() || undefined,
         subject,
-        message: message.trim(),
+        message: messageBody,
         user_agent:
           typeof navigator !== "undefined" ? navigator.userAgent : undefined,
       };
@@ -57,6 +68,8 @@ export default function ContactForm() {
       setSubmitted(true);
       setEmail("");
       setMessage("");
+      setBugSteps("");
+      setBugBehavior("");
       setSubject("spiritual");
     } catch (err) {
       setError(t("errorSend"));
@@ -134,25 +147,6 @@ export default function ContactForm() {
                 </div>
               )}
 
-              {/* Email (optional) */}
-              <div>
-                <label
-                  htmlFor="contact-email"
-                  className="block text-xs text-gray-500 mb-1"
-                >
-                  {t("emailLabel")}
-                </label>
-                <input
-                  type="email"
-                  id="contact-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t("emailPlaceholder")}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  disabled={isSubmitting}
-                />
-              </div>
-
               {/* Subject */}
               <div>
                 <label
@@ -176,25 +170,83 @@ export default function ContactForm() {
                 </select>
               </div>
 
-              {/* Message */}
+              {/* Message — bug reports use two structured required fields */}
+              {isBug ? (
+                <>
+                  <div>
+                    <label
+                      htmlFor="contact-bug-steps"
+                      className="block text-xs text-gray-500 mb-1"
+                    >
+                      {t("bugStepsLabel")}
+                    </label>
+                    <textarea
+                      id="contact-bug-steps"
+                      value={bugSteps}
+                      onChange={(e) => setBugSteps(e.target.value)}
+                      placeholder={t("bugStepsPlaceholder")}
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="contact-bug-behavior"
+                      className="block text-xs text-gray-500 mb-1"
+                    >
+                      {t("bugExpectedLabel")}
+                    </label>
+                    <textarea
+                      id="contact-bug-behavior"
+                      value={bugBehavior}
+                      onChange={(e) => setBugBehavior(e.target.value)}
+                      placeholder={t("bugExpectedPlaceholder")}
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label
+                    htmlFor="contact-message"
+                    className="block text-xs text-gray-500 mb-1"
+                  >
+                    {t("messageLabel")}
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder={t("messagePlaceholder")}
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Email (optional) — shown last */}
               <div>
                 <label
-                  htmlFor="contact-message"
+                  htmlFor="contact-email"
                   className="block text-xs text-gray-500 mb-1"
                 >
-                  {t("messageLabel")}
+                  {t("emailLabel")}
                 </label>
-                <textarea
-                  id="contact-message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={
-                    isBug ? t("messagePlaceholderBug") : t("messagePlaceholder")
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                <input
+                  type="email"
+                  id="contact-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t("emailPlaceholder")}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={isSubmitting}
-                  required
                 />
               </div>
 
@@ -204,7 +256,12 @@ export default function ContactForm() {
               {/* Submit button */}
               <button
                 type="submit"
-                disabled={isSubmitting || !message.trim()}
+                disabled={
+                  isSubmitting ||
+                  (isBug
+                    ? !bugSteps.trim() || !bugBehavior.trim()
+                    : !message.trim())
+                }
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? (
