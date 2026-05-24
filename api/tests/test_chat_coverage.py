@@ -14,12 +14,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from chat.prompts import (
+    BIBLE_OPENING_PHRASES,
     BIBLE_VERSION_GUIDANCE,
     LANGUAGE_NAMES,
     SYSTEM_PROMPT,
     build_conversation_context,
     build_search_context_prompt,
     detect_intent_prompt,
+    get_opening_phrase,
     get_prayer_lookup_prompt,
     get_system_prompt,
     get_verse_lookup_prompt,
@@ -106,6 +108,34 @@ class TestGetSystemPrompt:
             assert (
                 "This is from the Bible, specifically" not in result
             ), f"Hardcoded English attribution still present for lang={lang}"
+
+
+class TestOpeningPhrase:
+    """Tests for the localized 'In the Bible is written...' opening phrase."""
+
+    def test_get_opening_phrase_english(self):
+        assert get_opening_phrase("en") == "In the Bible is written..."
+
+    def test_get_opening_phrase_italian(self):
+        assert get_opening_phrase("it") == "Nella Bibbia è scritto..."
+
+    def test_get_opening_phrase_unknown_falls_back_to_english(self):
+        assert get_opening_phrase("zz") == BIBLE_OPENING_PHRASES["en"]
+
+    def test_all_supported_languages_have_a_phrase(self):
+        for lang in LANGUAGE_NAMES:
+            assert lang in BIBLE_OPENING_PHRASES, f"Missing opening phrase for {lang}"
+
+    def test_system_prompt_contains_localized_opening_phrase(self):
+        for lang in ("en", "it", "de", "fr", "ar"):
+            prompt = get_system_prompt(lang)
+            assert get_opening_phrase(lang) in prompt
+            assert "{opening_phrase}" not in prompt  # placeholder substituted
+
+    def test_verse_and_prayer_prompts_contain_localized_opening_phrase(self):
+        for lang in ("en", "it"):
+            assert get_opening_phrase(lang) in get_verse_lookup_prompt(lang)
+            assert get_opening_phrase(lang) in get_prayer_lookup_prompt(lang)
 
 
 class TestGetVerseLookupPrompt:
