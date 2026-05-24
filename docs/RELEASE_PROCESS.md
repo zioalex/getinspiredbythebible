@@ -202,7 +202,7 @@ publish routes to the matching Fastlane lane:
 
 > **Current value:** `extend testing` — the app is in closed testing with the
 > extended group. Every release now reaches those testers automatically.
-
+>
 > **Confirming a custom trackId:** any value that is not
 > `internal`/`alpha`/`beta`/`production` is treated as a closed-testing track
 > and passed through verbatim. Make sure it matches the Play Console trackId
