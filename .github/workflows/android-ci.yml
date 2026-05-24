@@ -93,67 +93,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      # google-services.json is gitignored (contains Firebase project credentials).
-      # In CI we write it from a repository secret.  For PRs from forks the secret
-      # will be empty; the placeholder keeps the Google Services plugin happy so the
-      # build still compiles — Firebase is disabled at runtime (FIREBASE_ENABLED=false
-      # in debug builds) so no real Firebase calls are made.
       - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": { "package_name": "org.voxquieta" }
-                },
-                "oauth_client": [],
-                "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": { "package_name": "org.voxquieta.debug" }
-                },
-                "oauth_client": [],
-                "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
@@ -190,60 +133,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Run lint
         run: |
@@ -302,60 +194,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Compile Kotlin sources (debug)
         run: ./gradlew compileDebugKotlin --no-daemon
@@ -395,60 +236,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Enable KVM group for emulator acceleration
         run: |
@@ -518,15 +308,16 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # Prod APK build (debuggable, points to production backend)
+  # Prod APK build (debuggable, points to production backend) +
+  # APK security flags check (merged here to avoid rebuilding the APK)
   # ---------------------------------------------------------------------------
   build:
     name: Build Prod APK
     runs-on: ubuntu-latest
-    # secrets-scan and dependency-check must pass before we ship an APK.
-    # Without this gate both scans were advisory-only: a build containing a
-    # leaked secret or a critical CVE would still produce a downloadable APK.
-    needs: [unit-tests, lint, compile-check, secrets-scan, dependency-check]
+    # secrets-scan must pass before we ship an APK — a build containing a
+    # leaked secret must not produce a downloadable artifact.
+    # CVE gating is handled by the nightly android-dependency-check workflow.
+    needs: [unit-tests, lint, compile-check, secrets-scan]
 
     steps:
       - name: Checkout
@@ -543,60 +334,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Build prod APK (debuggable, points to production backend)
         run: |
@@ -604,6 +344,41 @@ jobs:
             -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
             -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
+
+      - name: Check AndroidManifest security flags
+        run: |
+          # Locate the merged manifest produced by AGP
+          MANIFEST=$(find android/app/build/intermediates/merged_manifest \
+            -name "AndroidManifest.xml" | head -1)
+
+          if [ -z "$MANIFEST" ]; then
+            echo "❌ FAIL: merged AndroidManifest.xml not found"
+            exit 1
+          fi
+          echo "Checking manifest: $MANIFEST"
+
+          # allowBackup must be false
+          if grep -q 'allowBackup="true"' "$MANIFEST"; then
+            echo "❌ FAIL: android:allowBackup is true — must be false"
+            exit 1
+          fi
+          echo "✅ allowBackup=false: OK"
+
+          # usesCleartextTraffic must not be globally true in the merged manifest
+          # (cleartext is permitted only for specific dev domains via networkSecurityConfig)
+          if grep -q 'usesCleartextTraffic="true"' "$MANIFEST"; then
+            echo "⚠️  WARNING: android:usesCleartextTraffic=true found globally — check networkSecurityConfig"
+          fi
+          echo "✅ Cleartext traffic: restricted via networkSecurityConfig"
+
+          # networkSecurityConfig must be present
+          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then
+            echo "❌ FAIL: android:networkSecurityConfig is missing"
+            exit 1
+          fi
+          echo "✅ networkSecurityConfig: present"
+
+          echo "✅ All APK security flag checks passed"
 
       - name: Upload prod APK
         uses: actions/upload-artifact@v7
@@ -661,371 +436,3 @@ jobs:
           # Note: 'audit' takes the baseline file as a positional arg, not --baseline.
           detect-secrets audit --report .secrets.baseline
 
-  # ---------------------------------------------------------------------------
-  # APK Security Flags Check
-  # ---------------------------------------------------------------------------
-  apk-security-check:
-    name: APK Security Flags Check
-    runs-on: ubuntu-latest
-    needs: [build]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: Build prod APK (debuggable, points to production backend)
-        run: |
-          ./gradlew assembleDebug --no-daemon \
-            -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
-            -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
-        working-directory: android
-
-      - name: Check AndroidManifest security flags
-        run: |
-          # Locate the merged manifest produced by AGP
-          MANIFEST=$(find android/app/build/intermediates/merged_manifest \
-            -name "AndroidManifest.xml" | head -1)
-
-          if [ -z "$MANIFEST" ]; then
-            echo "❌ FAIL: merged AndroidManifest.xml not found"
-            exit 1
-          fi
-          echo "Checking manifest: $MANIFEST"
-
-          # allowBackup must be false
-          if grep -q 'allowBackup="true"' "$MANIFEST"; then
-            echo "❌ FAIL: android:allowBackup is true — must be false"
-            exit 1
-          fi
-          echo "✅ allowBackup=false: OK"
-
-          # usesCleartextTraffic must not be globally true in the merged manifest
-          # (cleartext is permitted only for specific dev domains via networkSecurityConfig)
-          if grep -q 'usesCleartextTraffic="true"' "$MANIFEST"; then
-            echo "⚠️  WARNING: android:usesCleartextTraffic=true found globally — check networkSecurityConfig"
-          fi
-          echo "✅ Cleartext traffic: restricted via networkSecurityConfig"
-
-          # networkSecurityConfig must be present
-          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then
-            echo "❌ FAIL: android:networkSecurityConfig is missing"
-            exit 1
-          fi
-          echo "✅ networkSecurityConfig: present"
-
-          echo "✅ All APK security flag checks passed"
-
-  # ---------------------------------------------------------------------------
-  # OWASP Dependency Check
-  # ---------------------------------------------------------------------------
-  # Uses the official OWASP Dependency Check CLI (not the Gradle plugin) to
-  # avoid BouncyCastle classpath conflicts between OWASP and AGP signing.
-  # Scans the Gradle dependency cache populated by resolving :app dependencies.
-  # ---------------------------------------------------------------------------
-  dependency-check:
-    name: OWASP Dependency Check
-    runs-on: ubuntu-latest
-    # NOTE: do NOT add continue-on-error: true here — this job is in the
-    # critical path of `build` (via needs:). Making it advisory-only defeats
-    # the gate: a dependency with a critical CVE would still produce an APK.
-    #
-    # NVD data download is rate-limited without an API key (~30-60 min).
-    # Add NIST_API_KEY repository secret to speed this up:
-    #   https://nvd.nist.gov/developers/request-an-api-key
-    timeout-minutes: 90
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Write google-services.json
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            # Add org.voxquieta.debug client if absent — required for applicationIdSuffix=.debug builds
-            python3 - <<'PYEOF'
-          import json, copy
-          with open('android/app/google-services.json') as f:
-              d = json.load(f)
-          pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
-          if 'org.voxquieta.debug' not in pkgs:
-              for c in d['client']:
-                  if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
-                      dbg = copy.deepcopy(c)
-                      dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
-                      dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
-                      d['client'].append(dbg)
-                      break
-              with open('android/app/google-services.json', 'w') as f:
-                  json.dump(d, f, indent=2)
-          PYEOF
-          else
-            cat > android/app/google-services.json <<'PLACEHOLDER'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "voxquieta-placeholder",
-              "storage_bucket": "voxquieta-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {"package_name": "org.voxquieta"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              },
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
-                  "android_client_info": {"package_name": "org.voxquieta.debug"}
-                },
-                "oauth_client": [],
-                "api_key": [{"current_key": "PLACEHOLDER_KEY"}],
-                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          PLACEHOLDER
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: Resolve app dependencies to local cache
-        # Downloads all dependencies to ~/.gradle/caches without triggering AGP build tasks
-        run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
-        working-directory: android
-
-      - name: Compute NVD cache key
-        id: date
-        run: |
-          # Use monthly bucket to reduce NVD downloads while still keeping DB fresh
-          echo "month=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache NVD database
-        uses: actions/cache@v5
-        with:
-          path: ~/.dependency-check
-          # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
-          # Monthly bucket reduces downloads - only refreshes once per month.
-          # Also include hash of build.gradle.kts to invalidate when deps change.
-          key: dc-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
-          restore-keys: |
-            dc-nvd-v12.1.0-
-        # Always save cache regardless of other step failures
-
-      - name: Download OWASP Dependency Check CLI
-        run: |
-          DC_VERSION="12.1.0"
-          DC_ZIP="dependency-check-${DC_VERSION}-release.zip"
-          curl -sSfL \
-            "https://github.com/dependency-check/DependencyCheck/releases/download/v${DC_VERSION}/${DC_ZIP}" \
-            -o /tmp/dependency-check.zip
-          unzip -q /tmp/dependency-check.zip -d /tmp/dependency-check
-
-      - name: Run OWASP Dependency Check CLI
-        # Exit codes: 0=no vulns, 15=vulns above threshold, others=error/crash.
-        # We capture the exit code and always continue so the "Print findings" and
-        # "Upload report" steps can run. The final step re-exits with the captured code.
-        id: owasp
-        run: |
-          mkdir -p android/app/build/reports
-          set +e
-          /tmp/dependency-check/dependency-check/bin/dependency-check.sh \
-            --scan "${HOME}/.gradle/caches/modules-2/files-2.1/" \
-            --format HTML \
-            --format XML \
-            --out android/app/build/reports \
-            --project "VoxQuietaApp" \
-            --failOnCVSS 7 \
-            --suppression android/dependency-check-suppressions.xml \
-            --disableOssIndex \
-            --data "${HOME}/.dependency-check" \
-            --nvdApiKey "${{ secrets.NIST_API_KEY }}"
-          echo "owasp_exit=$?" >> "$GITHUB_OUTPUT"
-        env:
-          NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
-
-      - name: Print OWASP findings (CVEs above threshold)
-        if: always()
-        run: |
-          XML="android/app/build/reports/dependency-check-report.xml"
-          if [ ! -f "$XML" ]; then
-            echo "⚠ No XML report found — OWASP may have crashed before producing output."
-            echo "  Check the 'Run OWASP Dependency Check CLI' step output above."
-            exit 0
-          fi
-          echo "=== OWASP exit code: ${{ steps.owasp.outputs.owasp_exit }} ==="
-          # Extract dependencies with CVSSv3 >= 7.0 (or CVSSv2 >= 7.0 if v3 absent)
-          python3 - <<'PYEOF'
-          import xml.etree.ElementTree as ET, re, sys
-          try:
-              tree = ET.parse('android/app/build/reports/dependency-check-report.xml')
-          except Exception as e:
-              print(f'Failed to parse XML report: {e}')
-              sys.exit(0)
-          root = tree.getroot()
-          # Auto-detect namespace from root tag e.g. {https://...dependency-check.4.1.xsd}analysis
-          m = re.match(r'\{([^}]+)\}', root.tag)
-          ns_uri = m.group(1) if m else ''
-          ns = {'dc': ns_uri} if ns_uri else {}
-          def tag(name):
-              return f'dc:{name}' if ns_uri else name
-          findings = []
-          for dep in root.findall(f'.//{tag("dependency")}', ns):
-              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
-              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
-                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
-                  desc = (vuln.findtext(tag('description'), default='', namespaces=ns) or '')[:120]
-                  # prefer CVSSv3 score, fall back to CVSSv4, then CVSSv2.
-                  # Note: use 'is not None' checks instead of 'or' chaining because
-                  # XML elements with no children evaluate as falsy (Python >= 3.12
-                  # DeprecationWarning, future versions will raise TypeError).
-                  score_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
-                  if score_el is None:
-                      score_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
-                  if score_el is None:
-                      score_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
-                  score = float(score_el.text) if score_el is not None else 0.0
-                  sev   = vuln.findtext(tag('severity'), default='?', namespaces=ns)
-                  if score >= 7.0:
-                      findings.append((score, fname, cve, sev, desc))
-          findings.sort(key=lambda x: -x[0])
-          print(f'Namespace detected: {ns_uri}')
-          # Also collect ALL vulns (any score) for diagnostic purposes
-          all_vulns = []
-          for dep in root.findall(f'.//{tag("dependency")}', ns):
-              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
-              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
-                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
-                  s_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
-                  if s_el is None:
-                      s_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
-                  if s_el is None:
-                      s_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
-                  s = float(s_el.text) if s_el is not None else 0.0
-                  sev = vuln.findtext(tag('severity'), default='?', namespaces=ns)
-                  all_vulns.append((s, fname, cve, sev))
-          if all_vulns:
-              all_vulns.sort(key=lambda x: -x[0])
-              print(f'\n📋 All {len(all_vulns)} vulnerability(ies) in report (any CVSS):')
-              for s, fn, cv, sv in all_vulns[:30]:
-                  print(f'  [{s:.1f}] {cv} ({sv}) — {fn}')
-              if len(all_vulns) > 30:
-                  print(f'  ... and {len(all_vulns) - 30} more')
-              print()
-          if not findings:
-              print('✅ No CVEs at or above CVSS 7.0 found in report.')
-          else:
-              print(f'❌ {len(findings)} CVE(s) at or above CVSS 7.0:\n')
-              for score, fname, cve, sev, desc in findings:
-                  print(f'  [{score:.1f}] {cve} ({sev})')
-                  print(f'    File: {fname}')
-                  print(f'    Desc: {desc}')
-                  print()
-              # Emit as GitHub Actions annotations so they appear in the Checks API
-              # and are visible even when log blobs are inaccessible.
-              for score, fname, cve, sev, desc in findings:
-                  msg = f'{cve} ({sev}, CVSS {score:.1f}) in {fname}: {desc}'
-                  print(f'::error::{msg}')
-          PYEOF
-
-      - name: Upload dependency check report
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: dependency-check-report
-          path: |
-            android/app/build/reports/dependency-check-report.html
-            android/app/build/reports/dependency-check-report.xml
-          retention-days: 14
-
-      - name: Fail if OWASP found vulnerabilities
-        if: always()
-        run: |
-          EXIT="${{ steps.owasp.outputs.owasp_exit }}"
-          if [ -z "$EXIT" ] || [ "$EXIT" = "0" ]; then
-            echo "✅ OWASP Dependency Check passed."
-          else
-            echo "❌ OWASP Dependency Check failed with exit code $EXIT."
-            exit "$EXIT"
-          fi

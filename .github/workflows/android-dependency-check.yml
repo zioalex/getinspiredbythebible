@@ -1,0 +1,208 @@
+name: Android Dependency Check
+
+# yamllint disable-line rule:truthy
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # OWASP Dependency Check — nightly CVE scan
+  # ---------------------------------------------------------------------------
+  # Uses the official OWASP Dependency Check CLI (not the Gradle plugin) to
+  # avoid BouncyCastle classpath conflicts between OWASP and AGP signing.
+  # Scans the Gradle dependency cache populated by resolving :app dependencies.
+  #
+  # Moved out of android-ci.yml to avoid a 90-min NVD-download step on every
+  # PR. The nightly schedule keeps CVE coverage fresh without blocking PRs.
+  #
+  # NVD data download is rate-limited without an API key (~30-60 min).
+  # Add NIST_API_KEY repository secret to speed this up:
+  #   https://nvd.nist.gov/developers/request-an-api-key
+  # ---------------------------------------------------------------------------
+  dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
+      - name: Resolve app dependencies to local cache
+        # Downloads all dependencies to ~/.gradle/caches without triggering AGP build tasks
+        run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --no-daemon
+        working-directory: android
+
+      - name: Compute NVD cache key
+        id: date
+        run: |
+          # Use monthly bucket to reduce NVD downloads while still keeping DB fresh
+          echo "month=$(date +'%Y-%m')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache NVD database
+        uses: actions/cache@v5
+        with:
+          path: ~/.dependency-check
+          # Cache key includes DC version so a DC upgrade never reuses a stale DB schema.
+          # Monthly bucket reduces downloads - only refreshes once per month.
+          # Also include hash of build.gradle.kts to invalidate when deps change.
+          key: dc-nvd-v12.1.0-${{ hashFiles('android/app/build.gradle.kts') }}-${{ steps.date.outputs.month }}
+          restore-keys: |
+            dc-nvd-v12.1.0-
+
+      - name: Download OWASP Dependency Check CLI
+        run: |
+          DC_VERSION="12.1.0"
+          DC_ZIP="dependency-check-${DC_VERSION}-release.zip"
+          curl -sSfL \
+            "https://github.com/dependency-check/DependencyCheck/releases/download/v${DC_VERSION}/${DC_ZIP}" \
+            -o /tmp/dependency-check.zip
+          unzip -q /tmp/dependency-check.zip -d /tmp/dependency-check
+
+      - name: Run OWASP Dependency Check CLI
+        # Exit codes: 0=no vulns, 15=vulns above threshold, others=error/crash.
+        # We capture the exit code and always continue so the "Print findings" and
+        # "Upload report" steps can run. The final step re-exits with the captured code.
+        id: owasp
+        run: |
+          mkdir -p android/app/build/reports
+          set +e
+          /tmp/dependency-check/dependency-check/bin/dependency-check.sh \
+            --scan "${HOME}/.gradle/caches/modules-2/files-2.1/" \
+            --format HTML \
+            --format XML \
+            --out android/app/build/reports \
+            --project "VoxQuietaApp" \
+            --failOnCVSS 7 \
+            --suppression android/dependency-check-suppressions.xml \
+            --disableOssIndex \
+            --data "${HOME}/.dependency-check" \
+            --nvdApiKey "${{ secrets.NIST_API_KEY }}"
+          echo "owasp_exit=$?" >> "$GITHUB_OUTPUT"
+        env:
+          NVD_API_KEY: ${{ secrets.NIST_API_KEY }}
+
+      - name: Print OWASP findings (CVEs above threshold)
+        if: always()
+        run: |
+          XML="android/app/build/reports/dependency-check-report.xml"
+          if [ ! -f "$XML" ]; then
+            echo "⚠ No XML report found — OWASP may have crashed before producing output."
+            echo "  Check the 'Run OWASP Dependency Check CLI' step output above."
+            exit 0
+          fi
+          echo "=== OWASP exit code: ${{ steps.owasp.outputs.owasp_exit }} ==="
+          # Extract dependencies with CVSSv3 >= 7.0 (or CVSSv2 >= 7.0 if v3 absent)
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, re, sys
+          try:
+              tree = ET.parse('android/app/build/reports/dependency-check-report.xml')
+          except Exception as e:
+              print(f'Failed to parse XML report: {e}')
+              sys.exit(0)
+          root = tree.getroot()
+          # Auto-detect namespace from root tag e.g. {https://...dependency-check.4.1.xsd}analysis
+          m = re.match(r'\{([^}]+)\}', root.tag)
+          ns_uri = m.group(1) if m else ''
+          ns = {'dc': ns_uri} if ns_uri else {}
+          def tag(name):
+              return f'dc:{name}' if ns_uri else name
+          findings = []
+          for dep in root.findall(f'.//{tag("dependency")}', ns):
+              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
+              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
+                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
+                  desc = (vuln.findtext(tag('description'), default='', namespaces=ns) or '')[:120]
+                  # prefer CVSSv3 score, fall back to CVSSv4, then CVSSv2.
+                  # Note: use 'is not None' checks instead of 'or' chaining because
+                  # XML elements with no children evaluate as falsy (Python >= 3.12
+                  # DeprecationWarning, future versions will raise TypeError).
+                  score_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                  if score_el is None:
+                      score_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                  if score_el is None:
+                      score_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
+                  score = float(score_el.text) if score_el is not None else 0.0
+                  sev   = vuln.findtext(tag('severity'), default='?', namespaces=ns)
+                  if score >= 7.0:
+                      findings.append((score, fname, cve, sev, desc))
+          findings.sort(key=lambda x: -x[0])
+          print(f'Namespace detected: {ns_uri}')
+          # Also collect ALL vulns (any score) for diagnostic purposes
+          all_vulns = []
+          for dep in root.findall(f'.//{tag("dependency")}', ns):
+              fname = dep.findtext(tag('fileName'), default='?', namespaces=ns)
+              for vuln in dep.findall(f'.//{tag("vulnerability")}', ns):
+                  cve  = vuln.findtext(tag('name'), default='?', namespaces=ns)
+                  s_el = vuln.find(f'.//{tag("cvssV3")}/{tag("baseScore")}', ns)
+                  if s_el is None:
+                      s_el = vuln.find(f'.//{tag("cvssV4")}/{tag("baseScore")}', ns)
+                  if s_el is None:
+                      s_el = vuln.find(f'.//{tag("cvssV2")}/{tag("score")}', ns)
+                  s = float(s_el.text) if s_el is not None else 0.0
+                  sev = vuln.findtext(tag('severity'), default='?', namespaces=ns)
+                  all_vulns.append((s, fname, cve, sev))
+          if all_vulns:
+              all_vulns.sort(key=lambda x: -x[0])
+              print(f'\n📋 All {len(all_vulns)} vulnerability(ies) in report (any CVSS):')
+              for s, fn, cv, sv in all_vulns[:30]:
+                  print(f'  [{s:.1f}] {cv} ({sv}) — {fn}')
+              if len(all_vulns) > 30:
+                  print(f'  ... and {len(all_vulns) - 30} more')
+              print()
+          if not findings:
+              print('✅ No CVEs at or above CVSS 7.0 found in report.')
+          else:
+              print(f'❌ {len(findings)} CVE(s) at or above CVSS 7.0:\n')
+              for score, fname, cve, sev, desc in findings:
+                  print(f'  [{score:.1f}] {cve} ({sev})')
+                  print(f'    File: {fname}')
+                  print(f'    Desc: {desc}')
+                  print()
+              # Emit as GitHub Actions annotations so they appear in the Checks API
+              # and are visible even when log blobs are inaccessible.
+              for score, fname, cve, sev, desc in findings:
+                  msg = f'{cve} ({sev}, CVSS {score:.1f}) in {fname}: {desc}'
+                  print(f'::error::{msg}')
+          PYEOF
+
+      - name: Upload dependency check report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-check-report
+          path: |
+            android/app/build/reports/dependency-check-report.html
+            android/app/build/reports/dependency-check-report.xml
+          retention-days: 14
+
+      - name: Fail if OWASP found vulnerabilities
+        if: always()
+        run: |
+          EXIT="${{ steps.owasp.outputs.owasp_exit }}"
+          if [ -z "$EXIT" ] || [ "$EXIT" = "0" ]; then
+            echo "✅ OWASP Dependency Check passed."
+          else
+            echo "❌ OWASP Dependency Check failed with exit code $EXIT."
+            exit "$EXIT"
+          fi

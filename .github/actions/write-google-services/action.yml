@@ -1,0 +1,72 @@
+name: Write google-services.json
+description: >-
+  Writes android/app/google-services.json from a base64-encoded secret, injecting
+  the org.voxquieta.debug package entry when absent. Falls back to a build
+  placeholder when the secret is empty (e.g. PRs from forks).
+
+inputs:
+  google-services-json:
+    description: Base64-encoded google-services.json (GOOGLE_SERVICES_JSON secret)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Write google-services.json
+      shell: bash
+      run: |
+        if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          # Inject org.voxquieta.debug entry if absent (required for applicationIdSuffix=.debug)
+          python3 - <<'PYEOF'
+        import json, copy
+        with open('android/app/google-services.json') as f:
+            d = json.load(f)
+        pkgs = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+        if 'org.voxquieta.debug' not in pkgs:
+            for c in d['client']:
+                if c['client_info']['android_client_info']['package_name'] == 'org.voxquieta':
+                    dbg = copy.deepcopy(c)
+                    dbg['client_info']['android_client_info']['package_name'] = 'org.voxquieta.debug'
+                    dbg['client_info']['mobilesdk_app_id'] = '1:000000000000:android:0000000000000000000001'
+                    d['client'].append(dbg)
+                    break
+            with open('android/app/google-services.json', 'w') as f:
+                json.dump(d, f, indent=2)
+        PYEOF
+        else
+          echo "⚠ GOOGLE_SERVICES_JSON secret not set — writing placeholder for build"
+          cat > android/app/google-services.json <<'PLACEHOLDER'
+        {
+          "project_info": {
+            "project_number": "000000000000",
+            "project_id": "voxquieta-placeholder",
+            "storage_bucket": "voxquieta-placeholder.appspot.com"
+          },
+          "client": [
+            {
+              "client_info": {
+                "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                "android_client_info": { "package_name": "org.voxquieta" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            },
+            {
+              "client_info": {
+                "mobilesdk_app_id": "1:000000000000:android:0000000000000000000001",
+                "android_client_info": { "package_name": "org.voxquieta.debug" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "PLACEHOLDER_KEY" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            }
+          ],
+          "configuration_version": "1"
+        }
+        PLACEHOLDER
+        fi
+      env:
+        GOOGLE_SERVICES_JSON: ${{ inputs.google-services-json }}
