@@ -1,7 +1,7 @@
 # BITB-034: Android — Add Robolectric/Compose UI Test Tier
 
 **Priority:** P2 (Medium — closes a regression gap exposed by #551, not user-blocking)
-**Status:** 📋 Ready
+**Status:** ✅ Done (android-compose-tests.yml workflow active + androidTest/ files present including MainActivityTest and HiltTestRunner; verified 2026-05-24)
 **Size:** M (4-6 hours)
 **Created:** 2026-05-14
 **Updated:** 2026-05-15

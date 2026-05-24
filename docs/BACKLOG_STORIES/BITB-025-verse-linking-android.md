@@ -1,5 +1,7 @@
 # BITB-025: Verify and Fix Verse Linking in Android Chat
 
+**Status:** ✅ Done (buildVerseRefRegex/verseRefRegex wired into ChatMessageItem with ParseVerseLinkTest + VerseRefLinkTest; verified 2026-05-24)
+
 ## User Story
 
 As a user, I want to tap on Bible verse references in chat messages to see the full chapter, so I can read the complete context.

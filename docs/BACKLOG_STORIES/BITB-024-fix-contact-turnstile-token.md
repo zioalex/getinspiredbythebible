@@ -1,5 +1,7 @@
 # BITB-024: Fix Contact Form Turnstile Token Expiry
 
+**Status:** ✅ Done (turnstile.tsx has expired-callback nulling token + auto-refresh + retry/backoff + awaitToken; verified 2026-05-24)
+
 ## User Story
 
 As a user, I want to submit the contact form so that I can report bugs and request features.

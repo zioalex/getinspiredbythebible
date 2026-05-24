@@ -1,5 +1,7 @@
 # BITB-028: Skip Irrelevant CI Pipelines on Doc-Only / Story-Only Changes
 
+**Status:** ✅ Done (test_update.yml already has path filters added in PR #577 on 2026-05-17; verified 2026-05-24)
+
 ## User Story
 
 As a contributor, I want CI to skip pipelines that have nothing to do with my change (e.g. backend + frontend + integration tests when I only added a story under `docs/BACKLOG_STORIES/`), so that PRs that touch only documentation don't burn ~15 minutes of runner time and don't show a wall of unrelated failed/queued checks.

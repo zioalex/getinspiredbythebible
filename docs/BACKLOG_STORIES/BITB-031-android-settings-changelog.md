@@ -1,6 +1,6 @@
 # BITB-031: Android Settings — "What's New" / Changelog Screen
 
-**Status:** 🚧 In Progress (PR #546 open — 2026-05-13)
+**Status:** ✅ Done (PR #546 merged 2026-05-13 — What's New / Changelog screen added to Settings)
 
 ## User Story
 
