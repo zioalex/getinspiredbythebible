@@ -109,7 +109,7 @@ describe("ContactForm", () => {
   it("submits correct payload", async () => {
     mockSubmit.mockResolvedValue({
       id: 1,
-      subject: "bug",
+      subject: "feedback",
       created_at: "2024-01-01",
     });
 
@@ -120,18 +120,82 @@ describe("ContactForm", () => {
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
 
     const subjectSelect = screen.getByLabelText("Subject");
-    fireEvent.change(subjectSelect, { target: { value: "bug" } });
+    fireEvent.change(subjectSelect, { target: { value: "feedback" } });
 
     const messageInput = screen.getByLabelText("Message");
-    fireEvent.change(messageInput, { target: { value: "Found a bug" } });
+    fireEvent.change(messageInput, { target: { value: "Some feedback" } });
     fireEvent.submit(messageInput.closest("form")!);
 
     await waitFor(() => {
       expect(mockSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           email: "test@example.com",
+          subject: "feedback",
+          message: "Some feedback",
+        }),
+      );
+    });
+  });
+
+  it("bug report shows two required fields instead of a single message", () => {
+    renderWithIntl(<ContactForm />);
+    fireEvent.click(screen.getByText("Get in Touch"));
+    fireEvent.change(screen.getByLabelText("Subject"), {
+      target: { value: "bug" },
+    });
+
+    expect(screen.queryByLabelText("Message")).toBeNull();
+    expect(screen.getByLabelText("Steps to reproduce")).toBeDefined();
+    expect(screen.getByLabelText("Expected vs. actual behavior")).toBeDefined();
+  });
+
+  it("bug report submit stays disabled until both fields are filled", () => {
+    renderWithIntl(<ContactForm />);
+    fireEvent.click(screen.getByText("Get in Touch"));
+    fireEvent.change(screen.getByLabelText("Subject"), {
+      target: { value: "bug" },
+    });
+
+    const submitBtn = screen.getByText("Send Message").closest("button")!;
+    expect(submitBtn.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Steps to reproduce"), {
+      target: { value: "Open the app" },
+    });
+    expect(submitBtn.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Expected vs. actual behavior"), {
+      target: { value: "Expected X, got Y" },
+    });
+    expect(submitBtn.disabled).toBe(false);
+  });
+
+  it("bug report combines both fields into the message payload", async () => {
+    mockSubmit.mockResolvedValue({
+      id: 1,
+      subject: "bug",
+      created_at: "2024-01-01",
+    });
+
+    renderWithIntl(<ContactForm />);
+    fireEvent.click(screen.getByText("Get in Touch"));
+    fireEvent.change(screen.getByLabelText("Subject"), {
+      target: { value: "bug" },
+    });
+
+    const steps = screen.getByLabelText("Steps to reproduce");
+    fireEvent.change(steps, { target: { value: "Open the app" } });
+    fireEvent.change(screen.getByLabelText("Expected vs. actual behavior"), {
+      target: { value: "Expected X, got Y" },
+    });
+    fireEvent.submit(steps.closest("form")!);
+
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
           subject: "bug",
-          message: "Found a bug",
+          message:
+            "Steps to reproduce:\nOpen the app\n\nExpected vs. actual behavior:\nExpected X, got Y",
         }),
       );
     });

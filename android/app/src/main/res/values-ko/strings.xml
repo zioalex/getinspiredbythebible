@@ -233,7 +233,10 @@
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">메시지</string>
     <string name="contact_message_placeholder">생각을 나눠주시거나, 문제를 신고하거나, 개선 사항을 제안해 주세요…</string>
-    <string name="contact_message_placeholder_bug">재현 단계:\n1. \n\n예상 동작:\n\n실제 동작:\n\n브라우저 / 기기 (선택 사항):</string>
+    <string name="contact_bug_steps_label">재현 단계</string>
+    <string name="contact_bug_steps_placeholder">예: 1. 앱 열기, 2. 구절 탭하기, 3. ...</string>
+    <string name="contact_bug_expected_label">예상 동작 vs. 실제 동작</string>
+    <string name="contact_bug_expected_placeholder">예: 구절이 열릴 것으로 예상했지만 앱이 멈춤</string>
     <string name="contact_message_required">메시지를 입력해 주세요</string>
     <string name="contact_privacy_note">귀하의 메시지는 서비스 개선을 위해 저장됩니다.</string>
     <string name="contact_send_button">메시지 보내기</string>
