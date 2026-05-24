@@ -1,0 +1,102 @@
+name: Android Promote
+
+# Promotes an already-uploaded versionCode from one Play Store track to
+# another WITHOUT rebuilding. Use this once the closed test has satisfied
+# Google's production gate (>=12 testers for >=14 continuous days): the exact
+# build testers approved is promoted to production, rather than a fresh AAB.
+#
+# Find the versionCode to promote in Play Console (or the AAB artifact name /
+# build log of the run that published it to the source track).
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+    inputs:
+      promote_version_code:
+        description: "versionCode of the build to promote (must already exist on the source track)."
+        required: true
+        type: string
+      promote_from:
+        description: "Source track the build currently lives on."
+        required: true
+        default: "extend testing"
+        type: string
+      promote_to:
+        description: "Destination track to promote into."
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - beta
+          - alpha
+      release_status:
+        description: "Release status on the destination track. 'draft' = review in Play Console before going live."
+        required: false
+        default: "draft"
+        type: choice
+        options:
+          - draft
+          - completed
+      rollout:
+        description: "Phased rollout fraction (0.0-1.0). Only applied when release_status = completed."
+        required: false
+        default: "0.1"
+        type: string
+
+run-name: "Android Promote ${{ inputs.promote_version_code }}: ${{ inputs.promote_from }} → ${{ inputs.promote_to }}"
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote build between tracks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby for Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: android
+
+      - name: Install Fastlane
+        working-directory: android
+        run: gem install fastlane --no-document
+
+      - name: Decode Google Play JSON key
+        run: |
+          echo "${{ secrets.GOOGLE_PLAY_JSON_KEY }}" | base64 --decode > /tmp/google-play-key.json
+
+      - name: Promote on Play Store
+        working-directory: android
+        env:
+          GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
+          PROMOTE_VERSION_CODE: ${{ inputs.promote_version_code }}
+          PROMOTE_FROM: ${{ inputs.promote_from }}
+          PROMOTE_TO: ${{ inputs.promote_to }}
+          RELEASE_STATUS: ${{ inputs.release_status }}
+          ROLLOUT: ${{ inputs.rollout }}
+          FASTLANE_HIDE_TIMESTAMP: "true"
+          FASTLANE_SKIP_UPDATE_CHECK: "true"
+          SUPPLY_VERBOSE: "true"
+        run: |
+          set -o pipefail
+          fastlane promote --verbose 2>&1 | tee /tmp/fastlane.log
+
+      - name: Upload Fastlane log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fastlane-log-promote-${{ github.run_id }}
+          path: |
+            /tmp/fastlane.log
+            android/fastlane/report.xml
+          retention-days: 14
+          if-no-files-found: warn

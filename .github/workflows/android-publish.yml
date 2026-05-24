@@ -264,19 +264,37 @@ jobs:
 
       - name: Determine Fastlane lane
         id: lane
+        # The Play Store track a tag publishes to is a *single dial*: the
+        # repository Actions variable ANDROID_AUTO_TRACK. Flip it in
+        # Repo → Settings → Secrets and variables → Actions → Variables to
+        # advance the app up the ladder (internal → <closed> → beta →
+        # production) with no code change. Empty/unset falls back to
+        # "internal" so the pipeline is safe by default. Reading a `vars.*`
+        # value needs no extra workflow permission.
+        #
+        # Track → lane mapping: the named tracks have dedicated lanes; any
+        # other value (e.g. a custom closed-testing trackId like
+        # "extend testing") routes through the closed_testing lane, which
+        # reads CLOSED_TESTING_TRACK (set in the upload step below).
+        env:
+          AUTO_TRACK: ${{ vars.ANDROID_AUTO_TRACK }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            # Tag pushes (release-please tags) go to the **internal** track
-            # until the app has an established production presence. Promoting
-            # straight to production for the first time triggers Play Console
-            # precondition errors (no prior production release to compare
-            # against) and is operationally risky — we want internal testers
-            # to validate each tag before any production rollout. Promote to
-            # beta/production manually via workflow_dispatch when ready.
-            echo "lane=internal" >> "$GITHUB_OUTPUT"
+            TRACK="${AUTO_TRACK:-internal}"
           else
-            echo "lane=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
+            TRACK="${{ inputs.track }}"
           fi
+          echo "Resolving Play Store track '${TRACK}' to a Fastlane lane."
+          case "${TRACK}" in
+            internal|alpha|beta|production|validate)
+              echo "lane=${TRACK}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              # Custom closed-testing track (e.g. "extend testing").
+              echo "lane=closed_testing" >> "$GITHUB_OUTPUT"
+              echo "closed_track=${TRACK}" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Upload to Play Store
         working-directory: android
@@ -285,6 +303,9 @@ jobs:
           # Empty value falls through to the lane-specific default in Fastfile
           # (internal/beta = completed, production = draft).
           RELEASE_STATUS: ${{ inputs.release_status }}
+          # Set only when the resolved lane is closed_testing; the Fastfile's
+          # closed_testing lane reads this and defaults to "alpha" if empty.
+          CLOSED_TESTING_TRACK: ${{ steps.lane.outputs.closed_track }}
           # Hide noisy fastlane banner, skip auto-update check, and make
           # supply log the underlying google-api-client HTTP request/response.
           # When upload_to_play_store returns a generic "Precondition check
