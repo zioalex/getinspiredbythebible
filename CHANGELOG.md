@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.11.0...v1.12.0) (2026-05-24)
+
+### Features
+
+* **config:** add android-gemini agent backed by Qwen3 Coder via OpenRouter (BITB-023) ([#609](https://github.com/zioalex/getinspiredbythebible/issues/609)) ([9eccefe](https://github.com/zioalex/getinspiredbythebible/commit/9eccefe67c9fbf3fcb64e82e91c1781400ffd9fb))
+* **contact-form:** add contextual message placeholder for bug reports ([#611](https://github.com/zioalex/getinspiredbythebible/issues/611)) ([156b574](https://github.com/zioalex/getinspiredbythebible/commit/156b5740c31fafb0475c2b9efef89db09fd776f6))
+
+### Bug Fixes
+
+* **ci:** disable header-max-length to allow Dependabot long PR titles ([#601](https://github.com/zioalex/getinspiredbythebible/issues/601)) ([8b6329f](https://github.com/zioalex/getinspiredbythebible/commit/8b6329fa13ceabc9d54a43e1e52ad7b92320940f))
+* **frontend:** prevent horizontal overflow on narrow mobile viewports ([#607](https://github.com/zioalex/getinspiredbythebible/issues/607)) ([fe8bc90](https://github.com/zioalex/getinspiredbythebible/commit/fe8bc9000593daab30c1b17d67dd585dc1d897f1))
+* **ops:** route contact form and diagnostic emails to <support@voxquieta.org> ([#603](https://github.com/zioalex/getinspiredbythebible/issues/603)) ([f6bd92e](https://github.com/zioalex/getinspiredbythebible/commit/f6bd92e47c5fc070b736e1c19dfa6b7c778881cd))
+
 ## [1.11.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.10.0...v1.11.0) (2026-05-22)
 
 ### Features
