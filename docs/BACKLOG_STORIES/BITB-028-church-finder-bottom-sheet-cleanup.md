@@ -1,5 +1,7 @@
 # BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
 
+**Status:** ✅ Done (all acceptance criteria checked; ChurchFinderBottomSheet.kt has X close button, ChurchFinderBanner.kt uses Icons.Default.Close; verified 2026-05-25)
+
 ## User Story
 
 As an Android user, I want the church-finder UI surfaces (the in-chat suggestion banner *and* the bottom sheet that opens from it) to have an obvious, single-tap way to dismiss them, so that I'm not distracted by unclear secondary text or low-contrast labels.

@@ -1,5 +1,7 @@
 # BITB-035: Interruptible Chat Streaming & Multi-line Input (Web + Android)
 
+**Status:** ✅ Done (AbortSignal in api.ts, AbortController + Stop button + textarea in page.tsx, cancelStream() in ChatViewModel.kt, ImeAction.Default in ChatInputField.kt; all 11 locales have Chat.stopGenerating / chat_stop_button; verified 2026-05-25)
+
 ## User Story
 
 As a user of either the web app or the Android app, I want to:
