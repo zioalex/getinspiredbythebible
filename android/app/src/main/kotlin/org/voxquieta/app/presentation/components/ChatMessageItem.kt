@@ -259,7 +259,7 @@ internal fun injectVerseLinks(
 // Quote-mark pairs used across supported languages:
 //   "…"   straight double quotes (English, default)
 //   «…»   guillemets (French, Russian, Arabic, Italian)
-//   „…"   low-high (German): open U+201E, close U+201D
+//   „…"   low-high (German): open U+201E, close U+201D or U+201C
 //   「…」  CJK corner (Chinese, Japanese)
 //   《…》  double CJK corner (Chinese)
 // Separator allows bold markers (**), colons, spaces and commas so that both
@@ -269,7 +269,7 @@ private val VERSE_QUOTE_REGEX = Regex(
     // Group 2: separator (**, :, space, comma) between link close and opening quote
     // Group 3: the full quoted string including its surrounding quote marks
     """(\]\(verse://[^)]+\))([\s,:*]*)""" +
-        """(["«„「《](?:[^"»”」》]{3,})["»”」》])"""
+        """(["“«„「《](?:[^"“»”」》]{3,})["“»”」》])"""
 )
 
 /**
