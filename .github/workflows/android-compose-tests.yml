@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload HTML test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compose-ui-test-report
           path: android/app/build/reports/tests/testDebugUnitTest/
@@ -109,7 +109,7 @@ jobs:
 
       - name: Upload JUnit XML results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compose-ui-test-results
           path: android/app/build/test-results/testDebugUnitTest/
