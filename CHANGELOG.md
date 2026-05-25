@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.14.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.13.0...v1.14.0) (2026-05-25)
 
-
 ### Features
 
 * **android:** add New Chat top-bar shortcut and resume navigation tests (BITB-027) ([#617](https://github.com/zioalex/getinspiredbythebible/issues/617)) ([c3e36f2](https://github.com/zioalex/getinspiredbythebible/commit/c3e36f26d372588eaab4cca12cb2c2e13b95b8e9))
