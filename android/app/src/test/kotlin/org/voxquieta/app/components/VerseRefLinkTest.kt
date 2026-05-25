@@ -3,6 +3,7 @@ package org.voxquieta.app.components
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.components.handleVerseLink
 import org.voxquieta.app.presentation.components.injectVerseLinks
+import org.voxquieta.app.presentation.components.injectVerseQuoteHighlights
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
@@ -627,6 +628,84 @@ class VerseRefLinkTest {
             result.contains("[Psalm 23:]"))
         assertTrue("URL should have no verse segment",
             result.contains("verse://Psalm/23") || result.contains("verse://Psalms/23"))
+    }
+
+    // ── Bold wrapping (verse reference prominence) ────────────────────────────
+
+    @Test
+    fun `injectVerseLinks wraps plain verse ref in bold markdown`() {
+        val input = "In John 3:16 we read about God's love."
+        val result = injectVerseLinks(input)
+        assertTrue("link should be bold", result.contains("**[John 3:16](verse://John/3/16)**"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not double-bold a ref already wrapped in bold`() {
+        // LLM output with explicit bold: **John 3:16** — the ** stays from the original;
+        // only the inner text should become a link, not be re-wrapped.
+        val input = "See **John 3:16** for hope."
+        val result = injectVerseLinks(input)
+        // Should linkify but NOT add extra bold markers around the link
+        assertTrue("should still create a link", result.contains("[John 3:16](verse://John/3/16)"))
+        assertFalse("should not produce quadruple asterisks", result.contains("****"))
+    }
+
+    // ── injectVerseQuoteHighlights ────────────────────────────────────────────
+
+    @Test
+    fun `injectVerseQuoteHighlights promotes straight-quote after verse link to blockquote`() {
+        val linked = "**[John 3:16](verse://John/3/16)**: \"For God so loved the world\""
+        val result = injectVerseQuoteHighlights(linked)
+        assertTrue("should contain blockquote", result.contains("\n> *"))
+        assertTrue("should contain the quote text", result.contains("For God so loved the world"))
+        assertFalse("bare quote should be gone", result.contains("]: \"For God"))
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights promotes guillemet quote after verse link`() {
+        val linked = "**[Jean 3:16](verse://Jean/3/16)**: «Car Dieu a tant aimé le monde»"
+        val result = injectVerseQuoteHighlights(linked)
+        assertTrue("should promote guillemet quote", result.contains("\n> *"))
+        assertTrue("should keep quote content", result.contains("Car Dieu a tant aimé le monde"))
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights promotes German low-high quote after verse link`() {
+        val linked = "**[Johannes 3:16](verse://Johannes/3/16)**: „Denn so hat Gott die Welt geliebt“"
+        val result = injectVerseQuoteHighlights(linked)
+        assertTrue("should promote German quote", result.contains("\n> *"))
+        assertTrue("quote content present", result.contains("Denn so hat Gott die Welt geliebt"))
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights leaves prose unchanged when no adjacent quote`() {
+        val linked = "In **[John 3:16](verse://John/3/16)** we find hope and comfort."
+        val result = injectVerseQuoteHighlights(linked)
+        assertEquals("no quote to promote — should be unchanged", linked, result)
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights does not promote short strings`() {
+        // Quotes shorter than 3 content chars should not be promoted (noise guard)
+        val linked = "**[John 3:16](verse://John/3/16)**: \"Hi\""
+        val result = injectVerseQuoteHighlights(linked)
+        assertEquals("short quote should be unchanged", linked, result)
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights leaves text with no verse links unchanged`() {
+        val text = "He said \"For God so loved the world\" with joy."
+        val result = injectVerseQuoteHighlights(text)
+        assertEquals("no verse link present — unchanged", text, result)
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights chains correctly after injectVerseLinks`() {
+        val raw = "In John 3:16, \"For God so loved the world that he gave his only Son.\""
+        val step1 = injectVerseLinks(raw)
+        val step2 = injectVerseQuoteHighlights(step1)
+        assertTrue("verse ref should be bold link", step2.contains("**[John 3:16](verse://John/3/16)**"))
+        assertTrue("quote should be in blockquote", step2.contains("\n> *"))
     }
 
     // ── handleVerseLink ───────────────────────────────────────────────────────
