@@ -332,6 +332,13 @@ fun ChatScreen(
                             }
                         }
                     }
+                    // ── New chat ───────────────────────────────────────────────
+                    IconButton(onClick = onNewConversation) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.action_new_chat),
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,

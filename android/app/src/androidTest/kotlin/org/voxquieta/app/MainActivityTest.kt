@@ -40,7 +40,7 @@ class MainActivityTest {
      * replaced with a non-Activity context.
      */
     @Test
-    fun appLaunchesWithoutCrash_andConversationsScreenIsDisplayed() {
+    fun appLaunchesWithoutCrash_andChatScreenIsDisplayed() {
         assertEquals(
             "MainActivity should be in RESUMED state (no crash during startup)",
             Lifecycle.State.RESUMED,
@@ -53,7 +53,7 @@ class MainActivityTest {
      * Guards against the BUG C fix regression (onOpenSettings wired correctly).
      */
     @Test
-    fun settingsScreenIsReachableFromConversationsScreen() {
+    fun settingsScreenIsReachableFromChatScreen() {
         assertEquals(
             "MainActivity should be in RESUMED state",
             Lifecycle.State.RESUMED,

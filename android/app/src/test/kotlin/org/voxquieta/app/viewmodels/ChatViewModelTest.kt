@@ -1705,4 +1705,36 @@ class ChatViewModelTest {
 
         assertEquals("it", requestSlot.captured.language)
     }
+
+    // ── resolveResumeConversationId ─────────────────────────────────────────
+
+    @Test
+    fun `resolveResumeConversationId returns persisted id when conversation still exists`() = runTest {
+        coEvery { lastConversationPreferences.getLastConversationId() } returns stubConversation.id
+        every { repository.observeConversations() } returns flowOf(listOf(stubConversation))
+
+        val result = viewModel.resolveResumeConversationId()
+
+        assertEquals(stubConversation.id, result)
+    }
+
+    @Test
+    fun `resolveResumeConversationId returns null when no id is persisted`() = runTest {
+        coEvery { lastConversationPreferences.getLastConversationId() } returns null
+
+        val result = viewModel.resolveResumeConversationId()
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `resolveResumeConversationId clears stale id and returns null when conversation no longer exists`() = runTest {
+        coEvery { lastConversationPreferences.getLastConversationId() } returns "stale-conv-id"
+        every { repository.observeConversations() } returns flowOf(emptyList())
+
+        val result = viewModel.resolveResumeConversationId()
+
+        assertNull(result)
+        coVerify { lastConversationPreferences.setLastConversationId(null) }
+    }
 }

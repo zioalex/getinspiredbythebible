@@ -1,5 +1,7 @@
 # BITB-027: Android Chat-First Navigation with History Drawer
 
+**Status:** ✅ Done (chat-first NavHost, DataStore-backed resume, ModalNavigationDrawer with conversation list + Settings link, + New chat top-right icon added 2026-05-25; resolveResumeConversationId unit tests added)
+
 ## User Story
 
 As an Android user, I want the app to open directly into the chat experience (resuming my last conversation) so that I can start interacting immediately, with my chat history one tap away behind a clearly labelled button.
