@@ -435,4 +435,3 @@ jobs:
           # Exit non-zero if there are any unreviewed (new) findings.
           # Note: 'audit' takes the baseline file as a positional arg, not --baseline.
           detect-secrets audit --report .secrets.baseline
-

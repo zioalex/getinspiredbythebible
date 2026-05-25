@@ -1,8 +1,7 @@
 name: Write google-services.json
 description: >-
-  Writes android/app/google-services.json from a base64-encoded secret, injecting
-  the org.voxquieta.debug package entry when absent. Falls back to a build
-  placeholder when the secret is empty (e.g. PRs from forks).
+  Writes android/app/google-services.json from a base64-encoded secret, injecting the org.voxquieta.debug package entry
+  when absent. Falls back to a build placeholder when the secret is empty (e.g. PRs from forks).
 
 inputs:
   google-services-json:
