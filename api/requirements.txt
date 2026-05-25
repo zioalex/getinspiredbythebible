@@ -1,6 +1,6 @@
 # Web Framework
-fastapi==0.136.1
-uvicorn[standard]==0.46.0
+fastapi==0.136.3
+uvicorn[standard]==0.48.0
 pydantic==2.13.3
 pydantic-settings==2.14.0
 
