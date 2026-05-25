@@ -247,8 +247,50 @@ internal fun injectVerseLinks(
             val encodedBook = URLEncoder.encode(book, "UTF-8")
             val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
-            "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse)"
+            val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse)"
+            // Wrap in bold so verse references are visually prominent (matching the web's
+            // font-semibold styling) regardless of whether the LLM already used bold markdown.
+            // If the LLM already wrapped the ref in ** (before == '*'), the surrounding **
+            // in the original text stays in place and provides the bold — just linkify.
+            if (before == '*') link else "**$link**"
         }
+    }
+
+// Quote-mark pairs used across supported languages:
+//   "…"   straight double quotes (English, default)
+//   «…»   guillemets (French, Russian, Arabic, Italian)
+//   „…"   low-high (German): open U+201E, close U+201D or U+201C
+//   「…」  CJK corner (Chinese, Japanese)
+//   《…》  double CJK corner (Chinese)
+// Separator allows bold markers (**), colons, spaces and commas so that both
+// "): "quote"" and ")**:  "quote"" patterns are caught.
+private val VERSE_QUOTE_REGEX = Regex(
+    // Group 1: closing bracket + verse:// URL
+    // Group 2: separator (**, :, space, comma) between link close and opening quote
+    // Group 3: the full quoted string including its surrounding quote marks
+    """(\]\(verse://[^)]+\))([\s,:*]*)""" +
+        """(["“«„「《](?:[^"“»”」》]{3,})["“»”」》])"""
+)
+
+/**
+ * Converts quoted scripture text that immediately follows a verse link into a Markwon
+ * blockquote so it renders with a coloured left-bar and indented background — mirroring
+ * the web's `bg-amber-50 border-l-2 border-amber-400` inline chip.
+ *
+ * Must be called **after** [injectVerseLinks] so that verse:// links are already present.
+ *
+ * Example input:
+ *   `**[John 3:16](verse://John/3/16)**: "For God so loved the world…"`
+ * Example output:
+ *   `**[John 3:16](verse://John/3/16)**:\n> *"For God so loved the world…"*`
+ */
+internal fun injectVerseQuoteHighlights(markdown: String): String =
+    VERSE_QUOTE_REGEX.replace(markdown) { result ->
+        val linkClose = result.groupValues[1]   // e.g. "](verse://John/3/16)"
+        val separator = result.groupValues[2]   // **: or : or space between link and quote
+        val quote = result.groupValues[3]       // the quoted string including quote marks
+        // trimEnd() strips trailing whitespace from separator; keep bold/colon punctuation.
+        "$linkClose${separator.trimEnd()}\n> *$quote*"
     }
 
 /**
@@ -434,7 +476,7 @@ fun ChatMessageItem(
                             // Amber colour for verse links — matches web's amber-600 link colour
                             val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
-                                markdown = injectVerseLinks(message.content, verseRefRegex),
+                                markdown = injectVerseQuoteHighlights(injectVerseLinks(message.content, verseRefRegex)),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 isTextSelectable = true,
