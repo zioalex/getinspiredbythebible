@@ -1000,10 +1000,11 @@ class TestChatServiceModelOverride:
     @patch("chat.service.get_model_override_for_language", return_value=None)
     @patch("chat.service.is_verse_lookup_request", return_value=False)
     @patch("chat.service.extract_references", return_value=([], None))
-    async def test_explicit_language_overrides_detection(
+    async def test_short_message_client_language_used_as_fallback(
         self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
     ):
-        """When request.language is set, it should be used instead of auto-detected language."""
+        """For short (< 3 word) messages where detection defaults to English, the client
+        locale is used as a fallback so the user gets a reply in their chosen language."""
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
@@ -1013,18 +1014,17 @@ class TestChatServiceModelOverride:
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
-                content="Dio ti ama!",
+                content="Ciao!",
                 provider="test",
                 model="test-model",
             )
         )
 
-        # detect_language returns "en", but the client explicitly requests Italian
-        request = ChatRequest(message="Tell me about faith", language="it")
+        # detect_language returns "en" (short text fallback), client sends Italian
+        request = ChatRequest(message="Ciao", language="it")
         await service.chat(request)
 
-        # resolve_translation and get_model_override_for_language should have been
-        # called with the client-supplied "it", not the auto-detected "en"
+        # For this short message, client "it" should be used as the fallback
         mock_resolve.assert_called_once_with(None, "it")
         mock_override.assert_called_once_with("it")
 
@@ -1071,3 +1071,85 @@ class TestChatServiceModelOverride:
         # auto-detected "it", not any client-supplied locale.
         mock_resolve.assert_called_once_with(None, "it")
         mock_override.assert_called_once_with("it")
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="ita1927")
+    @patch(
+        "chat.service.get_translation_info",
+        return_value={"code": "ita1927", "name": "Italian Bible"},
+    )
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_long_italian_message_ignores_english_client_locale(
+        self, mock_extract, mock_is_verse, mock_override, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """P0 regression: Italian message (3+ words) with client language='en' must
+        yield Italian responses — the auto-detected language wins over the UI locale."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(
+                content="Dio ti ama!",
+                provider="test",
+                model="test-model",
+            )
+        )
+
+        # User types in Italian but the Android app sends language="en" (UI locale)
+        request = ChatRequest(message="Ciao come stai oggi amico", language="en")
+        await service.chat(request)
+
+        # Auto-detected "it" must win over the client-sent "en"
+        mock_resolve.assert_called_once_with(None, "it")
+        mock_override.assert_called_once_with("it")
+
+
+class TestResolveEffectiveLanguage:
+    """Unit tests for the _resolve_effective_language helper."""
+
+    def test_long_message_detected_language_wins(self):
+        """3+ word message: auto-detected language overrides any client locale."""
+        from unittest.mock import patch
+
+        from chat.service import _resolve_effective_language
+
+        with patch("chat.service.detect_language", return_value="it"):
+            result = _resolve_effective_language("Ciao come stai oggi amico", "en")
+        assert result == "it"
+
+    def test_short_message_client_language_used(self):
+        """< 3 word message: client locale is the fallback when detection returns default."""
+        from unittest.mock import patch
+
+        from chat.service import _resolve_effective_language
+
+        with patch("chat.service.detect_language", return_value="en"):
+            result = _resolve_effective_language("Ciao", "it")
+        assert result == "it"
+
+    def test_short_message_no_client_falls_back_to_detected(self):
+        """< 3 word message with no client locale: detected language is used."""
+        from unittest.mock import patch
+
+        from chat.service import _resolve_effective_language
+
+        with patch("chat.service.detect_language", return_value="en"):
+            result = _resolve_effective_language("Hi", None)
+        assert result == "en"
+
+    def test_long_message_no_client_uses_detected(self):
+        """3+ word English message with no client locale: detected English is used."""
+        from unittest.mock import patch
+
+        from chat.service import _resolve_effective_language
+
+        with patch("chat.service.detect_language", return_value="en"):
+            result = _resolve_effective_language("Tell me about faith", None)
+        assert result == "en"

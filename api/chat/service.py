@@ -93,6 +93,22 @@ class ChatResponse(BaseModel):
     translation_info: dict | None = None
 
 
+def _resolve_effective_language(message: str, client_language: str | None) -> str:
+    """
+    Return the language code to use for this turn.
+
+    For messages with 3+ words, auto-detection of the message text takes
+    precedence over any client-supplied UI locale — so a user who types in
+    Italian gets an Italian reply even when their app language is set to
+    English.  For very short messages (< 3 words) that are too ambiguous to
+    detect reliably, the client's explicit locale is used as a fallback.
+    """
+    detected = detect_language(message)
+    if len(message.split()) >= 3:
+        return detected
+    return client_language or detected
+
+
 @dataclass
 class _SafetyOutcome:
     """Result from _check_content_safety — replaces the old raise-or-return-bool pattern."""
@@ -313,12 +329,13 @@ Keep it under 100 words."""
             },
         )
 
-        # Resolve translation: user preference > language detection > default
+        # Resolve translation: auto-detection > client locale (fallback for short msgs) > default
         detected_language = detect_language(request.message)
-        # Use the client-supplied language when present; fall back to auto-detection.
-        # This ensures the AI always responds in the language the user selected in the
-        # app, even when they type their question in a different language.
-        effective_language = request.language if request.language else detected_language
+        # For 3+ word messages, auto-detected language wins so users always get
+        # replies in the language they type in, regardless of the UI locale.
+        # For short messages where detection is unreliable, the client locale is
+        # used as a hint.
+        effective_language = _resolve_effective_language(request.message, request.language)
         translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(effective_language)
@@ -752,10 +769,9 @@ Keep it under 100 words."""
         # Generate unique message ID for feedback tracking
         message_id = str(uuid.uuid4())
 
-        # Resolve translation: user preference > language detection > default
+        # Resolve translation: auto-detection > client locale (fallback for short msgs) > default
         detected_language = detect_language(request.message)
-        # Use the client-supplied language when present; fall back to auto-detection.
-        effective_language = request.language if request.language else detected_language
+        effective_language = _resolve_effective_language(request.message, request.language)
         translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(effective_language)
