@@ -69,6 +69,7 @@ selected/UI language (request.language) ──────┘
 ```
 
 Key design points:
+
 - **Backend keeps the original `effective_language` logic** (respond in `request.language`
   when present, else detected). The silent-override from PR #630 is **not** reintroduced.
 - The mismatch comparison is additive metadata; it never changes what language the AI
@@ -94,6 +95,7 @@ Key design points:
    lingua confidence values already computed in `LinguaLanguageDetector.detect`.
 
 2. **Compute the suggestion in both `chat()` and `chat_stream()`** (lines ~333 and ~756):
+
    ```python
    detected_language = detect_language(request.message)
    effective_language = request.language if request.language else detected_language  # unchanged
@@ -104,6 +106,7 @@ Key design points:
        else None
    )
    ```
+
    Only suggest when the user **explicitly set** a language (`request.language` present),
    detection is confident, and they differ. Never suggest in the auto-detect (null) flow.
 
