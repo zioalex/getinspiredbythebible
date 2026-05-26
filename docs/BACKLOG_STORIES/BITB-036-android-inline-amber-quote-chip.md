@@ -52,6 +52,7 @@ custom spans after Markwon renders the markdown. It was added after 0.5.0;
 the latest stable release is **0.7.2**.
 
 **File:** `android/gradle/libs.versions.toml`
+
 ```toml
 composeMarkdown = "0.7.2"
 ```
@@ -224,5 +225,5 @@ MarkdownText(
 - PR #629 — expanded `VERSE_QUOTE_REGEX`; amber styling deferred (this story)
 - PR #619 — bold verse reference wrapping and initial blockquote conversion
 - `frontend/src/components/ChatMessage.tsx → highlightQuotes()` — web reference
-- `compose-markdown` releases: https://github.com/jeziellago/compose-markdown/releases
+- `compose-markdown` releases: <https://github.com/jeziellago/compose-markdown/releases>
 - GitHub issue #631 — created in error (not the project's tracking tool); can be closed
