@@ -168,6 +168,7 @@
 ---
 
 **Priority:** P0 (Critical UX bug for non-English users)
+**Status:** ✅ Done (PR #630 — `_resolve_effective_language()` in service.py; 3+ word messages prefer auto-detection over client locale; verified 2026-05-26)
 **Effort:** Medium (1-2 days for investigation + fix + testing)
 **Impact:** High (affects all non-English speaking users)
 
