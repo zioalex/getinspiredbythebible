@@ -262,13 +262,13 @@ internal fun injectVerseLinks(
 //   „…"   low-high (German): open U+201E, close U+201D or U+201C
 //   「…」  CJK corner (Chinese, Japanese)
 //   《…》  double CJK corner (Chinese)
-// Separator allows bold markers (**), colons, spaces and commas so that both
-// "): "quote"" and ")**:  "quote"" patterns are caught.
+// Separator between verse link and quote: same-line text up to 100 chars,
+// so "**[Ref](url)**: “quote”" and "**[Ref](url)** says “quote”" both match.
 private val VERSE_QUOTE_REGEX = Regex(
     // Group 1: closing bracket + verse:// URL
-    // Group 2: separator (**, :, space, comma) between link close and opening quote
+    // Group 2: separator (same line, any text up to 100 chars before opening quote)
     // Group 3: the full quoted string including its surrounding quote marks
-    """(\]\(verse://[^)]+\))([\s,:*]*)""" +
+    """(\]\(verse://[^)]+\))([^\n"“«„「《]{0,100})""" +
         """(["“«„「《](?:[^"“»”」》]{3,})["“»”」》])"""
 )
 
@@ -287,7 +287,7 @@ private val VERSE_QUOTE_REGEX = Regex(
 internal fun injectVerseQuoteHighlights(markdown: String): String =
     VERSE_QUOTE_REGEX.replace(markdown) { result ->
         val linkClose = result.groupValues[1]   // e.g. "](verse://John/3/16)"
-        val separator = result.groupValues[2]   // **: or : or space between link and quote
+        val separator = result.groupValues[2]   // text between link close and opening quote
         val quote = result.groupValues[3]       // the quoted string including quote marks
         // trimEnd() strips trailing whitespace from separator; keep bold/colon punctuation.
         "$linkClose${separator.trimEnd()}\n> *$quote*"
@@ -489,6 +489,7 @@ fun ChatMessageItem(
                                         onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
                                     }
                                 },
+
                             )
                         }
 

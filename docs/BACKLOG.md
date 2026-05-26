@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-05-10
+**Last Updated:** 2026-05-26
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -561,6 +561,30 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-05-26
+
+**As a** user of the Android app, when an AI response quotes a Bible verse,
+**I want** the quoted text to appear in an inline amber chip (same as the web app),
+**so that** scripture stands out from commentary without breaking the prose flow.
+
+**Acceptance Criteria:**
+
+- [ ] Quoted scripture renders as an inline amber chip (amber-50 background, amber-600 left bar, amber-900 italic serif) without breaking the surrounding sentence
+- [ ] All double-quoted text is highlighted — not only quotes adjacent to a verse link (matches web `highlightQuotes()` behaviour)
+- [ ] Verse references remain bold amber links, tappable to open `VerseDetailBottomSheet`
+- [ ] Soft-break rendering unchanged from current behaviour after library upgrade
+- [ ] All CI checks pass (Unit Tests, Compose UI Tests, Android Lint, Build Prod APK)
+
+**Full story:** [docs/BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md](BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md)
+
+**References:** PR #629 (deferred amber styling), PR #619 (verse bold links), `ChatMessage.tsx → highlightQuotes()`
+
+---
 
 ### 🎯 BITB-029: Surface Bible Version Information More Clearly
 
