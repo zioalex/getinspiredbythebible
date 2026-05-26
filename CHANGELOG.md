@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.14.0...v1.15.0) (2026-05-26)
+
+
+### Features
+
+* **android:** style verse quote blockquotes with amber bar and background ([#629](https://github.com/zioalex/getinspiredbythebible/issues/629)) ([40b95ec](https://github.com/zioalex/getinspiredbythebible/commit/40b95ec565c280249288220df2db7f277320a90e))
+
 ## [1.14.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.13.0...v1.14.0) (2026-05-25)
 
 ### Features
