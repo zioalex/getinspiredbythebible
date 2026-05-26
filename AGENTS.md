@@ -286,6 +286,10 @@ avoid stale entries accumulating in `.git/worktrees/`.
 
 **The backlog is always kept in sync — no exceptions.**
 
+- **Stories live in the repo, not in GitHub Issues.** This project does
+  **not** use GitHub Issues for backlog/story tracking. Never create a
+  GitHub Issue to capture a story, requirement, or follow-up — record it in
+  the backlog files described below instead.
 - `docs/BACKLOG.md` is the canonical prioritized list. `docs/BACKLOG_STORIES/` holds the detailed story files.
 - **When creating a new story:** create the full story file in `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md` *and* add a summary entry (status, size, date, one-liner, acceptance criteria, link to full story) in `docs/BACKLOG.md` under the correct priority section.
 - **When completing a story:** update its status to `✅ Done` in `docs/BACKLOG.md`, add the PR number and completion date, and move the full story file to `docs/DONE/` if the folder exists.
