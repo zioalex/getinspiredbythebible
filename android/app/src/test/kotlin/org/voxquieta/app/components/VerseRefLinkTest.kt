@@ -708,6 +708,25 @@ class VerseRefLinkTest {
         assertTrue("quote should be in blockquote", step2.contains("\n> *"))
     }
 
+    @Test
+    fun `injectVerseQuoteHighlights promotes quote when prose words separate link and quote`() {
+        // LLM warm-prose style: words between the verse ref and the quoted text
+        val linked = "**[Romans 8:28](verse://Romans/8/28)** reminds us that \"And we know that in all things God works for the good\""
+        val result = injectVerseQuoteHighlights(linked)
+        assertTrue("should promote quote to blockquote", result.contains("\n> *"))
+        assertTrue("prose before quote is preserved", result.contains("reminds us that"))
+        assertTrue("quote content present", result.contains("And we know that in all things God works"))
+    }
+
+    @Test
+    fun `injectVerseQuoteHighlights does not match quote on a different line from verse link`() {
+        // A newline between the verse link and the quote should prevent the match
+        val linked = "**[John 3:16](verse://John/3/16)**\n\n\"For God so loved the world\""
+        val result = injectVerseQuoteHighlights(linked)
+        // The separator is limited to same-line text, so this should NOT be promoted
+        assertFalse("cross-paragraph quote should not be promoted", result.contains("\n> *\"For God"))
+    }
+
     // ── handleVerseLink ───────────────────────────────────────────────────────
 
     @Test

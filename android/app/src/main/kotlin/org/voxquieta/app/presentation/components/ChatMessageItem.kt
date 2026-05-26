@@ -3,6 +3,12 @@ package org.voxquieta.app.presentation.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.text.Layout
+import android.text.Spannable
+import android.text.style.BackgroundColorSpan
+import android.text.style.LeadingMarginSpan
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -262,13 +268,13 @@ internal fun injectVerseLinks(
 //   „…"   low-high (German): open U+201E, close U+201D or U+201C
 //   「…」  CJK corner (Chinese, Japanese)
 //   《…》  double CJK corner (Chinese)
-// Separator allows bold markers (**), colons, spaces and commas so that both
-// "): "quote"" and ")**:  "quote"" patterns are caught.
+// Separator between verse link and quote: same-line text up to 100 chars,
+// so "**[Ref](url)**: “quote”" and "**[Ref](url)** says “quote”" both match.
 private val VERSE_QUOTE_REGEX = Regex(
     // Group 1: closing bracket + verse:// URL
-    // Group 2: separator (**, :, space, comma) between link close and opening quote
+    // Group 2: separator (same line, any text up to 100 chars before opening quote)
     // Group 3: the full quoted string including its surrounding quote marks
-    """(\]\(verse://[^)]+\))([\s,:*]*)""" +
+    """(\]\(verse://[^)]+\))([^\n"“«„「《]{0,100})""" +
         """(["“«„「《](?:[^"“»”」》]{3,})["“»”」》])"""
 )
 
@@ -287,7 +293,7 @@ private val VERSE_QUOTE_REGEX = Regex(
 internal fun injectVerseQuoteHighlights(markdown: String): String =
     VERSE_QUOTE_REGEX.replace(markdown) { result ->
         val linkClose = result.groupValues[1]   // e.g. "](verse://John/3/16)"
-        val separator = result.groupValues[2]   // **: or : or space between link and quote
+        val separator = result.groupValues[2]   // text between link close and opening quote
         val quote = result.groupValues[3]       // the quoted string including quote marks
         // trimEnd() strips trailing whitespace from separator; keep bold/colon punctuation.
         "$linkClose${separator.trimEnd()}\n> *$quote*"
@@ -334,6 +340,29 @@ internal fun handleVerseLink(
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return
     val chapter = parts[1].toIntOrNull() ?: return
     onLoadChapter(book, chapter, preferredTranslation)
+}
+
+// Draws an amber left bar matching the web's border-amber-400 (border-l-2) on blockquotes.
+// Applied via beforeSetMarkdown to replace Markwon's default gray QuoteSpan.
+private class AmberBarSpan(
+    private val barColor: Int,
+    private val stripeWidth: Int,
+    private val gapWidth: Int,
+) : LeadingMarginSpan {
+    override fun getLeadingMargin(first: Boolean) = stripeWidth + gapWidth
+    override fun drawLeadingMargin(
+        c: Canvas, p: Paint, x: Int, dir: Int,
+        top: Int, baseline: Int, bottom: Int,
+        text: CharSequence, start: Int, end: Int, first: Boolean, layout: Layout,
+    ) {
+        val prevColor = p.color
+        val prevStyle = p.style
+        p.color = barColor
+        p.style = Paint.Style.FILL
+        c.drawRect(x.toFloat(), top.toFloat(), (x + dir * stripeWidth).toFloat(), bottom.toFloat(), p)
+        p.color = prevColor
+        p.style = prevStyle
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -487,6 +516,32 @@ fun ChatMessageItem(
                                         onDismissSheet()
                                         pendingVerseLink = parsed
                                         onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
+                                    }
+                                },
+                                beforeSetMarkdown = { _, spanned ->
+                                    // Replace Markwon's default gray blockquote spans with amber
+                                    // styled equivalents — matching the web's border-amber-400
+                                    // left bar and bg-amber-50 background on quoted scripture.
+                                    if (spanned is Spannable) {
+                                        val quoteSpans = spanned.getSpans(
+                                            0, spanned.length, LeadingMarginSpan::class.java,
+                                        )
+                                        for (span in quoteSpans) {
+                                            val start = spanned.getSpanStart(span)
+                                            val end = spanned.getSpanEnd(span)
+                                            val flags = spanned.getSpanFlags(span)
+                                            spanned.removeSpan(span)
+                                            spanned.setSpan(
+                                                // amber-600 bar, 6 px wide with 16 px gap
+                                                AmberBarSpan(0xFFD97706.toInt(), 6, 16),
+                                                start, end, flags,
+                                            )
+                                            spanned.setSpan(
+                                                // amber-50 background
+                                                BackgroundColorSpan(0xFFFFFBEB.toInt()),
+                                                start, end, flags,
+                                            )
+                                        }
                                     }
                                 },
                             )
