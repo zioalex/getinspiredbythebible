@@ -168,7 +168,7 @@
 ---
 
 **Priority:** P0 (Critical UX bug for non-English users)
-**Status:** ✅ Done (PR #630 — `_resolve_effective_language()` in service.py; 3+ word messages prefer auto-detection over client locale; verified 2026-05-26)
+**Status:** ✅ Done (the P0 default-case bug was resolved by **PR #585**, 2026-05-18 — the web frontend now omits the `language` param so the backend auto-detects from message text; Android sends `null` by default. A follow-up enhancement for the *explicit language-selection* edge case is tracked in `language-mismatch-switch-suggestion.md`.)
 **Effort:** Medium (1-2 days for investigation + fix + testing)
 **Impact:** High (affects all non-English speaking users)
 
