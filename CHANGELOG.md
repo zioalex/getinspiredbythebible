@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.16.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.15.0...v1.16.0) (2026-05-27)
 
-
 ### Features
 
 * **backend:** emit language_suggestion in chat API (language-mismatch Slice 1) ([#634](https://github.com/zioalex/getinspiredbythebible/issues/634)) ([2720ffa](https://github.com/zioalex/getinspiredbythebible/commit/2720ffa509244967f3e229da203879e95a68a6bb))
-
 
 ### Documentation
 
