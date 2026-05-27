@@ -152,16 +152,18 @@ class LanguageDetector(ABC):
         """
         pass
 
-    @abstractmethod
     def detect_confident(self, text: str) -> str | None:
         """
         Detect language only when confident; otherwise return None.
+
+        Default implementation always returns None (conservative — no suggestion).
+        Override in concrete classes that support confidence scoring.
 
         Returns:
             ISO 639-1 code when text is long enough AND confidence is high,
             else None.
         """
-        pass
+        return None
 
     @property
     @abstractmethod
