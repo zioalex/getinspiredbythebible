@@ -14,6 +14,7 @@ from utils.language import (
     LANGUAGE_TRANSLATIONS,
     TRANSLATION_INFO,
     detect_language,
+    detect_language_confident,
     detect_translation,
     get_all_translations,
     get_localized_book_name,
@@ -494,3 +495,30 @@ class TestResolveTranslation:
     def test_empty_string_preference_falls_back(self):
         """Test empty string preference falls back."""
         assert resolve_translation("", "it") == "ita1927"
+
+
+class TestDetectLanguageConfident:
+    """Tests for detect_language_confident — high-confidence detection only."""
+
+    def test_long_italian_returns_it(self):
+        """Long Italian text should be detected with high confidence."""
+        result = detect_language_confident("Cosa dice la Bibbia sull'amore e la speranza in Dio?")
+        assert result == "it"
+
+    def test_short_text_returns_none(self):
+        """Text shorter than min_text_length should return None."""
+        assert detect_language_confident("Ciao") is None
+
+    def test_empty_returns_none(self):
+        """Empty string should return None."""
+        assert detect_language_confident("") is None
+
+    def test_long_english_returns_en(self):
+        """Long English text should be detected with high confidence."""
+        result = detect_language_confident("What does the Bible say about love and hope in God?")
+        assert result == "en"
+
+    def test_long_german_returns_de(self):
+        """Long German text should be detected with high confidence."""
+        result = detect_language_confident("Was sagt die Bibel über Liebe und Hoffnung in Gott?")
+        assert result == "de"

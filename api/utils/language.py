@@ -152,6 +152,19 @@ class LanguageDetector(ABC):
         """
         pass
 
+    def detect_confident(self, text: str) -> str | None:
+        """
+        Detect language only when confident; otherwise return None.
+
+        Default implementation always returns None (conservative — no suggestion).
+        Override in concrete classes that support confidence scoring.
+
+        Returns:
+            ISO 639-1 code when text is long enough AND confidence is high,
+            else None.
+        """
+        return None
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -240,6 +253,23 @@ class LinguaLanguageDetector(LanguageDetector):
         except Exception:
             return DEFAULT_LANGUAGE
 
+    def detect_confident(self, text: str) -> str | None:
+        """Detect language only when text is long enough and confidence is high."""
+        if not text or len(text.strip()) < self._min_text_length:
+            return None
+        try:
+            confidence_values = self._detector.compute_language_confidence_values(text)
+            if not confidence_values:
+                return None
+            top = confidence_values[0]
+            top_lang = top.language.iso_code_639_1.name.lower()
+            top_conf = top.value
+            if top_conf >= self._confidence_threshold:
+                return str(top_lang)
+            return None
+        except Exception:
+            return None
+
 
 # =============================================================================
 # Detector Factory and Global Instance
@@ -325,6 +355,23 @@ def detect_language(text: str) -> str:
         Returns 'en' if detection fails, text is too short, or confidence is low
     """
     return get_detector().detect(text)
+
+
+def detect_language_confident(text: str) -> str | None:
+    """
+    Detect the language only when confident enough to suggest a UI switch.
+
+    Unlike detect_language(), returns None when text is too short or detection
+    confidence is below threshold, so callers can distinguish "probably X" from
+    "confidently X". Use this to gate language-switch suggestions.
+
+    Args:
+        text: Text to analyze
+
+    Returns:
+        ISO 639-1 code when confident, or None when uncertain / text too short
+    """
+    return get_detector().detect_confident(text)
 
 
 def get_translation_for_language(language_code: str) -> str:
