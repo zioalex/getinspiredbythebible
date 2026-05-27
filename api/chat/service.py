@@ -21,6 +21,7 @@ from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
 from utils.language import (
     detect_language,
+    detect_language_confident,
     get_model_override_for_language,
     get_translation_info,
     resolve_translation,
@@ -91,6 +92,7 @@ class ChatResponse(BaseModel):
     model: str
     detected_translation: str | None = None
     translation_info: dict | None = None
+    language_suggestion: str | None = None  # Detected language differs from selected UI language
 
 
 @dataclass
@@ -322,6 +324,15 @@ Keep it under 100 words."""
         translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(effective_language)
+        # Suggest a language switch only when the user explicitly set a UI language,
+        # we're confident the message is in a *different* language, and confidence
+        # is high enough to avoid false positives on short/ambiguous text.
+        _confident_lang = detect_language_confident(request.message)
+        language_suggestion = (
+            _confident_lang
+            if (request.language and _confident_lang and _confident_lang != request.language)
+            else None
+        )
         logger.info(
             "Language detection and translation resolution",
             extra={
@@ -448,6 +459,7 @@ Keep it under 100 words."""
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
+            language_suggestion=language_suggestion,
         )
 
     async def _handle_off_topic(
@@ -759,6 +771,12 @@ Keep it under 100 words."""
         translation = resolve_translation(request.preferred_translation, effective_language)
         translation_info = get_translation_info(translation)
         model_override = get_model_override_for_language(effective_language)
+        _confident_lang = detect_language_confident(request.message)
+        language_suggestion = (
+            _confident_lang
+            if (request.language and _confident_lang and _confident_lang != request.language)
+            else None
+        )
         logger.info(
             "Language detection and translation resolution (stream)",
             extra={
@@ -798,6 +816,7 @@ Keep it under 100 words."""
                     "model": settings.llm_model,
                     "detected_translation": translation,
                     "translation_info": translation_info,
+                    "language_suggestion": language_suggestion,
                 }
 
                 messages = self._build_messages(
@@ -841,6 +860,7 @@ Keep it under 100 words."""
             "model": settings.llm_model,
             "detected_translation": translation,
             "translation_info": translation_info,
+            "language_suggestion": language_suggestion,
         }
 
         # Step 3: Build messages with appropriate prompt type

@@ -1071,3 +1071,102 @@ class TestChatServiceModelOverride:
         # auto-detected "it", not any client-supplied locale.
         mock_resolve.assert_called_once_with(None, "it")
         mock_override.assert_called_once_with("it")
+
+
+class TestChatStreamLanguageSuggestion:
+    """Tests for language_suggestion in chat_stream() metadata."""
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.detect_language_confident", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_mismatch_emits_suggestion(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_confident, mock_detect
+    ):
+        """When UI language differs from typed language, metadata should carry the suggestion."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        llm.chat = AsyncMock(return_value=LLMResponse(content="GENERAL", provider="t", model="m"))
+
+        async def mock_stream(*args, **kwargs):
+            yield "ciao"
+
+        llm.chat_stream = mock_stream
+
+        request = ChatRequest(message="Cosa dice la Bibbia", language="en")
+        chunks = []
+        async for chunk in service.chat_stream(request):
+            chunks.append(chunk)
+
+        meta = chunks[0]
+        assert meta["type"] == "metadata"
+        assert meta["language_suggestion"] == "it"
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.detect_language_confident", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_matching_language_no_suggestion(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_confident, mock_detect
+    ):
+        """When UI language matches typed language, suggestion should be None."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        llm.chat = AsyncMock(return_value=LLMResponse(content="GENERAL", provider="t", model="m"))
+
+        async def mock_stream(*args, **kwargs):
+            yield "God loves you"
+
+        llm.chat_stream = mock_stream
+
+        request = ChatRequest(message="What does the Bible say?", language="en")
+        chunks = []
+        async for chunk in service.chat_stream(request):
+            chunks.append(chunk)
+
+        meta = chunks[0]
+        assert meta["type"] == "metadata"
+        assert meta["language_suggestion"] is None
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="it")
+    @patch("chat.service.detect_language_confident", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="ita1927")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_no_explicit_language_no_suggestion(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_confident, mock_detect
+    ):
+        """When no explicit UI language is set, suggestion should be None."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        llm.chat = AsyncMock(return_value=LLMResponse(content="GENERAL", provider="t", model="m"))
+
+        async def mock_stream(*args, **kwargs):
+            yield "Dio ti ama"
+
+        llm.chat_stream = mock_stream
+
+        # No language field — auto-detect only, no suggestion should fire
+        request = ChatRequest(message="Cosa dice la Bibbia sull amore")
+        assert request.language is None
+        chunks = []
+        async for chunk in service.chat_stream(request):
+            chunks.append(chunk)
+
+        meta = chunks[0]
+        assert meta["type"] == "metadata"
+        assert meta["language_suggestion"] is None
