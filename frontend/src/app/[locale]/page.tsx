@@ -21,7 +21,8 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import ContactForm from "@/components/ContactForm";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
+import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
 import {
   streamMessage,
   Message,
@@ -51,6 +52,7 @@ import {
 } from "@/lib/verseExtraction";
 import { updateMultiWordNames } from "@/lib/versePatterns";
 import { useTurnstile } from "@/lib/turnstile";
+import { useRouter, usePathname } from "@/i18n/navigation";
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
@@ -64,6 +66,8 @@ interface ChatMessage {
 
 export default function Home() {
   const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const tHeader = useTranslations("Header");
   const tWelcome = useTranslations("Welcome");
   const tChat = useTranslations("Chat");
@@ -130,6 +134,14 @@ export default function Home() {
   const [detectedTranslation, setDetectedTranslation] = useState<string | null>(
     null,
   );
+
+  // Language-mismatch suggestion (backend detected a different language than
+  // the active UI locale). null = no suggestion.
+  const [languageSuggestion, setLanguageSuggestion] = useState<string | null>(
+    null,
+  );
+  const [languageSuggestionDismissed, setLanguageSuggestionDismissed] =
+    useState(false);
 
   // Church finder state
   const [interactionCount, setInteractionCount] = useState(0);
@@ -203,6 +215,29 @@ export default function Home() {
       () => setBackendReady(true),
       () => setBackendReady(false),
     );
+  }, []);
+
+  // Rehydrate a conversation preserved across a language switch. The switch
+  // triggers router.replace which remounts this page, so we stash messages in
+  // sessionStorage before navigating and restore them here exactly once.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("preservedConversation");
+      if (!raw) return;
+      sessionStorage.removeItem("preservedConversation");
+      const saved = JSON.parse(raw) as {
+        messages?: ChatMessage[];
+        conversationId?: string;
+      };
+      if (saved.messages && saved.messages.length > 0) {
+        setMessages(saved.messages);
+      }
+      if (saved.conversationId) {
+        setConversationId(saved.conversationId);
+      }
+    } catch {
+      // Corrupt/blocked storage: ignore and start fresh.
+    }
   }, []);
 
   // Save preference to localStorage when changed
@@ -367,12 +402,13 @@ export default function Home() {
         return [...prev, placeholderMessage];
       });
 
-      // Stream the response. We deliberately omit `language` so the backend
-      // auto-detects it from the message text — this lets Italian speakers
-      // get Italian replies even when the UI locale is English.
+      // Send the active UI locale so the backend replies in it. If the user
+      // types in a different language the backend returns a language_suggestion
+      // and we surface a dismissible switch banner.
       for await (const chunk of streamMessage(userMessageContent, apiMessages, {
         preferredTranslation: selectedTranslation || undefined,
         sessionId,
+        language: locale,
         signal: controller.signal,
       })) {
         if (controller.signal.aborted) break;
@@ -389,7 +425,19 @@ export default function Home() {
             model: chunk.model!,
             detected_translation: chunk.detected_translation,
             translation_info: chunk.translation_info,
+            language_suggestion: chunk.language_suggestion ?? null,
           };
+
+          // Surface a language-switch suggestion when the backend detected a
+          // different (and supported) language than the active UI locale.
+          if (
+            chunk.language_suggestion &&
+            chunk.language_suggestion !== locale &&
+            localeLabels[chunk.language_suggestion]
+          ) {
+            setLanguageSuggestion(chunk.language_suggestion);
+            setLanguageSuggestionDismissed(false);
+          }
 
           // Update detected translation
           if (chunk.detected_translation) {
@@ -569,6 +617,8 @@ export default function Home() {
     setMessages([]);
     setRelevantVerses([]);
     setDetectedTranslation(null);
+    setLanguageSuggestion(null);
+    setLanguageSuggestionDismissed(false);
     setInteractionCount(0);
     setChurchFinderDismissed(false);
     setInlinePromptShown(false);
@@ -587,6 +637,8 @@ export default function Home() {
     setMessages([]);
     setRelevantVerses([]);
     setDetectedTranslation(null);
+    setLanguageSuggestion(null);
+    setLanguageSuggestionDismissed(false);
     setInteractionCount(0);
     setChurchFinderDismissed(false);
     setInlinePromptShown(false);
@@ -597,6 +649,23 @@ export default function Home() {
     setMobileVersesOpen(false);
     setShowSessionLimitButton(false);
     setConversationId(generateSessionId()); // Reset conversation and session
+  };
+
+  const handleLanguageSwitch = () => {
+    if (!languageSuggestion) return;
+    try {
+      sessionStorage.setItem(
+        "preservedConversation",
+        JSON.stringify({ messages, conversationId }),
+      );
+    } catch {
+      // Storage unavailable: navigate anyway, conversation won't persist.
+    }
+    router.replace(pathname, { locale: languageSuggestion });
+  };
+
+  const handleLanguageSuggestionDismiss = () => {
+    setLanguageSuggestionDismissed(true);
   };
 
   // Handle feedback button click
@@ -842,6 +911,15 @@ export default function Home() {
                 {tChat("startNewSession")}
               </button>
             </div>
+          )}
+
+          {/* Language-mismatch suggestion */}
+          {languageSuggestion && !languageSuggestionDismissed && (
+            <LanguageSwitchSuggestion
+              suggestedLocale={languageSuggestion}
+              onSwitch={handleLanguageSwitch}
+              onDismiss={handleLanguageSuggestionDismiss}
+            />
           )}
 
           <form onSubmit={handleSubmit} className="flex gap-3 items-end">

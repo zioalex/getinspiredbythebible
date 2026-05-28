@@ -125,7 +125,10 @@
     "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
     "contentBlockedMessage": "I wasn't able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We're glad you're here.",
     "scrollToBottom": "Scroll to bottom",
-    "stopGenerating": "Stop generating"
+    "stopGenerating": "Stop generating",
+    "languageSwitchSuggestion": "It looks like you're writing in {language}. Switch?",
+    "languageSwitchAction": "Switch",
+    "languageSwitchDismiss": "Dismiss"
   },
   "Verses": {
     "scriptureReferences": "Scripture References",

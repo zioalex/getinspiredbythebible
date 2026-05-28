@@ -408,6 +408,8 @@ export interface StreamMetadata {
   model: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+  /** Detected language code when it differs from the requested `language`. */
+  language_suggestion?: string | null;
 }
 
 export interface StreamChunk {
@@ -419,6 +421,7 @@ export interface StreamChunk {
   model?: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+  language_suggestion?: string | null;
   // For content type:
   content?: string;
   // For error type:
