@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vox Quieta">
+  <rect width="64" height="64" rx="14" fill="#a35f38"/>
+  <path d="M20 16h12c3.3 0 6 2.7 6 6v26c0-2.2-1.8-4-4-4H20V16z" fill="#faf5f0"/>
+  <path d="M44 16H32c-3.3 0-6 2.7-6 6v26c0-2.2 1.8-4 4-4h14V16z" fill="#f3e8db"/>
+  <rect x="30" y="16" width="4" height="32" rx="1" fill="#a35f38"/>
+</svg>

@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
+import { pageMetadata, SITE_NAME } from "@/lib/seo";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Footer from "@/components/Footer";
@@ -21,23 +22,23 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
+  // Combine the brand name with the tagline so the home page <title> is
+  // descriptive rather than a bare 10-char brand string. Both halves come
+  // from the locale message files, so this stays fully translated.
+  const homeTitle = `${t("title")} — ${t("description")}`;
+
   return {
-    title: t("title"),
-    description: t("description"),
-    alternates: {
-      languages: {
-        en: "/en",
-        it: "/it",
-        de: "/de",
-        es: "/es",
-        fr: "/fr",
-        pt: "/pt",
-        ar: "/ar",
-        ru: "/ru",
-        zh: "/zh",
-        hi: "/hi",
-        ko: "/ko",
-      },
+    ...pageMetadata({
+      locale,
+      path: "",
+      title: homeTitle,
+      description: t("description"),
+    }),
+    // Child pages set a plain title string and inherit this template, e.g.
+    // "Privacy Policy · Vox Quieta". The home page renders `default`.
+    title: {
+      default: homeTitle,
+      template: `%s · ${SITE_NAME}`,
     },
   };
 }

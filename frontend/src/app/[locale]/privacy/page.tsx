@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getLegalDocContent, getLegalDocDate } from "@/lib/legalDocs";
 import { routing } from "@/i18n/routing";
+import { pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -17,10 +18,12 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Legal" });
 
-  return {
+  return pageMetadata({
+    locale,
+    path: "/privacy",
     title: t("privacyTitle"),
     description: t("privacyDescription"),
-  };
+  });
 }
 
 export default async function PrivacyPage({

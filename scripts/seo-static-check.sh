@@ -14,8 +14,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FE="$REPO_ROOT/frontend"
 APP="$FE/src/app"
+LIB="$FE/src/lib"
 LAYOUT="$APP/[locale]/layout.tsx"
 MSG="$FE/messages"
+
+# Metadata is allowed to live in src/app *or* be factored into a shared helper
+# under src/lib (e.g. lib/seo.ts). Scan both so refactors aren't false-flagged.
+SEO_PATHS=("$APP")
+[ -d "$LIB" ] && SEO_PATHS+=("$LIB")
+seo_grep() { grep -rqE "$1" "${SEO_PATHS[@]}" 2>/dev/null; }
 
 EXPECTED_LOCALES=(en it de es fr pt ar ru zh hi ko)
 
@@ -33,25 +40,29 @@ if [ ! -d "$APP" ]; then
 fi
 
 echo -e "${BLUE}-- Metadata infrastructure --${NC}"
-grep -q "metadataBase" "$LAYOUT" 2>/dev/null \
-  && pass "metadataBase set in [locale]/layout.tsx" \
-  || fail "metadataBase missing — OG/canonical relative URLs won't resolve ([locale]/layout.tsx)"
+seo_grep "metadataBase" \
+  && pass "metadataBase set (resolves relative OG/canonical URLs)" \
+  || fail "metadataBase missing — OG/canonical relative URLs won't resolve (set it in app/layout.tsx)"
 
-grep -rq "openGraph" "$APP" 2>/dev/null \
+seo_grep "openGraph" \
   && pass "openGraph metadata present" \
-  || fail "no Open Graph metadata (og:title/description/image) under src/app"
+  || fail "no Open Graph metadata (og:title/description/image) under src/app or src/lib"
 
-grep -rqE "twitter:|card:[[:space:]]*\"summary" "$APP" 2>/dev/null || grep -rq "twitter" "$APP" 2>/dev/null \
+seo_grep "twitter:|card:[[:space:]]*\"summary|twitter" \
   && pass "twitter card metadata present" \
-  || fail "no Twitter card metadata under src/app"
+  || fail "no Twitter card metadata under src/app or src/lib"
 
-grep -rq "canonical" "$APP" 2>/dev/null \
+seo_grep "canonical" \
   && pass "canonical alternates referenced" \
-  || warn "no canonical URLs (alternates.canonical) found under src/app"
+  || warn "no canonical URLs (alternates.canonical) found under src/app or src/lib"
 
-grep -rq "application/ld+json\|JsonLd\|schema.org" "$APP" 2>/dev/null \
+seo_grep "x-default" \
+  && pass "hreflang x-default present" \
+  || warn "no hreflang x-default — add an x-default alternate for locale-agnostic crawlers"
+
+seo_grep "application/ld\\+json|JsonLd|schema\\.org" \
   && pass "JSON-LD structured data present" \
-  || warn "no JSON-LD structured data (WebSite/Organization) under src/app"
+  || warn "no JSON-LD structured data (WebSite/Organization) under src/app or src/lib"
 
 echo ""
 echo -e "${BLUE}-- Crawl / index files --${NC}"
@@ -63,7 +74,13 @@ echo -e "${BLUE}-- Crawl / index files --${NC}"
   && pass "robots present (app/robots.ts or public/robots.txt)" \
   || fail "no robots — create frontend/src/app/robots.ts"
 
-if ls "$APP"/favicon.ico "$APP"/icon.* "$APP"/apple-icon.* "$FE"/public/favicon* "$FE"/public/*.ico >/dev/null 2>&1; then
+# Check each candidate independently — a single `ls` over a mixed list exits
+# non-zero if *any* operand is missing, which would mask a present icon.
+icon_found=""
+for pat in "$APP/favicon.ico" "$APP"/icon.* "$APP"/apple-icon.* "$FE"/public/favicon* "$FE"/public/*.ico; do
+  if compgen -G "$pat" >/dev/null 2>&1; then icon_found="$pat"; break; fi
+done
+if [ -n "$icon_found" ]; then
   pass "favicon / app icon present"
 else
   fail "no favicon/app icon (app/favicon.ico | app/icon.* | public/*.ico)"
@@ -75,14 +92,30 @@ grep -q "template:" "$LAYOUT" 2>/dev/null \
   && pass "title.template present in [locale]/layout.tsx" \
   || fail "no title.template — sub-pages render without a brand suffix"
 
+# The home <title> may be composed at runtime (e.g. title.default = "Brand —
+# Tagline"). When the layout builds a default title from both Metadata.title
+# and Metadata.description, measure that *effective* string, not the bare key.
 if command -v node >/dev/null 2>&1 && [ -f "$MSG/en.json" ]; then
-  title_len=$(node -e 'try{const t=require(process.argv[1]).Metadata?.title||"";process.stdout.write(String(t.length))}catch(e){process.stdout.write("-1")}' "$MSG/en.json" 2>/dev/null)
+  composed=""
+  if grep -q "default:" "$LAYOUT" 2>/dev/null \
+     && grep -q "template:" "$LAYOUT" 2>/dev/null \
+     && grep -qE 't\("title"\).*t\("description"\)|homeTitle' "$LAYOUT" 2>/dev/null; then
+    composed="1"
+  fi
+  read -r title_len eff_title < <(node -e '
+    try {
+      const m = require(process.argv[1]).Metadata || {};
+      const t = m.title || ""; const d = m.description || "";
+      const eff = process.argv[2] === "1" ? `${t} — ${d}` : t;
+      process.stdout.write(eff.length + " " + eff);
+    } catch(e) { process.stdout.write("-1 "); }
+  ' "$MSG/en.json" "$composed" 2>/dev/null)
   if [ "$title_len" = "-1" ]; then
     warn "could not read Metadata.title from messages/en.json"
   elif [ "$title_len" -ge 15 ]; then
-    pass "homepage title length is $title_len chars (en.json)"
+    pass "homepage title length is $title_len chars (\"$eff_title\")"
   else
-    fail "homepage title is only $title_len chars (\"$(node -e 'process.stdout.write(require(process.argv[1]).Metadata?.title||"")' "$MSG/en.json" 2>/dev/null)\") — too short/generic"
+    fail "homepage title is only $title_len chars (\"$eff_title\") — too short/generic"
   fi
 else
   warn "node not available or messages/en.json missing — skipped title-length check"
@@ -123,9 +156,28 @@ else
 fi
 
 echo ""
+echo -e "${BLUE}-- hreflang per-page alternates --${NC}"
+# Sub-pages must emit their own alternates so hreflang points at the matching
+# translated page (/it/privacy), not every locale's home (/it). Detect whether
+# each sub-page builds alternates itself (directly or via a shared helper).
+missing_alt=""
+for sp in privacy terms changelog; do
+  f="$APP/[locale]/$sp/page.tsx"
+  [ -f "$f" ] || continue
+  grep -qE "pageMetadata|buildAlternates|alternates" "$f" 2>/dev/null \
+    || missing_alt="$missing_alt $sp"
+done
+if [ -z "$missing_alt" ]; then
+  pass "sub-pages emit per-page alternates (canonical/hreflang track the page path)"
+else
+  warn "sub-pages without per-page alternates:$missing_alt — hreflang may point to locale roots"
+fi
+
+echo ""
 echo -e "${BLUE}-- Manual-review reminders (not auto-checkable) --${NC}"
-warn "hreflang: layout alternates.languages point to locale roots (/en, /it, ...). On sub-pages (/en/privacy) they mislabel — verify per-page alternates."
-warn "homepage [locale]/page.tsx is a client component ('use client') — confirm enough server-rendered body text for crawlers."
+grep -q "use client" "$APP/[locale]/page.tsx" 2>/dev/null \
+  && warn "homepage [locale]/page.tsx is a client component ('use client') — confirm enough server-rendered body text for crawlers." \
+  || pass "homepage [locale]/page.tsx is server-rendered"
 
 echo ""
 echo -e "${BLUE}=== Summary: ${RED}$fails FAIL${NC}, ${YELLOW}$warns WARN${NC} ===${NC}"
