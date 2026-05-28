@@ -109,6 +109,7 @@ frontend/.playwright/
 .acpx-prompt-*.txt
 .claude/*
 !.claude/agents/
+!.claude/skills/
 verify_acpx_claude.txt
 
 # Patch files and conflict rejects
