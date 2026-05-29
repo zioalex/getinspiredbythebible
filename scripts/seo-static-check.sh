@@ -40,39 +40,55 @@ if [ ! -d "$APP" ]; then
 fi
 
 echo -e "${BLUE}-- Metadata infrastructure --${NC}"
-seo_grep "metadataBase" \
-  && pass "metadataBase set (resolves relative OG/canonical URLs)" \
-  || fail "metadataBase missing — OG/canonical relative URLs won't resolve (set it in app/layout.tsx)"
+if seo_grep "metadataBase"; then
+  pass "metadataBase set (resolves relative OG/canonical URLs)"
+else
+  fail "metadataBase missing — OG/canonical relative URLs won't resolve (set it in app/layout.tsx)"
+fi
 
-seo_grep "openGraph" \
-  && pass "openGraph metadata present" \
-  || fail "no Open Graph metadata (og:title/description/image) under src/app or src/lib"
+if seo_grep "openGraph"; then
+  pass "openGraph metadata present"
+else
+  fail "no Open Graph metadata (og:title/description/image) under src/app or src/lib"
+fi
 
-seo_grep "twitter:|card:[[:space:]]*\"summary|twitter" \
-  && pass "twitter card metadata present" \
-  || fail "no Twitter card metadata under src/app or src/lib"
+if seo_grep "twitter:|card:[[:space:]]*\"summary|twitter"; then
+  pass "twitter card metadata present"
+else
+  fail "no Twitter card metadata under src/app or src/lib"
+fi
 
-seo_grep "canonical" \
-  && pass "canonical alternates referenced" \
-  || warn "no canonical URLs (alternates.canonical) found under src/app or src/lib"
+if seo_grep "canonical"; then
+  pass "canonical alternates referenced"
+else
+  warn "no canonical URLs (alternates.canonical) found under src/app or src/lib"
+fi
 
-seo_grep "x-default" \
-  && pass "hreflang x-default present" \
-  || warn "no hreflang x-default — add an x-default alternate for locale-agnostic crawlers"
+if seo_grep "x-default"; then
+  pass "hreflang x-default present"
+else
+  warn "no hreflang x-default — add an x-default alternate for locale-agnostic crawlers"
+fi
 
-seo_grep "application/ld\\+json|JsonLd|schema\\.org" \
-  && pass "JSON-LD structured data present" \
-  || warn "no JSON-LD structured data (WebSite/Organization) under src/app or src/lib"
+if seo_grep "application/ld\\+json|JsonLd|schema\\.org"; then
+  pass "JSON-LD structured data present"
+else
+  warn "no JSON-LD structured data (WebSite/Organization) under src/app or src/lib"
+fi
 
 echo ""
 echo -e "${BLUE}-- Crawl / index files --${NC}"
-{ [ -f "$APP/sitemap.ts" ] || [ -f "$APP/sitemap.tsx" ] || [ -f "$FE/public/sitemap.xml" ]; } \
-  && pass "sitemap present (app/sitemap.ts or public/sitemap.xml)" \
-  || fail "no sitemap — create frontend/src/app/sitemap.ts"
+if { [ -f "$APP/sitemap.ts" ] || [ -f "$APP/sitemap.tsx" ] || [ -f "$FE/public/sitemap.xml" ]; }; then
+  pass "sitemap present (app/sitemap.ts or public/sitemap.xml)"
+else
+  fail "no sitemap — create frontend/src/app/sitemap.ts"
+fi
 
-{ [ -f "$APP/robots.ts" ] || [ -f "$FE/public/robots.txt" ]; } \
-  && pass "robots present (app/robots.ts or public/robots.txt)" \
-  || fail "no robots — create frontend/src/app/robots.ts"
+if { [ -f "$APP/robots.ts" ] || [ -f "$FE/public/robots.txt" ]; }; then
+  pass "robots present (app/robots.ts or public/robots.txt)"
+else
+  fail "no robots — create frontend/src/app/robots.ts"
+fi
 
 # Check each candidate independently — a single `ls` over a mixed list exits
 # non-zero if *any* operand is missing, which would mask a present icon.
@@ -88,9 +104,11 @@ fi
 
 echo ""
 echo -e "${BLUE}-- Titles --${NC}"
-grep -q "template:" "$LAYOUT" 2>/dev/null \
-  && pass "title.template present in [locale]/layout.tsx" \
-  || fail "no title.template — sub-pages render without a brand suffix"
+if grep -q "template:" "$LAYOUT" 2>/dev/null; then
+  pass "title.template present in [locale]/layout.tsx"
+else
+  fail "no title.template — sub-pages render without a brand suffix"
+fi
 
 # The home <title> may be composed at runtime (e.g. title.default = "Brand —
 # Tagline"). When the layout builds a default title from both Metadata.title
@@ -102,6 +120,7 @@ if command -v node >/dev/null 2>&1 && [ -f "$MSG/en.json" ]; then
      && grep -qE 't\("title"\).*t\("description"\)|homeTitle' "$LAYOUT" 2>/dev/null; then
     composed="1"
   fi
+  # shellcheck disable=SC2016
   read -r title_len eff_title < <(node -e '
     try {
       const m = require(process.argv[1]).Metadata || {};
@@ -164,8 +183,9 @@ missing_alt=""
 for sp in privacy terms changelog; do
   f="$APP/[locale]/$sp/page.tsx"
   [ -f "$f" ] || continue
-  grep -qE "pageMetadata|buildAlternates|alternates" "$f" 2>/dev/null \
-    || missing_alt="$missing_alt $sp"
+  if ! grep -qE "pageMetadata|buildAlternates|alternates" "$f" 2>/dev/null; then
+    missing_alt="$missing_alt $sp"
+  fi
 done
 if [ -z "$missing_alt" ]; then
   pass "sub-pages emit per-page alternates (canonical/hreflang track the page path)"
@@ -175,9 +195,11 @@ fi
 
 echo ""
 echo -e "${BLUE}-- Manual-review reminders (not auto-checkable) --${NC}"
-grep -q "use client" "$APP/[locale]/page.tsx" 2>/dev/null \
-  && warn "homepage [locale]/page.tsx is a client component ('use client') — confirm enough server-rendered body text for crawlers." \
-  || pass "homepage [locale]/page.tsx is server-rendered"
+if grep -q "use client" "$APP/[locale]/page.tsx" 2>/dev/null; then
+  warn "homepage [locale]/page.tsx is a client component ('use client') — confirm enough server-rendered body text for crawlers."
+else
+  pass "homepage [locale]/page.tsx is server-rendered"
+fi
 
 echo ""
 echo -e "${BLUE}=== Summary: ${RED}$fails FAIL${NC}, ${YELLOW}$warns WARN${NC} ===${NC}"

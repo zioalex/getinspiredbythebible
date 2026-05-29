@@ -13,9 +13,11 @@ This skill is **read-only** — it inspects and reports; it never edits the site
 ## Steps
 
 1. **Static codebase scan (always).** Run:
+
    ```
    bash scripts/seo-static-check.sh
    ```
+
    It prints PASS/FAIL/WARN for metadataBase, Open Graph / Twitter, sitemap,
    robots, favicon, `title.template`, homepage title length, per-locale metadata
    coverage (all 11 `frontend/messages/*.json`), image alt-text exposure, and
@@ -23,9 +25,11 @@ This skill is **read-only** — it inspects and reports; it never edits the site
    Exit code is non-zero if any FAIL — note which checks fail.
 
 2. **Live check (if the domain is reachable).** Try:
+
    ```
    bash scripts/seo-live-check.sh
    ```
+
    It reports HTTP status for key routes (including an un-prefixed `/privacy` and
    a bogus path to confirm 404 behaviour), the rendered `<head>` meta of the
    homepage + a sub-page, robots.txt/sitemap.xml contents, and a server-rendered
@@ -58,6 +62,7 @@ This skill is **read-only** — it inspects and reports; it never edits the site
      SEO scope.
 
 ## Notes
+
 - Keep findings grounded in `file:line` evidence or script/live output — no
   floating claims.
 - For deeper or delegated runs, the `seo-auditor` subagent

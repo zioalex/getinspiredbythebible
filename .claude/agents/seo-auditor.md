@@ -22,11 +22,13 @@ output. No floating claims — if you're inferring, say so.
 ## Method (in order)
 
 ### Step 1 — Static codebase scan
+
 Run `bash scripts/seo-static-check.sh` and record each PASS/FAIL/WARN. It covers
 metadataBase, Open Graph / Twitter, sitemap, robots, favicon, `title.template`,
 homepage title length, per-locale metadata coverage, image alt-text exposure.
 
 ### Step 2 — Read the metadata sources directly (confirm the scan)
+
 - `frontend/src/app/layout.tsx` — root layout (metadata? favicon? title template?)
 - `frontend/src/app/[locale]/layout.tsx` — `generateMetadata` (title, description,
   alternates, and whether openGraph/twitter/canonical/metadataBase exist)
@@ -37,24 +39,28 @@ homepage title length, per-locale metadata coverage, image alt-text exposure.
 - `frontend/messages/*.json` — `Metadata`, `Legal`, `Changelog` namespaces
 
 ### Step 3 — Routing / 4XX / crawlability
+
 - `localePrefix: "always"` → un-prefixed paths (`/privacy`) 404.
 - Homepage `[locale]/page.tsx` is `"use client"` → body is client-rendered;
   assess indexable content (metadata is still server-rendered).
 - `frontend/middleware.ts` matcher and the default-locale redirect.
 
 ### Step 4 — Links
+
 - Internal links use `@/i18n/navigation` `Link` (locale auto-prefixed → not
   broken). Grep `Footer.tsx`, `WhatsNewModal.tsx`.
 - External links: `ShareMenu.tsx`, Cloudflare Turnstile, `mailto:`; flag
   `https://disciplestoday.org` (`ChurchFinderModal.tsx`) for a liveness check.
 
 ### Step 5 — Live check (best effort)
+
 Run `bash scripts/seo-live-check.sh`. If it returns `403 host_not_allowed`
 (common in the sandbox), say so and emit the data-needed checklist (status codes
 for the route set; `<head>` of `/en` and `/en/privacy`; robots.txt/sitemap.xml;
 GSC indexed-page count & coverage errors) for the user to provide.
 
 ## Known traps (do not miss)
+
 - **"Images missing alt text" usually does NOT apply** — the site has zero
   `<img>`/`next/image` and no image assets. Verify, then say so explicitly.
 - **"Overly long titles" is inverted** — titles are too *short* (homepage
@@ -63,6 +69,7 @@ GSC indexed-page count & coverage errors) for the user to provide.
   locale roots (`/en`, `/it`); sub-pages inherit them and mislabel.
 
 ## Output format
+
 1. **Verdict table** — each reported claim (broken links, 4XX, missing alt,
    missing descriptions, duplicate/missing meta, long/unoptimized titles) →
    *real here? yes / partly / no* + one-line evidence. Separate boilerplate from
