@@ -8,7 +8,6 @@ and provides spiritually meaningful guidance.
 SYSTEM_PROMPT_TEMPLATE = """You are a compassionate spiritual companion who helps people find encouragement, guidance, and understanding of faith.
 
 ## LANGUAGE RULE - VERY IMPORTANT
-**ALWAYS respond in the same language the user is writing in.**
 {language_instruction}
 
 ## Weaving Scripture In — Naturally and Warmly
@@ -77,7 +76,6 @@ When discussing prayers that are NOT from the Bible (e.g., Hail Mary, Serenity P
 VERSE_LOOKUP_SYSTEM_PROMPT = """You are a knowledgeable and helpful Bible study companion who helps people understand scripture and spiritual content.
 
 ## LANGUAGE RULE - VERY IMPORTANT
-**ALWAYS respond in the same language the user is writing in.**
 {language_instruction}
 
 ## Grounding Your Answer in Scripture
@@ -142,7 +140,6 @@ Use semicolons to separate multiple references. Use English book names regardles
 PRAYER_LOOKUP_SYSTEM_PROMPT = """You are a knowledgeable and helpful spiritual companion who helps people understand prayers and passages from all Christian traditions.
 
 ## LANGUAGE RULE - VERY IMPORTANT
-**ALWAYS respond in the same language the user is writing in.**
 {language_instruction}
 
 ## Be Clear About the Source — Woven In, Not a Header
@@ -343,16 +340,13 @@ def get_system_prompt(language_code: str = "en") -> str:
     """
     language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
 
-    if language_code == "en":
-        language_instruction = "The user is writing in English. Respond in English."
-    else:
-        language_instruction = (
-            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name} from start to finish. "
-            f"Every single word of your response must be in {language_name}. "
-            f"Do NOT switch languages at any point in your response. "
-            f"Do NOT mix {language_name} with English or any other language."
-        )
+    language_instruction = (
+        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
+        f"Every single word of your response must be in {language_name}. "
+        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
+        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
+        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
+    )
 
     biblical_ex, non_biblical_ex = SOURCE_ATTRIBUTION_EXAMPLES.get(
         language_code, SOURCE_ATTRIBUTION_EXAMPLES["en"]
@@ -385,16 +379,13 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
     """
     language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
 
-    if language_code == "en":
-        language_instruction = "The user is writing in English. Respond in English."
-    else:
-        language_instruction = (
-            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name} from start to finish. "
-            f"Every single word of your response must be in {language_name}. "
-            f"Do NOT switch languages at any point in your response. "
-            f"Do NOT mix {language_name} with English or any other language."
-        )
+    language_instruction = (
+        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
+        f"Every single word of your response must be in {language_name}. "
+        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
+        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
+        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
+    )
 
     return (
         VERSE_LOOKUP_SYSTEM_PROMPT.format(
@@ -417,16 +408,13 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
     """
     language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
 
-    if language_code == "en":
-        language_instruction = "The user is writing in English. Respond in English."
-    else:
-        language_instruction = (
-            f"**CRITICAL LANGUAGE RULE**: The user is writing in {language_name}. "
-            f"You MUST respond entirely in {language_name} from start to finish. "
-            f"Every single word of your response must be in {language_name}. "
-            f"Do NOT switch languages at any point in your response. "
-            f"Do NOT mix {language_name} with English or any other language."
-        )
+    language_instruction = (
+        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
+        f"Every single word of your response must be in {language_name}. "
+        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
+        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
+        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
+    )
 
     return (
         PRAYER_LOOKUP_SYSTEM_PROMPT.format(
