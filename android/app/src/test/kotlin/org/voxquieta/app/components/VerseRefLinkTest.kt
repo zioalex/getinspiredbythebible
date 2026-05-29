@@ -1,5 +1,6 @@
 package org.voxquieta.app.components
 
+import org.voxquieta.app.presentation.components.QUOTE_HIGHLIGHT_REGEX
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.components.handleVerseLink
 import org.voxquieta.app.presentation.components.injectVerseLinks
@@ -650,81 +651,104 @@ class VerseRefLinkTest {
         assertFalse("should not produce quadruple asterisks", result.contains("****"))
     }
 
-    // ── injectVerseQuoteHighlights ────────────────────────────────────────────
+    // ── injectVerseQuoteHighlights (no-op since BITB-036) ────────────────────
 
     @Test
-    fun `injectVerseQuoteHighlights promotes straight-quote after verse link to blockquote`() {
-        val linked = "**[John 3:16](verse://John/3/16)**: \"For God so loved the world\""
-        val result = injectVerseQuoteHighlights(linked)
-        assertTrue("should contain blockquote", result.contains("\n> *"))
-        assertTrue("should contain the quote text", result.contains("For God so loved the world"))
-        assertFalse("bare quote should be gone", result.contains("]: \"For God"))
+    fun `injectVerseQuoteHighlights is a no-op for verse-adjacent straight quotes`() {
+        val input = “**[John 3:16](verse://John/3/16)**: \”For God so loved the world\””
+        assertEquals(“must be unchanged (highlighting moved to beforeSetMarkdown span layer)”, input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights promotes guillemet quote after verse link`() {
-        val linked = "**[Jean 3:16](verse://Jean/3/16)**: «Car Dieu a tant aimé le monde»"
-        val result = injectVerseQuoteHighlights(linked)
-        assertTrue("should promote guillemet quote", result.contains("\n> *"))
-        assertTrue("should keep quote content", result.contains("Car Dieu a tant aimé le monde"))
+    fun `injectVerseQuoteHighlights is a no-op for guillemet quotes`() {
+        val input = “**[Jean 3:16](verse://Jean/3/16)**: «Car Dieu a tant aimé le monde»”
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights promotes German low-high quote after verse link`() {
-        val linked = "**[Johannes 3:16](verse://Johannes/3/16)**: „Denn so hat Gott die Welt geliebt“"
-        val result = injectVerseQuoteHighlights(linked)
-        assertTrue("should promote German quote", result.contains("\n> *"))
-        assertTrue("quote content present", result.contains("Denn so hat Gott die Welt geliebt"))
+    fun `injectVerseQuoteHighlights is a no-op for German low-high quotes`() {
+        val input = “**[Johannes 3:16](verse://Johannes/3/16)**: „Denn so hat Gott die Welt geliebt“”
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights leaves prose unchanged when no adjacent quote`() {
-        val linked = "In **[John 3:16](verse://John/3/16)** we find hope and comfort."
-        val result = injectVerseQuoteHighlights(linked)
-        assertEquals("no quote to promote — should be unchanged", linked, result)
+    fun `injectVerseQuoteHighlights is a no-op for plain prose`() {
+        val input = “In **[John 3:16](verse://John/3/16)** we find hope and comfort.”
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights does not promote short strings`() {
-        // Quotes shorter than 3 content chars should not be promoted (noise guard)
-        val linked = "**[John 3:16](verse://John/3/16)**: \"Hi\""
-        val result = injectVerseQuoteHighlights(linked)
-        assertEquals("short quote should be unchanged", linked, result)
+    fun `injectVerseQuoteHighlights is a no-op for short quoted strings`() {
+        val input = “**[John 3:16](verse://John/3/16)**: \”Hi\””
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights leaves text with no verse links unchanged`() {
-        val text = "He said \"For God so loved the world\" with joy."
-        val result = injectVerseQuoteHighlights(text)
-        assertEquals("no verse link present — unchanged", text, result)
+    fun `injectVerseQuoteHighlights is a no-op when there are no verse links`() {
+        val input = “He said \”For God so loved the world\” with joy.”
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights chains correctly after injectVerseLinks`() {
-        val raw = "In John 3:16, \"For God so loved the world that he gave his only Son.\""
-        val step1 = injectVerseLinks(raw)
-        val step2 = injectVerseQuoteHighlights(step1)
-        assertTrue("verse ref should be bold link", step2.contains("**[John 3:16](verse://John/3/16)**"))
-        assertTrue("quote should be in blockquote", step2.contains("\n> *"))
+    fun `injectVerseQuoteHighlights is a no-op after injectVerseLinks`() {
+        val raw = “In John 3:16, \”For God so loved the world that he gave his only Son.\””
+        val linked = injectVerseLinks(raw)
+        assertTrue(“verse ref should be bold link”, linked.contains(“**[John 3:16](verse://John/3/16)**”))
+        assertEquals(“injectVerseQuoteHighlights must not alter linked text”, linked, injectVerseQuoteHighlights(linked))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights promotes quote when prose words separate link and quote`() {
-        // LLM warm-prose style: words between the verse ref and the quoted text
-        val linked = "**[Romans 8:28](verse://Romans/8/28)** reminds us that \"And we know that in all things God works for the good\""
-        val result = injectVerseQuoteHighlights(linked)
-        assertTrue("should promote quote to blockquote", result.contains("\n> *"))
-        assertTrue("prose before quote is preserved", result.contains("reminds us that"))
-        assertTrue("quote content present", result.contains("And we know that in all things God works"))
+    fun `injectVerseQuoteHighlights is a no-op for prose-separated quote`() {
+        val input = “**[Romans 8:28](verse://Romans/8/28)** reminds us that \”And we know that in all things God works\””
+        assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
-    fun `injectVerseQuoteHighlights does not match quote on a different line from verse link`() {
-        // A newline between the verse link and the quote should prevent the match
-        val linked = "**[John 3:16](verse://John/3/16)**\n\n\"For God so loved the world\""
-        val result = injectVerseQuoteHighlights(linked)
-        // The separator is limited to same-line text, so this should NOT be promoted
-        assertFalse("cross-paragraph quote should not be promoted", result.contains("\n> *\"For God"))
+    fun `injectVerseQuoteHighlights is a no-op for cross-paragraph quote`() {
+        val input = “**[John 3:16](verse://John/3/16)**\n\n\”For God so loved the world\””
+        assertEquals(input, injectVerseQuoteHighlights(input))
+    }
+
+    // ── QUOTE_HIGHLIGHT_REGEX ─────────────────────────────────────────────────
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches straight double quotes`() {
+        val match = QUOTE_HIGHLIGHT_REGEX.find(“He said \”For God so loved the world\”.”)
+        assertTrue(“must match quoted text”, match != null)
+        assertTrue(“must contain the content”, match!!.value.contains(“For God so loved the world”))
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches curly double quotes`() {
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(““For God so loved the world””))
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches guillemets`() {
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“«Car Dieu a tant aimé le monde»”))
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches German low-high quotes`() {
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“„Denn so hat Gott die Welt geliebt“”))
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches all quoted occurrences not just verse-adjacent ones`() {
+        val count = QUOTE_HIGHLIGHT_REGEX.findAll(“\”first quote here\” and \”second quote here\””).count()
+        assertEquals(“must find both quotes”, 2, count)
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX ignores quotes with fewer than 3 content chars`() {
+        assertFalse(“short string must not match”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“\”Hi\””))
+        assertFalse(“two-char string must not match”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“\”OK\””))
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches quote adjacent to verse link (web parity)`() {
+        val input = “**[John 3:16](verse://John/3/16)**: \”For God so loved the world\””
+        assertTrue(“must match the quoted part”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input))
     }
 
     // ── handleVerseLink ───────────────────────────────────────────────────────

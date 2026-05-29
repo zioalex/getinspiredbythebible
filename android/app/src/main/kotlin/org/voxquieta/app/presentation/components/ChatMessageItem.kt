@@ -3,6 +3,12 @@ package org.voxquieta.app.presentation.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
+import android.text.Spannable
+import android.text.style.ReplacementSpan
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -256,42 +262,20 @@ internal fun injectVerseLinks(
         }
     }
 
-// Quote-mark pairs used across supported languages:
-//   "…"   straight double quotes (English, default)
-//   «…»   guillemets (French, Russian, Arabic, Italian)
-//   „…"   low-high (German): open U+201E, close U+201D or U+201C
-//   「…」  CJK corner (Chinese, Japanese)
-//   《…》  double CJK corner (Chinese)
-// Separator between verse link and quote: same-line text up to 100 chars,
-// so "**[Ref](url)**: “quote”" and "**[Ref](url)** says “quote”" both match.
-private val VERSE_QUOTE_REGEX = Regex(
-    // Group 1: closing bracket + verse:// URL
-    // Group 2: separator (same line, any text up to 100 chars before opening quote)
-    // Group 3: the full quoted string including its surrounding quote marks
-    """(\]\(verse://[^)]+\))([^\n"“«„「《]{0,100})""" +
-        """(["“«„「《](?:[^"“»”」》]{3,})["“»”」》])"""
+// Matches any quoted text with supported quote-mark pairs, minimum 3 content chars.
+// Mirrors the web's highlightQuotes() which matches all double-quoted text, extended with
+// language-specific quote pairs for curly, guillemet, German, and CJK styles.
+// Opening: " straight (U+0022), \u201C left curly, \u201D right curly (German open),
+//          \u00AB guillemet, \u201E German low-9, \u300C CJK corner, \u300A double CJK.
+// Closing: " straight (U+0022), \u201D right curly, \u201C left curly (German close),
+//          \u00BB guillemet, \u300D CJK corner, \u300B double CJK.
+internal val QUOTE_HIGHLIGHT_REGEX = Regex(
+    "([\u0022\u201C\u201D\u00AB\u201E\u300C\u300A]" +
+        "(?:[^\u0022\u201C\u201D\u00BB\u300D\u300B]{3,})" +
+        "[\u0022\u201D\u201C\u00BB\u300D\u300B])"
 )
 
-/**
- * Converts quoted scripture text that immediately follows a verse link into a Markwon
- * blockquote so it renders with a coloured left-bar and indented background — mirroring
- * the web's `bg-amber-50 border-l-2 border-amber-400` inline chip.
- *
- * Must be called **after** [injectVerseLinks] so that verse:// links are already present.
- *
- * Example input:
- *   `**[John 3:16](verse://John/3/16)**: "For God so loved the world…"`
- * Example output:
- *   `**[John 3:16](verse://John/3/16)**:\n> *"For God so loved the world…"*`
- */
-internal fun injectVerseQuoteHighlights(markdown: String): String =
-    VERSE_QUOTE_REGEX.replace(markdown) { result ->
-        val linkClose = result.groupValues[1]   // e.g. "](verse://John/3/16)"
-        val separator = result.groupValues[2]   // text between link close and opening quote
-        val quote = result.groupValues[3]       // the quoted string including quote marks
-        // trimEnd() strips trailing whitespace from separator; keep bold/colon punctuation.
-        "$linkClose${separator.trimEnd()}\n> *$quote*"
-    }
+internal fun injectVerseQuoteHighlights(markdown: String): String = markdown
 
 /**
  * Parses a `verse://` URL and returns a [PendingVerseLink] if the URL is well-formed,
@@ -480,6 +464,7 @@ fun ChatMessageItem(
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 isTextSelectable = true,
+                                enableSoftBreakAddsNewLine = true,
                                 onLinkClicked = { url ->
                                     val parsed = parseVerseLink(url, preferredTranslation)
                                     if (parsed != null) {
@@ -489,7 +474,26 @@ fun ChatMessageItem(
                                         onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
                                     }
                                 },
-
+                                beforeSetMarkdown = { _, spanned ->
+                                    if (spanned is Spannable) {
+                                        QUOTE_HIGHLIGHT_REGEX.findAll(spanned).forEach { match ->
+                                            spanned.setSpan(
+                                                InlineAmberQuoteSpan(
+                                                    bgColor = 0xFFFFFBEB.toInt(),
+                                                    barColor = 0xFFD97706.toInt(),
+                                                    textColor = 0xFF78350F.toInt(),
+                                                    barWidth = 6f,
+                                                    cornerRadius = 4f,
+                                                    paddingH = 8f,
+                                                    paddingV = 2f,
+                                                ),
+                                                match.range.first,
+                                                match.range.last + 1,
+                                                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                                            )
+                                        }
+                                    }
+                                },
                             )
                         }
 
@@ -616,6 +620,70 @@ fun ChatMessageItem(
                 onDismissSheet()
             },
         )
+    }
+}
+
+/**
+ * Inline amber chip span for quoted scripture text — matches the web's
+ * `bg-amber-50 border-l-2 border-amber-400 italic font-serif` styling.
+ *
+ * Rendered as an inline [ReplacementSpan] so the quote stays inside the prose sentence
+ * rather than being pushed to a block-level element. draw() is called once per wrapped
+ * line fragment, so the background and bar cover each fragment independently.
+ */
+private class InlineAmberQuoteSpan(
+    private val bgColor: Int,
+    private val barColor: Int,
+    private val textColor: Int,
+    private val barWidth: Float,
+    private val cornerRadius: Float,
+    private val paddingH: Float,
+    private val paddingV: Float,
+) : ReplacementSpan() {
+
+    override fun getSize(
+        paint: Paint,
+        text: CharSequence,
+        start: Int,
+        end: Int,
+        fm: Paint.FontMetricsInt?,
+    ): Int = (paint.measureText(text, start, end) + barWidth + paddingH * 2).toInt()
+
+    override fun draw(
+        canvas: Canvas,
+        text: CharSequence,
+        start: Int,
+        end: Int,
+        x: Float,
+        top: Int,
+        y: Int,
+        bottom: Int,
+        paint: Paint,
+    ) {
+        val width = paint.measureText(text, start, end) + barWidth + paddingH * 2
+        val rect = RectF(x, top + paddingV, x + width, bottom - paddingV)
+
+        val savedColor = paint.color
+        val savedStyle = paint.style
+        val savedTypeface = paint.typeface
+
+        paint.color = bgColor
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
+
+        paint.color = barColor
+        canvas.drawRoundRect(
+            RectF(x, rect.top, x + barWidth, rect.bottom),
+            cornerRadius, cornerRadius, paint,
+        )
+
+        paint.color = textColor
+        paint.typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+        canvas.drawText(text, start, end, x + barWidth + paddingH, y.toFloat(), paint)
+
+        paint.color = savedColor
+        paint.style = savedStyle
+        paint.typeface = savedTypeface
     }
 }
 

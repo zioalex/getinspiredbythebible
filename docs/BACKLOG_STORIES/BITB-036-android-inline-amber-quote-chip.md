@@ -1,6 +1,6 @@
 # BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
-**Status:** 🎯 Todo
+**Status:** 🔄 In PR (PR #PENDING — 2026-05-29)
 
 ## User Story
 
