@@ -43,11 +43,13 @@ class TestGetSystemPrompt:
 
     def test_english_default(self):
         result = get_system_prompt()
-        assert "respond in English" in result.lower() or "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_system_prompt("en")
-        assert "The user is writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_italian(self):
         result = get_system_prompt("it")
@@ -143,11 +145,13 @@ class TestGetVerseLookupPrompt:
 
     def test_english_default(self):
         result = get_verse_lookup_prompt()
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_verse_lookup_prompt("en")
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_non_english(self):
         result = get_verse_lookup_prompt("it")
@@ -164,11 +168,13 @@ class TestGetPrayerLookupPrompt:
 
     def test_english_default(self):
         result = get_prayer_lookup_prompt()
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_prayer_lookup_prompt("en")
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_non_english(self):
         result = get_prayer_lookup_prompt("de")
