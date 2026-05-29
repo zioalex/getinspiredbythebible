@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.17.0...v1.18.0) (2026-05-29)
+
+### Features
+
+* **android:** inline amber quote chip for quoted scripture (BITB-036) ([#637](https://github.com/zioalex/getinspiredbythebible/issues/637)) ([77f4452](https://github.com/zioalex/getinspiredbythebible/commit/77f44520f2ec2f69ede9525fe3f4ce560b9ecb95))
+
+### Bug Fixes
+
+* **backend:** enforce consistent language responses across all prompts ([#640](https://github.com/zioalex/getinspiredbythebible/issues/640)) ([c07b1a8](https://github.com/zioalex/getinspiredbythebible/commit/c07b1a8324ee9699859680b9a6cdf901a71c548f))
+
 ## [1.17.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.16.0...v1.17.0) (2026-05-29)
 
 ### Features
