@@ -2,7 +2,7 @@
 
 **Priority:** P2 (Medium — UX/trust refinement; the urgent P0 was already fixed by PR #585)
 **Size:** L (multi-PR; backend + web first, Android follow-up)
-**Status:** 📝 Plan (approved 2026-05-26 — Option B, both platforms)
+**Status:** ✅ Slice 1 (backend) done — PR #634 merged 2026-05-27. ✅ Slice 2 (web) done — PR #635 merged 2026-05-28. 🎯 Slice 3 (Android) Todo.
 **Supersedes:** the silent-override approach originally drafted in PR #630
 
 ---
