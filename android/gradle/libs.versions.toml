@@ -28,7 +28,7 @@ splashscreen = "1.0.1"
 owaspDepCheck = "12.1.0"
 hiltTesting = "2.51.1"          # same as hilt version
 androidxTestRunner = "1.6.2"
-composeMarkdown = "0.5.0"
+composeMarkdown = "0.7.2"
 appcompat = "1.7.0"
 robolectric = "4.14.1"
 
