@@ -328,6 +328,19 @@ def get_opening_phrase(language_code: str = "en") -> str:
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
 
 
+def _build_language_instruction(language_code: str) -> tuple[str, str]:
+    """Return (language_name, language_instruction) for the given locale code."""
+    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
+    instruction = (
+        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
+        f"Every single word of your response must be in {language_name}. "
+        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
+        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
+        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
+    )
+    return language_name, instruction
+
+
 def get_system_prompt(language_code: str = "en") -> str:
     """
     Get the system prompt with language-specific instructions.
@@ -338,15 +351,7 @@ def get_system_prompt(language_code: str = "en") -> str:
     Returns:
         System prompt with appropriate language instruction
     """
-    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
-
-    language_instruction = (
-        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
-        f"Every single word of your response must be in {language_name}. "
-        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
-        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
-        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
-    )
+    language_name, language_instruction = _build_language_instruction(language_code)
 
     biblical_ex, non_biblical_ex = SOURCE_ATTRIBUTION_EXAMPLES.get(
         language_code, SOURCE_ATTRIBUTION_EXAMPLES["en"]
@@ -377,15 +382,7 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
     Returns:
         System prompt for verse explanation with appropriate language instruction
     """
-    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
-
-    language_instruction = (
-        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
-        f"Every single word of your response must be in {language_name}. "
-        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
-        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
-        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
-    )
+    language_name, language_instruction = _build_language_instruction(language_code)
 
     return (
         VERSE_LOOKUP_SYSTEM_PROMPT.format(
@@ -406,15 +403,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
     Returns:
         System prompt for prayer explanation with appropriate language instruction
     """
-    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
-
-    language_instruction = (
-        f"**CRITICAL LANGUAGE RULE**: You MUST respond entirely in {language_name} from start to finish. "
-        f"Every single word of your response must be in {language_name}. "
-        f"Do NOT switch languages at any point in your response, even if the user explicitly asks you to write in a different language. "
-        f"If the user asks to switch languages, kindly let them know they can change the app language using the language switcher, and continue responding in {language_name}. "
-        f"Even if earlier messages in this conversation were in a different language, always respond in {language_name} now."
-    )
+    language_name, language_instruction = _build_language_instruction(language_code)
 
     return (
         PRAYER_LOOKUP_SYSTEM_PROMPT.format(
