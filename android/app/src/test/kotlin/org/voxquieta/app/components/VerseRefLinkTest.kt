@@ -655,100 +655,100 @@ class VerseRefLinkTest {
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for verse-adjacent straight quotes`() {
-        val input = “**[John 3:16](verse://John/3/16)**: \”For God so loved the world\””
-        assertEquals(“must be unchanged (highlighting moved to beforeSetMarkdown span layer)”, input, injectVerseQuoteHighlights(input))
+        val input = "**[John 3:16](verse://John/3/16)**: \"For God so loved the world\""
+        assertEquals("must be unchanged (highlighting moved to beforeSetMarkdown span layer)", input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for guillemet quotes`() {
-        val input = “**[Jean 3:16](verse://Jean/3/16)**: «Car Dieu a tant aimé le monde»”
+        val input = "**[Jean 3:16](verse://Jean/3/16)**: \u00ABCar Dieu a tant aim\u00E9 le monde\u00BB"
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for German low-high quotes`() {
-        val input = “**[Johannes 3:16](verse://Johannes/3/16)**: „Denn so hat Gott die Welt geliebt“”
+        val input = "**[Johannes 3:16](verse://Johannes/3/16)**: \u201EDenn so hat Gott die Welt geliebt\u201D"
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for plain prose`() {
-        val input = “In **[John 3:16](verse://John/3/16)** we find hope and comfort.”
+        val input = "In **[John 3:16](verse://John/3/16)** we find hope and comfort."
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for short quoted strings`() {
-        val input = “**[John 3:16](verse://John/3/16)**: \”Hi\””
+        val input = "**[John 3:16](verse://John/3/16)**: \"Hi\""
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op when there are no verse links`() {
-        val input = “He said \”For God so loved the world\” with joy.”
+        val input = "He said \"For God so loved the world\" with joy."
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op after injectVerseLinks`() {
-        val raw = “In John 3:16, \”For God so loved the world that he gave his only Son.\””
+        val raw = "In John 3:16, \"For God so loved the world that he gave his only Son.\""
         val linked = injectVerseLinks(raw)
-        assertTrue(“verse ref should be bold link”, linked.contains(“**[John 3:16](verse://John/3/16)**”))
-        assertEquals(“injectVerseQuoteHighlights must not alter linked text”, linked, injectVerseQuoteHighlights(linked))
+        assertTrue("verse ref should be bold link", linked.contains("**[John 3:16](verse://John/3/16)**"))
+        assertEquals("injectVerseQuoteHighlights must not alter linked text", linked, injectVerseQuoteHighlights(linked))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for prose-separated quote`() {
-        val input = “**[Romans 8:28](verse://Romans/8/28)** reminds us that \”And we know that in all things God works\””
+        val input = "**[Romans 8:28](verse://Romans/8/28)** reminds us that \"And we know that in all things God works\""
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
     @Test
     fun `injectVerseQuoteHighlights is a no-op for cross-paragraph quote`() {
-        val input = “**[John 3:16](verse://John/3/16)**\n\n\”For God so loved the world\””
+        val input = "**[John 3:16](verse://John/3/16)**\n\n\"For God so loved the world\""
         assertEquals(input, injectVerseQuoteHighlights(input))
     }
 
-    // ── QUOTE_HIGHLIGHT_REGEX ─────────────────────────────────────────────────
+    // ── QUOTE_HIGHLIGHT_REGEX ─────────────────────────────────────────
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches straight double quotes`() {
-        val match = QUOTE_HIGHLIGHT_REGEX.find(“He said \”For God so loved the world\”.”)
-        assertTrue(“must match quoted text”, match != null)
-        assertTrue(“must contain the content”, match!!.value.contains(“For God so loved the world”))
+        val match = QUOTE_HIGHLIGHT_REGEX.find("He said \"For God so loved the world\".")
+        assertTrue("must match quoted text", match != null)
+        assertTrue("must contain the content", match!!.value.contains("For God so loved the world"))
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches curly double quotes`() {
-        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(““For God so loved the world””))
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn("\u201CFor God so loved the world\u201D"))
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches guillemets`() {
-        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“«Car Dieu a tant aimé le monde»”))
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn("\u00ABCar Dieu a tant aim\u00E9 le monde\u00BB"))
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches German low-high quotes`() {
-        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“„Denn so hat Gott die Welt geliebt“”))
+        assertTrue(QUOTE_HIGHLIGHT_REGEX.containsMatchIn("\u201EDenn so hat Gott die Welt geliebt\u201D"))
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches all quoted occurrences not just verse-adjacent ones`() {
-        val count = QUOTE_HIGHLIGHT_REGEX.findAll(“\”first quote here\” and \”second quote here\””).count()
-        assertEquals(“must find both quotes”, 2, count)
+        val count = QUOTE_HIGHLIGHT_REGEX.findAll("\"first quote here\" and \"second quote here\"").count()
+        assertEquals("must find both quotes", 2, count)
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX ignores quotes with fewer than 3 content chars`() {
-        assertFalse(“short string must not match”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“\”Hi\””))
-        assertFalse(“two-char string must not match”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(“\”OK\””))
+        assertFalse("short string must not match", QUOTE_HIGHLIGHT_REGEX.containsMatchIn("\"Hi\""))
+        assertFalse("two-char string must not match", QUOTE_HIGHLIGHT_REGEX.containsMatchIn("\"OK\""))
     }
 
     @Test
     fun `QUOTE_HIGHLIGHT_REGEX matches quote adjacent to verse link (web parity)`() {
-        val input = “**[John 3:16](verse://John/3/16)**: \”For God so loved the world\””
-        assertTrue(“must match the quoted part”, QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input))
+        val input = "**[John 3:16](verse://John/3/16)**: \"For God so loved the world\""
+        assertTrue("must match the quoted part", QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input))
     }
 
     // ── handleVerseLink ───────────────────────────────────────────────────────
