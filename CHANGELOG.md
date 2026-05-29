@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.17.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.16.0...v1.17.0) (2026-05-29)
 
-
 ### Features
 
 * **seo:** add SEO audit scripts, metadata improvements, and agent/skill definitions ([#636](https://github.com/zioalex/getinspiredbythebible/issues/636)) ([c4fdbcf](https://github.com/zioalex/getinspiredbythebible/commit/c4fdbcfdcd47a80b6e63f92491767c94b467f1d5))
