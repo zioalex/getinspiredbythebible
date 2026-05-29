@@ -586,6 +586,30 @@ Testing & Documentation:
 
 ---
 
+### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image, Edge robots
+
+**Status:** 🎯 Todo
+**Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
+**Created:** 2026-05-29
+
+**As a** person searching for Bible inspiration on Google (or asking an AI assistant),
+**I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews, crawlable robots/sitemap,
+**so that** the site can actually be discovered rather than served as an empty client-rendered shell.
+
+**Acceptance Criteria:**
+
+- [ ] Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
+- [ ] `og:image` resolves and Twitter card is `summary_large_image`
+- [ ] Production `/robots.txt` contains the `Sitemap:` directive (verify Cloudflare vs Next precedence post-deploy)
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` resolves, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy` (not locale roots); sitemap submitted to Search Console
+
+**Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
+
+**References:** PR #636 (SEO metadata foundation, merged), `scripts/seo-static-check.sh`, `scripts/seo-live-check.sh`, `frontend/src/lib/seo.ts`
+
+---
+
 ### 🎯 BITB-029: Surface Bible Version Information More Clearly
 
 **Status:** 🎯 Todo
