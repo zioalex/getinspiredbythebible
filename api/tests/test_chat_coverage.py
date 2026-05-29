@@ -43,17 +43,32 @@ class TestGetSystemPrompt:
 
     def test_english_default(self):
         result = get_system_prompt()
-        assert "respond in English" in result.lower() or "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_system_prompt("en")
-        assert "The user is writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_italian(self):
         result = get_system_prompt("it")
         assert "Italian" in result
         assert "You MUST respond entirely in" in result
         assert "Do NOT switch languages" in result  # Updated for stronger instruction
+
+    def test_new_language_clauses_present(self):
+        """The three PR#640 clauses must appear (regression guard for the
+        German-then-Italian inconsistency bug)."""
+        result = get_system_prompt("de")
+        assert "even if the user explicitly asks" in result
+        assert "language switcher" in result
+        assert "earlier messages in this conversation were in a different language" in result
+
+    def test_old_english_special_case_removed(self):
+        """The pre-PR#640 soft English instruction must be gone."""
+        result = get_system_prompt("en")
+        assert "The user is writing in English. Respond in English." not in result
 
     def test_german(self):
         result = get_system_prompt("de")
@@ -143,16 +158,24 @@ class TestGetVerseLookupPrompt:
 
     def test_english_default(self):
         result = get_verse_lookup_prompt()
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_verse_lookup_prompt("en")
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_non_english(self):
         result = get_verse_lookup_prompt("it")
         assert "Italian" in result
         assert "You MUST respond entirely in" in result
+
+    def test_new_language_clauses_present(self):
+        result = get_verse_lookup_prompt("de")
+        assert "even if the user explicitly asks" in result
+        assert "language switcher" in result
+        assert "earlier messages in this conversation were in a different language" in result
 
     def test_contains_verse_content(self):
         result = get_verse_lookup_prompt("en")
@@ -164,16 +187,24 @@ class TestGetPrayerLookupPrompt:
 
     def test_english_default(self):
         result = get_prayer_lookup_prompt()
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_english_explicit(self):
         result = get_prayer_lookup_prompt("en")
-        assert "writing in English" in result
+        assert "English" in result
+        assert "CRITICAL LANGUAGE RULE" in result
 
     def test_non_english(self):
         result = get_prayer_lookup_prompt("de")
         assert "German" in result
         assert "You MUST respond entirely in" in result
+
+    def test_new_language_clauses_present(self):
+        result = get_prayer_lookup_prompt("it")
+        assert "even if the user explicitly asks" in result
+        assert "language switcher" in result
+        assert "earlier messages in this conversation were in a different language" in result
 
     def test_contains_prayer_content(self):
         result = get_prayer_lookup_prompt("en")
@@ -189,6 +220,41 @@ class TestGetPrayerLookupPrompt:
         result = get_prayer_lookup_prompt("en")
         assert "Do NOT suggest" not in result
         assert "don't recommend them for use" not in result
+
+
+class TestBuildLanguageInstruction:
+    """Tests for the shared _build_language_instruction helper (PR#640 dedup)."""
+
+    def test_returns_name_and_instruction_tuple(self):
+        from chat.prompts import _build_language_instruction
+
+        name, instruction = _build_language_instruction("it")
+        assert name == LANGUAGE_NAMES["it"]
+        assert "CRITICAL LANGUAGE RULE" in instruction
+
+    def test_unknown_locale_falls_back_to_english_name(self):
+        from chat.prompts import _build_language_instruction
+
+        name, instruction = _build_language_instruction("xx")
+        assert name == LANGUAGE_NAMES["en"]
+        assert LANGUAGE_NAMES["en"] in instruction
+
+    def test_contains_all_new_clauses(self):
+        from chat.prompts import _build_language_instruction
+
+        _, instruction = _build_language_instruction("de")
+        assert "even if the user explicitly asks" in instruction
+        assert "language switcher" in instruction
+        assert "earlier messages in this conversation were in a different language" in instruction
+
+    def test_instruction_identical_across_all_builders(self):
+        """All three builders must embed the exact same instruction for a locale."""
+        from chat.prompts import _build_language_instruction
+
+        _, instruction = _build_language_instruction("it")
+        assert instruction in get_system_prompt("it")
+        assert instruction in get_verse_lookup_prompt("it")
+        assert instruction in get_prayer_lookup_prompt("it")
 
 
 class TestBuildSearchContextPrompt:
@@ -358,7 +424,8 @@ class TestSystemPromptConstant:
     """Tests for the SYSTEM_PROMPT constant (backward compat)."""
 
     def test_system_prompt_is_english(self):
-        assert "writing in English" in SYSTEM_PROMPT
+        assert "English" in SYSTEM_PROMPT
+        assert "CRITICAL LANGUAGE RULE" in SYSTEM_PROMPT
 
 
 class TestBibleVersionGuidance:
@@ -1170,3 +1237,101 @@ class TestChatStreamLanguageSuggestion:
         meta = chunks[0]
         assert meta["type"] == "metadata"
         assert meta["language_suggestion"] is None
+
+
+class TestChatLanguageSuggestion:
+    """Tests for language_suggestion in the non-stream chat() ChatResponse."""
+
+    @pytest.mark.asyncio
+    @patch("chat.service.settings")
+    @patch("chat.service.detect_language_confident", return_value="it")
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="web")
+    @patch("chat.service.get_translation_info", return_value=None)
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_mismatch_sets_suggestion(
+        self,
+        mock_extract,
+        mock_is_verse,
+        mock_override,
+        mock_trans_info,
+        mock_resolve,
+        mock_detect,
+        mock_confident,
+        mock_settings,
+    ):
+        """chat() should set language_suggestion when the typed language differs
+        from the explicit UI language."""
+        mock_settings.content_filter_intent_detection = False
+        mock_settings.max_message_length = 2000
+        mock_settings.max_conversation_history = 10
+        mock_settings.llm_temperature = 0.7
+        mock_settings.llm_max_tokens = 1024
+        mock_settings.llm_provider = "test"
+        mock_settings.llm_model = "test-model"
+        mock_settings.hybrid_search_enabled = False
+        mock_settings.topic_boosting_enabled = False
+        mock_settings.query_expansion_enabled = False
+        mock_settings.max_context_verses = 10
+
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="x", verses=[], passages=[])
+        )
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="Ciao", provider="test", model="test-model")
+        )
+
+        request = ChatRequest(message="Ciao, come stai oggi?", language="en")
+        response = await service.chat(request)
+        assert response.language_suggestion == "it"
+
+    @pytest.mark.asyncio
+    @patch("chat.service.settings")
+    @patch("chat.service.detect_language_confident", return_value="en")
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="web")
+    @patch("chat.service.get_translation_info", return_value=None)
+    @patch("chat.service.get_model_override_for_language", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_match_leaves_suggestion_none(
+        self,
+        mock_extract,
+        mock_is_verse,
+        mock_override,
+        mock_trans_info,
+        mock_resolve,
+        mock_detect,
+        mock_confident,
+        mock_settings,
+    ):
+        """chat() should leave language_suggestion None when typed language
+        matches the UI language."""
+        mock_settings.content_filter_intent_detection = False
+        mock_settings.max_message_length = 2000
+        mock_settings.max_conversation_history = 10
+        mock_settings.llm_temperature = 0.7
+        mock_settings.llm_max_tokens = 1024
+        mock_settings.llm_provider = "test"
+        mock_settings.llm_model = "test-model"
+        mock_settings.hybrid_search_enabled = False
+        mock_settings.topic_boosting_enabled = False
+        mock_settings.query_expansion_enabled = False
+        mock_settings.max_context_verses = 10
+
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="x", verses=[], passages=[])
+        )
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="Hello", provider="test", model="test-model")
+        )
+
+        request = ChatRequest(message="Hello, how are you?", language="en")
+        response = await service.chat(request)
+        assert response.language_suggestion is None
