@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.15.0...v1.16.0) (2026-05-27)
+
+### Features
+
+- **backend:** emit language_suggestion in chat API (language-mismatch Slice 1) ([#634](https://github.com/zioalex/getinspiredbythebible/issues/634)) ([2720ffa](https://github.com/zioalex/getinspiredbythebible/commit/2720ffa509244967f3e229da203879e95a68a6bb))
+
+### Documentation
+
+- plan for language-mismatch switch-suggestion (Web + Android) ([#630](https://github.com/zioalex/getinspiredbythebible/issues/630)) ([8876472](https://github.com/zioalex/getinspiredbythebible/commit/88764722ab8b9d681bd0e00b7e1385d9218d5f48))
+
+## [1.15.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.14.0...v1.15.0) (2026-05-26)
+
+### Features
+
+- **android:** style verse quote blockquotes with amber bar and background ([#629](https://github.com/zioalex/getinspiredbythebible/issues/629)) ([40b95ec](https://github.com/zioalex/getinspiredbythebible/commit/40b95ec565c280249288220df2db7f277320a90e))
+
+## [1.14.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.13.0...v1.14.0) (2026-05-25)
+
+### Features
+
+- **android:** add New Chat top-bar shortcut and resume navigation tests (BITB-027) ([#617](https://github.com/zioalex/getinspiredbythebible/issues/617)) ([c3e36f2](https://github.com/zioalex/getinspiredbythebible/commit/c3e36f26d372588eaab4cca12cb2c2e13b95b8e9))
+- **android:** add verse quote highlighting for scripture passages ([#619](https://github.com/zioalex/getinspiredbythebible/issues/619)) ([c2a52e6](https://github.com/zioalex/getinspiredbythebible/commit/c2a52e6ff119b7c741c1eab1b19440490a4a168a))
+
+## [1.13.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.12.0...v1.13.0) (2026-05-24)
+
+### Features
+
+- **android:** make tag publish track configurable and add production promotion ([#613](https://github.com/zioalex/getinspiredbythebible/issues/613)) ([26eff02](https://github.com/zioalex/getinspiredbythebible/commit/26eff02d6cc47700c8ca4165c6851c8eb4b84b4e))
+- **contact-form:** add required fields for bug reports with structured layout ([#616](https://github.com/zioalex/getinspiredbythebible/issues/616)) ([3f47edc](https://github.com/zioalex/getinspiredbythebible/commit/3f47edc63bb1c128560da62aefdc60ad47166018))
+
+## [1.12.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.11.0...v1.12.0) (2026-05-24)
+
+### Features
+
+- **config:** add android-gemini agent backed by Qwen3 Coder via OpenRouter (BITB-023) ([#609](https://github.com/zioalex/getinspiredbythebible/issues/609)) ([9eccefe](https://github.com/zioalex/getinspiredbythebible/commit/9eccefe67c9fbf3fcb64e82e91c1781400ffd9fb))
+- **contact-form:** add contextual message placeholder for bug reports ([#611](https://github.com/zioalex/getinspiredbythebible/issues/611)) ([156b574](https://github.com/zioalex/getinspiredbythebible/commit/156b5740c31fafb0475c2b9efef89db09fd776f6))
+
+### Bug Fixes
+
+- **ci:** disable header-max-length to allow Dependabot long PR titles ([#601](https://github.com/zioalex/getinspiredbythebible/issues/601)) ([8b6329f](https://github.com/zioalex/getinspiredbythebible/commit/8b6329fa13ceabc9d54a43e1e52ad7b92320940f))
+- **frontend:** prevent horizontal overflow on narrow mobile viewports ([#607](https://github.com/zioalex/getinspiredbythebible/issues/607)) ([fe8bc90](https://github.com/zioalex/getinspiredbythebible/commit/fe8bc9000593daab30c1b17d67dd585dc1d897f1))
+- **ops:** route contact form and diagnostic emails to <support@voxquieta.org> ([#603](https://github.com/zioalex/getinspiredbythebible/issues/603)) ([f6bd92e](https://github.com/zioalex/getinspiredbythebible/commit/f6bd92e47c5fc070b736e1c19dfa6b7c778881cd))
+
+## [1.11.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.10.0...v1.11.0) (2026-05-22)
+
+### Features
+
+- **api:** guide assistant to Bible version selector when asked (BITB-029) ([#605](https://github.com/zioalex/getinspiredbythebible/issues/605)) ([2929249](https://github.com/zioalex/getinspiredbythebible/commit/29292498d8bd5ca514c257f442283fdd7fe56e1a))
+
+## [1.10.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.9.0...v1.10.0) (2026-05-20)
+
+### Features
+
+- **ops:** blocked-sample exporter + pg_cron TTL purge ([#597](https://github.com/zioalex/getinspiredbythebible/issues/597)) ([c820a22](https://github.com/zioalex/getinspiredbythebible/commit/c820a2279dbb54f258bfaf13c51d985167a51983))
+
+### Bug Fixes
+
+- **android:** restore Compose test tier isolation (BITB-034) ([#598](https://github.com/zioalex/getinspiredbythebible/issues/598)) ([c87e4c1](https://github.com/zioalex/getinspiredbythebible/commit/c87e4c14578b85954dd0535f595ce5ec6a9383e8))
+- **android:** show the raster PNG launcher icon on all API levels ([#599](https://github.com/zioalex/getinspiredbythebible/issues/599)) ([193a153](https://github.com/zioalex/getinspiredbythebible/commit/193a1537ae159d53dfa3558730412a8ce2c8d60f))
+
+## [1.9.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.8.0...v1.9.0) (2026-05-19)
+
+### Features
+
+- **android:** add Robolectric/Compose UI test tier (BITB-034) ([#591](https://github.com/zioalex/getinspiredbythebible/issues/591)) ([7fd0908](https://github.com/zioalex/getinspiredbythebible/commit/7fd090874ec399a8160444f5734a14d95f9e5c1b))
+- **safety:** privacy-friendly capture of blocked messages for tuning ([#594](https://github.com/zioalex/getinspiredbythebible/issues/594)) ([eb9ae21](https://github.com/zioalex/getinspiredbythebible/commit/eb9ae21cff60496afcf12c8ce0275dd6bcfce107))
+- **safety:** warm notification when defenses block a message ([#593](https://github.com/zioalex/getinspiredbythebible/issues/593)) ([5c344d8](https://github.com/zioalex/getinspiredbythebible/commit/5c344d8ca4cd8a11762f1f319faa47053b0552b5))
+
+### Bug Fixes
+
+- **android:** fix analytics over-counting and locale-revert-to-English bugs ([#590](https://github.com/zioalex/getinspiredbythebible/issues/590)) ([d3960fa](https://github.com/zioalex/getinspiredbythebible/commit/d3960fab4a1309394700b3f468afffc9b37b76b7))
+- **api:** harden external API dependency paths after 2026-05-15 incident ([#592](https://github.com/zioalex/getinspiredbythebible/issues/592)) ([7d7bf73](https://github.com/zioalex/getinspiredbythebible/commit/7d7bf73cf76672d586bcf1c65198048c6e3ea9bd))
+- **chat:** auto-detect message language instead of forcing UI locale ([#585](https://github.com/zioalex/getinspiredbythebible/issues/585)) ([f13ce81](https://github.com/zioalex/getinspiredbythebible/commit/f13ce81eeb25bc7f101409213f2307cb8f504f49))
+
 ## [1.8.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.7.0...v1.8.0) (2026-05-17)
 
 ### Features

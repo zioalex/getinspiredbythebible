@@ -125,7 +125,10 @@
     "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。",
     "contentBlockedMessage": "这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。",
     "scrollToBottom": "滚动到底部",
-    "stopGenerating": "停止生成"
+    "stopGenerating": "停止生成",
+    "languageSwitchSuggestion": "您似乎在用{language}书写。要切换吗？",
+    "languageSwitchAction": "切换",
+    "languageSwitchDismiss": "忽略"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",

@@ -125,7 +125,10 @@
     "sessionLimitMessage": "Tu as envoyé 10 messages dans cette session ! Pourquoi ne pas prendre un moment pour réfléchir à ce que tu as reçu et profiter de la création de Dieu ? 🌳 Quand tu es prêt, démarre une nouvelle session ci-dessous.",
     "contentBlockedMessage": "Je n'ai pas pu répondre à ce message — notre système de sécurité l'a retenu et a peut-être simplement mal compris tes mots. Essaie de reformuler ta pensée, et si quelque chose te semble étrange, écris-nous à contact@voxquieta.org. Heureux de t'accueillir ici.",
     "scrollToBottom": "Faire défiler vers le bas",
-    "stopGenerating": "Arrêter la génération"
+    "stopGenerating": "Arrêter la génération",
+    "languageSwitchSuggestion": "Il semble que vous écriviez en {language}. Changer ?",
+    "languageSwitchAction": "Changer",
+    "languageSwitchDismiss": "Ignorer"
   },
   "Verses": {
     "scriptureReferences": "Références Bibliques",

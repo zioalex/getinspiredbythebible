@@ -1,5 +1,5 @@
 {
-  "version": "1.8.0",
-  "date": "2026-05-17",
-  "body": "### Features\n\n* **android:** add warm radial gradient to icon outer space ([#582](https://github.com/zioalex/getinspiredbythebible/issues/582)) ([ed49c51](https://github.com/zioalex/getinspiredbythebible/commit/ed49c513aa1def9dfdfc199ac1315b416549150a))"
+  "version": "1.16.0",
+  "date": "2026-05-27",
+  "body": "### Features\n\n* **backend:** emit language_suggestion in chat API (language-mismatch Slice 1) ([#634](https://github.com/zioalex/getinspiredbythebible/issues/634)) ([2720ffa](https://github.com/zioalex/getinspiredbythebible/commit/2720ffa509244967f3e229da203879e95a68a6bb))\n\n### Documentation\n\n* plan for language-mismatch switch-suggestion (Web + Android) ([#630](https://github.com/zioalex/getinspiredbythebible/issues/630)) ([8876472](https://github.com/zioalex/getinspiredbythebible/commit/88764722ab8b9d681bd0e00b7e1385d9218d5f48))"
 }

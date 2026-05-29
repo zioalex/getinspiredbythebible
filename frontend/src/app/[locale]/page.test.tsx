@@ -40,14 +40,19 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
   };
 });
 
-// Mock i18n navigation (used by LanguageSwitcher)
+// Hoisted mock for router.replace so individual tests can assert on it
+const { mockRouterReplace } = vi.hoisted(() => ({
+  mockRouterReplace: vi.fn(),
+}));
+
+// Mock i18n navigation (used by LanguageSwitcher and page.tsx)
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: React.PropsWithChildren) => (
     <a {...props}>{children}</a>
   ),
   redirect: vi.fn(),
   usePathname: vi.fn().mockReturnValue("/"),
-  useRouter: vi.fn().mockReturnValue({ replace: vi.fn() }),
+  useRouter: vi.fn().mockReturnValue({ replace: mockRouterReplace }),
 }));
 
 // Mock i18n routing
@@ -323,9 +328,8 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // Verify streamMessage was called with the prompt text. `language` is
-      // intentionally absent from the options object so the backend
-      // auto-detects it from the message.
+      // Verify streamMessage was called with the prompt text and the active UI
+      // locale (so the backend replies in it and can suggest a switch).
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
@@ -336,7 +340,7 @@ describe("Home page responsive layout", () => {
         }),
       );
       const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
-      expect(opts?.language).toBeUndefined();
+      expect(opts?.language).toBe("en");
 
       // Verify the response is displayed
       await waitFor(() => {
@@ -818,8 +822,8 @@ describe("Home page responsive layout", () => {
         fireEvent.click(prompts[0]);
       });
 
-      // streamMessage should have been called. `language` is intentionally
-      // absent from the options object so the backend auto-detects it.
+      // streamMessage should be called with the active UI locale so the backend
+      // replies in it and can detect mismatches.
       expect(api.streamMessage).toHaveBeenCalledWith(
         promptText,
         expect.any(Array),
@@ -830,7 +834,7 @@ describe("Home page responsive layout", () => {
         }),
       );
       const opts = vi.mocked(api.streamMessage).mock.calls.at(-1)?.[2];
-      expect(opts?.language).toBeUndefined();
+      expect(opts?.language).toBe("en");
 
       // Verify the response is displayed
       await waitFor(() => {
@@ -1030,5 +1034,116 @@ describe("smart auto-scroll", () => {
       simulateScrolledToBottom(container);
     });
     expect(screen.queryByLabelText("Scroll to bottom")).not.toBeInTheDocument();
+  });
+});
+
+describe("language-switch suggestion", () => {
+  beforeEach(() => {
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      configLoaded: true,
+    });
+    sessionStorage.clear();
+    mockRouterReplace.mockClear();
+  });
+
+  const mockStreamWithSuggestion = (languageSuggestion: string | null) => {
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "lang-test-id",
+        scripture_context: { query: "", verses: [], passages: [] },
+        provider: "test",
+        model: "test-model",
+        language_suggestion: languageSuggestion,
+      };
+      yield { type: "content" as const, content: "A response" };
+      yield { type: "completion" as const, verses_cited: [] };
+    });
+  };
+
+  const submitMessage = (container: HTMLElement, message: string) => {
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: message },
+    });
+    const sendBtn = container.querySelector(
+      'form button[type="submit"]',
+    ) as HTMLButtonElement;
+    fireEvent.click(sendBtn);
+  };
+
+  it("shows the switch banner when a confident language mismatch is detected", async () => {
+    mockStreamWithSuggestion("it");
+    const { container } = renderWithIntl(<Home />);
+
+    await act(async () => {
+      submitMessage(container, "Ciao come stai");
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Switch" }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("does not show the banner when language_suggestion is null", async () => {
+    mockStreamWithSuggestion(null);
+    const { container } = renderWithIntl(<Home />);
+
+    await act(async () => {
+      submitMessage(container, "Hello world");
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("A response")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Switch" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the banner after dismiss is clicked", async () => {
+    mockStreamWithSuggestion("it");
+    const { container } = renderWithIntl(<Home />);
+
+    await act(async () => {
+      submitMessage(container, "Ciao come stai");
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Switch" }),
+      ).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByLabelText("Dismiss"));
+    expect(
+      screen.queryByRole("button", { name: "Switch" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("persists conversation and navigates on Switch click", async () => {
+    mockStreamWithSuggestion("it");
+    const { container } = renderWithIntl(<Home />);
+
+    await act(async () => {
+      submitMessage(container, "Ciao come stai");
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Switch" }),
+      ).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch" }));
+
+    const stored = sessionStorage.getItem("preservedConversation");
+    expect(stored).not.toBeNull();
+    const parsed = JSON.parse(stored!);
+    expect(Array.isArray(parsed.messages)).toBe(true);
+    expect(mockRouterReplace).toHaveBeenCalledWith("/", { locale: "it" });
   });
 });

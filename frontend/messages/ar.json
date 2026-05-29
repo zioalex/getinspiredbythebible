@@ -125,7 +125,10 @@
     "sessionLimitMessage": "لقد أرسلت 10 رسائل في هذه الجلسة! لماذا لا تأخذ لحظة للتأمل فيما تلقيته والاستمتاع بخلق الله؟ 🌳 عندما تكون مستعداً، ابدأ جلسة جديدة أدناه.",
     "contentBlockedMessage": "لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.",
     "scrollToBottom": "التمرير للأسفل",
-    "stopGenerating": "إيقاف التوليد"
+    "stopGenerating": "إيقاف التوليد",
+    "languageSwitchSuggestion": "يبدو أنك تكتب بـ {language}. هل تريد التبديل؟",
+    "languageSwitchAction": "تبديل",
+    "languageSwitchDismiss": "تجاهل"
   },
   "Verses": {
     "scriptureReferences": "المراجع الكتابية",
