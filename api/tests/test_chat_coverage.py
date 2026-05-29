@@ -364,7 +364,8 @@ class TestSystemPromptConstant:
     """Tests for the SYSTEM_PROMPT constant (backward compat)."""
 
     def test_system_prompt_is_english(self):
-        assert "writing in English" in SYSTEM_PROMPT
+        assert "English" in SYSTEM_PROMPT
+        assert "CRITICAL LANGUAGE RULE" in SYSTEM_PROMPT
 
 
 class TestBibleVersionGuidance:
