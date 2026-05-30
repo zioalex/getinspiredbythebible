@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.18.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.0...v1.18.1) (2026-05-30)
 
-
 ### Documentation
 
 * **backlog:** add BITB-037 SEO follow-ups story ([#642](https://github.com/zioalex/getinspiredbythebible/issues/642)) ([6d7567b](https://github.com/zioalex/getinspiredbythebible/commit/6d7567bcee9eab8a15cfb659606df6042301528d))
