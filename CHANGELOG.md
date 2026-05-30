@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.18.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.1...v1.18.2) (2026-05-30)
 
-
 ### Bug Fixes
 
 * validate book names and handle linked verse references in chat ([#647](https://github.com/zioalex/getinspiredbythebible/issues/647)) ([281d9ef](https://github.com/zioalex/getinspiredbythebible/commit/281d9ef174e2bed98409d0bfb60095f67ea7eb9d))
