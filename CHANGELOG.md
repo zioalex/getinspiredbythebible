@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.2...v1.18.3) (2026-05-30)
+
+
+### Bug Fixes
+
+* **android:** resolve localized verse taps and stop quote truncation ([#648](https://github.com/zioalex/getinspiredbythebible/issues/648)) ([c8dc53b](https://github.com/zioalex/getinspiredbythebible/commit/c8dc53b1142872d4223c5583d216785579e74a63))
+
 ## [1.18.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.1...v1.18.2) (2026-05-30)
 
 ### Bug Fixes
