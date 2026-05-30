@@ -976,11 +976,17 @@ export function isVerseReferenced(
   // Check if any referenced verse matches this one (partial match)
   for (const ref of Array.from(references)) {
     // Check if references are similar (handles "Psalm" vs "Psalms", etc.)
-    const refParts = ref.match(/(.+)\s+(\d+):(\d+)/);
+    // The optional trailing group captures the END of a verse range, since the
+    // backend emits cited ranges as "John 3:16-18" (hyphen) or "Psalms 23:1–6"
+    // (en-dash). Every verse within [start, end] must count as referenced.
+    const refParts = ref.match(/(.+)\s+(\d+):(\d+)(?:\s*[-–]\s*(\d+))?/);
     if (refParts) {
       const refBook = refParts[1].toLowerCase();
-      const refChapter = refParts[2];
-      const refVerse = refParts[3];
+      const refChapter = parseInt(refParts[2], 10);
+      const refVerseStart = parseInt(refParts[3], 10);
+      const refVerseEnd = refParts[4]
+        ? parseInt(refParts[4], 10)
+        : refVerseStart;
 
       // Fuzzy book name matching — use the already-normalized English form so
       // non-Latin scripts are compared on equal footing.
@@ -993,8 +999,9 @@ export function isVerseReferenced(
 
       if (
         bookMatches &&
-        verse.chapter === parseInt(refChapter) &&
-        verse.verse === parseInt(refVerse)
+        verse.chapter === refChapter &&
+        verse.verse >= refVerseStart &&
+        verse.verse <= refVerseEnd
       ) {
         return true;
       }
