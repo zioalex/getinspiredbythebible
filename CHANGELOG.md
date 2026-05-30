@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.0...v1.18.1) (2026-05-30)
+
+
+### Documentation
+
+* **backlog:** add BITB-037 SEO follow-ups story ([#642](https://github.com/zioalex/getinspiredbythebible/issues/642)) ([6d7567b](https://github.com/zioalex/getinspiredbythebible/commit/6d7567bcee9eab8a15cfb659606df6042301528d))
+* **backlog:** add BITB-037 test-coverage follow-up for amber quote chip ([#643](https://github.com/zioalex/getinspiredbythebible/issues/643)) ([b3db07a](https://github.com/zioalex/getinspiredbythebible/commit/b3db07a2bf11fd636e7a2634b70db4e454807480))
+
 ## [1.18.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.17.0...v1.18.0) (2026-05-29)
 
 ### Features
