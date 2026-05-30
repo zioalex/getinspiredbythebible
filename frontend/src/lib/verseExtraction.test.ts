@@ -1200,6 +1200,75 @@ describe("isVerseReferenced", () => {
   });
 });
 
+// ── isVerseReferenced: verse-range citations ────────────────────────────────
+// The backend emits cited references as `str(VerseReference)`, which for a
+// range looks like "John 3:16-18" (see api/utils/verse_parser.py). After
+// lower-casing these land in the `references` Set as e.g. "john 3:16-18".
+// Every individual verse the semantic-search sidebar surfaces within that
+// range MUST be considered "referenced", otherwise the "Cited" filter hides
+// verses the assistant actually quoted and the panel looks empty.
+describe("isVerseReferenced — cited verse ranges", () => {
+  it("marks the FIRST verse of a cited range as referenced", () => {
+    const refs = new Set(["john 3:16-18"]);
+    expect(
+      isVerseReferenced(
+        { book: "John", chapter: 3, verse: 16, reference: "John 3:16" },
+        refs,
+      ),
+    ).toBe(true);
+  });
+
+  it("marks a MIDDLE verse of a cited range as referenced", () => {
+    const refs = new Set(["john 3:16-18"]);
+    expect(
+      isVerseReferenced(
+        { book: "John", chapter: 3, verse: 17, reference: "John 3:17" },
+        refs,
+      ),
+    ).toBe(true);
+  });
+
+  it("marks the LAST verse of a cited range as referenced", () => {
+    const refs = new Set(["john 3:16-18"]);
+    expect(
+      isVerseReferenced(
+        { book: "John", chapter: 3, verse: 18, reference: "John 3:18" },
+        refs,
+      ),
+    ).toBe(true);
+  });
+
+  it("does NOT mark a verse just outside the cited range", () => {
+    const refs = new Set(["john 3:16-18"]);
+    expect(
+      isVerseReferenced(
+        { book: "John", chapter: 3, verse: 19, reference: "John 3:19" },
+        refs,
+      ),
+    ).toBe(false);
+  });
+
+  it("handles en-dash ranges (–) the same as hyphen ranges", () => {
+    const refs = new Set(["psalms 23:1–6"]);
+    expect(
+      isVerseReferenced(
+        { book: "Psalms", chapter: 23, verse: 4, reference: "Psalms 23:4" },
+        refs,
+      ),
+    ).toBe(true);
+  });
+
+  it("does not let a range bleed across chapters", () => {
+    const refs = new Set(["john 3:16-18"]);
+    expect(
+      isVerseReferenced(
+        { book: "John", chapter: 4, verse: 17, reference: "John 4:17" },
+        refs,
+      ),
+    ).toBe(false);
+  });
+});
+
 // ── Russian multi-word book name tests ───────────────────────────────────────
 
 describe("extractVerseReferences — Russian multi-word books", () => {

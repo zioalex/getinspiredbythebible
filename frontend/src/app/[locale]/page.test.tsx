@@ -1147,3 +1147,130 @@ describe("language-switch suggestion", () => {
     expect(mockRouterReplace).toHaveBeenCalledWith("/", { locale: "it" });
   });
 });
+
+// On the live site the backend sends a `completion` event carrying the verses
+// it actually cited (`verses_cited`), and those can be RANGES like
+// "John 3:16-17". Once that event arrives the "Cited" filter switches from
+// content-extraction to these server citations. This path was previously
+// untested — and a range citation used to reveal only its first verse, making
+// the panel look broken/empty. These tests lock in the corrected behaviour.
+describe("verse citation panel — server completion event", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+      onReady();
+    });
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      configLoaded: true,
+      refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
+    });
+  });
+
+  async function renderHomeWithCitedRange() {
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "msg-range",
+        scripture_context: {
+          query: "love",
+          // Semantic sidebar results: two verses inside the cited range plus
+          // one neighbour the assistant did NOT cite.
+          verses: [
+            {
+              book: "John",
+              chapter: 3,
+              verse: 16,
+              text: "For God so loved the world...",
+              reference: "John 3:16",
+              similarity: 0.9,
+            },
+            {
+              book: "John",
+              chapter: 3,
+              verse: 17,
+              text: "For God did not send his Son to condemn...",
+              reference: "John 3:17",
+              similarity: 0.85,
+            },
+            {
+              book: "Romans",
+              chapter: 8,
+              verse: 28,
+              text: "And we know that all things work together...",
+              reference: "Romans 8:28",
+              similarity: 0.6,
+            },
+          ],
+          passages: [],
+        },
+        provider: "test",
+        model: "test-model",
+      };
+      yield {
+        type: "content" as const,
+        content: "God's love is shown in John 3:16-17.",
+      };
+      // Backend cites a RANGE; Romans 8:28 was a semantic neighbour, not cited.
+      yield {
+        type: "completion" as const,
+        verses_cited: ["John 3:16-17"],
+      };
+    });
+
+    const result = renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Tell me about love" } });
+    });
+    const submitButton = result.container.querySelector(
+      'button[type="submit"]',
+    );
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("God's love is shown in John 3:16-17."),
+      ).toBeInTheDocument();
+    });
+    return result;
+  }
+
+  it("shows EVERY verse inside a cited range in the Cited filter", async () => {
+    await renderHomeWithCitedRange();
+
+    // Both ends of the range must appear (desktop sidebar). Before the fix,
+    // John 3:17 was hidden because only the range's start verse matched.
+    expect(screen.getAllByText(/John 3:16/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/John 3:17/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("hides a semantic neighbour the assistant did not cite", async () => {
+    await renderHomeWithCitedRange();
+
+    // Romans 8:28 was returned by semantic search but never cited, so the
+    // default "Cited" filter must not show it.
+    expect(screen.queryByText(/Romans 8:28/)).not.toBeInTheDocument();
+  });
+
+  it("reveals the uncited neighbour once 'All Related' is selected", async () => {
+    await renderHomeWithCitedRange();
+
+    // The full semantic set is still reachable via the All Related toggle.
+    const allRelated = screen
+      .getAllByRole("button")
+      .filter((b) => /^All Related \(/.test(b.textContent ?? ""));
+    expect(allRelated.length).toBeGreaterThanOrEqual(1);
+    await act(async () => {
+      fireEvent.click(allRelated[0]);
+    });
+
+    expect(screen.getAllByText(/Romans 8:28/).length).toBeGreaterThanOrEqual(1);
+  });
+});
