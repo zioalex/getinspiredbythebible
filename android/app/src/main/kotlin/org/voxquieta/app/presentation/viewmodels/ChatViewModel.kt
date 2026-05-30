@@ -27,6 +27,7 @@ import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.LocaleApplier
+import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -789,7 +790,11 @@ class ChatViewModel @Inject constructor(
         _chapterSheetState.value = ChapterSheetState.Loading
         loadChapterJob = viewModelScope.launch {
             try {
-                val response = bibleApiService.getChapter(book, chapter, translation)
+                // The reference book name comes from the LLM in the conversation language
+                // (e.g. German "2 Korinther"); the backend chapter lookup is keyed by English
+                // names. Normalize first so localized references resolve instead of 404ing.
+                val normalizedBook = normalizeBookName(book, localizedToEnglish.value)
+                val response = bibleApiService.getChapter(normalizedBook, chapter, translation)
                 _chapterSheetState.value = ChapterSheetState.Success(response)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

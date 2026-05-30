@@ -8,6 +8,7 @@ import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
+import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
 import org.voxquieta.app.data.remote.models.ContactSubject
@@ -765,6 +766,97 @@ class ChatViewModelTest {
         viewModel.clearChapterSheet()
 
         assertTrue(viewModel.chapterSheetState.value is ChapterSheetState.Idle)
+    }
+
+    // ── loadChapter book-name normalization (localized → English) ─────────────
+
+    /**
+     * Builds a fresh ViewModel whose `localizedToEnglish` map is populated from a stubbed
+     * book-names response, mirroring the backend `/scripture/book-names` payload (capitalized
+     * localized keys → English values; German numbered books keyed with a period).
+     */
+    private fun viewModelWithBookNames(): ChatViewModel {
+        coEvery { bibleApiService.getBookNames() } returns BookNamesResponseDto(
+            localizedToEnglish = mapOf(
+                "Matthäus" to "Matthew",
+                "Lukas" to "Luke",
+                "2. Korinther" to "2 Corinthians",
+                "1. Mose" to "Genesis",
+                "Giovanni" to "John",
+                "요한복음" to "John",
+            ),
+            multiWordNames = emptyList(),
+        )
+        return ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+    }
+
+    @Test
+    fun `loadChapter normalizes German numbered book without period before fetching`() = runTest {
+        val vm = viewModelWithBookNames()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val stub = ChapterResponseDto(
+            book = "2 Corinthians",
+            chapter = 9,
+            verses = listOf(ChapterVerseDto(verseNumber = 8, text = "Gott aber ist mächtig…")),
+        )
+        // The LLM-written reference is "2 Korinther" (no period); the backend expects English.
+        coEvery { bibleApiService.getChapter("2 Corinthians", 9, "schlachter") } returns stub
+
+        vm.loadChapter("2 Korinther", 9, "schlachter")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Success)
+        coVerify(exactly = 1) { bibleApiService.getChapter("2 Corinthians", 9, "schlachter") }
+        coVerify(exactly = 0) { bibleApiService.getChapter("2 Korinther", 9, "schlachter") }
+    }
+
+    @Test
+    fun `loadChapter normalizes single-word localized books across languages`() = runTest {
+        val vm = viewModelWithBookNames()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { bibleApiService.getChapter(any(), any(), any()) } answers {
+            ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+        }
+
+        vm.loadChapter("Matthäus", 5, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.loadChapter("요한복음", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { bibleApiService.getChapter("Matthew", 5, null) }
+        coVerify { bibleApiService.getChapter("John", 3, null) }
+    }
+
+    @Test
+    fun `loadChapter passes English book names through unchanged`() = runTest {
+        val vm = viewModelWithBookNames()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { bibleApiService.getChapter(any(), any(), any()) } answers {
+            ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+        }
+
+        vm.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { bibleApiService.getChapter("John", 3, null) }
     }
 
     // ── Story A: Session-limit (HTTP 429) tests ───────────────────────────────
