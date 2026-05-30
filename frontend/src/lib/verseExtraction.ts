@@ -841,6 +841,57 @@ export function updateBookNames(apiData: Record<string, string>): void {
       LOCALIZED_BOOK_TO_ENGLISH[key] = english.toLowerCase();
     }
   }
+  // The set of valid book names changed — drop the cache so isKnownBook()
+  // rebuilds it (including any newly added API-provided aliases).
+  _cachedKnownBooks = null;
+}
+
+// ---------------------------------------------------------------------------
+// Known-book allowlist
+// ---------------------------------------------------------------------------
+
+// Lazily-built set of every recognised book name (lowercased).  Populated on
+// first call to isKnownBook() and invalidated by updateBookNames().
+let _cachedKnownBooks: Set<string> | null = null;
+
+/**
+ * Returns the set of all recognised book names (lowercased).
+ *
+ * The set is the union of:
+ *   - every KEY of LOCALIZED_BOOK_TO_ENGLISH   (all localized names, e.g.
+ *     "hiob", "5. mose", "약한복음", "1 царств"), and
+ *   - every VALUE of LOCALIZED_BOOK_TO_ENGLISH (the 66 English canonical
+ *     names, e.g. "job", "genesis", "1 samuel", "song of solomon").
+ *
+ * Including the English values means plain English references ("John 3:16")
+ * are recognised even though English book names are not stored as keys.
+ */
+function getKnownBooks(): Set<string> {
+  if (_cachedKnownBooks !== null) {
+    return _cachedKnownBooks;
+  }
+  const known = new Set<string>();
+  for (const [localized, english] of Object.entries(
+    LOCALIZED_BOOK_TO_ENGLISH,
+  )) {
+    known.add(localized.toLowerCase());
+    known.add(english.toLowerCase());
+  }
+  _cachedKnownBooks = known;
+  return known;
+}
+
+/**
+ * Returns true when `book` is a real Bible book name in any supported language.
+ *
+ * Used to validate the book portion of a regex match before treating it as a
+ * verse reference.  The verse regex deliberately accepts any "Word digit:digit"
+ * shape (to stay language-agnostic), so this allowlist is what prevents prose
+ * like "Trost der Hoffnung 5:5", clock times like "um 14:30", and greedy
+ * over-matches from being marked as verses.
+ */
+export function isKnownBook(book: string): boolean {
+  return getKnownBooks().has(book.trim().toLowerCase());
 }
 
 /**
@@ -909,10 +960,6 @@ function normalizeArabicText(text: string): string {
 }
 
 export function extractVerseReferences(text: string): Set<string> {
-  // Conjunctions that should not be treated as book names
-  // English: "and", German: "und", Italian: "e", Spanish: "y", French: "et", etc.
-  const CONJUNCTIONS = new Set(["e", "and", "und", "y", "et", "o", "a"]);
-
   // Preprocess: strip Arabic tashkeel/tatweel and normalize guillemets.
   text = normalizeArabicText(text);
 
@@ -931,8 +978,11 @@ export function extractVerseReferences(text: string): Set<string> {
     const chapter = normalizeDigits(match[2]);
     const verse = normalizeDigits(match[3]);
 
-    // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
-    if (CONJUNCTIONS.has(book.toLowerCase())) {
+    // Skip anything whose "book" is not a real Bible book in any supported
+    // language.  This rejects conjunctions ("e 51:17", "und 3:16"), prose that
+    // happens to contain numbers ("Trost der Hoffnung 5:5"), clock times
+    // ("um 14:30") and greedy over-matches — none of which are verses.
+    if (!isKnownBook(book)) {
       continue;
     }
 

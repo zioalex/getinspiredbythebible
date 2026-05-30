@@ -9,8 +9,19 @@ import ShareMenu from "./ShareMenu";
 import {
   createVersePattern,
   createVersePatternGlobal,
-  CONJUNCTIONS,
 } from "@/lib/versePatterns";
+import { isKnownBook } from "@/lib/verseExtraction";
+
+/** Recursively extract the plain-text content of a React node (e.g. link children). */
+function getNodeText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getNodeText).join("");
+  if (React.isValidElement(node)) {
+    return getNodeText((node.props as { children?: React.ReactNode }).children);
+  }
+  return "";
+}
 
 interface ChatMessageProps {
   message: Message;
@@ -48,8 +59,9 @@ export default function ChatMessage({
     if (match) {
       const book = match[1].trim();
 
-      // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
-      if (CONJUNCTIONS.has(book.toLowerCase())) {
+      // Only act on real Bible books — ignore prose/times/conjunctions that
+      // happen to match the "Word digit:digit" shape (e.g. "um 14:30").
+      if (!isKnownBook(book)) {
         return;
       }
 
@@ -73,8 +85,13 @@ export default function ChatMessage({
     while ((match = verseRefPattern.exec(text)) !== null) {
       const book = match[1].trim();
 
-      // Skip if the book name is a conjunction (e.g., "e 51:17", "and 8:28")
-      if (CONJUNCTIONS.has(book.toLowerCase())) {
+      // Only mark real Bible books.  The verse regex intentionally accepts any
+      // "Word digit:digit" shape, so without this check prose like
+      // "Trost der Hoffnung 5:5", clock times ("um 14:30") and greedy
+      // over-matches would be swallowed into clickable spans.  Leaving
+      // lastIndex unchanged is correct: the skipped span is folded into the
+      // next plain/quote segment, so no text is lost.
+      if (!isKnownBook(book)) {
         continue;
       }
 
@@ -214,6 +231,35 @@ export default function ChatMessage({
                       {children}
                     </code>
                   ),
+                  // Verse references the model emits as markdown links
+                  // (e.g. "[Hiob 7:3](url)") should behave like every other
+                  // inline verse marking — amber, clickable, opening the
+                  // in-app verse view — not a default blue external link.
+                  a: ({ href, children }) => {
+                    const linkText = getNodeText(children);
+                    const match = linkText.match(createVersePattern());
+                    if (match && isKnownBook(match[1].trim())) {
+                      return (
+                        <span
+                          className="text-amber-800 font-semibold cursor-pointer hover:underline"
+                          onClick={handleTextClick}
+                        >
+                          {linkText}
+                        </span>
+                      );
+                    }
+                    // Non-verse links render as normal styled links.
+                    return (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:underline"
+                      >
+                        {children}
+                      </a>
+                    );
+                  },
                   // Ensure lists look good
                   ul: ({ children }) => (
                     <ul className="list-disc pl-5 space-y-1">{children}</ul>
