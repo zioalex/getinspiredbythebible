@@ -3,12 +3,12 @@ package org.voxquieta.app.presentation.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.Spannable
-import android.text.style.ReplacementSpan
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.text.style.TypefaceSpan
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -476,22 +476,7 @@ fun ChatMessageItem(
                                 },
                                 beforeSetMarkdown = { _, spanned ->
                                     if (spanned is Spannable) {
-                                        QUOTE_HIGHLIGHT_REGEX.findAll(spanned).forEach { match ->
-                                            spanned.setSpan(
-                                                InlineAmberQuoteSpan(
-                                                    bgColor = 0xFFFFFBEB.toInt(),
-                                                    barColor = 0xFFD97706.toInt(),
-                                                    textColor = 0xFF78350F.toInt(),
-                                                    barWidth = 6f,
-                                                    cornerRadius = 4f,
-                                                    paddingH = 8f,
-                                                    paddingV = 2f,
-                                                ),
-                                                match.range.first,
-                                                match.range.last + 1,
-                                                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
-                                            )
-                                        }
+                                        applyQuoteHighlights(spanned)
                                     }
                                 },
                             )
@@ -624,66 +609,37 @@ fun ChatMessageItem(
 }
 
 /**
- * Inline amber chip span for quoted scripture text — matches the web's
- * `bg-amber-50 border-l-2 border-amber-400 italic font-serif` styling.
+ * Highlights quoted scripture passages with amber background + italic serif styling,
+ * matching the web's `bg-amber-50 italic font-serif` look.
  *
- * Rendered as an inline [ReplacementSpan] so the quote stays inside the prose sentence
- * rather than being pushed to a block-level element. draw() is called once per wrapped
- * line fragment, so the background and bar cover each fragment independently.
+ * Each [QUOTE_HIGHLIGHT_REGEX] match gets a set of standard inline spans
+ * ([BackgroundColorSpan], [ForegroundColorSpan], [StyleSpan], [TypefaceSpan]). Unlike a
+ * [android.text.style.ReplacementSpan], these are laid out by the platform's normal text
+ * engine, so a long quote **wraps across lines** instead of being measured as one
+ * unbreakable unit and clipped at the bubble's right edge. The amber background follows the
+ * text onto each wrapped line. This is language-agnostic — the regex already matches
+ * straight, curly, German, guillemet and CJK quote pairs.
  */
-private class InlineAmberQuoteSpan(
-    private val bgColor: Int,
-    private val barColor: Int,
-    private val textColor: Int,
-    private val barWidth: Float,
-    private val cornerRadius: Float,
-    private val paddingH: Float,
-    private val paddingV: Float,
-) : ReplacementSpan() {
-
-    override fun getSize(
-        paint: Paint,
-        text: CharSequence,
-        start: Int,
-        end: Int,
-        fm: Paint.FontMetricsInt?,
-    ): Int = (paint.measureText(text, start, end) + barWidth + paddingH * 2).toInt()
-
-    override fun draw(
-        canvas: Canvas,
-        text: CharSequence,
-        start: Int,
-        end: Int,
-        x: Float,
-        top: Int,
-        y: Int,
-        bottom: Int,
-        paint: Paint,
-    ) {
-        val width = paint.measureText(text, start, end) + barWidth + paddingH * 2
-        val rect = RectF(x, top + paddingV, x + width, bottom - paddingV)
-
-        val savedColor = paint.color
-        val savedStyle = paint.style
-        val savedTypeface = paint.typeface
-
-        paint.color = bgColor
-        paint.style = Paint.Style.FILL
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
-
-        paint.color = barColor
-        canvas.drawRoundRect(
-            RectF(x, rect.top, x + barWidth, rect.bottom),
-            cornerRadius, cornerRadius, paint,
+internal fun applyQuoteHighlights(spanned: Spannable) {
+    QUOTE_HIGHLIGHT_REGEX.findAll(spanned).forEach { match ->
+        val start = match.range.first
+        val end = match.range.last + 1
+        spanned.setSpan(
+            BackgroundColorSpan(0xFFFFFBEB.toInt()),
+            start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
         )
-
-        paint.color = textColor
-        paint.typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
-        canvas.drawText(text, start, end, x + barWidth + paddingH, y.toFloat(), paint)
-
-        paint.color = savedColor
-        paint.style = savedStyle
-        paint.typeface = savedTypeface
+        spanned.setSpan(
+            ForegroundColorSpan(0xFF78350F.toInt()),
+            start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        spanned.setSpan(
+            StyleSpan(Typeface.ITALIC),
+            start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        spanned.setSpan(
+            TypefaceSpan("serif"),
+            start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
     }
 }
 
