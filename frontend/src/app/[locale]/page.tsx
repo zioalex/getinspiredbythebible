@@ -51,6 +51,7 @@ import {
   updateBookNames,
 } from "@/lib/verseExtraction";
 import { updateMultiWordNames } from "@/lib/versePatterns";
+import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { useRouter, usePathname } from "@/i18n/navigation";
 
@@ -501,18 +502,13 @@ export default function Home() {
               return updated;
             });
           }
-          // Merge cited verses into the panel so every cited verse has a card,
-          // even if semantic search didn't surface it.
-          if (chunk.cited_verses?.length) {
-            setRelevantVerses((prev) => {
-              const existing = new Set(
-                prev.map((v) => `${v.book}|${v.chapter}|${v.verse}`),
-              );
-              const toAdd = chunk.cited_verses!.filter(
-                (v) => !existing.has(`${v.book}|${v.chapter}|${v.verse}`),
-              );
-              return toAdd.length ? [...prev, ...toAdd] : prev;
-            });
+          // Merge the backend-resolved cited verses into the pool so the
+          // "Cited" filter surfaces them even when they fell outside the
+          // semantic search (common on follow-up questions).
+          if (chunk.resolved_verses?.length) {
+            setRelevantVerses((prev) =>
+              mergeVerses(prev, chunk.resolved_verses),
+            );
           }
         }
       }

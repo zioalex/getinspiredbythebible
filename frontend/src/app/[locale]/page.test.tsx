@@ -1274,9 +1274,127 @@ describe("verse citation panel — server completion event", () => {
     expect(screen.getAllByText(/Romans 8:28/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders a cited_verses card that was absent from semantic search results", async () => {
+  // Regression: on a follow-up question the semantic pool is driven by the
+  // short follow-up text, so the verses the answer cites are usually NOT in it.
+  // The backend now sends `resolved_verses` (the cited verses resolved against
+  // the DB); the client merges them into the pool so the "Cited" filter shows
+  // them on every turn.
+  it("populates the Cited filter on a follow-up whose citations are outside the pool", async () => {
+    async function submit(text: string, label: string) {
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: text } });
+      });
+      const submitButton = document.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+      await waitFor(() => {
+        expect(screen.getByText(label)).toBeInTheDocument();
+      });
+    }
+
+    // --- Turn 1: the cited verse is also in the semantic pool. ---
+    vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "msg-t1",
+        scripture_context: {
+          query: "anxiety",
+          verses: [
+            {
+              book: "Philippians",
+              chapter: 4,
+              verse: 6,
+              text: "Be careful for nothing...",
+              reference: "Philippians 4:6",
+              similarity: 0.9,
+            },
+          ],
+          passages: [],
+        },
+        provider: "test",
+        model: "test-model",
+      };
+      yield {
+        type: "content" as const,
+        content: "Do not be anxious. Philippians 4:6",
+      };
+      yield {
+        type: "completion" as const,
+        verses_cited: ["Philippians 4:6"],
+        resolved_verses: [
+          {
+            book: "Philippians",
+            chapter: 4,
+            verse: 6,
+            text: "Be careful for nothing...",
+            reference: "Philippians 4:6",
+          },
+        ],
+      };
+    });
+
+    renderWithIntl(<Home />);
+    await submit("I feel anxious", "Do not be anxious. Philippians 4:6");
+    expect(
+      screen.getAllByText(/Philippians 4:6/).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    // --- Turn 2: a vague follow-up. The pool now contains an UNRELATED verse,
+    // and the answer cites Romans 8:1 which is absent from that pool. ---
+    vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "msg-t2",
+        scripture_context: {
+          query: "tell me more",
+          verses: [
+            {
+              book: "Genesis",
+              chapter: 1,
+              verse: 1,
+              text: "In the beginning...",
+              reference: "Genesis 1:1",
+              similarity: 0.5,
+            },
+          ],
+          passages: [],
+        },
+        provider: "test",
+        model: "test-model",
+      };
+      yield {
+        type: "content" as const,
+        content: "There is no condemnation. Romans 8:1",
+      };
+      yield {
+        type: "completion" as const,
+        verses_cited: ["Romans 8:1"],
+        resolved_verses: [
+          {
+            book: "Romans",
+            chapter: 8,
+            verse: 1,
+            text: "There is therefore now no condemnation...",
+            reference: "Romans 8:1",
+          },
+        ],
+      };
+    });
+
+    await submit("tell me more", "There is no condemnation. Romans 8:1");
+
+    // The follow-up's cited verse must appear under the default "Cited" filter
+    // even though it was never part of turn 2's semantic pool.
+    expect(screen.getAllByText(/Romans 8:1/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders a resolved_verses card that was absent from semantic search results", async () => {
     // Simulates the core architectural fix: the backend now resolves cited verse
-    // references and emits them as `cited_verses`. A verse the semantic search
+    // references and emits them as `resolved_verses`. A verse the semantic search
     // never returned must still appear as a card in the default "Cited" view.
     vi.mocked(api.streamMessage).mockImplementation(async function* () {
       yield {
@@ -1308,7 +1426,7 @@ describe("verse citation panel — server completion event", () => {
       yield {
         type: "completion" as const,
         verses_cited: ["John 3:16"],
-        cited_verses: [
+        resolved_verses: [
           {
             book: "John",
             chapter: 3,
