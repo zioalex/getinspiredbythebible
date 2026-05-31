@@ -103,7 +103,24 @@ headcheck "/$PRIMARY_LOCALE/privacy"
 
 echo ""
 echo -e "${BLUE}-- robots.txt --${NC}"
-"${CURL[@]}" -L "$BASE_URL/robots.txt" 2>/dev/null | head -20 || echo "  (unavailable)"
+# Show the full body. Cloudflare's AI-Audit managed robots.txt is long
+# (header explainer + per-bot Disallow rules), and the origin's
+# `Sitemap:` line is appended *after* it — truncating with `head` hides
+# the most operationally interesting part and led to a false alarm.
+"${CURL[@]}" -L "$BASE_URL/robots.txt" 2>/dev/null || echo "  (unavailable)"
+echo ""
+echo -e "${BLUE}-- robots.txt — quick checks --${NC}"
+robots_body=$("${CURL[@]}" -L "$BASE_URL/robots.txt" 2>/dev/null || echo "")
+if [ -z "$robots_body" ]; then
+  echo -e "  ${RED}(no body)${NC}"
+else
+  echo "$robots_body" | grep -qi "^Sitemap:" \
+    && echo -e "  ${GREEN}Sitemap: directive present${NC}" \
+    || echo -e "  ${RED}Sitemap: directive missing${NC}"
+  echo "$robots_body" | grep -qi "Content-Signal:" \
+    && echo -e "  ${GREEN}Content-Signal declarations present (Cloudflare AI Audit)${NC}" \
+    || echo -e "  ${YELLOW}no Content-Signal declarations (AI-bot policy not asserted)${NC}"
+fi
 echo ""
 echo -e "${BLUE}-- sitemap.xml (first lines) --${NC}"
 "${CURL[@]}" -L "$BASE_URL/sitemap.xml" 2>/dev/null | head -15 || echo "  (unavailable)"
