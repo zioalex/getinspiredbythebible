@@ -1273,4 +1273,74 @@ describe("verse citation panel — server completion event", () => {
 
     expect(screen.getAllByText(/Romans 8:28/).length).toBeGreaterThanOrEqual(1);
   });
+
+  it("renders a cited_verses card that was absent from semantic search results", async () => {
+    // Simulates the core architectural fix: the backend now resolves cited verse
+    // references and emits them as `cited_verses`. A verse the semantic search
+    // never returned must still appear as a card in the default "Cited" view.
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      yield {
+        type: "metadata" as const,
+        message_id: "msg-cited-absent",
+        scripture_context: {
+          query: "love",
+          // Semantic search returned only Romans 8:28 — NOT the cited verse.
+          verses: [
+            {
+              book: "Romans",
+              chapter: 8,
+              verse: 28,
+              text: "And we know that all things work together...",
+              reference: "Romans 8:28",
+              similarity: 0.6,
+            },
+          ],
+          passages: [],
+        },
+        provider: "test",
+        model: "test-model",
+      };
+      yield {
+        type: "content" as const,
+        content: "As John 3:16 says, God so loved the world.",
+      };
+      // Backend resolved the citation to a full verse object.
+      yield {
+        type: "completion" as const,
+        verses_cited: ["John 3:16"],
+        cited_verses: [
+          {
+            book: "John",
+            chapter: 3,
+            verse: 16,
+            text: "For God so loved the world...",
+            reference: "John 3:16",
+            translation: "kjv",
+          },
+        ],
+      };
+    });
+
+    const result = renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Tell me about love" } });
+    });
+    const submitButton = result.container.querySelector(
+      'button[type="submit"]',
+    );
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("As John 3:16 says, God so loved the world."),
+      ).toBeInTheDocument();
+    });
+
+    // The cited verse (absent from semantic results) must appear as a card.
+    expect(screen.getAllByText(/John 3:16/).length).toBeGreaterThanOrEqual(1);
+    // The uncited semantic neighbour should be hidden in the default "Cited" view.
+    expect(screen.queryByText(/Romans 8:28/)).not.toBeInTheDocument();
+  });
 });

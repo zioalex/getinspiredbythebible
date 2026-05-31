@@ -900,6 +900,85 @@ class TestChatServiceChatStream:
         # Completion event with verse citations
         assert chunks[3]["type"] == "completion"
         assert "verses_cited" in chunks[3]
+        assert "cited_verses" in chunks[3]
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_cited_verses_resolved(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """Completion event includes resolved cited_verses with full verse data."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        resolved_verse = VerseResult(
+            reference="John 3:16",
+            text="For God so loved the world...",
+            book="John",
+            chapter=3,
+            verse=16,
+            translation="kjv",
+        )
+        service.search_service.get_verse = AsyncMock(return_value=resolved_verse)
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            # Response cites John 3:16 via structured format
+            yield "<!-- VERSES: John 3:16 --> For God so loved the world."
+
+        llm.chat_stream = mock_stream
+
+        request = ChatRequest(message="Tell me about John 3:16")
+        chunks = []
+        async for chunk in service.chat_stream(request):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "cited_verses" in completion
+        cited = completion["cited_verses"]
+        assert isinstance(cited, list)
+        # At least one verse resolved (John 3:16)
+        assert any(
+            v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16 for v in cited
+        ), f"Expected John 3:16 in cited_verses, got: {cited}"
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_cited_verses_empty_on_resolution_failure(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """cited_verses is [] when resolution raises — no crash, graceful fallback."""
+        service, llm, _ = _make_chat_service()
+
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        service.search_service.get_verse = AsyncMock(side_effect=RuntimeError("db down"))
+        service.search_service.get_verse_range = AsyncMock(side_effect=RuntimeError("db down"))
+
+        async def mock_stream(*args, **kwargs):
+            yield "<!-- VERSES: John 3:16 --> God loves you."
+
+        llm.chat_stream = mock_stream
+
+        request = ChatRequest(message="Hi")
+        chunks = []
+        async for chunk in service.chat_stream(request):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert completion["cited_verses"] == []
+        assert "verses_cited" in completion
 
 
 class TestChatServiceGetVerseContext:
