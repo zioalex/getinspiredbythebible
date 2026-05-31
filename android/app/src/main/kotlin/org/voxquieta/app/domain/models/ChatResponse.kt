@@ -18,6 +18,7 @@ data class ChatResponse(
  * @param model The LLM model used for generation. Populated from metadata event.
  * @param type Event type: "metadata", "content", "completion", or "" for legacy chunks.
  * @param versesCited Server-extracted verse citations from the completion event.
+ * @param resolvedVerses Backend-resolved cited verses (with text) from the completion event.
  */
 data class StreamChunk(
     val content: String = "",
@@ -28,4 +29,5 @@ data class StreamChunk(
     val detectedTranslation: String = "",
     val type: String = "",
     val versesCited: List<String> = emptyList(),
+    val resolvedVerses: List<Verse> = emptyList(),
 )

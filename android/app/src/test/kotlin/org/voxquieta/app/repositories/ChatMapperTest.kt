@@ -179,6 +179,30 @@ class ChatMapperTest {
     }
 
     @Test
+    fun `StreamChunkDto toDomain maps resolved_verses to domain verses`() {
+        val dto = StreamChunkDto(
+            type = "completion",
+            versesCited = listOf("John 14:27"),
+            resolvedVerses = listOf(
+                VerseDto(book = "John", chapter = 14, verse = 27, text = "Peace I leave with you...", translation = "kjv"),
+            ),
+        )
+        val domain = dto.toDomain()
+
+        assertEquals(1, domain.resolvedVerses.size)
+        assertEquals("John", domain.resolvedVerses[0].book)
+        assertEquals(27, domain.resolvedVerses[0].verse)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain defaults resolved_verses to empty list`() {
+        val dto = StreamChunkDto(content = "hi", done = false)
+        val domain = dto.toDomain()
+
+        assertTrue(domain.resolvedVerses.isEmpty())
+    }
+
+    @Test
     fun `VerseDto toDomain builds reference correctly`() {
         val dto = VerseDto(book = "Genesis", chapter = 1, verse = 1, text = "In the beginning...", translation = "kjv")
         val verse = dto.toDomain()
