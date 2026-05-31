@@ -1,5 +1,5 @@
 {
-  "version": "1.16.0",
-  "date": "2026-05-27",
-  "body": "### Features\n\n* **backend:** emit language_suggestion in chat API (language-mismatch Slice 1) ([#634](https://github.com/zioalex/getinspiredbythebible/issues/634)) ([2720ffa](https://github.com/zioalex/getinspiredbythebible/commit/2720ffa509244967f3e229da203879e95a68a6bb))\n\n### Documentation\n\n* plan for language-mismatch switch-suggestion (Web + Android) ([#630](https://github.com/zioalex/getinspiredbythebible/issues/630)) ([8876472](https://github.com/zioalex/getinspiredbythebible/commit/88764722ab8b9d681bd0e00b7e1385d9218d5f48))"
+  "version": "1.18.3",
+  "date": "2026-05-30",
+  "body": "### Bug Fixes\n\n* **android:** resolve localized verse taps and stop quote truncation ([#648](https://github.com/zioalex/getinspiredbythebible/issues/648)) ([c8dc53b](https://github.com/zioalex/getinspiredbythebible/commit/c8dc53b1142872d4223c5583d216785579e74a63))"
 }

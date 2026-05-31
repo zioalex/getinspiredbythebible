@@ -34,6 +34,8 @@ data class StreamChunkDto(
     @SerialName("detected_translation") val detectedTranslation: String = "",
     /** Server-extracted verse citations (from completion event). */
     @SerialName("verses_cited") val versesCited: List<String> = emptyList(),
+    /** Backend-resolved cited verses (with text) from the completion event. */
+    @SerialName("resolved_verses") val resolvedVerses: List<VerseDto> = emptyList(),
 )
 
 /**

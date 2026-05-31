@@ -275,4 +275,25 @@ class EventSourceParserTest {
         assertEquals("typed hello", chunks[0].content)
         assertFalse(chunks[0].done)
     }
+
+    /**
+     * 14. Completion event with resolved_verses — both the string citations and the
+     *     resolved verse objects (with text) are parsed onto the chunk.
+     */
+    @Test
+    fun `completion event parses verses_cited and resolved_verses`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","verses_cited":["John 14:27"],"resolved_verses":[{"book":"John","chapter":14,"verse":27,"text":"Peace I leave with you...","translation":"kjv"}]}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("completion", chunks[0].type)
+        assertEquals(listOf("John 14:27"), chunks[0].versesCited)
+        assertEquals(1, chunks[0].resolvedVerses.size)
+        assertEquals("John", chunks[0].resolvedVerses[0].book)
+        assertEquals(27, chunks[0].resolvedVerses[0].verse)
+    }
 }

@@ -52,4 +52,5 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     detectedTranslation = detectedTranslation,
     type = type,
     versesCited = versesCited,
+    resolvedVerses = resolvedVerses.map { it.toDomain() },
 )

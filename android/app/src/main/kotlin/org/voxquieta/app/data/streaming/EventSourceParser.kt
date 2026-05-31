@@ -89,10 +89,21 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                             Timber.w(e, "SSE: failed to parse verses_cited")
                             emptyList()
                         }
+                        // Backend-resolved cited verses (with text) so the panel can
+                        // surface citations that fell outside the semantic pool.
+                        val resolvedVerses: List<VerseDto> = try {
+                            val versesEl = jsonObj["resolved_verses"]
+                            if (versesEl != null) json.decodeFromJsonElement<List<VerseDto>>(versesEl)
+                            else emptyList()
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse resolved_verses")
+                            emptyList()
+                        }
                         emit(
                             StreamChunkDto(
                                 type = "completion",
                                 versesCited = versesCited,
+                                resolvedVerses = resolvedVerses,
                             ),
                         )
                     }

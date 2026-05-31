@@ -402,6 +402,7 @@ class ChatViewModel @Inject constructor(
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var finalVersesCited: List<String> = emptyList()
+            var finalResolvedVerses: List<Verse> = emptyList()
             var didError = false
             var metadataMessageId = ""
 
@@ -451,11 +452,25 @@ class ChatViewModel @Inject constructor(
                     warmUpJob.cancel()
 
                     if (!didError) {
+                        // Merge backend-resolved cited verses into the message's verse
+                        // list (deduped by reference). This both feeds the verse panel
+                        // and persists them in versesJson, so the "Cited" tab survives
+                        // a reload even for verses outside the semantic pool.
+                        val mergedVerses = if (finalResolvedVerses.isEmpty()) {
+                            finalVerses
+                        } else {
+                            val existing = finalVerses
+                                .map { "${it.book}${it.chapter}:${it.verse}" }
+                                .toHashSet()
+                            finalVerses + finalResolvedVerses.filterNot { v ->
+                                "${v.book}${v.chapter}:${v.verse}" in existing
+                            }
+                        }
                         val finalAssistant = Message(
                             id = assistantId,
                             role = Message.Role.ASSISTANT,
                             content = accumulatedContent,
-                            verses = finalVerses,
+                            verses = mergedVerses,
                             isStreaming = false,
                             messageId = metadataMessageId,
                             versesCited = finalVersesCited,
@@ -479,7 +494,7 @@ class ChatViewModel @Inject constructor(
                                 // Append new verses, deduplicating by reference only (not translation)
                                 // so each verse appears once regardless of which translation it came from.
                                 val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
-                                val dedupedNew = finalVerses.filterNot { v ->
+                                val dedupedNew = mergedVerses.filterNot { v ->
                                     "${v.book}${v.chapter}:${v.verse}" in existingRefs
                                 }
                                 // When the limit is just reached, append a synthetic assistant
@@ -545,6 +560,14 @@ class ChatViewModel @Inject constructor(
                     if (chunk.type == "completion") {
                         if (chunk.versesCited.isNotEmpty()) {
                             finalVersesCited = chunk.versesCited
+                        }
+                        // Backend-resolved cited verses (with text). Merging these
+                        // into the verse pool ensures the "Cited" tab surfaces
+                        // citations that fell outside the semantic search — common
+                        // on follow-up questions whose pool reflects the short
+                        // follow-up text, not what the answer actually cited.
+                        if (chunk.resolvedVerses.isNotEmpty()) {
+                            finalResolvedVerses = chunk.resolvedVerses
                         }
                         return@collect
                     }

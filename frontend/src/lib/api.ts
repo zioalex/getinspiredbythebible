@@ -427,8 +427,13 @@ export interface StreamChunk {
   // For error type:
   error?: string;
   // For completion type:
+  // Raw citation reference strings (range form preserved); drives the
+  // intersection "Cited" filter.
   verses_cited?: string[];
-  cited_verses?: Verse[];
+  // The same citations resolved against the DB (ranges expanded, with text);
+  // merged into the verse pool so the filter has cards to match for verses
+  // outside the semantic search results.
+  resolved_verses?: Verse[];
 }
 
 /**
