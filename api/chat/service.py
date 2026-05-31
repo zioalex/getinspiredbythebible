@@ -752,7 +752,7 @@ Keep it under 100 words."""
                 scripture_context.verses.insert(0, dv)
                 existing_refs.add((dv.book, dv.chapter, dv.verse))
 
-    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[dict]:
+    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[dict]:  # noqa: C901
         """
         Stream a chat response for real-time display.
 
@@ -903,7 +903,7 @@ Keep it under 100 words."""
 
         # Resolve cited references to full verse objects so the client can
         # display cards for verses the semantic search didn't surface.
-        unique_refs: dict[str, object] = {}
+        unique_refs: dict = {}
         for v in structured:
             key = str(v)
             if key not in unique_refs:
