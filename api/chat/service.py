@@ -901,6 +901,24 @@ Keep it under 100 words."""
 
         verses_cited = list(all_verses.keys())
 
+        # Resolve cited references to full verse objects so the client can
+        # display cards for verses the semantic search didn't surface.
+        unique_refs: dict[str, object] = {}
+        for v in structured:
+            key = str(v)
+            if key not in unique_refs:
+                unique_refs[key] = v
+        for v in regex_extracted:
+            key = str(v)
+            if key not in unique_refs:
+                unique_refs[key] = v
+        capped_refs = list(unique_refs.values())[:10]
+        try:
+            cited_results = await self._lookup_direct_verses(capped_refs, translation)
+        except Exception:
+            logger.warning("Failed to resolve cited verse objects for completion event")
+            cited_results = []
+
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.
         has_structured = len(structured) > 0
@@ -911,6 +929,7 @@ Keep it under 100 words."""
                 "structured_count": len(structured),
                 "regex_count": len(regex_extracted),
                 "total_unique": len(verses_cited),
+                "cited_resolved": len(cited_results),
                 "llm_structured_present": has_structured,
                 "regex_only": has_regex and not has_structured,
             },
@@ -919,6 +938,7 @@ Keep it under 100 words."""
         yield {
             "type": "completion",
             "verses_cited": verses_cited,
+            "cited_verses": [v.model_dump() for v in cited_results],
         }
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:

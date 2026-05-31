@@ -428,6 +428,7 @@ export interface StreamChunk {
   error?: string;
   // For completion type:
   verses_cited?: string[];
+  cited_verses?: Verse[];
 }
 
 /**

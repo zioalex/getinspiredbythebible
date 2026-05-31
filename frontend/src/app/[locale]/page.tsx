@@ -482,23 +482,38 @@ export default function Home() {
             }
             return updated;
           });
-        } else if (chunk.type === "completion" && chunk.verses_cited) {
+        } else if (chunk.type === "completion") {
           // Server-provided verse citations (dual-source: LLM structured + regex)
           receivedCompletion = true;
-          const serverCited = (chunk.verses_cited as string[]).map(
-            (v: string) => v.toLowerCase(),
-          );
-          setMessages((prev) => {
-            const updated = [...prev];
-            const msg = updated[assistantMessageIndex];
-            if (msg && msg.role === "assistant") {
-              updated[assistantMessageIndex] = {
-                ...msg,
-                versesCited: serverCited,
-              };
-            }
-            return updated;
-          });
+          if (chunk.verses_cited) {
+            const serverCited = (chunk.verses_cited as string[]).map(
+              (v: string) => v.toLowerCase(),
+            );
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  versesCited: serverCited,
+                };
+              }
+              return updated;
+            });
+          }
+          // Merge cited verses into the panel so every cited verse has a card,
+          // even if semantic search didn't surface it.
+          if (chunk.cited_verses?.length) {
+            setRelevantVerses((prev) => {
+              const existing = new Set(
+                prev.map((v) => `${v.book}|${v.chapter}|${v.verse}`),
+              );
+              const toAdd = chunk.cited_verses!.filter(
+                (v) => !existing.has(`${v.book}|${v.chapter}|${v.verse}`),
+              );
+              return toAdd.length ? [...prev, ...toAdd] : prev;
+            });
+          }
         }
       }
 
@@ -1034,6 +1049,14 @@ export default function Home() {
                 <p className="text-xs mt-1">
                   {tVerses("noVersesReferencedHint")}
                 </p>
+                {relevantVerses.length > 0 && (
+                  <button
+                    className="mt-3 text-xs text-amber-600 hover:text-amber-700 underline"
+                    onClick={() => setShowOnlyReferenced(false)}
+                  >
+                    {tVerses("allRelated", { count: relevantVerses.length })}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1140,6 +1163,14 @@ export default function Home() {
                   <p className="text-xs mt-1">
                     {tVerses("noVersesReferencedHint")}
                   </p>
+                  {relevantVerses.length > 0 && (
+                    <button
+                      className="mt-3 text-xs text-amber-600 hover:text-amber-700 underline"
+                      onClick={() => setShowOnlyReferenced(false)}
+                    >
+                      {tVerses("allRelated", { count: relevantVerses.length })}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
