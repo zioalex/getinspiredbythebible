@@ -48,6 +48,11 @@ from .topics import detect_topics
 
 logger = get_logger(__name__)
 
+# Upper bound on how many verses a single cited range may expand to when
+# resolving cited verses for the client "Cited" panel. Guards against an LLM
+# emitting an absurd range (e.g. "Psalm 119:1-176") triggering a huge fetch.
+MAX_RANGE_SPAN = 50
+
 
 class ConversationMessage(BaseModel):
     """A message in the conversation."""
@@ -741,6 +746,40 @@ Keep it under 100 words."""
             logger.info("Direct verse lookup completed", extra={"verses_found": len(direct_verses)})
         return direct_verses
 
+    async def _resolve_cited_verses(self, verse_refs: list, translation: str | None = None) -> list:
+        """Resolve cited VerseReferences to full VerseResult objects.
+
+        Unlike the semantic search pool (driven by the user's query), this returns
+        exactly the verses the answer cited — expanding ranges to individual
+        verses — so clients can merge them into their verse panel and the "Cited"
+        tab is populated even for verses outside the pool. Dedupes by canonical
+        reference and never raises: a DB miss or lookup error is skipped so the
+        stream is never broken.
+        """
+        resolved: dict[str, object] = {}
+        for ref in verse_refs:
+            try:
+                if ref.verse_end and ref.verse_end > ref.verse_start:
+                    # Cap pathological ranges (e.g. an LLM emitting "Psalm
+                    # 119:1-176") so we never issue a huge fetch.
+                    end = min(ref.verse_end, ref.verse_start + MAX_RANGE_SPAN - 1)
+                    range_verses = await self.search_service.get_verse_range(
+                        ref.book, ref.chapter, ref.verse_start, end, translation
+                    )
+                    for verse in range_verses:
+                        resolved.setdefault(verse.reference.lower(), verse)
+                else:
+                    # Single verse — also covers chapter-spanning ranges where the
+                    # parser leaves verse_end < verse_start.
+                    verse = await self.search_service.get_verse(
+                        ref.book, ref.chapter, ref.verse_start, translation
+                    )
+                    if verse:
+                        resolved.setdefault(verse.reference.lower(), verse)
+            except Exception as e:
+                logger.warning(f"Failed to resolve cited verse {ref}: {e}")
+        return list(resolved.values())
+
     def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
         """Merge direct lookup verses into scripture context (at beginning)."""
         if not direct_verses or not scripture_context:
@@ -890,34 +929,23 @@ Keep it under 100 words."""
         structured = parse_structured_citations(full_response)
         regex_extracted = extract_all_references(full_response)
 
-        # Merge and deduplicate (structured takes priority, regex catches misses)
-        all_verses: dict[str, None] = {}
+        # Merge and deduplicate (structured takes priority, regex catches misses).
+        # Keep the VerseReference objects (not just their string form) so we can
+        # resolve them against the DB below — including verses the LLM cited that
+        # are NOT in the semantic search pool.
+        merged_refs: dict[str, object] = {}
         for v in structured:
-            all_verses[str(v)] = None
+            merged_refs.setdefault(str(v), v)
         for v in regex_extracted:
-            key = str(v)
-            if key not in all_verses:
-                all_verses[key] = None
+            merged_refs.setdefault(str(v), v)
 
-        verses_cited = list(all_verses.keys())
+        verses_cited = list(merged_refs.keys())
 
-        # Resolve cited references to full verse objects so the client can
-        # display cards for verses the semantic search didn't surface.
-        unique_refs: dict = {}
-        for v in structured:
-            key = str(v)
-            if key not in unique_refs:
-                unique_refs[key] = v
-        for v in regex_extracted:
-            key = str(v)
-            if key not in unique_refs:
-                unique_refs[key] = v
-        capped_refs = list(unique_refs.values())[:10]
-        try:
-            cited_results = await self._lookup_direct_verses(capped_refs, translation)
-        except Exception:
-            logger.warning("Failed to resolve cited verse objects for completion event")
-            cited_results = []
+        # Resolve the cited references to full VerseResult objects so the client
+        # can merge them into its verse panel. Without this, a cited verse that
+        # is outside the semantic pool (common on follow-up questions) never
+        # appears in the "Cited" tab.
+        resolved_verses = await self._resolve_cited_verses(list(merged_refs.values()), translation)
 
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.
@@ -929,16 +957,27 @@ Keep it under 100 words."""
                 "structured_count": len(structured),
                 "regex_count": len(regex_extracted),
                 "total_unique": len(verses_cited),
-                "cited_resolved": len(cited_results),
+                "cited_resolved": len(resolved_verses),
                 "llm_structured_present": has_structured,
                 "regex_only": has_regex and not has_structured,
             },
         )
 
+        # Two distinct fields, intentionally:
+        #   verses_cited   - list[str] of raw citation references (range form
+        #                    preserved, e.g. "Romans 8:38-39"; may include refs
+        #                    not in the DB). Drives the client's intersection
+        #                    "Cited" filter and feedback logging.
+        #   resolved_verses - list[VerseResult] of the SAME citations resolved
+        #                    against the DB (ranges expanded to individual
+        #                    verses, with text + localized_book). The client
+        #                    merges these into its verse pool so the filter has
+        #                    cards to match even for verses outside the semantic
+        #                    search results.
         yield {
             "type": "completion",
             "verses_cited": verses_cited,
-            "cited_verses": [v.model_dump() for v in cited_results],
+            "resolved_verses": [v.model_dump() for v in resolved_verses],
         }
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:

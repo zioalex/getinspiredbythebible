@@ -900,7 +900,7 @@ class TestChatServiceChatStream:
         # Completion event with verse citations
         assert chunks[3]["type"] == "completion"
         assert "verses_cited" in chunks[3]
-        assert "cited_verses" in chunks[3]
+        assert "resolved_verses" in chunks[3]
 
     @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
@@ -910,7 +910,7 @@ class TestChatServiceChatStream:
     async def test_chat_stream_cited_verses_resolved(
         self, mock_extract, mock_is_verse, mock_resolve, mock_detect
     ):
-        """Completion event includes resolved cited_verses with full verse data."""
+        """Completion event includes resolved verses with full verse data."""
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
@@ -940,13 +940,13 @@ class TestChatServiceChatStream:
             chunks.append(chunk)
 
         completion = next(c for c in chunks if c["type"] == "completion")
-        assert "cited_verses" in completion
-        cited = completion["cited_verses"]
+        assert "resolved_verses" in completion
+        cited = completion["resolved_verses"]
         assert isinstance(cited, list)
         # At least one verse resolved (John 3:16)
         assert any(
             v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16 for v in cited
-        ), f"Expected John 3:16 in cited_verses, got: {cited}"
+        ), f"Expected John 3:16 in resolved_verses, got: {cited}"
 
     @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
@@ -956,7 +956,7 @@ class TestChatServiceChatStream:
     async def test_chat_stream_cited_verses_empty_on_resolution_failure(
         self, mock_extract, mock_is_verse, mock_resolve, mock_detect
     ):
-        """cited_verses is [] when resolution raises — no crash, graceful fallback."""
+        """resolved_verses is [] when resolution raises — no crash, graceful fallback."""
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
@@ -977,8 +977,128 @@ class TestChatServiceChatStream:
             chunks.append(chunk)
 
         completion = next(c for c in chunks if c["type"] == "completion")
-        assert completion["cited_verses"] == []
+        assert completion["resolved_verses"] == []
         assert "verses_cited" in completion
+
+
+def _make_ref(book, chapter, verse_start, verse_end=None):
+    """Build a mock VerseReference-like object for resolver tests."""
+    ref = MagicMock()
+    ref.book = book
+    ref.chapter = chapter
+    ref.verse_start = verse_start
+    ref.verse_end = verse_end
+    return ref
+
+
+class TestChatServiceResolveCitedVerses:
+    """Tests for ChatService._resolve_cited_verses().
+
+    The resolver turns the LLM's cited references (which may sit outside the
+    semantic search pool) into full VerseResult objects so clients can merge
+    them into their verse panel and the "Cited" tab is never empty.
+    """
+
+    @pytest.mark.asyncio
+    async def test_includes_verse_outside_pool(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        cited = VerseResult(
+            reference="John 14:27",
+            text="Peace I leave with you...",
+            book="John",
+            chapter=14,
+            verse=27,
+        )
+        service.search_service.get_verse = AsyncMock(return_value=cited)
+
+        result = await service._resolve_cited_verses([_make_ref("John", 14, 27)], "kjv")
+
+        assert len(result) == 1
+        assert result[0].reference == "John 14:27"
+        service.search_service.get_verse.assert_awaited_once_with("John", 14, 27, "kjv")
+
+    @pytest.mark.asyncio
+    async def test_expands_range(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        range_verses = [
+            VerseResult(
+                reference="Romans 8:38",
+                text="For I am persuaded...",
+                book="Romans",
+                chapter=8,
+                verse=38,
+            ),
+            VerseResult(
+                reference="Romans 8:39",
+                text="Nor height, nor depth...",
+                book="Romans",
+                chapter=8,
+                verse=39,
+            ),
+        ]
+        service.search_service.get_verse_range = AsyncMock(return_value=range_verses)
+
+        result = await service._resolve_cited_verses([_make_ref("Romans", 8, 38, 39)], "kjv")
+
+        refs = {v.reference for v in result}
+        assert refs == {"Romans 8:38", "Romans 8:39"}
+
+    @pytest.mark.asyncio
+    async def test_dedups_repeated_citation(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        verse = VerseResult(
+            reference="John 3:16",
+            text="For God so loved the world...",
+            book="John",
+            chapter=3,
+            verse=16,
+        )
+        service.search_service.get_verse = AsyncMock(return_value=verse)
+
+        result = await service._resolve_cited_verses(
+            [_make_ref("John", 3, 16), _make_ref("John", 3, 16)], "kjv"
+        )
+
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_skips_db_miss(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.get_verse = AsyncMock(return_value=None)
+
+        result = await service._resolve_cited_verses([_make_ref("John", 99, 99)], "kjv")
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_does_not_raise_on_db_error(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.get_verse = AsyncMock(side_effect=Exception("DB error"))
+
+        # Must never break the stream.
+        result = await service._resolve_cited_verses([_make_ref("John", 3, 16)], "kjv")
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_caps_large_range(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        await service._resolve_cited_verses([_make_ref("Psalm", 119, 1, 176)], "kjv")
+
+        # End must be clamped to start + MAX_RANGE_SPAN - 1, never 176.
+        call_args = service.search_service.get_verse_range.call_args[0]
+        # positional: (book, chapter, start, end, translation)
+        start, end = call_args[2], call_args[3]
+        assert end - start + 1 <= 50
+        assert end < 176
 
 
 class TestChatServiceGetVerseContext:
