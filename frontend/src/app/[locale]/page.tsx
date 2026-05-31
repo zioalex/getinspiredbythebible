@@ -11,8 +11,10 @@ import {
   X,
   ChevronDown,
   Square,
+  FlaskConical,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -786,6 +788,16 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Android tester recruitment */}
+              <Link
+                href="/tester"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-lg transition-colors"
+                title={tHeader("testerCta")}
+              >
+                <FlaskConical className="w-4 h-4" />
+                <span className="hidden md:inline">{tHeader("testerCta")}</span>
+              </Link>
+
               {/* Language Switcher */}
               <LanguageSwitcher />
 

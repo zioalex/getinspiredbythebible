@@ -7,7 +7,8 @@
     "title": "Vox Quieta",
     "subtitle": "每天从上帝的话语中获得灵感",
     "bibleVersion": "圣经版本",
-    "newChat": "新对话"
+    "newChat": "新对话",
+    "testerCta": "测试应用"
   },
   "Welcome": {
     "heading": "欢迎",
@@ -256,5 +257,23 @@
   },
   "Footer": {
     "changelog": "更新日志"
+  },
+  "Tester": {
+    "metaTitle": "成为测试员",
+    "metaDescription": "加入 Vox Quieta 安卓封闭测试：抢先体验并帮助我们改进应用。",
+    "title": "成为测试员",
+    "intro": "Vox Quieta 安卓应用正处于封闭测试阶段。加入我们的测试员群组，即可抢先体验，并通过你的反馈帮助改进应用。只需一分钟。",
+    "stepsTitle": "如何加入",
+    "step1Title": "加入测试员群组",
+    "step1Body": "使用你在 Play 商店中使用的 Google 账号登录，并加入我们的测试员群组。这是参与封闭测试的必要条件。",
+    "step1Button": "加入群组",
+    "step2Title": "报名参加测试",
+    "step2Body": "成为群组成员后，打开报名页面并确认成为测试员。激活可能需要几分钟。",
+    "step2Button": "报名",
+    "step3Title": "从 Google Play 安装",
+    "step3Body": "在 Google Play 中打开 Vox Quieta，像安装其他应用一样安装。更新将自动送达。",
+    "step3Button": "在 Google Play 打开",
+    "note": "测试完全免费，你可以随时退出。有疑问或建议？请通过主页与我们联系。",
+    "backHome": "返回主页"
   }
 }
