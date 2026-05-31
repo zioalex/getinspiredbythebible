@@ -586,23 +586,27 @@ Testing & Documentation:
 
 ---
 
-### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image, Edge robots
+### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🎯 Todo
+**Status:** 🎯 Todo (production verified 2026-05-31 — favicon and robots.txt addressed; server-render-homepage remains)
+**Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
 **Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
-**Created:** 2026-05-29
+**Created:** 2026-05-29 · **Updated:** 2026-05-31
 
 **As a** person searching for Bible inspiration on Google (or asking an AI assistant),
-**I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews, crawlable robots/sitemap,
+**I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews,
 **so that** the site can actually be discovered rather than served as an empty client-rendered shell.
+
+**Live findings (2026-05-31):** `/en` renders 0 server-side words (homepage is `'use client'`) — only real remaining gap. `/favicon.ico` returned 404 and is fixed in the same PR. Cloudflare `/robots.txt` is fine: Cloudflare appends the origin's `Sitemap:` directive after its own managed AI-bot block, so the served body contains both.
 
 **Acceptance Criteria:**
 
-- [ ] Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [ ] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [x] `/favicon.ico` returns 200 with the brand icon
+- [x] Production `/robots.txt` contains `Sitemap: https://voxquieta.org/sitemap.xml` (verified)
 - [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
 - [ ] `og:image` resolves and Twitter card is `summary_large_image`
-- [ ] Production `/robots.txt` contains the `Sitemap:` directive (verify Cloudflare vs Next precedence post-deploy)
-- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` resolves, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy` (not locale roots); sitemap submitted to Search Console
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console
 
 **Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
 
