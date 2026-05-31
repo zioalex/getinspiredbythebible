@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.19.0...v1.20.0) (2026-05-31)
+
+
+### Features
+
+* add Android beta tester recruitment page and multi-track publish ([#656](https://github.com/zioalex/getinspiredbythebible/issues/656)) ([b7bbf9a](https://github.com/zioalex/getinspiredbythebible/commit/b7bbf9a7bd470809be5b252b87c2d4f9cefac434))
+
+
+### Bug Fixes
+
+* populate Cited tab on follow-up turns (resolve cited verses on backend) ([#654](https://github.com/zioalex/getinspiredbythebible/issues/654)) ([95c8502](https://github.com/zioalex/getinspiredbythebible/commit/95c8502fb4cf9aee4c573ac844f540d4b849f917))
+
 ## [1.19.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.3...v1.19.0) (2026-05-31)
 
 ### Features
