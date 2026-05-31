@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.2...v1.18.3) (2026-05-30)
+
+### Bug Fixes
+
+- **android:** resolve localized verse taps and stop quote truncation ([#648](https://github.com/zioalex/getinspiredbythebible/issues/648)) ([c8dc53b](https://github.com/zioalex/getinspiredbythebible/commit/c8dc53b1142872d4223c5583d216785579e74a63))
+
+## [1.18.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.1...v1.18.2) (2026-05-30)
+
+### Bug Fixes
+
+- validate book names and handle linked verse references in chat ([#647](https://github.com/zioalex/getinspiredbythebible/issues/647)) ([281d9ef](https://github.com/zioalex/getinspiredbythebible/commit/281d9ef174e2bed98409d0bfb60095f67ea7eb9d))
+- **web:** show every verse of a cited range in the references panel ([#645](https://github.com/zioalex/getinspiredbythebible/issues/645)) ([de4bf5f](https://github.com/zioalex/getinspiredbythebible/commit/de4bf5f8627e41deda79a81144ccf0dcbafc329a))
+
+## [1.18.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.0...v1.18.1) (2026-05-30)
+
+### Documentation
+
+- **backlog:** add BITB-037 SEO follow-ups story ([#642](https://github.com/zioalex/getinspiredbythebible/issues/642)) ([6d7567b](https://github.com/zioalex/getinspiredbythebible/commit/6d7567bcee9eab8a15cfb659606df6042301528d))
+- **backlog:** add BITB-037 test-coverage follow-up for amber quote chip ([#643](https://github.com/zioalex/getinspiredbythebible/issues/643)) ([b3db07a](https://github.com/zioalex/getinspiredbythebible/commit/b3db07a2bf11fd636e7a2634b70db4e454807480))
+
+## [1.18.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.17.0...v1.18.0) (2026-05-29)
+
+### Features
+
+- **android:** inline amber quote chip for quoted scripture (BITB-036) ([#637](https://github.com/zioalex/getinspiredbythebible/issues/637)) ([77f4452](https://github.com/zioalex/getinspiredbythebible/commit/77f44520f2ec2f69ede9525fe3f4ce560b9ecb95))
+
+### Bug Fixes
+
+- **backend:** enforce consistent language responses across all prompts ([#640](https://github.com/zioalex/getinspiredbythebible/issues/640)) ([c07b1a8](https://github.com/zioalex/getinspiredbythebible/commit/c07b1a8324ee9699859680b9a6cdf901a71c548f))
+
+## [1.17.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.16.0...v1.17.0) (2026-05-29)
+
+### Features
+
+- **seo:** add SEO audit scripts, metadata improvements, and agent/skill definitions ([#636](https://github.com/zioalex/getinspiredbythebible/issues/636)) ([c4fdbcf](https://github.com/zioalex/getinspiredbythebible/commit/c4fdbcfdcd47a80b6e63f92491767c94b467f1d5))
+- **web:** language-mismatch switch suggestion banner (Slice 2) ([#635](https://github.com/zioalex/getinspiredbythebible/issues/635)) ([d3b2fe3](https://github.com/zioalex/getinspiredbythebible/commit/d3b2fe3701f605325e96b0eecb70c3b96e4833b5))
+
 ## [1.16.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.15.0...v1.16.0) (2026-05-27)
 
 ### Features
