@@ -59,6 +59,7 @@ import androidx.core.app.ShareCompat
 import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
+import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.net.URLDecoder
@@ -213,6 +214,43 @@ internal fun buildVerseRefRegex(
 private const val VERSE_SCHEME = "verse://"
 
 /**
+ * Resolves the book name to use as the `verse://` link **target** so the chapter lookup
+ * succeeds even when the LLM labelled the reference in the wrong language.
+ *
+ * Priority:
+ *  1. [normalizeBookName] against the backend `localized_to_english` map — resolves
+ *     localized names (e.g. German "Matthäus" → "Matthew", "2 Korinther" → "2 Corinthians").
+ *  2. If the map misses (e.g. the Latin/Vulgate "Proverbia", which is in no map) fall back
+ *     to the authoritative per-message [verses] list: if exactly one cited verse has this
+ *     [chapter]:[verse], use its canonical [Verse.book]. This bypasses the wrong label.
+ *  3. Otherwise leave the raw name unchanged (already-English, or genuinely unknown) — the
+ *     existing behaviour, so there is no regression.
+ *
+ * The displayed link text is unaffected; only the link target book is resolved here.
+ */
+private fun resolveLinkBook(
+    rawBook: String,
+    chapter: String,
+    verse: String,
+    verses: List<Verse>,
+    localizedToEnglish: Map<String, String>,
+): String {
+    val normalized = normalizeBookName(rawBook, localizedToEnglish)
+    if (normalized != rawBook) return normalized
+
+    val chapterNum = chapter.toIntOrNull()
+    val verseNum = verse.toIntOrNull()
+    if (chapterNum != null && verseNum != null) {
+        val candidates = verses
+            .filter { it.chapter == chapterNum && it.verse == verseNum }
+            .map { it.book }
+            .distinct()
+        if (candidates.size == 1) return candidates.first()
+    }
+    return rawBook
+}
+
+/**
  * Rewrites verse references in [markdown] as markdown links using the `verse://` scheme.
  *
  * E.g. "John 3:16" → "[John 3:16](verse://John/3/16)"
@@ -222,13 +260,22 @@ private const val VERSE_SCHEME = "verse://"
  * link renderer.  References already inside a markdown link (e.g. `[John 3:16](verse://…)`)
  * are left unchanged by checking that the character before the match is not `[`.
  *
+ * The **displayed** text keeps the book name as the LLM wrote it (e.g. German "Proverbia
+ * 17:17"), but the link **target** is resolved via [resolveLinkBook] so the chapter lookup
+ * works even when the label is wrong-language.
+ *
  * @param verseRefRegex The regex to use for matching verse references. Defaults to
  *   [DEFAULT_VERSE_REF_REGEX]; pass a dynamically built regex from [buildVerseRefRegex]
  *   once API book-name data has loaded.
+ * @param verses The verses the backend cited for this message; used to resolve the link
+ *   target book by chapter:verse when the written name isn't in the book-name map.
+ * @param localizedToEnglish The backend `localized_to_english` book-name map.
  */
 internal fun injectVerseLinks(
     markdown: String,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
+    verses: List<Verse> = emptyList(),
+    localizedToEnglish: Map<String, String> = emptyMap(),
 ): String =
     verseRefRegex.replace(markdown) { result ->
         // If the match is immediately preceded by '[', it is already the display text of a
@@ -250,7 +297,8 @@ internal fun injectVerseLinks(
                 chapter = result.groupValues[5]
                 verse = result.groupValues[6]
             }
-            val encodedBook = URLEncoder.encode(book, "UTF-8")
+            val linkBook = resolveLinkBook(book, chapter, verse, verses, localizedToEnglish)
+            val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
             val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
             val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse)"
@@ -276,6 +324,29 @@ internal val QUOTE_HIGHLIGHT_REGEX = Regex(
 )
 
 internal fun injectVerseQuoteHighlights(markdown: String): String = markdown
+
+/**
+ * Returns the verses to show as inline cards under [message]: the ones the backend reported
+ * this answer actually cited.
+ *
+ * Prefers the server-provided [Message.versesCited] (English canonical, e.g. "John 3:16"),
+ * intersecting it with [Message.verses] (which carry the text). When [Message.versesCited]
+ * is empty (older messages, or none reported) it falls back to all [Message.verses] so the
+ * text is still shown. Matching mirrors [referencedVerses] in VersesPanel.
+ */
+internal fun citedVerses(message: Message): List<Verse> {
+    if (message.verses.isEmpty()) return emptyList()
+    if (message.versesCited.isEmpty()) return message.verses
+
+    val citedLower = message.versesCited.map { it.lowercase() }.toHashSet()
+    val filtered = message.verses.filter { verse ->
+        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
+        citedLower.any { it.startsWith(baseRef) }
+    }
+    // If nothing matched (e.g. citation/verse book-name mismatch) fall back to all verses
+    // rather than hiding the text entirely.
+    return filtered.ifEmpty { message.verses }
+}
 
 /**
  * Parses a `verse://` URL and returns a [PendingVerseLink] if the URL is well-formed,
@@ -334,6 +405,7 @@ fun ChatMessageItem(
     onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
+    localizedToEnglish: Map<String, String> = emptyMap(),
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -460,7 +532,14 @@ fun ChatMessageItem(
                             // Amber colour for verse links — matches web's amber-600 link colour
                             val amberColor = MaterialTheme.colorScheme.tertiary
                             MarkdownText(
-                                markdown = injectVerseQuoteHighlights(injectVerseLinks(message.content, verseRefRegex)),
+                                markdown = injectVerseQuoteHighlights(
+                                    injectVerseLinks(
+                                        message.content,
+                                        verseRefRegex,
+                                        message.verses,
+                                        localizedToEnglish,
+                                    ),
+                                ),
                                 style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 linkColor = amberColor,
                                 isTextSelectable = true,
@@ -488,6 +567,28 @@ fun ChatMessageItem(
                                 text = message.content,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = textColor,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Inline scripture cards — show the actual text of the verses the backend cited
+            // for this answer, directly under the message (matching the web's verse cards),
+            // so the verse text is visible without opening the top-bar Verses panel.
+            if (!isUser && !message.isStreaming && !message.isError) {
+                val cited = citedVerses(message)
+                if (cited.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        cited.forEach { verse ->
+                            InlineVerseCard(
+                                verse = verse,
+                                preferredTranslation = preferredTranslation,
+                                chapterState = chapterSheetState,
+                                onLoadChapter = onLoadChapter,
+                                onDismissSheet = onDismissSheet,
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }

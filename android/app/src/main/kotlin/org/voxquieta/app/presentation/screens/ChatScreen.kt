@@ -396,6 +396,7 @@ fun ChatScreen(
                             onFeedback = { messageLocalId, rating -> viewModel.submitFeedback(messageLocalId, rating) },
                             feedbackGiven = uiState.feedbackGiven[message.id],
                             verseRefRegex = verseRefRegex,
+                            localizedToEnglish = localizedToEnglish,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                     }

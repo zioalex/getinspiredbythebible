@@ -2,9 +2,12 @@ package org.voxquieta.app.components
 
 import org.voxquieta.app.presentation.components.QUOTE_HIGHLIGHT_REGEX
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
+import org.voxquieta.app.presentation.components.citedVerses
 import org.voxquieta.app.presentation.components.handleVerseLink
 import org.voxquieta.app.presentation.components.injectVerseLinks
 import org.voxquieta.app.presentation.components.injectVerseQuoteHighlights
+import org.voxquieta.app.domain.models.Message
+import org.voxquieta.app.domain.models.Verse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
@@ -842,5 +845,89 @@ class VerseRefLinkTest {
 
         assertEquals("Psalm", calledBook)
         assertEquals(23, calledChapter)
+    }
+
+    // ── Link target resolution from the cited verse list ─────────────────────
+
+    @Test
+    fun `injectVerseLinks resolves wrong-language book via the verse list`() {
+        // "Proverbia" is the Latin/Vulgate name — in no book-name map. The backend cited the
+        // verse with its canonical English book, so the link target should use that ("Proverbs")
+        // while the displayed text keeps the LLM's wording ("Proverbia 17:17").
+        val verses = listOf(
+            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "Ein Freund liebt jederzeit"),
+        )
+        val result = injectVerseLinks(
+            "In Proverbia 17:17 steht geschrieben",
+            verses = verses,
+        )
+        assertTrue("display text keeps Proverbia", result.contains("[Proverbia 17:17]"))
+        assertTrue("link target uses canonical Proverbs", result.contains("verse://Proverbs/17/17"))
+        assertFalse("link target must not be the Latin name", result.contains("verse://Proverbia/17/17"))
+    }
+
+    @Test
+    fun `injectVerseLinks normalizes localized book via the map before the verse list`() {
+        val map = mapOf("Matthäus" to "Matthew")
+        val result = injectVerseLinks(
+            "wie in Matthäus 5:7",
+            verses = emptyList(),
+            localizedToEnglish = map,
+        )
+        assertTrue(result.contains("[Matthäus 5:7]"))
+        assertTrue(result.contains("verse://Matthew/5/7"))
+    }
+
+    @Test
+    fun `injectVerseLinks leaves the raw book when neither map nor verse list resolves`() {
+        // Unknown book, no matching verse → unchanged target (no regression).
+        val result = injectVerseLinks("In Proverbia 17:17 steht", verses = emptyList())
+        assertTrue(result.contains("verse://Proverbia/17/17"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not resolve when the verse list is ambiguous`() {
+        // Two different books share 17:17 → cannot safely pick one, keep the raw name.
+        val verses = listOf(
+            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "a"),
+            Verse(book = "John", chapter = 17, verse = 17, text = "b"),
+        )
+        val result = injectVerseLinks("In Proverbia 17:17 steht", verses = verses)
+        assertTrue(result.contains("verse://Proverbia/17/17"))
+    }
+
+    // ── citedVerses ──────────────────────────────────────────────────────────
+
+    private fun assistant(content: String, verses: List<Verse>, cited: List<String>) =
+        Message(
+            id = "m1",
+            role = Message.Role.ASSISTANT,
+            content = content,
+            verses = verses,
+            versesCited = cited,
+        )
+
+    @Test
+    fun `citedVerses returns only the verses named in versesCited`() {
+        val verses = listOf(
+            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "Ein Freund liebt jederzeit"),
+            Verse(book = "John", chapter = 3, verse = 16, text = "Denn so sehr hat Gott die Welt geliebt"),
+        )
+        val result = citedVerses(assistant("…", verses, cited = listOf("Proverbs 17:17")))
+        assertEquals(1, result.size)
+        assertEquals("Proverbs", result.first().book)
+    }
+
+    @Test
+    fun `citedVerses falls back to all verses when versesCited is empty`() {
+        val verses = listOf(Verse(book = "Proverbs", chapter = 17, verse = 17, text = "…"))
+        val result = citedVerses(assistant("…", verses, cited = emptyList()))
+        assertEquals(verses, result)
+    }
+
+    @Test
+    fun `citedVerses returns empty when the message has no verses`() {
+        val result = citedVerses(assistant("…", verses = emptyList(), cited = listOf("John 3:16")))
+        assertTrue(result.isEmpty())
     }
 }
