@@ -945,8 +945,7 @@ class TestChatServiceChatStream:
         assert isinstance(cited, list)
         # At least one verse resolved (John 3:16)
         assert any(
-            v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16
-            for v in cited
+            v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16 for v in cited
         ), f"Expected John 3:16 in cited_verses, got: {cited}"
 
     @pytest.mark.asyncio
