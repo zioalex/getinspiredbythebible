@@ -108,6 +108,14 @@ class BookNameNormalizerTest {
     }
 
     @Test
+    fun `leaves Latin Vulgate name unchanged because it is in no map`() {
+        // "Proverbia" is Latin; the German book is "Sprüche". The map can't resolve it, so
+        // normalization returns it unchanged — which is why the link layer falls back to
+        // matching the cited verse list by chapter:verse instead.
+        assertEquals("Proverbia", normalizeBookName("Proverbia", map))
+    }
+
+    @Test
     fun `trims surrounding whitespace before lookup`() {
         assertEquals("2 Corinthians", normalizeBookName("  2 Korinther  ", map))
     }
