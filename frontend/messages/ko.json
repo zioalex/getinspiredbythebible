@@ -7,7 +7,8 @@
     "title": "Vox Quieta",
     "subtitle": "매일 하나님의 말씀에서 영감을 받으세요",
     "bibleVersion": "성경 버전",
-    "newChat": "새 대화"
+    "newChat": "새 대화",
+    "testerCta": "앱 테스트하기"
   },
   "Welcome": {
     "heading": "환영합니다",
@@ -256,5 +257,23 @@
   },
   "Footer": {
     "changelog": "변경 로그"
+  },
+  "Tester": {
+    "metaTitle": "베타 테스터 되기",
+    "metaDescription": "Vox Quieta 안드로이드 비공개 테스트에 참여하세요: 미리 사용해 보고 앱 개선을 도와주세요.",
+    "title": "베타 테스터 되기",
+    "intro": "Vox Quieta 안드로이드 앱은 현재 비공개 테스트 중입니다. 테스터 그룹에 참여하여 먼저 사용해 보고 의견을 통해 앱을 함께 발전시켜 주세요. 1분이면 됩니다.",
+    "stepsTitle": "참여 방법",
+    "step1Title": "테스터 그룹에 가입하기",
+    "step1Body": "Play 스토어에서 사용하는 Google 계정으로 로그인하고 테스터 그룹에 가입하세요. 비공개 테스트에 참여하려면 반드시 필요합니다.",
+    "step1Button": "그룹 가입",
+    "step2Title": "테스트 참여하기",
+    "step2Body": "그룹 멤버가 되면 참여 페이지를 열고 테스터가 되는 데 동의하세요. 활성화에는 몇 분 정도 걸릴 수 있습니다.",
+    "step2Button": "참여하기",
+    "step3Title": "Google Play에서 설치하기",
+    "step3Body": "Google Play에서 Vox Quieta를 열고 다른 앱처럼 설치하세요. 업데이트는 자동으로 제공됩니다.",
+    "step3Button": "Google Play에서 열기",
+    "note": "테스트는 완전히 무료이며 언제든지 그만둘 수 있습니다. 질문이나 의견이 있으신가요? 홈페이지에서 문의해 주세요.",
+    "backHome": "홈으로 돌아가기"
   }
 }

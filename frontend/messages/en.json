@@ -7,7 +7,8 @@
     "title": "Vox Quieta",
     "subtitle": "Get inspired daily by God's Word",
     "bibleVersion": "Bible version",
-    "newChat": "New Chat"
+    "newChat": "New Chat",
+    "testerCta": "Test the app"
   },
   "Welcome": {
     "heading": "Welcome",
@@ -256,5 +257,23 @@
   },
   "Footer": {
     "changelog": "Changelog"
+  },
+  "Tester": {
+    "metaTitle": "Become a Beta Tester",
+    "metaDescription": "Join the Vox Quieta Android closed beta — get early access and help us improve the app.",
+    "title": "Become a Beta Tester",
+    "intro": "The Vox Quieta Android app is in closed beta. Join our group of testers to get early access and help shape the app with your feedback. It only takes a minute.",
+    "stepsTitle": "How to join",
+    "step1Title": "Join the testers group",
+    "step1Body": "Sign in with the Google account you use on the Play Store and join our testers group. This is required to take part in the closed test.",
+    "step1Button": "Join the group",
+    "step2Title": "Opt in to the test",
+    "step2Body": "Once you're a member of the group, open the opt-in page and accept to become a tester. It can take a few minutes to activate.",
+    "step2Button": "Opt in",
+    "step3Title": "Install from Google Play",
+    "step3Body": "Open Vox Quieta on Google Play and install it like any other app. Updates will arrive automatically.",
+    "step3Button": "Open on Google Play",
+    "note": "Testing is completely free and you can leave at any time. Have questions or feedback? Reach us from the home page.",
+    "backHome": "Back to home"
   }
 }

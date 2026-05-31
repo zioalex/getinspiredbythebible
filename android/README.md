@@ -380,6 +380,22 @@ repository before the workflow can run:
 > The Google Play service account needs the four App permissions listed in
 > step 7 of the Play Console setup above — not the Admin role.
 
+### Repository variables
+
+Set under **Settings → Secrets and variables → Actions → Variables**. Both are
+optional — unset values keep the safe defaults, so no variable is required to
+run the pipeline.
+
+| Variable | Description |
+|---|---|
+| `ANDROID_AUTO_TRACK` | The single track a `vX.Y.Z` tag push publishes to. Accepts a named track (`internal`, `alpha`, `beta`, `production`) or any custom closed-testing `trackId` (routed through the `closed_testing` lane). Empty/unset → `internal`. |
+| `ANDROID_EXTRA_TRACKS` | Comma/space-separated list of **additional** tracks to release the same build to on a tag push, on top of `ANDROID_AUTO_TRACK`. Each is served by promoting the just-built `versionCode` (no rebuild). Use it to also reach a public Google-Group closed-testing track for tester recruitment. Empty/unset → only `ANDROID_AUTO_TRACK` is published. |
+
+To discover a custom track's `trackId`, run the **Android Publish** workflow
+once via _Run workflow_ (`workflow_dispatch`): the **List available Play Store
+tracks** step prints every `trackId`. Copy the closed-testing track's id into
+`ANDROID_EXTRA_TRACKS`.
+
 ### Track promotion flow
 
 ```

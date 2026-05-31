@@ -359,6 +359,58 @@ jobs:
           fastlane ${{ steps.lane.outputs.lane }} --verbose 2>&1 \
             | tee /tmp/fastlane.log
 
+      - name: Also release build to extra closed tracks
+        # On tag-triggered releases, additionally release the *same* build to
+        # every track listed in the ANDROID_EXTRA_TRACKS repo variable
+        # (comma/space separated) — no rebuild, no new versionCode. This is how
+        # one release reaches more than one track at once, e.g. the public
+        # Google-Group closed-testing track used to recruit testers, in
+        # addition to the primary ANDROID_AUTO_TRACK. Each extra track is
+        # served by reusing the Fastfile `promote` lane (skip_upload_aab), so
+        # the bit-for-bit build approved on the primary track is the one extra
+        # testers receive. Empty/unset = no-op, so the pipeline is unchanged
+        # until the variable is set.
+        #
+        # To find a custom track's trackId: run this workflow via
+        # workflow_dispatch once — the "List available Play Store tracks" step
+        # prints every trackId — then set ANDROID_EXTRA_TRACKS in
+        # Repo → Settings → Secrets and variables → Actions → Variables.
+        if: github.event_name == 'push' && vars.ANDROID_EXTRA_TRACKS != ''
+        working-directory: android
+        env:
+          GOOGLE_PLAY_JSON_KEY_FILE: /tmp/google-play-key.json
+          FASTLANE_HIDE_TIMESTAMP: "true"
+          FASTLANE_SKIP_UPDATE_CHECK: "true"
+          SUPPLY_VERBOSE: "true"
+          # Track the primary upload targeted, used as the promote source.
+          PRIMARY_TRACK: ${{ steps.lane.outputs.closed_track || steps.lane.outputs.lane }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          EXTRA_TRACKS: ${{ vars.ANDROID_EXTRA_TRACKS }}
+          # Closed-testing releases go live to all testers immediately.
+          RELEASE_STATUS: completed
+          ROLLOUT: "1.0"
+        run: |
+          set -o pipefail
+          if [ "${PRIMARY_TRACK}" = "validate" ] || [ -z "${PRIMARY_TRACK}" ]; then
+            echo "Primary track is '${PRIMARY_TRACK}' — nothing to promote from. Skipping."
+            exit 0
+          fi
+          # Split on commas and whitespace; skip blanks and the primary track
+          # (already published above).
+          for TRACK in $(echo "${EXTRA_TRACKS}" | tr ',' ' '); do
+            [ -z "${TRACK}" ] && continue
+            if [ "${TRACK}" = "${PRIMARY_TRACK}" ]; then
+              echo "Skipping '${TRACK}' — already published as the primary track."
+              continue
+            fi
+            echo "::group::Promote versionCode ${VERSION_CODE}: ${PRIMARY_TRACK} → ${TRACK}"
+            PROMOTE_VERSION_CODE="${VERSION_CODE}" \
+            PROMOTE_FROM="${PRIMARY_TRACK}" \
+            PROMOTE_TO="${TRACK}" \
+            fastlane promote --verbose 2>&1 | tee -a /tmp/fastlane.log
+            echo "::endgroup::"
+          done
+
       - name: Upload Fastlane log on failure
         # Captures the verbose fastlane log + any report.xml so the underlying
         # Google Play API HTTP response body is available for post-mortem when

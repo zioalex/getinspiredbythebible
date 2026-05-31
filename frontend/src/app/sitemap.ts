@@ -3,7 +3,7 @@ import { routing } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/seo";
 
 // Routes that exist under every locale. Keep in sync with the app router.
-const PATHS = ["", "/privacy", "/terms", "/changelog"];
+const PATHS = ["", "/privacy", "/terms", "/changelog", "/tester"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
