@@ -1326,7 +1326,9 @@ describe("verse citation panel — server completion event", () => {
     await act(async () => {
       fireEvent.change(input, { target: { value: "Tell me about love" } });
     });
-    const submitButton = result.container.querySelector('button[type="submit"]');
+    const submitButton = result.container.querySelector(
+      'button[type="submit"]',
+    );
     await act(async () => {
       fireEvent.click(submitButton!);
     });
