@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.3...v1.19.0) (2026-05-31)
+
+### Features
+
+* **android:** show cited verse text inline and harden verse links ([#651](https://github.com/zioalex/getinspiredbythebible/issues/651)) ([2864ec6](https://github.com/zioalex/getinspiredbythebible/commit/2864ec6f4a80a3c1238fac5092d808d4cd94df7b))
+* **seo:** add favicon.ico, fix seo-live-check truncation, reprioritize BITB-037 ([#653](https://github.com/zioalex/getinspiredbythebible/issues/653)) ([c92304b](https://github.com/zioalex/getinspiredbythebible/commit/c92304be824e101252a9dcad6a9dc3cb0e69f55d))
+
+### Bug Fixes
+
+* **web:** always show cited verse cards in the References panel (BITB-037) ([#650](https://github.com/zioalex/getinspiredbythebible/issues/650)) ([47b7cd7](https://github.com/zioalex/getinspiredbythebible/commit/47b7cd7cfab20e6bb47380d171763db0ec48f90e))
+
 ## [1.18.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.18.2...v1.18.3) (2026-05-30)
 
 ### Bug Fixes
