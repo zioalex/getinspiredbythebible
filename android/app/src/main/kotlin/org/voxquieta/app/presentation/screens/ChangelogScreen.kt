@@ -27,8 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -111,9 +113,12 @@ fun ChangelogScreen(onNavigateBack: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = entry.body,
+                    val uriHandler = LocalUriHandler.current
+                    MarkdownText(
+                        markdown = entry.body,
                         style = MaterialTheme.typography.bodyMedium,
+                        linkColor = MaterialTheme.colorScheme.primary,
+                        onLinkClicked = { url -> uriHandler.openUri(url) },
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider()
