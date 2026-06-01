@@ -1,6 +1,6 @@
 import { screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import Home from "./page";
+import Home from "./ChatIsland";
 import * as api from "@/lib/api";
 import * as turnstile from "@/lib/turnstile";
 import { renderWithIntl } from "@/test/i18n-helpers";
