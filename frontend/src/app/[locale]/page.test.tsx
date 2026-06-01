@@ -4,6 +4,7 @@ import Home from "./ChatIsland";
 import * as api from "@/lib/api";
 import * as turnstile from "@/lib/turnstile";
 import { renderWithIntl } from "@/test/i18n-helpers";
+import enMessages from "../../../messages/en.json";
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn();
@@ -348,6 +349,38 @@ describe("Home page responsive layout", () => {
           screen.getByText("Response to suggested prompt"),
         ).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("heroContent prop (server-rendered hero)", () => {
+    it("renders the server-provided heroContent instead of the client fallback", () => {
+      renderWithIntl(
+        <Home
+          heroContent={
+            <>
+              <h2>SSR Welcome Heading</h2>
+              <p>SSR welcome description</p>
+            </>
+          }
+        />,
+      );
+
+      // The server-provided hero text is shown...
+      expect(screen.getByText("SSR Welcome Heading")).toBeInTheDocument();
+      expect(screen.getByText("SSR welcome description")).toBeInTheDocument();
+      // ...and the client-hook fallback is suppressed (no duplicate hero).
+      expect(
+        screen.queryByText(enMessages.Welcome.heading),
+      ).not.toBeInTheDocument();
+    });
+
+    it("falls back to the translated welcome hero when no heroContent is given", () => {
+      renderWithIntl(<Home />);
+
+      expect(screen.getByText(enMessages.Welcome.heading)).toBeInTheDocument();
+      expect(
+        screen.getByText(enMessages.Welcome.description),
+      ).toBeInTheDocument();
     });
   });
 
