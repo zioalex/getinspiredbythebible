@@ -119,8 +119,6 @@ describe("server-rendered homepage hero (SEO)", () => {
     expect(
       screen.queryByText(enMessages.Welcome.heading),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(deMessages.Welcome.heading),
-    ).toBeInTheDocument();
+    expect(screen.getByText(deMessages.Welcome.heading)).toBeInTheDocument();
   });
 });
