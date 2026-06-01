@@ -1,1 +1,6 @@
 tsconfig.tsbuildinfo
+
+# Generated at build time by scripts/extract-latest-changelog.mjs
+# (run via the predev/prebuild npm hooks). Never edit or commit by hand.
+public/changelog.json
+public/CHANGELOG.md
