@@ -362,7 +362,8 @@ jobs:
       - name: Also release build to extra closed tracks
         # On tag-triggered releases, additionally release the *same* build to
         # every track listed in the ANDROID_EXTRA_TRACKS repo variable
-        # (comma/space separated) — no rebuild, no new versionCode. This is how
+        # (comma separated; trackIds may contain spaces) — no rebuild, no new
+        # versionCode. This is how
         # one release reaches more than one track at once, e.g. the public
         # Google-Group closed-testing track used to recruit testers, in
         # addition to the primary ANDROID_AUTO_TRACK. Each extra track is
@@ -395,21 +396,38 @@ jobs:
             echo "Primary track is '${PRIMARY_TRACK}' — nothing to promote from. Skipping."
             exit 0
           fi
-          # Split on commas and whitespace; skip blanks and the primary track
-          # (already published above).
-          for TRACK in $(echo "${EXTRA_TRACKS}" | tr ',' ' '); do
+          # Split on commas ONLY (not whitespace): Play Store trackIds can
+          # contain spaces, e.g. "closed-testing google-group". Trim surrounding
+          # whitespace from each entry and skip blanks and the primary track
+          # (already published above). Process substitution (rather than a pipe
+          # into the loop) keeps the loop in this shell so a failed promote can
+          # fail the step; FAILED collects per-track failures so one bad track
+          # doesn't stop the others but the step still ends non-zero.
+          FAILED=""
+          while IFS= read -r RAW_TRACK; do
+            # Strip leading/trailing whitespace.
+            TRACK="$(echo "${RAW_TRACK}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
             [ -z "${TRACK}" ] && continue
             if [ "${TRACK}" = "${PRIMARY_TRACK}" ]; then
               echo "Skipping '${TRACK}' — already published as the primary track."
               continue
             fi
             echo "::group::Promote versionCode ${VERSION_CODE}: ${PRIMARY_TRACK} → ${TRACK}"
-            PROMOTE_VERSION_CODE="${VERSION_CODE}" \
-            PROMOTE_FROM="${PRIMARY_TRACK}" \
-            PROMOTE_TO="${TRACK}" \
-            fastlane promote --verbose 2>&1 | tee -a /tmp/fastlane.log
+            if PROMOTE_VERSION_CODE="${VERSION_CODE}" \
+               PROMOTE_FROM="${PRIMARY_TRACK}" \
+               PROMOTE_TO="${TRACK}" \
+               fastlane promote --verbose 2>&1 | tee -a /tmp/fastlane.log; then
+              echo "✅ Promoted to '${TRACK}'."
+            else
+              echo "❌ Failed to promote to '${TRACK}'."
+              FAILED="${FAILED} '${TRACK}'"
+            fi
             echo "::endgroup::"
-          done
+          done < <(echo "${EXTRA_TRACKS}" | tr ',' '\n')
+          if [ -n "${FAILED}" ]; then
+            echo "Promotion failed for tracks:${FAILED}"
+            exit 1
+          fi
 
       - name: Upload Fastlane log on failure
         # Captures the verbose fastlane log + any report.xml so the underlying

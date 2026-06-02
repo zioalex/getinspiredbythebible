@@ -389,7 +389,7 @@ run the pipeline.
 | Variable | Description |
 |---|---|
 | `ANDROID_AUTO_TRACK` | The single track a `vX.Y.Z` tag push publishes to. Accepts a named track (`internal`, `alpha`, `beta`, `production`) or any custom closed-testing `trackId` (routed through the `closed_testing` lane). Empty/unset → `internal`. |
-| `ANDROID_EXTRA_TRACKS` | Comma/space-separated list of **additional** tracks to release the same build to on a tag push, on top of `ANDROID_AUTO_TRACK`. Each is served by promoting the just-built `versionCode` (no rebuild). Use it to also reach a public Google-Group closed-testing track for tester recruitment. Empty/unset → only `ANDROID_AUTO_TRACK` is published. |
+| `ANDROID_EXTRA_TRACKS` | **Comma-separated** list of **additional** tracks to release the same build to on a tag push, on top of `ANDROID_AUTO_TRACK`. Split on commas only — individual `trackId`s may contain spaces (e.g. `closed-testing google-group`), and surrounding whitespace around each entry is trimmed. Each track is served by promoting the just-built `versionCode` (no rebuild). Use it to also reach a public Google-Group closed-testing track for tester recruitment. Empty/unset → only `ANDROID_AUTO_TRACK` is published. |
 
 To discover a custom track's `trackId`, run the **Android Publish** workflow
 once via _Run workflow_ (`workflow_dispatch`): the **List available Play Store
