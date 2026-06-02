@@ -1,5 +1,7 @@
 # User Story: Mobile Verse Panel FAB Repositioning
 
+**Status:** ✅ Done (PR merged — changed `bottom-28 right-4` → `top-20 right-4`)
+
 **As a** mobile user
 **I want** the verse references button to be positioned at the top of the screen
 **So that** it doesn't interfere with my typing area and other bottom UI elements

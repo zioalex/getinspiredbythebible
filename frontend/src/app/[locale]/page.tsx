@@ -1112,7 +1112,7 @@ export default function Home() {
       {relevantVerses.length > 0 && (
         <button
           onClick={() => setMobileVersesOpen(true)}
-          className="lg:hidden fixed bottom-28 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          className="lg:hidden fixed top-20 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
           aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />
