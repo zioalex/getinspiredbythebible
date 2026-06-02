@@ -38,6 +38,27 @@ Re-requesting a review on a doc-only PR will **not** unblock it — the skipped
 check simply doesn't meet a "required: success" rule. The approaches above are
 the only reliable solutions.
 
+### Stale branches can silently overwrite merged work
+
+If a long-lived branch is created from `main` **before** another PR merges, and
+both touch the same file, the older branch can silently revert the newer change
+on merge — no conflict, because one branch wholesale-replaces the file the other
+edited. This is how the emphasized beta-tester CTA was lost: a homepage refactor
+(`page.tsx` → `ChatIsland.tsx`) branched before the CTA landed and carried the
+pre-CTA markup.
+
+**Prevent it (recommended):** enable **Settings → Branches → Branch protection
+→ "Require branches to be up to date before merging"** on `main`. GitHub then
+forces each PR to merge/rebase the latest `main` before it can merge, turning a
+silent overwrite into a visible conflict (or at least re-running CI against the
+combined tree).
+
+**Defense in depth:** add a focused regression test for any user-facing element
+that must not disappear. The CTA is now guarded by the `Android beta-tester CTA`
+tests in `frontend/src/app/[locale]/page.test.tsx`, which assert both entry
+points to `/tester` (the header pill and the welcome-screen card) still render —
+so a future overwrite fails CI instead of shipping.
+
 ## Commit message convention
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/).
