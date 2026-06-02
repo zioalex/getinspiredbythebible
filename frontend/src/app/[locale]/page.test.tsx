@@ -384,6 +384,39 @@ describe("Home page responsive layout", () => {
     });
   });
 
+  // Regression guard for the Android beta-tester call-to-action. The bold CTA
+  // (header pill + welcome-screen invitation card) was once silently dropped
+  // when a homepage refactor branched off before the CTA landed and replaced
+  // ChatIsland.tsx wholesale (no merge conflict). These assertions fail fast in
+  // CI if either entry point to /tester is removed again.
+  describe("Android beta-tester CTA", () => {
+    it("renders an emphasized header pill link to /tester", () => {
+      renderWithIntl(<Home />);
+
+      const label = screen.getByText(enMessages.Header.testerCta);
+      const headerLink = label.closest('a[href="/tester"]');
+      expect(headerLink).not.toBeNull();
+      // Guard the *emphasis*, not just presence: the regression downgraded the
+      // pill to a muted text link (which still linked to /tester). The filled
+      // pill is what makes it a call to participate.
+      expect(headerLink!.className).toContain("rounded-full");
+      expect(headerLink!.className).toContain("bg-teal-600");
+    });
+
+    it("renders the welcome-screen invitation card in the empty-chat state", () => {
+      renderWithIntl(<Home />);
+
+      const cardTitle = screen.getByText(enMessages.Welcome.testerTitle);
+      expect(cardTitle).toBeInTheDocument();
+      expect(
+        screen.getByText(enMessages.Welcome.testerBody),
+      ).toBeInTheDocument();
+
+      // The card itself links to /tester.
+      expect(cardTitle.closest('a[href="/tester"]')).not.toBeNull();
+    });
+  });
+
   describe("mobile slide-over panel", () => {
     it("opens slide-over panel when FAB is clicked", async () => {
       await renderHomeWithVerses();
