@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.21.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.20.0...v1.21.0) (2026-06-02)
+
+### Features
+
+* **frontend:** emphasize Android beta tester call-to-action ([#658](https://github.com/zioalex/getinspiredbythebible/issues/658)) ([c27f3e2](https://github.com/zioalex/getinspiredbythebible/commit/c27f3e242e478f462cb524b6b29f159cb15d535c))
+* **seo:** server-render homepage hero to fix zero-word crawler output ([#657](https://github.com/zioalex/getinspiredbythebible/issues/657)) ([769d338](https://github.com/zioalex/getinspiredbythebible/commit/769d3382f1865866105f7791abdd6754d4de982c))
+
+### Bug Fixes
+
+* **android:** render changelog body as markdown so links are tappable ([#661](https://github.com/zioalex/getinspiredbythebible/issues/661)) ([7791fef](https://github.com/zioalex/getinspiredbythebible/commit/7791fef31d9b7381f029bd0d0f0d35cf272ef097))
+* **ci:** split ANDROID_EXTRA_TRACKS on commas only ([#673](https://github.com/zioalex/getinspiredbythebible/issues/673)) ([7274655](https://github.com/zioalex/getinspiredbythebible/commit/7274655344f04763e57d2448a2943bbb4b80f9ff))
+* **frontend:** restore emphasized tester CTA lost in homepage refactor ([#674](https://github.com/zioalex/getinspiredbythebible/issues/674)) ([357618a](https://github.com/zioalex/getinspiredbythebible/commit/357618a2cc899f568187cdba7ef25467da097584))
+
 ## [1.20.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.19.0...v1.20.0) (2026-05-31)
 
 ### Features
