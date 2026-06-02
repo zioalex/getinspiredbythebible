@@ -4,12 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.21.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.20.0...v1.21.0) (2026-06-02)
 
-
 ### Features
 
 * **frontend:** emphasize Android beta tester call-to-action ([#658](https://github.com/zioalex/getinspiredbythebible/issues/658)) ([c27f3e2](https://github.com/zioalex/getinspiredbythebible/commit/c27f3e242e478f462cb524b6b29f159cb15d535c))
 * **seo:** server-render homepage hero to fix zero-word crawler output ([#657](https://github.com/zioalex/getinspiredbythebible/issues/657)) ([769d338](https://github.com/zioalex/getinspiredbythebible/commit/769d3382f1865866105f7791abdd6754d4de982c))
-
 
 ### Bug Fixes
 
