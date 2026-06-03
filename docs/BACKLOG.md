@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-05-26
+**Last Updated:** 2026-06-02
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -561,6 +561,36 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-038: Android In-App "Update Available" Prompt
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-02
+
+**As an** Android user with the app installed,
+**I want** the app to notice when a newer version is published and gently invite me to update,
+**so that** I stay on the latest release without having to remember to check the Play Store myself.
+
+**Why P2:** High user value (keeps the install base current, reduces support burden), but only
+meaningful **after** the app is live on Google Play — in-app updates only work for Play-installed
+apps — so it follows BITB-012 and is not a launch blocker. Uses Google's official Play In-App
+Updates library (flexible flow) with a non-intrusive Snackbar; no custom version endpoint, no FCM.
+
+**Acceptance Criteria:**
+
+- [ ] On launch the app queries Play for a newer version (flexible flow) and stays usable while it downloads in the background
+- [ ] When the update is downloaded, a Snackbar invites the user to restart & install; the action calls `completeUpdate()`
+- [ ] High-priority / stale updates trigger the immediate (blocking) flow instead
+- [ ] Prompt throttled via DataStore (not shown every launch; dismissed version not re-prompted until a newer one ships)
+- [ ] New strings exist in all 11 locales (CI `translation-validation` passes); update logic unit-tested with `FakeAppUpdateManager`
+- [ ] `./gradlew assembleDebug`, `testDebugUnitTest`, and `lint` all pass
+
+**Full Story:** [docs/BACKLOG_STORIES/BITB-038-android-in-app-update-prompt.md](BACKLOG_STORIES/BITB-038-android-in-app-update-prompt.md)
+
+**Dependencies:** BITB-012 (Play Store launch). **Related:** BITB-031 (in-app changelog).
+
+---
 
 ### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
