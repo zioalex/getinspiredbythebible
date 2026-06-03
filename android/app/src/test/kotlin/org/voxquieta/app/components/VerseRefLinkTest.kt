@@ -754,6 +754,45 @@ class VerseRefLinkTest {
         assertTrue("must match the quoted part", QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input))
     }
 
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches CJK corner brackets`() {
+        // 「 … 」 — U+300C … U+300D
+        assertTrue(
+            "must match CJK corner-bracket quote",
+            QUOTE_HIGHLIGHT_REGEX.containsMatchIn("「神は世を愛された」"),
+        )
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX matches double CJK brackets`() {
+        // 《 … 》 — U+300A … U+300B
+        assertTrue(
+            "must match double CJK-bracket quote",
+            QUOTE_HIGHLIGHT_REGEX.containsMatchIn("《神は世を愛された》"),
+        )
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX does not match across a newline`() {
+        // An opener and closer separated by a newline must NOT produce a match —
+        // otherwise the amber highlight would bleed across paragraph breaks.
+        val input = "He said \"For God so loved the world\nand gave his only Son\""
+        assertFalse(
+            "newline inside a quote must break the match",
+            QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input),
+        )
+    }
+
+    @Test
+    fun `QUOTE_HIGHLIGHT_REGEX still matches a single-line quote after newline fix`() {
+        // Guard: the \n exclusion must not break ordinary single-line matching.
+        val input = "First line without quotes\nHe said \"For God so loved the world\""
+        assertTrue(
+            "single-line quote on the second line must still match",
+            QUOTE_HIGHLIGHT_REGEX.containsMatchIn(input),
+        )
+    }
+
     // ── handleVerseLink ───────────────────────────────────────────────────────
 
     @Test

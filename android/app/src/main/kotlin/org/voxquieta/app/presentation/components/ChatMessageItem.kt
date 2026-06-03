@@ -319,7 +319,7 @@ internal fun injectVerseLinks(
 //          \u00BB guillemet, \u300D CJK corner, \u300B double CJK.
 internal val QUOTE_HIGHLIGHT_REGEX = Regex(
     "([\u0022\u201C\u201D\u00AB\u201E\u300C\u300A]" +
-        "(?:[^\u0022\u201C\u201D\u00BB\u300D\u300B]{3,})" +
+        "(?:[^\u0022\u201C\u201D\u00BB\u300D\u300B\n]{3,})" +
         "[\u0022\u201D\u201C\u00BB\u300D\u300B])"
 )
 

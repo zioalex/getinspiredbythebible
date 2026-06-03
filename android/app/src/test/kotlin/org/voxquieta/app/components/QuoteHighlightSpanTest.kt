@@ -93,4 +93,34 @@ class QuoteHighlightSpanTest {
         val s = spansOf("Gott ist die Liebe und es gibt keine Furcht.")
         assertEquals(0, s.getSpans(0, s.length, Any::class.java).size)
     }
+
+    @Test
+    fun `highlights CJK corner-bracket quotes`() {
+        // 「 … 」 — U+300C … U+300D
+        val s = spansOf("彼は言った「神は世を愛された」")
+        assertTrue(
+            s.getSpans(0, s.length, BackgroundColorSpan::class.java).isNotEmpty(),
+        )
+    }
+
+    @Test
+    fun `highlights double CJK-bracket quotes`() {
+        // 《 … 》 — U+300A … U+300B
+        val s = spansOf("彼は言った《神は世を愛された》")
+        assertTrue(
+            s.getSpans(0, s.length, BackgroundColorSpan::class.java).isNotEmpty(),
+        )
+    }
+
+    @Test
+    fun `does not highlight across a newline`() {
+        // A quote opener and closer separated by a newline must not be highlighted —
+        // the amber span must stay within a single paragraph.
+        val s = spansOf("He said \"For God so loved the world\nand gave his only Son\"")
+        assertEquals(
+            "a quote spanning a paragraph break must not be highlighted",
+            0,
+            s.getSpans(0, s.length, BackgroundColorSpan::class.java).size,
+        )
+    }
 }
