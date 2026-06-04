@@ -231,6 +231,40 @@ common interaction; one-line manifest fix plus a defensive guard.
 
 ---
 
+### 🎯 BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-04
+
+**As a** user who taps a Bible verse,
+**I want** the verse text to load promptly or fail with a clear, retryable error,
+**so that** I never get stuck on a `////` placeholder and a spinner that never stops — and as the operator I want this failure monitored and alerted.
+
+**Why P1:** Reported bug — tapping a verse in Italian (ITA1927) shows `////` and an
+infinite spinner (English/German work). Root causes: `ChatViewModel.loadChapter()`
+has no timeout (never reaches `Error`), the backend verse/chapter query has no timeout
+(hangs while health checks stay green), empty synthetic text is rendered as a verse,
+and `deployment/monitoring.tf` has no alert for verse-fetch latency/errors — so a hung
+fetch that returns a bad 200/500 is invisible. Shares an Italian root cause with BITB-040.
+
+**Acceptance Criteria:**
+
+- [ ] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
+- [ ] Verse text area never shows `////`/empty quotes (loading → verse or error)
+- [ ] Backend verse/chapter reads time out to 504 instead of hanging
+- [ ] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
+- [ ] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
+- [ ] New Android + backend tests cover timeout, error, retry, and empty-text paths
+
+**Test note:** existing tests over-mock and skip integration — `loadChapter` is tested
+only for `IOException`, `VerseDetailBottomSheet` has no UI test, and the chapter route
+covers only 200/404. These gaps let the bug ship.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-041-verse-detail-load-resilience-and-monitoring.md`
+
+---
+
 ### ✅ BITB-021: Instrument LLM and Database Performance Metrics
 
 **Status:** ✅ Done (PR #229, #233, #236, #237, #242 merged 2026-03-06)
@@ -618,6 +652,35 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-040: Verse-Detail Header Shows English Book Name Instead of Localized
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As a** non-English user tapping a Bible verse,
+**I want** the verse-detail header to use my translation's book name (e.g. *"Esodo 30:22"*),
+**so that** the reference matches the language I'm reading in.
+
+**Why P2:** Reported bug — Italian shows *"Exodus 30:22"* instead of *"Esodo 30:22"*
+(English/German work). `buildSyntheticVerse()` never sets `localizedBook`
+(`ChatMessageItem.kt:753-770`), so `verse.reference` falls back to the English `book`
+until the chapter loads. Backend already returns `localized_book`; tests mock the real
+`get_localized_book_name`, so the gap went uncaught. Shares an Italian root cause with
+BITB-041 (when the fetch fails, the header also stays English).
+
+**Acceptance Criteria:**
+
+- [ ] Tapping a verse in Italian shows the localized header (*"Esodo 30:22"*) before and after load
+- [ ] Verified for German and a non-Latin-script locale (no regression)
+- [ ] Real (un-mocked) unit test for `get_localized_book_name` across translations
+- [ ] Compose UI test covers the localized header in the verse-detail sheet
+- [ ] All existing Android + backend tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-040-verse-detail-localized-book-name.md`
+
+---
 
 ### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
