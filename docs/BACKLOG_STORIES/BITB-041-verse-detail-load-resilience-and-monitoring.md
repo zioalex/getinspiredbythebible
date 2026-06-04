@@ -61,6 +61,7 @@ returns a bad 200 or 500 is invisible to current uptime checks.
 ## Proposed Changes
 
 ### 1. Android resilience
+
 - Wrap `loadChapter()` in `withTimeoutOrNull(...)` (e.g. 10s); on timeout set
   `ChapterSheetState.Error` with a friendly, **retryable** message
   (`mapExceptionToMessage` already maps `SocketTimeoutException`).
@@ -71,6 +72,7 @@ returns a bad 200 or 500 is invisible to current uptime checks.
   also fails fast.
 
 ### 2. Backend resilience
+
 - Add a per-query timeout (`asyncio.wait_for`) to the verse/chapter repository
   reads; on timeout return **504** (not a hang) so the client and alerts can react.
 - Add error handling on the chapter route so repo failures return a clear status,
@@ -79,6 +81,7 @@ returns a bad 200 or 500 is invisible to current uptime checks.
   rather than serving it as a valid verse.
 
 ### 3. Monitoring & alerting (the "should be monitored and alerted" requirement)
+
 - Instrument verse/chapter fetch with a success/empty-result and latency signal
   (reuse the existing `get_verse` span and `db.query.duration_ms` histogram,
   tagged by operation + translation).
@@ -89,6 +92,7 @@ returns a bad 200 or 500 is invisible to current uptime checks.
   (`slow_query_threshold_ms = 100`, `api/config.py:127`) to surface slow verses.
 
 ### 4. Diagnose & repair Italian data
+
 - Verify ITA1927 rows for the reported references; if `////`/empty, fix the loader
   and reload (`scripts/load_bible.py`). Add a data-integrity check for empty verse
   text per translation.
