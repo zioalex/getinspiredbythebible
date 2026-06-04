@@ -1,15 +1,19 @@
 # User Story: Mobile Verse Panel FAB Repositioning
 
+**Status:** ✅ Done — changed `bottom-28 right-4` → `top-20 right-4` on the web frontend FAB in `frontend/src/app/[locale]/ChatIsland.tsx`. (Supersedes the stale PR #664, which edited the pre-refactor `page.tsx` and bundled unrelated dependency bumps.)
+
+> Scope note: this story covers the **web frontend** (Next.js) FAB only. The native Android app renders verses via its own components (`VersesPanel`, `InlineVerseCard`, `VerseChip`) and is unaffected.
+
 **As a** mobile user
 **I want** the verse references button to be positioned at the top of the screen
 **So that** it doesn't interfere with my typing area and other bottom UI elements
 
 ## Functional Requirements
 
-- [ ] Verse references floating action button (FAB) appears at top-right of mobile screen
-- [ ] FAB remains visible and accessible during scrolling
-- [ ] FAB opens the verse panel when tapped
-- [ ] FAB displays the count of relevant verses
+- [x] Verse references floating action button (FAB) appears at top-right of mobile screen
+- [x] FAB remains visible and accessible during scrolling
+- [x] FAB opens the verse panel when tapped
+- [x] FAB displays the count of relevant verses
 
 ## Non-Functional Requirements
 
@@ -21,12 +25,12 @@
 
 ## Acceptance Criteria
 
-- [ ] FAB is positioned at top-right instead of bottom-right on mobile viewports (< 1024px)
-- [ ] FAB does not overlap with header, language switcher, or translation selector
-- [ ] FAB maintains adequate spacing from screen edges (4 units/1rem)
-- [ ] FAB z-index ensures it stays above page content but doesn't block critical UI
-- [ ] Clicking FAB still opens the verse slide-over panel correctly
-- [ ] Verse count badge is still visible and readable
+- [x] FAB is positioned at top-right instead of bottom-right on mobile viewports (< 1024px)
+- [x] FAB does not overlap with header, language switcher, or translation selector
+- [x] FAB maintains adequate spacing from screen edges (4 units/1rem)
+- [x] FAB z-index ensures it stays above page content but doesn't block critical UI
+- [x] Clicking FAB still opens the verse slide-over panel correctly
+- [x] Verse count badge is still visible and readable
 
 ## Tech Constraints
 
@@ -44,7 +48,7 @@
 
 ## Current Behavior
 
-FAB is positioned at `bottom-24 right-4` which overlaps with input area on mobile phones.
+FAB was positioned at `bottom-28 right-4` which sat directly above the chat input area on mobile phones.
 
 ## Expected Behavior
 
