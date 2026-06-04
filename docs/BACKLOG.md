@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-05-26
+**Last Updated:** 2026-06-04
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -173,6 +173,127 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As a** user who trusts this app to quote the Bible accurately,
+**I want** every verse presented as a direct quotation to match my translation's real wording,
+**so that** I'm never shown an altered citation that changes the meaning of scripture.
+
+**Why P1:** Reported bug — an Italian response said *"la frutta dello Spirito"* (Galatians 5:22-23)
+when the Italian Bible reads *"il frutto dello Spirito"* (singular). Verse text shown to users is
+LLM-generated prose, and the system prompts never forbid paraphrasing/re-translating a quoted
+verse. A Bible app that misquotes the Bible undermines its core promise. Small, prompt-level fix.
+
+**Acceptance Criteria:**
+
+- [ ] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
+  `get_prayer_lookup_prompt`) instruct the model to quote scripture verbatim from the Scripture
+  Context and never paraphrase, re-translate, or alter wording (incl. singular/plural, articles)
+- [ ] Prompt instructs the model not to fabricate verse wording when the verse text is absent
+- [ ] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
+- [ ] Unit test asserts the verbatim rule is present in all three prompt builders
+- [ ] Full backend test suite passes
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-038-verbatim-scripture-citation.md`
+
+---
+
+### 🎯 BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As an** Android user mid-conversation,
+**I want** rotating my phone to keep me in the same chat with all my messages,
+**so that** I don't lose my conversation just because the screen orientation changed.
+
+**Why P1:** Reported bug — rotation resets the user into an empty/new chat. `MainActivity` has no
+`android:configChanges`, so rotation recreates the Activity; the recreated Compose tree re-runs
+`LaunchedEffect(conversationId)` and, because an in-progress chat keeps the `chat/new` route,
+calls `startNewConversation()` which wipes the in-memory conversation. Data-loss UX bug on a
+common interaction; one-line manifest fix plus a defensive guard.
+
+**Acceptance Criteria:**
+
+- [ ] New chat + send message + rotate → same messages and conversation remain visible
+- [ ] Existing saved conversation survives rotation
+- [ ] Rotating during an in-flight response does not start a new chat
+- [ ] Locale switching from Settings still works (still recreates Activity, applies new language)
+- [ ] Existing Android unit tests pass; guard logic is covered by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-039-android-preserve-chat-on-rotation.md`
+
+---
+
+### 🎯 BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-04
+
+**As a** user who taps a Bible verse,
+**I want** the verse text to load promptly or fail with a clear, retryable error,
+**so that** I never get stuck on a `////` placeholder and a spinner that never stops — and as the operator I want this failure monitored and alerted.
+
+**Why P1:** Reported bug — tapping a verse in Italian (ITA1927) shows `////` and an
+infinite spinner (English/German work). Root causes: `ChatViewModel.loadChapter()`
+has no timeout (never reaches `Error`), the backend verse/chapter query has no timeout
+(hangs while health checks stay green), empty synthetic text is rendered as a verse,
+and `deployment/monitoring.tf` has no alert for verse-fetch latency/errors — so a hung
+fetch that returns a bad 200/500 is invisible. Shares an Italian root cause with BITB-040.
+
+**Acceptance Criteria:**
+
+- [ ] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
+- [ ] Verse text area never shows `////`/empty quotes (loading → verse or error)
+- [ ] Backend verse/chapter reads time out to 504 instead of hanging
+- [ ] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
+- [ ] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
+- [ ] New Android + backend tests cover timeout, error, retry, and empty-text paths
+
+**Test note:** existing tests over-mock and skip integration — `loadChapter` is tested
+only for `IOException`, `VerseDetailBottomSheet` has no UI test, and the chapter route
+covers only 200/404. These gaps let the bug ship.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-041-verse-detail-load-resilience-and-monitoring.md`
+
+---
+
+### 🎯 BITB-040: Verse-Detail Header Shows English Book Name Instead of Localized
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As a** non-English user tapping a Bible verse,
+**I want** the verse-detail header to use my translation's book name (e.g. *"Esodo 30:22"*, *"2. Mose 30:22"*),
+**so that** the reference matches the language I'm reading in.
+
+**Why P1:** Reported bug affecting **all non-English locales** on **every** verse tap —
+the header shows the English book name (*"Exodus 30:22"*) even when the verse text loads
+correctly. `buildSyntheticVerse()` never sets `localizedBook` (`ChatMessageItem.kt:753-770`),
+so the sheet header (`VerseDetailBottomSheet.kt:106`) always falls back to the English
+`book`. Independent of BITB-041 (which only made it more visible). Tests mock the real
+`get_localized_book_name` and skip the verse-flow UI, so it went uncaught. Small fix:
+carry the localized name the LLM already wrote through the verse link.
+
+**Acceptance Criteria:**
+
+- [ ] Tapping a verse shows the localized header before and after load, and even if the fetch fails
+- [ ] Verified across several non-English locales (incl. one non-Latin-script); no English regression
+- [ ] Real (un-mocked) unit test for `get_localized_book_name` across all translations
+- [ ] Compose UI test covers the localized header in the verse-detail sheet
+- [ ] All existing Android + backend tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-040-verse-detail-localized-book-name.md`
+
+---
 
 ### ✅ BITB-021: Instrument LLM and Database Performance Metrics
 
