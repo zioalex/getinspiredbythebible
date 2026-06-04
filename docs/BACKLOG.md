@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-05-26
+**Last Updated:** 2026-06-04
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -173,6 +173,63 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As a** user who trusts this app to quote the Bible accurately,
+**I want** every verse presented as a direct quotation to match my translation's real wording,
+**so that** I'm never shown an altered citation that changes the meaning of scripture.
+
+**Why P1:** Reported bug — an Italian response said *"la frutta dello Spirito"* (Galatians 5:22-23)
+when the Italian Bible reads *"il frutto dello Spirito"* (singular). Verse text shown to users is
+LLM-generated prose, and the system prompts never forbid paraphrasing/re-translating a quoted
+verse. A Bible app that misquotes the Bible undermines its core promise. Small, prompt-level fix.
+
+**Acceptance Criteria:**
+
+- [ ] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
+  `get_prayer_lookup_prompt`) instruct the model to quote scripture verbatim from the Scripture
+  Context and never paraphrase, re-translate, or alter wording (incl. singular/plural, articles)
+- [ ] Prompt instructs the model not to fabricate verse wording when the verse text is absent
+- [ ] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
+- [ ] Unit test asserts the verbatim rule is present in all three prompt builders
+- [ ] Full backend test suite passes
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-038-verbatim-scripture-citation.md`
+
+---
+
+### 🎯 BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
+
+**As an** Android user mid-conversation,
+**I want** rotating my phone to keep me in the same chat with all my messages,
+**so that** I don't lose my conversation just because the screen orientation changed.
+
+**Why P1:** Reported bug — rotation resets the user into an empty/new chat. `MainActivity` has no
+`android:configChanges`, so rotation recreates the Activity; the recreated Compose tree re-runs
+`LaunchedEffect(conversationId)` and, because an in-progress chat keeps the `chat/new` route,
+calls `startNewConversation()` which wipes the in-memory conversation. Data-loss UX bug on a
+common interaction; one-line manifest fix plus a defensive guard.
+
+**Acceptance Criteria:**
+
+- [ ] New chat + send message + rotate → same messages and conversation remain visible
+- [ ] Existing saved conversation survives rotation
+- [ ] Rotating during an in-flight response does not start a new chat
+- [ ] Locale switching from Settings still works (still recreates Activity, applies new language)
+- [ ] Existing Android unit tests pass; guard logic is covered by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-039-android-preserve-chat-on-rotation.md`
+
+---
 
 ### ✅ BITB-021: Instrument LLM and Database Performance Metrics
 
