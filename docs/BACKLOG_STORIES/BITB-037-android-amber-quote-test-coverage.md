@@ -1,6 +1,6 @@
 # BITB-037: Android Amber Quote Chip — Test Coverage Follow-up
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #677 merged 2026-06-04 — CJK tests, newline regression fix, span tests)
 
 ## User Story
 
