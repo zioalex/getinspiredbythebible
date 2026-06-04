@@ -14,10 +14,12 @@ to be monitored and alerted so I learn about it before users report it.
 
 ## Problem
 
-Tapping a verse in **Italian** sometimes shows a `////` placeholder and a spinner
-that never resolves and never errors. **English and German work.** (See first
-screenshot in the bug report.) This shares a root cause with **BITB-040** — when the
-chapter fetch fails/hangs, the header also stays English.
+Tapping a verse in **Italian (ITA1927)** sometimes shows a `////` placeholder and a
+spinner that never resolves and never errors. **English and German load.** (See first
+screenshot in the bug report.) When this load failure happens it also leaves the
+header in English — but the English-header defect (**BITB-040**) is a separate, general
+bug that occurs across all non-English locales even when loading succeeds. This story
+covers the **load failure, resilience, and monitoring**; BITB-040 covers the header.
 
 ### Root causes
 
@@ -143,7 +145,7 @@ Add:
 
 ## Related
 
-- **BITB-040** — localized book name in the same sheet (shared Italian root cause)
+- **BITB-040** — localized book name in the same sheet (independent, general bug)
 - BITB-013 / BITB-021 — performance metrics + dashboard (reuse the metrics/alert plumbing)
 - BITB-034 — Android Compose UI test tier (use it for the sheet tests)
 
