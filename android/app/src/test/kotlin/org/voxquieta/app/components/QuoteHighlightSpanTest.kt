@@ -123,4 +123,66 @@ class QuoteHighlightSpanTest {
             s.getSpans(0, s.length, BackgroundColorSpan::class.java).size,
         )
     }
+
+    @Test
+    fun `applies the exact amber background and dark-amber foreground colors`() {
+        // Guards the hardcoded web-parity colors: bg-amber-50 background, amber-900 text.
+        val s = spansOf("Er sagte: \"Selig sind die Barmherzigen\" heute.")
+        val bg = s.getSpans(0, s.length, BackgroundColorSpan::class.java)
+        val fg = s.getSpans(0, s.length, ForegroundColorSpan::class.java)
+        assertEquals(1, bg.size)
+        assertEquals(1, fg.size)
+        assertEquals(0xFFFFFBEB.toInt(), bg[0].backgroundColor)
+        assertEquals(0xFF78350F.toInt(), fg[0].foregroundColor)
+    }
+
+    @Test
+    fun `applies an italic serif typeface over the quote`() {
+        // Guards the StyleSpan(ITALIC) + TypefaceSpan("serif") web-parity styling.
+        val s = spansOf("Er sagte: \"Selig sind die Barmherzigen\" heute.")
+        val style = s.getSpans(0, s.length, StyleSpan::class.java)
+        val face = s.getSpans(0, s.length, TypefaceSpan::class.java)
+        assertEquals(1, style.size)
+        assertEquals(android.graphics.Typeface.ITALIC, style[0].style)
+        assertEquals(1, face.size)
+        assertEquals("serif", face[0].family)
+    }
+
+    @Test
+    fun `all four span types cover the identical quoted range`() {
+        // The existing range test only checks BackgroundColorSpan; lock the other three
+        // to the same start/end so styling can never drift apart from the highlight.
+        val text = "Er sagte: \"Selig sind die Barmherzigen\" heute."
+        val s = spansOf(text)
+        val expectedStart = text.indexOf('"')
+        val expectedEnd = text.lastIndexOf('"') + 1
+        listOf(
+            BackgroundColorSpan::class.java,
+            ForegroundColorSpan::class.java,
+            StyleSpan::class.java,
+            TypefaceSpan::class.java,
+        ).forEach { type ->
+            val span = s.getSpans(0, s.length, type).single()
+            assertEquals(expectedStart, s.getSpanStart(span))
+            assertEquals(expectedEnd, s.getSpanEnd(span))
+        }
+    }
+
+    @Test
+    fun `does not highlight quotes shorter than three content chars`() {
+        // Mirrors the {3,} minimum in QUOTE_HIGHLIGHT_REGEX at the span-application layer.
+        val s = spansOf("He replied \"Hi\" and left.")
+        assertEquals(0, s.getSpans(0, s.length, BackgroundColorSpan::class.java).size)
+    }
+
+    @Test
+    fun `applies a full independent span set to each of multiple quotes`() {
+        // Existing multi-quote test asserts only the background count; extend to all four
+        // styling spans so a second quote is never partially styled.
+        val s = spansOf("\"first quote here\" and \"second quote here\"")
+        assertEquals(2, s.getSpans(0, s.length, BackgroundColorSpan::class.java).size)
+        assertEquals(2, s.getSpans(0, s.length, ForegroundColorSpan::class.java).size)
+        assertEquals(2, s.getSpans(0, s.length, StyleSpan::class.java).size)
+        assertEquals(2, s.getSpans(0, s.length, TypefaceSpan::class.java).size)
+    }
 }
