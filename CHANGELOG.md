@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.21.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.21.0...v1.21.1) (2026-06-05)
 
-
 ### Bug Fixes
 
 * **api:** require verbatim scripture quotation, never paraphrase (BITB-038) ([#682](https://github.com/zioalex/getinspiredbythebible/issues/682)) ([005bcdb](https://github.com/zioalex/getinspiredbythebible/commit/005bcdbb5141630a0019c85416b43a85fbcd2b1c))
-
 
 ### Documentation
 
