@@ -57,6 +57,17 @@ Two distinct concerns, both about respecting the user at the moment of feedback:
 - **i18n** — the `Feedback` block exists in all locale files under
   `frontend/messages/` (en, de, es, fr, hi, it, ko, pt, ru, zh, ar).
 
+## UX Direction (decided)
+
+The goal is a **great, frictionless UX**, so the design favours an inline,
+non-blocking flow over the current pop-up modal. The tap *is* the action; it
+registers instantly with an Undo, and everything else (comment, notice) lives
+inline and is optional. No modal interrupts the conversation.
+
+> Pattern reference: like YouTube's like/dislike (instant, with a quiet Undo)
+> and Gmail's "Message sent · Undo" — the action commits unless you reverse it,
+> rather than forcing a confirmation step.
+
 ## Proposed Behaviour
 
 ### 1. "Rethink" / undo window (~10s) — both ratings
@@ -64,39 +75,48 @@ Two distinct concerns, both about respecting the user at the moment of feedback:
 When the user taps thumbs-up or thumbs-down:
 
 - Reflect the choice immediately in the UI (the tapped thumb fills/highlights)
-  but treat it as **pending, not committed**.
+  but treat it as **pending, not committed** — nothing is sent yet.
 - Show an inline, non-blocking affordance with a countdown and an **Undo**,
-  e.g. *"Sending in 10s… Undo"*, counting down.
+  e.g. *"Thanks — sending in 10s · Undo"*, counting down. It appears in place,
+  under the message; it does **not** block or cover the chat.
 - If the user taps **Undo** (or re-taps the same thumb, or switches to the
   other thumb) within the window, cancel the pending action — no request is
   sent and the buttons return to their neutral, re-tappable state.
-- When the countdown elapses, commit:
-  - **Thumbs-down** → open the feedback modal (so they can add a comment) OR,
-    if we want zero-friction, record the rating and offer the comment modal as
-    an optional follow-up. **Decision needed** (see Open Questions).
-  - **Thumbs-up** → record the positive rating (current product sends a
-    positive rating with optional comment via the modal; keep parity unless we
-    decide thumbs-up should be one-tap with an optional "add a note" link).
+- **When the countdown elapses, the rating commits** (the POST is sent). That
+  is the whole commit step — there is **no forced modal**.
 - The window length must be a single named constant (e.g.
   `FEEDBACK_RETHINK_MS = 10_000`) so it is easy to tune.
 - Respect `prefers-reduced-motion` for the countdown animation; the countdown
   must be screen-reader friendly (announce "Undo available" rather than
   spamming each tick).
 
-### 2. Explicit maintainer-sharing notice on thumbs-down
+### 2. Optional inline comment (replaces the forced modal)
 
-- At the point of thumbs-down (in the rethink affordance and/or the feedback
-  modal), show a **short, plain** line stating the comment will be shared with
-  the app's maintainer — distinct from the generic "logged" notice.
-  Suggested copy (new i18n key, do not overload `privacyNotice`):
+- The comment is **optional and inline**, not a modal. On thumbs-down, reveal a
+  small, dismissible inline comment field next to the Undo affordance
+  (*"Add a comment (optional)"*). On thumbs-up, the same optional field with a
+  positive prompt. Either way, the rating still commits on timeout whether or
+  not a comment is typed; a typed comment is sent with it.
+- This keeps the existing `FeedbackModal` copy/keys reusable but moves the
+  rendering inline. The modal component can be retired for this flow or kept
+  only as a fallback — implementer's call, as long as the default is inline.
+- **Decision (was open):** record-and-offer-inline, *not* auto-open a modal.
+  Rationale: a modal on every thumbs-down is friction; the rating is the signal
+  and the comment is a bonus.
+
+### 3. Explicit maintainer-sharing notice on thumbs-down
+
+- The notice sits **right next to the thumbs-down comment field** (where the
+  text is written), as a **short, plain** line — distinct from the generic
+  "logged" notice. New i18n key (do not overload `privacyNotice`):
   - `Feedback.maintainerNotice`: *"Your message will be shared with the app's
     maintainer."* (kept short, as requested).
-- This notice is **thumbs-down specific** (that is the flow that emails a
-  person). It must appear in the UI even though the same fact is in the Terms
-  of Use — the Terms are not a substitute for in-context disclosure.
-- Keep the existing `privacyNotice` (logging) as-is or fold it in; do not
-  remove the logging disclosure. **Decision needed** on whether to show both
-  lines or merge them for thumbs-down.
+- It is **thumbs-down specific** (that is the flow that emails a person) and
+  must appear in the UI even though the same fact is in the Terms of Use — the
+  Terms are not a substitute for in-context disclosure.
+- **Decision (was open):** show two short lines for thumbs-down — the
+  maintainer notice first (it's the point), then keep the existing logging
+  notice. Two clear facts beat one long merged sentence.
 
 ## Acceptance Criteria
 
@@ -105,11 +125,13 @@ When the user taps thumbs-up or thumbs-down:
 - [ ] Undo (and re-tapping/switching the thumb) within the window cancels the
       pending feedback — verified that **no** network call to the feedback
       endpoint is made.
-- [ ] After the window elapses, the rating commits and the thumbs-down comment
-      flow opens as today; the buttons then lock against double-submission.
-- [ ] Tapping thumbs-down shows a short, explicit notice that the message will
-      be shared with the app's maintainer, separate from the generic logging
-      notice.
+- [ ] After the window elapses, the rating commits (POST sent) with no forced
+      modal; the buttons then lock against double-submission.
+- [ ] The comment field is optional and inline (no pop-up modal blocks the
+      conversation); a typed comment is sent with the rating.
+- [ ] Tapping thumbs-down shows a short, explicit notice — next to the comment
+      field — that the message will be shared with the app's maintainer,
+      separate from the generic logging notice.
 - [ ] New i18n key(s) (e.g. `maintainerNotice`, plus any undo/countdown
       strings) added to **all** locale files under `frontend/messages/`
       (en, de, es, fr, hi, it, ko, pt, ru, zh, ar) — no missing-key warnings;
@@ -127,26 +149,29 @@ When the user taps thumbs-up or thumbs-down:
 | File | Change |
 |---|---|
 | `frontend/src/components/ChatMessage.tsx` | Pending state, countdown + Undo affordance, defer `onFeedback` commit |
-| `frontend/src/app/[locale]/ChatIsland.tsx` | Manage pending timer / cancellation around `handleFeedbackClick` / `handleFeedbackSubmit` |
-| `frontend/src/components/FeedbackModal.tsx` | Add explicit maintainer-sharing notice for `rating === "negative"` |
+| `frontend/src/app/[locale]/ChatIsland.tsx` | Manage pending timer / cancellation around `handleFeedbackClick` / `handleFeedbackSubmit`; commit on timeout |
+| `frontend/src/components/FeedbackModal.tsx` | Move comment + notices inline (retire modal for this flow, or keep as fallback); add maintainer notice for `rating === "negative"` |
 | `frontend/messages/*.json` | New `Feedback.maintainerNotice` (+ any countdown/undo keys) in all 11 locales |
 | `frontend/src/components/FeedbackModal.test.tsx`, `ChatMessage` tests, `translations.test.ts` | Cover new behaviour and keys |
 
-## Open Questions / Decisions Needed
+## Decisions (resolved — great-UX direction)
 
-- **Thumbs-down on timeout:** open the comment modal automatically (today's
-  behaviour, shifted by 10s), or record the rating immediately and make the
-  comment optional? Recommend: keep opening the modal so the maintainer notice
-  is seen and comments are encouraged.
-- **Notice placement:** show `maintainerNotice` in the inline rethink
-  affordance, the modal, or both? Recommend: the modal (where the comment is
-  written) at minimum; optionally a hint in the inline affordance.
-- **Both notices vs merged:** for thumbs-down, show logging + maintainer lines
-  separately, or one combined sentence? Recommend: two short lines to keep each
-  fact clear.
-- **Positive feedback:** does thumbs-up also get the rethink window (yes, per
-  request — applies to both), and does it still open the comment modal? Keep
-  current modal behaviour unless product wants one-tap positive.
+- **Thumbs-down on timeout:** record the rating; offer the comment **inline and
+  optional**. No auto-opened modal. ✔
+- **Notice placement:** `maintainerNotice` sits next to the inline comment field
+  (where text is written). ✔
+- **Both notices vs merged:** two short lines for thumbs-down — maintainer
+  notice first, then the logging notice. ✔
+- **Positive feedback:** thumbs-up gets the same rethink window; comment is the
+  same optional inline field (no maintainer notice, since positive feedback does
+  not email a person). ✔
+
+### Still worth a quick product check before build
+
+- Exact countdown copy and whether to show seconds ticking vs. a quiet
+  progress bar — pick whatever testers find least naggy.
+- Whether to fully delete `FeedbackModal` or keep it behind a flag as a
+  fallback. Default: inline.
 
 ## Out of Scope
 

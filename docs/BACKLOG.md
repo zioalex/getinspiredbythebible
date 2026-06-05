@@ -699,8 +699,8 @@ Testing & Documentation:
 
 - [ ] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
 - [ ] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
-- [ ] After the window, the rating commits and the thumbs-down comment flow opens as today
-- [ ] Thumbs-down shows a short explicit "shared with the app's maintainer" notice, separate from the logging notice
+- [ ] After the window, the rating commits (POST sent) — no forced modal; comment is optional and inline
+- [ ] Thumbs-down shows a short explicit "shared with the app's maintainer" notice next to the comment field, separate from the logging notice
 - [ ] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
 - [ ] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
 - [ ] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
