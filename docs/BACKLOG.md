@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-05
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -682,6 +682,32 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-05
+
+**As a** person who taps thumbs-up or thumbs-down on an AI answer,
+**I want** a short (~10-second) window to reconsider/undo my rating before it commits, and a clear, short notice — right when I tap thumbs-down — that my message will be shared with the app's maintainer,
+**so that** I don't lock in a mis-tap, and I'm genuinely aware (not just via the buried Terms of Use) that a negative comment goes to a real person.
+
+**Why P2:** Today a rating is acted on the instant it's tapped (`ChatMessage.tsx` calls `onFeedback()` on click, buttons then lock) — no undo. And the only disclosure is a generic "logged" line (`Feedback.privacyNotice`), even though thumbs-down feedback is actually emailed to the maintainer (`api/utils/email_service.py`; routed per BITB-032). Product wants in-context transparency plus a chance to reconsider.
+
+**Acceptance Criteria:**
+
+- [ ] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
+- [ ] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
+- [ ] After the window, the rating commits and the thumbs-down comment flow opens as today
+- [ ] Thumbs-down shows a short explicit "shared with the app's maintainer" notice, separate from the logging notice
+- [ ] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
+- [ ] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
+- [ ] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-042-feedback-rethink-delay-and-maintainer-notice.md`
+
+---
 
 ### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
