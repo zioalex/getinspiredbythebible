@@ -86,9 +86,28 @@ When the user taps thumbs-up or thumbs-down:
   is the whole commit step — there is **no forced modal**.
 - The window length must be a single named constant (e.g.
   `FEEDBACK_RETHINK_MS = 10_000`) so it is easy to tune.
-- Respect `prefers-reduced-motion` for the countdown animation; the countdown
-  must be screen-reader friendly (announce "Undo available" rather than
-  spamming each tick).
+- The countdown is shown as a **quiet progress bar** (not ticking seconds) —
+  decided for least-naggy feel. Respect `prefers-reduced-motion` (no animation;
+  the Undo affordance still works); the affordance must be screen-reader
+  friendly (announce "Undo available", not each tick).
+
+### When is the feedback actually sent? (one send, never twice)
+
+The 10s window governs the **rating**; the optional comment, if opened, takes
+priority over the timer. There is exactly **one** request per rating, so the
+maintainer receives one email — with the comment attached if one was written.
+
+- **No comment (common case):** a single POST fires the moment the progress bar
+  completes (~10s). For thumbs-down this is what triggers the maintainer email.
+- **User opens the comment field:** the countdown **pauses** (we don't pull the
+  field away mid-sentence). The progress bar is replaced by an explicit
+  **Send**. The rating + comment are sent together when they tap Send (or blur
+  the field with non-empty text). Still one request, one email.
+- **Undo / re-tap / switch** before either of the above → nothing is sent and
+  no email is generated.
+
+This avoids a "rating now, comment later" double-send and guarantees the
+maintainer email carries the comment when there is one.
 
 ### 2. Optional inline comment (replaces the forced modal)
 
@@ -129,6 +148,10 @@ When the user taps thumbs-up or thumbs-down:
       modal; the buttons then lock against double-submission.
 - [ ] The comment field is optional and inline (no pop-up modal blocks the
       conversation); a typed comment is sent with the rating.
+- [ ] Exactly **one** feedback request per rating — at the ~10s mark when no
+      comment, or on Send/blur when a comment is opened (countdown pauses while
+      typing). Verified the maintainer email is not sent twice.
+- [ ] Countdown is rendered as a quiet progress bar (not ticking seconds).
 - [ ] Tapping thumbs-down shows a short, explicit notice — next to the comment
       field — that the message will be shared with the app's maintainer,
       separate from the generic logging notice.
@@ -166,10 +189,13 @@ When the user taps thumbs-up or thumbs-down:
   same optional inline field (no maintainer notice, since positive feedback does
   not email a person). ✔
 
+- **Countdown style:** quiet progress bar, not ticking seconds. ✔
+- **Send timing / number of sends:** one send per rating — at the ~10s mark if
+  no comment, or on explicit Send/blur if a comment was opened (countdown
+  pauses while typing). See "When is the feedback actually sent?" above. ✔
+
 ### Still worth a quick product check before build
 
-- Exact countdown copy and whether to show seconds ticking vs. a quiet
-  progress bar — pick whatever testers find least naggy.
 - Whether to fully delete `FeedbackModal` or keep it behind a flag as a
   fallback. Default: inline.
 
