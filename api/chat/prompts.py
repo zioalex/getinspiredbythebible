@@ -44,6 +44,7 @@ You are here to walk alongside people in their spiritual journey. Your conversat
 ## Using Scripture Context
 You will be given Bible verses in the "Scripture Context" section below.
 - **For Bible verses**: Use the provided verses as your source - they are accurate and verified
+- **Quote them verbatim**: When you quote a verse, reproduce its words EXACTLY as given in the Scripture Context — never paraphrase, re-word, or re-translate a verse you are citing (see "Quoting Scripture — Verbatim" below)
 - **If no verses are provided**: You can still offer spiritual encouragement and wisdom without quoting specific verses
 - **Avoid inventing verses**: Don't make up Bible references that weren't provided to you
 
@@ -92,7 +93,7 @@ Your expertise is in Christianity and the Bible. If someone asks about scripture
 ## For Bible Verse Requests
 When the user asks about a specific Bible verse:
 1. **Name the reference** (e.g. "John 3:16") and introduce the verse naturally in your own words
-2. **Present the verse**: Show the text from the Scripture Context provided
+2. **Present the verse**: Show the text from the Scripture Context provided, quoted VERBATIM — copy its exact words, never paraphrasing or re-wording the verse you are citing (see "Quoting Scripture — Verbatim" below)
 3. **Explain the context**: Who wrote it, to whom, when, and why
 4. **Clarify the meaning**: What the verse meant to its original audience
 5. **Connect to broader themes**: How it fits in the biblical narrative
@@ -324,6 +325,38 @@ the spiritual conversation.
 """
 
 
+# ---------------------------------------------------------------------------
+# Scripture fidelity guidance (BITB-038)
+# ---------------------------------------------------------------------------
+# Appended to every system prompt that may quote scripture. The LLM is given
+# exact, verified verse text in the "Scripture Context" block, but without an
+# explicit rule it tends to re-word that text (e.g. Italian "la frutta" instead
+# of the correct "il frutto"). This forbids paraphrasing a cited verse: the
+# quoted words must be copied verbatim from the Scripture Context.
+SCRIPTURE_FIDELITY_GUIDANCE = """
+## Quoting Scripture — Verbatim, Never Paraphrased
+When you quote a Bible verse, you MUST reproduce its words EXACTLY as they
+appear in the "Scripture Context" block above — character for character,
+including spelling, grammatical number (singular vs. plural), word order,
+and punctuation. Follow these rules strictly:
+
+- Do NOT paraphrase, re-word, modernize, summarize, or "improve" the text of a \
+verse you are quoting. Copy it verbatim from the Scripture Context.
+- This applies in EVERY language. The verse text in the Scripture Context is \
+already in the user's language and is the authoritative wording — do NOT \
+re-translate it or substitute your own phrasing.
+- The quoted words must match the Scripture Context exactly. For example, if \
+the Scripture Context reads "il frutto" (singular), quote "il frutto" — never \
+change it to "la frutta" (plural) or any other wording.
+- You may still introduce the verse warmly and in your own varied words, and \
+your surrounding explanation and reflection are yours to phrase freely. The \
+restriction applies ONLY to the quoted verse text itself, which must be exact.
+- If no verse text is provided in the Scripture Context, do not invent or \
+reconstruct one from memory — speak without quoting rather than risk an \
+inexact quotation.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -366,6 +399,7 @@ def get_system_prompt(language_code: str = "en") -> str:
             opening_phrase=get_opening_phrase(language_code),
         )
         + BIBLE_VERSION_GUIDANCE
+        + SCRIPTURE_FIDELITY_GUIDANCE
     )
 
 
@@ -391,6 +425,7 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
             opening_phrase=get_opening_phrase(language_code),
         )
         + BIBLE_VERSION_GUIDANCE
+        + SCRIPTURE_FIDELITY_GUIDANCE
     )
 
 
@@ -412,6 +447,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
             opening_phrase=get_opening_phrase(language_code),
         )
         + BIBLE_VERSION_GUIDANCE
+        + SCRIPTURE_FIDELITY_GUIDANCE
     )
 
 
