@@ -17,6 +17,7 @@ from chat.prompts import (
     BIBLE_OPENING_PHRASES,
     BIBLE_VERSION_GUIDANCE,
     LANGUAGE_NAMES,
+    SCRIPTURE_FIDELITY_GUIDANCE,
     SYSTEM_PROMPT,
     build_conversation_context,
     build_search_context_prompt,
@@ -462,6 +463,53 @@ class TestBibleVersionGuidance:
     def test_prayer_lookup_prompt_contains_guidance(self):
         result = get_prayer_lookup_prompt("en")
         assert "Bible Version Questions" in result
+
+
+class TestScriptureFidelityGuidance:
+    """BITB-038: when quoting a cited verse, the LLM must reproduce the verse
+    text verbatim from the Scripture Context, never paraphrasing."""
+
+    def test_guidance_constant_forbids_paraphrase(self):
+        text = SCRIPTURE_FIDELITY_GUIDANCE.lower()
+        assert "verbatim" in text
+        assert "paraphrase" in text
+
+    def test_guidance_constant_requires_exact_wording(self):
+        assert "EXACTLY" in SCRIPTURE_FIDELITY_GUIDANCE
+        assert "Scripture Context" in SCRIPTURE_FIDELITY_GUIDANCE
+
+    def test_guidance_covers_translation_and_number(self):
+        text = SCRIPTURE_FIDELITY_GUIDANCE.lower()
+        assert "re-translate" in text or "translate" in text
+        assert "singular" in text or "plural" in text
+
+    def test_system_prompt_contains_fidelity_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Quoting Scripture" in result
+        assert "verbatim" in result.lower()
+
+    def test_system_prompt_fidelity_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Quoting Scripture" in result, f"missing for lang={lang}"
+
+    def test_verse_lookup_prompt_contains_fidelity_guidance(self):
+        result = get_verse_lookup_prompt("en")
+        assert "Quoting Scripture" in result
+        assert "verbatim" in result.lower()
+
+    def test_prayer_lookup_prompt_contains_fidelity_guidance(self):
+        result = get_prayer_lookup_prompt("en")
+        assert "Quoting Scripture" in result
+        assert "verbatim" in result.lower()
+
+    def test_inline_bullet_reinforces_verbatim_rule(self):
+        result = get_system_prompt("en")
+        assert "Quote them verbatim" in result
+
+    def test_verse_lookup_step_reinforces_verbatim_rule(self):
+        result = get_verse_lookup_prompt("en")
+        assert "VERBATIM" in result
 
 
 # ==================== Chat Service Tests ====================
