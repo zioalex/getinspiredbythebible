@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.21.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.21.0...v1.21.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* **api:** require verbatim scripture quotation, never paraphrase (BITB-038) ([#682](https://github.com/zioalex/getinspiredbythebible/issues/682)) ([005bcdb](https://github.com/zioalex/getinspiredbythebible/commit/005bcdbb5141630a0019c85416b43a85fbcd2b1c))
+
+
+### Documentation
+
+* **backlog:** add BITB-038 (verbatim scripture citation) and BITB-039 (preserve chat on rotation) ([#679](https://github.com/zioalex/getinspiredbythebible/issues/679)) ([f007115](https://github.com/zioalex/getinspiredbythebible/commit/f007115ec29a138f0f7f4cd08853db90d1daa4b7))
+* **backlog:** close out mobile verse FAB reposition — verified, no change needed ([#681](https://github.com/zioalex/getinspiredbythebible/issues/681)) ([ba52a30](https://github.com/zioalex/getinspiredbythebible/commit/ba52a30dd5e50146ba5cbe614adb05cf1fab6c88))
+
 ## [1.21.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.20.0...v1.21.0) (2026-06-02)
 
 ### Features
