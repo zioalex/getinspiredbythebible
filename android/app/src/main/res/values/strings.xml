@@ -198,6 +198,13 @@
     <!-- Feedback -->
     <string name="action_feedback_helpful">This was helpful</string>
     <string name="action_feedback_not_helpful">This was not helpful</string>
+    <string name="feedback_thanks">Thanks for your feedback!</string>
+    <string name="feedback_undo">Undo</string>
+    <string name="feedback_add_comment">Add a comment (optional)</string>
+    <string name="feedback_comment_hint">Tell us more (optional)</string>
+    <string name="feedback_send">Send</string>
+    <string name="feedback_sending">Sending feedback…</string>
+    <string name="feedback_maintainer_notice">Your message will be shared with the app\'s maintainer.</string>
 
     <!-- Backend warm-up -->
     <string name="backend_warming_up">Connecting to server… (first request may take up to 30 s)</string>

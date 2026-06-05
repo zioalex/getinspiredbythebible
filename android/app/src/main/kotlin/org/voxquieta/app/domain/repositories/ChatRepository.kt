@@ -55,11 +55,13 @@ interface ChatRepository {
      * @param rating    [FeedbackRating.POSITIVE] or [FeedbackRating.NEGATIVE].
      * @param userMessage   The user's original question (provides context).
      * @param assistantResponse The assistant's reply text (provides context).
+     * @param comment Optional free-text comment the user added (thumbs-down).
      */
     suspend fun submitFeedback(
         messageId: String,
         rating: FeedbackRating,
         userMessage: String = "",
         assistantResponse: String = "",
+        comment: String? = null,
     )
 }

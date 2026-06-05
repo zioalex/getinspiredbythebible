@@ -193,6 +193,13 @@
     <string name="action_copied">Kopiert</string>
     <string name="action_feedback_helpful">Das war hilfreich</string>
     <string name="action_feedback_not_helpful">Das war nicht hilfreich</string>
+    <string name="feedback_thanks">Danke für dein Feedback!</string>
+    <string name="feedback_undo">Rückgängig</string>
+    <string name="feedback_add_comment">Kommentar hinzufügen (optional)</string>
+    <string name="feedback_comment_hint">Erzähl uns mehr (optional)</string>
+    <string name="feedback_send">Senden</string>
+    <string name="feedback_sending">Feedback wird gesendet…</string>
+    <string name="feedback_maintainer_notice">Deine Nachricht wird an den Betreuer der App weitergegeben.</string>
     <string name="backend_warming_up">Verbindung zum Server wird hergestellt… (erste Anfrage kann bis zu 30 s dauern)</string>
     <string name="action_scroll_to_bottom">Nach unten scrollen</string>
 
