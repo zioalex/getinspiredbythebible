@@ -683,9 +683,9 @@ Testing & Documentation:
 
 ## P2 - Medium Priority (Backlog)
 
-### 🎯 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
+### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (web implemented; Android/iOS parity open)
 **Size:** M (1-2 days)
 **Created:** 2026-06-05
 

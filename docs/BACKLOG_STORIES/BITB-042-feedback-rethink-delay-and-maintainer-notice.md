@@ -1,6 +1,6 @@
 # BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — web implemented; Android/iOS parity still open
 **Priority:** P2
 **Size:** M (1-2 days)
 **Created:** 2026-06-05

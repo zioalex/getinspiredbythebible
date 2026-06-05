@@ -22,7 +22,6 @@ import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
 import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
-import FeedbackModal from "@/components/FeedbackModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
@@ -114,14 +113,6 @@ export default function ChatIsland({
   const [feedbackGiven, setFeedbackGiven] = useState<
     Record<string, "positive" | "negative">
   >({});
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [feedbackModalRating, setFeedbackModalRating] = useState<
-    "positive" | "negative"
-  >("positive");
-  const [feedbackModalMessageId, setFeedbackModalMessageId] = useState<
-    string | null
-  >(null);
-  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Modal state
@@ -686,31 +677,20 @@ export default function ChatIsland({
     setLanguageSuggestionDismissed(true);
   };
 
-  // Handle feedback button click
-  const handleFeedbackClick = (
+  // Handle feedback submission. Called once per rating by FeedbackControls,
+  // after the inline rethink window elapses (or the user sends a comment).
+  const handleFeedbackSubmit = async (
     messageId: string,
     rating: "positive" | "negative",
+    comment: string,
   ) => {
-    setFeedbackModalMessageId(messageId);
-    setFeedbackModalRating(rating);
-    setFeedbackModalOpen(true);
-  };
-
-  // Handle feedback submission
-  const handleFeedbackSubmit = async (comment: string) => {
-    if (!feedbackModalMessageId) return;
-
-    const message = messages.find(
-      (m) => m.messageId === feedbackModalMessageId,
-    );
+    const message = messages.find((m) => m.messageId === messageId);
     if (!message || message.role !== "assistant") return;
-
-    setFeedbackSubmitting(true);
 
     try {
       const feedbackRequest: FeedbackRequest = {
-        message_id: feedbackModalMessageId,
-        rating: feedbackModalRating,
+        message_id: messageId,
+        rating,
         comment: comment || undefined,
         user_message: message.userMessage || "",
         assistant_response: message.content,
@@ -721,24 +701,14 @@ export default function ChatIsland({
       await submitFeedback(feedbackRequest);
 
       // Mark feedback as given for this message
-      setFeedbackGiven((prev) => ({
-        ...prev,
-        [feedbackModalMessageId]: feedbackModalRating,
-      }));
+      setFeedbackGiven((prev) => ({ ...prev, [messageId]: rating }));
     } catch (error) {
       console.error("Failed to submit feedback:", error);
       // Show error but still mark as given to prevent duplicate attempts
       setFeedbackError(tFeedback("toastError"));
-      setFeedbackGiven((prev) => ({
-        ...prev,
-        [feedbackModalMessageId]: feedbackModalRating,
-      }));
+      setFeedbackGiven((prev) => ({ ...prev, [messageId]: rating }));
       // Auto-dismiss error after 5 seconds
       setTimeout(() => setFeedbackError(null), 5000);
-    } finally {
-      setFeedbackSubmitting(false);
-      setFeedbackModalOpen(false);
-      setFeedbackModalMessageId(null);
     }
   };
 
@@ -917,10 +887,14 @@ export default function ChatIsland({
                     messageId={message.messageId}
                     userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}
-                    onFeedback={
+                    onSubmitFeedback={
                       message.messageId
-                        ? (rating) =>
-                            handleFeedbackClick(message.messageId!, rating)
+                        ? (rating, comment) =>
+                            handleFeedbackSubmit(
+                              message.messageId!,
+                              rating,
+                              comment,
+                            )
                         : undefined
                     }
                     feedbackGiven={
@@ -1255,18 +1229,6 @@ export default function ChatIsland({
       <ChurchFinderModal
         isOpen={churchFinderModalOpen}
         onClose={() => setChurchFinderModalOpen(false)}
-      />
-
-      {/* Feedback Modal */}
-      <FeedbackModal
-        isOpen={feedbackModalOpen}
-        onClose={() => {
-          setFeedbackModalOpen(false);
-          setFeedbackModalMessageId(null);
-        }}
-        onSubmit={handleFeedbackSubmit}
-        rating={feedbackModalRating}
-        isSubmitting={feedbackSubmitting}
       />
 
       {/* Toast notification for errors */}
