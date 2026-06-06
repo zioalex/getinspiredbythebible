@@ -949,7 +949,9 @@ class TestScriptureRoutes:
             mock_repo.get_chapter_verses = AsyncMock(return_value=[mock_verse])
             mock_repo_cls.return_value = mock_repo
 
-            result = await get_chapter("Genesis", 1, mock_db, None)
+            mock_http = MagicMock()
+            mock_http.headers = {"accept-language": "en-US"}
+            result = await get_chapter("Genesis", 1, mock_db, None, http_request=mock_http)
 
         assert result.book == "Genesis"
         assert result.chapter == 1
@@ -972,6 +974,76 @@ class TestScriptureRoutes:
                 await get_chapter("NotABook", 1, mock_db, None)
 
             assert exc_info.value.status_code == 404
+
+    @staticmethod
+    def _chapter_verse(translation: str):
+        """Build a mock verse for a given translation (John 3:16)."""
+        v = MagicMock()
+        v.reference = "John 3:16"
+        v.text = "For God so loved the world..."
+        v.book.name = "John"
+        v.chapter_number = 3
+        v.verse_number = 16
+        v.translation = translation
+        return v
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_default_is_deterministic_across_translations(self):
+        """Regression (Bug 1): with no translation requested, the chapter must
+        return the same version every call regardless of DB row order, instead
+        of a random translation. Picks the Accept-Language default (English ->
+        web) when available."""
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        # The DB returns the chapter across many translations, in arbitrary order.
+        all_translations = ["ita1927", "schlachter", "kjv", "web", "valera", "ls1910"]
+
+        mock_http = MagicMock()
+        mock_http.headers = {"accept-language": "en-US,en;q=0.9"}
+
+        results = []
+        for order in (all_translations, list(reversed(all_translations))):
+            with (
+                patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+                patch("routes.scripture.get_localized_book_name", return_value="John"),
+            ):
+                mock_repo = AsyncMock()
+                mock_repo.get_chapter_verses = AsyncMock(
+                    return_value=[self._chapter_verse(t) for t in order]
+                )
+                mock_repo_cls.return_value = mock_repo
+                result = await get_chapter("John", 3, mock_db, None, http_request=mock_http)
+            results.append(result.translation)
+
+        # Stable across differing DB orderings, and resolves to the English default.
+        assert results[0] == results[1] == "web"
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_default_honors_accept_language(self):
+        """Regression (Bug 1): the default version follows the caller's
+        Accept-Language (Italian -> ita1927) when that translation is present."""
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        translations = ["web", "kjv", "ita1927", "schlachter"]
+
+        mock_http = MagicMock()
+        mock_http.headers = {"accept-language": "it-IT,it;q=0.9"}
+
+        with (
+            patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+            patch("routes.scripture.get_localized_book_name", return_value="Giovanni"),
+        ):
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(
+                return_value=[self._chapter_verse(t) for t in translations]
+            )
+            mock_repo_cls.return_value = mock_repo
+            result = await get_chapter("John", 3, mock_db, None, http_request=mock_http)
+
+        assert result.translation == "ita1927"
+        assert all(v["translation"] == "ita1927" for v in result.verses)
 
     @pytest.mark.asyncio
     async def test_get_verse_range_found(self):
