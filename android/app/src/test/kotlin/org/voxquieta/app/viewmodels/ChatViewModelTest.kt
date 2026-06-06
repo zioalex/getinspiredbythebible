@@ -381,6 +381,66 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `new-route guard does not reset an active in-memory conversation`() = runTest {
+        // Mirrors the ChatScreen LaunchedEffect guard for the chat/new route.
+        // After a message is sent the ViewModel has non-empty messages and a
+        // currentConversationId, so the guard condition is false — meaning a
+        // rotation (which re-runs LaunchedEffect on the still-"new" route) would
+        // not call startNewConversation() and wipe the chat.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("First message")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val s = viewModel.uiState.value
+        val wouldStartNew = s.messages.isEmpty() && s.currentConversationId == null
+        assertFalse("guard must block startNewConversation after a message is sent", wouldStartNew)
+    }
+
+    @Test
+    fun `new-route guard allows startNewConversation on a fresh viewmodel`() {
+        // On a genuinely new conversation (fresh ViewModel), the guard condition
+        // is true — startNewConversation() should be called.
+        val s = viewModel.uiState.value
+        val wouldStartNew = s.messages.isEmpty() && s.currentConversationId == null
+        assertTrue("guard must allow startNewConversation for a fresh ViewModel", wouldStartNew)
+    }
+
+    @Test
+    fun `conversation is preserved when new-route guard runs on active chat (rotation simulation)`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("First message")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val stateBeforeRotation = viewModel.uiState.value
+        // Simulate the guarded LaunchedEffect re-running with conversationId == "new"
+        // (which happens on rotation when the nav route was never rewritten to chat/<id>):
+        val s = viewModel.uiState.value
+        if (s.messages.isEmpty() && s.currentConversationId == null) {
+            viewModel.startNewConversation()
+        }
+
+        val stateAfterRotation = viewModel.uiState.value
+        assertEquals(
+            "messages must survive rotation — guard prevents startNewConversation",
+            stateBeforeRotation.messages.size,
+            stateAfterRotation.messages.size,
+        )
+        assertEquals(
+            "conversationId must survive rotation",
+            stateBeforeRotation.currentConversationId,
+            stateAfterRotation.currentConversationId,
+        )
+    }
+
+    @Test
     fun `sendMessage creates conversation on first message`() = runTest {
         every { repository.chatStream(any()) } returns flowOf(
             StreamChunk(content = "Reply", done = true),
