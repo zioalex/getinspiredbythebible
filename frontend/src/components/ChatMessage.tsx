@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { User, BookOpen, ThumbsUp, ThumbsDown } from "lucide-react";
+import { User, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useTranslations } from "next-intl";
 import { Message } from "@/lib/api";
 import ShareMenu from "./ShareMenu";
+import FeedbackControls from "./FeedbackControls";
 import {
   createVersePattern,
   createVersePatternGlobal,
@@ -28,7 +28,7 @@ interface ChatMessageProps {
   messageId?: string;
   userMessage?: string;
   onVerseClick?: (book: string, chapter: number, verse: number) => void;
-  onFeedback?: (rating: "positive" | "negative") => void;
+  onSubmitFeedback?: (rating: "positive" | "negative", comment: string) => void;
   feedbackGiven?: "positive" | "negative" | null;
   feedbackDisabled?: boolean;
 }
@@ -38,11 +38,10 @@ export default function ChatMessage({
   messageId,
   userMessage,
   onVerseClick,
-  onFeedback,
+  onSubmitFeedback,
   feedbackGiven,
   feedbackDisabled = false,
 }: ChatMessageProps) {
-  const t = useTranslations("Feedback");
   const isUser = message.role === "user";
 
   // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
@@ -273,57 +272,20 @@ export default function ChatMessage({
               </ReactMarkdown>
             </div>
 
-            {/* Feedback and share buttons for assistant messages */}
-            {messageId && onFeedback && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-400 mr-1">
-                  {t("wasHelpful")}
-                </span>
-                <button
-                  onClick={() => onFeedback("positive")}
-                  disabled={feedbackDisabled || feedbackGiven !== null}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    feedbackGiven === "positive"
-                      ? "bg-green-100 text-green-600"
-                      : feedbackGiven !== null
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                  }`}
-                  aria-label={t("thumbsUp")}
-                  title={t("helpfulTitle")}
-                >
-                  <ThumbsUp
-                    className={`w-4 h-4 ${feedbackGiven === "positive" ? "fill-current" : ""}`}
-                  />
-                </button>
-                <button
-                  onClick={() => onFeedback("negative")}
-                  disabled={feedbackDisabled || feedbackGiven !== null}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    feedbackGiven === "negative"
-                      ? "bg-red-100 text-red-600"
-                      : feedbackGiven !== null
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-400 hover:text-red-600 hover:bg-red-50"
-                  }`}
-                  aria-label={t("thumbsDown")}
-                  title={t("improveTitle")}
-                >
-                  <ThumbsDown
-                    className={`w-4 h-4 ${feedbackGiven === "negative" ? "fill-current" : ""}`}
-                  />
-                </button>
-                {feedbackGiven && (
-                  <span className="text-xs text-gray-400 ml-1">
-                    {t("thanks")}
-                  </span>
-                )}
-                <div className="ml-auto">
-                  <ShareMenu
-                    question={userMessage || ""}
-                    answer={message.content}
-                  />
-                </div>
+            {/* Feedback and share controls for assistant messages */}
+            {messageId && onSubmitFeedback && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <FeedbackControls
+                  given={feedbackGiven ?? null}
+                  disabled={feedbackDisabled}
+                  onSubmit={onSubmitFeedback}
+                  trailing={
+                    <ShareMenu
+                      question={userMessage || ""}
+                      answer={message.content}
+                    />
+                  }
+                />
               </div>
             )}
           </>
