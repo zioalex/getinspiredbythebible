@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.21.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.21.1...v1.21.2) (2026-06-06)
 
-
 ### Bug Fixes
 
 * **ci:** add Gemfile and use bundle exec to fix missing multi_json gem ([#688](https://github.com/zioalex/getinspiredbythebible/issues/688)) ([1a6694b](https://github.com/zioalex/getinspiredbythebible/commit/1a6694be17033ec590d02f062ca65ec81a2bd602))
-
 
 ### Documentation
 
