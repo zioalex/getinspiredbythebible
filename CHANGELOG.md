@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.22.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.0...v1.22.1) (2026-06-06)
 
-
 ### Bug Fixes
 
 * **android:** float feedback rethink panel as a popover over the thumbs ([#692](https://github.com/zioalex/getinspiredbythebible/issues/692)) ([5319012](https://github.com/zioalex/getinspiredbythebible/commit/5319012bd72ae5fe05400ea471472c8a1a4250ae))
