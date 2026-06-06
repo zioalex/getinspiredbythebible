@@ -1,6 +1,6 @@
 # BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
 
-**Status:** ✅ Done (PR #TODO — 2026-06-06)
+**Status:** ✅ Done (PR #689 — 2026-06-06)
 **Priority:** P1 (High) — data-loss UX bug on a common interaction
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
