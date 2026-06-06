@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.22.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.21.2...v1.22.0) (2026-06-06)
 
-
 ### Features
 
 * **android:** inline feedback rethink window + maintainer notice (BITB-042) ([#685](https://github.com/zioalex/getinspiredbythebible/issues/685)) ([c2adb70](https://github.com/zioalex/getinspiredbythebible/commit/c2adb7067bfaee79b5520489cb88996b0966d225))
