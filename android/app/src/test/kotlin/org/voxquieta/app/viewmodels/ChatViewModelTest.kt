@@ -63,6 +63,7 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
@@ -875,6 +876,53 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { bibleApiService.getChapter("John", 3, null, "de") }
+    }
+
+    @Test
+    fun `loadChapter falls back to the default locale when no explicit language`() = runTest {
+        // No explicit user preference (blank); UI follows the device default locale.
+        every { languagePreferences.languageFlow } returns flowOf("")
+        every { languagePreferences.readInitial() } returns ""
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale("it"))
+            val vm = viewModelWithBookNames()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
+                ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+            }
+
+            vm.loadChapter("John", 3, null)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify { bibleApiService.getChapter("John", 3, null, "it") }
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun `loadChapter falls back to English when no default locale language`() = runTest {
+        every { languagePreferences.languageFlow } returns flowOf("")
+        every { languagePreferences.readInitial() } returns ""
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.ROOT) // language tag is empty
+            val vm = viewModelWithBookNames()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
+                ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+            }
+
+            vm.loadChapter("John", 3, null)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify { bibleApiService.getChapter("John", 3, null, "en") }
+        } finally {
+            Locale.setDefault(original)
+        }
     }
 
     // ── Story A: Session-limit (HTTP 429) tests ───────────────────────────────
