@@ -42,12 +42,17 @@ interface BibleApiService {
 
     /**
      * Fetches all verses for a given book and chapter.
+     *
+     * When [translation] is null the backend picks a default; [lang] (the app's
+     * selected UI language) lets it default to the version for the language the
+     * user is reading instead of falling back to English.
      */
     @GET("api/v1/scripture/chapter/{book}/{chapter}")
     suspend fun getChapter(
         @Path("book") book: String,
         @Path("chapter") chapter: Int,
         @Query("translation") translation: String? = null,
+        @Query("lang") lang: String? = null,
     ): ChapterResponseDto
 
     /**

@@ -332,7 +332,12 @@ export default function ChatIsland({
     setModalChapter({ book, chapter, verses: [], highlightVerse: verse });
 
     try {
-      const chapterData = await getChapter(book, chapter, useTranslation);
+      const chapterData = await getChapter(
+        book,
+        chapter,
+        useTranslation,
+        locale,
+      );
       setModalChapter({
         book: chapterData.book,
         localized_book: chapterData.localized_book,

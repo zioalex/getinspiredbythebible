@@ -2,7 +2,9 @@
 Scripture API routes - Bible data and search endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from providers import EmbeddingProviderDep
@@ -14,7 +16,7 @@ from scripture import (
     VerseResult,
 )
 from utils.book_names import LOCALIZED_TO_ENGLISH, get_localized_book_name, normalize_book_name
-from utils.language import get_all_translations, get_translation_info
+from utils.language import get_all_translations, get_translation_info, resolve_translation
 from utils.metrics import scripture_search_counter, scripture_verses_returned
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
@@ -125,6 +127,11 @@ async def get_chapter(
     chapter: int,
     db: DbSession,
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
+    lang: Annotated[
+        str | None,
+        Query(description="UI language code (e.g. 'de') used to pick a default translation"),
+    ] = None,
+    http_request: Request = None,
 ):
     """Get all verses in a chapter, optionally filtered by translation."""
     book = normalize_book_name(book)
@@ -134,10 +141,20 @@ async def get_chapter(
     if not verses:
         raise HTTPException(status_code=404, detail=f"Chapter not found: {book} {chapter}")
 
-    # When no translation was requested, restrict to a single translation
-    # (the first one returned, which is the backend's default for this book's language).
+    # When no translation was requested, restrict to a single translation chosen
+    # deterministically. The query returns every translation in the DB for this
+    # chapter, so picking verses[0] would be non-deterministic and surface a
+    # random version (any language) on each request. Prefer the caller's UI
+    # language (`lang`) — the language they're actually reading — then fall back
+    # to the Accept-Language header, then to the first translation by code so the
+    # result is always stable.
     if not translation:
-        default_translation = verses[0].translation
+        available = {v.translation for v in verses}
+        accept_lang = http_request.headers.get("accept-language", "") if http_request else ""
+        header_lang = accept_lang.split(",")[0] if accept_lang else None
+        language = (lang or header_lang or "").split("-")[0] or None
+        preferred = resolve_translation(None, language)
+        default_translation = preferred if preferred in available else sorted(available)[0]
         verses = [v for v in verses if v.translation == default_translation]
 
     # Get the translation from the first verse if not specified

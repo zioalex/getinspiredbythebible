@@ -58,6 +58,7 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -818,7 +819,15 @@ class ChatViewModel @Inject constructor(
                 // (e.g. German "2 Korinther"); the backend chapter lookup is keyed by English
                 // names. Normalize first so localized references resolve instead of 404ing.
                 val normalizedBook = normalizeBookName(book, localizedToEnglish.value)
-                val response = bibleApiService.getChapter(normalizedBook, chapter, translation)
+                // Pass the active UI language so that, with no explicit translation,
+                // the backend defaults to the version for the language the user is
+                // reading rather than English (OkHttp sends no Accept-Language). When
+                // the user has no explicit preference, fall back to the default locale
+                // config (the device language), then to English.
+                val lang = _uiState.value.currentLocale.ifBlank {
+                    Locale.getDefault().language.ifBlank { "en" }
+                }
+                val response = bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
                 _chapterSheetState.value = ChapterSheetState.Success(response)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

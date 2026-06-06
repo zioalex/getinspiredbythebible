@@ -60,3 +60,44 @@ describe("ChatMessage responsive classes", () => {
     expect(bubble!.className).toContain("sm:py-4");
   });
 });
+
+// Regression for the reported "thumbs up/down not visible" bug. The feedback
+// row has no screen-size gate, so a missing render is driven entirely by the
+// `messageId`/`onSubmitFeedback` props (e.g. a backend response that omits
+// `message_id`). These tests pin that render condition on the same component
+// used for both desktop and mobile.
+describe("ChatMessage feedback controls visibility", () => {
+  it("shows thumbs up/down when an assistant message has a messageId and handler", () => {
+    renderWithIntl(
+      <ChatMessage
+        message={{ role: "assistant", content: "Peace be with you" }}
+        messageId="msg-1"
+        onSubmitFeedback={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Thumbs up")).toBeDefined();
+    expect(screen.getByLabelText("Thumbs down")).toBeDefined();
+  });
+
+  it("does not render thumbs when messageId is missing", () => {
+    renderWithIntl(
+      <ChatMessage
+        message={{ role: "assistant", content: "Peace be with you" }}
+        onSubmitFeedback={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Thumbs up")).toBeNull();
+    expect(screen.queryByLabelText("Thumbs down")).toBeNull();
+  });
+
+  it("does not render thumbs on user messages", () => {
+    renderWithIntl(
+      <ChatMessage
+        message={{ role: "user", content: "Hello" }}
+        messageId="msg-1"
+        onSubmitFeedback={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Thumbs up")).toBeNull();
+  });
+});

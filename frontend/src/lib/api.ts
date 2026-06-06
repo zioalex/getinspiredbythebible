@@ -585,6 +585,7 @@ export async function getChapter(
   book: string,
   chapter: number,
   translation?: string,
+  lang?: string,
 ): Promise<{
   book: string;
   localized_book?: string;
@@ -593,9 +594,13 @@ export async function getChapter(
   translation?: string;
   translation_name?: string;
 }> {
-  const params = translation
-    ? `?translation=${encodeURIComponent(translation)}`
-    : "";
+  const query = new URLSearchParams();
+  if (translation) query.set("translation", translation);
+  // Send the active UI language so that, when no explicit translation is chosen,
+  // the backend defaults to the version for the language the user is reading
+  // rather than guessing from the browser's Accept-Language header.
+  if (lang) query.set("lang", lang);
+  const params = query.toString() ? `?${query.toString()}` : "";
   const headers = getHeaders();
 
   const response = await fetch(

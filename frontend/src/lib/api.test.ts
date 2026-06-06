@@ -292,6 +292,35 @@ describe("getChapter", () => {
     expect(result.verses).toHaveLength(2);
   });
 
+  it("passes the translation as a query param when provided", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ book: "Psalm", chapter: 23, verses: [] }),
+    });
+
+    await getChapter("Psalm", 23, "kjv");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/api/v1/scripture/chapter/Psalm/23?translation=kjv",
+      { headers: { "Content-Type": "application/json" } },
+    );
+  });
+
+  it("sends the UI language as lang so the default version matches the locale", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ book: "Psalm", chapter: 23, verses: [] }),
+    });
+
+    // No explicit translation (inline verse tap), German UI.
+    await getChapter("Psalm", 23, undefined, "de");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/api/v1/scripture/chapter/Psalm/23?lang=de",
+      { headers: { "Content-Type": "application/json" } },
+    );
+  });
+
   it("should throw error on API failure", async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: false,

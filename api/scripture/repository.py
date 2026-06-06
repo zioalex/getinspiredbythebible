@@ -179,7 +179,12 @@ class ScriptureRepository:
         if translation:
             query = query.where(Verse.translation == translation)
 
-        query = query.order_by(Verse.verse_number).options(selectinload(Verse.book))
+        # Order by translation as a stable tiebreaker so that, when no specific
+        # translation is requested, the "first" verse is deterministic rather
+        # than dependent on the DB's row order.
+        query = query.order_by(Verse.translation, Verse.verse_number).options(
+            selectinload(Verse.book)
+        )
 
         with tracer.start_as_current_span("db.get_chapter_verses") as span:
             _set_common_span_attrs(span, "get_chapter", translation)

@@ -63,6 +63,7 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
@@ -783,7 +784,7 @@ class ChatViewModelTest {
                 ChapterVerseDto(verseNumber = 16, text = "For God so loved the world…"),
             ),
         )
-        coEvery { bibleApiService.getChapter("John", 3, "kjv") } returns stubResponse
+        coEvery { bibleApiService.getChapter("John", 3, "kjv", "en") } returns stubResponse
 
         viewModel.loadChapter("John", 3, "kjv")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -796,7 +797,7 @@ class ChatViewModelTest {
 
     @Test
     fun `loadChapter sets Error state when API throws`() = runTest {
-        coEvery { bibleApiService.getChapter(any(), any(), any()) } throws IOException("timeout")
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } throws IOException("timeout")
 
         viewModel.loadChapter("John", 3, null)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -816,7 +817,7 @@ class ChatViewModelTest {
             chapter = 23,
             verses = listOf(ChapterVerseDto(verseNumber = 1, text = "The Lord is my shepherd…")),
         )
-        coEvery { bibleApiService.getChapter(any(), any(), any()) } returns stubResponse
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } returns stubResponse
 
         viewModel.loadChapter("Psalms", 23, null)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -875,15 +876,15 @@ class ChatViewModelTest {
             verses = listOf(ChapterVerseDto(verseNumber = 8, text = "Gott aber ist mächtig…")),
         )
         // The LLM-written reference is "2 Korinther" (no period); the backend expects English.
-        coEvery { bibleApiService.getChapter("2 Corinthians", 9, "schlachter") } returns stub
+        coEvery { bibleApiService.getChapter("2 Corinthians", 9, "schlachter", "en") } returns stub
 
         vm.loadChapter("2 Korinther", 9, "schlachter")
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.chapterSheetState.value
         assertTrue(state is ChapterSheetState.Success)
-        coVerify(exactly = 1) { bibleApiService.getChapter("2 Corinthians", 9, "schlachter") }
-        coVerify(exactly = 0) { bibleApiService.getChapter("2 Korinther", 9, "schlachter") }
+        coVerify(exactly = 1) { bibleApiService.getChapter("2 Corinthians", 9, "schlachter", "en") }
+        coVerify(exactly = 0) { bibleApiService.getChapter("2 Korinther", 9, "schlachter", "en") }
     }
 
     @Test
@@ -891,7 +892,7 @@ class ChatViewModelTest {
         val vm = viewModelWithBookNames()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coEvery { bibleApiService.getChapter(any(), any(), any()) } answers {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
             ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
         }
 
@@ -900,8 +901,8 @@ class ChatViewModelTest {
         vm.loadChapter("요한복음", 3, null)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { bibleApiService.getChapter("Matthew", 5, null) }
-        coVerify { bibleApiService.getChapter("John", 3, null) }
+        coVerify { bibleApiService.getChapter("Matthew", 5, null, "en") }
+        coVerify { bibleApiService.getChapter("John", 3, null, "en") }
     }
 
     @Test
@@ -909,14 +910,79 @@ class ChatViewModelTest {
         val vm = viewModelWithBookNames()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coEvery { bibleApiService.getChapter(any(), any(), any()) } answers {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
             ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
         }
 
         vm.loadChapter("John", 3, null)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { bibleApiService.getChapter("John", 3, null) }
+        coVerify { bibleApiService.getChapter("John", 3, null, "en") }
+    }
+
+    @Test
+    fun `loadChapter forwards the active UI language as lang`() = runTest {
+        val vm = viewModelWithBookNames()
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.setLocale("de")
+
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
+            ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+        }
+
+        // No explicit translation (inline verse tap) — the backend default should
+        // follow the German UI rather than English.
+        vm.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { bibleApiService.getChapter("John", 3, null, "de") }
+    }
+
+    @Test
+    fun `loadChapter falls back to the default locale when no explicit language`() = runTest {
+        // No explicit user preference (blank); UI follows the device default locale.
+        every { languagePreferences.languageFlow } returns flowOf("")
+        every { languagePreferences.readInitial() } returns ""
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale("it"))
+            val vm = viewModelWithBookNames()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
+                ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+            }
+
+            vm.loadChapter("John", 3, null)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify { bibleApiService.getChapter("John", 3, null, "it") }
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
+
+    @Test
+    fun `loadChapter falls back to English when no default locale language`() = runTest {
+        every { languagePreferences.languageFlow } returns flowOf("")
+        every { languagePreferences.readInitial() } returns ""
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.ROOT) // language tag is empty
+            val vm = viewModelWithBookNames()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } answers {
+                ChapterResponseDto(book = firstArg(), chapter = secondArg(), verses = emptyList())
+            }
+
+            vm.loadChapter("John", 3, null)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify { bibleApiService.getChapter("John", 3, null, "en") }
+        } finally {
+            Locale.setDefault(original)
+        }
     }
 
     // ── Story A: Session-limit (HTTP 429) tests ───────────────────────────────
