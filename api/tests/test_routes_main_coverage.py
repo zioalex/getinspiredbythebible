@@ -1046,6 +1046,31 @@ class TestScriptureRoutes:
         assert all(v["translation"] == "ita1927" for v in result.verses)
 
     @pytest.mark.asyncio
+    async def test_get_chapter_default_prefers_lang_over_accept_language(self):
+        """The explicit UI language (`lang`) wins over the browser's
+        Accept-Language: a German UI on an English browser gets schlachter."""
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        translations = ["web", "kjv", "ita1927", "schlachter"]
+
+        mock_http = MagicMock()
+        mock_http.headers = {"accept-language": "en-US,en;q=0.9"}
+
+        with (
+            patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+            patch("routes.scripture.get_localized_book_name", return_value="Johannes"),
+        ):
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(
+                return_value=[self._chapter_verse(t) for t in translations]
+            )
+            mock_repo_cls.return_value = mock_repo
+            result = await get_chapter("John", 3, mock_db, None, lang="de", http_request=mock_http)
+
+        assert result.translation == "schlachter"
+
+    @pytest.mark.asyncio
     async def test_get_verse_range_found(self):
         from routes.scripture import get_verse_range
         from scripture.search import VerseResult
