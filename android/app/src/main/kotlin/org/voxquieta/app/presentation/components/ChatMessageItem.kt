@@ -70,6 +70,7 @@ internal data class PendingVerseLink(
     val chapter: Int,
     val verseNumber: Int,
     val translation: String?,
+    val localizedBook: String? = null,
 )
 
 /**
@@ -297,7 +298,14 @@ internal fun injectVerseLinks(
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
             val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
-            val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse)"
+            // Carry the localized book token in the URL so parseVerseLink can set it on
+            // PendingVerseLink without discarding the name the LLM used.
+            val localizedParam = if (book != linkBook) {
+                "?localizedBook=${URLEncoder.encode(book, "UTF-8")}"
+            } else {
+                ""
+            }
+            val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse$localizedParam)"
             // Wrap in bold so verse references are visually prominent (matching the web's
             // font-semibold styling) regardless of whether the LLM already used bold markdown.
             // If the LLM already wrapped the ref in ** (before == '*'), the surrounding **
@@ -353,8 +361,15 @@ internal fun citedVerses(message: Message): List<Verse> {
  */
 internal fun parseVerseLink(url: String, preferredTranslation: String?): PendingVerseLink? {
     if (!url.startsWith(VERSE_SCHEME)) return null
-    val path = url.removePrefix(VERSE_SCHEME)
-    val parts = path.split("/")
+    val raw = url.removePrefix(VERSE_SCHEME)
+    // Strip query string before positional path parsing; parse localizedBook from it.
+    val (pathPart, query) = if ('?' in raw) raw.split("?", limit = 2) else listOf(raw, "")
+    val localizedBook = query
+        .split("&")
+        .firstOrNull { it.startsWith("localizedBook=") }
+        ?.removePrefix("localizedBook=")
+        ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
+    val parts = pathPart.split("/")
     if (parts.size < 2) return null
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return null
     val chapter = parts[1].toIntOrNull() ?: return null
@@ -365,6 +380,7 @@ internal fun parseVerseLink(url: String, preferredTranslation: String?): Pending
         chapter = chapter,
         verseNumber = verseNumber,
         translation = preferredTranslation,
+        localizedBook = localizedBook,
     )
 }
 
@@ -379,8 +395,10 @@ internal fun handleVerseLink(
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
 ) {
     if (!url.startsWith(VERSE_SCHEME)) return
-    val path = url.removePrefix(VERSE_SCHEME)
-    val parts = path.split("/")
+    val raw = url.removePrefix(VERSE_SCHEME)
+    // Strip query string before positional path parsing.
+    val pathPart = if ('?' in raw) raw.substringBefore('?') else raw
+    val parts = pathPart.split("/")
     if (parts.size < 2) return
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return
     val chapter = parts[1].toIntOrNull() ?: return
@@ -745,11 +763,16 @@ private fun buildSyntheticVerse(link: PendingVerseLink, chapterState: ChapterShe
     }
     val translation = link.translation
         ?: if (chapterState is ChapterSheetState.Success) chapterState.response.translation ?: "KJV" else "KJV"
+    // Prefer the link's localized name (available immediately on tap); backstop from the
+    // chapter response once it loads.
+    val localizedBook = link.localizedBook
+        ?: (chapterState as? ChapterSheetState.Success)?.response?.localizedBook
     return Verse(
         book = link.book,
         chapter = link.chapter,
         verse = link.verseNumber,
         text = actualText,
         translation = translation,
+        localizedBook = localizedBook,
     )
 }

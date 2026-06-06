@@ -4,12 +4,16 @@ Tests for the language detection and translation mapping utilities.
 
 from utils.language import (
     DEFAULT_TRANSLATION,
+    ENGLISH_TO_ARABIC_BOOKS,
     ENGLISH_TO_CHINESE_BOOKS,
+    ENGLISH_TO_FRENCH_BOOKS,
     ENGLISH_TO_GERMAN_BOOKS,
     ENGLISH_TO_HINDI_BOOKS,
     ENGLISH_TO_ITALIAN_BOOKS,
     ENGLISH_TO_KOREAN_BOOKS,
+    ENGLISH_TO_PORTUGUESE_BOOKS,
     ENGLISH_TO_RUSSIAN_BOOKS,
+    ENGLISH_TO_SPANISH_BOOKS,
     LANGUAGE_TO_TRANSLATION,
     LANGUAGE_TRANSLATIONS,
     TRANSLATION_INFO,
@@ -326,6 +330,66 @@ class TestBookNameLocalization:
     def test_all_66_books_have_korean_translation(self):
         """Test all 66 Bible books have Korean translations."""
         assert len(ENGLISH_TO_KOREAN_BOOKS) == 66
+
+    # ── Exodus/Esodo spot-check (primary BITB-040 regression guard) ──────────
+
+    def test_localize_exodus_italian(self):
+        assert get_localized_book_name("Exodus", "ita1927") == "Esodo"
+
+    def test_localize_exodus_german(self):
+        assert get_localized_book_name("Exodus", "schlachter") == "2. Mose"
+
+    def test_localize_exodus_russian(self):
+        assert get_localized_book_name("Exodus", "synodal") == "Исход"
+
+    def test_localize_exodus_chinese(self):
+        assert get_localized_book_name("Exodus", "cuv") == "出埃及记"
+
+    # ── Spot-checks for translations not yet individually tested ────────────
+
+    def test_localize_genesis_spanish(self):
+        assert get_localized_book_name("Genesis", "valera") == "Génesis"
+
+    def test_localize_john_spanish(self):
+        assert get_localized_book_name("John", "valera") == "Juan"
+
+    def test_localize_revelation_spanish(self):
+        assert get_localized_book_name("Revelation", "valera") == "Apocalipsis"
+
+    def test_localize_genesis_french(self):
+        assert get_localized_book_name("Genesis", "ls1910") == "Genèse"
+
+    def test_localize_john_french(self):
+        assert get_localized_book_name("John", "ls1910") == "Jean"
+
+    def test_localize_psalms_french(self):
+        assert get_localized_book_name("Psalms", "ls1910") == "Psaumes"
+
+    def test_localize_genesis_portuguese(self):
+        assert get_localized_book_name("Genesis", "almeida") == "Gênesis"
+
+    def test_localize_john_portuguese(self):
+        assert get_localized_book_name("John", "almeida") == "João"
+
+    def test_localize_genesis_arabic(self):
+        assert get_localized_book_name("Genesis", "arabicsv") == "تكوين"
+
+    def test_localize_john_arabic(self):
+        assert get_localized_book_name("John", "arabicsv") == "يوحنا"
+
+    # ── Map size checks for all 10 translations ──────────────────────────────
+
+    def test_all_66_books_have_spanish_translation(self):
+        assert len(ENGLISH_TO_SPANISH_BOOKS) == 66
+
+    def test_all_66_books_have_french_translation(self):
+        assert len(ENGLISH_TO_FRENCH_BOOKS) == 66
+
+    def test_all_66_books_have_portuguese_translation(self):
+        assert len(ENGLISH_TO_PORTUGUESE_BOOKS) == 66
+
+    def test_all_66_books_have_arabic_translation(self):
+        assert len(ENGLISH_TO_ARABIC_BOOKS) == 66
 
     def test_localize_genesis_russian(self):
         """Test Genesis localizes to Russian."""
