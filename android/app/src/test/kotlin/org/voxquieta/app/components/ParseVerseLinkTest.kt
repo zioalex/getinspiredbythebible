@@ -168,4 +168,52 @@ class ParseVerseLinkTest {
     fun `parseVerseLink returns null for bare verse scheme with no path`() {
         assertNull(parseVerseLink("verse://", preferredTranslation = null))
     }
+
+    // ── Localized book name query param ───────────────────────────────────────
+
+    @Test
+    fun `parseVerseLink returns null localizedBook when query param absent`() {
+        val result = parseVerseLink("verse://John/3/16", preferredTranslation = null)
+        assertNotNull(result)
+        assertNull(result!!.localizedBook)
+    }
+
+    @Test
+    fun `parseVerseLink extracts localizedBook from query param`() {
+        val result = parseVerseLink("verse://Exodus/30/22?localizedBook=Esodo", preferredTranslation = null)
+        assertNotNull(result)
+        assertEquals("Exodus", result!!.book)
+        assertEquals(30, result.chapter)
+        assertEquals(22, result.verseNumber)
+        assertEquals("Esodo", result.localizedBook)
+    }
+
+    @Test
+    fun `parseVerseLink decodes URL-encoded localizedBook with space`() {
+        val result = parseVerseLink("verse://1+Corinthians/13/4?localizedBook=1+Corinzi", preferredTranslation = null)
+        assertNotNull(result)
+        assertEquals("1 Corinthians", result!!.book)
+        assertEquals("1 Corinzi", result.localizedBook)
+    }
+
+    @Test
+    fun `parseVerseLink decodes URL-encoded localizedBook with special char`() {
+        val result = parseVerseLink(
+            "verse://2+Kings/5/14?localizedBook=2.+K%C3%B6nige",
+            preferredTranslation = null,
+        )
+        assertNotNull(result)
+        assertEquals("2 Kings", result!!.book)
+        assertEquals("2. Könige", result.localizedBook)
+    }
+
+    @Test
+    fun `parseVerseLink chapter-only URL with localizedBook query param parses correctly`() {
+        val result = parseVerseLink("verse://Psalms/23?localizedBook=Salmi", preferredTranslation = null)
+        assertNotNull(result)
+        assertEquals("Psalms", result!!.book)
+        assertEquals(23, result.chapter)
+        assertEquals(1, result.verseNumber)
+        assertEquals("Salmi", result.localizedBook)
+    }
 }

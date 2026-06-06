@@ -886,6 +886,40 @@ class VerseRefLinkTest {
         assertEquals(23, calledChapter)
     }
 
+    @Test
+    fun `handleVerseLink ignores localizedBook query param and still loads correct chapter`() {
+        var calledBook: String? = null
+        var calledChapter: Int? = null
+
+        handleVerseLink(
+            url = "verse://Exodus/30/22?localizedBook=Esodo",
+            preferredTranslation = "ita1927",
+        ) { book, chapter, _ ->
+            calledBook = book
+            calledChapter = chapter
+        }
+
+        assertEquals("Exodus", calledBook)
+        assertEquals(30, calledChapter)
+    }
+
+    @Test
+    fun `handleVerseLink chapter-only URL with localizedBook query param still fires`() {
+        var calledBook: String? = null
+        var calledChapter: Int? = null
+
+        handleVerseLink(
+            url = "verse://Psalms/23?localizedBook=Salmi",
+            preferredTranslation = null,
+        ) { book, chapter, _ ->
+            calledBook = book
+            calledChapter = chapter
+        }
+
+        assertEquals("Psalms", calledBook)
+        assertEquals(23, calledChapter)
+    }
+
     // ── Link target resolution from the cited verse list ─────────────────────
 
     @Test
@@ -915,6 +949,28 @@ class VerseRefLinkTest {
         )
         assertTrue(result.contains("[Matthäus 5:7]"))
         assertTrue(result.contains("verse://Matthew/5/7"))
+    }
+
+    @Test
+    fun `injectVerseLinks appends localizedBook query param when book differs from link target`() {
+        // "Esodo" is the Italian name; the map resolves it to "Exodus" for the link target.
+        // The URL should carry localizedBook=Esodo so parseVerseLink can set it on PendingVerseLink.
+        val map = mapOf("Esodo" to "Exodus")
+        val result = injectVerseLinks(
+            "vedi Esodo 30:22 per la formula",
+            verses = emptyList(),
+            localizedToEnglish = map,
+        )
+        assertTrue("display text keeps Italian name", result.contains("[Esodo 30:22]"))
+        assertTrue("link target uses English canonical", result.contains("verse://Exodus/30/22"))
+        assertTrue("localizedBook query param carries the Italian name", result.contains("localizedBook=Esodo"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not append localizedBook query param for English book names`() {
+        val result = injectVerseLinks("See John 3:16 for hope.")
+        assertTrue(result.contains("verse://John/3/16"))
+        assertFalse("no localizedBook param needed when book is already English", result.contains("localizedBook="))
     }
 
     @Test
