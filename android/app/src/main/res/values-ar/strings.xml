@@ -193,6 +193,13 @@
     <string name="action_copied">تم النسخ</string>
     <string name="action_feedback_helpful">كان هذا مفيدًا</string>
     <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
+    <string name="feedback_thanks">شكرًا على ملاحظاتك!</string>
+    <string name="feedback_undo">تراجع</string>
+    <string name="feedback_add_comment">إضافة تعليق (اختياري)</string>
+    <string name="feedback_comment_hint">أخبرنا بالمزيد (اختياري)</string>
+    <string name="feedback_send">إرسال</string>
+    <string name="feedback_sending">جارٍ إرسال الملاحظات…</string>
+    <string name="feedback_maintainer_notice">ستتم مشاركة رسالتك مع مشرف التطبيق.</string>
     <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
     <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 
