@@ -25,6 +25,10 @@ import org.voxquieta.app.testing.ComposeTestHarness
  * timeout-commit timing is validated by the web unit tests and the
  * `ChatViewModel` comment-plumbing test instead. We disable [autoAdvance] so
  * the timer never fires mid-test and the assertions stay deterministic.
+ *
+ * With [autoAdvance] false, each [performClick] must be followed by
+ * [advanceTimeByFrame] to let Compose render the resulting recomposition
+ * before the next assertion runs.
  */
 class FeedbackControlsComposeTest : ComposeTestHarness() {
 
@@ -47,6 +51,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(helpful).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
 
         composeRule.onNodeWithText("Undo").assertIsDisplayed()
         assertNull("rating must not be sent before the rethink window elapses", submitted)
@@ -59,6 +64,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
 
         composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
     }
@@ -70,6 +76,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(helpful).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
 
         assertTrue(
             "maintainer notice must not appear for thumbs-up",
@@ -86,9 +93,11 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
         composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
 
         composeRule.onNodeWithText("Undo").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
 
         assertTrue(
             "maintainer notice must disappear after undo",
@@ -106,7 +115,9 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
         composeRule.onNodeWithText(addComment).performClick()
+        composeRule.mainClock.advanceTimeByFrame()
         composeRule.onNode(hasSetTextAction()).performTextInput("Off-topic verse")
         composeRule.onNodeWithText("Send").performClick()
 
