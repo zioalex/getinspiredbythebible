@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.22.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.0...v1.22.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **android:** float feedback rethink panel as a popover over the thumbs ([#692](https://github.com/zioalex/getinspiredbythebible/issues/692)) ([5319012](https://github.com/zioalex/getinspiredbythebible/commit/5319012bd72ae5fe05400ea471472c8a1a4250ae))
+* **android:** localized book name in verse-detail header (BITB-040) ([#694](https://github.com/zioalex/getinspiredbythebible/issues/694)) ([c14be02](https://github.com/zioalex/getinspiredbythebible/commit/c14be02b2e7069dd95edfd98a3c38f4b8b9a3c60))
+* **android:** preserve chat on device rotation (BITB-039) ([#689](https://github.com/zioalex/getinspiredbythebible/issues/689)) ([a3eb40d](https://github.com/zioalex/getinspiredbythebible/commit/a3eb40d5705299955a30b34082e9b088cc20e1fb))
+* consistent, language-correct Bible version when opening a verse (web + Android) ([#691](https://github.com/zioalex/getinspiredbythebible/issues/691)) ([b4c182d](https://github.com/zioalex/getinspiredbythebible/commit/b4c182d53f5ad85d6bcd95b8941f7d04ef9bca19))
+
 ## [1.22.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.21.2...v1.22.0) (2026-06-06)
 
 ### Features
