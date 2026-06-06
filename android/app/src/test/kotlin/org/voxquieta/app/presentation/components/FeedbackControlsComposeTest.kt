@@ -26,9 +26,11 @@ import org.voxquieta.app.testing.ComposeTestHarness
  * `ChatViewModel` comment-plumbing test instead. We disable [autoAdvance] so
  * the timer never fires mid-test and the assertions stay deterministic.
  *
- * With [autoAdvance] false, each [performClick] must be followed by
- * [advanceTimeByFrame] to let Compose render the resulting recomposition
- * before the next assertion runs.
+ * With [autoAdvance] false, the `clickable` tap-gesture detector and the
+ * resulting recomposition only run when the clock advances. So every
+ * [performClick] / [performTextInput] is followed by [settle], which advances
+ * the clock by a tiny amount ([SETTLE_MS], far below the 10s window) — enough
+ * for the gesture and recomposition to land, never enough to auto-commit.
  */
 class FeedbackControlsComposeTest : ComposeTestHarness() {
 
@@ -43,6 +45,13 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         composeRule.mainClock.autoAdvance = false
     }
 
+    /** Advance just enough for a gesture + recomposition to settle, never the 10s timer. */
+    private fun settle() = composeRule.mainClock.advanceTimeBy(SETTLE_MS)
+
+    private fun maintainerNoticeAbsent(): Boolean =
+        composeRule.onAllNodesWithText(maintainerNotice, useUnmergedTree = false)
+            .fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty()
+
     @Test
     fun `tapping a thumb shows undo without sending immediately`() {
         var submitted: Pair<String, String>? = null
@@ -51,7 +60,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(helpful).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
 
         composeRule.onNodeWithText("Undo").assertIsDisplayed()
         assertNull("rating must not be sent before the rethink window elapses", submitted)
@@ -64,7 +73,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
 
         composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
     }
@@ -76,13 +85,9 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(helpful).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
 
-        assertTrue(
-            "maintainer notice must not appear for thumbs-up",
-            composeRule.onAllNodesWithText(maintainerNotice, useUnmergedTree = false)
-                .fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty(),
-        )
+        assertTrue("maintainer notice must not appear for thumbs-up", maintainerNoticeAbsent())
     }
 
     @Test
@@ -93,17 +98,13 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
         composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
 
         composeRule.onNodeWithText("Undo").performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
 
-        assertTrue(
-            "maintainer notice must disappear after undo",
-            composeRule.onAllNodesWithText(maintainerNotice, useUnmergedTree = false)
-                .fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty(),
-        )
+        assertTrue("maintainer notice must disappear after undo", maintainerNoticeAbsent())
         assertNull("undo must not send any feedback", submitted)
     }
 
@@ -115,11 +116,13 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
         composeRule.onNodeWithText(addComment).performClick()
-        composeRule.mainClock.advanceTimeByFrame()
+        settle()
         composeRule.onNode(hasSetTextAction()).performTextInput("Off-topic verse")
+        settle()
         composeRule.onNodeWithText("Send").performClick()
+        settle()
 
         assertEquals("negative" to "Off-topic verse", submitted)
     }
@@ -133,5 +136,10 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
         composeRule.onNodeWithText("Thanks for your feedback!").assertIsDisplayed()
         composeRule.onNodeWithContentDescription(helpful).assertIsNotEnabled()
         composeRule.onNodeWithContentDescription(notHelpful).assertIsNotEnabled()
+    }
+
+    private companion object {
+        /** Well under FEEDBACK_RETHINK_MS so the auto-commit never fires mid-test. */
+        const val SETTLE_MS = 200L
     }
 }
