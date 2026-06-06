@@ -1,6 +1,6 @@
 # BITB-040: Verse-Detail Header Shows English Book Name Instead of Localized
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #694 — 2026-06-06)
 **Priority:** P1 (High) — pervasive localization defect affecting every non-English locale on every verse tap
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
