@@ -1,57 +1,31 @@
 # User Story: Mobile Verse Panel FAB Repositioning
 
+**Status:** ❌ Won't Do — verified on the real frontend at 375px; the proposed `top-20` reposition is a **regression** and the existing `bottom-28 right-4` position is correct. PR #664 closed.
+
+> Scope note: this story covers the **web frontend** (Next.js) FAB only. The native Android app renders verses via its own components (`VersesPanel`, `InlineVerseCard`, `VerseChip`) and is unaffected.
+
 **As a** mobile user
-**I want** the verse references button to be positioned at the top of the screen
-**So that** it doesn't interfere with my typing area and other bottom UI elements
+**I want** the verse references button to not interfere with the chat
+**So that** I can read messages and type without the button covering content
 
-## Functional Requirements
+## Verification finding (2026-06-05)
 
-- [ ] Verse references floating action button (FAB) appears at top-right of mobile screen
-- [ ] FAB remains visible and accessible during scrolling
-- [ ] FAB opens the verse panel when tapped
-- [ ] FAB displays the count of relevant verses
+The original premise — "`bottom-28 right-4` sits directly above the chat input" — described the **pre-refactor `page.tsx` layout**. The home page has since been refactored into `ChatIsland.tsx`, which renders a footer below the input. In the current layout the FAB positions behave differently. Captured at a 375px mobile viewport (Playwright, mocked verse response):
 
-## Non-Functional Requirements
+| Position | Result |
+| --- | --- |
+| `top-20 right-4` (proposed) | ❌ Overlaps and clips the message/answer card content |
+| `bottom-28 right-4` (current) | ✅ Floats in the footer gutter below the input — clears messages, input, and send button |
+| `bottom-44 right-4` (candidate) | ❌ Overlaps the send button and disclaimer text |
 
-- **UX:** Button must not overlap with header elements or interfere with page content
-- **UX:** Button must remain easily tappable (minimum 44x44px touch target)
-- **UX:** Transition should feel natural, not jarring
-- **Accessibility:** Button must maintain proper aria-label for screen readers
-- **Performance:** No layout shift or reflow issues
+Conclusion: the existing `bottom-28 right-4` is the cleanest of the three. The reposition is declined. PR #664 was additionally stale (edited the deleted `page.tsx`) and bundled unrelated dependency bumps.
 
-## Acceptance Criteria
+## Possible future work (not scheduled)
 
-- [ ] FAB is positioned at top-right instead of bottom-right on mobile viewports (< 1024px)
-- [ ] FAB does not overlap with header, language switcher, or translation selector
-- [ ] FAB maintains adequate spacing from screen edges (4 units/1rem)
-- [ ] FAB z-index ensures it stays above page content but doesn't block critical UI
-- [ ] Clicking FAB still opens the verse slide-over panel correctly
-- [ ] Verse count badge is still visible and readable
-
-## Tech Constraints
-
-- Mobile-only change (hidden on desktop via `lg:hidden` class)
-- Must work on small viewports (375px width minimum)
-- Should use Tailwind utility classes for positioning
-- Maintain existing z-index layering system
-
-## Out of Scope
-
-- Changing FAB appearance, size, or color
-- Changing verse panel behavior
-- Desktop/tablet layouts (FAB is hidden on large screens)
-- Animation or transition effects (can be added later if needed)
-
-## Current Behavior
-
-FAB is positioned at `bottom-24 right-4` which overlaps with input area on mobile phones.
-
-## Expected Behavior
-
-FAB should be positioned at `top-20 right-4` to stay out of the way while remaining accessible.
+If the FAB is ever felt to compete with content, a non-floating approach — surfacing the verse count as a button inside the sticky header instead of a fixed FAB — would eliminate content overlap entirely. That is a larger change and out of scope here.
 
 ---
 
-**Priority:** High
-**Effort:** Trivial (CSS positioning change)
-**Impact:** Improves mobile UX significantly
+**Priority:** Low (no action needed)
+**Effort:** N/A
+**Impact:** None — current position retained
