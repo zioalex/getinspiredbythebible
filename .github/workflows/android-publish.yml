@@ -234,7 +234,7 @@ jobs:
 
       - name: Install Fastlane
         working-directory: android
-        run: gem install fastlane --no-document
+        run: bundle install --jobs 4 --retry 3
 
       - name: Decode Google Play JSON key
         run: |
@@ -356,7 +356,7 @@ jobs:
           SUPPLY_VERBOSE: "true"
         run: |
           set -o pipefail
-          fastlane ${{ steps.lane.outputs.lane }} --verbose 2>&1 \
+          bundle exec fastlane ${{ steps.lane.outputs.lane }} --verbose 2>&1 \
             | tee /tmp/fastlane.log
 
       - name: Also release build to extra closed tracks
@@ -416,7 +416,7 @@ jobs:
             if PROMOTE_VERSION_CODE="${VERSION_CODE}" \
                PROMOTE_FROM="${PRIMARY_TRACK}" \
                PROMOTE_TO="${TRACK}" \
-               fastlane promote --verbose 2>&1 | tee -a /tmp/fastlane.log; then
+               bundle exec fastlane promote --verbose 2>&1 | tee -a /tmp/fastlane.log; then
               echo "✅ Promoted to '${TRACK}'."
             else
               echo "❌ Failed to promote to '${TRACK}'."
