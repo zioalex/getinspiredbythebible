@@ -817,7 +817,11 @@ class ChatViewModel @Inject constructor(
                 // (e.g. German "2 Korinther"); the backend chapter lookup is keyed by English
                 // names. Normalize first so localized references resolve instead of 404ing.
                 val normalizedBook = normalizeBookName(book, localizedToEnglish.value)
-                val response = bibleApiService.getChapter(normalizedBook, chapter, translation)
+                // Pass the active UI language so that, with no explicit translation,
+                // the backend defaults to the version for the language the user is
+                // reading rather than English (OkHttp sends no Accept-Language).
+                val lang = _uiState.value.currentLocale.ifBlank { null }
+                val response = bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
                 _chapterSheetState.value = ChapterSheetState.Success(response)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
