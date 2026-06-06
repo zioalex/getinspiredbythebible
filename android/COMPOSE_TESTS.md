@@ -63,7 +63,10 @@ Reference: `VersesPanelComposeTest.kt` is the canonical template.
 
 - **`ModalBottomSheet`, `Dialog`, `Popup`** have known rendering quirks under Robolectric
   (window insets, animation clocks). Test the *content* composable directly instead of the
-  sheet wrapper. See how `VersesPanelContent` is used instead of `VersesPanel`.
+  sheet wrapper. See how `VersesPanelContent` is used instead of `VersesPanel`, and
+  `FeedbackPendingPanel` (asserted in `FeedbackPendingPanelComposeTest`) instead of the
+  `Popup` rendered by `FeedbackControls`. Popover *positioning* and keyboard focus are left
+  to manual / instrumented QA.
 - **API level**: Robolectric 4.14.1 pins to API 34 via `@Config(sdk = [34])`.
   Behaviors that only appear on API 35 must be covered by instrumented tests.
 - **Hilt is intentionally excluded**: the harness uses `android.app.Application` as the
