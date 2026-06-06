@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,14 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ThumbDown
-import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -402,7 +398,7 @@ fun ChatMessageItem(
     modifier: Modifier = Modifier,
     userMessage: String = "",
     onRetry: (() -> Unit)? = null,
-    onFeedback: ((messageLocalId: String, rating: String) -> Unit)? = null,
+    onFeedback: ((messageLocalId: String, rating: String, comment: String) -> Unit)? = null,
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
@@ -599,80 +595,64 @@ fun ChatMessageItem(
                 }
             }
 
-            // Action row — feedback (left) and copy+share (right) rendered horizontally.
+            // Action row — feedback (left) and copy+share (right).
             val showFeedback = message.role == Message.Role.ASSISTANT
                 && !message.isStreaming
                 && message.messageId.isNotBlank()
                 && onFeedback != null
-            if (showShare || showFeedback) {
+
+            // Copy + share actions, reused as the trailing slot of FeedbackControls
+            // or rendered alone when there is no feedback row.
+            val trailingActions: @Composable RowScope.() -> Unit = {
+                if (showShare) {
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.action_copy_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            val shareText = if (userMessage.isNotBlank()) {
+                                "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                            } else {
+                                "$sharePrefix\n\n${message.content}"
+                            }
+                            ShareCompat.IntentBuilder(context)
+                                .setType("text/plain")
+                                .setText(shareText)
+                                .startChooser()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = stringResource(R.string.action_share_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            if (showFeedback) {
+                FeedbackControls(
+                    feedbackGiven = feedbackGiven,
+                    onSubmit = { rating, comment -> onFeedback!!(message.id, rating, comment) },
+                    trailing = trailingActions,
+                )
+            } else if (showShare) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Feedback buttons on the left side
-                    if (showFeedback) {
-                        val alreadyVoted = feedbackGiven != null
-
-                        IconButton(
-                            onClick = { if (!alreadyVoted) onFeedback!!(message.id, "positive") },
-                            enabled = !alreadyVoted,
-                        ) {
-                            Icon(
-                                imageVector = if (feedbackGiven == "positive") Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-                                contentDescription = stringResource(R.string.action_feedback_helpful),
-                                tint = if (feedbackGiven == "positive") MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                            )
-                        }
-                        IconButton(
-                            onClick = { if (!alreadyVoted) onFeedback!!(message.id, "negative") },
-                            enabled = !alreadyVoted,
-                        ) {
-                            Icon(
-                                imageVector = if (feedbackGiven == "negative") Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
-                                contentDescription = stringResource(R.string.action_feedback_not_helpful),
-                                tint = if (feedbackGiven == "negative") MaterialTheme.colorScheme.error else LocalContentColor.current,
-                            )
-                        }
-                    }
                     Spacer(modifier = Modifier.weight(1f))
-                    // Copy button
-                    if (showShare) {
-                        IconButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = stringResource(R.string.action_copy_message),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    // Share button on the right side
-                    if (showShare) {
-                        IconButton(
-                            onClick = {
-                                val shareText = if (userMessage.isNotBlank()) {
-                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
-                                } else {
-                                    "$sharePrefix\n\n${message.content}"
-                                }
-                                ShareCompat.IntentBuilder(context)
-                                    .setType("text/plain")
-                                    .setText(shareText)
-                                    .startChooser()
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = stringResource(R.string.action_share_message),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    trailingActions()
                 }
             }
 

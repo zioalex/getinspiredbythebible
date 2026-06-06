@@ -68,7 +68,7 @@ jobs:
 
       - name: Install Fastlane
         working-directory: android
-        run: gem install fastlane --no-document
+        run: bundle install --jobs 4 --retry 3
 
       - name: Decode Google Play JSON key
         run: |
@@ -88,7 +88,7 @@ jobs:
           SUPPLY_VERBOSE: "true"
         run: |
           set -o pipefail
-          fastlane promote --verbose 2>&1 | tee /tmp/fastlane.log
+          bundle exec fastlane promote --verbose 2>&1 | tee /tmp/fastlane.log
 
       - name: Upload Fastlane log on failure
         if: failure()

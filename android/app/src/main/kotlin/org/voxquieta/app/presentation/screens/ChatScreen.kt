@@ -404,7 +404,9 @@ fun ChatScreen(
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
-                            onFeedback = { messageLocalId, rating -> viewModel.submitFeedback(messageLocalId, rating) },
+                            onFeedback = { messageLocalId, rating, comment ->
+                                viewModel.submitFeedback(messageLocalId, rating, comment.ifBlank { null })
+                            },
                             feedbackGiven = uiState.feedbackGiven[message.id],
                             verseRefRegex = verseRefRegex,
                             localizedToEnglish = localizedToEnglish,

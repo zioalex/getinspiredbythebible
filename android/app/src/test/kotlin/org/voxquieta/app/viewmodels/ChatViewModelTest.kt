@@ -1245,6 +1245,36 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `submitFeedback forwards the comment to the repository`() = runTest {
+        val backendMessageId = "backend-uuid-comment"
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = backendMessageId, done = false),
+            StreamChunk(content = "Here is some inspiration.", done = true),
+        )
+        coEvery { repository.submitFeedback(any(), any(), any(), any(), any()) } returns Unit
+
+        viewModel.sendMessage("Tell me something inspiring")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistantMsg = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+
+        viewModel.submitFeedback(assistantMsg.id, "negative", "The verse was off-topic")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            repository.submitFeedback(
+                messageId = backendMessageId,
+                rating = FeedbackRating.NEGATIVE,
+                userMessage = any(),
+                assistantResponse = any(),
+                comment = "The verse was off-topic",
+            )
+        }
+        assertEquals("negative", viewModel.uiState.value.feedbackGiven[assistantMsg.id])
+    }
+
+    @Test
     fun `submitFeedback is no-op when messageId is blank`() = runTest {
         // Stream a message that intentionally has no metadata event (blank messageId).
         every { repository.chatStream(any()) } returns flowOf(

@@ -15,4 +15,5 @@ data class FeedbackRequestDto(
     @SerialName("rating") val rating: String,          // "positive" or "negative"
     @SerialName("user_message") val userMessage: String = "",
     @SerialName("assistant_response") val assistantResponse: String = "",
+    @SerialName("comment") val comment: String? = null,
 )

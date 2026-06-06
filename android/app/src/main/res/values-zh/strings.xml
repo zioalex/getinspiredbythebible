@@ -193,6 +193,13 @@
     <string name="action_copied">已复制</string>
     <string name="action_feedback_helpful">这很有帮助</string>
     <string name="action_feedback_not_helpful">这没有帮助</string>
+    <string name="feedback_thanks">感谢您的反馈！</string>
+    <string name="feedback_undo">撤销</string>
+    <string name="feedback_add_comment">添加评论（可选）</string>
+    <string name="feedback_comment_hint">告诉我们更多（可选）</string>
+    <string name="feedback_send">发送</string>
+    <string name="feedback_sending">正在发送反馈…</string>
+    <string name="feedback_maintainer_notice">您的留言将分享给应用的维护者。</string>
     <string name="backend_warming_up">正在连接服务器……（首次请求可能需要最多30秒）</string>
     <string name="action_scroll_to_bottom">滚动到底部</string>
 

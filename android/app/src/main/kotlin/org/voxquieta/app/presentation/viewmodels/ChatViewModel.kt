@@ -742,7 +742,7 @@ class ChatViewModel @Inject constructor(
      *
      * @param messageLocalId The local UUID of the assistant [Message] (its [Message.id]).
      * @param rating "positive" or "negative".
-     * @param comment Optional free-text comment (reserved for future use).
+     * @param comment Optional free-text comment the user added on thumbs-down.
      */
     fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
         // Look up the message and its context (user message preceding it).
@@ -764,6 +764,7 @@ class ChatViewModel @Inject constructor(
                     rating = feedbackRating,
                     userMessage = userMessage?.content ?: "",
                     assistantResponse = assistantMsg.content,
+                    comment = comment,
                 )
                 _uiState.update { state ->
                     state.copy(
