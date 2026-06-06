@@ -138,9 +138,20 @@ fun ChatScreen(
     var showLanguageMenu by remember { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
+    // Guard for the "new" route: only start a fresh conversation when the ViewModel
+    // has no active in-memory conversation. This prevents rotation (which re-runs
+    // this effect on the still-"new" route) from wiping an in-progress chat. It also
+    // covers the locale-change recreate path — the ViewModel is Activity-scoped so
+    // locale recreations create a fresh ViewModel with empty state anyway, but the
+    // guard makes the intent explicit and handles any future edge cases.
     LaunchedEffect(conversationId) {
         when {
-            conversationId == null || conversationId == "new" -> viewModel.startNewConversation()
+            conversationId == null || conversationId == "new" -> {
+                val s = viewModel.uiState.value
+                if (s.messages.isEmpty() && s.currentConversationId == null) {
+                    viewModel.startNewConversation()
+                }
+            }
             else -> viewModel.loadConversation(conversationId)
         }
     }
