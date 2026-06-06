@@ -2,42 +2,32 @@ package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.voxquieta.app.testing.ComposeTestHarness
 
 /**
- * Robolectric-backed Compose UI tests for [FeedbackControls] (BITB-042).
+ * Robolectric-backed tests for [FeedbackControls] state / locking behaviour.
  *
- * These cover the deterministic interaction surface: the pending/undo
- * affordance, the thumbs-down maintainer notice, and the inline comment →
- * Send path. The ~10s rethink timer itself is driven by coroutine [delay],
- * which the Robolectric main clock does not advance reliably, so the
- * timeout-commit timing is validated by the web unit tests and the
- * `ChatViewModel` comment-plumbing test instead. We disable [autoAdvance] so
- * the timer never fires mid-test and the assertions stay deterministic.
+ * The pending affordance now renders in a [androidx.compose.ui.window.Popup]
+ * (see [FeedbackPendingPanel]), whose content is unreliable to assert under
+ * Robolectric (see `COMPOSE_TESTS.md`). So the popover *content* — Undo, the
+ * maintainer notice, and the comment → Send path — is covered directly in
+ * [FeedbackPendingPanelComposeTest]. These tests only assert facts that render
+ * inline: the locked "Thanks" state, and that tapping the thumbs does not send
+ * before the rethink window elapses.
  *
- * With [autoAdvance] false, the `clickable` tap-gesture detector and the
- * resulting recomposition only run when the clock advances. So every
- * [performClick] / [performTextInput] is followed by [settle], which advances
- * the clock by a tiny amount ([SETTLE_MS], far below the 10s window) — enough
- * for the gesture and recomposition to land, never enough to auto-commit.
+ * [autoAdvance] is disabled so the 10s timer never fires mid-test; each
+ * [performClick] is followed by [settle] so the tap gesture + recomposition land.
  */
 class FeedbackControlsComposeTest : ComposeTestHarness() {
 
     private val helpful = "This was helpful"
     private val notHelpful = "This was not helpful"
-    private val maintainerNotice = "Your message will be shared with the app's maintainer."
-    private val addComment = "Add a comment (optional)"
 
     @Before
     fun freezeClock() {
@@ -48,83 +38,33 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
     /** Advance just enough for a gesture + recomposition to settle, never the 10s timer. */
     private fun settle() = composeRule.mainClock.advanceTimeBy(SETTLE_MS)
 
-    private fun maintainerNoticeAbsent(): Boolean =
-        composeRule.onAllNodesWithText(maintainerNotice, useUnmergedTree = false)
-            .fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty()
-
     @Test
-    fun `tapping a thumb shows undo without sending immediately`() {
+    fun `tapping a thumb does not send immediately`() {
         var submitted: Pair<String, String>? = null
         setContentThemed {
             FeedbackControls(feedbackGiven = null, onSubmit = { r, c -> submitted = r to c })
         }
 
-        composeRule.onNodeWithContentDescription(helpful).performClick()
+        composeRule.onNodeWithContentDescription(notHelpful).performClick()
         settle()
 
-        composeRule.onNodeWithText("Undo").assertIsDisplayed()
         assertNull("rating must not be sent before the rethink window elapses", submitted)
     }
 
     @Test
-    fun `thumbs-down shows the maintainer-sharing notice`() {
-        setContentThemed {
-            FeedbackControls(feedbackGiven = null, onSubmit = { _, _ -> })
-        }
-
-        composeRule.onNodeWithContentDescription(notHelpful).performClick()
-        settle()
-
-        composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
-    }
-
-    @Test
-    fun `thumbs-up does not show the maintainer notice`() {
-        setContentThemed {
-            FeedbackControls(feedbackGiven = null, onSubmit = { _, _ -> })
-        }
-
-        composeRule.onNodeWithContentDescription(helpful).performClick()
-        settle()
-
-        assertTrue("maintainer notice must not appear for thumbs-up", maintainerNoticeAbsent())
-    }
-
-    @Test
-    fun `undo cancels the pending feedback`() {
+    fun `re-tapping the same thumb cancels and sends nothing`() {
         var submitted: Pair<String, String>? = null
         setContentThemed {
             FeedbackControls(feedbackGiven = null, onSubmit = { r, c -> submitted = r to c })
         }
 
-        composeRule.onNodeWithContentDescription(notHelpful).performClick()
+        val up = composeRule.onNodeWithContentDescription(helpful)
+        up.performClick()
         settle()
-        composeRule.onNodeWithText(maintainerNotice).assertIsDisplayed()
-
-        composeRule.onNodeWithText("Undo").performClick()
-        settle()
-
-        assertTrue("maintainer notice must disappear after undo", maintainerNoticeAbsent())
-        assertNull("undo must not send any feedback", submitted)
-    }
-
-    @Test
-    fun `adding a comment and tapping Send submits rating with comment`() {
-        var submitted: Pair<String, String>? = null
-        setContentThemed {
-            FeedbackControls(feedbackGiven = null, onSubmit = { r, c -> submitted = r to c })
-        }
-
-        composeRule.onNodeWithContentDescription(notHelpful).performClick()
-        settle()
-        composeRule.onNodeWithText(addComment).performClick()
-        settle()
-        composeRule.onNode(hasSetTextAction()).performTextInput("Off-topic verse")
-        settle()
-        composeRule.onNodeWithText("Send").performClick()
+        up.performClick() // re-tapping the pending thumb = undo
         settle()
 
-        assertEquals("negative" to "Off-topic verse", submitted)
+        assertNull("re-tapping the same thumb must cancel without sending", submitted)
     }
 
     @Test
