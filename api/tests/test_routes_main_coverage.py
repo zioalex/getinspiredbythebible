@@ -1163,6 +1163,172 @@ class TestScriptureRoutes:
 
         assert result == expected_stats
 
+    # ---- Timeout / error / placeholder tests ----
+
+    @pytest.mark.asyncio
+    async def test_get_verse_timeout_returns_504(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+        from scripture.repository import QueryTimeoutError
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(side_effect=QueryTimeoutError("timed out"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, None)
+
+        assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_verse_repo_error_returns_503(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(side_effect=RuntimeError("db failure"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, None)
+
+        assert exc_info.value.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_get_verse_placeholder_text_returns_404(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+
+        mock_verse = MagicMock()
+        mock_verse.reference = "John 3:16"
+        mock_verse.text = "////"
+        mock_verse.book.name = "John"
+        mock_verse.chapter_number = 3
+        mock_verse.verse_number = 16
+        mock_verse.translation = "kjv"
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(return_value=mock_verse)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, None)
+
+        assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_timeout_returns_504(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+        from scripture.repository import QueryTimeoutError
+
+        mock_db = AsyncMock()
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=QueryTimeoutError("timed out"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("John", 3, mock_db, None)
+
+        assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_repo_error_returns_503(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=RuntimeError("db failure"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("John", 3, mock_db, None)
+
+        assert exc_info.value.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_filters_placeholder_verses(self):
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+
+        good = self._chapter_verse("kjv")
+        good.text = "For God so loved the world..."
+        bad = self._chapter_verse("kjv")
+        bad.text = "////"
+        bad.verse_number = 17
+
+        with (
+            patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+            patch("routes.scripture.get_localized_book_name", return_value="John"),
+            patch(
+                "routes.scripture.get_translation_info", return_value={"name": "King James Version"}
+            ),
+        ):
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[good, bad])
+            mock_repo_cls.return_value = mock_repo
+
+            mock_http = MagicMock()
+            mock_http.headers = {"accept-language": "en-US"}
+            result = await get_chapter("John", 3, mock_db, "kjv", http_request=mock_http)
+
+        assert len(result.verses) == 1
+        assert result.verses[0]["text"] == "For God so loved the world..."
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_all_placeholder_returns_404(self):
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+
+        bad = self._chapter_verse("kjv")
+        bad.text = "////"
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[bad])
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("John", 3, mock_db, None)
+
+        assert exc_info.value.status_code == 404
+
+    def test_is_placeholder_text(self):
+        from routes.scripture import _is_placeholder_text
+
+        assert _is_placeholder_text("////") is True
+        assert _is_placeholder_text("") is True
+        assert _is_placeholder_text("   ") is True
+        assert _is_placeholder_text(None) is True
+        assert _is_placeholder_text("For God so loved") is False
+        assert _is_placeholder_text("Бог") is False  # Cyrillic must not be blocked
+
 
 # ==================== Health Check Endpoint Integration ====================
 

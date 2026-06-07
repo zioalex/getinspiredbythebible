@@ -350,6 +350,54 @@ class TestGetChapterVerses:
         assert len(verses) == 1
 
 
+class TestGetVerseTimeout:
+    """get_verse must raise QueryTimeoutError when the DB query exceeds the timeout."""
+
+    @pytest.mark.asyncio
+    async def test_times_out(self, monkeypatch):
+        import asyncio
+
+        from config import settings
+        from scripture.repository import QueryTimeoutError
+
+        monkeypatch.setattr(settings, "verse_query_timeout_s", 0.01)
+
+        session = _make_mock_session()
+
+        async def _slow(*args, **kwargs):
+            await asyncio.sleep(1)
+
+        session.execute = _slow
+
+        repo = ScriptureRepository(session)
+        with pytest.raises(QueryTimeoutError):
+            await repo.get_verse("John", 3, 16)
+
+
+class TestGetChapterVersesTimeout:
+    """get_chapter_verses must raise QueryTimeoutError when the DB query exceeds the timeout."""
+
+    @pytest.mark.asyncio
+    async def test_times_out(self, monkeypatch):
+        import asyncio
+
+        from config import settings
+        from scripture.repository import QueryTimeoutError
+
+        monkeypatch.setattr(settings, "verse_query_timeout_s", 0.01)
+
+        session = _make_mock_session()
+
+        async def _slow(*args, **kwargs):
+            await asyncio.sleep(1)
+
+        session.execute = _slow
+
+        repo = ScriptureRepository(session)
+        with pytest.raises(QueryTimeoutError):
+            await repo.get_chapter_verses("John", 3)
+
+
 class TestSearchVersesText:
     """Tests for ScriptureRepository.search_verses_text()."""
 

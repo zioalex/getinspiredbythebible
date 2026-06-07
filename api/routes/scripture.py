@@ -2,6 +2,7 @@
 Scripture API routes - Bible data and search endpoints.
 """
 
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -15,11 +16,25 @@ from scripture import (
     SearchResults,
     VerseResult,
 )
+from scripture.repository import QueryTimeoutError
 from utils.book_names import LOCALIZED_TO_ENGLISH, get_localized_book_name, normalize_book_name
 from utils.language import get_all_translations, get_translation_info, resolve_translation
+from utils.logging_config import get_logger
 from utils.metrics import scripture_search_counter, scripture_verses_returned
 
 router = APIRouter(prefix="/scripture", tags=["scripture"])
+logger = get_logger("routes.scripture")
+
+# Verse text that is empty or contains only punctuation/slashes/whitespace
+# (e.g. "////", "---") is a data defect, never real scripture.
+_PLACEHOLDER_TEXT_RE = re.compile(r"^[\s\W_]*$", re.UNICODE)
+
+
+def _is_placeholder_text(text: str | None) -> bool:
+    """Return True if verse text is empty or consists only of punctuation/whitespace."""
+    if text is None:
+        return True
+    return bool(_PLACEHOLDER_TEXT_RE.match(text))
 
 
 class BooksResponse(BaseModel):
@@ -104,9 +119,26 @@ async def get_verse(
     """Get a specific verse by reference, optionally filtered by translation."""
     book = normalize_book_name(book)
     repo = ScriptureRepository(db)
-    result = await repo.get_verse(book, chapter, verse, translation=translation)
+    try:
+        result = await repo.get_verse(book, chapter, verse, translation=translation)
+    except QueryTimeoutError:
+        logger.error("Verse query timed out: %s %s:%s", book, chapter, verse)
+        raise HTTPException(status_code=504, detail="Verse lookup timed out, please try again.")
+    except Exception:
+        logger.exception("Verse query failed: %s %s:%s", book, chapter, verse)
+        raise HTTPException(status_code=503, detail="Verse lookup temporarily unavailable.")
 
     if not result:
+        raise HTTPException(status_code=404, detail=f"Verse not found: {book} {chapter}:{verse}")
+
+    if _is_placeholder_text(result.text):
+        logger.warning(
+            "Placeholder verse text blocked: %s %s:%s (translation=%s)",
+            book,
+            chapter,
+            verse,
+            result.translation,
+        )
         raise HTTPException(status_code=404, detail=f"Verse not found: {book} {chapter}:{verse}")
 
     localized_book = get_localized_book_name(result.book.name, result.translation)
@@ -136,7 +168,17 @@ async def get_chapter(
     """Get all verses in a chapter, optionally filtered by translation."""
     book = normalize_book_name(book)
     repo = ScriptureRepository(db)
-    verses = await repo.get_chapter_verses(book, chapter, translation=translation)
+    try:
+        verses = await repo.get_chapter_verses(book, chapter, translation=translation)
+    except QueryTimeoutError:
+        logger.error("Chapter query timed out: %s %s", book, chapter)
+        raise HTTPException(status_code=504, detail="Chapter lookup timed out, please try again.")
+    except Exception:
+        logger.exception("Chapter query failed: %s %s", book, chapter)
+        raise HTTPException(status_code=503, detail="Chapter lookup temporarily unavailable.")
+
+    # Drop placeholder/empty verses (e.g. "////") — these are data defects, not scripture.
+    verses = [v for v in verses if not _is_placeholder_text(v.text)]
 
     if not verses:
         raise HTTPException(status_code=404, detail=f"Chapter not found: {book} {chapter}")

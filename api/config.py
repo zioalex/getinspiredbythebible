@@ -125,6 +125,11 @@ class Settings(BaseSettings):
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
+    # Per-query timeout for verse/chapter lookups. A hung PostgreSQL call is
+    # aborted after this many seconds so the API returns 504 instead of blocking
+    # forever. Well above normal latency (single-digit ms) but below upstream
+    # proxy/client timeouts.
+    verse_query_timeout_s: float = 5.0
 
     # Cloudflare Turnstile (Bot Protection)
     # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile

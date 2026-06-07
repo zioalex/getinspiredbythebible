@@ -2,6 +2,7 @@
 Scripture Repository - Database operations for Bible data.
 """
 
+import asyncio
 import time
 from typing import Sequence, cast
 
@@ -24,6 +25,10 @@ from utils.telemetry import tracer
 from .models import Book, Passage, Topic, Verse
 
 logger = get_logger("scripture.repository")
+
+
+class QueryTimeoutError(TimeoutError):
+    """Raised when a database query exceeds the configured per-query timeout."""
 
 
 def _set_common_span_attrs(span: Span, operation: str, translation: str | None) -> None:
@@ -130,7 +135,25 @@ class ScriptureRepository:
         with tracer.start_as_current_span("db.get_verse") as span:
             _set_common_span_attrs(span, "get_verse", translation)
             start = time.perf_counter()
-            result = await self.session.execute(query)
+            try:
+                result = await asyncio.wait_for(
+                    self.session.execute(query),
+                    timeout=settings.verse_query_timeout_s,
+                )
+            except asyncio.TimeoutError as exc:
+                span.set_attribute("db.timed_out", True)
+                logger.error(
+                    "get_verse query timed out",
+                    extra={
+                        "operation": "get_verse",
+                        "timeout_s": settings.verse_query_timeout_s,
+                        "translation": translation or "all",
+                        "request_id": REQUEST_ID_CTX_VAR.get("") or "none",
+                    },
+                )
+                raise QueryTimeoutError(
+                    f"get_verse exceeded {settings.verse_query_timeout_s}s timeout"
+                ) from exc
             verse_obj = cast(Verse | None, result.scalar_one_or_none())
             _record_duration(span, start, "get_verse", 1 if verse_obj else 0, translation)
             return verse_obj
@@ -189,7 +212,25 @@ class ScriptureRepository:
         with tracer.start_as_current_span("db.get_chapter_verses") as span:
             _set_common_span_attrs(span, "get_chapter", translation)
             start = time.perf_counter()
-            result = await self.session.execute(query)
+            try:
+                result = await asyncio.wait_for(
+                    self.session.execute(query),
+                    timeout=settings.verse_query_timeout_s,
+                )
+            except asyncio.TimeoutError as exc:
+                span.set_attribute("db.timed_out", True)
+                logger.error(
+                    "get_chapter query timed out",
+                    extra={
+                        "operation": "get_chapter",
+                        "timeout_s": settings.verse_query_timeout_s,
+                        "translation": translation or "all",
+                        "request_id": REQUEST_ID_CTX_VAR.get("") or "none",
+                    },
+                )
+                raise QueryTimeoutError(
+                    f"get_chapter exceeded {settings.verse_query_timeout_s}s timeout"
+                ) from exc
             verses = cast(Sequence[Verse], result.scalars().all())
             _record_duration(span, start, "get_chapter", len(verses), translation)
             return verses
