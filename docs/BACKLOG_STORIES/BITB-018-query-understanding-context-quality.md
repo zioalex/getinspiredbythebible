@@ -47,9 +47,9 @@ today would boost nothing. Populating it is a prerequisite, tracked below.
 - [ ] Tune weights (`hybrid_search_semantic_weight`/`keyword_weight`, `topic_boost_factor`)
       and write a retrospective in `docs/DONE/`.
 
-> **Recommended split:** this story now mixes "validate + flip already-built flags"
-> (small, highest-ROI, do first) with "populate `verse_topics`" (medium, data work).
-> Track them as two follow-ups so the near-done rollout isn't blocked by the data task.
+> **Split into two follow-ups** so the near-done rollout isn't blocked by the data task:
+> **BITB-043** (validate + flip the already-built flags — small, highest-ROI, do first) and
+> **BITB-044** (populate `verse_topics` — medium, data work, unblocks topic boosting).
 
 ---
 
@@ -404,15 +404,13 @@ def test_hybrid_search_catches_keyword_misses():
 
 ## Follow-Up Work
 
-*(IDs to be assigned from the next free number — highest existing is BITB-042.)*
-
-- **Split A — Validate & enable Phase 1**: build golden set, measure baseline, A/B
-  query expansion, enable hybrid search. Small, highest-ROI, do first.
-- **Split B — Populate `verse_topics`**: LLM-assisted topic tagging so topic boosting
-  stops being a no-op. Medium; unblocks `topic_boosting_enabled`.
-- **Phase 2** — Enhanced Embeddings (enriched / passage-level / multi-vector).
-- **Phase 3** — Advanced Retrieval (cross-encoder rerank, intent classification).
-- **Phase 4** — Fine-Tuned Models (only if Phases 1–3 miss targets).
+- **BITB-043 — Validate & enable Phase 1**: build golden set, measure baseline, A/B
+  query expansion, enable hybrid search. Highest-ROI, do first. *(P1)*
+- **BITB-044 — Populate `verse_topics`**: LLM-assisted topic tagging so topic boosting
+  stops being a no-op. Unblocks `topic_boosting_enabled`. *(P2)*
+- **Phase 2** *(ID TBD)* — Enhanced Embeddings (enriched / passage-level / multi-vector).
+- **Phase 3** *(ID TBD)* — Advanced Retrieval (cross-encoder rerank, intent classification).
+- **Phase 4** *(ID TBD)* — Fine-Tuned Models (only if Phases 1–3 miss targets).
 
 ---
 

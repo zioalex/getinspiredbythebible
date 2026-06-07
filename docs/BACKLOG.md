@@ -174,6 +174,65 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
+> **Search-relevance epic (BITB-018 → 043/044):** Phase-1 retrieval improvements
+> (query expansion, hybrid search, topic boosting) are **built but dark** — merged in
+> Feb 2026 yet shipped behind feature flags that default OFF, so production search is
+> still pure semantic. The highest-ROI next step is validation + rollout (BITB-043), not
+> new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
+> `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
+> is the lever).
+
+### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
+
+**Status:** 🟡 Code Complete — Pending Validation & Rollout (flags OFF in prod)
+**Size:** L original (implementation done; remaining work is validation + rollout)
+**Created:** 2026-02-24
+**Reviewed:** 2026-06-07
+
+**As a** user seeking spiritual guidance,
+**I want** search to understand the meaning of my situation (not just keyword overlap),
+**so that** I receive relevant, comforting scripture.
+
+**Why P1:** Motivated by a real incident (frustrated Italian user → irrelevant Job 21:27).
+Query expansion, hybrid search, and topic boosting were **implemented and merged in Feb 2026**
+(`docs/DONE/2026-02-24-query-understanding-context-quality.md`) but ship **disabled**
+(`api/config.py:76–85`), so the defect still reproduces in prod. Remaining work is split into
+BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
+
+**Acceptance Criteria:** see full story; tracked via BITB-043 + BITB-044.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-018-query-understanding-context-quality.md`
+
+---
+
+### 🎯 BITB-043: Validate & Enable Phase-1 Search Improvements
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** search to use the already-built query expansion and hybrid
+(semantic + keyword) retrieval, **so that** I get thematically relevant verses instead of
+literal matches — without waiting on new retrieval code.
+
+**Why P1:** Highest-ROI item on the search backlog. The code is merged but gated off and
+unvalidated for ~3.5 months. This story builds a golden eval set, measures baseline, then
+safely enables hybrid search (strict-improvement) and A/B-tests query expansion. Low risk
+(feature-flagged, backward-compatible). Topic boosting is excluded here — blocked on data
+(BITB-044).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Golden eval set (50+ multilingual queries) + scorer for Precision@5 / Recall@10 / MRR
+- [ ] Baseline measured with flags off
+- [ ] Hybrid search enabled in prod; exact-phrase cases pass; no regression
+- [ ] Query expansion enabled (staged/A-B); total latency < 2s; LLM cost measured
+- [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
 ### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
 
 **Status:** 🎯 Todo
@@ -682,6 +741,33 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-044: Populate `verse_topics` to Activate Topic Boosting
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** verses matching my detected theme to rank higher, **so that** the
+most pastorally relevant verses surface first.
+
+**Why P2:** Topic boosting was built under BITB-018 (detection in `api/chat/topics.py`,
+ranking boost, repository joins on `verse_topics`, schema in migration `004`) but
+**`verse_topics` is never populated** — no `INSERT` exists anywhere, so the feature is a
+silent no-op. This story tags the corpus (~31k verses) against the 13 topics via a
+repeatable population script, then validates and enables `topic_boosting_enabled`. P2
+because it's data work gated behind BITB-043's eval set, not a live regression.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Idempotent population script writes `(verse_id, topic_id)` rows; re-runnable
+- [ ] Coverage + spot-check accuracy recorded across the 13 topics
+- [ ] With boosting on, topic-laden golden queries improve; neutral queries don't regress
+- [ ] `topic_boost_factor` tuned + documented; topic boosting enabled in prod
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-044-populate-verse-topics.md`
+
+---
 
 ### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
