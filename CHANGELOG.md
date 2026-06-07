@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.22.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.1...v1.22.2) (2026-06-07)
+
+
+### Bug Fixes
+
+* **feedback:** show comment field in one panel; pause countdown on focus ([#696](https://github.com/zioalex/getinspiredbythebible/issues/696)) ([f5cf36b](https://github.com/zioalex/getinspiredbythebible/commit/f5cf36b1f3e518408211ed62dbb546f67c04d2a5))
+
 ## [1.22.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.0...v1.22.1) (2026-06-06)
 
 ### Bug Fixes
