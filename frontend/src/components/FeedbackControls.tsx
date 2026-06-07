@@ -25,11 +25,12 @@ interface FeedbackControlsProps {
 /**
  * Inline, non-blocking feedback controls.
  *
- * Tapping a thumb does not send immediately: the choice is shown as *pending*
- * with a quiet progress bar and an Undo for ~10s (`FEEDBACK_RETHINK_MS`). When
- * it elapses the rating is sent. Opening the optional comment pauses the
- * countdown and replaces it with an explicit Send, so there is exactly one
- * request per rating — never a "rating now, comment later" double-send.
+ * Tapping a thumb does not send immediately: a single panel opens with the
+ * comment field, a quiet progress bar, Undo and Send. The rating auto-commits
+ * after ~10s (`FEEDBACK_RETHINK_MS`) if untouched; focusing the comment field
+ * pauses the countdown so the user is never cut off mid-sentence, and Send
+ * commits immediately. A `committedRef` guard ensures exactly one request per
+ * rating — never a "rating now, comment later" double-send.
  */
 export default function FeedbackControls({
   onSubmit,
@@ -113,9 +114,10 @@ export default function FeedbackControls({
     }
   };
 
-  const openComment = () => {
-    // Opening the comment pauses the countdown — we never pull the field away
-    // mid-sentence.
+  const pauseCountdown = () => {
+    // Focusing the comment field pauses the countdown — we never auto-send out
+    // from under someone who is mid-sentence. (Ignore the field and the rating
+    // still auto-commits when the window elapses.)
     clearTimer();
     setCommentOpen(true);
   };
@@ -189,8 +191,27 @@ export default function FeedbackControls({
             </p>
           )}
 
-          {!commentOpen ? (
-            <div className="flex items-center gap-3">
+          {/* Single panel: the comment field is shown immediately. Focusing it
+              pauses the countdown (see pauseCountdown); ignore it and the rating
+              auto-commits when the window elapses. */}
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onFocus={pauseCountdown}
+            placeholder={
+              pending === "positive"
+                ? t("positivePlaceholder")
+                : t("negativePlaceholder")
+            }
+            rows={3}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">{t("privacyNotice")}</p>
+
+          <div className="flex items-center gap-3 mt-2">
+            {/* Countdown bar — visible only while the rethink window is running,
+                i.e. before the user focuses the comment to pause it. */}
+            {!commentOpen ? (
               <div
                 className="flex-1 h-1 rounded bg-gray-200 overflow-hidden"
                 role="progressbar"
@@ -204,60 +225,30 @@ export default function FeedbackControls({
                   }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={openComment}
-                className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
-              >
-                {t("addComment")}
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap"
-              >
-                <Undo2 className="w-3.5 h-3.5" />
-                {t("undo")}
-              </button>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <button
+              type="button"
+              onClick={cancel}
+              className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              {t("undo")}
+            </button>
+            <button
+              type="button"
+              onClick={() => commit(pending, comment)}
+              className="px-4 py-1.5 text-xs text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              {t("send")}
+            </button>
+            {!commentOpen && (
               <span className="sr-only" role="status" aria-live="polite">
                 {t("sending")}
               </span>
-            </div>
-          ) : (
-            <div>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder={
-                  pending === "positive"
-                    ? t("positivePlaceholder")
-                    : t("negativePlaceholder")
-                }
-                rows={3}
-                autoFocus
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-              />
-              <p className="text-[11px] text-gray-400 mt-1">
-                {t("privacyNotice")}
-              </p>
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={cancel}
-                  className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  {t("undo")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => commit(pending, comment)}
-                  className="px-4 py-1.5 text-xs text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  {t("send")}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

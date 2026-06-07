@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">도움이 되지 않았습니다</string>
     <string name="feedback_thanks">의견을 보내 주셔서 감사합니다!</string>
     <string name="feedback_undo">실행 취소</string>
-    <string name="feedback_add_comment">댓글 추가 (선택 사항)</string>
     <string name="feedback_comment_hint">자세히 알려주세요 (선택 사항)</string>
     <string name="feedback_send">보내기</string>
     <string name="feedback_sending">피드백을 보내는 중…</string>

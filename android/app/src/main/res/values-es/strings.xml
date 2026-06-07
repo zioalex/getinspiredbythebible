@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">Esto no fue útil</string>
     <string name="feedback_thanks">¡Gracias por tus comentarios!</string>
     <string name="feedback_undo">Deshacer</string>
-    <string name="feedback_add_comment">Añadir un comentario (opcional)</string>
     <string name="feedback_comment_hint">Cuéntanos más (opcional)</string>
     <string name="feedback_send">Enviar</string>
     <string name="feedback_sending">Enviando comentarios…</string>
