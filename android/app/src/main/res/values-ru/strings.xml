@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">Это было бесполезно</string>
     <string name="feedback_thanks">Спасибо за ваш отзыв!</string>
     <string name="feedback_undo">Отменить</string>
-    <string name="feedback_add_comment">Добавить комментарий (необязательно)</string>
     <string name="feedback_comment_hint">Расскажите подробнее (необязательно)</string>
     <string name="feedback_send">Отправить</string>
     <string name="feedback_sending">Отправка отзыва…</string>

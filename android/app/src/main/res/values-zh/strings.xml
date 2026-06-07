@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">这没有帮助</string>
     <string name="feedback_thanks">感谢您的反馈！</string>
     <string name="feedback_undo">撤销</string>
-    <string name="feedback_add_comment">添加评论（可选）</string>
     <string name="feedback_comment_hint">告诉我们更多（可选）</string>
     <string name="feedback_send">发送</string>
     <string name="feedback_sending">正在发送反馈…</string>

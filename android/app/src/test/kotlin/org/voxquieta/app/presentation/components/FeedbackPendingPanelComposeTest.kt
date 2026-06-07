@@ -25,11 +25,29 @@ import org.voxquieta.app.testing.ComposeTestHarness
 class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
 
     private val maintainerNotice = "Your message will be shared with the app's maintainer."
-    private val addComment = "Add a comment (optional)"
 
     private fun noticeAbsent(): Boolean =
         composeRule.onAllNodesWithText(maintainerNotice, useUnmergedTree = false)
             .fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty()
+
+    @Test
+    fun `comment field is shown immediately`() {
+        setContentThemed {
+            FeedbackPendingPanel(
+                rating = "negative",
+                comment = "",
+                commentOpen = false,
+                progress = { 1f },
+                onCommentFocus = {},
+                onCommentChange = {},
+                onUndo = {},
+                onSend = {},
+            )
+        }
+        // The comment field is present without any extra "Add a comment" step.
+        composeRule.onNode(hasSetTextAction()).assertIsDisplayed()
+        composeRule.onNodeWithText("Send").assertIsDisplayed()
+    }
 
     @Test
     fun `negative rating shows the maintainer-sharing notice`() {
@@ -39,7 +57,7 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
                 comment = "",
                 commentOpen = false,
                 progress = { 1f },
-                onOpenComment = {},
+                onCommentFocus = {},
                 onCommentChange = {},
                 onUndo = {},
                 onSend = {},
@@ -56,7 +74,7 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
                 comment = "",
                 commentOpen = false,
                 progress = { 1f },
-                onOpenComment = {},
+                onCommentFocus = {},
                 onCommentChange = {},
                 onUndo = {},
                 onSend = {},
@@ -74,7 +92,7 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
                 comment = "",
                 commentOpen = false,
                 progress = { 1f },
-                onOpenComment = {},
+                onCommentFocus = {},
                 onCommentChange = {},
                 onUndo = { undone = true },
                 onSend = {},
@@ -85,25 +103,6 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
     }
 
     @Test
-    fun `tapping Add a comment invokes onOpenComment`() {
-        var opened = false
-        setContentThemed {
-            FeedbackPendingPanel(
-                rating = "negative",
-                comment = "",
-                commentOpen = false,
-                progress = { 1f },
-                onOpenComment = { opened = true },
-                onCommentChange = {},
-                onUndo = {},
-                onSend = {},
-            )
-        }
-        composeRule.onNodeWithText(addComment).performClick()
-        assertTrue("Add a comment must invoke onOpenComment", opened)
-    }
-
-    @Test
     fun `typing a comment and tapping Send forwards the text`() {
         var sentComment: String? = null
         setContentThemed {
@@ -111,9 +110,9 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "negative",
                 comment = comment,
-                commentOpen = true,
+                commentOpen = false,
                 progress = { 1f },
-                onOpenComment = {},
+                onCommentFocus = {},
                 onCommentChange = { comment = it },
                 onUndo = {},
                 onSend = { sentComment = comment },
@@ -132,7 +131,7 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
                 comment = "",
                 commentOpen = false,
                 progress = { 0.5f },
-                onOpenComment = {},
+                onCommentFocus = {},
                 onCommentChange = {},
                 onUndo = {},
                 onSend = {},

@@ -71,19 +71,33 @@ describe("FeedbackControls", () => {
     ).toBeDefined();
   });
 
-  it("pauses the countdown while a comment is open and sends on Send", () => {
+  it("shows the comment field immediately — no separate 'Add a comment' step", () => {
     const onSubmit = vi.fn();
     renderWithIntl(<FeedbackControls onSubmit={onSubmit} />);
     fireEvent.click(screen.getByLabelText("Thumbs down"));
-    fireEvent.click(screen.getByText("Add a comment (optional)"));
 
-    // Countdown is paused: advancing time must not auto-submit.
-    advance(FEEDBACK_RETHINK_MS * 2);
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(
+      screen.getByPlaceholderText(
+        "The response didn't address my specific concern...",
+      ),
+    ).toBeDefined();
+    expect(screen.queryByText("Add a comment (optional)")).toBeNull();
+    expect(screen.getByText("Send")).toBeDefined();
+  });
+
+  it("pauses the countdown when the comment field is focused and sends on Send", () => {
+    const onSubmit = vi.fn();
+    renderWithIntl(<FeedbackControls onSubmit={onSubmit} />);
+    fireEvent.click(screen.getByLabelText("Thumbs down"));
 
     const textarea = screen.getByPlaceholderText(
       "The response didn't address my specific concern...",
     );
+    // Focusing the field pauses the countdown: advancing time must not auto-submit.
+    fireEvent.focus(textarea);
+    advance(FEEDBACK_RETHINK_MS * 2);
+    expect(onSubmit).not.toHaveBeenCalled();
+
     fireEvent.change(textarea, { target: { value: "Wrong verse" } });
     fireEvent.click(screen.getByText("Send"));
     expect(onSubmit).toHaveBeenCalledTimes(1);
