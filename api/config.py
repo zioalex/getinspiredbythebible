@@ -125,6 +125,7 @@ class Settings(BaseSettings):
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
+    verse_query_timeout_s: float = 10.0  # Max seconds for a verse/chapter DB query before 504
 
     # Cloudflare Turnstile (Bot Protection)
     # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile

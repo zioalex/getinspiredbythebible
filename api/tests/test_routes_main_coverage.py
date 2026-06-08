@@ -11,6 +11,7 @@ Coverage targets:
 - main.py: lifespan, root, config, debug_embeddings, provider_error_handler, _get_cors_origins
 """
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -974,6 +975,135 @@ class TestScriptureRoutes:
                 await get_chapter("NotABook", 1, mock_db, None)
 
             assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_timeout_returns_504(self):
+        """Chapter DB query timeout maps to HTTP 504 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=asyncio.TimeoutError)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, None)
+            assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_db_error_returns_500(self):
+        """Chapter DB error maps to HTTP 500 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=RuntimeError("connection reset"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, None)
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_all_placeholder_text_returns_502(self):
+        """All-placeholder chapter (ITA1927 '////') maps to HTTP 502 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        bad_verse = MagicMock()
+        bad_verse.text = "////"
+        bad_verse.translation = "ita1927"
+        bad_verse.book.name = "Genesis"
+        bad_verse.chapter_number = 1
+        bad_verse.verse_number = 1
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[bad_verse])
+            mock_repo_cls.return_value = mock_repo
+
+            mock_http = MagicMock()
+            mock_http.headers = {"accept-language": "it-IT"}
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, "ita1927", http_request=mock_http)
+            assert exc_info.value.status_code == 502
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_drops_placeholder_keeps_good_verses(self):
+        """Placeholder verses are filtered; real verses remain (BITB-041)."""
+        from routes.scripture import get_chapter
+
+        good = self._chapter_verse("ita1927")
+        good.text = "In principio Dio creò..."
+        bad = self._chapter_verse("ita1927")
+        bad.text = "////"
+
+        mock_db = AsyncMock()
+        with (
+            patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+            patch("routes.scripture.get_localized_book_name", return_value="Giovanni"),
+            patch("routes.scripture.get_translation_info", return_value={"name": "Riveduta 1927"}),
+        ):
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[good, bad])
+            mock_repo_cls.return_value = mock_repo
+
+            result = await get_chapter("John", 3, mock_db, "ita1927")
+
+        assert len(result.verses) == 1
+        assert result.verses[0]["text"] == "In principio Dio creò..."
+
+    @pytest.mark.asyncio
+    async def test_get_verse_timeout_returns_504(self):
+        """Verse DB query timeout maps to HTTP 504 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(side_effect=asyncio.TimeoutError)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, "ita1927")
+            assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_verse_placeholder_text_returns_502(self):
+        """Verse with placeholder text ('////') maps to HTTP 502 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+        bad = MagicMock()
+        bad.text = "////"
+        bad.book.name = "John"
+        bad.translation = "ita1927"
+        bad.chapter_number = 3
+        bad.verse_number = 16
+        bad.reference = "John 3:16"
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(return_value=bad)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, "ita1927")
+            assert exc_info.value.status_code == 502
 
     @staticmethod
     def _chapter_verse(translation: str):
