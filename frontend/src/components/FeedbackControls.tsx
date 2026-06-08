@@ -88,7 +88,8 @@ export default function FeedbackControls({
     if (committedRef.current) return;
     committedRef.current = true;
     clearTimer();
-    const committedReason = rating === "negative" ? (reasonRef.current ?? undefined) : undefined;
+    const committedReason =
+      rating === "negative" ? (reasonRef.current ?? undefined) : undefined;
     setLocalGiven(rating);
     setPending(null);
     setCommentOpen(false);
@@ -207,7 +208,9 @@ export default function FeedbackControls({
           {/* "What went wrong?" reason chips — thumbs-down only, optional */}
           {pending === "negative" && (
             <div className="mb-2">
-              <p className="text-xs text-gray-500 mb-1.5">{t("reasonPrompt")}</p>
+              <p className="text-xs text-gray-500 mb-1.5">
+                {t("reasonPrompt")}
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {(
                   [
@@ -221,7 +224,9 @@ export default function FeedbackControls({
                   <button
                     key={value}
                     type="button"
-                    onClick={() => updateReason(reason === value ? null : value)}
+                    onClick={() =>
+                      updateReason(reason === value ? null : value)
+                    }
                     className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
                       reason === value
                         ? "bg-red-100 text-red-700 border-red-300"

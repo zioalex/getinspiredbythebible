@@ -28,7 +28,11 @@ interface ChatMessageProps {
   messageId?: string;
   userMessage?: string;
   onVerseClick?: (book: string, chapter: number, verse: number) => void;
-  onSubmitFeedback?: (rating: "positive" | "negative", comment: string, reason?: string) => void;
+  onSubmitFeedback?: (
+    rating: "positive" | "negative",
+    comment: string,
+    reason?: string,
+  ) => void;
   feedbackGiven?: "positive" | "negative" | null;
   feedbackDisabled?: boolean;
 }
