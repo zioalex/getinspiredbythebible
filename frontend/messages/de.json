@@ -171,7 +171,13 @@
     "submit": "Feedback absenden",
     "submitting": "Wird gesendet...",
     "close": "Schließen",
-    "toastError": "Dein Feedback konnte gerade nicht gespeichert werden, aber danke für den Versuch!"
+    "toastError": "Dein Feedback konnte gerade nicht gespeichert werden, aber danke für den Versuch!",
+    "reasonPrompt": "Was ist schiefgelaufen?",
+    "reasonInaccurate": "Ungenau",
+    "reasonUnhelpful": "Nicht hilfreich",
+    "reasonWrongVerse": "Falscher Vers",
+    "reasonTone": "Ton",
+    "reasonOther": "Sonstiges"
   },
   "ChurchFinder": {
     "bannerText": "Suchst du eine Glaubensgemeinschaft?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Kontakt",
     "emailUs": "Schreib uns:",
-    "emailLabel": "Deine E-Mail (optional, für Antwort)",
+    "emailLabel": "Deine E-Mail (für unsere Antwort)",
     "emailPlaceholder": "du@beispiel.de",
     "subjectLabel": "Betreff",
     "subjectSpiritual": "Möchtest du eine geistliche oder biblische Frage vertiefen?",
