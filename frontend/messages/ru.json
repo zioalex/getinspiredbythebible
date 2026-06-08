@@ -171,7 +171,13 @@
     "submit": "Отправить отзыв",
     "submitting": "Отправка...",
     "close": "Закрыть",
-    "toastError": "Не удалось сохранить ваш отзыв прямо сейчас, но спасибо за попытку!"
+    "toastError": "Не удалось сохранить ваш отзыв прямо сейчас, но спасибо за попытку!",
+    "reasonPrompt": "Что пошло не так?",
+    "reasonInaccurate": "Неточно",
+    "reasonUnhelpful": "Бесполезно",
+    "reasonWrongVerse": "Неверный стих",
+    "reasonTone": "Тон",
+    "reasonOther": "Другое"
   },
   "ChurchFinder": {
     "bannerText": "Ищете религиозное сообщество?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Связаться с нами",
     "emailUs": "Напишите нам:",
-    "emailLabel": "Ваш email (необязательно, для ответа)",
+    "emailLabel": "Ваш email (для нашего ответа)",
     "emailPlaceholder": "вы@example.com",
     "subjectLabel": "Тема",
     "subjectSpiritual": "Хотите углубиться в духовный или библейский вопрос?",

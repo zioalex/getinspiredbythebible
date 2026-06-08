@@ -171,7 +171,13 @@
     "submit": "Envoyer le retour",
     "submitting": "Envoi en cours...",
     "close": "Fermer",
-    "toastError": "Impossible de sauvegarder votre retour pour l'instant, mais merci d'avoir essayé !"
+    "toastError": "Impossible de sauvegarder votre retour pour l'instant, mais merci d'avoir essayé !",
+    "reasonPrompt": "Qu'est-ce qui s'est mal passé ?",
+    "reasonInaccurate": "Inexact",
+    "reasonUnhelpful": "Peu utile",
+    "reasonWrongVerse": "Mauvais verset",
+    "reasonTone": "Ton",
+    "reasonOther": "Autre"
   },
   "ChurchFinder": {
     "bannerText": "Vous cherchez une communauté de foi ?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Nous contacter",
     "emailUs": "Écrivez-nous :",
-    "emailLabel": "Votre e-mail (facultatif, pour répondre)",
+    "emailLabel": "Votre e-mail (pour notre réponse)",
     "emailPlaceholder": "vous@exemple.com",
     "subjectLabel": "Sujet",
     "subjectSpiritual": "Voulez-vous approfondir une question spirituelle ou biblique ?",

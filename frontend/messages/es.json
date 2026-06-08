@@ -171,7 +171,13 @@
     "submit": "Enviar Comentarios",
     "submitting": "Enviando...",
     "close": "Cerrar",
-    "toastError": "No se pudieron guardar tus comentarios en este momento, ¡pero gracias por intentarlo!"
+    "toastError": "No se pudieron guardar tus comentarios en este momento, ¡pero gracias por intentarlo!",
+    "reasonPrompt": "¿Qué salió mal?",
+    "reasonInaccurate": "Inexacto",
+    "reasonUnhelpful": "Poco útil",
+    "reasonWrongVerse": "Versículo incorrecto",
+    "reasonTone": "Tono",
+    "reasonOther": "Otro"
   },
   "ChurchFinder": {
     "bannerText": "¿Buscas una comunidad de fe?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Contáctanos",
     "emailUs": "Escríbenos:",
-    "emailLabel": "Tu correo electrónico (opcional, para responder)",
+    "emailLabel": "Tu correo electrónico (para nuestra respuesta)",
     "emailPlaceholder": "tu@ejemplo.com",
     "subjectLabel": "Asunto",
     "subjectSpiritual": "¿Quieres profundizar en alguna pregunta espiritual o bíblica?",
