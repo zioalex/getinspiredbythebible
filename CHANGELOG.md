@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.23.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.2...v1.23.0) (2026-06-08)
+
+### Features
+
+* add weekly activity digest email and dashboard backlog story ([#701](https://github.com/zioalex/getinspiredbythebible/issues/701)) ([e43b5d9](https://github.com/zioalex/getinspiredbythebible/commit/e43b5d91e802f2bf9002de886d6c5667d0633b55))
+* require contact email and make negative feedback actionable (BITB-043) ([#702](https://github.com/zioalex/getinspiredbythebible/issues/702)) ([19bec10](https://github.com/zioalex/getinspiredbythebible/commit/19bec1052817d09312558dc001f3eda41185541c))
+
+### Documentation
+
+* **search:** refine search-improvement stories + add turbovec evaluation ([#698](https://github.com/zioalex/getinspiredbythebible/issues/698)) ([a6137b4](https://github.com/zioalex/getinspiredbythebible/commit/a6137b4269d16259f250f90c41f97a6aba23fa0e))
+
 ## [1.22.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.1...v1.22.2) (2026-06-07)
 
 ### Bug Fixes
