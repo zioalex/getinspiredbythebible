@@ -171,7 +171,13 @@
     "submit": "提交反馈",
     "submitting": "提交中...",
     "close": "关闭",
-    "toastError": "目前无法保存您的反馈，但感谢您的尝试！"
+    "toastError": "目前无法保存您的反馈，但感谢您的尝试！",
+    "reasonPrompt": "哪里出了问题？",
+    "reasonInaccurate": "不准确",
+    "reasonUnhelpful": "没有帮助",
+    "reasonWrongVerse": "引用错误",
+    "reasonTone": "语气",
+    "reasonOther": "其他"
   },
   "ChurchFinder": {
     "bannerText": "正在寻找信仰社区？",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "联系我们",
     "emailUs": "发邮件给我们：",
-    "emailLabel": "您的邮箱（可选，用于回复）",
+    "emailLabel": "您的邮箱（用于我们回复）",
     "emailPlaceholder": "you@example.com",
     "subjectLabel": "主题",
     "subjectSpiritual": "您想深入探讨某个属灵或圣经问题吗？",

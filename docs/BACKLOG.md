@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-08
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -741,6 +741,35 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+
+**Status:** 🚧 In Progress
+**Size:** M (1-2 days)
+**Created:** 2026-06-08
+
+**As a** user submitting a contact form or leaving feedback,
+**I want** to be prompted for my email (so the team can actually reply) and to quickly label
+what went wrong on a thumbs-down with a single-tap reason chip,
+**so that** the team can follow up and act on precise, categorised feedback.
+
+**Acceptance Criteria:**
+
+- [ ] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
+- [ ] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
+- [ ] Contact form send button disabled when email is empty; input has `required`
+- [ ] `Contact.emailLabel` updated to required phrasing in all 11 locales
+- [ ] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
+- [ ] Positive feedback WITH comment triggers maintainer email; bare positive does not
+- [ ] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
+- [ ] Chip selection is optional — auto-commit still works without it
+- [ ] `reason` column added to `feedback` table (migration 006)
+- [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
+- [ ] Backend + frontend tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-require-contact-email-and-actionable-negative-feedback.md`
+
+---
 
 ### 🎯 BITB-044: Populate `verse_topics` to Activate Topic Boosting
 

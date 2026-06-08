@@ -249,6 +249,7 @@ export interface FeedbackRequest {
   model_used?: string;
   response_time_ms?: number;
   session_id?: string;
+  reason?: string;
 }
 
 export interface FeedbackResponse {

@@ -615,6 +615,7 @@ class TestFeedbackRoutes:
         request = ContactRequest(
             subject="feedback",
             message="Great app!",
+            email="user@example.com",
         )
 
         with patch("routes.feedback.email_service") as mock_email:
@@ -636,6 +637,7 @@ class TestFeedbackRoutes:
         request = ContactRequest(
             subject="bug",
             message="Test message",
+            email="user@example.com",
         )
 
         with pytest.raises(HTTPException) as exc_info:
