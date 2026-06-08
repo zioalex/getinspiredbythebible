@@ -19,7 +19,11 @@ from scripture import (
 from utils.book_names import LOCALIZED_TO_ENGLISH, get_localized_book_name, normalize_book_name
 from utils.language import get_all_translations, get_translation_info, resolve_translation
 from utils.logging_config import get_logger
-from utils.metrics import scripture_fetch_errors_counter, scripture_search_counter, scripture_verses_returned
+from utils.metrics import (
+    scripture_fetch_errors_counter,
+    scripture_search_counter,
+    scripture_verses_returned,
+)
 
 logger = get_logger("routes.scripture")
 router = APIRouter(prefix="/scripture", tags=["scripture"])
