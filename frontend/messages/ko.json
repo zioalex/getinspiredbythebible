@@ -171,7 +171,13 @@
     "submit": "피드백 제출",
     "submitting": "제출 중...",
     "close": "닫기",
-    "toastError": "지금은 피드백을 저장할 수 없지만 시도해 주셔서 감사합니다!"
+    "toastError": "지금은 피드백을 저장할 수 없지만 시도해 주셔서 감사합니다!",
+    "reasonPrompt": "무엇이 잘못되었나요?",
+    "reasonInaccurate": "부정확함",
+    "reasonUnhelpful": "도움이 안 됨",
+    "reasonWrongVerse": "잘못된 구절",
+    "reasonTone": "어조",
+    "reasonOther": "기타"
   },
   "ChurchFinder": {
     "bannerText": "신앙 공동체를 찾고 계신가요?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "문의하기",
     "emailUs": "이메일 보내기:",
-    "emailLabel": "이메일 (선택 사항, 답변용)",
+    "emailLabel": "이메일 (답변을 위한 필수 항목)",
     "emailPlaceholder": "you@example.com",
     "subjectLabel": "제목",
     "subjectSpiritual": "영적 또는 성경적 질문에 대해 더 깊이 이야기하고 싶으신가요?",

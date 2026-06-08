@@ -688,6 +688,7 @@ export default function ChatIsland({
     messageId: string,
     rating: "positive" | "negative",
     comment: string,
+    reason?: string,
   ) => {
     const message = messages.find((m) => m.messageId === messageId);
     if (!message || message.role !== "assistant") return;
@@ -701,6 +702,7 @@ export default function ChatIsland({
         assistant_response: message.content,
         verses_cited: message.versesCited,
         model_used: message.model,
+        reason,
       };
 
       await submitFeedback(feedbackRequest);
@@ -894,11 +896,12 @@ export default function ChatIsland({
                     onVerseClick={handleVerseClick}
                     onSubmitFeedback={
                       message.messageId
-                        ? (rating, comment) =>
+                        ? (rating, comment, reason) =>
                             handleFeedbackSubmit(
                               message.messageId!,
                               rating,
                               comment,
+                              reason,
                             )
                         : undefined
                     }
