@@ -127,7 +127,9 @@ async def get_verse(
         raise HTTPException(status_code=504, detail="Verse lookup timed out. Please try again.")
     except Exception:
         scripture_fetch_errors_counter.add(1, {"reason": "db_error", "endpoint": "verse"})
-        logger.exception("verse_query_db_error", extra={"book": book, "chapter": chapter, "verse": verse})
+        logger.exception(
+            "verse_query_db_error", extra={"book": book, "chapter": chapter, "verse": verse}
+        )
         raise HTTPException(status_code=500, detail="Failed to load verse.")
 
     if not result:
@@ -175,7 +177,10 @@ async def get_chapter(
         verses = await repo.get_chapter_verses(book, chapter, translation=translation)
     except asyncio.TimeoutError:
         scripture_fetch_errors_counter.add(1, {"reason": "timeout", "endpoint": "chapter"})
-        logger.error("chapter_query_timeout", extra={"book": book, "chapter": chapter, "translation": translation})
+        logger.error(
+            "chapter_query_timeout",
+            extra={"book": book, "chapter": chapter, "translation": translation},
+        )
         raise HTTPException(status_code=504, detail="Chapter lookup timed out. Please try again.")
     except Exception:
         scripture_fetch_errors_counter.add(1, {"reason": "db_error", "endpoint": "chapter"})
@@ -190,7 +195,10 @@ async def get_chapter(
     verses = [v for v in verses if not _is_placeholder(v.text)]
     if not verses:
         scripture_fetch_errors_counter.add(1, {"reason": "empty_text", "endpoint": "chapter"})
-        logger.warning("chapter_all_placeholder", extra={"book": book, "chapter": chapter, "translation": translation})
+        logger.warning(
+            "chapter_all_placeholder",
+            extra={"book": book, "chapter": chapter, "translation": translation},
+        )
         raise HTTPException(status_code=502, detail=f"Chapter data unavailable: {book} {chapter}.")
 
     # When no translation was requested, restrict to a single translation chosen
