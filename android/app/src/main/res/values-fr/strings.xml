@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">Ce n\'était pas utile</string>
     <string name="feedback_thanks">Merci pour votre retour !</string>
     <string name="feedback_undo">Annuler</string>
-    <string name="feedback_add_comment">Ajouter un commentaire (facultatif)</string>
     <string name="feedback_comment_hint">Dites-nous-en plus (facultatif)</string>
     <string name="feedback_send">Envoyer</string>
     <string name="feedback_sending">Envoi du retour…</string>

@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">यह उपयोगी नहीं था</string>
     <string name="feedback_thanks">आपकी प्रतिक्रिया के लिए धन्यवाद!</string>
     <string name="feedback_undo">पूर्ववत करें</string>
-    <string name="feedback_add_comment">टिप्पणी जोड़ें (वैकल्पिक)</string>
     <string name="feedback_comment_hint">हमें और बताएं (वैकल्पिक)</string>
     <string name="feedback_send">भेजें</string>
     <string name="feedback_sending">प्रतिक्रिया भेजी जा रही है…</string>
