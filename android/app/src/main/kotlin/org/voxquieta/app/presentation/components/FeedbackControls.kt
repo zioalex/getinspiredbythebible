@@ -3,7 +3,6 @@ package org.voxquieta.app.presentation.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -217,7 +217,7 @@ fun FeedbackControls(
                             comment = comment,
                             commentOpen = commentOpen,
                             progress = { progress.value },
-                            onOpenComment = { commentOpen = true },
+                            onCommentFocus = { commentOpen = true },
                             onCommentChange = { comment = it },
                             onUndo = { cancel() },
                             onSend = { doCommit(pendingRating, comment) },
@@ -231,11 +231,15 @@ fun FeedbackControls(
 
 /**
  * Stateless content of the pending-feedback affordance: maintainer notice (on
- * thumbs-down), the quiet progress bar with Undo / Add-comment, and the optional
- * comment field with Send. Hoisted out of [FeedbackControls] so it can be mounted
+ * thumbs-down), the comment field shown immediately, and a quiet progress bar
+ * with Undo / Send. Focusing the field invokes [onCommentFocus] (which pauses
+ * the rethink countdown); if the field is left untouched the rating auto-commits
+ * when the window elapses. Hoisted out of [FeedbackControls] so it can be mounted
  * and asserted directly in Robolectric tests — `Popup` content is unreliable
- * under Robolectric (see `COMPOSE_TESTS.md`), so behaviour is tested here, on the
- * content composable, rather than through the popover wrapper.
+ * under Robolectric (see `COMPOSE_TESTS.md`).
+ *
+ * @param commentOpen true once the countdown has been paused (the user focused
+ *   the comment); drives whether the progress bar is shown.
  */
 @Composable
 internal fun FeedbackPendingPanel(
@@ -243,7 +247,7 @@ internal fun FeedbackPendingPanel(
     comment: String,
     commentOpen: Boolean,
     progress: () -> Float,
-    onOpenComment: () -> Unit,
+    onCommentFocus: () -> Unit,
     onCommentChange: (String) -> Unit,
     onUndo: () -> Unit,
     onSend: () -> Unit,
@@ -270,49 +274,45 @@ internal fun FeedbackPendingPanel(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        if (!commentOpen) {
-            val sendingDesc = stringResource(R.string.feedback_sending)
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        // Single panel: the comment field is shown immediately. Focusing it pauses
+        // the countdown so the user is never cut off mid-sentence.
+        OutlinedTextField(
+            value = comment,
+            onValueChange = onCommentChange,
+            placeholder = { Text(stringResource(R.string.feedback_comment_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { if (it.isFocused) onCommentFocus() },
+            minLines = 2,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val sendingDesc = stringResource(R.string.feedback_sending)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Countdown bar — shown only while the rethink window is running
+            // (before the user focuses the comment to pause it).
+            if (!commentOpen) {
                 LinearProgressIndicator(
                     progress = progress,
                     modifier = Modifier
                         .weight(1f)
                         .semantics { contentDescription = sendingDesc },
                 )
-                TextButton(onClick = onOpenComment) {
-                    Text(stringResource(R.string.feedback_add_comment))
-                }
-                TextButton(onClick = onUndo) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.feedback_undo))
-                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
-        } else {
-            OutlinedTextField(
-                value = comment,
-                onValueChange = onCommentChange,
-                placeholder = { Text(stringResource(R.string.feedback_comment_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onUndo) {
-                    Text(stringResource(R.string.feedback_undo))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = onSend) {
-                    Text(stringResource(R.string.feedback_send))
-                }
+            TextButton(onClick = onUndo) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(stringResource(R.string.feedback_undo))
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Button(onClick = onSend) {
+                Text(stringResource(R.string.feedback_send))
             }
         }
     }

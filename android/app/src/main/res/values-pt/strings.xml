@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">Isso não foi útil</string>
     <string name="feedback_thanks">Obrigado pelo seu feedback!</string>
     <string name="feedback_undo">Anular</string>
-    <string name="feedback_add_comment">Adicionar um comentário (opcional)</string>
     <string name="feedback_comment_hint">Conte-nos mais (opcional)</string>
     <string name="feedback_send">Enviar</string>
     <string name="feedback_sending">A enviar feedback…</string>

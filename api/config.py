@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     smtp2go_sender_email: str = "noreply@voxquieta.org"
     smtp2go_sender_name: str = "Vox Quieta"
     contact_notification_email: str = "support@voxquieta.org"
+    # Recipient for the weekly activity digest (kept separate from the
+    # contact-form recipient so the two can be retargeted independently).
+    weekly_report_recipient: str = "support@voxquieta.org"
 
     # Production frontend URL (used for CORS, access audit, and Referer headers)
     # Change this when migrating to a new domain.

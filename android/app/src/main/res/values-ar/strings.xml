@@ -195,7 +195,6 @@
     <string name="action_feedback_not_helpful">لم يكن هذا مفيدًا</string>
     <string name="feedback_thanks">شكرًا على ملاحظاتك!</string>
     <string name="feedback_undo">تراجع</string>
-    <string name="feedback_add_comment">إضافة تعليق (اختياري)</string>
     <string name="feedback_comment_hint">أخبرنا بالمزيد (اختياري)</string>
     <string name="feedback_send">إرسال</string>
     <string name="feedback_sending">جارٍ إرسال الملاحظات…</string>
