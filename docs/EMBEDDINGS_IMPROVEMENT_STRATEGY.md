@@ -3,6 +3,22 @@
 This document outlines a strategy to improve the relevance of Bible verse retrieval
 by enhancing both question understanding and embedding quality.
 
+> **Status (2026-06-07 review):** **Phase 1 is built but dark.** Query expansion,
+> hybrid search, and topic boosting were implemented and merged in Feb 2026
+> (see `docs/DONE/2026-02-24-query-understanding-context-quality.md`) but ship
+> **disabled** behind feature flags that default `False` (`api/config.py:76–85`) and
+> have never been validated or enabled. Production search is therefore still pure
+> semantic. Topic boosting is additionally blocked: `verse_topics` is created by
+> migration `004` but **never populated**, so it currently boosts nothing. The active
+> next step is **validation + rollout**, tracked in
+> `docs/BACKLOG_STORIES/BITB-018-query-understanding-context-quality.md` — not new code.
+>
+> Phases 2–4 below remain valid but should not start until Phase 1 is measured.
+>
+> **Infra note:** the `turbovec` quantized vector index was evaluated and rejected for
+> this project — see `docs/TURBOVEC_EVALUATION.md`. The bottleneck here is retrieval
+> *relevance*, not vector storage memory or ANN latency.
+
 ## Current State
 
 ### What We Have
@@ -332,3 +348,4 @@ class SearchOptions(BaseModel):
 - [ColBERT](https://github.com/stanford-futuredata/ColBERT) - Late interaction retrieval
 - [Hypothetical Document Embeddings (HyDE)](https://arxiv.org/abs/2212.10496) - Query expansion
 - [RAG Best Practices](https://docs.anthropic.com/en/docs/build-with-claude/retrieval-augmented-generation)
+- `docs/TURBOVEC_EVALUATION.md` — evaluation of the turbovec / TurboQuant index (rejected for this project)

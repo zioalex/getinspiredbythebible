@@ -39,6 +39,7 @@ from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
 from routes import (  # noqa: E402
+    admin_router,
     chat_router,
     church_router,
     feedback_router,
@@ -261,6 +262,7 @@ app.include_router(church_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
 app.include_router(health_router)  # Health endpoints at root level
 app.include_router(scripture_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")  # internal probe-gated endpoints
 
 
 # ==================== Health & Info ====================
