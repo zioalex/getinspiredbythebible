@@ -171,7 +171,13 @@
     "submit": "Enviar Feedback",
     "submitting": "A enviar...",
     "close": "Fechar",
-    "toastError": "Não foi possível guardar o seu feedback agora, mas obrigado por tentar!"
+    "toastError": "Não foi possível guardar o seu feedback agora, mas obrigado por tentar!",
+    "reasonPrompt": "O que correu mal?",
+    "reasonInaccurate": "Impreciso",
+    "reasonUnhelpful": "Pouco útil",
+    "reasonWrongVerse": "Versículo errado",
+    "reasonTone": "Tom",
+    "reasonOther": "Outro"
   },
   "ChurchFinder": {
     "bannerText": "À procura de uma comunidade de fé?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Fale Connosco",
     "emailUs": "Escreva-nos:",
-    "emailLabel": "O seu e-mail (opcional, para responder)",
+    "emailLabel": "O seu e-mail (para a nossa resposta)",
     "emailPlaceholder": "voce@exemplo.com",
     "subjectLabel": "Assunto",
     "subjectSpiritual": "Quer aprofundar uma questão espiritual ou bíblica?",

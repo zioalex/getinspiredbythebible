@@ -171,7 +171,13 @@
     "submit": "Submit Feedback",
     "submitting": "Submitting...",
     "close": "Close",
-    "toastError": "Couldn't save your feedback right now, but thank you for trying!"
+    "toastError": "Couldn't save your feedback right now, but thank you for trying!",
+    "reasonPrompt": "What went wrong?",
+    "reasonInaccurate": "Inaccurate",
+    "reasonUnhelpful": "Unhelpful",
+    "reasonWrongVerse": "Wrong verse",
+    "reasonTone": "Tone",
+    "reasonOther": "Other"
   },
   "ChurchFinder": {
     "bannerText": "Looking for a faith community?",
@@ -209,7 +215,7 @@
   "Contact": {
     "getInTouch": "Get in Touch",
     "emailUs": "Email us:",
-    "emailLabel": "Your email (optional, for reply)",
+    "emailLabel": "Your email (for our reply)",
     "emailPlaceholder": "you@example.com",
     "subjectLabel": "Subject",
     "subjectSpiritual": "Do you want to talk deeper about any spiritual or biblical question?",

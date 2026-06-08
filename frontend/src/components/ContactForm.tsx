@@ -42,6 +42,8 @@ export default function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!email.trim()) return;
+
     if (isBug) {
       if (!bugSteps.trim() || !bugBehavior.trim()) return;
     } else if (!message.trim()) {
@@ -57,7 +59,7 @@ export default function ContactForm() {
 
     try {
       const request: ContactRequest = {
-        email: email.trim() || undefined,
+        email: email.trim(),
         subject,
         message: messageBody,
         user_agent:
@@ -231,7 +233,7 @@ export default function ContactForm() {
                 </div>
               )}
 
-              {/* Email (optional) — shown last */}
+              {/* Email (required) — shown last */}
               <div>
                 <label
                   htmlFor="contact-email"
@@ -247,6 +249,7 @@ export default function ContactForm() {
                   placeholder={t("emailPlaceholder")}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={isSubmitting}
+                  required
                 />
               </div>
 
@@ -258,6 +261,7 @@ export default function ContactForm() {
                 type="submit"
                 disabled={
                   isSubmitting ||
+                  !email.trim() ||
                   (isBug
                     ? !bugSteps.trim() || !bugBehavior.trim()
                     : !message.trim())
