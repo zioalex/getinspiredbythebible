@@ -1417,6 +1417,18 @@ jobs:
             --query "[0].fullyQualifiedDomainName" -o tsv)
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
 
+      - name: Translation Status (pre-load, ${{ matrix.translation }})
+        if: matrix.translation == 'kjv'
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd scripts
+          python load_bible.py --status
+
       - name: Load Bible Data (${{ matrix.translation }})
         env:
           DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
@@ -1529,7 +1541,7 @@ jobs:
           echo "⏭️ Skipping embedding generation"
           echo "   Reason: skip_embeddings=true"
 
-      - name: Verify Database
+      - name: Translation Status (post-load)
         env:
           DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
           DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
@@ -1537,19 +1549,24 @@ jobs:
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd scripts
+          python load_bible.py --status
+          # Fail the job if no verses were loaded at all
           python -c "
-          import os
-          import psycopg2
-          conn = psycopg2.connect(os.environ['DATABASE_URL'])
-          cur = conn.cursor()
-          cur.execute('SELECT COUNT(*) FROM verses')
-          verse_count = cur.fetchone()[0]
-          cur.execute('SELECT COUNT(*) FROM verses WHERE embedding IS NOT NULL')
-          embedded_count = cur.fetchone()[0]
-          print(f'Total verses: {verse_count}')
-          print(f'Verses with embeddings: {embedded_count}')
-          if verse_count == 0:
-              raise Exception('No verses loaded!')
+          import asyncio, os, sys
+          from sqlalchemy.ext.asyncio import create_async_engine
+          from sqlalchemy import text
+          async def check():
+              url = os.environ['DATABASE_URL'].replace('postgresql://', 'postgresql+asyncpg://').replace('sslmode=', 'ssl=')
+              engine = create_async_engine(url)
+              async with engine.begin() as conn:
+                  count = (await conn.execute(text('SELECT COUNT(*) FROM verses'))).scalar()
+              await engine.dispose()
+              if count == 0:
+                  print('ERROR: No verses loaded!', file=sys.stderr)
+                  sys.exit(1)
+              print(f'OK: {count:,} total verses in database')
+          asyncio.run(check())
           "
 
       - name: Post Seeding Summary
