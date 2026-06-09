@@ -2,6 +2,7 @@
 Scripture API routes - Bible data and search endpoints.
 """
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -17,9 +18,20 @@ from scripture import (
 )
 from utils.book_names import LOCALIZED_TO_ENGLISH, get_localized_book_name, normalize_book_name
 from utils.language import get_all_translations, get_translation_info, resolve_translation
-from utils.metrics import scripture_search_counter, scripture_verses_returned
+from utils.logging_config import get_logger
+from utils.metrics import (
+    scripture_fetch_errors_counter,
+    scripture_search_counter,
+    scripture_verses_returned,
+)
 
+logger = get_logger("routes.scripture")
 router = APIRouter(prefix="/scripture", tags=["scripture"])
+
+
+def _is_placeholder(text: str | None) -> bool:
+    """True if verse text is empty or a known placeholder marker (e.g. '////' in ITA1927 source)."""
+    return text is None or text.strip().strip("/") == ""
 
 
 class BooksResponse(BaseModel):
@@ -104,10 +116,35 @@ async def get_verse(
     """Get a specific verse by reference, optionally filtered by translation."""
     book = normalize_book_name(book)
     repo = ScriptureRepository(db)
-    result = await repo.get_verse(book, chapter, verse, translation=translation)
+    try:
+        result = await repo.get_verse(book, chapter, verse, translation=translation)
+    except asyncio.TimeoutError:
+        scripture_fetch_errors_counter.add(1, {"reason": "timeout", "endpoint": "verse"})
+        logger.error(
+            "verse_query_timeout",
+            extra={"book": book, "chapter": chapter, "verse": verse, "translation": translation},
+        )
+        raise HTTPException(status_code=504, detail="Verse lookup timed out. Please try again.")
+    except Exception:
+        scripture_fetch_errors_counter.add(1, {"reason": "db_error", "endpoint": "verse"})
+        logger.exception(
+            "verse_query_db_error", extra={"book": book, "chapter": chapter, "verse": verse}
+        )
+        raise HTTPException(status_code=500, detail="Failed to load verse.")
 
     if not result:
         raise HTTPException(status_code=404, detail=f"Verse not found: {book} {chapter}:{verse}")
+
+    if _is_placeholder(result.text):
+        scripture_fetch_errors_counter.add(1, {"reason": "empty_text", "endpoint": "verse"})
+        logger.warning(
+            "verse_placeholder_text",
+            extra={"reference": result.reference, "translation": result.translation},
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Verse data is unavailable for {book} {chapter}:{verse}.",
+        )
 
     localized_book = get_localized_book_name(result.book.name, result.translation)
     return {
@@ -136,10 +173,33 @@ async def get_chapter(
     """Get all verses in a chapter, optionally filtered by translation."""
     book = normalize_book_name(book)
     repo = ScriptureRepository(db)
-    verses = await repo.get_chapter_verses(book, chapter, translation=translation)
+    try:
+        verses = await repo.get_chapter_verses(book, chapter, translation=translation)
+    except asyncio.TimeoutError:
+        scripture_fetch_errors_counter.add(1, {"reason": "timeout", "endpoint": "chapter"})
+        logger.error(
+            "chapter_query_timeout",
+            extra={"book": book, "chapter": chapter, "translation": translation},
+        )
+        raise HTTPException(status_code=504, detail="Chapter lookup timed out. Please try again.")
+    except Exception:
+        scripture_fetch_errors_counter.add(1, {"reason": "db_error", "endpoint": "chapter"})
+        logger.exception("chapter_query_db_error", extra={"book": book, "chapter": chapter})
+        raise HTTPException(status_code=500, detail="Failed to load chapter.")
 
     if not verses:
         raise HTTPException(status_code=404, detail=f"Chapter not found: {book} {chapter}")
+
+    # Drop placeholder/empty verses (bad source data, e.g. ITA1927 "////") — never
+    # serve blank verse text. If the whole chapter is placeholders treat as missing.
+    verses = [v for v in verses if not _is_placeholder(v.text)]
+    if not verses:
+        scripture_fetch_errors_counter.add(1, {"reason": "empty_text", "endpoint": "chapter"})
+        logger.warning(
+            "chapter_all_placeholder",
+            extra={"book": book, "chapter": chapter, "translation": translation},
+        )
+        raise HTTPException(status_code=502, detail=f"Chapter data unavailable: {book} {chapter}.")
 
     # When no translation was requested, restrict to a single translation chosen
     # deterministically. The query returns every translation in the DB for this
