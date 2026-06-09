@@ -236,6 +236,129 @@ describe("Home page responsive layout", () => {
       // streamMessage(userMessageContent, apiMessages, { preferredTranslation, ... })
       expect(call[2]?.preferredTranslation).toBeUndefined();
     });
+
+    it("BITB-029: select reflects detected_translation after first message", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-detect",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "God loves you." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      const select = await screen.findByLabelText<HTMLSelectElement>("Bible version");
+      await waitFor(() => expect(select.value).toBe("kjv"));
+    });
+
+    it("BITB-029: detection does not write to localStorage or preferredTranslation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-detect2",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "ok" };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      await waitFor(() =>
+        expect(screen.getByText("ok")).toBeInTheDocument(),
+      );
+
+      expect(localStorage.getItem("preferredTranslation")).toBeNull();
+      const call = vi.mocked(api.streamMessage).mock.calls[0];
+      expect(call[2]?.preferredTranslation).toBeUndefined();
+    });
+
+    it("BITB-029: select stays at placeholder when detected code is not in options list", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-unknown",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "esv",
+        };
+        yield { type: "content" as const, content: "ok" };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      await waitFor(() =>
+        expect(screen.getByText("ok")).toBeInTheDocument(),
+      );
+
+      const select = screen.getByLabelText<HTMLSelectElement>("Bible version");
+      expect(select.value).toBe("");
+    });
   });
 
   describe("responsive main container", () => {
