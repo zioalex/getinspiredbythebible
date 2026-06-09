@@ -1556,7 +1556,9 @@ jobs:
           from sqlalchemy.ext.asyncio import create_async_engine
           from sqlalchemy import text
           async def check():
-              url = os.environ['DATABASE_URL'].replace('postgresql://', 'postgresql+asyncpg://').replace('sslmode=', 'ssl=')
+              url = os.environ['DATABASE_URL']
+              url = url.replace('postgresql://', 'postgresql+asyncpg://')
+              url = url.replace('sslmode=', 'ssl=')
               engine = create_async_engine(url)
               async with engine.begin() as conn:
                   count = (await conn.execute(text('SELECT COUNT(*) FROM verses'))).scalar()
