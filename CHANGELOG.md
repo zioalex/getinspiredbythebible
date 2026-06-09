@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.24.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.23.0...v1.24.0) (2026-06-09)
+
+### Features
+
+* **android:** submit sample question directly on tap ([#711](https://github.com/zioalex/getinspiredbythebible/issues/711)) ([5584a24](https://github.com/zioalex/getinspiredbythebible/commit/5584a2476153d37b8fcfd4a99a06e8b79d9dd7ec))
+
+### Bug Fixes
+
+* **api:** verse/chapter query timeout, error handling & monitoring (BITB-041) ([#700](https://github.com/zioalex/getinspiredbythebible/issues/700)) ([ff48248](https://github.com/zioalex/getinspiredbythebible/commit/ff482485982e79842bce8b3cd231d75e7fcc450b))
+* **frontend:** patch 3 moderate dependabot advisories ([#699](https://github.com/zioalex/getinspiredbythebible/issues/699)) ([9e82239](https://github.com/zioalex/getinspiredbythebible/commit/9e8223921faf7061dcbd52dbb309bef1b2314633))
+* **frontend:** show effective Bible translation in header selector (BITB-029) ([#709](https://github.com/zioalex/getinspiredbythebible/issues/709)) ([afc7d3a](https://github.com/zioalex/getinspiredbythebible/commit/afc7d3a6f677e6a5415a86a05c9b237df5b2f988))
+
 ## [1.23.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.2...v1.23.0) (2026-06-08)
 
 ### Features

@@ -511,6 +511,17 @@ class TestScriptureFidelityGuidance:
         result = get_verse_lookup_prompt("en")
         assert "VERBATIM" in result
 
+    def test_guidance_mentions_italian_example(self):
+        # The Italian "il frutto" / "la frutta" singular/plural example must
+        # appear verbatim in the guidance so the LLM sees a concrete case.
+        assert "il frutto" in SCRIPTURE_FIDELITY_GUIDANCE
+
+    def test_guidance_forbids_inventing_verse(self):
+        # When no verse text is in the Scripture Context the LLM must not
+        # reconstruct one from memory.
+        text = SCRIPTURE_FIDELITY_GUIDANCE.lower()
+        assert "invent" in text or "reconstruct" in text
+
 
 # ==================== Chat Service Tests ====================
 
