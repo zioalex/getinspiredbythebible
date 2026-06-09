@@ -250,13 +250,13 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 **Acceptance Criteria:**
 
-- [ ] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
+- [x] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
   `get_prayer_lookup_prompt`) instruct the model to quote scripture verbatim from the Scripture
   Context and never paraphrase, re-translate, or alter wording (incl. singular/plural, articles)
-- [ ] Prompt instructs the model not to fabricate verse wording when the verse text is absent
-- [ ] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
-- [ ] Unit test asserts the verbatim rule is present in all three prompt builders
-- [ ] Full backend test suite passes
+- [x] Prompt instructs the model not to fabricate verse wording when the verse text is absent
+- [x] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
+- [x] Unit test asserts the verbatim rule is present in all three prompt builders
+- [x] Full backend test suite passes
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-038-verbatim-scripture-citation.md`
 
