@@ -262,7 +262,9 @@ describe("Home page responsive layout", () => {
       const { container } = renderWithIntl(<Home />);
       await screen.findByLabelText("Bible version");
 
-      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
       await act(async () => {
         fireEvent.change(input, { target: { value: "hello" } });
       });
@@ -271,7 +273,8 @@ describe("Home page responsive layout", () => {
         fireEvent.click(submitButton!);
       });
 
-      const select = await screen.findByLabelText<HTMLSelectElement>("Bible version");
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
       await waitFor(() => expect(select.value).toBe("kjv"));
     });
 
@@ -300,7 +303,9 @@ describe("Home page responsive layout", () => {
       const { container } = renderWithIntl(<Home />);
       await screen.findByLabelText("Bible version");
 
-      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
       await act(async () => {
         fireEvent.change(input, { target: { value: "hello" } });
       });
@@ -309,9 +314,7 @@ describe("Home page responsive layout", () => {
         fireEvent.click(submitButton!);
       });
 
-      await waitFor(() =>
-        expect(screen.getByText("ok")).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText("ok")).toBeInTheDocument());
 
       expect(localStorage.getItem("preferredTranslation")).toBeNull();
       const call = vi.mocked(api.streamMessage).mock.calls[0];
@@ -343,7 +346,9 @@ describe("Home page responsive layout", () => {
       const { container } = renderWithIntl(<Home />);
       await screen.findByLabelText("Bible version");
 
-      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
       await act(async () => {
         fireEvent.change(input, { target: { value: "hello" } });
       });
@@ -352,9 +357,7 @@ describe("Home page responsive layout", () => {
         fireEvent.click(submitButton!);
       });
 
-      await waitFor(() =>
-        expect(screen.getByText("ok")).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText("ok")).toBeInTheDocument());
 
       const select = screen.getByLabelText<HTMLSelectElement>("Bible version");
       expect(select.value).toBe("");
