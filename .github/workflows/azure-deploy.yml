@@ -1418,7 +1418,6 @@ jobs:
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
 
       - name: Translation Status (pre-load, ${{ matrix.translation }})
-        if: matrix.translation == 'kjv'
         env:
           DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
           DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
