@@ -381,7 +381,17 @@ fun ChatScreen(
                     if (uiState.messages.isEmpty()) {
                         item {
                             WelcomeBanner(
-                                onPromptSelected = { prompt -> inputText = prompt },
+                                onPromptSelected = { prompt ->
+                                    // Tapping a sample question submits it directly.
+                                    // If Turnstile isn't ready yet, fall back to
+                                    // filling the input so the Send button still works.
+                                    if (uiState.isTurnstileReady) {
+                                        viewModel.sendMessage(prompt)
+                                        inputText = ""
+                                    } else {
+                                        inputText = prompt
+                                    }
+                                },
                                 modifier = Modifier.padding(24.dp),
                             )
                         }
