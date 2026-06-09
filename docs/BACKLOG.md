@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-08
+**Last Updated:** 2026-06-09
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -233,9 +233,9 @@ safely enables hybrid search (strict-improvement) and A/B-tests query expansion.
 
 ---
 
-### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+### ✅ BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (branch claude/backlog-item-ft0aju, 2026-06-09)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
