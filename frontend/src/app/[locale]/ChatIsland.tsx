@@ -788,7 +788,12 @@ export default function ChatIsland({
               {/* Translation Selector - always visible, disabled when loading */}
               <div className="flex items-center gap-2">
                 <select
-                  value={selectedTranslation}
+                  value={
+                    selectedTranslation ||
+                    (translations.some((t) => t.code === detectedTranslation)
+                      ? (detectedTranslation as string)
+                      : "")
+                  }
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
