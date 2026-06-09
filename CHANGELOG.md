@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.24.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.23.0...v1.24.0) (2026-06-09)
 
-
 ### Features
 
 * **android:** submit sample question directly on tap ([#711](https://github.com/zioalex/getinspiredbythebible/issues/711)) ([5584a24](https://github.com/zioalex/getinspiredbythebible/commit/5584a2476153d37b8fcfd4a99a06e8b79d9dd7ec))
-
 
 ### Bug Fixes
 
