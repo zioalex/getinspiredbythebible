@@ -28,6 +28,7 @@ non-English locale on every verse tap.
 ## Fix
 
 The Android flow already carries the localized token through:
+
 - LLM-detected localized book name encoded into the verse URL (`?localizedBook=...`)
 - `parseVerseLink()` extracts and passes it to `PendingVerseLink`
 - `buildSyntheticVerse()` sets `localizedBook` from the link (with chapter-response backstop)
@@ -39,6 +40,7 @@ The Android flow already carries the localized token through:
 untested and could silently regress.
 
 **Changes:**
+
 1. `VerseDetailBottomSheet.kt` — extracted inner `Column` content into
    `VerseDetailContent()` composable (mirrors the `VersesPanelContent` pattern)
    so Robolectric tests can mount it without `ModalBottomSheet` rendering caveats.
