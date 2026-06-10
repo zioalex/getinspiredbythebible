@@ -124,6 +124,7 @@
     "backendWarmingUp": "Le serveur se réveille, vous pouvez commencer à écrire...",
     "errorColdStart": "Je me prépare encore et cela prend plus de temps que prévu. Veuillez réessayer dans un moment — je serai prêt très bientôt !",
     "errorConnection": "Je suis désolé, j'ai des difficultés de connexion en ce moment. Ce pourrait être un problème temporaire — réessayez dans un moment. Si le problème persiste, vous pouvez nous contacter à contact@voxquieta.org",
+    "errorTimeout": "La réponse a été interrompue avant la fin. Il s'agit généralement d'un bref incident réseau ou serveur — réessayez. Si cela persiste, vous pouvez nous contacter à contact@voxquieta.org",
     "startNewSession": "Commencer une nouvelle session",
     "sessionLimitMessage": "Tu as envoyé 10 messages dans cette session ! Pourquoi ne pas prendre un moment pour réfléchir à ce que tu as reçu et profiter de la création de Dieu ? 🌳 Quand tu es prêt, démarre une nouvelle session ci-dessous.",
     "contentBlockedMessage": "Je n'ai pas pu répondre à ce message — notre système de sécurité l'a retenu et a peut-être simplement mal compris tes mots. Essaie de reformuler ta pensée, et si quelque chose te semble étrange, écris-nous à contact@voxquieta.org. Heureux de t'accueillir ici.",

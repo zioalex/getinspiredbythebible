@@ -41,6 +41,7 @@ import {
   ColdStartError,
   ContentBlockedError,
   SessionLimitError,
+  StreamTimeoutError,
   checkBackendReady,
   warmupBackend,
   StreamChunk,
@@ -380,6 +381,12 @@ export default function ChatIsland({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // Hoisted out of the try so the catch block can replace the placeholder
+    // assistant bubble in place (e.g. on a stall timeout) instead of appending
+    // a second bubble next to an empty one.
+    let streamedContent = "";
+    let assistantMessageIndex = -1;
+
     try {
       // Convert messages to the API format (without extra fields)
       const apiMessages: Message[] = messages.map((m) => ({
@@ -389,9 +396,7 @@ export default function ChatIsland({
 
       // Streaming metadata and content
       let metadata: StreamMetadata | null = null;
-      let streamedContent = "";
       let receivedCompletion = false;
-      let assistantMessageIndex = -1;
 
       // Create a placeholder assistant message that will be updated as content streams
       const placeholderMessage: ChatMessage = {
@@ -516,6 +521,28 @@ export default function ChatIsland({
         }
       }
 
+      // Resilience guard: the stream completed without error but no content
+      // arrived (empty LLM output, or chunks lost upstream). Don't leave the
+      // user staring at a blank assistant bubble — replace it with a clear,
+      // warm message inviting them to try again. A user-initiated stop is
+      // excluded: that keeps whatever (possibly empty) partial text silently.
+      if (!controller.signal.aborted && streamedContent.trim() === "") {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const msg = updated[assistantMessageIndex];
+          if (msg && msg.role === "assistant") {
+            updated[assistantMessageIndex] = {
+              ...msg,
+              content: tChat("errorConnection"),
+            };
+          }
+          return updated;
+        });
+        abortControllerRef.current = null;
+        setIsLoading(false);
+        return;
+      }
+
       // Fallback: if no completion event received, extract client-side
       if (!receivedCompletion) {
         const citedRefs = Array.from(extractVerseReferences(streamedContent));
@@ -564,13 +591,29 @@ export default function ChatIsland({
       console.error("Failed to send message:", error);
       setIsWarmingUp(false);
 
+      // Surface an error to the user. If an empty placeholder assistant bubble
+      // is already on screen (the common case — the error fires before or
+      // mid-stream), replace it in place so the user never sees a blank bubble
+      // sitting next to an error bubble; otherwise append a fresh message.
+      const showError = (content: string) => {
+        setMessages((prev) => {
+          const existing = prev[assistantMessageIndex];
+          if (
+            existing &&
+            existing.role === "assistant" &&
+            existing.content === ""
+          ) {
+            const updated = [...prev];
+            updated[assistantMessageIndex] = { ...existing, content };
+            return updated;
+          }
+          return [...prev, { role: "assistant", content }];
+        });
+      };
+
       // Handle session limit error specifically
       if (error instanceof SessionLimitError) {
-        const errorMessage: ChatMessage = {
-          role: "assistant",
-          content: tChat("sessionLimitMessage"),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        showError(tChat("sessionLimitMessage"));
         setShowSessionLimitButton(true);
         setIsLoading(false);
         return;
@@ -579,20 +622,20 @@ export default function ChatIsland({
       // Safety system blocked the message — show a warm notification
       // inviting the user to rephrase and to get in touch if something feels wrong.
       if (error instanceof ContentBlockedError) {
-        const errorMessage: ChatMessage = {
-          role: "assistant",
-          content: tChat("contentBlockedMessage"),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        showError(tChat("contentBlockedMessage"));
         setIsLoading(false);
         return;
       }
 
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: tChat("errorConnection"),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      // Stream stalled (no data within the inactivity window) — tell the user
+      // it was interrupted rather than leaving them on a silent empty bubble.
+      if (error instanceof StreamTimeoutError) {
+        showError(tChat("errorTimeout"));
+        setIsLoading(false);
+        return;
+      }
+
+      showError(tChat("errorConnection"));
       setIsLoading(false);
     }
   };
