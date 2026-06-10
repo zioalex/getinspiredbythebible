@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.25.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.0...v1.25.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **frontend:** surface chat stream stalls & empty responses instead of failing silently ([#721](https://github.com/zioalex/getinspiredbythebible/issues/721)) ([f4928a0](https://github.com/zioalex/getinspiredbythebible/commit/f4928a0bc21b32f0a7263dca05a2fa5adb756c11))
+* make 10-interaction session limit durable on Android and backend ([#719](https://github.com/zioalex/getinspiredbythebible/issues/719)) ([1445088](https://github.com/zioalex/getinspiredbythebible/commit/1445088af47bad3697766348e1b707c0e2ab68ce))
+
 ## [1.25.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.24.0...v1.25.0) (2026-06-10)
 
 ### Features
