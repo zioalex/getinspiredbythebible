@@ -268,6 +268,21 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(themeMode = mode) }
             }
         }
+        // Restore the persisted per-session interaction count so the 10-message
+        // limit survives app restarts and conversation loads. The count is keyed
+        // to the session lifetime (reset by startNewConversation), so we seed both
+        // the counter and the limit flag from DataStore on cold start. We do NOT
+        // restore the church-finder banner/inline flags: those use one-shot
+        // triggers (== 3 / >= 5) and must not re-nag after a restart.
+        viewModelScope.launch {
+            val restoredCount = sessionPreferences.getInteractionCount()
+            _uiState.update {
+                it.copy(
+                    interactionCount = restoredCount,
+                    isSessionLimitReached = restoredCount >= MAX_INTERACTIONS,
+                )
+            }
+        }
         // Fetch available translations from the backend with retry.
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
@@ -528,6 +543,10 @@ class ChatViewModel @Inject constructor(
                                     allVerses = state.allVerses + dedupedNew,
                                 )
                             }
+                            // Persist the new count so the 10-message limit survives
+                            // app restarts and conversation loads. state is the
+                            // in-memory mirror of the persisted value; write it back.
+                            sessionPreferences.setInteractionCount(_uiState.value.interactionCount)
                         }
                     }
                 }
@@ -625,6 +644,13 @@ class ChatViewModel @Inject constructor(
                     .filter { it.role == Message.Role.ASSISTANT }
                     .flatMap { it.verses }
                     .distinctBy { "${it.book}${it.chapter}:${it.verse}" }
+                // Intentionally do NOT recompute interactionCount / isSessionLimitReached
+                // from these messages. The limit is per session_id (shared across all
+                // conversations and matching the backend), not per conversation thread —
+                // an old thread's historical messages belong to past sessions. The current
+                // session count is restored from DataStore on init and must be preserved
+                // here. Deriving it from the loaded thread would reintroduce
+                // per-conversation behaviour and diverge from the backend's 429.
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }

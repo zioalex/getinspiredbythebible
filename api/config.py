@@ -118,6 +118,9 @@ class Settings(BaseSettings):
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute
     rate_limit_session_max_requests: int = 10  # Lifetime max per session (encourages breaks)
+    rate_limit_session_ttl_seconds: int = (
+        3600  # Retain a session's lifetime counter for this long after its last request
+    )
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
