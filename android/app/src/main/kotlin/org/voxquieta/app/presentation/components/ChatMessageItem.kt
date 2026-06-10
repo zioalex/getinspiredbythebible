@@ -579,13 +579,16 @@ fun ChatMessageItem(
                             )
                         }
 
-                        // (d) User message — plain text bubble
+                        // (d) User message — plain text bubble, selectable so the
+                        // question text can be copied manually (matches assistant text).
                         else -> {
-                            Text(
-                                text = message.content,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = textColor,
-                            )
+                            SelectionContainer {
+                                Text(
+                                    text = message.content,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = textColor,
+                                )
+                            }
                         }
                     }
                 }
