@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.25.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.24.0...v1.25.0) (2026-06-10)
+
+
+### Features
+
+* **android:** make user question text selectable for copy ([#713](https://github.com/zioalex/getinspiredbythebible/issues/713)) ([29dacdc](https://github.com/zioalex/getinspiredbythebible/commit/29dacdcdcf6ed353be6936e622fb665a04d1bbfa))
+* verbatim scripture quoting and db load status diagnostic ([#714](https://github.com/zioalex/getinspiredbythebible/issues/714)) ([3b21f24](https://github.com/zioalex/getinspiredbythebible/commit/3b21f244887b36d0f7e463571a922209f4a45058))
+
+
+### Bug Fixes
+
+* **api:** strengthen verse placeholder guard + add repo-layer timeout tests (BITB-041) ([#712](https://github.com/zioalex/getinspiredbythebible/issues/712)) ([8056659](https://github.com/zioalex/getinspiredbythebible/commit/8056659e0c9e9231ef8d4f07819ace64483a9e60))
+
 ## [1.24.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.23.0...v1.24.0) (2026-06-09)
 
 ### Features
