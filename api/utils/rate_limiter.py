@@ -128,9 +128,7 @@ class RateLimiter:
         # still bounding memory.
         session_cutoff = now - self.session_ttl_seconds
         expired_sessions = [
-            sid
-            for sid, entry in self._session_limits.items()
-            if entry.last_seen <= session_cutoff
+            sid for sid, entry in self._session_limits.items() if entry.last_seen <= session_cutoff
         ]
         for sid in expired_sessions:
             del self._session_limits[sid]
