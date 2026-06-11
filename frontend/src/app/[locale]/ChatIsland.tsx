@@ -42,6 +42,8 @@ import {
   ContentBlockedError,
   SessionLimitError,
   StreamTimeoutError,
+  MessageTooLongError,
+  MAX_MESSAGE_LENGTH,
   checkBackendReady,
   warmupBackend,
   StreamChunk,
@@ -635,6 +637,14 @@ export default function ChatIsland({
         return;
       }
 
+      // Backend rejected an over-long message (422) — tell the user to shorten
+      // it instead of showing a misleading connection error.
+      if (error instanceof MessageTooLongError) {
+        showError(tChat("messageTooLong", { max: MAX_MESSAGE_LENGTH }));
+        setIsLoading(false);
+        return;
+      }
+
       showError(tChat("errorConnection"));
       setIsLoading(false);
     }
@@ -1017,6 +1027,7 @@ export default function ChatIsland({
               onKeyDown={handleInputKeyDown}
               placeholder={tChat("inputPlaceholder")}
               rows={1}
+              maxLength={MAX_MESSAGE_LENGTH}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
               disabled={showSessionLimitButton}
             />
@@ -1042,6 +1053,20 @@ export default function ChatIsland({
               </button>
             )}
           </form>
+          {/* Character counter — surfaces only as the user nears the limit so
+              they understand why a long message can't grow further. */}
+          {input.length >= MAX_MESSAGE_LENGTH * 0.8 && (
+            <p
+              className={`text-xs mt-1 text-right ${
+                input.length >= MAX_MESSAGE_LENGTH
+                  ? "text-red-500"
+                  : "text-gray-400"
+              }`}
+              aria-live="polite"
+            >
+              {input.length}/{MAX_MESSAGE_LENGTH}
+            </p>
+          )}
           <p className="text-xs text-gray-400 mt-2 text-center">
             {tChat("disclaimer")}
           </p>

@@ -125,6 +125,7 @@
     "errorColdStart": "Ich wärme mich noch auf und es dauert länger als erwartet. Bitte versuche es gleich noch einmal – ich bin bald bereit!",
     "errorConnection": "Es tut mir leid, ich habe gerade Verbindungsprobleme. Dies könnte ein vorübergehendes Problem sein – bitte versuche es gleich noch einmal. Wenn das Problem weiterhin besteht, erreichst du uns unter contact@voxquieta.org",
     "errorTimeout": "Die Antwort wurde unterbrochen, bevor sie fertig war. Das ist meist ein kurzes Netzwerk- oder Serverproblem – bitte versuche es noch einmal. Wenn es weiterhin auftritt, erreichst du uns unter contact@voxquieta.org",
+    "messageTooLong": "Deine Nachricht ist etwas lang (max. {max} Zeichen). Bitte kürze sie und versuche es erneut.",
     "startNewSession": "Neue Sitzung starten",
     "sessionLimitMessage": "Du hast in dieser Sitzung 10 Nachrichten gesendet! Warum nimmst du dir nicht einen Moment Zeit, um über das Gehörte nachzudenken und Gottes Schöpfung zu genießen? 🌳 Wenn du bereit bist, starte unten eine neue Sitzung.",
     "contentBlockedMessage": "Auf diese Nachricht konnte ich nicht antworten — unser Sicherheitssystem hat sie zurückgehalten und hat deine Worte vielleicht einfach missverstanden. Versuch bitte, deinen Gedanken anders zu formulieren. Wenn sich etwas falsch anfühlt, melde dich gerne bei uns unter contact@voxquieta.org. Schön, dass du hier bist.",

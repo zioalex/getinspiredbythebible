@@ -117,6 +117,7 @@
     <string name="error_timeout">Richiesta scaduta. Riprova.</string>
     <string name="error_server">Errore del server. Riprova più tardi.</string>
     <string name="error_generic">Qualcosa è andato storto. Riprova.</string>
+    <string name="error_message_too_long">Il tuo messaggio è un po\' lungo (massimo %1$d caratteri). Accorcialo e riprova.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversazioni</string>

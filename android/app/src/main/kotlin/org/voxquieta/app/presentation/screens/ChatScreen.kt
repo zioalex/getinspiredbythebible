@@ -545,6 +545,7 @@ fun ChatScreen(
                 isLoading = uiState.isLoading,
                 isTurnstileReady = uiState.isTurnstileReady,
                 isSessionLimitReached = uiState.isSessionLimitReached,
+                maxLength = ChatViewModel.MAX_MESSAGE_LENGTH,
             )
         }
     }
