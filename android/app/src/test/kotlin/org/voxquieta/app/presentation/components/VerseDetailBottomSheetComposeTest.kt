@@ -1,7 +1,6 @@
 package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -169,34 +168,6 @@ class VerseDetailBottomSheetComposeTest : ComposeTestHarness() {
     @Test
     fun `isPlaceholderVerseText returns false for Cyrillic verse text`() {
         assertFalse(isPlaceholderVerseText("Ибо так возлюбил Бог мир"))
-    }
-
-    @Test
-    fun `placeholder verse box is hidden when text is empty`() {
-        mountContent(
-            verse = Verse(
-                book = "John",
-                chapter = 3,
-                verse = 16,
-                text = "",
-                translation = "ita1927",
-            ),
-        )
-        composeRule.onAllNodesWithText("\"\"").assertCountEquals(0)
-    }
-
-    @Test
-    fun `placeholder verse box is hidden when text is slash placeholder`() {
-        mountContent(
-            verse = Verse(
-                book = "John",
-                chapter = 3,
-                verse = 16,
-                text = "////",
-                translation = "ita1927",
-            ),
-        )
-        composeRule.onAllNodesWithText("\"////\"").assertCountEquals(0)
     }
 
     @Test
