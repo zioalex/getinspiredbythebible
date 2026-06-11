@@ -113,7 +113,7 @@ class Settings(BaseSettings):
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings
-    max_message_length: int = 200  # Max characters per chat message
+    max_message_length: int = 300  # Max characters per chat message
     rate_limit_enabled: bool = True
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute

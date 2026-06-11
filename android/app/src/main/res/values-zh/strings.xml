@@ -117,6 +117,7 @@
     <string name="error_timeout">请求超时，请重试。</string>
     <string name="error_server">服务器错误，请稍后重试。</string>
     <string name="error_generic">出了些问题，请重试。</string>
+    <string name="error_message_too_long">您的消息有点长（最多 %1$d 个字符）。请缩短后再试一次。</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">对话</string>

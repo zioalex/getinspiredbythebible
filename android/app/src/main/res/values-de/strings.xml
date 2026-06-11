@@ -117,6 +117,7 @@
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
+    <string name="error_message_too_long">Deine Nachricht ist etwas lang (max. %1$d Zeichen). Bitte kürze sie und versuche es erneut.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Gespräche</string>

@@ -64,6 +64,26 @@ export class StreamTimeoutError extends Error {
 }
 
 /**
+ * Error thrown when the chat message exceeds the backend length limit
+ * (HTTP 422). The UI guards against this client-side, but the server is the
+ * source of truth — surface a clear "too long" message rather than a generic
+ * connection error so the user knows to shorten their message.
+ */
+export class MessageTooLongError extends Error {
+  constructor(message: string = "Message exceeds the maximum length") {
+    super(message);
+    this.name = "MessageTooLongError";
+  }
+}
+
+/**
+ * Max characters allowed in a single chat message. MUST stay in sync with the
+ * backend's `max_message_length` setting (api/config.py); the server rejects
+ * anything longer with HTTP 422.
+ */
+export const MAX_MESSAGE_LENGTH = 300;
+
+/**
  * Max time to wait for the next chunk from the streaming endpoint before
  * declaring the stream stalled. Reset on every chunk (heartbeat-style), so a
  * normal streaming response that keeps producing tokens never trips it.
@@ -516,6 +536,23 @@ export async function* streamMessage(
       const data = await response.json().catch(() => ({}));
       if (data.detail?.error === "content_blocked") {
         throw new ContentBlockedError(data.detail?.message);
+      }
+    }
+    // 422 request validation: the realistic client-controllable cause is an
+    // over-long message. Detect the message-length error and surface a clear
+    // "too long" notice rather than a generic connection failure.
+    if (response.status === 422) {
+      const data = await response.json().catch(() => ({}));
+      const detail = data?.detail;
+      const messageTooLong =
+        Array.isArray(detail) &&
+        detail.some(
+          (d) =>
+            (typeof d?.type === "string" && d.type.includes("too_long")) ||
+            (Array.isArray(d?.loc) && d.loc.includes("message")),
+        );
+      if (messageTooLong) {
+        throw new MessageTooLongError();
       }
     }
     throw new Error(`API error: ${response.status}`);

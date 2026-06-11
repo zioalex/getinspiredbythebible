@@ -158,6 +158,13 @@ class ChatViewModel @Inject constructor(
 
         /** Chapter fetch client-side timeout; mirrors the backend verse_query_timeout_s. */
         const val CHAPTER_LOAD_TIMEOUT_MS = 10_000L
+
+        /**
+         * Max characters allowed in a single chat message. Must match the
+         * backend's max_message_length setting (api/config.py); the server
+         * rejects anything longer with HTTP 422.
+         */
+        const val MAX_MESSAGE_LENGTH = 300
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -1126,6 +1133,11 @@ class ChatViewModel @Inject constructor(
                 context.getString(R.string.error_server)
             }
         }
+        // 422 request validation: the realistic client-controllable cause is an
+        // over-long message. Tell the user to shorten it rather than showing a
+        // generic server error.
+        e is HttpException && e.code() == 422 ->
+            context.getString(R.string.error_message_too_long, MAX_MESSAGE_LENGTH)
         e is HttpException ->
             context.getString(R.string.error_server)
         e is IOException ->

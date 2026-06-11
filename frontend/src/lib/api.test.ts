@@ -16,6 +16,7 @@ import {
   streamMessage,
   ColdStartError,
   StreamTimeoutError,
+  MessageTooLongError,
   type ChatResponse,
   type ScriptureContext,
   type Verse,
@@ -1000,6 +1001,25 @@ describe("streamMessage", () => {
       { type: "metadata", message_id: "m1" },
       { type: "content", content: "Peace" },
     ]);
+  });
+
+  it("throws MessageTooLongError on a 422 message-length rejection", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [
+          {
+            type: "string_too_long",
+            loc: ["body", "message"],
+            msg: "String should have at most 300 characters",
+          },
+        ],
+      }),
+    });
+
+    const gen = streamMessage("a".repeat(301));
+    await expect(gen.next()).rejects.toBeInstanceOf(MessageTooLongError);
   });
 
   describe("inactivity timeout", () => {

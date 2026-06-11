@@ -125,6 +125,7 @@
     "errorColdStart": "I'm still warming up and it's taking longer than expected. Please try again in a moment - I'll be ready soon!",
     "errorConnection": "I'm sorry, I'm having trouble connecting right now. This could be a temporary issue - please try again in a moment. If the problem persists, you can reach us at contact@voxquieta.org",
     "errorTimeout": "The response was interrupted before it finished. This is usually a brief network or server hiccup — please try again. If it keeps happening, you can reach us at contact@voxquieta.org",
+    "messageTooLong": "Your message is a little long (max {max} characters). Please shorten it and try again.",
     "startNewSession": "Start New Session",
     "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
     "contentBlockedMessage": "I wasn't able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We're glad you're here.",
