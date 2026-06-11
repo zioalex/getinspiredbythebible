@@ -811,6 +811,24 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `loadChapter sets Error with timeout message when API call hangs past timeout`() = runTest {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } coAnswers {
+            delay(ChatViewModel.CHAPTER_LOAD_TIMEOUT_MS + 5_000L)
+            ChapterResponseDto(book = "John", chapter = 3, verses = emptyList())
+        }
+
+        viewModel.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Error)
+        assertEquals(
+            "Request timed out. Please try again.",
+            (state as ChapterSheetState.Error).message,
+        )
+    }
+
+    @Test
     fun `clearChapterSheet resets state to Idle`() = runTest {
         val stubResponse = ChapterResponseDto(
             book = "Psalms",

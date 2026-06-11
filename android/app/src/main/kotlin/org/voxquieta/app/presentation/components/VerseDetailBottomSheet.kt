@@ -41,6 +41,13 @@ import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 
+// Matches strings that contain only whitespace, punctuation, symbols, or underscores —
+// the same guard the backend uses for `////`-style placeholder verse data.
+private val PLACEHOLDER_VERSE_RE = Regex("^[\\s\\p{P}\\p{S}_]*\$")
+
+internal fun isPlaceholderVerseText(text: String?): Boolean =
+    text == null || PLACEHOLDER_VERSE_RE.matches(text)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerseDetailBottomSheet(
@@ -145,20 +152,26 @@ internal fun VerseDetailContent(
         }
 
         // ── Highlighted verse text ───────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(8.dp),
+        // Only render the quote when verse text is real content. Empty strings
+        // (synthetic verse not yet loaded) and placeholder data like "////" must
+        // never appear as a quoted verse — the chapter list below shows the
+        // actual text once the chapter loads.
+        if (!isPlaceholderVerseText(verse.text)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                    .padding(12.dp),
+            ) {
+                Text(
+                    text = "\"${verse.text}\"",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
-                .padding(12.dp),
-        ) {
-            Text(
-                text = "\"${verse.text}\"",
-                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
+            }
         }
 
         // ── Chapter content ──────────────────────────────────────────────
