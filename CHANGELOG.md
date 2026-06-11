@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.25.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.1...v1.25.2) (2026-06-11)
+
+
+### Bug Fixes
+
+* **android:** chapter load timeout + hide placeholder verse text (BITB-041) ([#722](https://github.com/zioalex/getinspiredbythebible/issues/722)) ([64d06b2](https://github.com/zioalex/getinspiredbythebible/commit/64d06b2b5d943868382a027bd01fc750724ac360))
+* clear 'message too long' handling + raise limit to 300 (web + Android + API) ([#725](https://github.com/zioalex/getinspiredbythebible/issues/725)) ([24c642a](https://github.com/zioalex/getinspiredbythebible/commit/24c642a52ca3cc0d8c04e2a4be18e9a591f1d554))
+
 ## [1.25.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.0...v1.25.1) (2026-06-10)
 
 ### Bug Fixes
