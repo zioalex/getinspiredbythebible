@@ -232,6 +232,77 @@ existing `versionCode` between tracks without rebuilding:
    rollout live there (or re-run with `release_status: completed` and a
    `rollout` fraction for a phased launch).
 
+### Publishing to several tracks at once (`ANDROID_EXTRA_TRACKS`)
+
+A second Actions variable, `ANDROID_EXTRA_TRACKS`, lets one tag-triggered
+release reach **more than one track** without rebuilding. After the primary
+upload to `ANDROID_AUTO_TRACK`, the workflow promotes the *same* `versionCode`
+(bit-for-bit, via the Fastfile `promote` lane) to every track listed here.
+
+- **Format:** comma-separated trackIds. Split is on **commas only**, because
+  trackIds may contain spaces (e.g. `closed-testing google-group`). Whitespace
+  around each entry is trimmed; blanks and the primary track are skipped.
+- **Direction matters:** promotion goes *up* the ladder. Promote
+  `internal → closed → beta → production`, not downward. Listing a lower track
+  than the primary will be rejected by Google Play.
+- **Empty/unset:** no-op (only the primary track is published).
+
+> **Current values:** `ANDROID_AUTO_TRACK = extend testing`,
+> `ANDROID_EXTRA_TRACKS = closed-testing google-group`. Every release goes to
+> both closed-testing tracks at full rollout.
+
+### Why testers may not see an update yet (review delays & the internal fast path)
+
+**A successful publish does not mean the build is downloadable.** A green
+`android-publish.yml` run only proves Google *accepted* the upload. Releases to
+**closed testing, open testing, and production still go through Google review**,
+and that review is an independent gate the upload log cannot see. Through late
+2025–2026 these reviews have frequently backed up for **days to weeks**, during
+which testers keep the previously-approved build. If you publish a new release
+every day, each one re-enters the queue, so the closed tracks can sit
+perpetually "In review" while never going live.
+
+Where to confirm: **Play Console → Testing → <your track> → Releases**. If the
+latest release shows **"In review" / "Pending publication"** (not "Available to
+testers"), the pipeline has done its job — you are waiting on Google. Check
+**Play Console → Policy status** and the developer-account email for any
+action-required message; a review stuck beyond ~7 days with no message usually
+warrants contacting Play support from the Console.
+
+**The internal testing track is the fast lane.** Internal testing releases are
+typically available to testers **within minutes**, because they get the
+lightest/fastest review — unlike the closed/open/production tracks. If the goal
+is to actually *receive* each build promptly (e.g. to dogfood your own
+releases), publish to `internal` and join it as a tester:
+
+1. Set `ANDROID_AUTO_TRACK = internal` (primary upload goes straight to
+   internal = fast) and, if you still want the formal closed tracks, set
+   `ANDROID_EXTRA_TRACKS = extend testing, closed-testing google-group` (the
+   same build is promoted *up* to them, where it flows through review in the
+   background).
+2. **Play Console → Testing → Internal testing → Testers:** add your Google
+   account's email, open the internal opt-in URL, and click *Become a tester*.
+3. On the device, ensure the Play Store is signed in with that same account,
+   then refresh ("Manage apps & device → Updates available").
+
+> Because the upload defaults to `internal` when `ANDROID_AUTO_TRACK` is
+> unset, simply **clearing** the variable also restores internal as the primary
+> track.
+
+### Checking what actually landed on each track
+
+`android-publish.yml` ends with a read-only **"Report Play Store track status"**
+step. It opens a throwaway Play Console edit (committing nothing) and prints,
+for every track, each release's `versionCodes`, target `status`, and rollout
+`userFraction`. Use it to confirm *which* build is on each track and that the
+rollout is full.
+
+> **Caveat:** the `status` it prints is the *target* state you set
+> (`completed` / `draft` / etc.) and the rollout fraction — **not** Google's
+> review state. The Play Developer API exposes no "In review" field, so this
+> step cannot detect a review hold. For review status, the **Play Console UI is
+> the source of truth** (see the section above).
+
 ### Manual one-off publish (workflow_dispatch)
 
 `android-publish.yml` also has a `workflow_dispatch` trigger with a `track`
@@ -315,6 +386,8 @@ diagnose quickly.
 | Workflow logs show `Bad credentials` or `401` | PAT expired or was revoked | Regenerate the PAT and update the `RELEASE_PLEASE_TOKEN` secret |
 | Two Release PRs appear, or a stale `release-please--branches--main--release-notes` branch exists | Leftover from older release-please configuration | Delete the stale branch. The current config produces a single PR on branch `release-please--branches--main` (see [Reviewing a Release PR](#reviewing-a-release-pr-before-merging)) |
 | `Lint Commit Messages` fails on the Release PR | A manually-edited commit on the Release PR branch does not follow Conventional Commits | Amend with a `chore:` or `docs:` prefix; see `commitlint.config.cjs` for the allowed types |
+| `android-publish.yml` is green and the **Report Play Store track status** step shows the build at `completed` / 100%, but testers don't see the update | The release is held in **Google review** on a closed/open/production track (the API status is the *target* state, not the review state). Common 2025–2026 backlog. | Confirm in **Play Console → Testing → <track> → Releases** ("In review" vs "Available to testers"); check **Policy status** + account email. For prompt delivery, publish to the **internal** track instead — see [Why testers may not see an update yet](#why-testers-may-not-see-an-update-yet-review-delays--the-internal-fast-path) |
+| Tester is in the closed-testing Google group but still sees the old build | Group membership alone is not enough, or the device's Play Store account differs | Open the track's **opt-in URL** and click *Become a tester* with the device's Google account; confirm the Play Store app is signed in with that account; refresh "Updates available" or clear Play Store storage |
 
 ### Quick diagnostic checklist
 
