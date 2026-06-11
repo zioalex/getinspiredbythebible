@@ -2,6 +2,8 @@ package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
@@ -129,5 +131,56 @@ class VerseDetailBottomSheetComposeTest : ComposeTestHarness() {
         )
         composeRule.onNodeWithText("John 3:16").assertIsDisplayed()
         composeRule.onNodeWithText("John 3").assertIsDisplayed()
+    }
+
+    // ── isPlaceholderVerseText unit tests ──────────────────────────────────
+
+    @Test
+    fun `isPlaceholderVerseText returns true for null`() {
+        assertTrue(isPlaceholderVerseText(null))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns true for empty string`() {
+        assertTrue(isPlaceholderVerseText(""))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns true for slash placeholder`() {
+        assertTrue(isPlaceholderVerseText("////"))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns true for dash placeholder`() {
+        assertTrue(isPlaceholderVerseText("----"))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns true for whitespace-only string`() {
+        assertTrue(isPlaceholderVerseText("   "))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns false for real Latin verse text`() {
+        assertFalse(isPlaceholderVerseText("For God so loved the world"))
+    }
+
+    @Test
+    fun `isPlaceholderVerseText returns false for Cyrillic verse text`() {
+        assertFalse(isPlaceholderVerseText("Ибо так возлюбил Бог мир"))
+    }
+
+    @Test
+    fun `verse box is shown when text is real verse text`() {
+        mountContent(
+            verse = Verse(
+                book = "John",
+                chapter = 3,
+                verse = 16,
+                text = "For God so loved the world.",
+                translation = "kjv",
+            ),
+        )
+        composeRule.onNodeWithText("\"For God so loved the world.\"").assertIsDisplayed()
     }
 }

@@ -41,6 +41,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -806,6 +807,24 @@ class ChatViewModelTest {
         assertTrue(state is ChapterSheetState.Error)
         assertEquals(
             "Network error. Please check your connection.",
+            (state as ChapterSheetState.Error).message,
+        )
+    }
+
+    @Test
+    fun `loadChapter sets Error with timeout message when API call hangs past timeout`() = runTest {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } coAnswers {
+            delay(ChatViewModel.CHAPTER_LOAD_TIMEOUT_MS + 5_000L)
+            ChapterResponseDto(book = "John", chapter = 3, verses = emptyList())
+        }
+
+        viewModel.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Error)
+        assertEquals(
+            "Request timed out. Please try again.",
             (state as ChapterSheetState.Error).message,
         )
     }

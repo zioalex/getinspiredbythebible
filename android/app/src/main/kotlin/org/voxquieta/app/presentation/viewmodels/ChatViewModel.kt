@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -154,6 +155,9 @@ class ChatViewModel @Inject constructor(
          * Must match the backend's RATE_LIMIT_SESSION_MAX_REQUESTS setting (default 10).
          */
         const val MAX_INTERACTIONS = 10
+
+        /** Chapter fetch client-side timeout; mirrors the backend verse_query_timeout_s. */
+        const val CHAPTER_LOAD_TIMEOUT_MS = 10_000L
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -853,8 +857,15 @@ class ChatViewModel @Inject constructor(
                 val lang = _uiState.value.currentLocale.ifBlank {
                     Locale.getDefault().language.ifBlank { "en" }
                 }
-                val response = bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
-                _chapterSheetState.value = ChapterSheetState.Success(response)
+                val response = withTimeoutOrNull(CHAPTER_LOAD_TIMEOUT_MS) {
+                    bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
+                }
+                if (response == null) {
+                    _chapterSheetState.value =
+                        ChapterSheetState.Error(context.getString(R.string.error_timeout))
+                } else {
+                    _chapterSheetState.value = ChapterSheetState.Success(response)
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Timber.e(e, "loadChapter error: $book $chapter")
