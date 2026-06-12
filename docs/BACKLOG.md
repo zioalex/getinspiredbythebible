@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-12
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -230,6 +230,35 @@ safely enables hybrid search (strict-improvement) and A/B-tests query expansion.
 - [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### 🚧 BITB-050: Improve Verse Search Thematic Relevance and Response Depth
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hours)
+**Created:** 2026-06-12
+
+**As a** user seeking spiritual guidance, **I want** the verses surfaced for me to match
+the *theme* of what I'm facing and the reply to actually unfold that scripture, **so that**
+the answer meets me where I am instead of dropping a one-line quote.
+
+**Why P1:** Two prompt-only quality gaps that affect every answer. (1) The query-expansion
+prompt over-expands into off-theme terms that pull in irrelevant verses; it is rewritten to
+anchor on the 1–2 core themes. (2) The conversational system prompt is given a
+response-depth instruction (acknowledge → verse → unfold → bring home) that guards against
+padding. **Scope note:** the query-expansion flag flip + validation are owned by **BITB-043** —
+this story only changes prompt *content*, enabling no flags.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Expansion prompt is theme-focused and warns against off-theme drift
+- [x] `RESPONSE_DEPTH_GUIDANCE` wired into `get_system_prompt()` for all languages
+- [x] Depth guidance asks for substance while forbidding padding; allows short replies
+- [x] Tests cover both changes
+- [ ] Full backend test suite passes in CI
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-050-search-thematic-relevance-and-response-depth.md`
 
 ---
 
