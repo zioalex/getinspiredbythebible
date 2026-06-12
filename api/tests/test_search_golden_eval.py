@@ -8,7 +8,7 @@ skipped in CI by default.
 import json
 import os
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -235,16 +235,18 @@ async def test_hybrid_search_regression_case():
     environment variables pointing at a seeded database.
     """
     import os
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
     db_url = os.environ["DATABASE_URL"]
     engine = create_async_engine(db_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+    from embeddings.provider import create_embedding_provider
+
     from config import settings as app_settings
     from scripture.search import ScriptureSearchService
-    from embeddings.provider import create_embedding_provider
 
     embedding_provider = create_embedding_provider(app_settings)
 
@@ -262,9 +264,7 @@ async def test_hybrid_search_regression_case():
 
     ranked_keys = [_verse_result_key(v) for v in results.verses]
     relevant = {_ref_key("Mark", 4, 39)}
-    hit_rank = next(
-        (i + 1 for i, k in enumerate(ranked_keys) if k in relevant), None
-    )
+    hit_rank = next((i + 1 for i, k in enumerate(ranked_keys) if k in relevant), None)
     assert hit_rank is not None, (
         f"Mark 4:39 not found in results. Top-10: "
         f"{[f'{v.book} {v.chapter}:{v.verse}' for v in results.verses[:10]]}"
