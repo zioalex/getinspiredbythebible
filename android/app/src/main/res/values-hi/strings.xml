@@ -117,6 +117,7 @@
     <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>
     <string name="error_server">सर्वर त्रुटि। बाद में पुनः प्रयास करें।</string>
     <string name="error_generic">कुछ गलत हो गया। पुनः प्रयास करें।</string>
+    <string name="error_message_too_long">आपका संदेश थोड़ा लंबा है (अधिकतम %1$d वर्ण)। कृपया इसे छोटा करके फिर से प्रयास करें।</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">बातचीत</string>

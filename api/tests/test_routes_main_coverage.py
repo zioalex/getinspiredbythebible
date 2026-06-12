@@ -1107,6 +1107,41 @@ class TestScriptureRoutes:
                 await get_verse("John", 3, 16, mock_db, mock_embedding, "ita1927")
             assert exc_info.value.status_code == 502
 
+    def test_is_placeholder(self):
+        """Placeholder guard catches all-punctuation/whitespace; keeps real text (BITB-041)."""
+        from routes.scripture import _is_placeholder
+
+        assert _is_placeholder("////") is True
+        assert _is_placeholder("----") is True  # stricter guard (was not caught before)
+        assert _is_placeholder("...") is True  # stricter guard
+        assert _is_placeholder("") is True
+        assert _is_placeholder("   ") is True
+        assert _is_placeholder(None) is True
+        assert _is_placeholder("For God so loved") is False
+        assert _is_placeholder("Бог") is False  # Cyrillic must NOT be blocked
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "For God so loved the world",  # en
+            "Poiché Iddio ha tanto amato il mondo",  # it
+            "Also hat Gott die Welt geliebt, süße",  # de (umlaut + ß)
+            "Porque de tal manera amó Dios, ñoño",  # es (ñ + accents)
+            "Car Dieu a tant aimé le monde, cœur",  # fr (œ + accents)
+            "Porque Deus amou o mundo, coração",  # pt (ã/ç)
+            "لأنه هكذا أحب الله العالم",  # ar (Arabic, RTL)
+            "Ибо так возлюбил Бог мир",  # ru (Cyrillic)
+            "神爱世人，甚至将他的独生子赐给他们",  # zh (Chinese)
+            "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा",  # hi (Devanagari + matras)
+            "하나님이 세상을 이처럼 사랑하사",  # ko (Hangul)
+        ],
+    )
+    def test_is_placeholder_keeps_all_languages(self, text):
+        """Real scripture in every supported language is never flagged as placeholder."""
+        from routes.scripture import _is_placeholder
+
+        assert _is_placeholder(text) is False
+
     @staticmethod
     def _chapter_verse(translation: str):
         """Build a mock verse for a given translation (John 3:16)."""

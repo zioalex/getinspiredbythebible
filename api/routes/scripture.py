@@ -3,6 +3,7 @@ Scripture API routes - Bible data and search endpoints.
 """
 
 import asyncio
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -29,9 +30,18 @@ logger = get_logger("routes.scripture")
 router = APIRouter(prefix="/scripture", tags=["scripture"])
 
 
+# Verse text that is empty or only punctuation/whitespace/underscores (e.g. "////",
+# "----", "...") is a data defect, never real scripture. re.UNICODE keeps real
+# letters (Cyrillic/Greek/Arabic/CJK/Devanagari/Hangul are \w) from being treated
+# as placeholders, so the guard is safe across every supported language.
+_PLACEHOLDER_TEXT_RE = re.compile(r"^[\s\W_]*$", re.UNICODE)
+
+
 def _is_placeholder(text: str | None) -> bool:
-    """True if verse text is empty or a known placeholder marker (e.g. '////' in ITA1927 source)."""
-    return text is None or text.strip().strip("/") == ""
+    """True if verse text is empty or consists only of punctuation/whitespace."""
+    if text is None:
+        return True
+    return bool(_PLACEHOLDER_TEXT_RE.match(text))
 
 
 class BooksResponse(BaseModel):

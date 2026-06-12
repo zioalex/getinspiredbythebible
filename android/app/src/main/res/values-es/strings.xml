@@ -117,6 +117,7 @@
     <string name="error_timeout">Tiempo de espera agotado. Inténtalo de nuevo.</string>
     <string name="error_server">Error del servidor. Inténtalo más tarde.</string>
     <string name="error_generic">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="error_message_too_long">Tu mensaje es un poco largo (máximo %1$d caracteres). Acórtalo e inténtalo de nuevo.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversaciones</string>
