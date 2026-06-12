@@ -134,13 +134,13 @@ class TestGoldenSetFixture:
 
     def test_all_cases_have_relevant_references(self):
         for case in _load_golden()["cases"]:
-            assert case.get("relevant_references"), (
-                f"Case '{case['id']}' missing relevant_references"
-            )
+            assert case.get(
+                "relevant_references"
+            ), f"Case '{case['id']}' missing relevant_references"
             for ref in case["relevant_references"]:
-                assert {"book", "chapter", "verse"} <= set(ref.keys()), (
-                    f"Case '{case['id']}' ref missing required fields: {ref}"
-                )
+                assert {"book", "chapter", "verse"} <= set(
+                    ref.keys()
+                ), f"Case '{case['id']}' ref missing required fields: {ref}"
 
     def test_regression_case_present(self):
         ids = {c["id"] for c in _load_golden()["cases"]}
@@ -152,23 +152,20 @@ class TestGoldenSetFixture:
 
     def test_multilingual_coverage(self):
         languages = {c["language"] for c in _load_golden()["cases"]}
-        assert len(languages) >= 4, (
-            f"Expected >= 4 languages, got {languages}"
-        )
+        assert len(languages) >= 4, f"Expected >= 4 languages, got {languages}"
         for lang in ("en", "it", "de", "es"):
             assert lang in languages, f"Language '{lang}' missing from golden set"
 
     def test_incident_case_has_irrelevant_guard(self):
         cases = {c["id"]: c for c in _load_golden()["cases"]}
         incident = cases["italian-frustration-incident"]
-        assert incident.get("irrelevant_references"), (
-            "Incident case must list irrelevant references for regression guard"
-        )
+        assert incident.get(
+            "irrelevant_references"
+        ), "Incident case must list irrelevant references for regression guard"
         # Job 21:27 must be guarded
         job_ref = _ref_key("Job", 21, 27)
         irrelevant_keys = {
-            _ref_key(r["book"], r["chapter"], r["verse"])
-            for r in incident["irrelevant_references"]
+            _ref_key(r["book"], r["chapter"], r["verse"]) for r in incident["irrelevant_references"]
         }
         assert job_ref in irrelevant_keys, "Job 21:27 must be in irrelevant_references"
 
@@ -205,7 +202,7 @@ class TestScorerWithMockResults:
         """Job 21:27 in top results triggers zero MRR for relevant references."""
         # Simulate the bad-search scenario: Job 21:27 ranked first
         results = [
-            self._make_verse_result("Job", 21, 27, 0.95),   # irrelevant (bad)
+            self._make_verse_result("Job", 21, 27, 0.95),  # irrelevant (bad)
             self._make_verse_result("James", 1, 19, 0.70),  # relevant
         ]
         ranked_keys = [_verse_result_key(v) for v in results]
