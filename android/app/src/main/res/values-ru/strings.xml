@@ -117,6 +117,7 @@
     <string name="error_timeout">Запрос истёк. Повторите попытку.</string>
     <string name="error_server">Ошибка сервера. Повторите попытку позже.</string>
     <string name="error_generic">Что-то пошло не так. Повторите попытку.</string>
+    <string name="error_message_too_long">Ваше сообщение слишком длинное (максимум %1$d символов). Сократите его и попробуйте снова.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Беседы</string>
