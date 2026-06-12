@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-12
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -230,6 +230,26 @@ safely enables hybrid search (strict-improvement) and A/B-tests query expansion.
 - [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### 🎯 BITB-050: Improve Thematic Verse Search & Response Depth for Specific Questions
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs) — prompt-only; flag rollout deferred to BITB-043
+**Created:** 2026-06-12
+
+**As a** user asking a precise study question, **I want** verses chosen by theme and an answer that
+engages my specific point (e.g. the Amos 7:1 king-vs-people harvest nuance), **so that** I get a
+substantive, on-target response.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Expansion prompt includes social-justice / prophetic-judgment / named-passage themes
+- [ ] System prompt addresses the user's specific focus first
+- [ ] `query_expansion_enabled` default **not** changed here (owned by BITB-043)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-050-thematic-search-and-response-depth.md`
 
 ---
 
@@ -741,6 +761,107 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+> **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
+> Six stories captured from a German beta tester's usage notes: typo tolerance, more
+> German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
+> search/response depth.
+
+### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-12
+
+**As a** user who makes spelling mistakes (especially in German), **I want** the app to interpret my
+likely intended meaning, **so that** "reichsheilugtm bet el" is answered as "Reichsheiligtum Bet-El"
+instead of a generic "I don't understand".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Obvious typos are silently interpreted and answered; no remark about the misspelling
+- [ ] Genuinely ambiguous queries get one short clarifying question in the user's language
+- [ ] Typo guidance present in all three chat system prompts; test asserts it for German
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-045-typo-tolerant-queries.md`
+
+---
+
+### 🎯 BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days, mostly data loading)
+**Created:** 2026-06-12
+
+**As a** German-speaking user, **I want** a familiar Bible translation (Luther), **so that** I'm not
+limited to Schlachter 1951. Luther 1984/2017, Einheitsübersetzung, NGÜ, and Schlachter 2000 are
+copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBible).
+
+**Acceptance Criteria (summary):**
+
+- [ ] German picker shows Luther 1912 (default), Schlachter 1951, Elberfelder 1871
+- [ ] Text + embeddings loaded and searchable for both new translations
+- [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 🎯 BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-12
+
+**As a** user, **I want** a one-tap button to copy just my prompt text, **so that** I can paste it
+into another tool (e.g. Perplexity) without copying the whole Q&A. Extends the prior Android
+selection-only story with an explicit button and web support.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Copy icon on user bubbles (web + Android) copies only the raw question text
+- [ ] Web shows a checkmark ~2 s; Android shows a Toast; no new Android string resources
+- [ ] Assistant copy/share controls unchanged
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-047-copy-user-prompt-button.md`
+
+---
+
+### 🎯 BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 hr)
+**Created:** 2026-06-12
+
+**As an** Android user, **I want** the keyboard to disappear after I tap Send, **so that** I can see
+the full response without manually dismissing it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Keyboard collapses immediately after Send via `focusManager.clearFocus()`
+- [ ] Multi-line input (Enter = newline) unchanged; Stop icon while streaming unchanged
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-048-android-dismiss-keyboard-on-send.md`
+
+---
+
+### 🎯 BITB-049: Always Start with a Fresh Chat on App Launch (Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 hr)
+**Created:** 2026-06-12
+
+**As an** Android user, **I want** the app to open a new empty chat on every launch, **so that** I
+begin fresh instead of landing in my last conversation (history stays reachable via the drawer).
+
+**Acceptance Criteria (summary):**
+
+- [ ] App launch always lands on `chat/new`; drawer still lists/loads past conversations
+- [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+
+---
 
 ### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
