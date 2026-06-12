@@ -23,6 +23,10 @@
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors
 #       Same KQL the prod-monitor.yml log-scan job runs; alerts via email if
 #       any backend error log line is seen in the last 10 minutes.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_errors (BITB-041)
+#       Fires when verse/chapter fetch failures (timeout/db_error/empty_text) occur.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041)
+#       Fires when p95 latency of verse/chapter DB reads exceeds 1000ms.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -120,6 +124,85 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
       | where Log_s matches regex "(?i)(openrouter error|llm streaming error|anthropic error|internal server error|traceback)"
       | summarize cnt = count() by bin(TimeGenerated, 5m)
       | where cnt > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Verse/chapter fetch error-rate alert (BITB-041).
+# Fires when scripture.fetch.errors custom metric records any failure
+# (timeout / db_error / empty_text) in the last 10 minutes.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_errors" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-scripture-fetch-errors"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Verse/chapter fetch errors (timeout, DB failure, or placeholder data) in the last 10 minutes."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "scripture.fetch.errors"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Verse/chapter fetch p95 latency alert (BITB-041).
+# Fires when p95 of db.query.duration_ms for verse/chapter ops exceeds 1000ms.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_latency_p95" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-scripture-fetch-latency-p95"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "p95 latency of verse/chapter DB reads exceeded 1000ms over the last 15 minutes."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(15m)
+      | where name == "db.query.duration_ms"
+      | extend op = tostring(customDimensions["operation"])
+      | where op in ("get_verse", "get_chapter")
+      | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
+      | where p95 > 1000
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

@@ -47,6 +47,9 @@ describe("ContactForm", () => {
     renderWithIntl(<ContactForm />);
     fireEvent.click(screen.getByText("Get in Touch"));
 
+    const emailInput = screen.getByLabelText(/email/i);
+    fireEvent.change(emailInput, { target: { value: "user@example.com" } });
+
     const messageInput = screen.getByLabelText("Message");
     fireEvent.change(messageInput, { target: { value: "Hello!" } });
     fireEvent.submit(messageInput.closest("form")!);
@@ -66,6 +69,9 @@ describe("ContactForm", () => {
     renderWithIntl(<ContactForm />);
     fireEvent.click(screen.getByText("Get in Touch"));
 
+    const emailInput = screen.getByLabelText(/email/i);
+    fireEvent.change(emailInput, { target: { value: "user@example.com" } });
+
     const messageInput = screen.getByLabelText("Message");
     fireEvent.change(messageInput, { target: { value: "Test" } });
     fireEvent.submit(messageInput.closest("form")!);
@@ -83,6 +89,9 @@ describe("ContactForm", () => {
 
     renderWithIntl(<ContactForm />);
     fireEvent.click(screen.getByText("Get in Touch"));
+
+    const emailInput = screen.getByLabelText(/email/i);
+    fireEvent.change(emailInput, { target: { value: "user@example.com" } });
 
     const messageInput = screen.getByLabelText("Message");
     fireEvent.change(messageInput, { target: { value: "Hello!" } });
@@ -149,7 +158,7 @@ describe("ContactForm", () => {
     expect(screen.getByLabelText("Expected vs. actual behavior")).toBeDefined();
   });
 
-  it("bug report submit stays disabled until both fields are filled", () => {
+  it("bug report submit stays disabled until email and both fields are filled", () => {
     renderWithIntl(<ContactForm />);
     fireEvent.click(screen.getByText("Get in Touch"));
     fireEvent.change(screen.getByLabelText("Subject"), {
@@ -157,6 +166,12 @@ describe("ContactForm", () => {
     });
 
     const submitBtn = screen.getByText("Send Message").closest("button")!;
+    expect(submitBtn.disabled).toBe(true);
+
+    // Fill email — still missing bug fields
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "user@example.com" },
+    });
     expect(submitBtn.disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText("Steps to reproduce"), {
@@ -181,6 +196,10 @@ describe("ContactForm", () => {
     fireEvent.click(screen.getByText("Get in Touch"));
     fireEvent.change(screen.getByLabelText("Subject"), {
       target: { value: "bug" },
+    });
+
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "user@example.com" },
     });
 
     const steps = screen.getByLabelText("Steps to reproduce");

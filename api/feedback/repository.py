@@ -38,6 +38,7 @@ class FeedbackRepository:
             verses_cited=request.verses_cited,
             model_used=request.model_used,
             response_time_ms=request.response_time_ms,
+            reason=request.reason,
             created_at=datetime.now(UTC),
         )
 

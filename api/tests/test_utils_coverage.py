@@ -814,6 +814,64 @@ class TestRateLimiter:
         # Maxed session should be kept (lifetime limit reached)
         assert "maxed-session" in limiter._session_limits
 
+    @pytest.mark.asyncio
+    async def test_cleanup_keeps_idle_sub_limit_session_within_ttl(self):
+        """A session below the lifetime limit must NOT be reset on brief idle gaps.
+
+        Regression test: cleanup used to delete sessions whose total_requests was
+        under the lifetime limit once their timestamps fell outside the 60s rate
+        window, silently resetting the "lifetime" counter. Sessions within the TTL
+        must now be retained with their count intact.
+        """
+        limiter = RateLimiter(
+            requests_per_minute=100,
+            session_requests_per_minute=100,
+            session_max_requests=10,
+            window_seconds=1,
+            cleanup_interval_seconds=0,
+            session_ttl_seconds=3600,
+        )
+
+        # Send a few requests, staying below the lifetime limit of 10.
+        for _ in range(4):
+            await limiter.check_rate_limit("1.2.3.4", session_id="idle-session")
+
+        # Idle past the 1s rate window but well within the 1h TTL.
+        limiter._last_cleanup = 0
+        limiter._session_limits["idle-session"].timestamps = [time.time() - 100]
+
+        # Trigger cleanup via another request.
+        await limiter.check_rate_limit("5.5.5.5")
+
+        # Session retained with its lifetime count intact.
+        assert "idle-session" in limiter._session_limits
+        assert limiter._session_limits["idle-session"].total_requests == 4
+
+    @pytest.mark.asyncio
+    async def test_cleanup_evicts_session_after_ttl(self):
+        """Sessions idle beyond the TTL are evicted to bound memory growth."""
+        limiter = RateLimiter(
+            requests_per_minute=100,
+            session_requests_per_minute=100,
+            session_max_requests=10,
+            window_seconds=1,
+            cleanup_interval_seconds=0,
+            session_ttl_seconds=60,
+        )
+
+        await limiter.check_rate_limit("1.2.3.4", session_id="old-session")
+
+        # Force last activity older than the TTL.
+        limiter._last_cleanup = 0
+        entry = limiter._session_limits["old-session"]
+        entry.last_seen = time.time() - 120
+        entry.timestamps = [time.time() - 120]
+
+        # Trigger cleanup via another request.
+        await limiter.check_rate_limit("5.5.5.5")
+
+        assert "old-session" not in limiter._session_limits
+
     def test_get_stats(self):
         """get_stats should return current statistics."""
         limiter = RateLimiter(
