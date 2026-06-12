@@ -9,6 +9,34 @@ in responses, linking them to scripture. Deployed on Azure.
 **Tech stack:** Python 3.12 / FastAPI / PostgreSQL 16 + pgvector /
 Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
+## Standard Workflow: Plan → Build → Verify
+
+**This is the default operating procedure for any non-trivial task** (a feature,
+a bug fix, or a refactor — anything beyond a true one-line/typo change). It runs
+as a three-stage relay across models so that planning and verification are done
+by a stronger model and the bulk implementation by a faster one:
+
+1. **Plan — Opus.** Explore the codebase first (read the relevant files, find
+   existing utilities/patterns to reuse), then write an explicit plan: the
+   problem, the precise changes per file, and how it will be verified. Resolve
+   ambiguity with the user *before* coding, not after. Also create/update the
+   backlog story (see *Backlog Hygiene*) as part of planning.
+2. **Build — Sonnet.** Delegate the implementation to a Sonnet subagent
+   (`Agent` with `model: sonnet`), handing it the approved plan as its brief.
+   It makes all the code, test, migration, and i18n changes on the feature branch.
+3. **Verify — Opus.** Spin up a *separate* Opus subagent (`Agent` with
+   `model: opus`) to independently run the backend + frontend (+ Android, if
+   touched) test suites and review the diff against the plan's acceptance
+   criteria. It reports pass/fail with evidence; the main session fixes any gaps
+   it finds before commit/PR.
+
+This composes with — it does not replace — the **Testing** rule (every change
+ships with tests) and **Backlog Hygiene** (every change has a story). Trivial
+one-liners may skip the relay, but still need tests where behaviour changes.
+
+> One-shot entry point: the `/plan-build-verify <task>` slash command
+> (`.claude/commands/plan-build-verify.md`) runs this relay end to end.
+
 ## Repository Layout
 
 ```text

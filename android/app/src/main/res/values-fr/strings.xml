@@ -117,6 +117,7 @@
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>
     <string name="error_server">Erreur serveur. Veuillez réessayer plus tard.</string>
     <string name="error_generic">Une erreur s\'est produite. Veuillez réessayer.</string>
+    <string name="error_message_too_long">Votre message est un peu long (maximum %1$d caractères). Raccourcissez-le et réessayez.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>

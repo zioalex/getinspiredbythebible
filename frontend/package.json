@@ -45,6 +45,9 @@
     "vitest": "^4.1.8"
   },
   "overrides": {
-    "minimatch": ">=10.2.1"
+    "minimatch": ">=10.2.1",
+    "next": {
+      "postcss": ">=8.5.10"
+    }
   }
 }
