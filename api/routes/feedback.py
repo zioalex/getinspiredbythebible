@@ -64,13 +64,21 @@ async def submit_feedback(
             extra={"feedback_id": feedback.id, "rating": feedback.rating},
         )
 
-        # Send email notification for negative feedback
-        if request.rating == "negative":
+        # Send email notification for negative feedback, or positive with a comment
+        should_notify = request.rating == "negative" or (
+            request.rating == "positive" and bool(request.comment)
+        )
+        if should_notify:
             email_service.send_feedback_notification(
                 rating=request.rating,
                 comment=request.comment,
                 user_message=request.user_message,
                 assistant_response=request.assistant_response,
+                message_id=request.message_id,
+                verses_cited=request.verses_cited,
+                model_used=request.model_used,
+                response_time_ms=request.response_time_ms,
+                reason=request.reason,
             )
 
         return FeedbackResponse(

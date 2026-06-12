@@ -124,6 +124,8 @@
     "backendWarmingUp": "O servidor está a acordar, pode começar a escrever...",
     "errorColdStart": "Ainda estou a preparar-me e está a demorar mais do que o esperado. Por favor, tente novamente em breve — estarei pronto em breve!",
     "errorConnection": "Lamento, estou com dificuldades de ligação neste momento. Pode ser um problema temporário — tente novamente em breve. Se o problema persistir, pode contactar-nos em contact@voxquieta.org",
+    "errorTimeout": "A resposta foi interrompida antes de terminar. Normalmente é um breve problema de rede ou do servidor — tente novamente. Se continuar a acontecer, pode contactar-nos em contact@voxquieta.org",
+    "messageTooLong": "A sua mensagem é um pouco longa (máximo {max} caracteres). Encurte-a e tente novamente.",
     "startNewSession": "Iniciar Nova Sessão",
     "sessionLimitMessage": "Você enviou 10 mensagens nesta sessão! Que tal tirar um momento para refletir sobre o que recebeu e aproveitar a criação de Deus? 🌳 Quando estiver pronto, inicie uma nova sessão abaixo.",
     "contentBlockedMessage": "Não consegui responder a essa mensagem — nosso sistema de segurança a reteve e pode simplesmente ter interpretado mal suas palavras. Tente reformular sua ideia e, se algo ainda parecer estranho, escreva para nós em contact@voxquieta.org. Ficamos felizes por você estar aqui.",
@@ -171,7 +173,13 @@
     "submit": "Enviar Feedback",
     "submitting": "A enviar...",
     "close": "Fechar",
-    "toastError": "Não foi possível guardar o seu feedback agora, mas obrigado por tentar!"
+    "toastError": "Não foi possível guardar o seu feedback agora, mas obrigado por tentar!",
+    "reasonPrompt": "O que correu mal?",
+    "reasonInaccurate": "Impreciso",
+    "reasonUnhelpful": "Pouco útil",
+    "reasonWrongVerse": "Versículo errado",
+    "reasonTone": "Tom",
+    "reasonOther": "Outro"
   },
   "ChurchFinder": {
     "bannerText": "À procura de uma comunidade de fé?",
@@ -209,7 +217,7 @@
   "Contact": {
     "getInTouch": "Fale Connosco",
     "emailUs": "Escreva-nos:",
-    "emailLabel": "O seu e-mail (opcional, para responder)",
+    "emailLabel": "O seu e-mail (para a nossa resposta)",
     "emailPlaceholder": "voce@exemplo.com",
     "subjectLabel": "Assunto",
     "subjectSpiritual": "Quer aprofundar uma questão espiritual ou bíblica?",

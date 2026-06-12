@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -36,6 +36,9 @@ class FeedbackRequest(BaseModel):
     model_used: str | None = Field(None, description="LLM model that generated the response")
     response_time_ms: int | None = Field(None, description="Response generation time in ms")
     session_id: str | None = Field(None, description="Optional session identifier")
+    reason: str | None = Field(
+        None, description="Optional category of what went wrong (negative feedback)"
+    )
 
 
 class FeedbackResponse(BaseModel):
@@ -50,7 +53,7 @@ class FeedbackResponse(BaseModel):
 class ContactRequest(BaseModel):
     """Request model for contact form submission."""
 
-    email: str | None = Field(None, description="Optional reply email address")
+    email: EmailStr = Field(..., description="Reply email address")
     subject: Literal["spiritual", "bug", "feature", "feedback", "other"] = Field(
         ..., description="Subject category"
     )
@@ -88,6 +91,7 @@ class Feedback(Base):
     verses_cited: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     model_used: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     response_time_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    reason: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     def __repr__(self) -> str:
         return f"<Feedback(id={self.id}, rating='{self.rating}', message_id='{self.message_id}')>"

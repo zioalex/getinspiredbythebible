@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-09
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -174,9 +174,68 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+> **Search-relevance epic (BITB-018 → 043/044):** Phase-1 retrieval improvements
+> (query expansion, hybrid search, topic boosting) are **built but dark** — merged in
+> Feb 2026 yet shipped behind feature flags that default OFF, so production search is
+> still pure semantic. The highest-ROI next step is validation + rollout (BITB-043), not
+> new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
+> `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
+> is the lever).
+
+### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
+
+**Status:** 🟡 Code Complete — Pending Validation & Rollout (flags OFF in prod)
+**Size:** L original (implementation done; remaining work is validation + rollout)
+**Created:** 2026-02-24
+**Reviewed:** 2026-06-07
+
+**As a** user seeking spiritual guidance,
+**I want** search to understand the meaning of my situation (not just keyword overlap),
+**so that** I receive relevant, comforting scripture.
+
+**Why P1:** Motivated by a real incident (frustrated Italian user → irrelevant Job 21:27).
+Query expansion, hybrid search, and topic boosting were **implemented and merged in Feb 2026**
+(`docs/DONE/2026-02-24-query-understanding-context-quality.md`) but ship **disabled**
+(`api/config.py:76–85`), so the defect still reproduces in prod. Remaining work is split into
+BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
+
+**Acceptance Criteria:** see full story; tracked via BITB-043 + BITB-044.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-018-query-understanding-context-quality.md`
+
+---
+
+### 🎯 BITB-043: Validate & Enable Phase-1 Search Improvements
 
 **Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** search to use the already-built query expansion and hybrid
+(semantic + keyword) retrieval, **so that** I get thematically relevant verses instead of
+literal matches — without waiting on new retrieval code.
+
+**Why P1:** Highest-ROI item on the search backlog. The code is merged but gated off and
+unvalidated for ~3.5 months. This story builds a golden eval set, measures baseline, then
+safely enables hybrid search (strict-improvement) and A/B-tests query expansion. Low risk
+(feature-flagged, backward-compatible). Topic boosting is excluded here — blocked on data
+(BITB-044).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Golden eval set (50+ multilingual queries) + scorer for Precision@5 / Recall@10 / MRR
+- [ ] Baseline measured with flags off
+- [ ] Hybrid search enabled in prod; exact-phrase cases pass; no regression
+- [ ] Query expansion enabled (staged/A-B); total latency < 2s; LLM cost measured
+- [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### ✅ BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+
+**Status:** ✅ Done (branch claude/backlog-item-ft0aju, 2026-06-09)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -191,13 +250,13 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 **Acceptance Criteria:**
 
-- [ ] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
+- [x] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
   `get_prayer_lookup_prompt`) instruct the model to quote scripture verbatim from the Scripture
   Context and never paraphrase, re-translate, or alter wording (incl. singular/plural, articles)
-- [ ] Prompt instructs the model not to fabricate verse wording when the verse text is absent
-- [ ] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
-- [ ] Unit test asserts the verbatim rule is present in all three prompt builders
-- [ ] Full backend test suite passes
+- [x] Prompt instructs the model not to fabricate verse wording when the verse text is absent
+- [x] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
+- [x] Unit test asserts the verbatim rule is present in all three prompt builders
+- [x] Full backend test suite passes
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-038-verbatim-scripture-citation.md`
 
@@ -682,6 +741,62 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+
+**Status:** 🚧 In Progress
+**Size:** M (1-2 days)
+**Created:** 2026-06-08
+
+**As a** user submitting a contact form or leaving feedback,
+**I want** to be prompted for my email (so the team can actually reply) and to quickly label
+what went wrong on a thumbs-down with a single-tap reason chip,
+**so that** the team can follow up and act on precise, categorised feedback.
+
+**Acceptance Criteria:**
+
+- [ ] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
+- [ ] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
+- [ ] Contact form send button disabled when email is empty; input has `required`
+- [ ] `Contact.emailLabel` updated to required phrasing in all 11 locales
+- [ ] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
+- [ ] Positive feedback WITH comment triggers maintainer email; bare positive does not
+- [ ] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
+- [ ] Chip selection is optional — auto-commit still works without it
+- [ ] `reason` column added to `feedback` table (migration 006)
+- [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
+- [ ] Backend + frontend tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-require-contact-email-and-actionable-negative-feedback.md`
+
+---
+
+### 🎯 BITB-044: Populate `verse_topics` to Activate Topic Boosting
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** verses matching my detected theme to rank higher, **so that** the
+most pastorally relevant verses surface first.
+
+**Why P2:** Topic boosting was built under BITB-018 (detection in `api/chat/topics.py`,
+ranking boost, repository joins on `verse_topics`, schema in migration `004`) but
+**`verse_topics` is never populated** — no `INSERT` exists anywhere, so the feature is a
+silent no-op. This story tags the corpus (~31k verses) against the 13 topics via a
+repeatable population script, then validates and enables `topic_boosting_enabled`. P2
+because it's data work gated behind BITB-043's eval set, not a live regression.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Idempotent population script writes `(verse_id, topic_id)` rows; re-runnable
+- [ ] Coverage + spot-check accuracy recorded across the 13 topics
+- [ ] With boosting on, topic-laden golden queries improve; neutral queries don't regress
+- [ ] `topic_boost_factor` tuned + documented; topic boosting enabled in prod
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-044-populate-verse-topics.md`
+
+---
 
 ### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
