@@ -96,4 +96,42 @@ class SessionPreferencesTest {
                 id2,
             )
         }
+
+    /** The interaction count defaults to 0 before anything is written. */
+    @Test
+    fun `getInteractionCount defaults to zero`() = runTest(testDispatcher) {
+        assertEquals(0, sessionPreferences.getInteractionCount())
+    }
+
+    /** [SessionPreferences.setInteractionCount] persists the value for later reads. */
+    @Test
+    fun `setInteractionCount persists the value`() = runTest(testDispatcher) {
+        sessionPreferences.setInteractionCount(7)
+        assertEquals(7, sessionPreferences.getInteractionCount())
+    }
+
+    /**
+     * The persisted interaction count survives re-instantiation (process restart),
+     * so the 10-message limit is restored on cold start.
+     */
+    @Test
+    fun `interaction count persists across fresh SessionPreferences instances`() =
+        runTest(testDispatcher) {
+            sessionPreferences.setInteractionCount(9)
+
+            val anotherInstance = SessionPreferences(dataStore)
+            assertEquals(9, anotherInstance.getInteractionCount())
+        }
+
+    /** Starting a new session via [resetSessionId] zeroes the interaction count. */
+    @Test
+    fun `resetSessionId resets interaction count to zero`() = runTest(testDispatcher) {
+        sessionPreferences.setInteractionCount(10)
+        val oldId = sessionPreferences.getOrCreateSessionId()
+
+        val newId = sessionPreferences.resetSessionId()
+
+        assertEquals(0, sessionPreferences.getInteractionCount())
+        assertTrue("resetSessionId must issue a new session id", newId != oldId)
+    }
 }

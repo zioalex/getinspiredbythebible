@@ -41,6 +41,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -806,6 +807,24 @@ class ChatViewModelTest {
         assertTrue(state is ChapterSheetState.Error)
         assertEquals(
             "Network error. Please check your connection.",
+            (state as ChapterSheetState.Error).message,
+        )
+    }
+
+    @Test
+    fun `loadChapter sets Error with timeout message when API call hangs past timeout`() = runTest {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } coAnswers {
+            delay(ChatViewModel.CHAPTER_LOAD_TIMEOUT_MS + 5_000L)
+            ChapterResponseDto(book = "John", chapter = 3, verses = emptyList())
+        }
+
+        viewModel.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Error)
+        assertEquals(
+            "Request timed out. Please try again.",
             (state as ChapterSheetState.Error).message,
         )
     }
@@ -1984,5 +2003,98 @@ class ChatViewModelTest {
 
         assertNull(result)
         coVerify { lastConversationPreferences.setLastConversationId(null) }
+    }
+
+    // ── Interaction-count persistence (per-session limit durability) ──────────
+
+    @Test
+    fun `restores persisted interaction count and limit flag on init`() = runTest {
+        coEvery { sessionPreferences.getInteractionCount() } returns ChatViewModel.MAX_INTERACTIONS
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The limit must survive an app restart: the count is restored from
+        // DataStore and the limit flag is derived from it.
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, vm.uiState.value.interactionCount)
+        assertTrue(vm.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `restores sub-limit count without tripping the limit on init`() = runTest {
+        coEvery { sessionPreferences.getInteractionCount() } returns 5
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(5, vm.uiState.value.interactionCount)
+        assertFalse(vm.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `persists interaction count after a completed stream`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { sessionPreferences.setInteractionCount(1) }
+    }
+
+    @Test
+    fun `loadConversation does not recompute interaction count from thread messages`() = runTest {
+        // A saved thread longer than the limit. Under per-session semantics these
+        // historical messages belong to past sessions and must NOT be counted.
+        val longThread = (1..12).map { i ->
+            Message(id = "m$i", role = Message.Role.ASSISTANT, content = "Reply $i")
+        }
+        every { repository.observeMessages("conv-1") } returns flowOf(longThread)
+
+        viewModel.loadConversation("conv-1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(longThread.size, viewModel.uiState.value.messages.size)
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `startNewConversation resets the persisted interaction count`() = runTest {
+        viewModel.startNewConversation()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        // resetSessionId() zeroes the persisted count and issues a fresh session_id.
+        coVerify { sessionPreferences.resetSessionId() }
     }
 }

@@ -14,7 +14,7 @@ type Rating = "positive" | "negative";
 
 interface FeedbackControlsProps {
   /** Called exactly once per rating, when the feedback is actually committed. */
-  onSubmit: (rating: Rating, comment: string) => void;
+  onSubmit: (rating: Rating, comment: string, reason?: string) => void;
   /** Rating already recorded for this message (locks the controls). */
   given?: Rating | null;
   disabled?: boolean;
@@ -42,12 +42,16 @@ export default function FeedbackControls({
 
   const [pending, setPending] = useState<Rating | null>(null);
   const [comment, setComment] = useState("");
+  const [reason, setReason] = useState<string | null>(null);
   const [commentOpen, setCommentOpen] = useState(false);
   const [barShrunk, setBarShrunk] = useState(false);
   const [localGiven, setLocalGiven] = useState<Rating | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const committedRef = useRef(false);
+  // Keep a mutable ref in sync with reason state so the auto-commit timer
+  // callback can read the current value even after state updates.
+  const reasonRef = useRef<string | null>(null);
 
   // The recorded rating drives the final UI; until the parent confirms we show
   // an optimistic local copy so the "thanks" state appears instantly.
@@ -74,20 +78,29 @@ export default function FeedbackControls({
     setBarShrunk(false);
   }, [pending, commentOpen]);
 
+  // Wrapper that keeps reasonRef in sync whenever reason state changes.
+  const updateReason = (value: string | null) => {
+    reasonRef.current = value;
+    setReason(value);
+  };
+
   const commit = (rating: Rating, text: string) => {
     if (committedRef.current) return;
     committedRef.current = true;
     clearTimer();
+    const committedReason =
+      rating === "negative" ? (reasonRef.current ?? undefined) : undefined;
     setLocalGiven(rating);
     setPending(null);
     setCommentOpen(false);
-    onSubmit(rating, text.trim());
+    onSubmit(rating, text.trim(), committedReason);
   };
 
   const startPending = (rating: Rating) => {
     clearTimer();
     committedRef.current = false;
     setComment("");
+    updateReason(null);
     setCommentOpen(false);
     setPending(rating);
     timerRef.current = setTimeout(
@@ -101,6 +114,7 @@ export default function FeedbackControls({
     committedRef.current = false;
     setPending(null);
     setComment("");
+    updateReason(null);
     setCommentOpen(false);
   };
 
@@ -189,6 +203,41 @@ export default function FeedbackControls({
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
               <span>{t("maintainerNotice")}</span>
             </p>
+          )}
+
+          {/* "What went wrong?" reason chips — thumbs-down only, optional */}
+          {pending === "negative" && (
+            <div className="mb-2">
+              <p className="text-xs text-gray-500 mb-1.5">
+                {t("reasonPrompt")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    ["inaccurate", t("reasonInaccurate")],
+                    ["unhelpful", t("reasonUnhelpful")],
+                    ["wrong_verse", t("reasonWrongVerse")],
+                    ["tone", t("reasonTone")],
+                    ["other", t("reasonOther")],
+                  ] as [string, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      updateReason(reason === value ? null : value)
+                    }
+                    className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                      reason === value
+                        ? "bg-red-100 text-red-700 border-red-300"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-red-300 hover:text-red-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Single panel: the comment field is shown immediately. Focusing it
