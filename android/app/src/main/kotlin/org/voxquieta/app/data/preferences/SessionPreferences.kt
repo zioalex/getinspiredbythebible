@@ -3,6 +3,7 @@ package org.voxquieta.app.data.preferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.first
 import java.util.UUID
@@ -23,6 +24,21 @@ class SessionPreferences @Inject constructor(
 ) {
     companion object {
         private val SESSION_ID_KEY = stringPreferencesKey("session_id")
+        private val INTERACTION_COUNT_KEY = intPreferencesKey("interaction_count")
+    }
+
+    /**
+     * Reads the persisted interaction count (0 if never written).
+     *
+     * Persisted so the 10-message limit survives app restarts and conversation
+     * loads. Keyed to the session lifetime: reset to 0 by [resetSessionId].
+     */
+    suspend fun getInteractionCount(): Int =
+        dataStore.data.first()[INTERACTION_COUNT_KEY] ?: 0
+
+    /** Persists the interaction count for the current session. */
+    suspend fun setInteractionCount(count: Int) {
+        dataStore.edit { prefs -> prefs[INTERACTION_COUNT_KEY] = count }
     }
 
     /**
@@ -41,13 +57,17 @@ class SessionPreferences @Inject constructor(
     }
 
     /**
-     * Generates and persists a new session ID, replacing the existing one.
-     * Call this when starting a new session so the backend resets its
-     * per-session message counter.
+     * Generates and persists a new session ID, replacing the existing one, and
+     * resets the persisted interaction count to 0 in the same atomic edit. Call
+     * this when starting a new session so both the backend and the local
+     * 10-message limit reset together.
      */
     suspend fun resetSessionId(): String {
         val newId = UUID.randomUUID().toString()
-        dataStore.edit { prefs -> prefs[SESSION_ID_KEY] = newId }
+        dataStore.edit { prefs ->
+            prefs[SESSION_ID_KEY] = newId
+            prefs[INTERACTION_COUNT_KEY] = 0
+        }
         return newId
     }
 }

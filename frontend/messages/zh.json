@@ -124,6 +124,8 @@
     "backendWarmingUp": "服务器正在启动，您可以开始输入...",
     "errorColdStart": "我还在准备中，比预期花的时间更长。请稍后再试——我很快就会准备好！",
     "errorConnection": "很抱歉，我目前连接遇到问题。这可能是暂时的问题——请稍后再试。如果问题持续，请联系我们：contact@voxquieta.org",
+    "errorTimeout": "回复在完成前被中断了。这通常是短暂的网络或服务器问题——请再试一次。如果反复出现，请联系我们：contact@voxquieta.org",
+    "messageTooLong": "您的消息有点长（最多 {max} 个字符）。请缩短后再试一次。",
     "startNewSession": "开始新会话",
     "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。",
     "contentBlockedMessage": "这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。",
