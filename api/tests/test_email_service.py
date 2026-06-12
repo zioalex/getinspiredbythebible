@@ -361,8 +361,13 @@ class TestSendFeedbackNotification:
                 assert result is True
                 mock_client_instance.post.assert_called_once()
 
-    def test_feedback_notification_skips_positive(self):
-        """Test that notification is skipped for positive feedback."""
+    def test_feedback_notification_renders_positive(self):
+        """Positive feedback now renders and sends; gating moved to the route.
+
+        ``send_feedback_notification`` renders whatever rating it is given —
+        the decision of *when* to notify (negative, or positive with a comment)
+        lives in the route. So a direct call for positive feedback sends.
+        """
         with patch("utils.email_service.settings") as mock_settings:
             mock_settings.smtp2go_enabled = True
             mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
@@ -374,8 +379,13 @@ class TestSendFeedbackNotification:
 
             service = EmailService()
 
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"data": {"succeeded": 1}}
+
             with patch("httpx.Client") as mock_client:
                 mock_client_instance = MagicMock()
+                mock_client_instance.post.return_value = mock_response
                 mock_client.return_value.__enter__.return_value = mock_client_instance
 
                 result = service.send_feedback_notification(
@@ -385,12 +395,13 @@ class TestSendFeedbackNotification:
                     assistant_response="Love is...",
                 )
 
-                # Should return True (success) but not send email
                 assert result is True
-                mock_client_instance.post.assert_not_called()
+                mock_client_instance.post.assert_called_once()
+                payload = mock_client_instance.post.call_args[1]["json"]
+                assert "Positive" in payload["subject"]
 
-    def test_feedback_notification_truncates_long_messages(self):
-        """Test that long messages are truncated to 500 chars."""
+    def test_feedback_notification_includes_full_messages(self):
+        """Long messages are sent in full — no 500-char truncation."""
         with patch("utils.email_service.settings") as mock_settings:
             mock_settings.smtp2go_enabled = True
             mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
@@ -422,10 +433,9 @@ class TestSendFeedbackNotification:
 
                 call_args = mock_client_instance.post.call_args
                 payload = call_args[1]["json"]
-                # Check that the text body contains truncated messages
-                # Should have "A" * 500 + "..."
-                assert "A" * 500 in payload["text_body"]
-                assert "..." in payload["text_body"]
+                # The full 600-char message is present, untruncated.
+                assert "A" * 600 in payload["text_body"]
+                assert "..." not in payload["text_body"]
 
     def test_feedback_notification_handles_no_comment(self):
         """Test feedback notification with no comment."""

@@ -48,6 +48,12 @@ scripture_verses_returned = meter.create_histogram(
     unit="1",
 )
 
+scripture_fetch_errors_counter = meter.create_counter(
+    name="scripture.fetch.errors",
+    description="Verse/chapter fetch failures by reason (timeout/db_error/empty_text) and endpoint",
+    unit="1",
+)
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",

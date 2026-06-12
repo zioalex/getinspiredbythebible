@@ -1,9 +1,55 @@
 # BITB-018: Query Understanding & Context Quality (Phase 1 Quick Wins)
 
 **Priority:** P1 (High)
-**Size:** L (3-5 days)
-**Status:** 🎯 Todo
+**Size:** L original — *implementation is done; remaining work is validation + rollout (S–M)*
+**Status:** 🟡 Code Complete — Pending Validation & Rollout (feature flags OFF in prod)
 **Created:** 2026-02-24
+**Reviewed:** 2026-06-07
+
+---
+
+## Implementation Status (2026-06-07 Review)
+
+> **TL;DR:** All three Phase-1 features were **built and merged in Feb 2026**
+> (see `docs/DONE/2026-02-24-query-understanding-context-quality.md`), but they have
+> been **disabled and unvalidated ever since**. In production, search is still pure
+> semantic — the originating incident below would still reproduce today. The remaining
+> work is *not* implementation; it is **evaluation + rollout**, plus one data gap.
+
+**What is actually in the tree:**
+
+| Feature | Code | Migration | Flag (default) | Live in prod? |
+|---------|------|-----------|----------------|---------------|
+| 1.1 Query expansion | `api/chat/service.py` (`_expand_query`) | n/a | `query_expansion_enabled=False` | ❌ No |
+| 1.2 Hybrid search | `api/scripture/repository.py` (`search_verses_hybrid`) | `003_add_fulltext_index.sql` | `hybrid_search_enabled=False` | ❌ No |
+| 1.3 Topic boosting | `api/chat/topics.py` (`TOPIC_KEYWORD_MAP`), `repository.py` joins on `verse_topics` | `004_add_topic_boosting_schema.sql` | `topic_boosting_enabled=False` | ❌ No |
+
+No deployment/env file sets any of these flags, so they default `False` everywhere
+(`api/config.py:76–85`).
+
+**Blocker discovered during review — topic boosting is a silent no-op:**
+Migration `004` creates the `verse_topics` table and indexes, and `repository.py`
+`LEFT JOIN`s it (lines ~409, ~540), but **there is no INSERT into `verse_topics`
+anywhere in the codebase**. The table is empty, so enabling `topic_boosting_enabled`
+today would boost nothing. Populating it is a prerequisite, tracked below.
+
+### Remaining Work (the real next actions)
+
+- [ ] **Build the golden eval set** (`tests/fixtures/query_understanding_golden_set.json`,
+      50+ queries across languages) — required to measure before/after safely.
+      See `docs/GOLDEN_SET_GUIDE.md`.
+- [ ] **Measure baseline** Precision@5 / Recall@10 / MRR with all flags off.
+- [ ] **Enable + A/B test query expansion** (`query_expansion_enabled`); watch latency + LLM cost.
+- [ ] **Enable hybrid search** (`hybrid_search_enabled`) — strict-improvement, low risk.
+- [ ] **Populate `verse_topics`** (LLM-assisted tagging of ~31k verses against the 13 topics
+      in `api/chat/topics.py`) — *prerequisite for topic boosting*. Recommend its own story.
+- [ ] **Enable topic boosting** only after `verse_topics` is populated.
+- [ ] Tune weights (`hybrid_search_semantic_weight`/`keyword_weight`, `topic_boost_factor`)
+      and write a retrospective in `docs/DONE/`.
+
+> **Split into two follow-ups** so the near-done rollout isn't blocked by the data task:
+> **BITB-043** (validate + flip the already-built flags — small, highest-ROI, do first) and
+> **BITB-044** (populate `verse_topics` — medium, data work, unblocks topic boosting).
 
 ---
 
@@ -108,19 +154,24 @@ Current semantic search limitations (documented in `EMBEDDINGS_IMPROVEMENT_STRAT
 
 ## Out of Scope (Future Phases)
 
-### Phase 2: Enhanced Embeddings (BITB-019)
+> **Note (2026-06-07):** the BITB IDs previously written here (BITB-019/020/021) were
+> incorrect — those IDs are unrelated, already-done stories (BITB-020 = moderation,
+> BITB-021 = metrics). Phase 2–4 do not yet have assigned story IDs. They should not be
+> started until Phase 1 above is validated and shown to move Precision@5 / thumbs-up.
+
+### Phase 2: Enhanced Embeddings *(ID TBD)*
 
 - Enriched verse embeddings (verse + context + themes)
 - Passage-level embeddings (The Lord's Prayer, Beatitudes, etc.)
 - Multi-vector embeddings (literal, thematic, emotional, application)
 
-### Phase 3: Advanced Retrieval (BITB-020)
+### Phase 3: Advanced Retrieval *(ID TBD)*
 
 - Cross-encoder re-ranking
 - Query intent classification (comfort, guidance, understanding, verse lookup, topic exploration)
 - Conversational context tracking
 
-### Phase 4: Fine-Tuned Models (BITB-021)
+### Phase 4: Fine-Tuned Models *(ID TBD)*
 
 - Fine-tune embedding model on Bible Q&A pairs
 - Fine-tune LLM for Bible knowledge
@@ -353,15 +404,24 @@ def test_hybrid_search_catches_keyword_misses():
 
 ## Follow-Up Work
 
-- **BITB-019**: Enhanced Embeddings (Phase 2)
-- **BITB-020**: Advanced Retrieval (Phase 3)
-- **BITB-021**: Fine-Tuned Models (Phase 4)
+- **BITB-043 — Validate & enable Phase 1**: build golden set, measure baseline, A/B
+  query expansion, enable hybrid search. Highest-ROI, do first. *(P1)*
+- **BITB-044 — Populate `verse_topics`**: LLM-assisted topic tagging so topic boosting
+  stops being a no-op. Unblocks `topic_boosting_enabled`. *(P2)*
+- **Phase 2** *(ID TBD)* — Enhanced Embeddings (enriched / passage-level / multi-vector).
+- **Phase 3** *(ID TBD)* — Advanced Retrieval (cross-encoder rerank, intent classification).
+- **Phase 4** *(ID TBD)* — Fine-Tuned Models (only if Phases 1–3 miss targets).
 
 ---
 
 ## References
 
 - `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` — Full strategy document
+- `docs/DONE/2026-02-24-query-understanding-context-quality.md` — record of the Feb 2026
+  implementation (the code referenced above)
 - `docs/GOLDEN_SET_GUIDE.md` — Golden set creation guide
+- `docs/TURBOVEC_EVALUATION.md` — evaluation of the `turbovec` quantized index;
+  concluded **not a fit** (memory-optimization for 10M+ vectors; can't host our
+  pgvector hybrid/boosted SQL search). Confirms the lever here is *relevance*, not infra.
 - TASKS.md #3.4 — Make similarity threshold configurable
 - Anthropic RAG Best Practices: <https://docs.anthropic.com/en/docs/build-with-claude/retrieval-augmented-generation>

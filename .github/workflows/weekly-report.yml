@@ -1,0 +1,69 @@
+name: Weekly Report
+
+# Weekly activity digest email.
+#
+# Triggers the backend's probe-gated /api/v1/admin/weekly-report endpoint,
+# which builds a digest of feedback, contact submissions, and session
+# engagement over the last 7 days and emails it to the configured recipient
+# (settings.weekly_report_recipient, default support@voxquieta.org).
+#
+# Postgres cannot send email, so the schedule lives here rather than in
+# pg_cron; the backend (which already has DB + SMTP configured) does the work.
+#
+# Required repo secrets:
+#   MONITOR_PROBE_SECRET - shared secret; must match settings.monitor_probe_secret
+#                          in the deployed backend (same one prod-monitor uses).
+#
+# Required repo variables (vars.*):
+#   BACKEND_URL          - e.g. https://bible-app-backend.<region>.azurecontainerapps.io
+#                          (default: production hardcoded fallback below)
+#
+# Manual run:
+#   Actions → Weekly Report → Run workflow (set dry_run=true to preview without
+#   sending an email).
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    # Every Sunday 18:00 UTC, covering the previous 7 days. GH cron is UTC.
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute the digest but do not send the email"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+env:
+  BACKEND_URL:
+    ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
+
+jobs:
+  weekly-report:
+    name: Send weekly digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger weekly report
+        env:
+          MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          set -o pipefail
+          resp=$(curl -fsS --max-time 60 -X POST \
+            "${BACKEND_URL%/}/api/v1/admin/weekly-report?dry_run=${DRY_RUN}" \
+            -H "X-Monitor-Probe-Secret: ${MONITOR_PROBE_SECRET}")
+          echo "$resp" | jq '{dry_run, email_sent}' || echo "$resp"
+          # Fail the job if a live run did not actually send the email
+          # (e.g. SMTP disabled/misconfigured in the backend).
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "$resp" | jq -e '.dry_run == true' > /dev/null
+          else
+            echo "$resp" | jq -e '.email_sent == true' > /dev/null || {
+              echo "::error::weekly report did not send (email_sent != true)"
+              exit 1
+            }
+          fi

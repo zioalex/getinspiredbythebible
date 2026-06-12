@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+echo "=== Translation status before load ==="
+python3 -u load_bible.py --status
+echo ""
+
 echo "Checking if database needs initialization..."
 
 # Check verse count using a here-doc to avoid quoting issues
