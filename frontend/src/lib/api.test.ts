@@ -13,7 +13,10 @@ import {
   setOnTokenConsumed,
   setTurnstileAwaiter,
   submitFeedback,
+  streamMessage,
   ColdStartError,
+  StreamTimeoutError,
+  MessageTooLongError,
   type ChatResponse,
   type ScriptureContext,
   type Verse,
@@ -936,5 +939,123 @@ describe("Turnstile awaiter (ensureTurnstileToken)", () => {
     });
 
     expect(awaiter).toHaveBeenCalledTimes(3);
+  });
+});
+
+/**
+ * Build a mock streaming Response whose body yields the given string chunks in
+ * order. Lets us simulate SSE framing — including events deliberately split
+ * across read() boundaries the way real networks deliver them.
+ */
+function streamResponseFromChunks(chunks: string[]) {
+  const encoder = new TextEncoder();
+  let i = 0;
+  return {
+    ok: true,
+    body: {
+      getReader: () => ({
+        read: async () =>
+          i < chunks.length
+            ? { done: false, value: encoder.encode(chunks[i++]) }
+            : { done: true, value: undefined },
+        cancel: vi.fn().mockResolvedValue(undefined),
+      }),
+    },
+  };
+}
+
+describe("streamMessage", () => {
+  it("parses an SSE event that is split across read boundaries", async () => {
+    // The JSON object is cut mid-key between two reads — naive per-read parsing
+    // would drop it silently. With buffering it must arrive intact.
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks([
+        'data: {"type":"content","con',
+        'tent":"Hello"}\n\ndata: [DONE]\n\n',
+      ]),
+    );
+
+    const received = [];
+    for await (const chunk of streamMessage("hi")) {
+      received.push(chunk);
+    }
+
+    expect(received).toEqual([{ type: "content", content: "Hello" }]);
+  });
+
+  it("yields multiple events delivered in a single read", async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks([
+        'data: {"type":"metadata","message_id":"m1"}\n\n' +
+          'data: {"type":"content","content":"Peace"}\n\n' +
+          "data: [DONE]\n\n",
+      ]),
+    );
+
+    const received = [];
+    for await (const chunk of streamMessage("hi")) {
+      received.push(chunk);
+    }
+
+    expect(received).toEqual([
+      { type: "metadata", message_id: "m1" },
+      { type: "content", content: "Peace" },
+    ]);
+  });
+
+  it("throws MessageTooLongError on a 422 message-length rejection", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [
+          {
+            type: "string_too_long",
+            loc: ["body", "message"],
+            msg: "String should have at most 300 characters",
+          },
+        ],
+      }),
+    });
+
+    const gen = streamMessage("a".repeat(301));
+    await expect(gen.next()).rejects.toBeInstanceOf(MessageTooLongError);
+  });
+
+  describe("inactivity timeout", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("throws StreamTimeoutError when no chunk arrives in time", async () => {
+      const cancel = vi.fn().mockResolvedValue(undefined);
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        body: {
+          getReader: () => ({
+            // A stalled stream: read() never resolves.
+            read: () => new Promise(() => {}),
+            cancel,
+          }),
+        },
+      });
+
+      const gen = streamMessage("hi");
+      // Attach the rejection handler before advancing timers so the settled
+      // promise is never momentarily flagged as an unhandled rejection.
+      const assertion = expect(gen.next()).rejects.toBeInstanceOf(
+        StreamTimeoutError,
+      );
+
+      // Advance past the inactivity window to fire the timeout.
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      await assertion;
+      // The stalled reader must be released so the connection isn't leaked.
+      expect(cancel).toHaveBeenCalled();
+    });
   });
 });

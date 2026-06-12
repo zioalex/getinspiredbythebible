@@ -50,6 +50,47 @@ export class ContentBlockedError extends Error {
 }
 
 /**
+ * Error thrown when a streaming response stalls — no data arrives within
+ * STREAM_INACTIVITY_TIMEOUT_MS, either before the first byte (the connection
+ * never produces output) or mid-stream (a backend/network glitch). UI should
+ * surface a clear "interrupted, please try again" message instead of leaving
+ * the user waiting on an empty bubble forever.
+ */
+export class StreamTimeoutError extends Error {
+  constructor(message: string = "The response stalled and timed out") {
+    super(message);
+    this.name = "StreamTimeoutError";
+  }
+}
+
+/**
+ * Error thrown when the chat message exceeds the backend length limit
+ * (HTTP 422). The UI guards against this client-side, but the server is the
+ * source of truth — surface a clear "too long" message rather than a generic
+ * connection error so the user knows to shorten their message.
+ */
+export class MessageTooLongError extends Error {
+  constructor(message: string = "Message exceeds the maximum length") {
+    super(message);
+    this.name = "MessageTooLongError";
+  }
+}
+
+/**
+ * Max characters allowed in a single chat message. MUST stay in sync with the
+ * backend's `max_message_length` setting (api/config.py); the server rejects
+ * anything longer with HTTP 422.
+ */
+export const MAX_MESSAGE_LENGTH = 300;
+
+/**
+ * Max time to wait for the next chunk from the streaming endpoint before
+ * declaring the stream stalled. Reset on every chunk (heartbeat-style), so a
+ * normal streaming response that keeps producing tokens never trips it.
+ */
+const STREAM_INACTIVITY_TIMEOUT_MS = 30_000;
+
+/**
  * Check if the backend is ready
  */
 export async function checkBackendReady(): Promise<boolean> {
@@ -497,6 +538,23 @@ export async function* streamMessage(
         throw new ContentBlockedError(data.detail?.message);
       }
     }
+    // 422 request validation: the realistic client-controllable cause is an
+    // over-long message. Detect the message-length error and surface a clear
+    // "too long" notice rather than a generic connection failure.
+    if (response.status === 422) {
+      const data = await response.json().catch(() => ({}));
+      const detail = data?.detail;
+      const messageTooLong =
+        Array.isArray(detail) &&
+        detail.some(
+          (d) =>
+            (typeof d?.type === "string" && d.type.includes("too_long")) ||
+            (Array.isArray(d?.loc) && d.loc.includes("message")),
+        );
+      if (messageTooLong) {
+        throw new MessageTooLongError();
+      }
+    }
     throw new Error(`API error: ${response.status}`);
   }
 
@@ -504,31 +562,75 @@ export async function* streamMessage(
   if (!reader) throw new Error("No response body");
 
   const decoder = new TextDecoder();
+  // Buffer holding bytes decoded so far that haven't yet formed a complete
+  // line. SSE events ("data: {...}\n\n") can be split across read() boundaries
+  // on real networks; without buffering, JSON.parse fails on each half and the
+  // chunk — possibly a content or even an error event — is silently dropped.
+  let buffer = "";
 
-  while (true) {
-    if (signal?.aborted) {
-      await reader.cancel().catch(() => {});
-      return;
-    }
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      if (signal?.aborted) {
+        await reader.cancel().catch(() => {});
+        return;
+      }
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split("\n");
+      // Race the read against an inactivity timeout. If no chunk arrives within
+      // the window (stalled backend, dropped connection), cancel the reader and
+      // raise StreamTimeoutError so the caller can show a clear message rather
+      // than hanging on an empty bubble forever. The timer is recreated on each
+      // iteration, so it effectively resets on every chunk (heartbeat).
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new StreamTimeoutError()),
+          STREAM_INACTIVITY_TIMEOUT_MS,
+        );
+      });
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") return;
+      let result: ReadableStreamReadResult<Uint8Array>;
+      try {
+        result = await Promise.race([reader.read(), timeoutPromise]);
+      } catch (err) {
+        if (err instanceof StreamTimeoutError) {
+          await reader.cancel().catch(() => {});
+        }
+        throw err;
+      } finally {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
+      }
 
-        try {
-          const parsed: StreamChunk = JSON.parse(data);
-          yield parsed;
-        } catch {
-          // Skip invalid JSON
+      const { done, value } = result;
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process only complete lines; retain the trailing partial line (if any)
+      // in the buffer for the next read.
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6).trim();
+          if (data === "") continue;
+          if (data === "[DONE]") return;
+
+          try {
+            const parsed: StreamChunk = JSON.parse(data);
+            yield parsed;
+          } catch {
+            // A complete line that still fails to parse is genuinely malformed;
+            // skip it rather than aborting the whole stream.
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("Skipping malformed SSE line:", data);
+            }
+          }
         }
       }
     }
+  } finally {
+    reader.cancel().catch(() => {});
   }
 }
 
