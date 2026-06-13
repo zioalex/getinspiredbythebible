@@ -277,7 +277,41 @@ class EventSourceParserTest {
     }
 
     /**
-     * 14. Completion event with resolved_verses — both the string citations and the
+     * 14. Metadata event with language_suggestion — the field is extracted and populated
+     *     on the emitted StreamChunkDto.
+     */
+    @Test
+    fun `metadata event with language_suggestion populates languageSuggestion field`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc","model":"llama3","language_suggestion":"de"}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("metadata", chunks[0].type)
+        assertEquals("de", chunks[0].languageSuggestion)
+    }
+
+    /**
+     * 15. Metadata event without language_suggestion — the field is null on the emitted chunk.
+     */
+    @Test
+    fun `metadata event without language_suggestion yields null languageSuggestion`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"metadata","message_id":"abc","model":"llama3"}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertNull(chunks[0].languageSuggestion)
+    }
+
+    /**
+     * 16. Completion event with resolved_verses — both the string citations and the
      *     resolved verse objects (with text) are parsed onto the chunk.
      */
     @Test

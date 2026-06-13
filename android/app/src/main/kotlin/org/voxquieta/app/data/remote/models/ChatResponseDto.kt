@@ -36,6 +36,11 @@ data class StreamChunkDto(
     @SerialName("verses_cited") val versesCited: List<String> = emptyList(),
     /** Backend-resolved cited verses (with text) from the completion event. */
     @SerialName("resolved_verses") val resolvedVerses: List<VerseDto> = emptyList(),
+    /**
+     * Suggested language switch when the user typed in a language different from their
+     * selected UI language. Populated in the metadata event. Null when no mismatch.
+     */
+    @SerialName("language_suggestion") val languageSuggestion: String? = null,
 )
 
 /**
