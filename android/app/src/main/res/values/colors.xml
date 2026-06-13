@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Window background shown by the platform before/around Compose drawing
+      (between the splash dismiss and the first composed frame, and on any
+      route that has not yet drawn). Matches the light colour scheme's
+      `background` (#F8F5F0) in Theme.kt so there is no white flash on resume.
+      A values-night/colors.xml override supplies the dark equivalent.
+    -->
+    <color name="brand_window_background">#F8F5F0</color>
+</resources>

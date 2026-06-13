@@ -242,17 +242,25 @@ class ChatService:
         Uses low temperature for consistent expansion results.
         Falls back to original message on any error (fail-open).
         """
-        expansion_prompt = f"""You are helping expand a search query to find relevant Bible verses.
+        expansion_prompt = f"""You are helping expand a search query to find thematically relevant Bible verses.
 
 User's message: "{user_message}"
 Language: {language}
 
-Identify biblical themes, emotions, and related concepts that would help find relevant scripture.
-Generate an expanded search query including:
-- Core emotions/feelings (anxiety, peace, anger, joy, frustration, etc.)
-- Related biblical themes (trust in God, forgiveness, patience, God's love, self-control, etc.)
-- Synonyms and related words
-- Life situations this applies to
+First, identify the ONE or TWO central spiritual or emotional themes the person is \
+actually expressing (for example: anxiety, grief, forgiveness, guidance, hope, \
+loneliness). Stay anchored to those core themes — do NOT drift into loosely related \
+topics, because off-theme terms pull in irrelevant verses and hurt search quality.
+
+Then build a focused expanded query that stays on theme, including:
+- The core emotion(s)/feeling(s) actually present in the message
+- The closely related biblical themes they map to (e.g. anxiety → God's peace, trust, \
+"do not be afraid"; grief → comfort, hope, God's nearness; guilt → forgiveness, grace)
+- Scriptural vocabulary and synonyms for those themes
+- The concrete life situation the person is facing
+
+Prefer depth on the real theme over breadth: a tight set of on-theme terms retrieves \
+better verses than a long, scattered list. Use recognizable scriptural wording.
 
 Respond ONLY with the expanded query text in {language}, no explanation.
 Keep it under 100 words."""
