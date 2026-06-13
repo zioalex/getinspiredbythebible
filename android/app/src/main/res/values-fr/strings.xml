@@ -227,6 +227,11 @@
     <string name="church_finder_website">Site web</string>
     <string name="church_finder_email">E-mail</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Il semble que vous écrivez en %s. Changer la langue de l\'appli ?</string>
+    <string name="language_switch_banner_switch">Changer</string>
+    <string name="language_switch_banner_dismiss">Ignorer la suggestion de langue</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">Contact</string>
     <string name="contact_open_button">Nous contacter</string>

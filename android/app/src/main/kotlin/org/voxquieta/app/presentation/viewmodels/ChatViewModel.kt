@@ -130,6 +130,12 @@ data class ChatUiState(
     val detectedTranslation: String = "",
     /** True when the device has no active internet connection. */
     val isOffline: Boolean = false,
+    /**
+     * ISO 639-1 code of the language the backend detected the user typing in, when
+     * it differs from the explicitly-selected UI locale. Non-null means show the
+     * language-switch suggestion banner. Null means no banner.
+     */
+    val languageSuggestion: String? = null,
 )
 
 @HiltViewModel
@@ -392,6 +398,7 @@ class ChatViewModel @Inject constructor(
                 messages = it.messages + userMessage + assistantPlaceholder,
                 isLoading = true,
                 error = null,
+                languageSuggestion = null,
             )
         }
 
@@ -582,6 +589,12 @@ class ChatViewModel @Inject constructor(
                                     } else msg
                                 },
                                 detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
+                                // Show the language-switch banner only when the backend is
+                                // confident the message was typed in a different language than
+                                // the user's explicitly-selected UI locale.
+                                languageSuggestion = chunk.languageSuggestion?.takeIf {
+                                    it.isNotBlank() && it != state.currentLocale
+                                },
                             )
                         }
                         return@collect
@@ -701,6 +714,7 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderBanner = false,
                 showChurchFinderInlineCard = false,
                 allVerses = emptyList(),
+                languageSuggestion = null,
             )
         }
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
@@ -901,6 +915,11 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderInlineCard = false,
             )
         }
+    }
+
+    /** Dismisses the language-switch suggestion banner without switching locale. */
+    fun dismissLanguageSuggestion() {
+        _uiState.update { it.copy(languageSuggestion = null) }
     }
 
     /**
