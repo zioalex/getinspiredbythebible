@@ -230,6 +230,11 @@
     <string name="church_finder_website">الموقع الإلكتروني</string>
     <string name="church_finder_email">البريد الإلكتروني</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">يبدو أنك تكتب بالـ%s. هل تريد تغيير لغة التطبيق؟</string>
+    <string name="language_switch_banner_switch">تغيير</string>
+    <string name="language_switch_banner_dismiss">رفض اقتراح اللغة</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">تواصل</string>
     <string name="contact_open_button">تواصل معنا</string>

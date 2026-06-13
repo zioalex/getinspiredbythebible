@@ -2097,4 +2097,88 @@ class ChatViewModelTest {
         // resetSessionId() zeroes the persisted count and issues a fresh session_id.
         coVerify { sessionPreferences.resetSessionId() }
     }
+
+    // ── Language switch suggestion (language-mismatch banner) ─────────────────
+
+    @Test
+    fun `metadata chunk with languageSuggestion sets uiState languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "de", done = false),
+            StreamChunk(content = "Guten Tag!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("de", viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `dismissLanguageSuggestion clears languageSuggestion from state`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "fr", done = false),
+            StreamChunk(content = "Bonjour!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("fr", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.dismissLanguageSuggestion()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `sendMessage clears any previous languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flowOf(
+                StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "it", done = false),
+                StreamChunk(content = "Ciao!", done = true),
+            ),
+            flowOf(
+                StreamChunk(content = "Hello again!", done = true),
+            ),
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("it", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.sendMessage("Second question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `startNewConversation clears languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "de", done = false),
+            StreamChunk(content = "Guten Tag!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("de", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.startNewConversation()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `languageSuggestion is null when suggestion matches current locale`() = runTest {
+        // If the backend suggests "en" but the user is already on "en", the ViewModel should suppress it.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "en", done = false),
+            StreamChunk(content = "Hello!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // currentLocale is "en" (set by setUp via languagePreferences.readInitial = "en")
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
 }
