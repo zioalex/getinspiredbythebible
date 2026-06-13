@@ -72,6 +72,7 @@ import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
+import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
@@ -507,6 +508,16 @@ fun ChatScreen(
                 ) {
                     Text(stringResource(R.string.action_start_new_session))
                 }
+            }
+
+            // Language-switch suggestion banner — shown when the backend detects typing
+            // in a different language than the user's selected UI locale.
+            uiState.languageSuggestion?.let { suggestedLocale ->
+                LanguageSwitchBanner(
+                    suggestedLocale = suggestedLocale,
+                    onSwitch = { viewModel.setLocale(suggestedLocale) },
+                    onDismiss = viewModel::dismissLanguageSuggestion,
+                )
             }
 
             // Church-finder banner — shown above the input field after 3 interactions.

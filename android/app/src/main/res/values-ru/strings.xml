@@ -228,6 +228,11 @@
     <string name="church_finder_website">Веб-сайт</string>
     <string name="church_finder_email">Эл. почта</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Похоже, вы пишете на %s. Изменить язык приложения?</string>
+    <string name="language_switch_banner_switch">Изменить</string>
+    <string name="language_switch_banner_dismiss">Отклонить предложение языка</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">Контакт</string>
     <string name="contact_open_button">Связаться с нами</string>
