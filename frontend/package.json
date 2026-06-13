@@ -46,6 +46,7 @@
   },
   "overrides": {
     "minimatch": ">=10.2.1",
+    "esbuild": ">=0.28.1",
     "next": {
       "postcss": ">=8.5.10"
     }
