@@ -39,6 +39,7 @@ import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
+import timber.log.Timber
 import javax.inject.Inject
 
 private fun Context.hasSplashBeenSeen(): Boolean =
@@ -172,6 +173,7 @@ class MainActivity : ComponentActivity() {
                                     if (id != null) "chat/$id" else "chat/new"
                                 } catch (e: Exception) {
                                     if (e is CancellationException) throw e
+                                    Timber.e(e, "resume: failed to resolve last conversation; falling back to chat/new")
                                     "chat/new"
                                 }
                                 navController.navigate(target) {
