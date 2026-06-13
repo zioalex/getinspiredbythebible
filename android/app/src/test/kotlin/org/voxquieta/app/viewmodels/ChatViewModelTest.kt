@@ -54,6 +54,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -2003,6 +2004,45 @@ class ChatViewModelTest {
 
         assertNull(result)
         coVerify { lastConversationPreferences.setLastConversationId(null) }
+    }
+
+    @Test
+    fun `resolveResumeConversationId propagates exception thrown by repository flow`() = runTest {
+        // Verifies the function does not silently swallow errors so that
+        // MainActivity's LaunchedEffect try/catch can log the failure and
+        // fall back to chat/new rather than leaving the screen blank.
+        coEvery { lastConversationPreferences.getLastConversationId() } returns stubConversation.id
+        every { repository.observeConversations() } returns flow { throw IOException("DB unavailable") }
+
+        var thrown: Exception? = null
+        try {
+            viewModel.resolveResumeConversationId()
+        } catch (e: IOException) {
+            thrown = e
+        }
+
+        assertNotNull(
+            "IOException from repository must propagate so MainActivity's try/catch can handle it",
+            thrown,
+        )
+    }
+
+    @Test
+    fun `resolveResumeConversationId propagates exception thrown by DataStore preferences`() = runTest {
+        // Same contract as above but for the DataStore read path.
+        coEvery { lastConversationPreferences.getLastConversationId() } throws IOException("DataStore unavailable")
+
+        var thrown: Exception? = null
+        try {
+            viewModel.resolveResumeConversationId()
+        } catch (e: IOException) {
+            thrown = e
+        }
+
+        assertNotNull(
+            "IOException from DataStore must propagate so MainActivity's try/catch can handle it",
+            thrown,
+        )
     }
 
     // ── Interaction-count persistence (per-session limit durability) ──────────
