@@ -10,12 +10,15 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -130,7 +133,14 @@ class MainActivity : ComponentActivity() {
                     if (context.hasSplashBeenSeen()) "resume" else "splash"
                 }
 
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // Paint the themed background across the whole screen so no route
+                // (notably the async "resume" resolver) ever exposes the white
+                // window background. Uses `background` to match the post-splash
+                // windowBackground and the chat Scaffold for a seamless transition.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
                 Box {
                     NavHost(
                         navController = navController,
@@ -147,10 +157,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("resume") {
-                            // Tiny resolver: looks up the last conversation id
-                            // and replaces itself with the appropriate chat route.
-                            // The Surface ancestor already paints the themed background,
-                            // so there is no white flash while the DB query runs.
+                            // Tiny resolver: looks up the last conversation id and
+                            // replaces itself with the appropriate chat route. The DB
+                            // query is async, so this route would otherwise render
+                            // nothing — and the post-splash window background is white
+                            // (Theme.VoxQuieta = Material.Light), producing the blank
+                            // white screen reported on resume from a reclaimed task.
+                            // Show a loading indicator over the themed surface so the
+                            // user always sees intentional content, never a blank void.
                             val resumeViewModel: ChatViewModel = hiltViewModel()
                             LaunchedEffect(Unit) {
                                 val target = try {
@@ -163,6 +177,12 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(target) {
                                     popUpTo("resume") { inclusive = true }
                                 }
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator()
                             }
                         }
                         composable("conversations") {
