@@ -55,6 +55,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                         val messageId = jsonObj["message_id"]?.jsonPrimitive?.contentOrNull ?: ""
                         val model = jsonObj["model"]?.jsonPrimitive?.contentOrNull ?: ""
                         val detectedTranslation = jsonObj["detected_translation"]?.jsonPrimitive?.contentOrNull ?: ""
+                        val languageSuggestion = jsonObj["language_suggestion"]?.jsonPrimitive?.contentOrNull
                         // Extract verses from scripture_context.verses (the primary source for verse data).
                         val verses: List<VerseDto> = try {
                             val ctxEl = jsonObj["scripture_context"]
@@ -76,6 +77,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                                 messageId = messageId,
                                 model = model,
                                 detectedTranslation = detectedTranslation,
+                                languageSuggestion = languageSuggestion,
                             ),
                         )
                     }
