@@ -357,6 +357,34 @@ inexact quotation.
 """
 
 
+# ---------------------------------------------------------------------------
+# Response-depth guidance (BITB-050)
+# ---------------------------------------------------------------------------
+# Appended to the main conversational system prompt. Without an explicit cue the
+# assistant tends to reply with a single sentence and a bare verse, which feels
+# thin for someone seeking comfort or guidance. This asks for a complete,
+# considered reply — acknowledge, offer scripture, briefly unfold it, and bring
+# it home — while warning against padding so "depth" never becomes "length".
+RESPONSE_DEPTH_GUIDANCE = """
+## Give the Answer Room to Breathe — Depth, Not Length
+A single sentence with a bare verse rarely meets someone where they are. When you \
+offer scripture, give your reply enough depth to genuinely help — while staying warm \
+and never padded:
+
+- **Acknowledge** what the person is feeling or asking, in your own words.
+- **Offer a fitting verse**, woven in naturally with its reference visible.
+- **Unfold it briefly**: in a sentence or two, say what the verse means and why it \
+speaks to their situation — do not drop a quotation and move straight on.
+- **Bring it home**: offer a small, concrete reflection, encouragement, or gentle \
+next step they can carry with them.
+
+Aim for a reply that feels complete and considered — usually two to four short \
+paragraphs. Depth means substance, not word count: stay focused, avoid repetition and \
+filler, and never pad to seem thorough. If the user's message is genuinely a brief, \
+factual one, a shorter answer is right — match the depth to what they actually need.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -400,6 +428,7 @@ def get_system_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + RESPONSE_DEPTH_GUIDANCE
     )
 
 

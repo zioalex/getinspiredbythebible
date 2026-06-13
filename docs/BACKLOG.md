@@ -233,23 +233,32 @@ safely enables hybrid search (strict-improvement) and A/B-tests query expansion.
 
 ---
 
-### 🎯 BITB-050: Improve Thematic Verse Search & Response Depth for Specific Questions
+### 🚧 BITB-050: Improve Verse Search Thematic Relevance and Response Depth
 
-**Status:** 🎯 Todo
-**Size:** S (< 4 hrs) — prompt-only; flag rollout deferred to BITB-043
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hours)
 **Created:** 2026-06-12
 
-**As a** user asking a precise study question, **I want** verses chosen by theme and an answer that
-engages my specific point (e.g. the Amos 7:1 king-vs-people harvest nuance), **so that** I get a
-substantive, on-target response.
+**As a** user seeking spiritual guidance, **I want** the verses surfaced for me to match
+the *theme* of what I'm facing and the reply to actually unfold that scripture, **so that**
+the answer meets me where I am instead of dropping a one-line quote.
 
-**Acceptance Criteria (summary):**
+**Why P1:** Two prompt-only quality gaps that affect every answer. (1) The query-expansion
+prompt over-expands into off-theme terms that pull in irrelevant verses; it is rewritten to
+anchor on the 1–2 core themes. (2) The conversational system prompt is given a
+response-depth instruction (acknowledge → verse → unfold → bring home) that guards against
+padding. **Scope note:** the query-expansion flag flip + validation are owned by **BITB-043** —
+this story only changes prompt *content*, enabling no flags.
 
-- [ ] Expansion prompt includes social-justice / prophetic-judgment / named-passage themes
-- [ ] System prompt addresses the user's specific focus first
-- [ ] `query_expansion_enabled` default **not** changed here (owned by BITB-043)
+**Acceptance Criteria (summary — full story has detail):**
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-050-thematic-search-and-response-depth.md`
+- [x] Expansion prompt is theme-focused and warns against off-theme drift
+- [x] `RESPONSE_DEPTH_GUIDANCE` wired into `get_system_prompt()` for all languages
+- [x] Depth guidance asks for substance while forbidding padding; allows short replies
+- [x] Tests cover both changes
+- [ ] Full backend test suite passes in CI
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-050-search-thematic-relevance-and-response-depth.md`
 
 ---
 
