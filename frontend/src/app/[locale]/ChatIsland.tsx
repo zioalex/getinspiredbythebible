@@ -846,7 +846,10 @@ export default function ChatIsland({
                     : "border-primary-200 bg-primary-50 text-primary-700"
                 }`}
               >
-                <BookOpen className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                <BookOpen
+                  className="w-4 h-4 flex-shrink-0"
+                  aria-hidden="true"
+                />
                 <select
                   value={
                     selectedTranslation ||
