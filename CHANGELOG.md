@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.26.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.2...v1.26.0) (2026-06-13)
+
+### Features
+
+* **android:** language-mismatch switch suggestion banner (BITB-040 slice 3) ([#737](https://github.com/zioalex/getinspiredbythebible/issues/737)) ([6b587a9](https://github.com/zioalex/getinspiredbythebible/commit/6b587a9cad3f757064e8edad9bf23a63d5a936d2))
+* **api:** improve search thematic relevance and response depth (BITB-050) ([#735](https://github.com/zioalex/getinspiredbythebible/issues/735)) ([76cc90b](https://github.com/zioalex/getinspiredbythebible/commit/76cc90b5fe66d3e72d52b940de844189cb8fdde6))
+
+### Bug Fixes
+
+* **android:** prevent white screen when resuming app from background ([#740](https://github.com/zioalex/getinspiredbythebible/issues/740)) ([ae1374b](https://github.com/zioalex/getinspiredbythebible/commit/ae1374bc0ccd5c3765103656bb43d3308f91d839))
+* **frontend:** resolve high-severity esbuild/vite audit advisories ([#739](https://github.com/zioalex/getinspiredbythebible/issues/739)) ([dd266d0](https://github.com/zioalex/getinspiredbythebible/commit/dd266d05f8d3ecede2095ddd8c506b2a026475c0))
+
+### Documentation
+
+* capture beta-tester feedback as six backlog stories (BITB-045…050) ([#734](https://github.com/zioalex/getinspiredbythebible/issues/734)) ([bc0d7af](https://github.com/zioalex/getinspiredbythebible/commit/bc0d7af946cece3efb2be6afaa086f4188c82828))
+
 ## [1.25.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.1...v1.25.2) (2026-06-11)
 
 ### Bug Fixes
