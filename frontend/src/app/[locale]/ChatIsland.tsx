@@ -838,8 +838,15 @@ export default function ChatIsland({
               {/* Language Switcher */}
               <LanguageSwitcher />
 
-              {/* Translation Selector - always visible, disabled when loading */}
-              <div className="flex items-center gap-2">
+              {/* Translation Selector - badge-style pill, BookOpen icon, no truncation */}
+              <div
+                className={`flex items-center gap-1.5 rounded-full border pl-2.5 pr-1 py-1 transition-colors ${
+                  translations.length === 0
+                    ? "border-gray-200 bg-gray-100 text-gray-400"
+                    : "border-primary-200 bg-primary-50 text-primary-700"
+                }`}
+              >
+                <BookOpen className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                 <select
                   value={
                     selectedTranslation ||
@@ -850,16 +857,16 @@ export default function ChatIsland({
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
-                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 max-w-[8rem] sm:max-w-none truncate focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  className={`bg-transparent text-sm font-semibold border-0 pr-1 py-0.5 cursor-pointer focus:outline-none focus:ring-0 ${
                     translations.length === 0
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-600"
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-primary-700"
                   }`}
                 >
                   <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (
                     <option key={t.code} value={t.code}>
-                      {t.language} - {t.short_name}
+                      {t.short_name} · {t.language}
                     </option>
                   ))}
                 </select>
