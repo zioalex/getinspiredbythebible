@@ -20,6 +20,8 @@ from chat.prompts import (
     RESPONSE_DEPTH_GUIDANCE,
     SCRIPTURE_FIDELITY_GUIDANCE,
     SYSTEM_PROMPT,
+    TYPO_TOLERANCE_GUIDANCE,
+    USER_FOCUS_GUIDANCE,
     build_conversation_context,
     build_search_context_prompt,
     detect_intent_prompt,
@@ -556,6 +558,85 @@ class TestResponseDepthGuidance:
         # shorter reply, so the rule must not mandate length unconditionally.
         text = RESPONSE_DEPTH_GUIDANCE.lower()
         assert "shorter answer" in text or "brief" in text
+
+
+class TestTypoToleranceGuidance:
+    """BITB-045: the assistant must silently infer the intended meaning of a
+    misspelled/garbled word and answer, asking to clarify only when the meaning
+    is genuinely still ambiguous after correction."""
+
+    def test_guidance_constant_instructs_silent_inference(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "infer" in text
+        assert "misspell" in text or "typo" in text
+        assert "do not comment on the typo" in text
+
+    def test_guidance_constant_forbids_generic_nonanswer(self):
+        # The exact failure mode from the beta-tester report.
+        assert "i don't understand" in TYPO_TOLERANCE_GUIDANCE.lower()
+
+    def test_guidance_constant_allows_clarifying_when_ambiguous(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "ambiguous" in text
+        assert "clarif" in text
+
+    def test_guidance_mentions_bethel_example(self):
+        # The concrete beta-report test case must appear so the LLM sees it.
+        assert "Bet-El" in TYPO_TOLERANCE_GUIDANCE
+
+    def test_guidance_is_language_agnostic(self):
+        assert "EVERY language" in TYPO_TOLERANCE_GUIDANCE
+
+    def test_system_prompt_contains_typo_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Infer, Don't Stall" in result
+
+    def test_all_three_prompts_contain_typo_guidance(self):
+        assert "Infer, Don't Stall" in get_system_prompt("en")
+        assert "Infer, Don't Stall" in get_verse_lookup_prompt("en")
+        assert "Infer, Don't Stall" in get_prayer_lookup_prompt("en")
+
+    def test_typo_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Infer, Don't Stall" in result, f"missing for lang={lang}"
+
+
+class TestUserFocusGuidance:
+    """BITB-045 / BITB-050: when the user highlights a specific detail or focal
+    point, the answer must address it directly and first, before broadening."""
+
+    def test_guidance_constant_requires_addressing_focus_first(self):
+        text = USER_FOCUS_GUIDANCE.lower()
+        assert "specific" in text
+        assert "first" in text
+        assert "lead with" in text
+
+    def test_guidance_constant_warns_against_generic_overview(self):
+        assert "generic overview" in USER_FOCUS_GUIDANCE.lower()
+
+    def test_guidance_constant_allows_broadening_after(self):
+        assert "broaden only after" in USER_FOCUS_GUIDANCE.lower()
+
+    def test_guidance_mentions_amos_example(self):
+        # The concrete BITB-050 test case must be present so the LLM sees it.
+        assert "Amos 7:1" in USER_FOCUS_GUIDANCE
+
+    def test_system_prompt_contains_focus_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Address the User's Specific Focus" in result
+
+    def test_all_three_prompts_contain_focus_guidance(self):
+        # The Amos 7:1 case routes through verse_lookup, so that prompt MUST
+        # carry this guidance — not just the main conversational prompt.
+        assert "Address the User's Specific Focus" in get_system_prompt("en")
+        assert "Address the User's Specific Focus" in get_verse_lookup_prompt("en")
+        assert "Address the User's Specific Focus" in get_prayer_lookup_prompt("en")
+
+    def test_focus_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Address the User's Specific Focus" in result, f"missing for lang={lang}"
 
 
 # ==================== Chat Service Tests ====================

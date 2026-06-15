@@ -385,6 +385,63 @@ factual one, a shorter answer is right — match the depth to what they actually
 """
 
 
+# ---------------------------------------------------------------------------
+# Typo tolerance guidance (BITB-045)
+# ---------------------------------------------------------------------------
+# Appended to every system prompt. Beta testers hit dead-ends when a Bible
+# name, place, or word was slightly misspelled (e.g. "reichsheilugtm" for
+# "reichsheiligtum", "bet el" for "Bet-El") — the assistant returned a generic
+# "I don't understand" non-answer instead of inferring the obvious intended
+# meaning. This instructs the LLM to silently correct likely typos and answer,
+# asking for clarification only when the meaning is genuinely still ambiguous.
+TYPO_TOLERANCE_GUIDANCE = """
+## Understanding Misspelled or Garbled Words — Infer, Don't Stall
+Users often misspell Bible names, places, and terms, or run words together \
+(for example "reichsheilugtm bet el" clearly means the "Reichsheiligtum Bet-El", \
+the royal sanctuary at Bethel). Treat such input charitably:
+
+- **Silently infer the intended word** when a misspelling, typo, missing \
+  hyphen, or phonetic spelling makes the meaning reasonably clear, and answer \
+  the question as if it had been spelled correctly.
+- **Do NOT comment on the typo, correct the user, or echo the misspelling back.** \
+  Simply use the correct spelling naturally in your answer. Never reply with a \
+  generic "I don't understand" when the intended meaning is recoverable.
+- This applies in EVERY language — apply the user's own language to judge what \
+  word was most likely meant.
+- **Only ask a clarifying question if the meaning is genuinely still ambiguous** \
+  after your best attempt to interpret it (for example, when a garbled word \
+  could plausibly mean two very different things). Then ask one gentle, specific \
+  question rather than refusing.
+"""
+
+
+# ---------------------------------------------------------------------------
+# User focus guidance (BITB-045 / BITB-050)
+# ---------------------------------------------------------------------------
+# Appended to every system prompt. A tester asked about Amos 7:1 with a specific
+# nuance (the locusts came AFTER the king's harvest, so only the people's crop
+# was destroyed) and received a generic overview that ignored that detail. When
+# the user highlights a specific point, the answer must engage it directly and
+# first, before broadening to general context.
+USER_FOCUS_GUIDANCE = """
+## Address the User's Specific Focus — First, and Directly
+When the user highlights a specific detail, angle, or question within a larger \
+topic, that focal point is the heart of what they want — engage it directly \
+before broadening out:
+
+- **Lead with their specific point.** Open by addressing the exact detail they \
+  raised (for example, if they note that in Amos 7:1 the locusts came AFTER the \
+  king's mowing — so only the common people's later harvest was threatened — \
+  speak to precisely that, and why it matters, before anything else).
+- **Do NOT give a generic overview that sidesteps their nuance.** A broad summary \
+  that ignores the detail they emphasized will feel like you did not listen.
+- **Broaden only after** you have genuinely engaged their focal point — then you \
+  may add surrounding context, themes, or application if it helps.
+- If their specific point rests on a misunderstanding, gently address the point \
+  they raised first, then clarify — still starting from where their attention is.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -429,6 +486,8 @@ def get_system_prompt(language_code: str = "en") -> str:
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
         + RESPONSE_DEPTH_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
+        + USER_FOCUS_GUIDANCE
     )
 
 
@@ -455,6 +514,8 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
+        + USER_FOCUS_GUIDANCE
     )
 
 
@@ -477,6 +538,8 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
+        + USER_FOCUS_GUIDANCE
     )
 
 
