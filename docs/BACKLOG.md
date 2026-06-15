@@ -872,6 +872,27 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 
 ---
 
+### 🎯 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-15
+
+**As an** Android user submitting the contact form, **I want** an accurate error that names the
+email field when my submission is rejected, **so that** I'm not misled into thinking my message was
+too long.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android: a missing/invalid-email 422 shows an email-specific error, never the "max 300 characters" message
+- [ ] Android: the chat message-length 422 still maps to `error_message_too_long`
+- [ ] Android: email validated as required (no blank→null); `contact_email_label` updated from "optional" in all locales
+- [ ] Tests: `ChatViewModelTest` pins the 422 split; web has no equivalent bug (verified — optional follow-up only)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-contact-form-misleading-validation-error.md`
+
+---
+
 ### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
 **Status:** 🚧 In Progress
