@@ -116,6 +116,7 @@ class ChatViewModelTest {
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
+            every { getString(R.string.error_contact_email_invalid) } returns "Please enter a valid email so we can reply."
         }
         networkMonitor = mockk {
             every { isOffline } returns MutableStateFlow(false)
@@ -1013,6 +1014,12 @@ class ChatViewModelTest {
         return HttpException(response)
     }
 
+    private fun make422Exception(body: String): HttpException {
+        val errorBody = body.toResponseBody("application/json".toMediaType())
+        val response = Response.error<Any>(422, errorBody)
+        return HttpException(response)
+    }
+
     @Test
     fun `HTTP 429 with session_lifetime_limit sets isSessionLimitReached true`() = runTest {
         every { repository.chatStream(any()) } returns flow {
@@ -1633,6 +1640,28 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `submitContact on 422 shows email-specific error not message-too-long`() = runTest {
+        // The backend rejects a missing/invalid email with a 422. The contact path
+        // must surface an email-specific message rather than the chat "message too
+        // long" string (the bug this fixes).
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws make422Exception(
+            """{"detail":[{"type":"value_error","loc":["body","email"],"msg":"value is not a valid email address"}]}""",
+        )
+
+        viewModel.submitContact("feedback", "Great app!", "not-an-email")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.contactFormState.value
+        assertTrue(state is ContactFormState.Error)
+        assertEquals(
+            "Please enter a valid email so we can reply.",
+            (state as ContactFormState.Error).message,
+        )
+    }
+
+    @Test
     fun `resetContactForm returns state to Idle`() = runTest {
         coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
         viewModel.submitContact("other", "Hello", null)
@@ -1697,6 +1726,25 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `sendDiagnosticEmail on 422 shows email-specific error not message-too-long`() = runTest {
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws make422Exception(
+            """{"detail":[{"type":"value_error","loc":["body","email"],"msg":"value is not a valid email address"}]}""",
+        )
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else", "bad-email")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.diagnosticReportState.value
+        assertTrue(state is ContactFormState.Error)
+        assertEquals(
+            "Please enter a valid email so we can reply.",
+            (state as ContactFormState.Error).message,
+        )
     }
 
     @Test

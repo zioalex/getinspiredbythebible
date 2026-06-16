@@ -118,6 +118,7 @@
     <string name="error_server">服务器错误，请稍后重试。</string>
     <string name="error_generic">出了些问题，请重试。</string>
     <string name="error_message_too_long">您的消息有点长（最多 %1$d 个字符）。请缩短后再试一次。</string>
+    <string name="error_contact_email_invalid">请输入有效的邮箱，以便我们回复。</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">对话</string>
@@ -241,7 +242,9 @@
     <string name="contact_subject_bug">错误报告</string>
     <string name="contact_subject_feature">功能请求</string>
     <string name="contact_subject_other">其他</string>
-    <string name="contact_email_label">您的邮箱（可选，用于回复）</string>
+    <string name="contact_email_label">您的邮箱（用于我们回复）</string>
+    <string name="contact_email_required">请输入您的邮箱，以便我们回复</string>
+    <string name="contact_email_invalid">请输入有效的电子邮件地址</string>
     <string name="contact_email_placeholder">you@example.com</string>
     <string name="contact_message_label">消息</string>
     <string name="contact_message_placeholder">分享您的想法、报告问题或建议改进…</string>

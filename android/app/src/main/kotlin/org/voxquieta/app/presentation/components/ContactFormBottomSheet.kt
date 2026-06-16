@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.voxquieta.app.R
 import org.voxquieta.app.data.remote.models.ContactSubject
+import org.voxquieta.app.utils.isValidEmail
 
 /**
  * Sealed state for the contact form submission lifecycle.
@@ -86,11 +87,16 @@ fun ContactFormBottomSheet(
     val bugStepsLabel = stringResource(R.string.contact_bug_steps_label)
     val bugExpectedLabel = stringResource(R.string.contact_bug_expected_label)
 
-    val formValid = if (isBug) {
-        bugStepsInput.isNotBlank() && bugBehaviorInput.isNotBlank()
-    } else {
-        messageInput.isNotBlank()
-    }
+    // Email is required so the team can actually reply (the backend rejects a
+    // missing/invalid address with a 422); fold it into the submit gate.
+    val emailValid = isValidEmail(emailInput)
+    val formValid = (
+        if (isBug) {
+            bugStepsInput.isNotBlank() && bugBehaviorInput.isNotBlank()
+        } else {
+            messageInput.isNotBlank()
+        }
+        ) && emailValid
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -231,7 +237,7 @@ fun ContactFormBottomSheet(
                 )
             }
 
-            // ── Email input (optional) — shown last ───────────────────────────
+            // ── Email input (required) — shown last ───────────────────────────
             OutlinedTextField(
                 value = emailInput,
                 onValueChange = { emailInput = it },
@@ -243,6 +249,22 @@ fun ContactFormBottomSheet(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
                 ),
+                isError = fieldsTouched && !emailValid,
+                supportingText = if (fieldsTouched && !emailValid) {
+                    {
+                        Text(
+                            stringResource(
+                                if (emailInput.isBlank()) {
+                                    R.string.contact_email_required
+                                } else {
+                                    R.string.contact_email_invalid
+                                },
+                            ),
+                        )
+                    }
+                } else {
+                    null
+                },
             )
 
             // ── Privacy note ──────────────────────────────────────────────────
@@ -275,7 +297,7 @@ fun ContactFormBottomSheet(
                         onSubmit(
                             selectedSubject.value,
                             messageBody,
-                            emailInput.ifBlank { null },
+                            emailInput.trim(),
                         )
                     }
                 },

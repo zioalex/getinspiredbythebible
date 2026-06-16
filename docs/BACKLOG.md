@@ -872,9 +872,9 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 
 ---
 
-### 🎯 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-15
 

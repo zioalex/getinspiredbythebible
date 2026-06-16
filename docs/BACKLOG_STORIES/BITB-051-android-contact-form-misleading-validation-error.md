@@ -1,6 +1,6 @@
 # BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-15
