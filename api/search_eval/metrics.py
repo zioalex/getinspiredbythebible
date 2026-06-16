@@ -48,3 +48,14 @@ def mrr(retrieved: list[VerseKey], relevant: list[RefMatcher]) -> float:
         if _is_hit(verse, relevant):
             return 1.0 / rank
     return 0.0
+
+
+def false_positives_at_k(retrieved: list[VerseKey], irrelevant: list[RefMatcher], k: int) -> int:
+    """Count top-k retrieved verses that match a verse flagged as irrelevant.
+
+    Incident guard (BITB-043): e.g. the Italian frustration query must not
+    surface Job 21:27. A healthy result returns 0.
+    """
+    if not irrelevant:
+        return 0
+    return sum(1 for verse in retrieved[:k] if any(m.matches(verse) for m in irrelevant))

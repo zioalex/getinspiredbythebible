@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-16
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -205,9 +205,9 @@ BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
 
 ---
 
-### 🎯 BITB-043: Validate & Enable Phase-1 Search Improvements
+### 🚧 BITB-043: Validate & Enable Phase-1 Search Improvements
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Size:** M (1-2 days)
 **Created:** 2026-06-07
 
@@ -215,21 +215,50 @@ BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
 (semantic + keyword) retrieval, **so that** I get thematically relevant verses instead of
 literal matches — without waiting on new retrieval code.
 
-**Why P1:** Highest-ROI item on the search backlog. The code is merged but gated off and
-unvalidated for ~3.5 months. This story builds a golden eval set, measures baseline, then
-safely enables hybrid search (strict-improvement) and A/B-tests query expansion. Low risk
-(feature-flagged, backward-compatible). Topic boosting is excluded here — blocked on data
-(BITB-044).
+**Why P1:** Highest-ROI item on the search backlog. Query expansion is now enabled
+(#741, released 1.27.0) and hybrid search is being enabled (trimmed PR #727). The
+remaining work — a golden eval set + scorer to validate and tune these — is carved out
+into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044).
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Golden eval set (50+ multilingual queries) + scorer for Precision@5 / Recall@10 / MRR
-- [ ] Baseline measured with flags off
-- [ ] Hybrid search enabled in prod; exact-phrase cases pass; no regression
-- [ ] Query expansion enabled (staged/A-B); total latency < 2s; LLM cost measured
-- [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
+- [x] Query expansion enabled by default (#741)
+- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
+- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
+
+**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Size:** L (3-5 days, 5 small PRs)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** a repeatable scorer that measures verse-retrieval
+ranking (Precision@5 / Recall@10 / MRR) over a curated multilingual golden set, **so
+that** I can validate whether query expansion / hybrid search actually help and tune
+their weights instead of shipping search changes blind.
+
+**Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
+Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
+normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
+languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
+report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+(1536) everywhere** to match prod; per-PR CI is validate-only.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] P0: PR #727 trimmed to hybrid-search enablement only
+- [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
+- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
 
 ---
 

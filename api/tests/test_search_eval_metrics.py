@@ -5,7 +5,12 @@ Pure functions, no database — runs in the standard backend-tests CI job.
 
 import pytest
 
-from search_eval.metrics import mrr, precision_at_k, recall_at_k
+from search_eval.metrics import (
+    false_positives_at_k,
+    mrr,
+    precision_at_k,
+    recall_at_k,
+)
 from search_eval.models import GoldenCase
 from search_eval.normalize import (
     RefMatcher,
@@ -184,6 +189,26 @@ class TestMRR:
         assert mrr([], RELEVANT) == 0.0
 
 
+class TestFalsePositivesAtK:
+    # Job 21:27 is the incident verse that must NOT surface.
+    IRRELEVANT = [normalize_reference("Job 21:27")]
+
+    def test_counts_irrelevant_in_top_k(self):
+        ranked = _keys("Job 21:27", "James 1:19")
+        assert false_positives_at_k(ranked, self.IRRELEVANT, 5) == 1
+
+    def test_zero_when_clean(self):
+        ranked = _keys("James 1:19", "Proverbs 14:29")
+        assert false_positives_at_k(ranked, self.IRRELEVANT, 5) == 0
+
+    def test_outside_window_not_counted(self):
+        ranked = _keys("James 1:19") + _keys("Job 21:27")  # Job at rank 2
+        assert false_positives_at_k(ranked, self.IRRELEVANT, 1) == 0
+
+    def test_no_irrelevant_defined_is_zero(self):
+        assert false_positives_at_k(_keys("Job 21:27"), [], 5) == 0
+
+
 # ==================== GoldenCase model ====================
 
 
@@ -193,6 +218,7 @@ class TestGoldenCase:
         assert case.language == "en"
         assert case.translation is None
         assert case.tags == []
+        assert case.irrelevant_refs == []
 
     def test_relevant_matchers(self):
         case = GoldenCase(
@@ -202,6 +228,15 @@ class TestGoldenCase:
         )
         assert case.relevant_matchers() == RELEVANT
 
+    def test_irrelevant_matchers(self):
+        case = GoldenCase(
+            id="x",
+            query="q",
+            relevant_refs=["James 1:19"],
+            irrelevant_refs=["Job 21:27"],
+        )
+        assert case.irrelevant_matchers() == [normalize_reference("Job 21:27")]
+
     def test_rejects_empty_relevant_refs(self):
         with pytest.raises(Exception):
             GoldenCase(id="x", query="q", relevant_refs=[])
@@ -209,3 +244,12 @@ class TestGoldenCase:
     def test_rejects_unparseable_ref(self):
         with pytest.raises(Exception):
             GoldenCase(id="x", query="q", relevant_refs=["not a reference"])
+
+    def test_rejects_unparseable_irrelevant_ref(self):
+        with pytest.raises(Exception):
+            GoldenCase(
+                id="x",
+                query="q",
+                relevant_refs=["John 3:16"],
+                irrelevant_refs=["nonsense"],
+            )
