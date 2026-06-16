@@ -271,4 +271,8 @@
 
     <!-- Share -->
     <string name="share_prefix">Ich habe diese inspirierende biblische Erkenntnis gefunden:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">Update bereit – tippe auf „Neu starten", um es anzuwenden</string>
+    <string name="update_action_restart">Neu starten</string>
 </resources>

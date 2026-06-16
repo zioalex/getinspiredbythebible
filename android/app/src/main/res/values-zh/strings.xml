@@ -270,4 +270,8 @@
 
     <!-- Share -->
     <string name="share_prefix">我找到了这个令人振奋的圣经启示：</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">更新已就绪 — 点击重新启动以应用</string>
+    <string name="update_action_restart">重新启动</string>
 </resources>

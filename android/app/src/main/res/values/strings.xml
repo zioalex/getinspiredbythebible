@@ -280,4 +280,8 @@
 
     <!-- Share -->
     <string name="share_prefix">I found this inspiring biblical insight:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">Update ready — tap Restart to apply it</string>
+    <string name="update_action_restart">Restart</string>
 </resources>

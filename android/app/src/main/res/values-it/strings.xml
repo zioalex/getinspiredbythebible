@@ -272,4 +272,8 @@
 
     <!-- Share -->
     <string name="share_prefix">Ho trovato questa riflessione biblica ispiratrice:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">Aggiornamento pronto — tocca Riavvia per applicarlo</string>
+    <string name="update_action_restart">Riavvia</string>
 </resources>

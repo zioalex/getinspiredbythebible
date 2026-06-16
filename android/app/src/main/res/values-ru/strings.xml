@@ -273,4 +273,8 @@
 
     <!-- Share -->
     <string name="share_prefix">Я нашёл это вдохновляющее библейское откровение:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">Обновление готово — нажмите «Перезапустить», чтобы применить</string>
+    <string name="update_action_restart">Перезапустить</string>
 </resources>

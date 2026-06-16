@@ -270,4 +270,8 @@
 
     <!-- Share -->
     <string name="share_prefix">이 영감적인 성경 통찰을 발견했습니다:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">업데이트 준비 완료 — 적용하려면 재시작을 탭하세요</string>
+    <string name="update_action_restart">재시작</string>
 </resources>

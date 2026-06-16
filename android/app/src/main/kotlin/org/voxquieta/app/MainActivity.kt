@@ -41,6 +41,21 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import javax.inject.Inject
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.unit.dp
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import org.voxquieta.app.R
+import org.voxquieta.app.update.InAppUpdateHelper
 
 private fun Context.hasSplashBeenSeen(): Boolean =
     getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
@@ -66,11 +81,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var turnstileManager: TurnstileManager
 
+    private lateinit var inAppUpdateHelper: InAppUpdateHelper
+    private lateinit var updateResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        updateResultLauncher = registerForActivityResult(StartIntentSenderForResult()) { /* no-op */ }
+        inAppUpdateHelper = InAppUpdateHelper(AppUpdateManagerFactory.create(this))
 
         // Keep the system splash on screen until the backend has responded (translations
         // loaded) OR the device is offline, but cap at 700 ms so fast devices get a
@@ -142,6 +163,22 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
+                val snackbarHostState = remember { SnackbarHostState() }
+                val updateDownloaded by inAppUpdateHelper.updateDownloaded.collectAsState()
+
+                LaunchedEffect(updateDownloaded) {
+                    if (updateDownloaded) {
+                        val result = snackbarHostState.showSnackbar(
+                            message = getString(R.string.update_download_complete),
+                            actionLabel = getString(R.string.update_action_restart),
+                            duration = SnackbarDuration.Indefinite,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            inAppUpdateHelper.completeUpdate()
+                        }
+                    }
+                }
+
                 Box {
                     NavHost(
                         navController = navController,
@@ -241,9 +278,29 @@ class MainActivity : ComponentActivity() {
                     // of which screen the user navigates to first) finds a fresh
                     // token already cached. The widget itself is 1.dp / invisible.
                     TurnstileWebView(turnstileManager = turnstileManager)
+
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 8.dp),
+                    ) { data ->
+                        Snackbar(snackbarData = data)
+                    }
                 }
                 } // Surface
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        inAppUpdateHelper.checkForUpdate(updateResultLauncher)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        inAppUpdateHelper.release()
     }
 }

@@ -31,6 +31,7 @@ androidxTestRunner = "1.6.2"
 composeMarkdown = "0.7.2"
 appcompat = "1.7.0"
 robolectric = "4.14.1"
+play-app-update = "2.1.0"
 
 [libraries]
 # AndroidX Core
@@ -104,6 +105,7 @@ hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testi
 hilt-android-compiler-test = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hiltTesting" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "play-app-update" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

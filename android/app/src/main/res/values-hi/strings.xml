@@ -271,4 +271,8 @@
 
     <!-- Share -->
     <string name="share_prefix">मुझे यह प्रेरणादायक बाइबिल अंतर्दृष्टि मिली:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">अपडेट तैयार है — इसे लागू करने के लिए पुनरारंभ करें पर टैप करें</string>
+    <string name="update_action_restart">पुनरारंभ करें</string>
 </resources>

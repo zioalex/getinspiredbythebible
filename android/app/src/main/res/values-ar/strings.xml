@@ -275,4 +275,8 @@
 
     <!-- Share -->
     <string name="share_prefix">وجدت هذه الرؤية الكتابية الملهمة:</string>
+
+    <!-- In-App Updates -->
+    <string name="update_download_complete">التحديث جاهز — انقر على إعادة التشغيل لتطبيقه</string>
+    <string name="update_action_restart">إعادة التشغيل</string>
 </resources>

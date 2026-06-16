@@ -245,6 +245,9 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
 
+    // In-App Updates
+    implementation(libs.play.app.update.ktx)
+
     // --- Testing ---
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
