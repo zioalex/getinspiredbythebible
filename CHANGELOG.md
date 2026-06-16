@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.28.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.27.0...v1.28.0) (2026-06-16)
 
-
 ### Features
 
 * **api:** enable hybrid search by default + form-data security fix (BITB-043) ([#727](https://github.com/zioalex/getinspiredbythebible/issues/727)) ([44bb168](https://github.com/zioalex/getinspiredbythebible/commit/44bb168ee6496df173abb1c133ab9aa884cfc5a3))
