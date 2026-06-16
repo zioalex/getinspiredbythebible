@@ -2,6 +2,7 @@ package org.voxquieta.app.presentation.components
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,7 +25,7 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
     fun `send button forwards typed text to onSend`() {
         var sent: String? = null
         setContentThemed {
-            var text by mutableStateOf("")
+            var text by remember { mutableStateOf("") }
             ChatInputField(
                 value = text,
                 onValueChange = { text = it },
@@ -42,7 +43,7 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
     @Test
     fun `text field loses focus after a successful send (keyboard dismissed)`() {
         setContentThemed {
-            var text by mutableStateOf("")
+            var text by remember { mutableStateOf("") }
             ChatInputField(
                 value = text,
                 onValueChange = { text = it },
