@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.27.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.26.0...v1.27.0) (2026-06-14)
+
+### Features
+
+* **api:** enable query_expansion_enabled by default ([#741](https://github.com/zioalex/getinspiredbythebible/issues/741)) ([98418bd](https://github.com/zioalex/getinspiredbythebible/commit/98418bd922d2bf5be93b2f5ff8fe4bc5cd64d16e))
+
+### Bug Fixes
+
+* **android:** make user-query text selection readable in both themes ([#743](https://github.com/zioalex/getinspiredbythebible/issues/743)) ([c04652e](https://github.com/zioalex/getinspiredbythebible/commit/c04652e3f2583f087a90fc9bd5870ac8af8fefae))
+
 ## [1.26.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.2...v1.26.0) (2026-06-13)
 
 ### Features
