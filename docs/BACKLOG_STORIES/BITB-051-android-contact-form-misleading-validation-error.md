@@ -133,6 +133,8 @@ see the optional web follow-up below.
 
 ## Related
 
+- `BITB-052` — Web follow-up: make the web contact form show an email-specific error on a 422
+  instead of the generic "failed to send" (web has no 300-character misreport).
 - `BITB-043` — Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason
   Chips. BITB-043 made email required server-side but did not cover the Android client's misleading
   error message or the Android "optional" label; this story closes that gap.

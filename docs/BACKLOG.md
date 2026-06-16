@@ -1205,6 +1205,26 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ## P3 - Low Priority (Future)
 
+### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+
+**Status:** 🎯 Todo
+**Size:** S (< 2 hrs)
+**Created:** 2026-06-16
+
+**As a** web user submitting the contact form, **I want** an email-specific error when my
+submission is rejected for an invalid email, **so that** I can fix it instead of seeing a generic
+"failed to send". Web follow-up to BITB-051 (web has no 300-char misreport, just a generic error).
+
+**Acceptance Criteria (summary):**
+
+- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
+
+---
+
 ### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
 **Status:** 🚧 In Progress
