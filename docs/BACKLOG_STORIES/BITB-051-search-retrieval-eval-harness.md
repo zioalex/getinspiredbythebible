@@ -64,23 +64,28 @@ relevant matchers `R`, irrelevant matchers `I`, and ranked retrieved keys `r₁.
 ## Phased delivery (one PR each)
 
 ### P0 — Trim PR #727 to the hybrid-search enablement only ✅ (landed)
+
 PR #727 was an earlier, overlapping attempt that also added a duplicate scorer +
 12-case golden set. Reconciliation decision: **keep its hybrid flip only.** Removed its
 `search_golden_set.json`, `test_search_golden_eval.py`, reverted its `pytest.ini` and
 BITB-043 story edits; kept `hybrid_search_enabled = True` + the flag/mocks test updates.
 Its good content (exact-phrase regressions, the Job 21:27 incident guard) is absorbed
 into this harness.
+
 - **Done when:** PR #727 contains only the hybrid enablement; full backend tests green.
 
 ### P1 — Metric + normalization core (pure, no DB) ✅ (landed — PR #745)
+
 `api/search_eval/`: `normalize.py`, `metrics.py`, `models.py` (`GoldenCase` with
 `relevant_refs` + `irrelevant_refs`). Pure-function `precision_at_k` / `recall_at_k` /
 `mrr` / `false_positives_at_k`. Tests `api/tests/test_search_eval_metrics.py` run in the
 blocking `backend-tests` job.
+
 - **Done when:** `pytest tests/test_search_eval_metrics.py` green; metric values match
   hand-computed expectations. **No DB.**
 
 ### P2 — Golden set data + loader + `--validate` + non-blocking CI (todo)
+
 - `api/search_eval/data/retrieval_golden_set.json`: 55+ cases, all 11 languages (≥5
   each), seeded from `query_expansion_test_cases.json` + #727's 12 cases (with
   `irrelevant_refs`), expanded with pastoral judgement. **Maintainer reviews labels.**
@@ -93,6 +98,7 @@ blocking `backend-tests` job.
 - **Done when:** `--validate` exits 0 with ≥55 cases / 11 languages; dataset tests green.
 
 ### P3 — Runner (real retrieval) + report + CLI (todo)
+
 - `api/search_eval/runner.py`: bootstrap standalone like
   `scripts/migrations/run_migrations.py`
   (`providers.factory.create_*_provider`, `scripture.database.async_session_factory`);
@@ -108,16 +114,18 @@ blocking `backend-tests` job.
   `run_search_eval.py` prints the expansion OFF-vs-ON A/B table + per-language breakdown.
 
 ### P4 — Full-corpus eval automated in CI (Routes A + B; manual + nightly) (todo)
+
 New `.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly
 `schedule`), Azure embeddings, results as job summary + uploaded artifact, non-gating:
+
 - **Route A (`eval-prod`):** `DATABASE_URL` from `PROD_DATABASE_URL` secret (read-only);
   embed queries with Azure; retrieve from prod's vectors. True prod numbers, no rebuild.
 - **Route B (`eval-corpus`):** load all 11 translations + Azure-embed into pgvector,
   cached via `actions/cache` (key = translations + model + script versions); full A/B.
 - **`eval-smoke`:** load 1 Corinthians + Azure-embed (~440 verses, cents); fast
   end-to-end plumbing proof (replaces the old Ollama smoke).
-- Secrets: `PROD_DATABASE_URL`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
-  `AZURE_EMBEDDING_DEPLOYMENT`; jobs no-op with a clear notice if absent.
+- Secrets: the read-only `PROD_DATABASE_URL` plus the `AZURE_OPENAI_*` endpoint /
+  key / deployment credentials; jobs no-op with a clear notice if absent.
 - **Done when:** dispatch produces an artifact + summary with the full-corpus A/B table
   (Routes A + B + smoke); nightly runs unattended; per-PR CI unchanged.
 
@@ -143,7 +151,7 @@ New `.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly
 | CI | `.github/workflows/test_update.yml` (validate)*, `search-eval-full.yml`* |
 | Reused utils | `utils/book_names.py`, `scripture/search.py`, `providers/factory.py`, `scripture/database.py` |
 
-*\* = future phase (P2–P4)*
+Note: items marked with `*` above are future phases (P2–P4).
 
 ## Related
 
