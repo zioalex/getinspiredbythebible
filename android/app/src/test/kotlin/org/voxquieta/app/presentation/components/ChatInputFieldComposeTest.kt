@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
@@ -18,6 +18,9 @@ import org.voxquieta.app.testing.ComposeTestHarness
  *
  * Verifies that submitting a message forwards the text to [ChatInputField.onSend]
  * and clears focus (dismissing the IME) — the core BITB-048 requirement.
+ *
+ * Uses [hasSetTextAction] to locate the text field rather than placeholder text,
+ * avoiding charset/apostrophe encoding mismatches in resource strings.
  */
 class ChatInputFieldComposeTest : ComposeTestHarness() {
 
@@ -33,7 +36,7 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
             )
         }
 
-        composeRule.onNodeWithText("Share what’s on your heart…").performTextInput("Hello")
+        composeRule.onNode(hasSetTextAction()).performTextInput("Hello")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitForIdle()
 
@@ -51,12 +54,12 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
             )
         }
 
-        val field = composeRule.onNodeWithText("Share what’s on your heart…")
-        field.performTextInput("Hello")   // implicitly focuses the field
+        val field = composeRule.onNode(hasSetTextAction())
+        field.performTextInput("Hello")   // focuses the field and types
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitForIdle()
 
-        // focusManager.clearFocus() in submit() → field no longer focused → IME dismissed
+        // focusManager.clearFocus() in submit() → field loses focus → IME dismissed
         field.assertIsNotFocused()
     }
 }
