@@ -61,6 +61,19 @@ relevant matchers `R`, irrelevant matchers `I`, and ranked retrieved keys `r₁.
 - **MRR** = 1 / rank of first matching rᵢ (0 if none)
 - **false_positives@k** = count of top-k matching any `I` (incident guard; healthy = 0)
 
+### Caveat: versification, not book-name language
+
+`relevant_refs` are kept **English-canonical** for every case regardless of query
+language — they are a language-neutral answer key, and the retrieved
+`VerseResult.reference` is also always English-canonical, so a localized golden set
+would change nothing measured (it would only add normalization risk). The real
+cross-language gotcha is **versification**: some translations number verses
+differently (Psalm superscriptions counted as v1, Joel/Malachi chapter splits, 3 John,
+etc.), so a *correct* hit in a non-English translation can be scored as a miss when its
+`chapter:verse` is offset from the English-canonical key. Read per-language scores with
+this in mind. Closing the underlying book-name/reference normalization gaps (and
+deciding versification handling) is tracked in **BITB-052**.
+
 ## Phased delivery (one PR each)
 
 ### P0 — Trim PR #727 to the hybrid-search enablement only ✅ (landed)

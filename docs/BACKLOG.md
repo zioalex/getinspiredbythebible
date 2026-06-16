@@ -262,6 +262,35 @@ Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-sm
 
 ---
 
+### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** book/verse references to canonicalize reliably across
+all 11 languages and their common citation variants, **so that** the retrieval-eval
+metrics (BITB-051) and the app's shared verse-linking don't silently mishandle references.
+
+**Why P2:** Surfaced during BITB-051 P1 review — `normalize_book_name` coverage is uneven:
+localized singular/citation forms (Italian `Salmo`, German `Psalm`, Spanish/French/PT) and
+abbreviations are missing for several languages (Arabic/Russian have them), numbered-book
+variants and case/diacritic handling are gaps, and per-translation **versification**
+offsets can mis-score a correct hit. Low impact for BITB-051 today (its refs are
+English-canonical) but affects localized input and the app-wide normalizer.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-language coverage matrix identifying every gap
+- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
+- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [ ] Versification offsets quantified + documented handling decision (with tests)
+- [ ] Table-driven tests across all 11 languages green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
 ### 🚧 BITB-050: Improve Verse Search Thematic Relevance and Response Depth
 
 **Status:** 🚧 In Progress
