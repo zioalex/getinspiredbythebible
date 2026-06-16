@@ -1,10 +1,9 @@
 # BITB-043: Validate & Enable Phase-1 Search Improvements
 
-**Status:** 🟡 In Progress — hybrid search enabled; query expansion + full golden eval pending
+**Status:** 🎯 Todo
 **Priority:** P1 (High) — high-ROI relevance fix; code already merged, just gated off
 **Size:** M (1-2 days)
 **Created:** 2026-06-07
-**Updated:** 2026-06-12
 
 ## User Story
 
@@ -55,27 +54,16 @@ Out of scope:
    golden set; document chosen values.
 6. **Retrospective** in `docs/DONE/`.
 
-## Progress (2026-06-12)
-
-- `api/config.py`: `hybrid_search_enabled` flipped to `True` (default).
-- `api/tests/fixtures/search_golden_set.json`: 12-case golden set covering English
-  exact-phrase queries (regression), Italian incident guard, German/Spanish/Portuguese
-  semantic queries — 5 languages total.
-- `api/tests/test_search_golden_eval.py`: scorer (Precision@K, Recall@K, MRR) unit-tested
-  with mocks; fixture integrity tests; real-DB regression test opt-in via `RUN_DB_TESTS=1`.
-- `query_expansion_enabled` remains `False`; cost/latency validation deferred.
-
 ## Acceptance Criteria
 
-- [x] Golden eval set committed (12 queries, multilingual) with a runnable scorer
-      reporting Precision@5 / Recall@10 / MRR. (50+ query expansion deferred.)
-- [ ] Baseline (all flags off) measured and recorded against live DB.
-- [x] Hybrid search enabled; exact-phrase regression case `peace-be-still-en` + Italian
-      incident guard present in golden set.
+- [ ] Golden eval set committed (50+ queries, multilingual) with a runnable scorer
+      reporting Precision@5 / Recall@10 / MRR.
+- [ ] Baseline (all flags off) measured and recorded.
+- [ ] Hybrid search enabled in prod; exact-phrase regression cases pass; no metric regression.
 - [ ] Query expansion enabled (A/B or staged); total search latency stays < 2s; LLM cost
       measured and within expectation.
 - [ ] Chosen hybrid weights documented; final metrics show improvement over baseline.
-- [x] Full backend test suite passes (updated default-flag tests).
+- [ ] Full backend test suite passes.
 - [ ] Retrospective written in `docs/DONE/`.
 
 ## Files / Config
