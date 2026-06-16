@@ -262,6 +262,29 @@ this story only changes prompt *content*, enabling no flags.
 
 ---
 
+### 🚧 BITB-051: Android In-App Update Prompt
+
+**Status:** 🚧 In Progress
+**Size:** S (2–3 hours)
+**Created:** 2026-06-16
+
+**As an** Android user, **I want** the app to notify me when a newer version is available,
+**so that** I can install updates without leaving the app or manually checking the Play Store.
+
+**Approach:** Google Play Flexible Update API — background download, then snackbar prompting restart.
+
+**Acceptance Criteria (summary):**
+
+- [ ] New Play Store version triggers background flexible update download
+- [ ] Snackbar appears after download with "Restart" action
+- [ ] No crash on devices without Play Store
+- [ ] 11 locales have new strings
+- [ ] Unit tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-in-app-update.md`
+
+---
+
 ### ✅ BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
 
 **Status:** ✅ Done (branch claude/backlog-item-ft0aju, 2026-06-09)
