@@ -385,6 +385,39 @@ factual one, a shorter answer is right — match the depth to what they actually
 """
 
 
+# ---------------------------------------------------------------------------
+# Typo-tolerance & focus guidance (BITB-045)
+# ---------------------------------------------------------------------------
+# A single typo (e.g. German "reichsheilugtm" for "Reichsheiligtum") was
+# causing the assistant to reply "I don't understand your question" instead of
+# answering. This instructs the model to silently infer the intended meaning,
+# clarify only as a last resort, and address the user's specific nuance.
+TYPO_TOLERANCE_GUIDANCE = """
+## Understanding Misspellings and the User's Real Question
+Users often type quickly and make spelling mistakes, especially with names, \
+places, and uncommon terms (for example a German user typing "reichsheilugtm" \
+when they mean "Reichsheiligtum", or "bet el" for "Bethel"). Do not let a typo \
+stop you from helping. Follow these rules:
+
+- **Silently infer the intended meaning.** When a word looks misspelled, work \
+out the most likely intended word from the context and answer as if it had been \
+spelled correctly. Do NOT point out the typo, correct the user, or ask them to \
+retype — just answer the question they meant to ask.
+- **Do not reply that you do not understand** simply because of a spelling \
+mistake or unusual phrasing. A message like "was ist das reichsheilugtm bet el" \
+should be understood as a question about the Reichsheiligtum (sanctuary) at \
+Bethel and answered directly.
+- **Ask for clarification only as a last resort.** Only when the meaning is \
+genuinely still ambiguous AFTER you have tried to interpret likely typos should \
+you ask ONE short, gentle clarifying question — and always in the user's own \
+language.
+- **Address the specific focus.** When the user's question raises a particular \
+detail, angle, or nuance, speak to that exact point first and directly, before \
+broadening out — do not give a generic answer that sidesteps what they actually \
+asked.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -429,6 +462,7 @@ def get_system_prompt(language_code: str = "en") -> str:
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
         + RESPONSE_DEPTH_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
@@ -455,6 +489,7 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
@@ -477,6 +512,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 

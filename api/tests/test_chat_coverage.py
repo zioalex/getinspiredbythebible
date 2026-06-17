@@ -20,6 +20,7 @@ from chat.prompts import (
     RESPONSE_DEPTH_GUIDANCE,
     SCRIPTURE_FIDELITY_GUIDANCE,
     SYSTEM_PROMPT,
+    TYPO_TOLERANCE_GUIDANCE,
     build_conversation_context,
     build_search_context_prompt,
     detect_intent_prompt,
@@ -556,6 +557,50 @@ class TestResponseDepthGuidance:
         # shorter reply, so the rule must not mandate length unconditionally.
         text = RESPONSE_DEPTH_GUIDANCE.lower()
         assert "shorter answer" in text or "brief" in text
+
+
+class TestTypoToleranceGuidance:
+    """BITB-045: a single typo must not produce an 'I don't understand' reply;
+    the model silently infers intended meaning, clarifies only as a last
+    resort, and addresses the user's specific focus and nuance."""
+
+    def test_guidance_constant_covers_typo_inference(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "typo" in text or "misspell" in text
+        assert "infer" in text
+
+    def test_guidance_constant_forbids_commenting_on_typo(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "point out" in text
+        assert "retype" in text
+
+    def test_guidance_constant_clarify_only_as_last_resort(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "last resort" in text
+        assert "clarif" in text
+
+    def test_guidance_constant_addresses_specific_focus(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "specific focus" in text
+        assert "nuance" in text
+
+    def test_guidance_mentions_beta_example(self):
+        assert "reichsheilugtm" in TYPO_TOLERANCE_GUIDANCE
+
+    def test_system_prompt_contains_typo_guidance_english(self):
+        assert "Understanding Misspellings" in get_system_prompt("en")
+
+    def test_system_prompt_typo_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            assert "Understanding Misspellings" in get_system_prompt(lang), (
+                f"typo guidance missing for lang={lang}"
+            )
+
+    def test_verse_lookup_prompt_contains_typo_guidance(self):
+        assert "Understanding Misspellings" in get_verse_lookup_prompt("en")
+
+    def test_prayer_lookup_prompt_contains_typo_guidance(self):
+        assert "Understanding Misspellings" in get_prayer_lookup_prompt("en")
 
 
 # ==================== Chat Service Tests ====================
