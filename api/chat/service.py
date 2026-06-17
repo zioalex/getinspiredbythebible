@@ -840,20 +840,18 @@ Keep it under 100 words."""
             return text, []
 
         duration_ms = (time.perf_counter() - start) * 1000
-        attrs = {"language": language, "corrected": bool(corrections)}
+        attrs: dict[str, str | bool] = {"language": language, "corrected": bool(corrections)}
         verse_grounding_duration_histogram.record(duration_ms, attrs)
         if quotes_checked:
             verse_grounding_quotes_checked_counter.add(quotes_checked, {"language": language})
         for c in corrections:
-            verse_grounding_corrections_counter.add(
-                1,
-                {
-                    "language": language,
-                    "reason": c.reason,
-                    "corrected": c.corrected_quote is not None,
-                    "book": c.reference.rsplit(" ", 1)[0],
-                },
-            )
+            correction_attrs: dict[str, str | bool] = {
+                "language": language,
+                "reason": c.reason,
+                "corrected": c.corrected_quote is not None,
+                "book": c.reference.rsplit(" ", 1)[0],
+            }
+            verse_grounding_corrections_counter.add(1, correction_attrs)
             logger.warning(
                 "Scripture fidelity issue corrected",
                 extra={
