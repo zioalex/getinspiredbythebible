@@ -111,9 +111,7 @@ class TestGroundResponse:
     def test_mismatch_when_verse_was_in_context(self):
         text = 'John 3:16 says: "God really loved the entire planet a whole lot."'
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN)
-        corrected, corrections = ground_response(
-            text, [jn], context_refs={("john", 3, 16)}
-        )
+        corrected, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
         assert len(corrections) == 1
         assert corrections[0].reason == "mismatched"
         assert JOHN_3_16_EN in corrected
@@ -121,18 +119,14 @@ class TestGroundResponse:
     def test_faithful_quote_unchanged(self):
         text = f'As John 3:16 says: "{JOHN_3_16_EN}"'
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN)
-        corrected, corrections = ground_response(
-            text, [jn], context_refs={("john", 3, 16)}
-        )
+        corrected, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
         assert corrections == []
         assert corrected == text
 
     def test_partial_quote_not_flagged(self):
         text = 'John 3:16 reminds us: "For God so loved the world".'
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN)
-        corrected, corrections = ground_response(
-            text, [jn], context_refs={("john", 3, 16)}
-        )
+        corrected, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
         assert corrections == []
         assert corrected == text
 
@@ -145,7 +139,9 @@ class TestGroundResponse:
     def test_range_concatenation_partial_accepted(self):
         # An LLM quoting only verse 23 of a 5:22-23 range must not be flagged.
         v22 = FakeVerse("Galatians", 5, 22, "But the fruit of the Spirit is love, joy, peace,")
-        v23 = FakeVerse("Galatians", 5, 23, "gentleness, self-control: against such there is no law.")
+        v23 = FakeVerse(
+            "Galatians", 5, 23, "gentleness, self-control: against such there is no law."
+        )
         text = 'Galatians 5:22-23 lists "gentleness, self-control: against such there is no law."'
         _, corrections = ground_response(
             text, [v22, v23], context_refs={("galatians", 5, 22), ("galatians", 5, 23)}

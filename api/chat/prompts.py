@@ -505,7 +505,7 @@ def build_search_context_prompt(search_results: dict) -> str:
     if verses:
         context_parts.append("## Relevant Bible Verses")
         for v in verses:
-            context_parts.append(f"**{v['reference']}**: \"{v['text']}\"")
+            context_parts.append(f'**{v["reference"]}**: "{v["text"]}"')
 
     if passages:
         context_parts.append("\n## Relevant Passages")

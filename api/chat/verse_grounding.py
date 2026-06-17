@@ -64,8 +64,7 @@ def _ref_keys(ref: VerseReference) -> list[tuple[str, int, int]]:
     """Canonical (book, chapter, verse) keys a reference covers, expanding ranges."""
     if ref.verse_end and ref.verse_end > ref.verse_start:
         return [
-            (ref.book.lower(), ref.chapter, v)
-            for v in range(ref.verse_start, ref.verse_end + 1)
+            (ref.book.lower(), ref.chapter, v) for v in range(ref.verse_start, ref.verse_end + 1)
         ]
     return [(ref.book.lower(), ref.chapter, ref.verse_start)]
 

@@ -122,9 +122,9 @@ class TestGetSystemPrompt:
         """Non-English prompts should not contain the hardcoded English attribution phrase."""
         for lang in ("es", "fr", "it", "de", "pt"):
             result = get_system_prompt(lang)
-            assert (
-                "This is from the Bible, specifically" not in result
-            ), f"Hardcoded English attribution still present for lang={lang}"
+            assert "This is from the Bible, specifically" not in result, (
+                f"Hardcoded English attribution still present for lang={lang}"
+            )
 
 
 class TestOpeningPhrase:
@@ -1052,9 +1052,9 @@ class TestChatServiceChatStream:
         cited = completion["resolved_verses"]
         assert isinstance(cited, list)
         # At least one verse resolved (John 3:16)
-        assert any(
-            v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16 for v in cited
-        ), f"Expected John 3:16 in resolved_verses, got: {cited}"
+        assert any(v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16 for v in cited), (
+            f"Expected John 3:16 in resolved_verses, got: {cited}"
+        )
 
     @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
@@ -1133,9 +1133,7 @@ class TestChatServiceChatStream:
         assert "corrected_message" in completion
         assert canonical in completion["corrected_message"]
         assert "God adored the whole planet" not in completion["corrected_message"]
-        assert completion["corrections"] == [
-            {"reference": "John 3:16", "reason": "fabricated"}
-        ]
+        assert completion["corrections"] == [{"reference": "John 3:16", "reason": "fabricated"}]
 
     @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
