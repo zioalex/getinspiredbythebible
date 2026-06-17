@@ -592,9 +592,9 @@ class TestTypoToleranceGuidance:
 
     def test_system_prompt_typo_guidance_for_all_languages(self):
         for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
-            assert "Understanding Misspellings" in get_system_prompt(lang), (
-                f"typo guidance missing for lang={lang}"
-            )
+            assert "Understanding Misspellings" in get_system_prompt(
+                lang
+            ), f"typo guidance missing for lang={lang}"
 
     def test_verse_lookup_prompt_contains_typo_guidance(self):
         assert "Understanding Misspellings" in get_verse_lookup_prompt("en")
