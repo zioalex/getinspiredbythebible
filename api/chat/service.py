@@ -27,8 +27,14 @@ from utils.language import (
     resolve_translation,
 )
 from utils.logging_config import get_logger
+from utils.metrics import (
+    verse_grounding_corrections_counter,
+    verse_grounding_duration_histogram,
+    verse_grounding_quotes_checked_counter,
+)
 from utils.verse_parser import (
     extract_all_references,
+    extract_inline_quotes,
     extract_references,
     is_verse_lookup_request,
     parse_structured_citations,
@@ -45,6 +51,7 @@ from .prompts import (
     get_verse_lookup_prompt,
 )
 from .topics import detect_topics
+from .verse_grounding import ground_response
 
 logger = get_logger(__name__)
 
@@ -464,9 +471,15 @@ Keep it under 100 words."""
                 extra={"response_preview": response.content[:200]},
             )
 
+        # Ground the response: rewrite any fabricated/mismatched inline verse
+        # quote to the canonical DB text before returning it to the client.
+        message, _ = await self._apply_verse_grounding(
+            response.content, scripture_context, translation, effective_language
+        )
+
         return ChatResponse(
             message_id=message_id,
-            message=response.content,
+            message=message,
             scripture_context=scripture_context,
             provider=response.provider,
             model=response.model,
@@ -788,6 +801,71 @@ Keep it under 100 words."""
                 logger.warning(f"Failed to resolve cited verse {ref}: {e}")
         return list(resolved.values())
 
+    async def _apply_verse_grounding(
+        self,
+        text: str,
+        scripture_context: SearchResults | None,
+        translation: str | None,
+        language: str,
+        resolved_verses: list | None = None,
+    ) -> tuple[str, list]:
+        """Rewrite fabricated/mismatched inline verse quotes to canonical DB text.
+
+        Returns (possibly-corrected text, list[Correction]). Reuses pre-resolved
+        cited verses when the caller already has them (streaming path) to avoid a
+        second DB pass; otherwise resolves the references it finds in ``text``.
+        Never raises — grounding must never break a response.
+        """
+        if not settings.verse_grounding_enabled:
+            return text, []
+        start = time.perf_counter()
+        try:
+            if resolved_verses is None:
+                resolved_verses = await self._resolve_cited_verses(
+                    extract_all_references(text), translation
+                )
+            context_refs = {
+                (v.book.lower(), v.chapter, v.verse)
+                for v in (scripture_context.verses if scripture_context else [])
+            }
+            quotes_checked = len(extract_inline_quotes(text))
+            corrected, corrections = ground_response(
+                text,
+                resolved_verses,
+                context_refs,
+                strip_unresolved=settings.grounding_strip_unresolved,
+            )
+        except Exception as e:
+            logger.warning(f"Verse grounding skipped due to error: {e}")
+            return text, []
+
+        duration_ms = (time.perf_counter() - start) * 1000
+        attrs = {"language": language, "corrected": bool(corrections)}
+        verse_grounding_duration_histogram.record(duration_ms, attrs)
+        if quotes_checked:
+            verse_grounding_quotes_checked_counter.add(quotes_checked, {"language": language})
+        for c in corrections:
+            verse_grounding_corrections_counter.add(
+                1,
+                {
+                    "language": language,
+                    "reason": c.reason,
+                    "corrected": c.corrected_quote is not None,
+                    "book": c.reference.rsplit(" ", 1)[0],
+                },
+            )
+            logger.warning(
+                "Scripture fidelity issue corrected",
+                extra={
+                    "reference": c.reference,
+                    "reason": c.reason,
+                    "original_quote": c.original_quote[:160],
+                    "corrected_quote": (c.corrected_quote or "")[:160],
+                    "language": language,
+                },
+            )
+        return corrected, corrections
+
     def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
         """Merge direct lookup verses into scripture context (at beginning)."""
         if not direct_verses or not scripture_context:
@@ -955,6 +1033,19 @@ Keep it under 100 words."""
         # appears in the "Cited" tab.
         resolved_verses = await self._resolve_cited_verses(list(merged_refs.values()), translation)
 
+        # Ground the streamed answer: detect fabricated/mismatched inline verse
+        # quotes and rewrite them to canonical text. Reuses resolved_verses (no
+        # extra DB calls). The tokens are already on the client's screen, so the
+        # correction is delivered as an authoritative `corrected_message` the
+        # client swaps in — only when something actually changed.
+        corrected_message, corrections = await self._apply_verse_grounding(
+            full_response,
+            scripture_context,
+            translation,
+            effective_language,
+            resolved_verses=resolved_verses,
+        )
+
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.
         has_structured = len(structured) > 0
@@ -982,11 +1073,19 @@ Keep it under 100 words."""
         #                    merges these into its verse pool so the filter has
         #                    cards to match even for verses outside the semantic
         #                    search results.
-        yield {
+        completion: dict = {
             "type": "completion",
             "verses_cited": verses_cited,
             "resolved_verses": [v.model_dump() for v in resolved_verses],
         }
+        # Only sent when a quote was rewritten; older clients ignore unknown
+        # fields, so this is backward compatible.
+        if corrections:
+            completion["corrected_message"] = corrected_message
+            completion["corrections"] = [
+                {"reference": c.reference, "reason": c.reason} for c in corrections
+            ]
+        yield completion
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

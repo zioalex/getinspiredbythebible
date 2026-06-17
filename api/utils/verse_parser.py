@@ -97,6 +97,17 @@ class VerseReference:
 
 
 @dataclass
+class InlineQuote:
+    """A span of quoted text in an LLM response paired with the verse reference
+    it is presented as quoting (e.g. `"For God so loved…" (John 3:16)`)."""
+
+    reference: VerseReference
+    quoted_text: str  # raw text between the quotation marks
+    span: tuple[int, int]  # (start, end) offsets of quoted_text in the source
+    ref_span: tuple[int, int]  # (start, end) offsets of the reference token
+
+
+@dataclass
 class PrayerReference:
     """Parsed prayer/passage reference."""
 
@@ -450,6 +461,115 @@ def parse_structured_citations(text: str) -> list[VerseReference]:
                 results.append(ref)
 
     return results
+
+
+# Quote-mark pairs used across the 11 supported UI languages, as (open, close).
+# Chinese book-title guillemets 《》 are intentionally excluded: they wrap book
+# names inside references (《约翰福音》3:16), not verse quotations, and would
+# otherwise be misread as quoted verse text.
+_QUOTE_PAIRS: list[tuple[str, str]] = [
+    ('"', '"'),
+    ("“", "”"),  # “ ”
+    ("„", "“"),  # „ … “  (German)
+    ("«", "»"),  # « »   (French / Italian)
+    ("「", "」"),  # 「 」  (CJK corner)
+    ("『", "』"),  # 『 』  (CJK white corner)
+    ("‘", "’"),  # ‘ ’
+]
+
+# Each pair captures its inner span on a single line (no newline), length-bounded
+# so a stray opening mark can't swallow the rest of the message.
+_QUOTE_PATTERNS: list[re.Pattern] = [
+    re.compile(re.escape(o) + r"([^\n]{1,600}?)" + re.escape(c)) for o, c in _QUOTE_PAIRS
+]
+
+# Characters allowed to sit between a quotation and its adjacent reference
+# (e.g. `… ." (John 3:16)` or `John 3:16: "…`). Any other character (a letter)
+# means the quote and reference belong to different clauses.
+_ADJACENCY_SEPARATORS = set(" \t\n ()[]—–-,.:;")
+_ADJACENCY_WINDOW = 50
+# Map brackets to spaces before running _VERSE_PATTERN so its whitespace
+# lookbehind matches a reference written as "(John 3:16)"; same length keeps
+# offsets aligned with the original text.
+_BRACKET_TO_SPACE = str.maketrans("()[]", "    ")
+# A reference may introduce a quotation with a short connector — `John 3:16 says:`,
+# `Giovanni 3:16 dice,` — so a gap of a few words ending in a colon/comma also
+# counts as adjacent. Anything richer (sentence punctuation, more text) does not,
+# which keeps a nearby non-verse quotation from being misattributed.
+_QUOTE_INTRO_GAP = re.compile(r"^[\w\s]{0,20}[:,]\s*$")
+
+
+def _gap_is_adjacent(gap: str) -> bool:
+    """True when only separators / a short quote-introducing connector separate a
+    reference from a quotation."""
+    return all(ch in _ADJACENCY_SEPARATORS for ch in gap) or bool(_QUOTE_INTRO_GAP.match(gap))
+
+
+def _find_adjacent_reference(
+    text: str, open_pos: int, close_end: int
+) -> tuple[VerseReference, tuple[int, int]] | None:
+    """Find a verse reference immediately before or after a quotation.
+
+    Returns (reference, (ref_start, ref_end)) using absolute offsets into ``text``,
+    or None when no reference sits directly beside the quote.
+    """
+    # After the quote: `"…" (John 3:16)`
+    after = text[close_end : close_end + _ADJACENCY_WINDOW]
+    m = _VERSE_PATTERN.search(after.translate(_BRACKET_TO_SPACE))
+    if m and all(ch in _ADJACENCY_SEPARATORS for ch in after[: m.start()]):
+        ref = _match_to_verse_reference(m)
+        if ref:
+            return ref, (close_end + m.start(), close_end + m.end())
+
+    # Before the quote: `John 3:16: "…"` — take the reference closest to the quote.
+    start = max(0, open_pos - _ADJACENCY_WINDOW)
+    before = text[start:open_pos]
+    last = None
+    for mm in _VERSE_PATTERN.finditer(before.translate(_BRACKET_TO_SPACE)):
+        last = mm
+    if last and _gap_is_adjacent(before[last.end() :]):
+        ref = _match_to_verse_reference(last)
+        if ref:
+            return ref, (start + last.start(), start + last.end())
+    return None
+
+
+def extract_inline_quotes(text: str) -> list[InlineQuote]:
+    """Find verse text quoted inline next to a parsed reference.
+
+    Detects both orderings — `"…quoted…" (John 3:16)` and `John 3:16: "…quoted…"`
+    — across the quotation styles used by the supported languages. Only quotes
+    sitting immediately beside a resolvable reference (separated by punctuation /
+    whitespace, not other words) are returned, so ordinary quoted phrases are
+    ignored. Offsets are reported against ``text`` unchanged so callers can
+    substitute corrected text safely.
+
+    Limitations: paraphrases without quotation marks are not detected (the prompt
+    rules cover those); a quote is associated with the single nearest reference;
+    unbalanced quotation marks are skipped.
+    """
+    quotes: list[InlineQuote] = []
+    seen_spans: set[tuple[int, int]] = set()
+    for pattern in _QUOTE_PATTERNS:
+        for m in pattern.finditer(text):
+            span = (m.start(1), m.end(1))
+            if span in seen_spans:
+                continue
+            found = _find_adjacent_reference(text, m.start(), m.end())
+            if not found:
+                continue
+            ref, ref_span = found
+            seen_spans.add(span)
+            quotes.append(
+                InlineQuote(
+                    reference=ref,
+                    quoted_text=m.group(1),
+                    span=span,
+                    ref_span=ref_span,
+                )
+            )
+    quotes.sort(key=lambda q: q.span[0])
+    return quotes
 
 
 def _check_direct_match(book_raw_lower: str) -> str | None:

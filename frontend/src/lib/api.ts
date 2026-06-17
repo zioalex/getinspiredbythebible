@@ -476,6 +476,11 @@ export interface StreamChunk {
   // merged into the verse pool so the filter has cards to match for verses
   // outside the semantic search results.
   resolved_verses?: Verse[];
+  // Set only when post-generation grounding rewrote a fabricated/mismatched
+  // inline verse quote to the canonical scripture text. When present, it is the
+  // authoritative full message body and should replace the streamed content.
+  corrected_message?: string;
+  corrections?: { reference: string; reason: string }[];
 }
 
 /**

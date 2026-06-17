@@ -613,6 +613,21 @@ class ChatViewModel @Inject constructor(
                         if (chunk.resolvedVerses.isNotEmpty()) {
                             finalResolvedVerses = chunk.resolvedVerses
                         }
+                        // Grounding rewrote a fabricated/mismatched verse quote: the
+                        // streamed text is already on screen, so replace it with the
+                        // authoritative corrected body.
+                        chunk.correctedMessage?.let { corrected ->
+                            accumulatedContent = corrected
+                            _uiState.update { state ->
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) {
+                                            msg.copy(content = accumulatedContent)
+                                        } else msg
+                                    },
+                                )
+                            }
+                        }
                         return@collect
                     }
 

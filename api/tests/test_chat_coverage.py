@@ -523,6 +523,19 @@ class TestScriptureFidelityGuidance:
         text = SCRIPTURE_FIDELITY_GUIDANCE.lower()
         assert "invent" in text or "reconstruct" in text
 
+    def test_guidance_forbids_citing_unprovided_verse(self):
+        # Distinct from re-wording a provided verse: the LLM must not cite or
+        # quote a verse that was never in the Scripture Context at all.
+        text = SCRIPTURE_FIDELITY_GUIDANCE.lower()
+        assert "not in the scripture context" in text
+        assert "there is no verse to quote" in text
+
+    def test_unprovided_verse_rule_in_all_builders(self):
+        for builder in (get_system_prompt, get_verse_lookup_prompt, get_prayer_lookup_prompt):
+            assert "Never quote or cite a verse that is not in the Scripture Context" in builder(
+                "en"
+            )
+
 
 class TestResponseDepthGuidance:
     """BITB-050: the conversational reply must have enough depth to genuinely
@@ -1074,6 +1087,85 @@ class TestChatServiceChatStream:
         completion = next(c for c in chunks if c["type"] == "completion")
         assert completion["resolved_verses"] == []
         assert "verses_cited" in completion
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_corrects_fabricated_quote(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """A fabricated inline quote is rewritten and the completion event carries
+        an authoritative corrected_message + corrections list."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        canonical = "For God so loved the world, that he gave his only begotten Son."
+        service.search_service.get_verse = AsyncMock(
+            return_value=VerseResult(
+                reference="John 3:16",
+                text=canonical,
+                book="John",
+                chapter=3,
+                verse=16,
+                translation="kjv",
+            )
+        )
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            yield (
+                'John 3:16 reminds us: "God adored the whole planet so much he '
+                'sent his one and only child down." Take heart.'
+                "\n<!-- VERSES: John 3:16 -->"
+            )
+
+        llm.chat_stream = mock_stream
+
+        chunks = []
+        async for chunk in service.chat_stream(ChatRequest(message="comfort me")):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "corrected_message" in completion
+        assert canonical in completion["corrected_message"]
+        assert "God adored the whole planet" not in completion["corrected_message"]
+        assert completion["corrections"] == [
+            {"reference": "John 3:16", "reason": "fabricated"}
+        ]
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_no_correction_omits_fields(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """When nothing is rewritten, corrected_message/corrections are absent."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        service.search_service.get_verse = AsyncMock(return_value=None)
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            yield "Take heart and be encouraged today."
+
+        llm.chat_stream = mock_stream
+
+        chunks = []
+        async for chunk in service.chat_stream(ChatRequest(message="hi")):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "corrected_message" not in completion
+        assert "corrections" not in completion
 
 
 def _make_ref(book, chapter, verse_start, verse_end=None):
