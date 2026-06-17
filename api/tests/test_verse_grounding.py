@@ -9,7 +9,6 @@ from dataclasses import dataclass
 
 from chat.verse_grounding import (
     GROUNDING_SIMILARITY_THRESHOLD,
-    Correction,
     _normalize_for_compare,
     ground_response,
 )
