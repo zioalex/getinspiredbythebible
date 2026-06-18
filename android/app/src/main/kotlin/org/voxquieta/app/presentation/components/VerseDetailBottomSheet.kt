@@ -41,6 +41,13 @@ import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 
+// Matches strings that contain only whitespace, punctuation, symbols, or underscores —
+// the same guard the backend uses for `////`-style placeholder verse data.
+private val PLACEHOLDER_VERSE_RE = Regex("^[\\s\\p{P}\\p{S}_]*\$")
+
+internal fun isPlaceholderVerseText(text: String?): Boolean =
+    text == null || PLACEHOLDER_VERSE_RE.matches(text)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerseDetailBottomSheet(
@@ -50,6 +57,33 @@ fun VerseDetailBottomSheet(
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        VerseDetailContent(
+            verse = verse,
+            preferredTranslation = preferredTranslation,
+            chapterState = chapterState,
+            onLoadChapter = onLoadChapter,
+        )
+    }
+}
+
+/**
+ * The scrollable body of the verse-detail sheet — header reference, quoted verse text,
+ * and the full chapter list.
+ * Extracted from [VerseDetailBottomSheet] so Compose UI tests can mount this directly
+ * without needing a [ModalBottomSheet] (which has Robolectric rendering caveats).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun VerseDetailContent(
+    verse: Verse,
+    preferredTranslation: String?,
+    chapterState: ChapterSheetState,
+    onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
 ) {
     // Auto-load the chapter as soon as the sheet opens.
     // The key includes book + chapter so that tapping a *different* verse reference
@@ -80,48 +114,49 @@ fun VerseDetailBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
+    // Use fillMaxHeight(0.85f) so the Column has a bounded height, which lets
+    // the LazyColumn inside use weight(1f) without triggering a Compose
+    // measurement crash ("Nesting scrollable in same direction layouts").
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.85f)
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Use fillMaxHeight(0.85f) so the Column has a bounded height, which lets
-        // the LazyColumn inside use weight(1f) without triggering a Compose
-        // measurement crash ("Nesting scrollable in same direction layouts").
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.85f)
-                .padding(horizontal = 16.dp)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        // ── Header ──────────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // ── Header ──────────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = verse.reference,
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                val displayTranslation = preferredTranslation ?: verse.translation
-                SuggestionChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            text = displayTranslation.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
-                )
-            }
+            Text(
+                text = verse.reference,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            val displayTranslation = preferredTranslation ?: verse.translation
+            SuggestionChip(
+                onClick = {},
+                label = {
+                    Text(
+                        text = displayTranslation.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ),
+            )
+        }
 
-            // ── Highlighted verse text ───────────────────────────────────────
+        // ── Highlighted verse text ───────────────────────────────────────
+        // Only render the quote when verse text is real content. Empty strings
+        // (synthetic verse not yet loaded) and placeholder data like "////" must
+        // never appear as a quoted verse — the chapter list below shows the
+        // actual text once the chapter loads.
+        if (!isPlaceholderVerseText(verse.text)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,116 +172,115 @@ fun VerseDetailBottomSheet(
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
+        }
 
-            // ── Chapter content ──────────────────────────────────────────────
-            when (chapterState) {
-                is ChapterSheetState.Idle -> {
-                    // Waiting for the LaunchedEffect to fire — show a brief spinner.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                    }
+        // ── Chapter content ──────────────────────────────────────────────
+        when (chapterState) {
+            is ChapterSheetState.Idle -> {
+                // Waiting for the LaunchedEffect to fire — show a brief spinner.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
+            }
 
-                is ChapterSheetState.Loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                    }
+            is ChapterSheetState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
+            }
 
-                is ChapterSheetState.Error -> {
-                    Text(
-                        text = chapterState.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
-                    // Retry button — only shown on error so user can try again.
-                    OutlinedButton(
-                        onClick = { onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation) },
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    ) {
-                        Text(text = stringResource(R.string.read_full_chapter))
-                    }
+            is ChapterSheetState.Error -> {
+                Text(
+                    text = chapterState.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+                // Retry button — only shown on error so user can try again.
+                OutlinedButton(
+                    onClick = { onLoadChapter(verse.book, verse.chapter, preferredTranslation ?: verse.translation) },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    Text(text = stringResource(R.string.read_full_chapter))
                 }
+            }
 
-                is ChapterSheetState.Success -> {
-                    val response = chapterState.response
-                    val headerText = "${response.localizedBook ?: response.book} ${response.chapter}"
-                    Text(
-                        text = headerText,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(response.verses) { chapterVerse ->
-                            val isTarget = chapterVerse.verseNumber == verse.verse
-                            val annotated = buildAnnotatedString {
-                                withStyle(
-                                    SpanStyle(
-                                        fontWeight = if (isTarget) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isTarget) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                    ),
-                                ) {
-                                    append("${chapterVerse.verseNumber}  ")
-                                }
-                                withStyle(
-                                    SpanStyle(
-                                        fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isTarget) {
-                                            MaterialTheme.colorScheme.onSurface
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                                        },
-                                    ),
-                                ) {
-                                    append(chapterVerse.text)
-                                }
-                            }
-                            Box(
-                                modifier = if (isTarget) {
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
-                                            shape = RoundedCornerShape(4.dp),
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                } else {
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                },
+            is ChapterSheetState.Success -> {
+                val response = chapterState.response
+                val headerText = "${response.localizedBook ?: response.book} ${response.chapter}"
+                Text(
+                    text = headerText,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(4.dp))
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(response.verses) { chapterVerse ->
+                        val isTarget = chapterVerse.verseNumber == verse.verse
+                        val annotated = buildAnnotatedString {
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = if (isTarget) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isTarget) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                ),
                             ) {
-                                Text(
-                                    text = annotated,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
+                                append("${chapterVerse.verseNumber}  ")
                             }
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isTarget) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                    },
+                                ),
+                            ) {
+                                append(chapterVerse.text)
+                            }
+                        }
+                        Box(
+                            modifier = if (isTarget) {
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(4.dp),
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                            } else {
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            },
+                        ) {
+                            Text(
+                                text = annotated,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                         }
                     }
                 }
-
             }
         }
     }

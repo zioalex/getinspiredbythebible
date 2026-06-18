@@ -117,6 +117,7 @@
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>
     <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
+    <string name="error_message_too_long">رسالتك طويلة بعض الشيء (الحد الأقصى %1$d حرفًا). يرجى اختصارها والمحاولة مرة أخرى.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">المحادثات</string>
@@ -228,6 +229,11 @@
     <string name="church_finder_no_churches_hint">جرّب موقعاً مختلفاً أو مصطلح بحث أوسع.</string>
     <string name="church_finder_website">الموقع الإلكتروني</string>
     <string name="church_finder_email">البريد الإلكتروني</string>
+
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">يبدو أنك تكتب بالـ%s. هل تريد تغيير لغة التطبيق؟</string>
+    <string name="language_switch_banner_switch">تغيير</string>
+    <string name="language_switch_banner_dismiss">رفض اقتراح اللغة</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">تواصل</string>

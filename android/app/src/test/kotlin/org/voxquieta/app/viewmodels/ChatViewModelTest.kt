@@ -41,6 +41,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -53,6 +54,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -806,6 +808,24 @@ class ChatViewModelTest {
         assertTrue(state is ChapterSheetState.Error)
         assertEquals(
             "Network error. Please check your connection.",
+            (state as ChapterSheetState.Error).message,
+        )
+    }
+
+    @Test
+    fun `loadChapter sets Error with timeout message when API call hangs past timeout`() = runTest {
+        coEvery { bibleApiService.getChapter(any(), any(), any(), any()) } coAnswers {
+            delay(ChatViewModel.CHAPTER_LOAD_TIMEOUT_MS + 5_000L)
+            ChapterResponseDto(book = "John", chapter = 3, verses = emptyList())
+        }
+
+        viewModel.loadChapter("John", 3, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.chapterSheetState.value
+        assertTrue(state is ChapterSheetState.Error)
+        assertEquals(
+            "Request timed out. Please try again.",
             (state as ChapterSheetState.Error).message,
         )
     }
@@ -1984,5 +2004,221 @@ class ChatViewModelTest {
 
         assertNull(result)
         coVerify { lastConversationPreferences.setLastConversationId(null) }
+    }
+
+    @Test
+    fun `resolveResumeConversationId propagates exception thrown by repository flow`() = runTest {
+        // Verifies the function does not silently swallow errors so that
+        // MainActivity's LaunchedEffect try/catch can log the failure and
+        // fall back to chat/new rather than leaving the screen blank.
+        coEvery { lastConversationPreferences.getLastConversationId() } returns stubConversation.id
+        every { repository.observeConversations() } returns flow { throw IOException("DB unavailable") }
+
+        var thrown: Exception? = null
+        try {
+            viewModel.resolveResumeConversationId()
+        } catch (e: IOException) {
+            thrown = e
+        }
+
+        assertNotNull(
+            "IOException from repository must propagate so MainActivity's try/catch can handle it",
+            thrown,
+        )
+    }
+
+    @Test
+    fun `resolveResumeConversationId propagates exception thrown by DataStore preferences`() = runTest {
+        // Same contract as above but for the DataStore read path.
+        coEvery { lastConversationPreferences.getLastConversationId() } throws IOException("DataStore unavailable")
+
+        var thrown: Exception? = null
+        try {
+            viewModel.resolveResumeConversationId()
+        } catch (e: IOException) {
+            thrown = e
+        }
+
+        assertNotNull(
+            "IOException from DataStore must propagate so MainActivity's try/catch can handle it",
+            thrown,
+        )
+    }
+
+    // ── Interaction-count persistence (per-session limit durability) ──────────
+
+    @Test
+    fun `restores persisted interaction count and limit flag on init`() = runTest {
+        coEvery { sessionPreferences.getInteractionCount() } returns ChatViewModel.MAX_INTERACTIONS
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The limit must survive an app restart: the count is restored from
+        // DataStore and the limit flag is derived from it.
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, vm.uiState.value.interactionCount)
+        assertTrue(vm.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `restores sub-limit count without tripping the limit on init`() = runTest {
+        coEvery { sessionPreferences.getInteractionCount() } returns 5
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(5, vm.uiState.value.interactionCount)
+        assertFalse(vm.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `persists interaction count after a completed stream`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { sessionPreferences.setInteractionCount(1) }
+    }
+
+    @Test
+    fun `loadConversation does not recompute interaction count from thread messages`() = runTest {
+        // A saved thread longer than the limit. Under per-session semantics these
+        // historical messages belong to past sessions and must NOT be counted.
+        val longThread = (1..12).map { i ->
+            Message(id = "m$i", role = Message.Role.ASSISTANT, content = "Reply $i")
+        }
+        every { repository.observeMessages("conv-1") } returns flowOf(longThread)
+
+        viewModel.loadConversation("conv-1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(longThread.size, viewModel.uiState.value.messages.size)
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `startNewConversation resets the persisted interaction count`() = runTest {
+        viewModel.startNewConversation()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        // resetSessionId() zeroes the persisted count and issues a fresh session_id.
+        coVerify { sessionPreferences.resetSessionId() }
+    }
+
+    // ── Language switch suggestion (language-mismatch banner) ─────────────────
+
+    @Test
+    fun `metadata chunk with languageSuggestion sets uiState languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "de", done = false),
+            StreamChunk(content = "Guten Tag!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("de", viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `dismissLanguageSuggestion clears languageSuggestion from state`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "fr", done = false),
+            StreamChunk(content = "Bonjour!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("fr", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.dismissLanguageSuggestion()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `sendMessage clears any previous languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flowOf(
+                StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "it", done = false),
+                StreamChunk(content = "Ciao!", done = true),
+            ),
+            flowOf(
+                StreamChunk(content = "Hello again!", done = true),
+            ),
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("it", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.sendMessage("Second question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `startNewConversation clears languageSuggestion`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "de", done = false),
+            StreamChunk(content = "Guten Tag!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals("de", viewModel.uiState.value.languageSuggestion)
+
+        viewModel.startNewConversation()
+
+        assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    @Test
+    fun `languageSuggestion is null when suggestion matches current locale`() = runTest {
+        // If the backend suggests "en" but the user is already on "en", the ViewModel should suppress it.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", content = "", messageId = "m1", languageSuggestion = "en", done = false),
+            StreamChunk(content = "Hello!", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // currentLocale is "en" (set by setUp via languagePreferences.readInitial = "en")
+        assertNull(viewModel.uiState.value.languageSuggestion)
     }
 }

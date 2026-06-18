@@ -117,6 +117,7 @@
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
+    <string name="error_message_too_long">Deine Nachricht ist etwas lang (max. %1$d Zeichen). Bitte kürze sie und versuche es erneut.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Gespräche</string>
@@ -224,6 +225,11 @@
     <string name="church_finder_no_churches_hint">Versuchen Sie einen anderen Ort oder einen allgemeineren Suchbegriff.</string>
     <string name="church_finder_website">Website</string>
     <string name="church_finder_email">E-Mail</string>
+
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Es sieht aus, als würden Sie auf %s tippen. App-Sprache wechseln?</string>
+    <string name="language_switch_banner_switch">Wechseln</string>
+    <string name="language_switch_banner_dismiss">Sprachvorschlag verwerfen</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Kontakt</string>

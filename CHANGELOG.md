@@ -2,6 +2,86 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.28.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.27.0...v1.28.0) (2026-06-16)
+
+### Features
+
+* **api:** enable hybrid search by default + form-data security fix (BITB-043) ([#727](https://github.com/zioalex/getinspiredbythebible/issues/727)) ([44bb168](https://github.com/zioalex/getinspiredbythebible/commit/44bb168ee6496df173abb1c133ab9aa884cfc5a3))
+
+## [1.27.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.26.0...v1.27.0) (2026-06-14)
+
+### Features
+
+* **api:** enable query_expansion_enabled by default ([#741](https://github.com/zioalex/getinspiredbythebible/issues/741)) ([98418bd](https://github.com/zioalex/getinspiredbythebible/commit/98418bd922d2bf5be93b2f5ff8fe4bc5cd64d16e))
+
+### Bug Fixes
+
+* **android:** make user-query text selection readable in both themes ([#743](https://github.com/zioalex/getinspiredbythebible/issues/743)) ([c04652e](https://github.com/zioalex/getinspiredbythebible/commit/c04652e3f2583f087a90fc9bd5870ac8af8fefae))
+
+## [1.26.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.2...v1.26.0) (2026-06-13)
+
+### Features
+
+* **android:** language-mismatch switch suggestion banner (BITB-040 slice 3) ([#737](https://github.com/zioalex/getinspiredbythebible/issues/737)) ([6b587a9](https://github.com/zioalex/getinspiredbythebible/commit/6b587a9cad3f757064e8edad9bf23a63d5a936d2))
+* **api:** improve search thematic relevance and response depth (BITB-050) ([#735](https://github.com/zioalex/getinspiredbythebible/issues/735)) ([76cc90b](https://github.com/zioalex/getinspiredbythebible/commit/76cc90b5fe66d3e72d52b940de844189cb8fdde6))
+
+### Bug Fixes
+
+* **android:** prevent white screen when resuming app from background ([#740](https://github.com/zioalex/getinspiredbythebible/issues/740)) ([ae1374b](https://github.com/zioalex/getinspiredbythebible/commit/ae1374bc0ccd5c3765103656bb43d3308f91d839))
+* **frontend:** resolve high-severity esbuild/vite audit advisories ([#739](https://github.com/zioalex/getinspiredbythebible/issues/739)) ([dd266d0](https://github.com/zioalex/getinspiredbythebible/commit/dd266d05f8d3ecede2095ddd8c506b2a026475c0))
+
+### Documentation
+
+* capture beta-tester feedback as six backlog stories (BITB-045…050) ([#734](https://github.com/zioalex/getinspiredbythebible/issues/734)) ([bc0d7af](https://github.com/zioalex/getinspiredbythebible/commit/bc0d7af946cece3efb2be6afaa086f4188c82828))
+
+## [1.25.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.1...v1.25.2) (2026-06-11)
+
+### Bug Fixes
+
+* **android:** chapter load timeout + hide placeholder verse text (BITB-041) ([#722](https://github.com/zioalex/getinspiredbythebible/issues/722)) ([64d06b2](https://github.com/zioalex/getinspiredbythebible/commit/64d06b2b5d943868382a027bd01fc750724ac360))
+* clear 'message too long' handling + raise limit to 300 (web + Android + API) ([#725](https://github.com/zioalex/getinspiredbythebible/issues/725)) ([24c642a](https://github.com/zioalex/getinspiredbythebible/commit/24c642a52ca3cc0d8c04e2a4be18e9a591f1d554))
+
+## [1.25.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.0...v1.25.1) (2026-06-10)
+
+### Bug Fixes
+
+* **frontend:** surface chat stream stalls & empty responses instead of failing silently ([#721](https://github.com/zioalex/getinspiredbythebible/issues/721)) ([f4928a0](https://github.com/zioalex/getinspiredbythebible/commit/f4928a0bc21b32f0a7263dca05a2fa5adb756c11))
+* make 10-interaction session limit durable on Android and backend ([#719](https://github.com/zioalex/getinspiredbythebible/issues/719)) ([1445088](https://github.com/zioalex/getinspiredbythebible/commit/1445088af47bad3697766348e1b707c0e2ab68ce))
+
+## [1.25.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.24.0...v1.25.0) (2026-06-10)
+
+### Features
+
+* **android:** make user question text selectable for copy ([#713](https://github.com/zioalex/getinspiredbythebible/issues/713)) ([29dacdc](https://github.com/zioalex/getinspiredbythebible/commit/29dacdcdcf6ed353be6936e622fb665a04d1bbfa))
+* verbatim scripture quoting and db load status diagnostic ([#714](https://github.com/zioalex/getinspiredbythebible/issues/714)) ([3b21f24](https://github.com/zioalex/getinspiredbythebible/commit/3b21f244887b36d0f7e463571a922209f4a45058))
+
+### Bug Fixes
+
+* **api:** strengthen verse placeholder guard + add repo-layer timeout tests (BITB-041) ([#712](https://github.com/zioalex/getinspiredbythebible/issues/712)) ([8056659](https://github.com/zioalex/getinspiredbythebible/commit/8056659e0c9e9231ef8d4f07819ace64483a9e60))
+
+## [1.24.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.23.0...v1.24.0) (2026-06-09)
+
+### Features
+
+* **android:** submit sample question directly on tap ([#711](https://github.com/zioalex/getinspiredbythebible/issues/711)) ([5584a24](https://github.com/zioalex/getinspiredbythebible/commit/5584a2476153d37b8fcfd4a99a06e8b79d9dd7ec))
+
+### Bug Fixes
+
+* **api:** verse/chapter query timeout, error handling & monitoring (BITB-041) ([#700](https://github.com/zioalex/getinspiredbythebible/issues/700)) ([ff48248](https://github.com/zioalex/getinspiredbythebible/commit/ff482485982e79842bce8b3cd231d75e7fcc450b))
+* **frontend:** patch 3 moderate dependabot advisories ([#699](https://github.com/zioalex/getinspiredbythebible/issues/699)) ([9e82239](https://github.com/zioalex/getinspiredbythebible/commit/9e8223921faf7061dcbd52dbb309bef1b2314633))
+* **frontend:** show effective Bible translation in header selector (BITB-029) ([#709](https://github.com/zioalex/getinspiredbythebible/issues/709)) ([afc7d3a](https://github.com/zioalex/getinspiredbythebible/commit/afc7d3a6f677e6a5415a86a05c9b237df5b2f988))
+
+## [1.23.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.2...v1.23.0) (2026-06-08)
+
+### Features
+
+* add weekly activity digest email and dashboard backlog story ([#701](https://github.com/zioalex/getinspiredbythebible/issues/701)) ([e43b5d9](https://github.com/zioalex/getinspiredbythebible/commit/e43b5d91e802f2bf9002de886d6c5667d0633b55))
+* require contact email and make negative feedback actionable (BITB-043) ([#702](https://github.com/zioalex/getinspiredbythebible/issues/702)) ([19bec10](https://github.com/zioalex/getinspiredbythebible/commit/19bec1052817d09312558dc001f3eda41185541c))
+
+### Documentation
+
+* **search:** refine search-improvement stories + add turbovec evaluation ([#698](https://github.com/zioalex/getinspiredbythebible/issues/698)) ([a6137b4](https://github.com/zioalex/getinspiredbythebible/commit/a6137b4269d16259f250f90c41f97a6aba23fa0e))
+
 ## [1.22.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.22.1...v1.22.2) (2026-06-07)
 
 ### Bug Fixes

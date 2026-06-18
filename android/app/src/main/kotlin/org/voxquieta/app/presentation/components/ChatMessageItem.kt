@@ -28,7 +28,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
@@ -41,6 +43,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -579,13 +584,33 @@ fun ChatMessageItem(
                             )
                         }
 
-                        // (d) User message — plain text bubble
+                        // (d) User message — plain text bubble, selectable so the
+                        // question text can be copied manually (matches assistant text).
                         else -> {
-                            Text(
-                                text = message.content,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = textColor,
-                            )
+                            // The default selection highlight is derived from the primary
+                            // colour, which is also this bubble's background — so a selection
+                            // would be nearly invisible. Pick a highlight that contrasts with
+                            // the bubble in both themes: dark when the text is light, light
+                            // when the text is dark, keeping the selected text readable.
+                            val selectionHighlight =
+                                if (textColor.luminance() > 0.5f) Color.Black else Color.White
+                            val bubbleSelectionColors = remember(selectionHighlight) {
+                                TextSelectionColors(
+                                    handleColor = selectionHighlight,
+                                    backgroundColor = selectionHighlight.copy(alpha = 0.4f),
+                                )
+                            }
+                            CompositionLocalProvider(
+                                LocalTextSelectionColors provides bubbleSelectionColors,
+                            ) {
+                                SelectionContainer {
+                                    Text(
+                                        text = message.content,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = textColor,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
