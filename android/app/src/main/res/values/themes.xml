@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base theme — Compose handles most theming; this is needed for the window/activity level. -->
-    <style name="Theme.VoxQuieta" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.VoxQuieta" parent="android:Theme.Material.Light.NoActionBar">
+        <!--
+          The window background the platform paints before Compose draws its first
+          frame and on any not-yet-drawn route. The parent Material.Light default is
+          white, which bled through as a blank white screen on resume into a reclaimed
+          task. @color/brand_window_background matches the Compose `background` colour
+          and has a values-night override, so it is correct in both light and dark.
+        -->
+        <item name="android:windowBackground">@color/brand_window_background</item>
+    </style>
 
     <!--
       Splash screen theme — used only during the launch window before MainActivity draws its

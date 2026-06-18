@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode window background — matches the dark colour scheme's
+         `background` (#121212) in Theme.kt so the resume window is never white. -->
+    <color name="brand_window_background">#121212</color>
+</resources>

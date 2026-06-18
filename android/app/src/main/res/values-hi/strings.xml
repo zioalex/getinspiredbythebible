@@ -226,6 +226,11 @@
     <string name="church_finder_website">वेबसाइट</string>
     <string name="church_finder_email">ईमेल</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">लगता है आप %s में टाइप कर रहे हैं। ऐप की भाषा बदलें?</string>
+    <string name="language_switch_banner_switch">बदलें</string>
+    <string name="language_switch_banner_dismiss">भाषा सुझाव खारिज करें</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">संपर्क</string>
     <string name="contact_open_button">हमसे संपर्क करें</string>
