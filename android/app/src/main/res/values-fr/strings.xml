@@ -117,6 +117,7 @@
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>
     <string name="error_server">Erreur serveur. Veuillez réessayer plus tard.</string>
     <string name="error_generic">Une erreur s\'est produite. Veuillez réessayer.</string>
+    <string name="error_message_too_long">Votre message est un peu long (maximum %1$d caractères). Raccourcissez-le et réessayez.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>
@@ -225,6 +226,11 @@
     <string name="church_finder_no_churches_hint">Essayez un autre lieu ou un terme de recherche plus large.</string>
     <string name="church_finder_website">Site web</string>
     <string name="church_finder_email">E-mail</string>
+
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Il semble que vous écrivez en %s. Changer la langue de l\'appli ?</string>
+    <string name="language_switch_banner_switch">Changer</string>
+    <string name="language_switch_banner_dismiss">Ignorer la suggestion de langue</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Contact</string>

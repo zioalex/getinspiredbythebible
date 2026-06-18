@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-16
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -174,9 +174,155 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+> **Search-relevance epic (BITB-018 → 043/044):** Phase-1 retrieval improvements
+> (query expansion, hybrid search, topic boosting) are **built but dark** — merged in
+> Feb 2026 yet shipped behind feature flags that default OFF, so production search is
+> still pure semantic. The highest-ROI next step is validation + rollout (BITB-043), not
+> new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
+> `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
+> is the lever).
+
+### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
+
+**Status:** 🟡 Code Complete — Pending Validation & Rollout (flags OFF in prod)
+**Size:** L original (implementation done; remaining work is validation + rollout)
+**Created:** 2026-02-24
+**Reviewed:** 2026-06-07
+
+**As a** user seeking spiritual guidance,
+**I want** search to understand the meaning of my situation (not just keyword overlap),
+**so that** I receive relevant, comforting scripture.
+
+**Why P1:** Motivated by a real incident (frustrated Italian user → irrelevant Job 21:27).
+Query expansion, hybrid search, and topic boosting were **implemented and merged in Feb 2026**
+(`docs/DONE/2026-02-24-query-understanding-context-quality.md`) but ship **disabled**
+(`api/config.py:76–85`), so the defect still reproduces in prod. Remaining work is split into
+BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
+
+**Acceptance Criteria:** see full story; tracked via BITB-043 + BITB-044.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-018-query-understanding-context-quality.md`
+
+---
+
+### 🚧 BITB-043: Validate & Enable Phase-1 Search Improvements
+
+**Status:** 🚧 In Progress
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** search to use the already-built query expansion and hybrid
+(semantic + keyword) retrieval, **so that** I get thematically relevant verses instead of
+literal matches — without waiting on new retrieval code.
+
+**Why P1:** Highest-ROI item on the search backlog. Query expansion is now enabled
+(#741, released 1.27.0) and hybrid search is being enabled (trimmed PR #727). The
+remaining work — a golden eval set + scorer to validate and tune these — is carved out
+into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Query expansion enabled by default (#741)
+- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
+- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
+
+**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Size:** L (3-5 days, 5 small PRs)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** a repeatable scorer that measures verse-retrieval
+ranking (Precision@5 / Recall@10 / MRR) over a curated multilingual golden set, **so
+that** I can validate whether query expansion / hybrid search actually help and tune
+their weights instead of shipping search changes blind.
+
+**Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
+Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
+normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
+languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
+report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+(1536) everywhere** to match prod; per-PR CI is validate-only.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] P0: PR #727 trimmed to hybrid-search enablement only
+- [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
+- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
+
+---
+
+### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
 
 **Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** book/verse references to canonicalize reliably across
+all 11 languages and their common citation variants, **so that** the retrieval-eval
+metrics (BITB-051) and the app's shared verse-linking don't silently mishandle references.
+
+**Why P2:** Surfaced during BITB-051 P1 review — `normalize_book_name` coverage is uneven:
+localized singular/citation forms (Italian `Salmo`, German `Psalm`, Spanish/French/PT) and
+abbreviations are missing for several languages (Arabic/Russian have them), numbered-book
+variants and case/diacritic handling are gaps, and per-translation **versification**
+offsets can mis-score a correct hit. Low impact for BITB-051 today (its refs are
+English-canonical) but affects localized input and the app-wide normalizer.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-language coverage matrix identifying every gap
+- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
+- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [ ] Versification offsets quantified + documented handling decision (with tests)
+- [ ] Table-driven tests across all 11 languages green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
+### 🚧 BITB-050: Improve Verse Search Thematic Relevance and Response Depth
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hours)
+**Created:** 2026-06-12
+
+**As a** user seeking spiritual guidance, **I want** the verses surfaced for me to match
+the *theme* of what I'm facing and the reply to actually unfold that scripture, **so that**
+the answer meets me where I am instead of dropping a one-line quote.
+
+**Why P1:** Two prompt-only quality gaps that affect every answer. (1) The query-expansion
+prompt over-expands into off-theme terms that pull in irrelevant verses; it is rewritten to
+anchor on the 1–2 core themes. (2) The conversational system prompt is given a
+response-depth instruction (acknowledge → verse → unfold → bring home) that guards against
+padding. **Scope note:** the query-expansion flag flip + validation are owned by **BITB-043** —
+this story only changes prompt *content*, enabling no flags.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Expansion prompt is theme-focused and warns against off-theme drift
+- [x] `RESPONSE_DEPTH_GUIDANCE` wired into `get_system_prompt()` for all languages
+- [x] Depth guidance asks for substance while forbidding padding; allows short replies
+- [x] Tests cover both changes
+- [ ] Full backend test suite passes in CI
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-050-search-thematic-relevance-and-response-depth.md`
+
+---
+
+### ✅ BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
+
+**Status:** ✅ Done (branch claude/backlog-item-ft0aju, 2026-06-09)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -191,13 +337,13 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 **Acceptance Criteria:**
 
-- [ ] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
+- [x] All three system prompts (`get_system_prompt`, `get_verse_lookup_prompt`,
   `get_prayer_lookup_prompt`) instruct the model to quote scripture verbatim from the Scripture
   Context and never paraphrase, re-translate, or alter wording (incl. singular/plural, articles)
-- [ ] Prompt instructs the model not to fabricate verse wording when the verse text is absent
-- [ ] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
-- [ ] Unit test asserts the verbatim rule is present in all three prompt builders
-- [ ] Full backend test suite passes
+- [x] Prompt instructs the model not to fabricate verse wording when the verse text is absent
+- [x] Italian "fruit of the Spirit" query returns *"il frutto…"* (not *"la frutta"*) when the verse is in context
+- [x] Unit test asserts the verbatim rule is present in all three prompt builders
+- [x] Full backend test suite passes
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-038-verbatim-scripture-citation.md`
 
@@ -682,6 +828,163 @@ Testing & Documentation:
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+> **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
+> Six stories captured from a German beta tester's usage notes: typo tolerance, more
+> German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
+> search/response depth.
+
+### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-12
+
+**As a** user who makes spelling mistakes (especially in German), **I want** the app to interpret my
+likely intended meaning, **so that** "reichsheilugtm bet el" is answered as "Reichsheiligtum Bet-El"
+instead of a generic "I don't understand".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Obvious typos are silently interpreted and answered; no remark about the misspelling
+- [ ] Genuinely ambiguous queries get one short clarifying question in the user's language
+- [ ] Typo guidance present in all three chat system prompts; test asserts it for German
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-045-typo-tolerant-queries.md`
+
+---
+
+### 🎯 BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days, mostly data loading)
+**Created:** 2026-06-12
+
+**As a** German-speaking user, **I want** a familiar Bible translation (Luther), **so that** I'm not
+limited to Schlachter 1951. Luther 1984/2017, Einheitsübersetzung, NGÜ, and Schlachter 2000 are
+copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBible).
+
+**Acceptance Criteria (summary):**
+
+- [ ] German picker shows Luther 1912 (default), Schlachter 1951, Elberfelder 1871
+- [ ] Text + embeddings loaded and searchable for both new translations
+- [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 🎯 BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-12
+
+**As a** user, **I want** a one-tap button to copy just my prompt text, **so that** I can paste it
+into another tool (e.g. Perplexity) without copying the whole Q&A. Extends the prior Android
+selection-only story with an explicit button and web support.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Copy icon on user bubbles (web + Android) copies only the raw question text
+- [ ] Web shows a checkmark ~2 s; Android shows a Toast; no new Android string resources
+- [ ] Assistant copy/share controls unchanged
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-047-copy-user-prompt-button.md`
+
+---
+
+### 🎯 BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 hr)
+**Created:** 2026-06-12
+
+**As an** Android user, **I want** the keyboard to disappear after I tap Send, **so that** I can see
+the full response without manually dismissing it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Keyboard collapses immediately after Send via `focusManager.clearFocus()`
+- [ ] Multi-line input (Enter = newline) unchanged; Stop icon while streaming unchanged
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-048-android-dismiss-keyboard-on-send.md`
+
+---
+
+### 🎯 BITB-049: Always Start with a Fresh Chat on App Launch (Android)
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 hr)
+**Created:** 2026-06-12
+
+**As an** Android user, **I want** the app to open a new empty chat on every launch, **so that** I
+begin fresh instead of landing in my last conversation (history stays reachable via the drawer).
+
+**Acceptance Criteria (summary):**
+
+- [ ] App launch always lands on `chat/new`; drawer still lists/loads past conversations
+- [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+
+---
+
+### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+
+**Status:** 🚧 In Progress
+**Size:** M (1-2 days)
+**Created:** 2026-06-08
+
+**As a** user submitting a contact form or leaving feedback,
+**I want** to be prompted for my email (so the team can actually reply) and to quickly label
+what went wrong on a thumbs-down with a single-tap reason chip,
+**so that** the team can follow up and act on precise, categorised feedback.
+
+**Acceptance Criteria:**
+
+- [ ] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
+- [ ] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
+- [ ] Contact form send button disabled when email is empty; input has `required`
+- [ ] `Contact.emailLabel` updated to required phrasing in all 11 locales
+- [ ] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
+- [ ] Positive feedback WITH comment triggers maintainer email; bare positive does not
+- [ ] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
+- [ ] Chip selection is optional — auto-commit still works without it
+- [ ] `reason` column added to `feedback` table (migration 006)
+- [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
+- [ ] Backend + frontend tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-043-require-contact-email-and-actionable-negative-feedback.md`
+
+---
+
+### 🎯 BITB-044: Populate `verse_topics` to Activate Topic Boosting
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-07
+
+**As a** user, **I want** verses matching my detected theme to rank higher, **so that** the
+most pastorally relevant verses surface first.
+
+**Why P2:** Topic boosting was built under BITB-018 (detection in `api/chat/topics.py`,
+ranking boost, repository joins on `verse_topics`, schema in migration `004`) but
+**`verse_topics` is never populated** — no `INSERT` exists anywhere, so the feature is a
+silent no-op. This story tags the corpus (~31k verses) against the 13 topics via a
+repeatable population script, then validates and enables `topic_boosting_enabled`. P2
+because it's data work gated behind BITB-043's eval set, not a live regression.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Idempotent population script writes `(verse_id, topic_id)` rows; re-runnable
+- [ ] Coverage + spot-check accuracy recorded across the 13 topics
+- [ ] With boosting on, topic-laden golden queries improve; neutral queries don't regress
+- [ ] `topic_boost_factor` tuned + documented; topic boosting enabled in prod
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-044-populate-verse-topics.md`
+
+---
 
 ### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 

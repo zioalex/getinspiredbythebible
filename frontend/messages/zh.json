@@ -124,6 +124,8 @@
     "backendWarmingUp": "服务器正在启动，您可以开始输入...",
     "errorColdStart": "我还在准备中，比预期花的时间更长。请稍后再试——我很快就会准备好！",
     "errorConnection": "很抱歉，我目前连接遇到问题。这可能是暂时的问题——请稍后再试。如果问题持续，请联系我们：contact@voxquieta.org",
+    "errorTimeout": "回复在完成前被中断了。这通常是短暂的网络或服务器问题——请再试一次。如果反复出现，请联系我们：contact@voxquieta.org",
+    "messageTooLong": "您的消息有点长（最多 {max} 个字符）。请缩短后再试一次。",
     "startNewSession": "开始新会话",
     "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。",
     "contentBlockedMessage": "这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。",
@@ -171,7 +173,13 @@
     "submit": "提交反馈",
     "submitting": "提交中...",
     "close": "关闭",
-    "toastError": "目前无法保存您的反馈，但感谢您的尝试！"
+    "toastError": "目前无法保存您的反馈，但感谢您的尝试！",
+    "reasonPrompt": "哪里出了问题？",
+    "reasonInaccurate": "不准确",
+    "reasonUnhelpful": "没有帮助",
+    "reasonWrongVerse": "引用错误",
+    "reasonTone": "语气",
+    "reasonOther": "其他"
   },
   "ChurchFinder": {
     "bannerText": "正在寻找信仰社区？",
@@ -209,7 +217,7 @@
   "Contact": {
     "getInTouch": "联系我们",
     "emailUs": "发邮件给我们：",
-    "emailLabel": "您的邮箱（可选，用于回复）",
+    "emailLabel": "您的邮箱（用于我们回复）",
     "emailPlaceholder": "you@example.com",
     "subjectLabel": "主题",
     "subjectSpiritual": "您想深入探讨某个属灵或圣经问题吗？",

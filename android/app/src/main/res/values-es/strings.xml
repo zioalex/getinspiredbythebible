@@ -117,6 +117,7 @@
     <string name="error_timeout">Tiempo de espera agotado. Inténtalo de nuevo.</string>
     <string name="error_server">Error del servidor. Inténtalo más tarde.</string>
     <string name="error_generic">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="error_message_too_long">Tu mensaje es un poco largo (máximo %1$d caracteres). Acórtalo e inténtalo de nuevo.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversaciones</string>
@@ -225,6 +226,11 @@
     <string name="church_finder_no_churches_hint">Prueba con una ubicación diferente o un término de búsqueda más amplio.</string>
     <string name="church_finder_website">Sitio web</string>
     <string name="church_finder_email">Correo electrónico</string>
+
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Parece que estás escribiendo en %s. ¿Cambiar el idioma de la app?</string>
+    <string name="language_switch_banner_switch">Cambiar</string>
+    <string name="language_switch_banner_dismiss">Descartar sugerencia de idioma</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Contacto</string>

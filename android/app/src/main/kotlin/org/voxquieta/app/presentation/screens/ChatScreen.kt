@@ -72,6 +72,7 @@ import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
+import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
@@ -381,7 +382,17 @@ fun ChatScreen(
                     if (uiState.messages.isEmpty()) {
                         item {
                             WelcomeBanner(
-                                onPromptSelected = { prompt -> inputText = prompt },
+                                onPromptSelected = { prompt ->
+                                    // Tapping a sample question submits it directly.
+                                    // If Turnstile isn't ready yet, fall back to
+                                    // filling the input so the Send button still works.
+                                    if (uiState.isTurnstileReady) {
+                                        viewModel.sendMessage(prompt)
+                                        inputText = ""
+                                    } else {
+                                        inputText = prompt
+                                    }
+                                },
                                 modifier = Modifier.padding(24.dp),
                             )
                         }
@@ -499,6 +510,16 @@ fun ChatScreen(
                 }
             }
 
+            // Language-switch suggestion banner — shown when the backend detects typing
+            // in a different language than the user's selected UI locale.
+            uiState.languageSuggestion?.let { suggestedLocale ->
+                LanguageSwitchBanner(
+                    suggestedLocale = suggestedLocale,
+                    onSwitch = { viewModel.setLocale(suggestedLocale) },
+                    onDismiss = viewModel::dismissLanguageSuggestion,
+                )
+            }
+
             // Church-finder banner — shown above the input field after 3 interactions.
             if (uiState.showChurchFinderBanner) {
                 ChurchFinderBanner(
@@ -535,6 +556,7 @@ fun ChatScreen(
                 isLoading = uiState.isLoading,
                 isTurnstileReady = uiState.isTurnstileReady,
                 isSessionLimitReached = uiState.isSessionLimitReached,
+                maxLength = ChatViewModel.MAX_MESSAGE_LENGTH,
             )
         }
     }

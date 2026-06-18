@@ -34,7 +34,7 @@
     "@types/node": "^20.19.39",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.18",
@@ -45,6 +45,10 @@
     "vitest": "^4.1.8"
   },
   "overrides": {
-    "minimatch": ">=10.2.1"
+    "minimatch": ">=10.2.1",
+    "esbuild": ">=0.28.1",
+    "next": {
+      "postcss": ">=8.5.10"
+    }
   }
 }

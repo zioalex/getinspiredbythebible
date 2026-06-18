@@ -73,10 +73,12 @@ class Settings(BaseSettings):
     max_conversation_history: int = 10  # Max messages to keep in context
 
     # Query Expansion Settings
-    query_expansion_enabled: bool = False  # Feature flag for A/B testing
+    query_expansion_enabled: bool = (
+        True  # BITB-043: enabled (improved theme-focused expansion, BITB-050)
+    )
 
     # Hybrid Search Settings
-    hybrid_search_enabled: bool = False  # Feature flag for A/B testing
+    hybrid_search_enabled: bool = True  # BITB-043: enabled (semantic + FTS keyword, no LLM cost)
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
 
@@ -90,6 +92,9 @@ class Settings(BaseSettings):
     smtp2go_sender_email: str = "noreply@voxquieta.org"
     smtp2go_sender_name: str = "Vox Quieta"
     contact_notification_email: str = "support@voxquieta.org"
+    # Recipient for the weekly activity digest (kept separate from the
+    # contact-form recipient so the two can be retargeted independently).
+    weekly_report_recipient: str = "support@voxquieta.org"
 
     # Production frontend URL (used for CORS, access audit, and Referer headers)
     # Change this when migrating to a new domain.
@@ -110,11 +115,14 @@ class Settings(BaseSettings):
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings
-    max_message_length: int = 200  # Max characters per chat message
+    max_message_length: int = 300  # Max characters per chat message
     rate_limit_enabled: bool = True
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute
     rate_limit_session_max_requests: int = 10  # Lifetime max per session (encourages breaks)
+    rate_limit_session_ttl_seconds: int = (
+        3600  # Retain a session's lifetime counter for this long after its last request
+    )
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
@@ -125,6 +133,7 @@ class Settings(BaseSettings):
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
+    verse_query_timeout_s: float = 10.0  # Max seconds for a verse/chapter DB query before 504
 
     # Cloudflare Turnstile (Bot Protection)
     # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile

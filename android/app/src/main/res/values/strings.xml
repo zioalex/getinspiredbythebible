@@ -184,6 +184,7 @@
     <string name="error_timeout">Request timed out. Please try again.</string>
     <string name="error_server">Server error. Please try again later.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_message_too_long">Your message is a little long (max %1$d characters). Please shorten it and try again.</string>
     <string name="error_session_limit">You\'ve had 10 messages in this session! Why not take a break and enjoy God\'s creation outside? 🌳</string>
     <string name="error_content_blocked">I wasn\'t able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We\'re glad you\'re here.</string>
 
@@ -233,6 +234,11 @@
     <string name="church_finder_no_churches_hint">Try a different location or broader search term.</string>
     <string name="church_finder_website">Website</string>
     <string name="church_finder_email">Email</string>
+
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">It looks like you\'re typing in %s. Switch the app language?</string>
+    <string name="language_switch_banner_switch">Switch</string>
+    <string name="language_switch_banner_dismiss">Dismiss language suggestion</string>
 
     <!-- Contact Form -->
     <string name="contact_section_title">Contact</string>

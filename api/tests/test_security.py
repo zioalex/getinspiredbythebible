@@ -19,6 +19,7 @@ from pydantic import ValidationError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from chat.service import ChatRequest
+from config import settings
 from main import app
 from utils.rate_limiter import RateLimiter
 from utils.security import ContentFilter, ViolationType
@@ -51,16 +52,18 @@ class TestInputValidation:
 
     def test_message_too_long_rejected(self):
         """Message exceeding max length should be rejected."""
-        long_message = "a" * 201  # Default max is 200
+        limit = settings.max_message_length
+        long_message = "a" * (limit + 1)
         with pytest.raises(ValidationError) as exc_info:
             ChatRequest(message=long_message)
-        assert "max_length" in str(exc_info.value).lower() or "200" in str(exc_info.value)
+        assert "max_length" in str(exc_info.value).lower() or str(limit) in str(exc_info.value)
 
     def test_message_at_max_length_accepted(self):
         """Message at exactly max length should be accepted."""
-        exact_message = "a" * 200
+        limit = settings.max_message_length
+        exact_message = "a" * limit
         request = ChatRequest(message=exact_message)
-        assert len(request.message) == 200
+        assert len(request.message) == limit
 
     def test_valid_session_id(self):
         """Accept valid session ID format."""
