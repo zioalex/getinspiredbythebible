@@ -769,9 +769,9 @@ class TestChatServiceChat:
 
         # Mock search service
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         # Mock LLM response
         llm.chat = AsyncMock(
@@ -863,6 +863,7 @@ class TestChatServiceSearchScripture:
             passages=[],
         )
         service.search_service.search = AsyncMock(return_value=search_result)
+        service.search_service.search_hybrid = AsyncMock(return_value=search_result)
 
         request = ChatRequest(message="love")
         context, prompt = await service._search_scripture(request, "kjv", [], False)
@@ -1298,9 +1299,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1333,9 +1334,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1367,9 +1368,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1410,9 +1411,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
