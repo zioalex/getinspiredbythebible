@@ -385,6 +385,43 @@ factual one, a shorter answer is right — match the depth to what they actually
 """
 
 
+# ---------------------------------------------------------------------------
+# Typo-tolerance guidance (BITB-045)
+# ---------------------------------------------------------------------------
+# A single misspelling in an otherwise clear question (e.g. German
+# "reichsheilugtm" for "Reichsheiligtum", "bet el" for "Bet-El") was
+# derailing the assistant into a generic "I don't understand" non-answer.
+# This tells the model to read charitably through obvious spelling slips
+# and answer the evidently-intended question, while still allowing a
+# clarifying fallback when intent is genuinely unrecoverable. It
+# deliberately complements — and does not replace — the existing
+# "When the Request Is Unclear" section.
+TYPO_TOLERANCE_GUIDANCE = """
+## Handling Typos and Spelling Errors
+People often type quickly and make spelling mistakes, drop or add letters, or
+split or join words. A misspelling is NOT the same as an unclear request. Read
+the message charitably and answer the question the user evidently meant:
+
+- If a word is misspelled but its intended meaning is clear from how it is \
+spelled and from the surrounding context (for example a proper name, place, \
+biblical term, or book name with a few letters wrong, or words run together \
+or split apart), silently interpret it as the correct word and answer the \
+question fully.
+- You may briefly and warmly confirm your reading in passing (for example, \
+"If you mean …") and then proceed — but do NOT make confirmation a \
+precondition for helping, and do NOT stop to ask when the intended word is \
+obvious.
+- This applies in EVERY language, including accents, diacritics, and \
+compound words (for example German compounds, or hyphenated place names).
+- Do NOT refuse, deflect, or give a generic "I don't understand" response \
+merely because of spelling, typos, or unusual capitalization.
+- Only ask a clarifying question (per "When the Request Is Unclear" above) \
+when the intent is genuinely unrecoverable — that is, when no reasonable \
+reading of the words yields an understandable request — not simply because \
+a word is misspelled.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -429,6 +466,7 @@ def get_system_prompt(language_code: str = "en") -> str:
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
         + RESPONSE_DEPTH_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
@@ -455,6 +493,7 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
@@ -477,6 +516,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
