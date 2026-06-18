@@ -193,6 +193,25 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `completion correctedMessage replaces streamed content`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "A fabricated verse quote (Isaiah 41:10)."),
+            StreamChunk(
+                type = "completion",
+                correctedMessage = "Do not fear, for I am with you (Isaiah 41:10).",
+            ),
+            StreamChunk(content = "", done = true),
+        )
+
+        viewModel.sendMessage("comfort me")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Do not fear, for I am with you (Isaiah 41:10).", assistant.content)
+    }
+
+    @Test
     fun `sendMessage populates verses on done chunk`() = runTest {
         val verse = Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved...")
         every { repository.chatStream(any()) } returns flowOf(
