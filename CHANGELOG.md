@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.28.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.27.0...v1.28.0) (2026-06-16)
+
+### Features
+
+* **api:** enable hybrid search by default + form-data security fix (BITB-043) ([#727](https://github.com/zioalex/getinspiredbythebible/issues/727)) ([44bb168](https://github.com/zioalex/getinspiredbythebible/commit/44bb168ee6496df173abb1c133ab9aa884cfc5a3))
+
+## [1.27.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.26.0...v1.27.0) (2026-06-14)
+
+### Features
+
+* **api:** enable query_expansion_enabled by default ([#741](https://github.com/zioalex/getinspiredbythebible/issues/741)) ([98418bd](https://github.com/zioalex/getinspiredbythebible/commit/98418bd922d2bf5be93b2f5ff8fe4bc5cd64d16e))
+
+### Bug Fixes
+
+* **android:** make user-query text selection readable in both themes ([#743](https://github.com/zioalex/getinspiredbythebible/issues/743)) ([c04652e](https://github.com/zioalex/getinspiredbythebible/commit/c04652e3f2583f087a90fc9bd5870ac8af8fefae))
+
+## [1.26.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.2...v1.26.0) (2026-06-13)
+
+### Features
+
+* **android:** language-mismatch switch suggestion banner (BITB-040 slice 3) ([#737](https://github.com/zioalex/getinspiredbythebible/issues/737)) ([6b587a9](https://github.com/zioalex/getinspiredbythebible/commit/6b587a9cad3f757064e8edad9bf23a63d5a936d2))
+* **api:** improve search thematic relevance and response depth (BITB-050) ([#735](https://github.com/zioalex/getinspiredbythebible/issues/735)) ([76cc90b](https://github.com/zioalex/getinspiredbythebible/commit/76cc90b5fe66d3e72d52b940de844189cb8fdde6))
+
+### Bug Fixes
+
+* **android:** prevent white screen when resuming app from background ([#740](https://github.com/zioalex/getinspiredbythebible/issues/740)) ([ae1374b](https://github.com/zioalex/getinspiredbythebible/commit/ae1374bc0ccd5c3765103656bb43d3308f91d839))
+* **frontend:** resolve high-severity esbuild/vite audit advisories ([#739](https://github.com/zioalex/getinspiredbythebible/issues/739)) ([dd266d0](https://github.com/zioalex/getinspiredbythebible/commit/dd266d05f8d3ecede2095ddd8c506b2a026475c0))
+
+### Documentation
+
+* capture beta-tester feedback as six backlog stories (BITB-045…050) ([#734](https://github.com/zioalex/getinspiredbythebible/issues/734)) ([bc0d7af](https://github.com/zioalex/getinspiredbythebible/commit/bc0d7af946cece3efb2be6afaa086f4188c82828))
+
+## [1.25.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.1...v1.25.2) (2026-06-11)
+
+### Bug Fixes
+
+* **android:** chapter load timeout + hide placeholder verse text (BITB-041) ([#722](https://github.com/zioalex/getinspiredbythebible/issues/722)) ([64d06b2](https://github.com/zioalex/getinspiredbythebible/commit/64d06b2b5d943868382a027bd01fc750724ac360))
+* clear 'message too long' handling + raise limit to 300 (web + Android + API) ([#725](https://github.com/zioalex/getinspiredbythebible/issues/725)) ([24c642a](https://github.com/zioalex/getinspiredbythebible/commit/24c642a52ca3cc0d8c04e2a4be18e9a591f1d554))
+
 ## [1.25.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.25.0...v1.25.1) (2026-06-10)
 
 ### Bug Fixes
