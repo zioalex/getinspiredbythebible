@@ -425,9 +425,9 @@ class TestHybridWeightsValidation:
         except Exception as e:
             assert "0.0" in str(e) or "between" in str(e).lower()
 
-    def test_hybrid_search_disabled_by_default(self):
-        """Hybrid search feature flag defaults to False."""
+    def test_hybrid_search_enabled_by_default(self):
+        """Hybrid search feature flag defaults to True (BITB-043)."""
         from config import Settings
 
         s = Settings()
-        assert s.hybrid_search_enabled is False
+        assert s.hybrid_search_enabled is True
