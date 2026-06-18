@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.28.0...v1.29.0) (2026-06-18)
+
+
+### Features
+
+* **api:** retrieval-eval core + harness stories (BITB-051 P1) ([#745](https://github.com/zioalex/getinspiredbythebible/issues/745)) ([a5c4868](https://github.com/zioalex/getinspiredbythebible/commit/a5c4868a20cbd7ea33f3a92968ee324ce5062ed3))
+
+
+### Bug Fixes
+
+* **chat:** ground inline verse quotes against the real Bible text ([#755](https://github.com/zioalex/getinspiredbythebible/issues/755)) ([324b064](https://github.com/zioalex/getinspiredbythebible/commit/324b064ebb4b7de576c209f46a20ca3670162b70))
+
 ## [1.28.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.27.0...v1.28.0) (2026-06-16)
 
 ### Features
