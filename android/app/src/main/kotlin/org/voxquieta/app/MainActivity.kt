@@ -9,11 +9,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +38,8 @@ import org.voxquieta.app.presentation.theme.VoxQuietaTheme
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
+import timber.log.Timber
 import javax.inject.Inject
 
 private fun Context.hasSplashBeenSeen(): Boolean =
@@ -126,6 +134,14 @@ class MainActivity : ComponentActivity() {
                     if (context.hasSplashBeenSeen()) "resume" else "splash"
                 }
 
+                // Paint the themed background across the whole screen so no route
+                // (notably the async "resume" resolver) ever exposes the white
+                // window background. Uses `background` to match the post-splash
+                // windowBackground and the chat Scaffold for a seamless transition.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
                 Box {
                     NavHost(
                         navController = navController,
@@ -142,15 +158,33 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("resume") {
-                            // Tiny resolver: looks up the last conversation id
-                            // and replaces itself with the appropriate chat route.
+                            // Tiny resolver: looks up the last conversation id and
+                            // replaces itself with the appropriate chat route. The DB
+                            // query is async, so this route would otherwise render
+                            // nothing — and the post-splash window background is white
+                            // (Theme.VoxQuieta = Material.Light), producing the blank
+                            // white screen reported on resume from a reclaimed task.
+                            // Show a loading indicator over the themed surface so the
+                            // user always sees intentional content, never a blank void.
                             val resumeViewModel: ChatViewModel = hiltViewModel()
                             LaunchedEffect(Unit) {
-                                val id = resumeViewModel.resolveResumeConversationId()
-                                val target = if (id != null) "chat/$id" else "chat/new"
+                                val target = try {
+                                    val id = resumeViewModel.resolveResumeConversationId()
+                                    if (id != null) "chat/$id" else "chat/new"
+                                } catch (e: Exception) {
+                                    if (e is CancellationException) throw e
+                                    Timber.e(e, "resume: failed to resolve last conversation; falling back to chat/new")
+                                    "chat/new"
+                                }
                                 navController.navigate(target) {
                                     popUpTo("resume") { inclusive = true }
                                 }
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator()
                             }
                         }
                         composable("conversations") {
@@ -208,6 +242,7 @@ class MainActivity : ComponentActivity() {
                     // token already cached. The widget itself is 1.dp / invisible.
                     TurnstileWebView(turnstileManager = turnstileManager)
                 }
+                } // Surface
             }
         }
     }

@@ -244,36 +244,7 @@ jobs:
         continue-on-error: true
         run: |
           pip install --quiet google-auth google-api-python-client
-          python3 << 'PYEOF'
-          import json
-          from google.oauth2 import service_account
-          from googleapiclient.discovery import build
-
-          with open('/tmp/google-play-key.json') as f:
-              creds_data = json.load(f)
-
-          creds = service_account.Credentials.from_service_account_info(
-              creds_data,
-              scopes=['https://www.googleapis.com/auth/androidpublisher']
-          )
-          service = build('androidpublisher', 'v3', credentials=creds)
-
-          # A temporary edit is required by the API to list tracks.
-          edit = service.edits().insert(packageName='org.voxquieta').execute()
-          edit_id = edit['id']
-
-          tracks = service.edits().tracks().list(
-              packageName='org.voxquieta', editId=edit_id
-          ).execute()
-
-          print("Available Play Store tracks (use trackId value in the track dropdown):")
-          for t in sorted(tracks.get('tracks', []), key=lambda x: x['track']):
-              print(f"  trackId: \"{t['track']}\"")
-
-          # Abandon the edit — no changes committed to Play Console.
-          service.edits().delete(packageName='org.voxquieta', editId=edit_id).execute()
-          print("Edit abandoned — no changes committed.")
-          PYEOF
+          python3 android/scripts/play_store_tracks.py list
 
       - name: Stage latest CHANGELOG entry as default release notes
         # Writes the most-recent CHANGELOG.md release section to
@@ -428,6 +399,24 @@ jobs:
             echo "Promotion failed for tracks:${FAILED}"
             exit 1
           fi
+
+      - name: Report Play Store track status
+        # Read-only post-upload visibility. A successful `supply` upload only
+        # proves Google *accepted* the edit — not that the release went live to
+        # testers. Google can hold a release "in review", leave it as a draft,
+        # or stage a partial rollout, and none of that surfaces in the upload
+        # log. This step opens a throwaway edit and prints, for every track,
+        # each release's status + rollout fraction + versionCodes, so "live at
+        # full rollout" vs "stuck in review" is visible in the run instead of
+        # guessed. Mirrors the "List available Play Store tracks" step's auth
+        # and teardown — it commits nothing (the edit is abandoned at the end).
+        # always() + continue-on-error: purely diagnostic, must never fail the
+        # job nor be skipped when an earlier step failed.
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          pip install --quiet google-auth google-api-python-client
+          python3 android/scripts/play_store_tracks.py status
 
       - name: Upload Fastlane log on failure
         # Captures the verbose fastlane log + any report.xml so the underlying
