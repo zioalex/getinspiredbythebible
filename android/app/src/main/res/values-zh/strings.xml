@@ -225,6 +225,11 @@
     <string name="church_finder_website">网站</string>
     <string name="church_finder_email">电子邮件</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">看起来您在用%s输入。是否切换应用语言？</string>
+    <string name="language_switch_banner_switch">切换</string>
+    <string name="language_switch_banner_dismiss">忽略语言建议</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">联系</string>
     <string name="contact_open_button">联系我们</string>
