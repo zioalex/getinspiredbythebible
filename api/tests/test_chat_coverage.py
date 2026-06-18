@@ -17,6 +17,7 @@ from chat.prompts import (
     BIBLE_OPENING_PHRASES,
     BIBLE_VERSION_GUIDANCE,
     LANGUAGE_NAMES,
+    RESPONSE_DEPTH_GUIDANCE,
     SCRIPTURE_FIDELITY_GUIDANCE,
     SYSTEM_PROMPT,
     build_conversation_context,
@@ -523,6 +524,40 @@ class TestScriptureFidelityGuidance:
         assert "invent" in text or "reconstruct" in text
 
 
+class TestResponseDepthGuidance:
+    """BITB-050: the conversational reply must have enough depth to genuinely
+    help (acknowledge → verse → unfold → bring home) without padding."""
+
+    def test_guidance_constant_describes_depth_not_length(self):
+        text = RESPONSE_DEPTH_GUIDANCE.lower()
+        assert "depth" in text
+        # Must explicitly guard against padding / word-count inflation.
+        assert "pad" in text or "filler" in text
+        assert "word count" in text or "word-count" in text
+
+    def test_guidance_constant_covers_unfold_and_apply(self):
+        text = RESPONSE_DEPTH_GUIDANCE.lower()
+        assert "acknowledge" in text
+        assert "unfold" in text
+        # A concrete takeaway / next step for the user.
+        assert "next step" in text or "bring it home" in text
+
+    def test_system_prompt_contains_depth_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Depth, Not Length" in result
+
+    def test_system_prompt_depth_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Depth, Not Length" in result, f"missing for lang={lang}"
+
+    def test_depth_guidance_allows_short_answers_when_appropriate(self):
+        # Depth must be matched to need — a brief factual question may get a
+        # shorter reply, so the rule must not mandate length unconditionally.
+        text = RESPONSE_DEPTH_GUIDANCE.lower()
+        assert "shorter answer" in text or "brief" in text
+
+
 # ==================== Chat Service Tests ====================
 
 
@@ -734,9 +769,9 @@ class TestChatServiceChat:
 
         # Mock search service
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         # Mock LLM response
         llm.chat = AsyncMock(
@@ -828,6 +863,7 @@ class TestChatServiceSearchScripture:
             passages=[],
         )
         service.search_service.search = AsyncMock(return_value=search_result)
+        service.search_service.search_hybrid = AsyncMock(return_value=search_result)
 
         request = ChatRequest(message="love")
         context, prompt = await service._search_scripture(request, "kjv", [], False)
@@ -1263,9 +1299,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1298,9 +1334,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1332,9 +1368,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(
@@ -1375,9 +1411,9 @@ class TestChatServiceModelOverride:
         service, llm, _ = _make_chat_service()
 
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(
-            return_value=SearchResults(query="test", verses=[], passages=[])
-        )
+        _empty_results = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=_empty_results)
+        service.search_service.search_hybrid = AsyncMock(return_value=_empty_results)
 
         llm.chat = AsyncMock(
             return_value=LLMResponse(

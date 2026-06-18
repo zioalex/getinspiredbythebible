@@ -73,10 +73,12 @@ class Settings(BaseSettings):
     max_conversation_history: int = 10  # Max messages to keep in context
 
     # Query Expansion Settings
-    query_expansion_enabled: bool = False  # Feature flag for A/B testing
+    query_expansion_enabled: bool = (
+        True  # BITB-043: enabled (improved theme-focused expansion, BITB-050)
+    )
 
     # Hybrid Search Settings
-    hybrid_search_enabled: bool = False  # Feature flag for A/B testing
+    hybrid_search_enabled: bool = True  # BITB-043: enabled (semantic + FTS keyword, no LLM cost)
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
 
