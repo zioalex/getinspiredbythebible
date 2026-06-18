@@ -225,6 +225,11 @@
     <string name="church_finder_website">웹사이트</string>
     <string name="church_finder_email">이메일</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">%s로 입력 중인 것 같습니다. 앱 언어를 변경할까요?</string>
+    <string name="language_switch_banner_switch">변경</string>
+    <string name="language_switch_banner_dismiss">언어 제안 무시</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">문의</string>
     <string name="contact_open_button">문의하기</string>
