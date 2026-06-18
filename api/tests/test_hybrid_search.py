@@ -289,12 +289,12 @@ class TestHybridSearchConfig:
         )
         assert s.hybrid_search_semantic_weight == 0.5
 
-    def test_hybrid_flag_defaults_to_false(self):
-        """HYBRID_SEARCH_ENABLED defaults to False."""
+    def test_hybrid_flag_defaults_to_true(self):
+        """HYBRID_SEARCH_ENABLED defaults to True (BITB-043)."""
         from config import Settings
 
         s = Settings()
-        assert s.hybrid_search_enabled is False
+        assert s.hybrid_search_enabled is True
 
     def test_weight_out_of_range_raises(self):
         """Weight > 1.0 raises ValidationError."""
