@@ -7,6 +7,8 @@ rewrites a hallucinated verse quote to the real DB text.
 
 from dataclasses import dataclass
 
+import pytest
+
 from chat.verse_grounding import (
     GROUNDING_SIMILARITY_THRESHOLD,
     _normalize_for_compare,
@@ -173,3 +175,160 @@ class TestGroundResponse:
 
     def test_threshold_constant_is_reasonable(self):
         assert 0.8 <= GROUNDING_SIMILARITY_THRESHOLD < 1.0
+
+
+class TestGroundingAcrossLanguages:
+    """Per AGENTS.md "Multilingual & Multi-Version Correctness": grounding must
+    rewrite a reworded quote to canonical DB text across every supported language
+    and citation/punctuation style — incl. parenthesized refs, CJK/fullwidth
+    brackets, RTL Arabic, Devanagari, and lead-in connectors."""
+
+    # (id, book, ch, vs, canonical, reworded_response)
+    CASES = [
+        (
+            "en-paren",
+            "John",
+            3,
+            16,
+            "For God so loved the world, that he gave his only begotten Son.",
+            "He said «God adored the planet so much he sent his single child» (John 3:16).",
+        ),
+        (
+            "it-leadin",
+            "Isaiah",
+            41,
+            10,
+            "Non temere, perché io sono con te; io ti rendo forte.",
+            "La Bibbia, in Isaia 41:10, dove Dio dice: «Non aver paura perche ti fortifico io».",
+        ),
+        (
+            "it-long-leadin",
+            "Isaiah",
+            41,
+            10,
+            "Non temere, perché io sono con te; io ti rendo forte.",
+            "Isaia 41:10 ci parla con queste parole: «Non aver paura perche ti fortifico io».",
+        ),
+        (
+            "it-quote-first",
+            "Isaiah",
+            41,
+            10,
+            "Non temere, perché io sono con te; io ti rendo forte.",
+            "«Non aver paura perche ti fortifico sempre io», come dice Isaia 41:10.",
+        ),
+        (
+            "de",
+            "John",
+            3,
+            16,
+            "Denn so sehr hat Gott die Welt geliebt, dass er seinen Sohn gab.",
+            "Er sagte «Gott liebte die ganze Erde so sehr, dass er sein Kind sandte» (Johannes 3,16).",
+        ),
+        (
+            "es",
+            "Psalms",
+            23,
+            1,
+            "Jehová es mi pastor; nada me faltará.",
+            "Leemos «El Senor cuida de mi como un pastor y nada me falta jamas» (Salmos 23:1).",
+        ),
+        (
+            "fr",
+            "John",
+            3,
+            16,
+            "Car Dieu a tant aimé le monde qu il a donné son Fils unique.",
+            "Il dit «Dieu a aimé la terre entiere au point d envoyer son enfant» (Jean 3:16).",
+        ),
+        (
+            "pt",
+            "Psalms",
+            23,
+            1,
+            "O Senhor é o meu pastor; nada me faltará.",
+            "Lemos «O Senhor cuida de mim como pastor e nada me faltara nunca» (Salmos 23:1).",
+        ),
+        (
+            "ru",
+            "John",
+            3,
+            16,
+            "Ибо так возлюбил Бог мир, что отдал Сына Своего.",
+            "Сказано «Бог настолько полюбил весь мир, что послал единственного Сына» (Иоанна 3:16).",
+        ),
+        (
+            "ar",
+            "John",
+            3,
+            16,
+            "لأنه هكذا أحب الله العالم حتى بذل ابنه الوحيد",
+            "يقول الكتاب «الله أحب العالم كله حتى أرسل ابنه الوحيد لنا اليوم» (يوحنا 3:16).",
+        ),
+        (
+            "hi",
+            "John",
+            3,
+            16,
+            "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा कि उसने अपना एकलौता पुत्र दे दिया",
+            "वचन «परमेश्वर ने सारे संसार से इतना प्रेम किया कि अपना पुत्र भेजा» (यूहन्ना 3:16) कहता है।",
+        ),
+        (
+            "zh",
+            "John",
+            3,
+            16,
+            "神爱世人，甚至将他的独生子赐给他们。",
+            "经上说「神如此疼爱全世界的人，竟然赐下他唯一的孩子」（约翰福音 3:16）。",
+        ),
+        (
+            "ko",
+            "John",
+            3,
+            16,
+            "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니",
+            "성경은 「하나님이 온 세상을 너무 사랑하셔서 외아들을 보내셨다」 (요한복음 3:16) 라고 합니다.",
+        ),
+    ]
+
+    @pytest.mark.parametrize("cid,book,ch,vs,canon,resp", CASES, ids=[c[0] for c in CASES])
+    def test_reworded_quote_corrected_to_canonical(self, cid, book, ch, vs, canon, resp):
+        db = [FakeVerse(book, ch, vs, canon)]
+        ctx = {(book.lower(), ch, vs)}
+        out, corrections = ground_response(resp, db, ctx)
+        assert canon in out, f"[{cid}] canonical not substituted: {out!r}"
+        assert out != resp, f"[{cid}] response left unchanged"
+        assert [c.reason for c in corrections] == ["mismatched"], f"[{cid}] {corrections}"
+
+
+class TestGroundingVersionFaithful:
+    """Grounding corrects to the user's selected translation, never a fixed one."""
+
+    KJV = "For God so loved the world, that he gave his only begotten Son."
+    WEB = "For God so loved the world, that he gave his one and only Son."
+
+    @pytest.mark.parametrize("canonical", [KJV, WEB], ids=["kjv", "web"])
+    def test_corrects_to_selected_version(self, canonical):
+        resp = "He said «God loved the planet so much he sent his one child» (John 3:16)."
+        out, _ = ground_response(resp, [FakeVerse("John", 3, 16, canonical)], {("john", 3, 16)})
+        assert canonical in out and out != resp
+
+
+class TestGroundingNegativeControls:
+    """A non-verse quotation near a reference must never be rewritten."""
+
+    @pytest.mark.parametrize(
+        "resp",
+        [
+            'John 3:16 is my favorite. The pastor said "what a lovely day" outside.',
+            'John 3:16 and also "my dog is very cute" today.',
+            "约翰福音 3:16 是我最喜欢的。他说「今天天气很好」。",
+        ],
+        ids=["en-sentence-break", "en-and-also", "zh-different-sentence"],
+    )
+    def test_non_verse_quote_not_corrected(self, resp):
+        out, corrections = ground_response(
+            resp, [FakeVerse("John", 3, 16, JOHN_3_16_EN)], {("john", 3, 16)}
+        )
+        assert out == resp
+        assert corrections == []

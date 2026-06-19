@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-16
+**Last Updated:** 2026-06-19
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -287,7 +287,64 @@ English-canonical) but affects localized input and the app-wide normalizer.
 - [ ] Versification offsets quantified + documented handling decision (with tests)
 - [ ] Table-driven tests across all 11 languages green
 
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
+numbered-book references fail to parse *with and without* parentheses —
+`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
+`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
+**versification/divergence** note: the frontend verse parser does not support German comma
+separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
+scope here.
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
+### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As a** user reading a Bible answer in any language, **I want** the scripture presented to match
+the real verse **even when it is not in quotation marks**, **so that** paraphrased "citations"
+can't drift from the canonical text.
+
+**Why P2:** Grounding (`verse_grounding.py`) only rewrites *quoted* spans adjacent to a reference.
+An unquoted paraphrase (`In Isaia 41:10 Dio ci dice di non temere…`) is never corrected — the
+largest remaining "citation doesn't match the DB" class once parenthesized-reference parsing is
+fixed.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Unquoted reference-adjacent paraphrase corrected/surfaced to canonical text
+- [ ] Ordinary discussion *about* a verse never altered (negative tests)
+- [ ] Parametrized cross-language tests (all 11) + version-faithfulness + chat/chat_stream integration
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-053-ground-unquoted-paraphrased-citations.md`
+
+---
+
+### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
+can't be resolved in the user's translation, **so that** a missing/incomplete translation never
+shows up as silently hallucinated scripture.
+
+**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
+grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
+manual SQL snippet, and the unresolved path is invisible.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
+- [ ] Startup/CI warning + metric when a supported language has no usable verse data
+- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
 
 ---
 
