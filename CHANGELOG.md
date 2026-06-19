@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.0...v1.29.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **android:** show email-specific error on contact 422 and require email (BITB-051) ([#750](https://github.com/zioalex/getinspiredbythebible/issues/750)) ([cd5b8d3](https://github.com/zioalex/getinspiredbythebible/commit/cd5b8d3b30be4257192baf622ae988cdad4dcecf))
+
 ## [1.29.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.28.0...v1.29.0) (2026-06-18)
 
 ### Features
