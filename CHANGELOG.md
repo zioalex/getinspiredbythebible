@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.1...v1.29.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* **api:** parse parenthesized verse references so grounding resolves them ([#759](https://github.com/zioalex/getinspiredbythebible/issues/759)) ([28dccb9](https://github.com/zioalex/getinspiredbythebible/commit/28dccb901dd145eab0d22b227d2a1c63b2f8be94))
+
 ## [1.29.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.0...v1.29.1) (2026-06-19)
 
 ### Bug Fixes
