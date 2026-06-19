@@ -987,6 +987,27 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 
 ---
 
+### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-15
+
+**As an** Android user submitting the contact form, **I want** an accurate error that names the
+email field when my submission is rejected, **so that** I'm not misled into thinking my message was
+too long.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android: a missing/invalid-email 422 shows an email-specific error, never the "max 300 characters" message
+- [ ] Android: the chat message-length 422 still maps to `error_message_too_long`
+- [ ] Android: email validated as required (no blank→null); `contact_email_label` updated from "optional" in all locales
+- [ ] Tests: `ChatViewModelTest` pins the 422 split; web has no equivalent bug (verified — optional follow-up only)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-contact-form-misleading-validation-error.md`
+
+---
+
 ### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
 **Status:** 🚧 In Progress
@@ -1298,6 +1319,26 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+
+**Status:** 🎯 Todo
+**Size:** S (< 2 hrs)
+**Created:** 2026-06-16
+
+**As a** web user submitting the contact form, **I want** an email-specific error when my
+submission is rejected for an invalid email, **so that** I can fix it instead of seeing a generic
+"failed to send". Web follow-up to BITB-051 (web has no 300-char misreport, just a generic error).
+
+**Acceptance Criteria (summary):**
+
+- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
+
+---
 
 ### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 

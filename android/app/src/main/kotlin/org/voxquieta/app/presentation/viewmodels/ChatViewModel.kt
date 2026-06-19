@@ -1011,7 +1011,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit contact form")
                 _contactFormState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -1055,7 +1055,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to send diagnostic email")
                 _diagnosticReportState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -1144,6 +1144,20 @@ class ChatViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
     // Private helpers
     // ---------------------------------------------------------------------------
+
+    /**
+     * Error mapping for the contact pipeline (contact form + diagnostic report).
+     *
+     * Unlike the chat path — where a 422 realistically means an over-long message —
+     * a 422 from `POST /api/v1/feedback/contact` is the required email field being
+     * missing or malformed. Surface that instead of the misleading "message too
+     * long" string; everything else falls back to the shared mapping.
+     */
+    private fun mapContactExceptionToMessage(e: Throwable): String = when {
+        e is HttpException && e.code() == 422 ->
+            context.getString(R.string.error_contact_email_invalid)
+        else -> mapExceptionToMessage(e)
+    }
 
     private fun mapExceptionToMessage(e: Throwable): String = when {
         e is UnknownHostException || e is ConnectException ->

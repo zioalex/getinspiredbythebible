@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.voxquieta.app.R
+import org.voxquieta.app.utils.isValidEmail
 
 /**
  * Bottom sheet that lets the user file a bug report. Collects two short answers
@@ -61,6 +62,7 @@ fun DiagnosticReportBottomSheet(
     var doingInput by rememberSaveable { mutableStateOf("") }
     var expectedInput by rememberSaveable { mutableStateOf("") }
     var emailInput by rememberSaveable { mutableStateOf("") }
+    var fieldsTouched by rememberSaveable { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -126,7 +128,10 @@ fun DiagnosticReportBottomSheet(
             }
 
             val isSubmitting = formState is ContactFormState.Submitting
-            val formValid = doingInput.isNotBlank() && expectedInput.isNotBlank()
+            // Email is required so the team can reply (the backend rejects a
+            // missing/invalid address with a 422); fold it into the submit gate.
+            val emailValid = isValidEmail(emailInput)
+            val formValid = doingInput.isNotBlank() && expectedInput.isNotBlank() && emailValid
 
             OutlinedTextField(
                 value = doingInput,
@@ -170,6 +175,22 @@ fun DiagnosticReportBottomSheet(
                     imeAction = ImeAction.Done,
                 ),
                 enabled = !isSubmitting,
+                isError = fieldsTouched && !emailValid,
+                supportingText = if (fieldsTouched && !emailValid) {
+                    {
+                        Text(
+                            stringResource(
+                                if (emailInput.isBlank()) {
+                                    R.string.contact_email_required
+                                } else {
+                                    R.string.contact_email_invalid
+                                },
+                            ),
+                        )
+                    }
+                } else {
+                    null
+                },
             )
 
             // ── Error ─────────────────────────────────────────────────────────
@@ -182,7 +203,12 @@ fun DiagnosticReportBottomSheet(
             }
 
             Button(
-                onClick = { onSendEmail(doingInput, expectedInput, emailInput.ifBlank { null }) },
+                onClick = {
+                    fieldsTouched = true
+                    if (formValid) {
+                        onSendEmail(doingInput, expectedInput, emailInput.trim())
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = formValid && !isSubmitting,
             ) {
