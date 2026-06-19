@@ -1136,6 +1136,62 @@ class TestChatServiceChatStream:
         assert completion["corrections"] == [{"reference": "John 3:16", "reason": "fabricated"}]
 
     @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="it")
+    @patch("chat.service.resolve_translation", return_value="ita1927")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_resolves_parenthesized_citation_without_structured_comment(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """Regression: a reworded verse cited in the common `«…» (Isaia 41:10)`
+        format, with NO `<!-- VERSES -->` comment, must still be resolved from the
+        DB and corrected. Pre-fix, extract_all_references couldn't parse the
+        parenthesized reference, so resolved_verses was empty and grounding left
+        the reworded text untouched."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        canonical = "Non temere, perché io sono con te; non smarrirti, io ti rendo forte."
+        service.search_service.get_verse = AsyncMock(
+            return_value=VerseResult(
+                reference="Isaiah 41:10",
+                text=canonical,
+                book="Isaiah",
+                chapter=41,
+                verse=10,
+                translation="ita1927",
+            )
+        )
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            # Reworded quote, parenthesized reference, and NO structured comment.
+            yield (
+                "Un altro passaggio utile: «Non aver paura perche ti fortifico io "
+                "sempre e ti aiuto» (Isaia 41:10). Spero ti aiuti."
+            )
+
+        llm.chat_stream = mock_stream
+
+        chunks = []
+        async for chunk in service.chat_stream(ChatRequest(message="ho paura")):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        # Resolution now works for the parenthesized reference.
+        assert any(
+            v["book"] == "Isaiah" and v["chapter"] == 41 and v["verse"] == 10
+            for v in completion["resolved_verses"]
+        )
+        # And the reworded quote is corrected to the canonical DB text.
+        assert "corrected_message" in completion
+        assert canonical in completion["corrected_message"]
+        assert "Non aver paura perche ti fortifico" not in completion["corrected_message"]
+        assert completion["corrections"] == [{"reference": "Isaiah 41:10", "reason": "fabricated"}]
+
+    @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
     @patch("chat.service.resolve_translation", return_value="kjv")
     @patch("chat.service.is_verse_lookup_request", return_value=False)

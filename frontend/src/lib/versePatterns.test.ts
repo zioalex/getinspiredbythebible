@@ -169,3 +169,27 @@ describe("createVersePatternGlobal", () => {
     expect(matches[0][1]).toBe("1 John");
   });
 });
+
+// ── Parenthesized / bracketed citations (cross-parser parity, AGENTS.md) ──────
+// The backend verse parser (api/utils/verse_parser.py) must detect references
+// wrapped in ( ) [ ] / fullwidth （ ）. This asserts the frontend parser — which
+// must stay in sync — detects them too, across multiple languages.
+describe("parenthesized and bracketed references", () => {
+  const cases: Array<[string, string]> = [
+    ["en paren", "Take heart (John 3:16) today."],
+    ["en bracket", "Hope [Psalm 23:1] holds."],
+    ["it paren", "Coraggio (Giovanni 3:16)."],
+    ["it numbered", "Dio è amore (1 Giovanni 4:8)."],
+    ["de paren", "Trost (Johannes 3:16) heute."],
+    ["es paren", "Ánimo (Juan 3:16)."],
+    ["zh fullwidth", "安慰（约翰福音 3:16）。"],
+    ["ko paren", "위로 (요한복음 3:16)."],
+  ];
+  it.each(cases)("detects a verse reference in %s", (_label, text) => {
+    expect(createVersePattern().test(text)).toBe(true);
+  });
+
+  it("still matches an unwrapped reference", () => {
+    expect(createVersePattern().test("See John 3:16 for hope.")).toBe(true);
+  });
+});

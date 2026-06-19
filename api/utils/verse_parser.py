@@ -318,11 +318,14 @@ def _build_verse_pattern() -> str:
     cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
 
     # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars,
-    # or opening brackets: Chinese guillemet 《 (U+300A), Korean corner brackets
+    # or an opening bracket/paren before the book name — ASCII "(" / "[", fullwidth
+    # "（" (U+FF08) / "【" (U+3010) — so wrapped citations like "(John 3:16)" parse
+    # (otherwise they are silently dropped and never resolve from the DB), plus the
+    # Chinese guillemet 《 (U+300A) and Korean corner brackets
     # 「 (U+300C) and 『 (U+300E).
     # The optional closing bracket class [\u300b\u300d\u300f] after the book name
     # handles 《约翰福音》3:16 and 「요한복음」3:16 / 『시편』23:1.
-    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a\u300c\u300e]))({book_alternatives})[\u300b\u300d\u300f]?\s*{cv_pattern}"
+    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a\u300c\u300e([\uff08\u3010]))({book_alternatives})[\u300b\u300d\u300f]?\s*{cv_pattern}"
 
 
 # Compiled regex cached at module load time — avoids rebuilding the ~710-term
@@ -487,16 +490,24 @@ _QUOTE_PATTERNS: list[re.Pattern] = [
 # (e.g. `… ." (John 3:16)` or `John 3:16: "…`). Any other character (a letter)
 # means the quote and reference belong to different clauses.
 _ADJACENCY_SEPARATORS = set(" \t\n ()[]—–-,.:;")
+# CJK / fullwidth bracket, comma and colon punctuation that can sit between a
+# quotation and its reference (e.g. `「…」（约翰福音 3:16）`). Sentence terminators
+# (`。…`) are deliberately excluded so a cross-sentence quote is never bound.
+_ADJACENCY_SEPARATORS |= set("（）【】「」『』《》，、：；　")
 _ADJACENCY_WINDOW = 50
 # Map brackets to spaces before running _VERSE_PATTERN so its whitespace
 # lookbehind matches a reference written as "(John 3:16)"; same length keeps
 # offsets aligned with the original text.
-_BRACKET_TO_SPACE = str.maketrans("()[]", "    ")
+_BRACKET_TO_SPACE = {ord(c): ord(" ") for c in "()[]（）【】「」『』《》"}
 # A reference may introduce a quotation with a short connector — `John 3:16 says:`,
-# `Giovanni 3:16 dice,` — so a gap of a few words ending in a colon/comma also
-# counts as adjacent. Anything richer (sentence punctuation, more text) does not,
-# which keeps a nearby non-verse quotation from being misattributed.
-_QUOTE_INTRO_GAP = re.compile(r"^[\w\s]{0,20}[:,]\s*$")
+# `Giovanni 3:16, dove Dio dice:`, Chinese `约翰福音 3:16 说：` — so a short run of
+# words (optionally with commas) ending in a colon/comma also counts as adjacent.
+# Fullwidth/CJK colon and comma are accepted. A sentence terminator (`. ! ? 。`) is
+# NOT allowed in the run, so a quotation in a different clause is never misattributed.
+_QUOTE_INTRO_GAP = re.compile(r"^[\w\s,;，、；]{0,30}[:,：，、]\s*$")
+# Quote-first ordering — `«…», come dice Giovanni 3:16` — a short trailing connector
+# (no colon needed; the reference itself ends it) between the quote and the reference.
+_QUOTE_TRAIL_GAP = re.compile(r"^[\s,，、]{0,3}[\w\s]{0,20} $")
 
 
 def _gap_is_adjacent(gap: str) -> bool:
@@ -513,13 +524,15 @@ def _find_adjacent_reference(
     Returns (reference, (ref_start, ref_end)) using absolute offsets into ``text``,
     or None when no reference sits directly beside the quote.
     """
-    # After the quote: `"…" (John 3:16)`
+    # After the quote: `"…" (John 3:16)` or quote-first `"…", come dice John 3:16`
     after = text[close_end : close_end + _ADJACENCY_WINDOW]
     m = _VERSE_PATTERN.search(after.translate(_BRACKET_TO_SPACE))
-    if m and all(ch in _ADJACENCY_SEPARATORS for ch in after[: m.start()]):
-        ref = _match_to_verse_reference(m)
-        if ref:
-            return ref, (close_end + m.start(), close_end + m.end())
+    if m:
+        gap = after[: m.start()]
+        if all(ch in _ADJACENCY_SEPARATORS for ch in gap) or bool(_QUOTE_TRAIL_GAP.match(gap)):
+            ref = _match_to_verse_reference(m)
+            if ref:
+                return ref, (close_end + m.start(), close_end + m.end())
 
     # Before the quote: `John 3:16: "…"` — take the reference closest to the quote.
     start = max(0, open_pos - _ADJACENCY_WINDOW)
