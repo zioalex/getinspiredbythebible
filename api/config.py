@@ -131,6 +131,13 @@ class Settings(BaseSettings):
     content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
 
+    # Verse grounding (post-generation scripture fidelity)
+    verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
+    # When a cited verse cannot be resolved in the DB at all, strip the invented
+    # quotation rather than only logging it. Off by default — grammar-safe
+    # stripping across 11 languages is risky, so detect-and-log first.
+    grounding_strip_unresolved: bool = False
+
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
     verse_query_timeout_s: float = 10.0  # Max seconds for a verse/chapter DB query before 504
