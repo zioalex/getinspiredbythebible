@@ -305,7 +305,8 @@ class ScriptureRepository:
             translation_filter = "AND v.translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+        # Parameterized query: only :named binds + internal translation_filter constant (no user SQL).
+        sql = f"""
             WITH ranked AS (
                 SELECT
                     v.id,
@@ -397,7 +398,8 @@ class ScriptureRepository:
             translation_filter = "AND v.translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+        # Parameterized query: only :named binds + internal translation_filter constant (no user SQL).
+        sql = f"""
             WITH base_search AS (
                 SELECT
                     v.id,
@@ -506,7 +508,8 @@ class ScriptureRepository:
             translation_filter = "AND v.translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
+        # Parameterized query: only :named binds + internal translation_filter constant (no user SQL).
+        sql = f"""
             WITH ranked AS (
                 SELECT
                     v.id,

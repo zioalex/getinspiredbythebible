@@ -251,7 +251,12 @@ jobs:
           err_re="${err_re}|rate.?limit.*(error|exceeded|hit|reached)|quota exceeded"
           err_re="${err_re}|invalid.?api.?key|api.?key.*(invalid|missing|expired)"
           err_re="${err_re}|embedding.*error|connection.*error|connection refused"
-          err_re="${err_re}|unhandled exception|critical error|fatal)"
+          err_re="${err_re}|unhandled exception|critical error|fatal"
+          # Scripture search / cited-verse / grounding failures. These paths fail
+          # open (verse-less answer, no 5xx), so match their log signatures directly
+          # rather than relying on a `traceback` token that may not be captured.
+          err_re="${err_re}|scripture search failed|failed to resolve cited verse|verse grounding skipped"
+          err_re="${err_re}|postgressyntaxerror|infailedsqltransactionerror|current transaction is aborted)"
           # `sample` is a KQL operator; using it as a column name causes
           # SYN0002. Use `sample_log` instead.
           # KQL has no !matches operator — it only supports ! for scalar
