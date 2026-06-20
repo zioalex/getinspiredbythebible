@@ -118,6 +118,75 @@ class TestSearchVersesHybrid:
         assert params["translation"] == "kjv"
 
 
+class TestRawSqlHasNoPythonComment:
+    """Regression: the raw-SQL search builders must not leak a Python ``#`` comment
+    into the SQL string sent to Postgres.
+
+    A misplaced ``# nosec`` after the opening triple-quote once made every query
+    start with ``# nosec ...``, which Postgres rejected with
+    ``syntax error at or near "#"`` and aborted the transaction. These tests
+    execute the real SQL-building path (mocked session, empty rows) and assert the
+    generated SQL is clean — coverage that was missing because other tests mock the
+    repository methods themselves.
+    """
+
+    @staticmethod
+    def _first_sql(mock_session) -> str:
+        # First execute() call passes text(sql) as the first positional arg.
+        return mock_session.execute.call_args_list[0][0][0].text
+
+    @pytest.mark.asyncio
+    async def test_search_verses_hybrid_sql_is_clean(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid(
+            query_text="test", query_embedding=[0.1, 0.2], translation="schlachter"
+        )
+
+        sql = self._first_sql(mock_session)
+        assert "#" not in sql
+        assert sql.lstrip().upper().startswith(("WITH", "SELECT"))
+
+    @pytest.mark.asyncio
+    async def test_search_verses_semantic_boosted_sql_is_clean(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_semantic_boosted(
+            query_embedding=[0.1, 0.2], boost_topics=["faith"], translation="schlachter"
+        )
+
+        sql = self._first_sql(mock_session)
+        assert "#" not in sql
+        assert sql.lstrip().upper().startswith(("WITH", "SELECT"))
+
+    @pytest.mark.asyncio
+    async def test_search_verses_hybrid_boosted_sql_is_clean(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid_boosted(
+            query_text="test",
+            query_embedding=[0.1, 0.2],
+            boost_topics=["faith"],
+            translation="schlachter",
+        )
+
+        sql = self._first_sql(mock_session)
+        assert "#" not in sql
+        assert sql.lstrip().upper().startswith(("WITH", "SELECT"))
+
+
 class TestSearchPassagesHybrid:
     """Tests for ScriptureRepository.search_passages_hybrid()."""
 
