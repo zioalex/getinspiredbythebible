@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.2...v1.29.3) (2026-06-20)
+
+
+### Bug Fixes
+
+* **api:** remove misplaced # nosec that broke all scripture search SQL ([#764](https://github.com/zioalex/getinspiredbythebible/issues/764)) ([32f12dc](https://github.com/zioalex/getinspiredbythebible/commit/32f12dce7f4d437b7392bfcb7582e0a08fdfb72b))
+
 ## [1.29.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.1...v1.29.2) (2026-06-19)
 
 ### Bug Fixes
