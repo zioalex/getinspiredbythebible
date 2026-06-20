@@ -32,7 +32,7 @@ from utils.metrics import (
     verse_grounding_duration_histogram,
     verse_grounding_quotes_checked_counter,
 )
-from utils.timing import record_stage, stage_timer
+from utils.timing import record_stage, timed_stage
 from utils.verse_parser import (
     extract_all_references,
     extract_inline_quotes,
@@ -138,7 +138,14 @@ class ChatService:
         self.llm = llm_provider
         self.embedding = embedding_provider
         self.search_service = ScriptureSearchService(db_session, embedding_provider)
+        # Per-request timing context read by the @timed_stage decorator. Set at the top
+        # of chat()/chat_stream(); a fresh ChatService is created per request
+        # (api/routes/chat.py), so these are safe to keep on the instance.
+        self._timings: dict[str, float] | None = None
+        self._stage_attrs: dict | None = None
+        self._active_stages: set[str] = set()
 
+    @timed_stage("intent")
     async def _detect_intent(self, message: str, model_override: str | None = None) -> str:
         """
         Classify user intent with a fast LLM call.
@@ -168,6 +175,7 @@ class ChatService:
             logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
             return "GENERAL"
 
+    @timed_stage("content_safety")
     async def _check_content_safety(
         self,
         message: str,
@@ -298,6 +306,26 @@ Keep it under 100 words."""
             logger.warning("Query expansion failed, using original query: %s", e)
             return user_message
 
+    @timed_stage("query_expansion")
+    async def _build_expansion_embeddings(
+        self, message: str, detected_language: str, model_override: str | None = None
+    ) -> list[list[float]] | None:
+        """Expand the query and embed the expansion for multi-embedding search.
+
+        Returns the extra embeddings to feed into semantic search, or ``None`` when
+        expansion produced nothing new. Timed as the ``query_expansion`` stage.
+        """
+        expanded_query = await self._expand_query(message, detected_language, model_override)
+        if expanded_query == message:
+            return None
+        expansion_embed_response = await self.embedding.embed(expanded_query)
+        extra_embeddings = [expansion_embed_response.embedding]
+        logger.info(
+            "Query expansion embeddings generated",
+            extra={"num_extra_embeddings": len(extra_embeddings)},
+        )
+        return extra_embeddings
+
     def _detect_topics(self, message: str) -> list[str]:
         """
         Detect biblical topics in user message using keyword-based mapping.
@@ -325,6 +353,10 @@ Keep it under 100 words."""
         total_start = time.time()
         timings: dict[str, float] = {}
         stage_attrs = {"stream": False, "provider": settings.llm_provider}
+        # Activate the per-request timing context read by @timed_stage-decorated methods.
+        self._timings = timings
+        self._stage_attrs = stage_attrs
+        self._active_stages = set()
         # Track session interactions (history_count + 1 = total messages in session)
         session_message_count = len(request.conversation_history) + 1
         logger.info(
@@ -369,11 +401,10 @@ Keep it under 100 words."""
             },
         )
 
-        # Content safety check BEFORE LLM call
-        with stage_timer(timings, "content_safety", stage_attrs):
-            safety = await self._check_content_safety(
-                request.message, effective_language, request.session_id, context="chat"
-            )
+        # Content safety check BEFORE LLM call (timed via @timed_stage on the method)
+        safety = await self._check_content_safety(
+            request.message, effective_language, request.session_id, context="chat"
+        )
         if not safety.allowed:
             return self._build_blocked_response(
                 safety, effective_language, translation, translation_info
@@ -381,8 +412,7 @@ Keep it under 100 words."""
 
         # Intent detection: classify before scripture search
         if settings.content_filter_intent_detection:
-            with stage_timer(timings, "intent", stage_attrs):
-                detected_intent = await self._detect_intent(request.message, model_override)
+            detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
                 return await self._handle_off_topic(
                     request,
@@ -407,18 +437,15 @@ Keep it under 100 words."""
                 },
             )
 
-        # Step 1: Search for relevant scripture (if enabled)
-        with stage_timer(timings, "retrieval", stage_attrs):
-            scripture_context, search_context_prompt = await self._search_scripture(
-                request,
-                translation,
-                verse_refs,
-                is_verse_lookup,
-                detected_language=effective_language,
-                model_override=model_override,
-                timings=timings,
-                stage_attrs=stage_attrs,
-            )
+        # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
+        scripture_context, search_context_prompt = await self._search_scripture(
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=effective_language,
+            model_override=model_override,
+        )
 
         # Step 2: Build the message list
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
@@ -482,10 +509,9 @@ Keep it under 100 words."""
 
         # Ground the response: rewrite any fabricated/mismatched inline verse
         # quote to the canonical DB text before returning it to the client.
-        with stage_timer(timings, "grounding", stage_attrs):
-            message, _ = await self._apply_verse_grounding(
-                response.content, scripture_context, translation, effective_language
-            )
+        message, _ = await self._apply_verse_grounding(
+            response.content, scripture_context, translation, effective_language
+        )
 
         record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
         logger.info("chat_stage_timings", extra={"timings_ms": timings, "stream": False})
@@ -600,6 +626,7 @@ Keep it under 100 words."""
             await asyncio.sleep(0)  # cooperative yield, no real delay
         yield {"type": "completion", "verses_cited": []}
 
+    @timed_stage("retrieval")
     async def _search_scripture(  # noqa: C901
         self,
         request: ChatRequest,
@@ -608,8 +635,6 @@ Keep it under 100 words."""
         is_verse_lookup: bool,
         detected_language: str = "en",  # NEW
         model_override: str | None = None,  # NEW
-        timings: dict[str, float] | None = None,
-        stage_attrs: dict | None = None,
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
@@ -619,11 +644,6 @@ Keep it under 100 words."""
         """
         if not request.include_search:
             return None, ""
-
-        # When called outside the instrumented chat paths, keep a local dict so the
-        # query-expansion sub-stage is still timed (and histogram-recorded) safely.
-        if timings is None:
-            timings = {}
 
         search_start = time.time()
         scripture_context = None
@@ -636,18 +656,9 @@ Keep it under 100 words."""
             # Query expansion (optional feature flag)
             extra_embeddings: list[list[float]] | None = None
             if settings.query_expansion_enabled:
-                with stage_timer(timings, "query_expansion", stage_attrs):
-                    expanded_query = await self._expand_query(
-                        request.message, detected_language, model_override
-                    )
-                    if expanded_query != request.message:
-                        # Generate embedding for expanded query
-                        expansion_embed_response = await self.embedding.embed(expanded_query)
-                        extra_embeddings = [expansion_embed_response.embedding]
-                        logger.info(
-                            "Query expansion embeddings generated",
-                            extra={"num_extra_embeddings": len(extra_embeddings)},
-                        )
+                extra_embeddings = await self._build_expansion_embeddings(
+                    request.message, detected_language, model_override
+                )
 
             # Topic detection for boosting (keyword-based, <10ms)
             boost_topics: list[str] = []
@@ -822,6 +833,7 @@ Keep it under 100 words."""
                 logger.warning(f"Failed to resolve cited verse {ref}: {e}")
         return list(resolved.values())
 
+    @timed_stage("grounding")
     async def _apply_verse_grounding(
         self,
         text: str,
@@ -885,6 +897,37 @@ Keep it under 100 words."""
             )
         return corrected, corrections
 
+    @timed_stage("grounding")
+    async def _ground_streamed_answer(
+        self,
+        cited_refs: list,
+        full_response: str,
+        scripture_context: SearchResults | None,
+        translation: str | None,
+        language: str,
+    ) -> tuple[list, str, list]:
+        """Resolve cited verses and ground the streamed answer as one timed stage.
+
+        Returns ``(resolved_verses, corrected_message, corrections)``. The inner
+        ``_apply_verse_grounding`` is also ``@timed_stage("grounding")``, but the
+        re-entrancy guard means this outer frame owns the single "grounding"
+        measurement (resolve + rewrite), matching the previous streaming behaviour.
+        """
+        resolved_verses = await self._resolve_cited_verses(cited_refs, translation)
+        # Ground the streamed answer: detect fabricated/mismatched inline verse quotes
+        # and rewrite them to canonical text. Reuses resolved_verses (no extra DB calls).
+        # The tokens are already on the client's screen, so the correction is delivered
+        # as an authoritative `corrected_message` the client swaps in — only when
+        # something actually changed.
+        corrected_message, corrections = await self._apply_verse_grounding(
+            full_response,
+            scripture_context,
+            translation,
+            language,
+            resolved_verses=resolved_verses,
+        )
+        return resolved_verses, corrected_message, corrections
+
     def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
         """Merge direct lookup verses into scripture context (at beginning)."""
         if not direct_verses or not scripture_context:
@@ -911,6 +954,10 @@ Keep it under 100 words."""
         total_start = time.perf_counter()
         timings: dict[str, float] = {}
         stage_attrs = {"stream": True, "provider": settings.llm_provider}
+        # Activate the per-request timing context read by @timed_stage-decorated methods.
+        self._timings = timings
+        self._stage_attrs = stage_attrs
+        self._active_stages = set()
 
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
@@ -938,11 +985,10 @@ Keep it under 100 words."""
             },
         )
 
-        # Content safety check BEFORE LLM call
-        with stage_timer(timings, "content_safety", stage_attrs):
-            safety = await self._check_content_safety(
-                request.message, effective_language, request.session_id, context="chat stream"
-            )
+        # Content safety check BEFORE LLM call (timed via @timed_stage on the method)
+        safety = await self._check_content_safety(
+            request.message, effective_language, request.session_id, context="chat stream"
+        )
         if not safety.allowed:
             async for chunk in self._stream_blocked_response(
                 safety, message_id, effective_language, translation, translation_info
@@ -952,8 +998,7 @@ Keep it under 100 words."""
 
         # Intent detection: short-circuit off-topic before scripture search
         if settings.content_filter_intent_detection:
-            with stage_timer(timings, "intent", stage_attrs):
-                detected_intent = await self._detect_intent(request.message, model_override)
+            detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
                 logger.info("Off-topic message detected in stream, skipping scripture search")
 
@@ -991,18 +1036,15 @@ Keep it under 100 words."""
         is_verse_lookup = is_verse_lookup_request(request.message)
         verse_refs, prayer_ref = extract_references(request.message)
 
-        # Step 1: Search for relevant scripture
-        with stage_timer(timings, "retrieval", stage_attrs):
-            scripture_context, search_context_prompt = await self._search_scripture(
-                request,
-                translation,
-                verse_refs,
-                is_verse_lookup,
-                detected_language=effective_language,
-                model_override=model_override,
-                timings=timings,
-                stage_attrs=stage_attrs,
-            )
+        # Step 1: Search for relevant scripture (timed via @timed_stage)
+        scripture_context, search_context_prompt = await self._search_scripture(
+            request,
+            translation,
+            verse_refs,
+            is_verse_lookup,
+            detected_language=effective_language,
+            model_override=model_override,
+        )
 
         # Step 2: Send metadata before streaming starts
         yield {
@@ -1069,23 +1111,13 @@ Keep it under 100 words."""
         # can merge them into its verse panel. Without this, a cited verse that
         # is outside the semantic pool (common on follow-up questions) never
         # appears in the "Cited" tab.
-        with stage_timer(timings, "grounding", stage_attrs):
-            resolved_verses = await self._resolve_cited_verses(
-                list(merged_refs.values()), translation
-            )
-
-            # Ground the streamed answer: detect fabricated/mismatched inline verse
-            # quotes and rewrite them to canonical text. Reuses resolved_verses (no
-            # extra DB calls). The tokens are already on the client's screen, so the
-            # correction is delivered as an authoritative `corrected_message` the
-            # client swaps in — only when something actually changed.
-            corrected_message, corrections = await self._apply_verse_grounding(
-                full_response,
-                scripture_context,
-                translation,
-                effective_language,
-                resolved_verses=resolved_verses,
-            )
+        resolved_verses, corrected_message, corrections = await self._ground_streamed_answer(
+            list(merged_refs.values()),
+            full_response,
+            scripture_context,
+            translation,
+            effective_language,
+        )
 
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.

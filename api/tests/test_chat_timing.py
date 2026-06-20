@@ -1,17 +1,21 @@
 """
-Tests for the per-stage chat timing helper (utils.timing).
+Tests for the per-stage chat timing helpers (utils.timing).
 
-These verify that stage durations are written into the per-request ``timings``
-dict (the source of the ``chat_stage_timings`` log line) and recorded into the
-``chat.stage.duration_ms`` OpenTelemetry histogram, and that recording is
-best-effort (a telemetry failure must never propagate into a chat response).
+These verify that stage durations are written into the per-request ``timings`` dict
+(the source of the ``chat_stage_timings`` log line) and recorded into the
+``chat.stage.duration_ms`` OpenTelemetry histogram, that recording is best-effort (a
+telemetry failure must never propagate into a chat response), and that the
+``@timed_stage`` decorator times the methods it wraps without double-counting nested
+same-stage calls.
 """
 
 from unittest.mock import patch
 
+import pytest
+
 from utils import timing
 from utils.metrics import chat_stage_duration_histogram
-from utils.timing import record_stage, stage_timer
+from utils.timing import record_stage, timed_stage
 
 
 class TestRecordStage:
@@ -44,27 +48,70 @@ class TestRecordStage:
         assert timings == {"generation": 10.0}
 
 
-class TestStageTimer:
-    def test_times_block_and_records(self):
-        timings: dict[str, float] = {}
+class _FakeService:
+    """Minimal stand-in exposing the attributes ``@timed_stage`` reads off ``self``."""
+
+    def __init__(self, timings: dict[str, float] | None):
+        self._timings = timings
+        self._stage_attrs = {"stream": False}
+        self._active_stages: set[str] = set()
+
+    @timed_stage("intent")
+    async def detect(self, value):
+        return value
+
+    @timed_stage("grounding")
+    async def boom(self):
+        raise ValueError("inner failure")
+
+    @timed_stage("grounding")
+    async def outer(self):
+        # Nested same-stage call: the inner decorated method must not double-record.
+        return await self.inner()
+
+    @timed_stage("grounding")
+    async def inner(self):
+        return "ok"
+
+
+class TestTimedStage:
+    async def test_records_into_timings_and_histogram(self):
+        svc = _FakeService(timings={})
         # Patch perf_counter so the measured duration is deterministic.
         with patch.object(timing.time, "perf_counter", side_effect=[1.0, 1.25]):
             with patch.object(chat_stage_duration_histogram, "record") as mock_record:
-                with stage_timer(timings, "search", {"stream": False}):
-                    pass
+                result = await svc.detect("hello")
 
-        assert timings == {"search": 250.0}
-        mock_record.assert_called_once_with(250.0, {"stage": "search", "stream": False})
+        assert result == "hello"
+        assert svc._timings == {"intent": 250.0}
+        mock_record.assert_called_once_with(250.0, {"stage": "intent", "stream": False})
 
-    def test_records_even_when_block_raises(self):
-        timings: dict[str, float] = {}
+    async def test_noop_when_no_timing_context(self):
+        """Called outside a chat request (``_timings is None``) → run, record nothing."""
+        svc = _FakeService(timings=None)
+        with patch.object(chat_stage_duration_histogram, "record") as mock_record:
+            result = await svc.detect("hello")
+
+        assert result == "hello"
+        assert svc._timings is None
+        mock_record.assert_not_called()
+
+    async def test_records_even_when_method_raises(self):
+        svc = _FakeService(timings={})
         with patch.object(timing.time, "perf_counter", side_effect=[2.0, 2.1]):
-            try:
-                with stage_timer(timings, "grounding"):
-                    raise ValueError("inner failure")
-            except ValueError:
-                pass
+            with pytest.raises(ValueError):
+                await svc.boom()
 
         # finally-clause still records the partial duration.
-        assert "grounding" in timings
-        assert timings["grounding"] == 100.0
+        assert svc._timings == {"grounding": 100.0}
+
+    async def test_nested_same_stage_records_once(self):
+        svc = _FakeService(timings={})
+        with patch.object(chat_stage_duration_histogram, "record") as mock_record:
+            result = await svc.outer()
+
+        assert result == "ok"
+        # Only the outermost frame owns the "grounding" measurement.
+        assert list(svc._timings.keys()) == ["grounding"]
+        mock_record.assert_called_once()
+        assert mock_record.call_args.args[1]["stage"] == "grounding"

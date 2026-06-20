@@ -13,11 +13,15 @@ Recording is best-effort: instrumentation must never break a chat response, so t
 histogram write is guarded.
 """
 
+import functools
 import time
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, TypeVar
 
 from utils.metrics import chat_stage_duration_histogram
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def record_stage(
@@ -37,21 +41,55 @@ def record_stage(
         pass
 
 
-@contextmanager
-def stage_timer(
-    timings: dict[str, float],
+def timed_stage(
     stage: str,
-    base_attributes: dict | None = None,
-) -> Iterator[None]:
-    """Time the wrapped block and record it as ``stage``.
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    """Decorator that times an async ``ChatService`` method and records it as ``stage``.
 
-    Works across ``await`` because the awaited code runs inside the ``with`` body::
+    The wrapped method becomes self-instrumenting: instead of wrapping each call site in
+    a ``with`` block, decorate the stage method and it records its own duration into the
+    per-request ``self._timings`` dict and the ``chat.stage.duration_ms`` histogram.
 
-        with stage_timer(timings, "intent", attrs):
-            intent = await self._detect_intent(...)
+    Behaviour:
+
+    * No-op when no timing context is active (``self._timings is None``) — e.g. when the
+      method is called outside a chat request — the method still runs normally.
+    * Re-entrant: if the same ``stage`` is already being timed by an outer frame, the
+      inner call still runs but does not record, so nesting two same-stage methods (e.g.
+      the streaming grounding block calling ``_apply_verse_grounding``) yields a single
+      measurement owned by the outermost frame.
+    * Best-effort: the histogram write is guarded inside ``record_stage`` so telemetry
+      can never break a response. The duration is recorded even if the wrapped coroutine
+      raises.
     """
-    start = time.perf_counter()
-    try:
-        yield
-    finally:
-        record_stage(timings, stage, (time.perf_counter() - start) * 1000, base_attributes)
+
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        @functools.wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            self: Any = args[0]  # decorator is applied to instance methods
+            timings = getattr(self, "_timings", None)
+            if timings is None:
+                return await func(*args, **kwargs)
+            active = getattr(self, "_active_stages", None)
+            if active is None:
+                active = set()
+                self._active_stages = active
+            if stage in active:
+                # Nested same-stage call: run it, but let the outer frame own the timing.
+                return await func(*args, **kwargs)
+            active.add(stage)
+            start = time.perf_counter()
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                active.discard(stage)
+                record_stage(
+                    timings,
+                    stage,
+                    (time.perf_counter() - start) * 1000,
+                    getattr(self, "_stage_attrs", None),
+                )
+
+        return wrapper
+
+    return decorator
