@@ -6,9 +6,13 @@ Tests use mocks to avoid requiring a real database connection.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
 from scripture.repository import ScriptureRepository
 from scripture.search import ScriptureSearchService
+
+# Compiling against asyncpg's paramstyle reproduces exactly what reaches the driver.
+_ASYNCPG_DIALECT = postgresql.dialect(paramstyle="numeric_dollar")
 
 # ==================== Repository Tests ====================
 
@@ -185,6 +189,91 @@ class TestRawSqlHasNoPythonComment:
         sql = self._first_sql(mock_session)
         assert "#" not in sql
         assert sql.lstrip().upper().startswith(("WITH", "SELECT"))
+
+
+class TestEmbeddingBindCompilesForAsyncpg:
+    """Regression: the embedding bind must survive compilation to asyncpg's paramstyle.
+
+    The builders once cast the embedding with the Postgres ``::`` shorthand
+    (``:embedding::vector``). SQLAlchemy's bind-parameter parser refuses to bind a
+    ``:name`` immediately followed by ``::`` — it mis-detected a phantom ``embeddin``
+    bind and left the literal ``:embedding::vector`` in the compiled SQL, so asyncpg
+    raised ``syntax error at or near ":"`` and the vector was never bound.
+
+    ``CAST(:embedding AS vector)`` binds correctly. These tests compile the real SQL
+    each builder produces against asyncpg's dialect — the step the ``#``-comment tests
+    skip — so a regression to ``:embedding::vector`` (or any unbound ``:name``) fails.
+    """
+
+    @staticmethod
+    def _compile_first_sql(mock_session):
+        text_clause = mock_session.execute.call_args_list[0][0][0]
+        compiled = text_clause.compile(dialect=_ASYNCPG_DIALECT)
+        return str(compiled), compiled.positiontup
+
+    @staticmethod
+    def _assert_clean(sql: str, positiontup) -> None:
+        # No named bind may leak to asyncpg; the embedding must actually be bound.
+        assert ":" not in sql, f"unbound named parameter leaked into SQL: {sql}"
+        assert "embedding" in positiontup
+        assert "embeddin" not in positiontup  # the phantom bind from the ::vector bug
+
+    @pytest.mark.asyncio
+    async def test_search_verses_hybrid_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid(
+            query_text="test", query_embedding=[0.1, 0.2], translation="schlachter"
+        )
+
+        self._assert_clean(*self._compile_first_sql(mock_session))
+
+    @pytest.mark.asyncio
+    async def test_search_verses_semantic_boosted_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_semantic_boosted(
+            query_embedding=[0.1, 0.2], boost_topics=["faith"], translation="schlachter"
+        )
+
+        self._assert_clean(*self._compile_first_sql(mock_session))
+
+    @pytest.mark.asyncio
+    async def test_search_verses_hybrid_boosted_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid_boosted(
+            query_text="test",
+            query_embedding=[0.1, 0.2],
+            boost_topics=["faith"],
+            translation="schlachter",
+        )
+
+        self._assert_clean(*self._compile_first_sql(mock_session))
+
+    @pytest.mark.asyncio
+    async def test_search_passages_hybrid_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_passages_hybrid(query_text="test", query_embedding=[0.1, 0.2])
+
+        self._assert_clean(*self._compile_first_sql(mock_session))
 
 
 class TestSearchPassagesHybrid:
