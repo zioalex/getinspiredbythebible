@@ -425,7 +425,9 @@ describe("Home page responsive layout", () => {
       const { container } = renderWithIntl(<Home />);
       await screen.findByLabelText("Bible version");
 
-      const input = screen.getByPlaceholderText("Share what's on your heart...");
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
       await act(async () => {
         fireEvent.change(input, { target: { value: "test query" } });
       });
