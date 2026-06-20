@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
 
-
 ### Bug Fixes
 
 * **api:** bind embedding via CAST() so asyncpg accepts the vector cast in scripture search ([#768](https://github.com/zioalex/getinspiredbythebible/issues/768)) ([ff455b1](https://github.com/zioalex/getinspiredbythebible/commit/ff455b15d02bf19ce5097f939d13b8912c26f9d1))
-
 
 ### Documentation
 
