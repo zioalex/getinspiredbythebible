@@ -310,14 +310,14 @@ class ScriptureRepository:
             WITH ranked AS (
                 SELECT
                     v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    (1 - (v.embedding <=> CAST(:embedding AS vector))) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', v.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM verses v
                 WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  AND (1 - (v.embedding <=> CAST(:embedding AS vector))) >= :threshold
                   {translation_filter}
             ),
             normalized AS (
@@ -403,10 +403,10 @@ class ScriptureRepository:
             WITH base_search AS (
                 SELECT
                     v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS base_score
+                    (1 - (v.embedding <=> CAST(:embedding AS vector))) AS base_score
                 FROM verses v
                 WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  AND (1 - (v.embedding <=> CAST(:embedding AS vector))) >= :threshold
                   {translation_filter}
             ),
             topic_matches AS (
@@ -513,14 +513,14 @@ class ScriptureRepository:
             WITH ranked AS (
                 SELECT
                     v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    (1 - (v.embedding <=> CAST(:embedding AS vector))) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', v.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM verses v
                 WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
+                  AND (1 - (v.embedding <=> CAST(:embedding AS vector))) >= :threshold
                   {translation_filter}
             ),
             normalized AS (
@@ -674,14 +674,14 @@ class ScriptureRepository:
             WITH ranked AS (
                 SELECT
                     p.id,
-                    (1 - (p.embedding <=> :embedding::vector)) AS semantic_score,
+                    (1 - (p.embedding <=> CAST(:embedding AS vector))) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', p.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM passages p
                 WHERE p.embedding IS NOT NULL
-                  AND (1 - (p.embedding <=> :embedding::vector)) >= :threshold
+                  AND (1 - (p.embedding <=> CAST(:embedding AS vector))) >= :threshold
             ),
             normalized AS (
                 SELECT
