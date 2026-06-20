@@ -179,6 +179,18 @@ export default function ChatIsland({
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
   const [selectedTranslation, setSelectedTranslation] = useState<string>("");
 
+  // Active translation code (manual selection wins over auto-detected)
+  const activeTranslationCode =
+    selectedTranslation ||
+    (translations.some((t) => t.code === detectedTranslation)
+      ? (detectedTranslation as string)
+      : "");
+
+  const activeTranslation = useMemo(
+    () => translations.find((t) => t.code === activeTranslationCode),
+    [translations, activeTranslationCode],
+  );
+
   // Load translations and saved preference on mount
   useEffect(() => {
     const loadTranslations = async () => {
@@ -854,23 +866,35 @@ export default function ChatIsland({
               {/* Language Switcher */}
               <LanguageSwitcher />
 
-              {/* Translation Selector - always visible, disabled when loading */}
-              <div className="flex items-center gap-2">
+              {/* Bible Version Chip — prominent amber badge; click opens native translation dropdown */}
+              <div
+                className={`relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-amber-400 ${
+                  translations.length === 0
+                    ? "border-gray-200 bg-gray-100 cursor-not-allowed"
+                    : "border-amber-300 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                }`}
+                title={tHeader("bibleVersion")}
+              >
+                <Book
+                  className={`w-3.5 h-3.5 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-700"}`}
+                />
+                <span
+                  className={`text-xs font-medium max-w-[5rem] sm:max-w-[8rem] truncate ${translations.length === 0 ? "text-gray-400" : "text-amber-800"}`}
+                >
+                  {activeTranslation
+                    ? activeTranslation.short_name
+                    : tHeader("bibleVersion")}
+                </span>
+                <ChevronDown
+                  className={`w-3 h-3 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-600"}`}
+                />
+                {/* Native select is invisible but handles click-to-open and keyboard navigation */}
                 <select
-                  value={
-                    selectedTranslation ||
-                    (translations.some((t) => t.code === detectedTranslation)
-                      ? (detectedTranslation as string)
-                      : "")
-                  }
+                  value={activeTranslationCode}
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
-                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 max-w-[8rem] sm:max-w-none truncate focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    translations.length === 0
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-600"
-                  }`}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 >
                   <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (
