@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
+
+### Bug Fixes
+
+* **api:** bind embedding via CAST() so asyncpg accepts the vector cast in scripture search ([#768](https://github.com/zioalex/getinspiredbythebible/issues/768)) ([ff455b1](https://github.com/zioalex/getinspiredbythebible/commit/ff455b15d02bf19ce5097f939d13b8912c26f9d1))
+
+### Documentation
+
+* add BITB-053 modern open translations research and BITB-054 first-run feature spotlight ([#757](https://github.com/zioalex/getinspiredbythebible/issues/757)) ([8f9c407](https://github.com/zioalex/getinspiredbythebible/commit/8f9c407357a414d4ec3e46254a42f0c33ff8bb41))
+* **backlog:** add BITB-055 scripture/chat pipeline observability story ([#765](https://github.com/zioalex/getinspiredbythebible/issues/765)) ([ea97f8b](https://github.com/zioalex/getinspiredbythebible/commit/ea97f8b0cb72ada86b92b7cffec31a25e1e5366e))
+
 ## [1.29.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.2...v1.29.3) (2026-06-20)
 
 ### Bug Fixes
