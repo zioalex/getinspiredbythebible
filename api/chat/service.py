@@ -32,7 +32,7 @@ from utils.metrics import (
     verse_grounding_duration_histogram,
     verse_grounding_quotes_checked_counter,
 )
-from utils.timing import record_stage, timed_stage
+from utils.timing import format_timings, record_stage, timed_stage
 from utils.verse_parser import (
     extract_all_references,
     extract_inline_quotes,
@@ -514,7 +514,11 @@ Keep it under 100 words."""
         )
 
         record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
-        logger.info("chat_stage_timings", extra={"timings_ms": timings, "stream": False})
+        logger.info(
+            "chat_stage_timings %s",
+            format_timings(timings),
+            extra={"timings_ms": timings, "stream": False},
+        )
 
         return ChatResponse(
             message_id=message_id,
@@ -1160,7 +1164,11 @@ Keep it under 100 words."""
             ]
 
         record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
-        logger.info("chat_stage_timings", extra={"timings_ms": timings, "stream": True})
+        logger.info(
+            "chat_stage_timings %s",
+            format_timings(timings),
+            extra={"timings_ms": timings, "stream": True},
+        )
 
         yield completion
 

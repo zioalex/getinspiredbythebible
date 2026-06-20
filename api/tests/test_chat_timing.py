@@ -15,7 +15,7 @@ import pytest
 
 from utils import timing
 from utils.metrics import chat_stage_duration_histogram
-from utils.timing import record_stage, timed_stage
+from utils.timing import format_timings, record_stage, timed_stage
 
 
 class TestRecordStage:
@@ -46,6 +46,15 @@ class TestRecordStage:
             record_stage(timings, "generation", 10.0)
 
         assert timings == {"generation": 10.0}
+
+
+class TestFormatTimings:
+    def test_renders_compact_key_value_string(self):
+        timings = {"intent": 3100.5, "retrieval": 8200.1, "total": 11500.0}
+        assert format_timings(timings) == "intent=3100.5 retrieval=8200.1 total=11500.0"
+
+    def test_empty_timings_is_empty_string(self):
+        assert format_timings({}) == ""
 
 
 class _FakeService:

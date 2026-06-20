@@ -41,6 +41,17 @@ def record_stage(
         pass
 
 
+def format_timings(timings: dict[str, float]) -> str:
+    """Render the per-stage timings dict as a compact, log-friendly string.
+
+    e.g. ``{"intent": 3100.5, "retrieval": 8200.1}`` -> ``"intent=3100.5 retrieval=8200.1"``.
+    This lets the single ``chat_stage_timings`` log line carry the breakdown in plain
+    text (readable straight from ``az containerapp logs`` / stdout), not only as
+    Application Insights ``customDimensions``.
+    """
+    return " ".join(f"{stage}={ms}" for stage, ms in timings.items())
+
+
 def timed_stage(
     stage: str,
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
