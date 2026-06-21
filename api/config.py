@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     hybrid_search_enabled: bool = True  # BITB-043: enabled (semantic + FTS keyword, no LLM cost)
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
+    # Size of the HNSW ANN candidate pool fetched per query embedding before
+    # threshold + hybrid re-ranking. Keeps vector search index-backed (the index
+    # only accelerates `ORDER BY embedding <=> q LIMIT k`) instead of a full scan.
+    vector_candidate_pool: int = 100
 
     # Topic Boosting Settings
     topic_boosting_enabled: bool = False  # Feature flag for topic-based search boosting
