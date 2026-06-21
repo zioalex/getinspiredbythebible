@@ -1,5 +1,5 @@
-import { screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import ChatMessage from "./ChatMessage";
 import { renderWithIntl } from "@/test/i18n-helpers";
 
@@ -99,5 +99,63 @@ describe("ChatMessage feedback controls visibility", () => {
       />,
     );
     expect(screen.queryByLabelText("Thumbs up")).toBeNull();
+  });
+});
+
+describe("ChatMessage copy user prompt (BITB-047)", () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    writeText.mockReset();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+  });
+
+  it("renders copy button on user messages", () => {
+    renderWithIntl(
+      <ChatMessage message={{ role: "user", content: "My question" }} />,
+    );
+    expect(screen.getByLabelText("Copy message")).toBeDefined();
+  });
+
+  it("does not render copy button on assistant messages", () => {
+    renderWithIntl(
+      <ChatMessage
+        message={{ role: "assistant", content: "An answer" }}
+      />,
+    );
+    expect(screen.queryByLabelText("Copy message")).toBeNull();
+  });
+
+  it("copies question text to clipboard on click", async () => {
+    renderWithIntl(
+      <ChatMessage message={{ role: "user", content: "My question" }} />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Copy message"));
+    });
+    expect(writeText).toHaveBeenCalledWith("My question");
+  });
+
+  it("shows checkmark after copy and reverts after 2s", async () => {
+    vi.useFakeTimers();
+    renderWithIntl(
+      <ChatMessage message={{ role: "user", content: "My question" }} />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Copy message"));
+    });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Copied")).toBeDefined(),
+    );
+    await act(async () => {
+      vi.advanceTimersByTime(2100);
+    });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Copy message")).toBeDefined(),
+    );
+    vi.useRealTimers();
   });
 });

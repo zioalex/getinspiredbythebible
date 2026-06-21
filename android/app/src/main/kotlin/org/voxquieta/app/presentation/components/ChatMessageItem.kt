@@ -616,6 +616,29 @@ fun ChatMessageItem(
                 }
             }
 
+            // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
+            if (isUser && message.content.isNotBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
+                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.action_copy_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Inline scripture cards — show the actual text of the verses the backend cited
             // for this answer, directly under the message (matching the web's verse cards),
             // so the verse text is visible without opening the top-bar Verses panel.

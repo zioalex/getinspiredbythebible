@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { User, BookOpen } from "lucide-react";
+import React, { useState } from "react";
+import { User, BookOpen, Copy, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Message } from "@/lib/api";
 import ShareMenu from "./ShareMenu";
@@ -47,6 +47,25 @@ export default function ChatMessage({
   feedbackDisabled = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = message.content;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
   const handleTextClick = (e: React.MouseEvent) => {
@@ -187,7 +206,22 @@ export default function ChatMessage({
         }`}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <>
+            <p className="whitespace-pre-wrap">{message.content}</p>
+            <div className="flex justify-end mt-1.5">
+              <button
+                onClick={handleCopyPrompt}
+                aria-label={copied ? "Copied" : "Copy message"}
+                className="p-1 rounded text-white/60 hover:text-white transition-colors"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2">
