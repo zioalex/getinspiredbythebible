@@ -35,6 +35,38 @@ chat_stream_counter = meter.create_counter(
     unit="1",
 )
 
+# Per-stage latency breakdown within a single chat request. The `stage` attribute
+# carries which step the duration belongs to (content_safety | intent |
+# query_expansion | retrieval | ttft | generation | grounding | total), so a single
+# histogram answers "where does the minute go?" without one metric per stage.
+chat_stage_duration_histogram = meter.create_histogram(
+    name="chat.stage.duration_ms",
+    description="Per-stage latency within a single chat request",
+    unit="ms",
+)  # attributes: stage, stream (bool), provider
+
+# ── Verse grounding / scripture-fidelity metrics ──────────────────────────
+# Post-generation grounding rewrites fabricated/mismatched inline verse quotes
+# to the canonical DB text. These metrics make recurrences visible and track the
+# latency the step adds, so we never trade correctness for a silent slowdown.
+verse_grounding_quotes_checked_counter = meter.create_counter(
+    name="chat.verse_grounding.quotes_checked",
+    description="Inline verse quotes inspected by the grounding step",
+    unit="1",
+)  # attributes: language
+
+verse_grounding_corrections_counter = meter.create_counter(
+    name="chat.verse_grounding.corrections",
+    description="Inline verse quotes found fabricated/mismatched/unresolved during grounding",
+    unit="1",
+)  # attributes: language, reason (fabricated|mismatched|unresolved), corrected (bool), book
+
+verse_grounding_duration_histogram = meter.create_histogram(
+    name="chat.verse_grounding.duration_ms",
+    description="Latency overhead added by the post-generation grounding/correction step",
+    unit="ms",
+)  # attributes: language, corrected (bool)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",

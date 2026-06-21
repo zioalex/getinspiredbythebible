@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-20
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -205,9 +205,9 @@ BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
 
 ---
 
-### 🎯 BITB-043: Validate & Enable Phase-1 Search Improvements
+### 🚧 BITB-043: Validate & Enable Phase-1 Search Improvements
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Size:** M (1-2 days)
 **Created:** 2026-06-07
 
@@ -215,21 +215,136 @@ BITB-043 (validate + enable) and BITB-044 (populate `verse_topics`).
 (semantic + keyword) retrieval, **so that** I get thematically relevant verses instead of
 literal matches — without waiting on new retrieval code.
 
-**Why P1:** Highest-ROI item on the search backlog. The code is merged but gated off and
-unvalidated for ~3.5 months. This story builds a golden eval set, measures baseline, then
-safely enables hybrid search (strict-improvement) and A/B-tests query expansion. Low risk
-(feature-flagged, backward-compatible). Topic boosting is excluded here — blocked on data
-(BITB-044).
+**Why P1:** Highest-ROI item on the search backlog. Query expansion is now enabled
+(#741, released 1.27.0) and hybrid search is being enabled (trimmed PR #727). The
+remaining work — a golden eval set + scorer to validate and tune these — is carved out
+into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044).
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Golden eval set (50+ multilingual queries) + scorer for Precision@5 / Recall@10 / MRR
-- [ ] Baseline measured with flags off
-- [ ] Hybrid search enabled in prod; exact-phrase cases pass; no regression
-- [ ] Query expansion enabled (staged/A-B); total latency < 2s; LLM cost measured
-- [ ] Hybrid weights tuned + documented; retrospective in `docs/DONE/`
+- [x] Query expansion enabled by default (#741)
+- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
+- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
+
+---
+
+### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
+
+**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Size:** L (3-5 days, 5 small PRs)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** a repeatable scorer that measures verse-retrieval
+ranking (Precision@5 / Recall@10 / MRR) over a curated multilingual golden set, **so
+that** I can validate whether query expansion / hybrid search actually help and tune
+their weights instead of shipping search changes blind.
+
+**Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
+Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
+normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
+languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
+report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+(1536) everywhere** to match prod; per-PR CI is validate-only.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] P0: PR #727 trimmed to hybrid-search enablement only
+- [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
+- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
+
+---
+
+### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-16
+
+**As the** maintainer, **I want** book/verse references to canonicalize reliably across
+all 11 languages and their common citation variants, **so that** the retrieval-eval
+metrics (BITB-051) and the app's shared verse-linking don't silently mishandle references.
+
+**Why P2:** Surfaced during BITB-051 P1 review — `normalize_book_name` coverage is uneven:
+localized singular/citation forms (Italian `Salmo`, German `Psalm`, Spanish/French/PT) and
+abbreviations are missing for several languages (Arabic/Russian have them), numbered-book
+variants and case/diacritic handling are gaps, and per-translation **versification**
+offsets can mis-score a correct hit. Low impact for BITB-051 today (its refs are
+English-canonical) but affects localized input and the app-wide normalizer.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-language coverage matrix identifying every gap
+- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
+- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [ ] Versification offsets quantified + documented handling decision (with tests)
+- [ ] Table-driven tests across all 11 languages green
+
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
+numbered-book references fail to parse *with and without* parentheses —
+`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
+`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
+**versification/divergence** note: the frontend verse parser does not support German comma
+separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
+scope here.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
+### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As a** user reading a Bible answer in any language, **I want** the scripture presented to match
+the real verse **even when it is not in quotation marks**, **so that** paraphrased "citations"
+can't drift from the canonical text.
+
+**Why P2:** Grounding (`verse_grounding.py`) only rewrites *quoted* spans adjacent to a reference.
+An unquoted paraphrase (`In Isaia 41:10 Dio ci dice di non temere…`) is never corrected — the
+largest remaining "citation doesn't match the DB" class once parenthesized-reference parsing is
+fixed.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Unquoted reference-adjacent paraphrase corrected/surfaced to canonical text
+- [ ] Ordinary discussion *about* a verse never altered (negative tests)
+- [ ] Parametrized cross-language tests (all 11) + version-faithfulness + chat/chat_stream integration
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-053-ground-unquoted-paraphrased-citations.md`
+
+---
+
+### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
+can't be resolved in the user's translation, **so that** a missing/incomplete translation never
+shows up as silently hallucinated scripture.
+
+**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
+grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
+manual SQL snippet, and the unresolved path is invisible.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
+- [ ] Startup/CI warning + metric when a supported language has no usable verse data
+- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
 
 ---
 
@@ -776,6 +891,34 @@ Testing & Documentation:
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
+### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-20
+
+**As the** operator, **I want** the scripture/chat pipeline to emit explicit failure and
+degradation signals (metrics, alerts, synthetic checks) instead of swallowing errors and serving a
+verse-less answer, **so that** a broken search/grounding path is detected in minutes, not weeks.
+
+**Why P2:** A misplaced `# nosec` broke all DB-backed verse retrieval for ~2 weeks with zero alerts
+(fixed in PR #764). The pipeline fails open through three `except` blocks, monitoring is reactive
+log-scraping the bug slipped through twice, no metric distinguished "served with verses" from
+"served empty," and CI never executes the real SQL. This hardens the whole class of failure.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Explicit error counters in the three `except` paths; alert on the metric, not log text
+- [ ] Business SLI: rate of responses served with zero DB verses / zero resolved citations
+- [ ] End-to-end synthetic check that the chat path returns cited/grounded verses
+- [ ] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
+- [ ] Fail loud (guard/CI check) when prod alerting is disabled
+- [ ] Integration test running the real search/grounding SQL against the Postgres service container
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-055-scripture-pipeline-observability.md`
+
+---
+
 ### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
 **Status:** 🎯 Todo
@@ -869,6 +1012,27 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 - [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+
+---
+
+### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-15
+
+**As an** Android user submitting the contact form, **I want** an accurate error that names the
+email field when my submission is rejected, **so that** I'm not misled into thinking my message was
+too long.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android: a missing/invalid-email 422 shows an email-specific error, never the "max 300 characters" message
+- [ ] Android: the chat message-length 422 still maps to `error_message_too_long`
+- [ ] Android: email validated as required (no blank→null); `contact_email_label` updated from "optional" in all locales
+- [ ] Tests: `ChatViewModelTest` pins the 422 split; web has no equivalent bug (verified — optional follow-up only)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-contact-form-misleading-validation-error.md`
 
 ---
 
@@ -1183,6 +1347,26 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+
+**Status:** 🎯 Todo
+**Size:** S (< 2 hrs)
+**Created:** 2026-06-16
+
+**As a** web user submitting the contact form, **I want** an email-specific error when my
+submission is rejected for an invalid email, **so that** I can fix it instead of seeing a generic
+"failed to send". Web follow-up to BITB-051 (web has no 300-char misreport, just a generic error).
+
+**Acceptance Criteria (summary):**
+
+- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
+
+---
 
 ### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
