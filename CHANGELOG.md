@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.30.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.4...v1.30.0) (2026-06-20)
+
+### Features
+
+* **api:** instrument per-stage chat pipeline timing ([#769](https://github.com/zioalex/getinspiredbythebible/issues/769)) ([db7ab72](https://github.com/zioalex/getinspiredbythebible/commit/db7ab722b20151ef6203ce3524b9fc6019619950))
+
 ## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
 
 ### Bug Fixes
