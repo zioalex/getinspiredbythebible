@@ -194,6 +194,7 @@ class ScriptureSearchService:
         translation: str | None = None,
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
+        extra_embeddings: list[list[float]] | None = None,
     ) -> SearchResults:
         """
         Hybrid search combining semantic similarity and keyword matching.
@@ -214,7 +215,7 @@ class ScriptureSearchService:
         embedding_response = await self.embedding_provider.embed(query)
         query_embedding = embedding_response.embedding
 
-        # Hybrid search verses
+        # Hybrid search verses (multi-embedding when query expansion supplies extras)
         verse_results = await self.repo.search_verses_hybrid(
             query_text=query,
             query_embedding=query_embedding,
@@ -223,6 +224,7 @@ class ScriptureSearchService:
             similarity_threshold=similarity_threshold,
             limit=max_verses,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(
@@ -305,6 +307,7 @@ class ScriptureSearchService:
             limit=max_verses,
             similarity_threshold=similarity_threshold,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(
@@ -362,6 +365,7 @@ class ScriptureSearchService:
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
         topic_boost_factor: float = 0.2,
+        extra_embeddings: list[list[float]] | None = None,
     ) -> SearchResults:
         """
         Hybrid search with topic-based boosting.
@@ -379,6 +383,7 @@ class ScriptureSearchService:
             similarity_threshold=similarity_threshold,
             limit=max_verses,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(

@@ -179,6 +179,8 @@ class TestChatOffTopicFlow:
         # Mock the search service to avoid DB calls
         chat_service.search_service = AsyncMock()
         chat_service.search_service.search = AsyncMock(return_value=None)
+        chat_service.search_service.search_hybrid = AsyncMock(return_value=None)
+        chat_service.search_service.search_hybrid_boosted = AsyncMock(return_value=None)
         chat_service.search_service.get_verse = AsyncMock(return_value=None)
         chat_service.search_service.get_verse_range = AsyncMock(return_value=[])
 
@@ -204,6 +206,8 @@ class TestChatOffTopicFlow:
         # Mock the search service to avoid DB calls
         chat_service.search_service = AsyncMock()
         chat_service.search_service.search = AsyncMock(return_value=None)
+        chat_service.search_service.search_hybrid = AsyncMock(return_value=None)
+        chat_service.search_service.search_hybrid_boosted = AsyncMock(return_value=None)
         chat_service.search_service.get_verse = AsyncMock(return_value=None)
         chat_service.search_service.get_verse_range = AsyncMock(return_value=[])
 

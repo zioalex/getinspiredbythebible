@@ -215,7 +215,8 @@ class TestEmbeddingBindCompilesForAsyncpg:
     def _assert_clean(sql: str, positiontup) -> None:
         # No named bind may leak to asyncpg; the embedding must actually be bound.
         assert ":" not in sql, f"unbound named parameter leaked into SQL: {sql}"
-        assert "embedding" in positiontup
+        # Each query embedding is bound as emb0..embN by _candidate_pool_cte.
+        assert "emb0" in positiontup
         assert "embeddin" not in positiontup  # the phantom bind from the ::vector bug
 
     @pytest.mark.asyncio
@@ -401,6 +402,35 @@ class TestScriptureSearchServiceHybrid:
         call_kwargs = mock_verses.call_args[1]
         assert call_kwargs["semantic_weight"] == 0.6
         assert call_kwargs["keyword_weight"] == 0.4
+
+    @pytest.mark.asyncio
+    async def test_search_hybrid_forwards_extra_embeddings(self):
+        """Query-expansion embeddings must reach the verses builder.
+
+        Regression guard: extras previously flowed only into the throwaway semantic
+        search() and never into search_hybrid(), so expansion had no effect on answers.
+        """
+        mock_session = AsyncMock()
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed.return_value = MagicMock(embedding=[0.1] * 1024)
+
+        service = ScriptureSearchService(mock_session, mock_embedding_provider)
+
+        extras = [[0.2] * 1024]
+        with (
+            patch.object(
+                service.repo, "search_verses_hybrid", new_callable=AsyncMock
+            ) as mock_verses,
+            patch.object(
+                service.repo, "search_passages_hybrid", new_callable=AsyncMock
+            ) as mock_passages,
+        ):
+            mock_verses.return_value = []
+            mock_passages.return_value = []
+
+            await service.search_hybrid(query="test", extra_embeddings=extras)
+
+        assert mock_verses.call_args[1]["extra_embeddings"] == extras
 
 
 # ==================== Config Validation Tests ====================

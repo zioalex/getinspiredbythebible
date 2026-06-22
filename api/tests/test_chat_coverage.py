@@ -888,7 +888,8 @@ class TestChatServiceSearchScripture:
     async def test_search_exception_returns_none(self):
         service, _, embedding = _make_chat_service()
         service.search_service = AsyncMock()
-        service.search_service.search = AsyncMock(side_effect=Exception("DB error"))
+        # Default path runs hybrid search; make it raise to exercise the fail-open guard.
+        service.search_service.search_hybrid = AsyncMock(side_effect=Exception("DB error"))
 
         request = ChatRequest(message="test")
         context, prompt = await service._search_scripture(request, "kjv", [], False)
