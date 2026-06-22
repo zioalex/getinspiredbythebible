@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.30.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.0...v1.30.1) (2026-06-21)
+
+### Performance Improvements
+
+* **api:** index-backed hybrid search + working query expansion ([#772](https://github.com/zioalex/getinspiredbythebible/issues/772)) ([ff93286](https://github.com/zioalex/getinspiredbythebible/commit/ff932864c1a19fc51f9b358a0cfa297cd79c1dd2))
+
+## [1.30.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.4...v1.30.0) (2026-06-20)
+
+### Features
+
+* **api:** instrument per-stage chat pipeline timing ([#769](https://github.com/zioalex/getinspiredbythebible/issues/769)) ([db7ab72](https://github.com/zioalex/getinspiredbythebible/commit/db7ab722b20151ef6203ce3524b9fc6019619950))
+
 ## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
 
 ### Bug Fixes

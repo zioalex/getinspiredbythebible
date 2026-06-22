@@ -669,17 +669,12 @@ Keep it under 100 words."""
             if settings.topic_boosting_enabled:
                 boost_topics = self._detect_topics(request.message)
 
-            # Semantic or hybrid search (optionally with topic boosting)
+            # Semantic or hybrid search (optionally with topic boosting).
+            # Query-expansion embeddings (when present) feed straight into the hybrid
+            # search so expansion actually widens recall on the result we use — and the
+            # HNSW candidate pool keeps it index-backed (no full-table scan).
             if settings.hybrid_search_enabled:
                 if settings.topic_boosting_enabled and boost_topics:
-                    semantic_results = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        extra_embeddings=extra_embeddings,
-                    )
                     scripture_context = await self.search_service.search_hybrid_boosted(
                         query=request.message,
                         boost_topics=boost_topics,
@@ -690,16 +685,9 @@ Keep it under 100 words."""
                         semantic_weight=settings.hybrid_search_semantic_weight,
                         keyword_weight=settings.hybrid_search_keyword_weight,
                         topic_boost_factor=settings.topic_boost_factor,
-                    )
-                else:
-                    semantic_results = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
                         extra_embeddings=extra_embeddings,
                     )
+                else:
                     scripture_context = await self.search_service.search_hybrid(
                         query=request.message,
                         max_verses=settings.max_context_verses,
@@ -708,19 +696,7 @@ Keep it under 100 words."""
                         translation=translation,
                         semantic_weight=settings.hybrid_search_semantic_weight,
                         keyword_weight=settings.hybrid_search_keyword_weight,
-                    )
-                # Log differences for monitoring
-                semantic_refs = {v.reference for v in semantic_results.verses}
-                hybrid_refs = {v.reference for v in scripture_context.verses}
-                new_in_hybrid = hybrid_refs - semantic_refs
-                dropped_in_hybrid = semantic_refs - hybrid_refs
-                if new_in_hybrid or dropped_in_hybrid:
-                    logger.info(
-                        "Hybrid search result differences",
-                        extra={
-                            "new_in_hybrid": list(new_in_hybrid),
-                            "dropped_in_hybrid": list(dropped_in_hybrid),
-                        },
+                        extra_embeddings=extra_embeddings,
                     )
             else:
                 if settings.topic_boosting_enabled and boost_topics:
