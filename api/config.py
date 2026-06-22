@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     hybrid_search_enabled: bool = True  # BITB-043: enabled (semantic + FTS keyword, no LLM cost)
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
+    # Size of the HNSW ANN candidate pool fetched per query embedding before
+    # threshold + hybrid re-ranking. Keeps vector search index-backed (the index
+    # only accelerates `ORDER BY embedding <=> q LIMIT k`) instead of a full scan.
+    vector_candidate_pool: int = 100
 
     # Topic Boosting Settings
     topic_boosting_enabled: bool = False  # Feature flag for topic-based search boosting
@@ -130,6 +134,13 @@ class Settings(BaseSettings):
     content_filter_max_urls: int = 0  # Block URLs (0 = no URLs allowed)
     content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
+
+    # Verse grounding (post-generation scripture fidelity)
+    verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
+    # When a cited verse cannot be resolved in the DB at all, strip the invented
+    # quotation rather than only logging it. Off by default — grammar-safe
+    # stripping across 11 languages is risky, so detect-and-log first.
+    grounding_strip_unresolved: bool = False
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

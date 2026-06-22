@@ -565,3 +565,60 @@ class TestContentSafetySmoke:
 # skip when CONTENT_SAFETY_ENABLED=false, making them safe to run in any environment.
 # General input validation tests (not specific to content safety) remain in the unit
 # test suite (api/tests/test_api.py) where Turnstile is not active.
+
+
+# ---------------------------------------------------------------------------
+# Chat grounding smoke — the chat path must return DB-sourced scripture
+# ---------------------------------------------------------------------------
+
+
+class TestChatGroundingSmoke:
+    """Post-deploy smoke test that the chat path actually returns DB-backed verses.
+
+    Why this exists
+    ---------------
+    A broken hybrid-search query (PR #764's stray ``#``; the ``:embedding::vector``
+    cast asyncpg could not bind) silently broke all DB verse retrieval for ~2 weeks.
+    The pipeline fails open — ``/chat`` still returned HTTP 200 with an empty
+    ``scripture_context`` — so a status-code check alone never noticed.
+
+    Unlike ``GET /scripture/search`` (which uses *semantic* search), the chat
+    endpoint exercises ``search_hybrid`` / ``search_hybrid_boosted`` — the exact
+    builders that broke. We assert at least one verse is grounded, not just 200.
+
+    Best-effort in production: skips on free-tier LLM timeouts or edge (Turnstile)
+    blocks, since the verse retrieval is only observable in the final response.
+    """
+
+    def test_chat_returns_grounded_scripture(self, api):
+        """POST /chat for a scripture-eliciting message must include >=1 verse."""
+        message = "What does the Bible say about hope and trusting God?"
+        try:
+            r = api.post("/api/v1/chat", json={"message": message}, timeout=60.0)
+        except httpx.ReadTimeout:
+            pytest.skip(
+                "LLM did not respond within timeout (expected on free tier) — "
+                "cannot observe scripture_context."
+            )
+
+        # Edge/Turnstile may block raw POSTs in some environments.
+        if r.status_code in (401, 403):
+            pytest.skip(f"Chat POST blocked by edge/Turnstile (status {r.status_code}).")
+
+        assert r.status_code == 200, f"chat failed: {r.status_code} — {r.text[:300]}"
+        data = r.json()
+
+        ctx = data.get("scripture_context")
+        assert ctx, (
+            "scripture_context missing/empty — DB verse retrieval (search_hybrid) is "
+            f"likely failing silently. Response keys: {list(data.keys())}"
+        )
+        verses = ctx.get("verses") or []
+        assert len(verses) > 0, (
+            "Chat returned ZERO scripture verses — hybrid search produced no DB results. "
+            "This is the silent fail-open signature behind the BITB-055 / #764 outage."
+        )
+        # Grounded verses carry real references and text, not LLM-invented strings.
+        first = verses[0]
+        for field in ("reference", "text"):
+            assert first.get(field), f"grounded verse missing {field!r}: {first}"

@@ -496,6 +496,22 @@ export default function ChatIsland({
         } else if (chunk.type === "completion") {
           // Server-provided verse citations (dual-source: LLM structured + regex)
           receivedCompletion = true;
+          // If grounding rewrote a fabricated/mismatched verse quote, swap the
+          // streamed text for the authoritative corrected body.
+          if (chunk.corrected_message) {
+            streamedContent = chunk.corrected_message;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  content: streamedContent,
+                };
+              }
+              return updated;
+            });
+          }
           if (chunk.verses_cited) {
             const serverCited = (chunk.verses_cited as string[]).map(
               (v: string) => v.toLowerCase(),

@@ -118,6 +118,7 @@
     <string name="error_server">Error del servidor. Inténtalo más tarde.</string>
     <string name="error_generic">Algo salió mal. Inténtalo de nuevo.</string>
     <string name="error_message_too_long">Tu mensaje es un poco largo (máximo %1$d caracteres). Acórtalo e inténtalo de nuevo.</string>
+    <string name="error_contact_email_invalid">Introduce un correo válido para que podamos responder.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversaciones</string>
@@ -243,7 +244,9 @@
     <string name="contact_subject_bug">Informe de error</string>
     <string name="contact_subject_feature">Solicitud de función</string>
     <string name="contact_subject_other">Otro</string>
-    <string name="contact_email_label">Tu correo (opcional, para respuesta)</string>
+    <string name="contact_email_label">Tu correo (para nuestra respuesta)</string>
+    <string name="contact_email_required">Introduce tu correo para que podamos responder</string>
+    <string name="contact_email_invalid">Introduce una dirección de correo válida</string>
     <string name="contact_email_placeholder">tu@ejemplo.com</string>
     <string name="contact_message_label">Mensaje</string>
     <string name="contact_message_placeholder">Comparte tus pensamientos, informa un problema o sugiere una mejora…</string>

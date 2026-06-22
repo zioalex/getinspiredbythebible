@@ -27,6 +27,49 @@ from .models import Book, Passage, Topic, Verse
 logger = get_logger("scripture.repository")
 
 
+def _vector_literal(embedding: list[float]) -> str:
+    """Format an embedding as a pgvector literal string (e.g. ``[0.1,0.2,...]``)."""
+    return f"[{','.join(str(x) for x in embedding)}]"
+
+
+def _candidate_pool_cte(
+    embeddings: list[list[float]],
+    params: dict,
+    *,
+    table: str,
+    translation_filter: str,
+) -> str:
+    """Build the ``candidates`` + ``dedup`` CTEs for an HNSW-backed vector search.
+
+    For each query embedding, pull an ANN candidate pool with the index-friendly
+    ``ORDER BY embedding <=> q LIMIT :candidate_pool`` (this is the only shape the
+    HNSW index accelerates — a ``WHERE (1 - dist) >= threshold`` filter forces a full
+    scan). The per-embedding pools are ``UNION ALL``-ed and deduped by the smallest
+    distance (= highest similarity) per row, so multiple embeddings (query expansion)
+    widen recall while a single embedding is the plain fast path.
+
+    Mutates ``params`` to add ``emb0..embN``; the caller must also set
+    ``candidate_pool``. ``translation_filter`` must reference *unaliased* columns
+    because each subquery selects ``FROM <table>`` with no alias.
+    """
+    subqueries = []
+    for i, embedding in enumerate(embeddings):
+        key = f"emb{i}"
+        params[key] = _vector_literal(embedding)
+        subqueries.append(
+            f"(SELECT id, embedding <=> CAST(:{key} AS vector) AS dist "
+            f"FROM {table} "
+            f"WHERE embedding IS NOT NULL {translation_filter} "
+            f"ORDER BY embedding <=> CAST(:{key} AS vector) "
+            f"LIMIT :candidate_pool)"
+        )
+    union = " UNION ALL ".join(subqueries)
+    return (
+        f"candidates AS ({union}), "
+        f"dedup AS (SELECT id, MIN(dist) AS dist FROM candidates GROUP BY id)"
+    )
+
+
 def _set_common_span_attrs(span: Span, operation: str, translation: str | None) -> None:
     """Set standard span attributes common to all DB operations."""
     span.set_attribute("db.operation", operation)
@@ -267,6 +310,8 @@ class ScriptureRepository:
         similarity_threshold: float = 0.35,
         limit: int = 10,
         translation: str | None = None,
+        extra_embeddings: list[list[float]] | None = None,
+        candidate_pool: int | None = None,
     ) -> list[tuple["Verse", float]]:
         """
         Hybrid search combining semantic similarity and keyword matching.
@@ -289,35 +334,42 @@ class ScriptureRepository:
             semantic_weight /= total_weight
             keyword_weight /= total_weight
 
-        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+        embeddings = [query_embedding, *(extra_embeddings or [])]
 
         translation_filter = ""
         params: dict = {
-            "embedding": embedding_str,
             "query_text": query_text,
             "threshold": similarity_threshold,
             "semantic_weight": semantic_weight,
             "keyword_weight": keyword_weight,
             "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
         }
 
         if translation:
-            translation_filter = "AND v.translation = :translation"
+            translation_filter = "AND translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
-            WITH ranked AS (
+        candidate_cte = _candidate_pool_cte(
+            embeddings, params, table="verses", translation_filter=translation_filter
+        )
+
+        # Index-friendly + multi-embedding: each embedding pulls an HNSW candidate pool,
+        # then threshold + keyword + hybrid-rank run only on the small deduped pool.
+        # Parameterized query: only :named binds + internal translation_filter constant.
+        sql = f"""
+            WITH {candidate_cte},
+            ranked AS (
                 SELECT
-                    v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    d.id,
+                    (1 - d.dist) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', v.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
-                FROM verses v
-                WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
-                  {translation_filter}
+                FROM dedup d
+                JOIN verses v ON v.id = d.id
+                WHERE (1 - d.dist) >= :threshold
             ),
             normalized AS (
                 SELECT
@@ -365,6 +417,8 @@ class ScriptureRepository:
         limit: int = 5,
         similarity_threshold: float = 0.35,
         translation: str | None = None,
+        extra_embeddings: list[list[float]] | None = None,
+        candidate_pool: int | None = None,
     ) -> list[tuple["Verse", float]]:
         """
         Semantic search with optional topic-based score boosting.
@@ -383,29 +437,31 @@ class ScriptureRepository:
         Returns:
             List of (verse, final_score) tuples ordered by final_score DESC
         """
-        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+        embeddings = [query_embedding, *(extra_embeddings or [])]
         translation_filter = ""
         params: dict = {
-            "embedding": embedding_str,
             "threshold": similarity_threshold,
             "topic_boost_factor": topic_boost_factor,
             "boost_topics": boost_topics,
             "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
         }
 
         if translation:
-            translation_filter = "AND v.translation = :translation"
+            translation_filter = "AND translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
-            WITH base_search AS (
-                SELECT
-                    v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS base_score
-                FROM verses v
-                WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
-                  {translation_filter}
+        candidate_cte = _candidate_pool_cte(
+            embeddings, params, table="verses", translation_filter=translation_filter
+        )
+
+        # Parameterized query: only :named binds + internal translation_filter constant (no user SQL).
+        sql = f"""
+            WITH {candidate_cte},
+            base_search AS (
+                SELECT id, (1 - dist) AS base_score
+                FROM dedup
+                WHERE (1 - dist) >= :threshold
             ),
             topic_matches AS (
                 SELECT
@@ -476,6 +532,8 @@ class ScriptureRepository:
         similarity_threshold: float = 0.35,
         limit: int = 10,
         translation: str | None = None,
+        extra_embeddings: list[list[float]] | None = None,
+        candidate_pool: int | None = None,
     ) -> list[tuple["Verse", float]]:
         """
         Hybrid search with topic-based score boosting.
@@ -489,10 +547,9 @@ class ScriptureRepository:
             semantic_weight /= total_weight
             keyword_weight /= total_weight
 
-        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
+        embeddings = [query_embedding, *(extra_embeddings or [])]
         translation_filter = ""
         params: dict = {
-            "embedding": embedding_str,
             "query_text": query_text,
             "threshold": similarity_threshold,
             "semantic_weight": semantic_weight,
@@ -500,25 +557,31 @@ class ScriptureRepository:
             "topic_boost_factor": topic_boost_factor,
             "boost_topics": boost_topics,
             "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
         }
 
         if translation:
-            translation_filter = "AND v.translation = :translation"
+            translation_filter = "AND translation = :translation"
             params["translation"] = translation
 
-        sql = f"""  # nosec B608 - parameterized query, safe from SQL injection
-            WITH ranked AS (
+        candidate_cte = _candidate_pool_cte(
+            embeddings, params, table="verses", translation_filter=translation_filter
+        )
+
+        # Parameterized query: only :named binds + internal translation_filter constant (no user SQL).
+        sql = f"""
+            WITH {candidate_cte},
+            ranked AS (
                 SELECT
-                    v.id,
-                    (1 - (v.embedding <=> :embedding::vector)) AS semantic_score,
+                    d.id,
+                    (1 - d.dist) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', v.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
-                FROM verses v
-                WHERE v.embedding IS NOT NULL
-                  AND (1 - (v.embedding <=> :embedding::vector)) >= :threshold
-                  {translation_filter}
+                FROM dedup d
+                JOIN verses v ON v.id = d.id
+                WHERE (1 - d.dist) >= :threshold
             ),
             normalized AS (
                 SELECT
@@ -635,6 +698,7 @@ class ScriptureRepository:
         keyword_weight: float = 0.3,
         similarity_threshold: float = 0.35,
         limit: int = 3,
+        candidate_pool: int | None = None,
     ) -> list[tuple["Passage", float]]:
         """
         Hybrid search on passages combining semantic similarity and keyword matching.
@@ -656,29 +720,33 @@ class ScriptureRepository:
             semantic_weight /= total_weight
             keyword_weight /= total_weight
 
-        embedding_str = f"[{','.join(str(x) for x in query_embedding)}]"
-
         params: dict = {
-            "embedding": embedding_str,
             "query_text": query_text,
             "threshold": similarity_threshold,
             "semantic_weight": semantic_weight,
             "keyword_weight": keyword_weight,
             "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
         }
 
-        sql = """
-            WITH ranked AS (
+        candidate_cte = _candidate_pool_cte(
+            [query_embedding], params, table="passages", translation_filter=""
+        )
+
+        # Index-friendly: HNSW candidate pool, then threshold + keyword + hybrid-rank.
+        sql = f"""
+            WITH {candidate_cte},
+            ranked AS (
                 SELECT
-                    p.id,
-                    (1 - (p.embedding <=> :embedding::vector)) AS semantic_score,
+                    d.id,
+                    (1 - d.dist) AS semantic_score,
                     ts_rank(
                         to_tsvector('simple', p.text),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
-                FROM passages p
-                WHERE p.embedding IS NOT NULL
-                  AND (1 - (p.embedding <=> :embedding::vector)) >= :threshold
+                FROM dedup d
+                JOIN passages p ON p.id = d.id
+                WHERE (1 - d.dist) >= :threshold
             ),
             normalized AS (
                 SELECT

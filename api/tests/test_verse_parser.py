@@ -1,5 +1,7 @@
 """Tests for the verse reference and prayer pattern parser."""
 
+import pytest
+
 from utils.verse_parser import (
     VerseReference,
     extract_all_references,
@@ -1445,3 +1447,61 @@ class TestParseStructuredCitations:
         results = parse_structured_citations(text)
         assert len(results) == 1
         assert results[0].book == "1 Corinthians"
+
+
+class TestWrappedReferencesAllLanguages:
+    """Bracketed/parenthesized citations — `(John 3:16)`, `[Salmo 23:1]`,
+    Chinese fullwidth `（约翰福音 3:16）` — must parse in every supported language.
+
+    Regression: the backend pattern used a positive-whitelist lookbehind that
+    omitted `(` / `[`, so wrapped references (the single most common citation
+    format) were silently dropped and never resolved from the DB. Per AGENTS.md
+    "Multilingual & Multi-Version Correctness", this is checked across all 11
+    languages plus numbered books, ranges, and ASCII/fullwidth brackets.
+    """
+
+    # (label, wrapped_text, expected_canonical_reference)
+    PAREN_CASES = [
+        ("en", "Take heart (John 3:16) today.", "John 3:16"),
+        ("en-bracket", "Hope [Psalm 23:1] holds.", "Psalms 23:1"),
+        ("en-range", "Nothing separates us (Romans 8:38-39).", "Romans 8:38-39"),
+        ("en-numbered", "Love (1 Corinthians 13:4) is patient.", "1 Corinthians 13:4"),
+        ("it", "Coraggio (Giovanni 3:16).", "John 3:16"),
+        ("it-numbered", "Dio è amore (1 Giovanni 4:8).", "1 John 4:8"),
+        ("de-comma", "Trost (Johannes 3,16) heute.", "John 3:16"),
+        ("de-numbered", "Liebe (1. Korinther 13,4).", "1 Corinthians 13:4"),
+        ("es", "Ánimo (Juan 3:16).", "John 3:16"),
+        ("fr", "Courage (Jean 3:16).", "John 3:16"),
+        ("pt", "Coragem (João 3:16).", "John 3:16"),
+        ("ru", "Утешение (Иоанна 3:16).", "John 3:16"),
+        ("ar", "تعزية (يوحنا 3:16).", "John 3:16"),
+        ("hi", "सांत्वना (यूहन्ना 3:16)।", "John 3:16"),
+        ("zh-fullwidth", "安慰（约翰福音 3:16）。", "John 3:16"),
+        ("ko", "위로 (요한복음 3:16).", "John 3:16"),
+    ]
+
+    @pytest.mark.parametrize("label,text,expected", PAREN_CASES, ids=[c[0] for c in PAREN_CASES])
+    def test_parenthesized_reference_parses(self, label, text, expected):
+        refs = [str(r) for r in extract_all_references(text)]
+        assert expected in refs, f"[{label}] {text!r} -> {refs}, expected {expected}"
+
+    @pytest.mark.parametrize("label,text,expected", PAREN_CASES, ids=[c[0] for c in PAREN_CASES])
+    def test_parse_single_parenthesized_reference(self, label, text, expected):
+        ref = parse_verse_reference(text)
+        assert ref is not None and str(ref) == expected, f"[{label}] got {ref}"
+
+    def test_numbered_book_in_parens_keeps_prefix(self):
+        # Regression: "(1 Giovanni 4:8)" previously resolved to "John 4:8" (the
+        # "1" was stranded outside the match).
+        assert str(parse_verse_reference("(1 Giovanni 4:8)")) == "1 John 4:8"
+
+    def test_unwrapped_references_still_parse(self):
+        # The fix must not regress the common unwrapped form.
+        assert [str(r) for r in extract_all_references("Isaiah 41:10 and John 3:16")] == [
+            "Isaiah 41:10",
+            "John 3:16",
+        ]
+
+    def test_multiple_parenthesized_references(self):
+        refs = [str(r) for r in extract_all_references("vedi (Giovanni 3:16) e (Salmo 23:1)")]
+        assert refs == ["John 3:16", "Psalms 23:1"]
