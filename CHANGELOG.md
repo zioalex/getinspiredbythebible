@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.31.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.1...v1.31.0) (2026-06-22)
+
+
+### Features
+
+* **api:** add typo-tolerance guidance to all system prompts (BITB-045) ([#756](https://github.com/zioalex/getinspiredbythebible/issues/756)) ([2f0a3da](https://github.com/zioalex/getinspiredbythebible/commit/2f0a3da38cd998f851c473fa915771f912199b6d))
+
+
+### Bug Fixes
+
+* **android:** dismiss keyboard on send and always start fresh chat (BITB-048/049) ([#751](https://github.com/zioalex/getinspiredbythebible/issues/751)) ([68c7b47](https://github.com/zioalex/getinspiredbythebible/commit/68c7b47cdbe17f36cebac1ddcb31360717b85bb0))
+
 ## [1.30.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.0...v1.30.1) (2026-06-21)
 
 ### Performance Improvements
