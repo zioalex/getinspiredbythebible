@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -38,10 +39,12 @@ fun ChatInputField(
 ) {
     val canSend = !isLoading && isTurnstileReady && !isSessionLimitReached
     val nearLimit = value.length >= maxLength * 0.8
+    val focusManager = LocalFocusManager.current
 
     fun submit() {
         if (value.isNotBlank() && canSend) {
             onSend(value)
+            focusManager.clearFocus()
         }
     }
 
