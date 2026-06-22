@@ -1,4 +1,4 @@
-import { screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ChatMessage from "./ChatMessage";
 import { renderWithIntl } from "@/test/i18n-helpers";
@@ -122,9 +122,7 @@ describe("ChatMessage copy user prompt (BITB-047)", () => {
 
   it("does not render copy button on assistant messages", () => {
     renderWithIntl(
-      <ChatMessage
-        message={{ role: "assistant", content: "An answer" }}
-      />,
+      <ChatMessage message={{ role: "assistant", content: "An answer" }} />,
     );
     expect(screen.queryByLabelText("Copy message")).toBeNull();
   });
@@ -147,15 +145,12 @@ describe("ChatMessage copy user prompt (BITB-047)", () => {
     await act(async () => {
       fireEvent.click(screen.getByLabelText("Copy message"));
     });
-    await waitFor(() =>
-      expect(screen.getByLabelText("Copied")).toBeDefined(),
-    );
+    // waitFor polls via setInterval which is faked — assert directly after act flushes microtasks
+    expect(screen.getByLabelText("Copied")).toBeDefined();
     await act(async () => {
       vi.advanceTimersByTime(2100);
     });
-    await waitFor(() =>
-      expect(screen.getByLabelText("Copy message")).toBeDefined(),
-    );
+    expect(screen.getByLabelText("Copy message")).toBeDefined();
     vi.useRealTimers();
   });
 });
