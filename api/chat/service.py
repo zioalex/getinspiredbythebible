@@ -326,6 +326,16 @@ Keep it under 100 words."""
         )
         return extra_embeddings
 
+    async def _embed_query(self, text: str) -> list[float]:
+        """Embed ``text`` for semantic search (counted within the ``retrieval`` stage).
+
+        Extracted so the original-query embedding can run concurrently with query
+        expansion in ``_search_scripture`` instead of serially inside the search
+        service, trimming one embedding round-trip off TTFT.
+        """
+        response = await self.embedding.embed(text)
+        return response.embedding
+
     def _detect_topics(self, message: str) -> list[str]:
         """
         Detect biblical topics in user message using keyword-based mapping.
@@ -657,12 +667,20 @@ Keep it under 100 words."""
             # Direct verse lookups for specific references
             direct_verses = await self._lookup_direct_verses(verse_refs, translation)
 
-            # Query expansion (optional feature flag)
+            # Embed the original query *concurrently* with query expansion (the two are
+            # independent), so the original-query embedding is off the serial critical
+            # path. The precomputed embedding is passed into the search call below so the
+            # search service does not embed the same query a second time.
             extra_embeddings: list[list[float]] | None = None
             if settings.query_expansion_enabled:
-                extra_embeddings = await self._build_expansion_embeddings(
-                    request.message, detected_language, model_override
+                query_embedding, extra_embeddings = await asyncio.gather(
+                    self._embed_query(request.message),
+                    self._build_expansion_embeddings(
+                        request.message, detected_language, model_override
+                    ),
                 )
+            else:
+                query_embedding = await self._embed_query(request.message)
 
             # Topic detection for boosting (keyword-based, <10ms)
             boost_topics: list[str] = []
@@ -686,6 +704,7 @@ Keep it under 100 words."""
                         keyword_weight=settings.hybrid_search_keyword_weight,
                         topic_boost_factor=settings.topic_boost_factor,
                         extra_embeddings=extra_embeddings,
+                        query_embedding=query_embedding,
                     )
                 else:
                     scripture_context = await self.search_service.search_hybrid(
@@ -697,6 +716,7 @@ Keep it under 100 words."""
                         semantic_weight=settings.hybrid_search_semantic_weight,
                         keyword_weight=settings.hybrid_search_keyword_weight,
                         extra_embeddings=extra_embeddings,
+                        query_embedding=query_embedding,
                     )
             else:
                 if settings.topic_boosting_enabled and boost_topics:
@@ -709,6 +729,7 @@ Keep it under 100 words."""
                         translation=translation,
                         topic_boost_factor=settings.topic_boost_factor,
                         extra_embeddings=extra_embeddings,
+                        query_embedding=query_embedding,
                     )
                 else:
                     scripture_context = await self.search_service.search(
@@ -718,6 +739,7 @@ Keep it under 100 words."""
                         similarity_threshold=0.35,
                         translation=translation,
                         extra_embeddings=extra_embeddings,
+                        query_embedding=query_embedding,
                     )
 
             # Merge direct lookup results with semantic search
