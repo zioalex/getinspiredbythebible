@@ -1,7 +1,7 @@
 # BITB-037: Verse Citation Panel Reliability
 
 **Priority:** P1 (High)
-**Status:** 🟡 In Progress — range-matching bug fixed; architectural fix pending
+**Status:** ✅ Done — range fix merged; backend-driven `cited_verses` + `mergeVerses` merged (PR #650 + follow-ups)
 **Size:** M (range fix: S/done · backend-driven cited verses: M)
 **Created:** 2026-05-30
 

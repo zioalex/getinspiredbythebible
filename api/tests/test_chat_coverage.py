@@ -20,6 +20,7 @@ from chat.prompts import (
     RESPONSE_DEPTH_GUIDANCE,
     SCRIPTURE_FIDELITY_GUIDANCE,
     SYSTEM_PROMPT,
+    TYPO_TOLERANCE_GUIDANCE,
     build_conversation_context,
     build_search_context_prompt,
     detect_intent_prompt,
@@ -569,6 +570,49 @@ class TestResponseDepthGuidance:
         # shorter reply, so the rule must not mandate length unconditionally.
         text = RESPONSE_DEPTH_GUIDANCE.lower()
         assert "shorter answer" in text or "brief" in text
+
+
+class TestTypoToleranceGuidance:
+    """BITB-045: a misspelling in an otherwise clear question (e.g. German
+    'reichsheilugtm' for 'Reichsheiligtum') must not derail the assistant into
+    a generic 'I don't understand' non-answer. The model should read typos
+    charitably and answer, only falling back to clarification when intent is
+    genuinely unrecoverable."""
+
+    def test_guidance_constant_addresses_typos(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "typo" in text or "misspell" in text or "spelling" in text
+
+    def test_guidance_constant_forbids_generic_nonanswer(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "do not refuse" in text or "i don't understand" in text
+
+    def test_guidance_complements_unclear_section_not_replaces(self):
+        text = TYPO_TOLERANCE_GUIDANCE.lower()
+        assert "unrecoverable" in text or "genuinely" in text
+        assert "when the request is unclear" in text
+
+    def test_guidance_is_language_agnostic(self):
+        assert "EVERY language" in TYPO_TOLERANCE_GUIDANCE
+
+    def test_system_prompt_contains_typo_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Handling Typos and Spelling Errors" in result
+
+    def test_system_prompt_typo_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Handling Typos and Spelling Errors" in result, f"missing for lang={lang}"
+
+    def test_verse_lookup_prompt_contains_typo_guidance(self):
+        assert "Handling Typos and Spelling Errors" in get_verse_lookup_prompt("en")
+
+    def test_prayer_lookup_prompt_contains_typo_guidance(self):
+        assert "Handling Typos and Spelling Errors" in get_prayer_lookup_prompt("en")
+
+    def test_existing_unclear_section_still_present(self):
+        result = get_system_prompt("de")
+        assert "When the Request Is Unclear" in result
 
 
 # ==================== Chat Service Tests ====================
