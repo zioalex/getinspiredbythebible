@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-16
+**Last Updated:** 2026-06-20
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -287,7 +287,64 @@ English-canonical) but affects localized input and the app-wide normalizer.
 - [ ] Versification offsets quantified + documented handling decision (with tests)
 - [ ] Table-driven tests across all 11 languages green
 
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
+numbered-book references fail to parse *with and without* parentheses —
+`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
+`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
+**versification/divergence** note: the frontend verse parser does not support German comma
+separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
+scope here.
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
+### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As a** user reading a Bible answer in any language, **I want** the scripture presented to match
+the real verse **even when it is not in quotation marks**, **so that** paraphrased "citations"
+can't drift from the canonical text.
+
+**Why P2:** Grounding (`verse_grounding.py`) only rewrites *quoted* spans adjacent to a reference.
+An unquoted paraphrase (`In Isaia 41:10 Dio ci dice di non temere…`) is never corrected — the
+largest remaining "citation doesn't match the DB" class once parenthesized-reference parsing is
+fixed.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Unquoted reference-adjacent paraphrase corrected/surfaced to canonical text
+- [ ] Ordinary discussion *about* a verse never altered (negative tests)
+- [ ] Parametrized cross-language tests (all 11) + version-faithfulness + chat/chat_stream integration
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-053-ground-unquoted-paraphrased-citations.md`
+
+---
+
+### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
+can't be resolved in the user's translation, **so that** a missing/incomplete translation never
+shows up as silently hallucinated scripture.
+
+**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
+grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
+manual SQL snippet, and the unresolved path is invisible.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
+- [ ] Startup/CI warning + metric when a supported language has no usable verse data
+- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
 
 ---
 
@@ -834,6 +891,34 @@ Testing & Documentation:
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
+### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-20
+
+**As the** operator, **I want** the scripture/chat pipeline to emit explicit failure and
+degradation signals (metrics, alerts, synthetic checks) instead of swallowing errors and serving a
+verse-less answer, **so that** a broken search/grounding path is detected in minutes, not weeks.
+
+**Why P2:** A misplaced `# nosec` broke all DB-backed verse retrieval for ~2 weeks with zero alerts
+(fixed in PR #764). The pipeline fails open through three `except` blocks, monitoring is reactive
+log-scraping the bug slipped through twice, no metric distinguished "served with verses" from
+"served empty," and CI never executes the real SQL. This hardens the whole class of failure.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Explicit error counters in the three `except` paths; alert on the metric, not log text
+- [ ] Business SLI: rate of responses served with zero DB verses / zero resolved citations
+- [ ] End-to-end synthetic check that the chat path returns cited/grounded verses
+- [ ] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
+- [ ] Fail loud (guard/CI check) when prod alerting is disabled
+- [ ] Integration test running the real search/grounding SQL against the Postgres service container
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-055-scripture-pipeline-observability.md`
+
+---
+
 ### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
 **Status:** 🎯 Todo
@@ -927,6 +1012,27 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 - [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+
+---
+
+### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-15
+
+**As an** Android user submitting the contact form, **I want** an accurate error that names the
+email field when my submission is rejected, **so that** I'm not misled into thinking my message was
+too long.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android: a missing/invalid-email 422 shows an email-specific error, never the "max 300 characters" message
+- [ ] Android: the chat message-length 422 still maps to `error_message_too_long`
+- [ ] Android: email validated as required (no blank→null); `contact_email_label` updated from "optional" in all locales
+- [ ] Tests: `ChatViewModelTest` pins the 422 split; web has no equivalent bug (verified — optional follow-up only)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-contact-form-misleading-validation-error.md`
 
 ---
 
@@ -1241,6 +1347,26 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+
+**Status:** 🎯 Todo
+**Size:** S (< 2 hrs)
+**Created:** 2026-06-16
+
+**As a** web user submitting the contact form, **I want** an email-specific error when my
+submission is rejected for an invalid email, **so that** I can fix it instead of seeing a generic
+"failed to send". Web follow-up to BITB-051 (web has no 300-char misreport, just a generic error).
+
+**Acceptance Criteria (summary):**
+
+- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
+
+---
 
 ### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 

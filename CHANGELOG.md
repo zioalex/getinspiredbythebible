@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.30.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.0...v1.30.1) (2026-06-21)
+
+### Performance Improvements
+
+* **api:** index-backed hybrid search + working query expansion ([#772](https://github.com/zioalex/getinspiredbythebible/issues/772)) ([ff93286](https://github.com/zioalex/getinspiredbythebible/commit/ff932864c1a19fc51f9b358a0cfa297cd79c1dd2))
+
+## [1.30.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.4...v1.30.0) (2026-06-20)
+
+### Features
+
+* **api:** instrument per-stage chat pipeline timing ([#769](https://github.com/zioalex/getinspiredbythebible/issues/769)) ([db7ab72](https://github.com/zioalex/getinspiredbythebible/commit/db7ab722b20151ef6203ce3524b9fc6019619950))
+
+## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
+
+### Bug Fixes
+
+* **api:** bind embedding via CAST() so asyncpg accepts the vector cast in scripture search ([#768](https://github.com/zioalex/getinspiredbythebible/issues/768)) ([ff455b1](https://github.com/zioalex/getinspiredbythebible/commit/ff455b15d02bf19ce5097f939d13b8912c26f9d1))
+
+### Documentation
+
+* add BITB-053 modern open translations research and BITB-054 first-run feature spotlight ([#757](https://github.com/zioalex/getinspiredbythebible/issues/757)) ([8f9c407](https://github.com/zioalex/getinspiredbythebible/commit/8f9c407357a414d4ec3e46254a42f0c33ff8bb41))
+* **backlog:** add BITB-055 scripture/chat pipeline observability story ([#765](https://github.com/zioalex/getinspiredbythebible/issues/765)) ([ea97f8b](https://github.com/zioalex/getinspiredbythebible/commit/ea97f8b0cb72ada86b92b7cffec31a25e1e5366e))
+
+## [1.29.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.2...v1.29.3) (2026-06-20)
+
+### Bug Fixes
+
+* **api:** remove misplaced # nosec that broke all scripture search SQL ([#764](https://github.com/zioalex/getinspiredbythebible/issues/764)) ([32f12dc](https://github.com/zioalex/getinspiredbythebible/commit/32f12dce7f4d437b7392bfcb7582e0a08fdfb72b))
+
+## [1.29.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.1...v1.29.2) (2026-06-19)
+
+### Bug Fixes
+
+* **api:** parse parenthesized verse references so grounding resolves them ([#759](https://github.com/zioalex/getinspiredbythebible/issues/759)) ([28dccb9](https://github.com/zioalex/getinspiredbythebible/commit/28dccb901dd145eab0d22b227d2a1c63b2f8be94))
+
+## [1.29.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.0...v1.29.1) (2026-06-19)
+
+### Bug Fixes
+
+* **android:** show email-specific error on contact 422 and require email (BITB-051) ([#750](https://github.com/zioalex/getinspiredbythebible/issues/750)) ([cd5b8d3](https://github.com/zioalex/getinspiredbythebible/commit/cd5b8d3b30be4257192baf622ae988cdad4dcecf))
+
+## [1.29.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.28.0...v1.29.0) (2026-06-18)
+
+### Features
+
+* **api:** retrieval-eval core + harness stories (BITB-051 P1) ([#745](https://github.com/zioalex/getinspiredbythebible/issues/745)) ([a5c4868](https://github.com/zioalex/getinspiredbythebible/commit/a5c4868a20cbd7ea33f3a92968ee324ce5062ed3))
+
+### Bug Fixes
+
+* **chat:** ground inline verse quotes against the real Bible text ([#755](https://github.com/zioalex/getinspiredbythebible/issues/755)) ([324b064](https://github.com/zioalex/getinspiredbythebible/commit/324b064ebb4b7de576c209f46a20ca3670162b70))
+
 ## [1.28.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.27.0...v1.28.0) (2026-06-16)
 
 ### Features

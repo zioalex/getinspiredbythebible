@@ -27,6 +27,11 @@
 #       Fires when verse/chapter fetch failures (timeout/db_error/empty_text) occur.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041)
 #       Fires when p95 latency of verse/chapter DB reads exceeds 1000ms.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_grounding_errors
+#       Fires when scripture search / cited-verse resolution / grounding logs an
+#       error. These code paths swallow exceptions (fail open to a verse-less
+#       answer), so without this alert a broken search can run silently — exactly
+#       how the "# nosec inside SQL" syntax-error regression went unnoticed.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -163,6 +168,49 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_error
       | where name == "scripture.fetch.errors"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Scripture grounding / search failure alert.
+# The chat scripture pipeline fails open: _search_scripture, _resolve_cited_verses
+# and _apply_verse_grounding each catch exceptions and degrade to a verse-less
+# answer (no 5xx). This rule surfaces those swallowed failures by matching the
+# exact log signatures they emit, so a broken search/grounding path can no longer
+# run silently. Runs every 5 minutes over the last 10 minutes of backend logs.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_grounding_errors" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-scripture-grounding-errors"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 2
+  description          = "Scripture search, cited-verse resolution, or verse grounding logged an error in the last 10 minutes (these paths fail open, so errors are otherwise invisible)."
+
+  criteria {
+    query                   = <<-KQL
+      ContainerAppConsoleLogs_CL
+      | where TimeGenerated > ago(10m)
+      | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
+      | where Log_s matches regex "(?i)(scripture search failed|failed to resolve cited verse|verse grounding skipped|PostgresSyntaxError|InFailedSQLTransactionError|current transaction is aborted)"
+      | summarize cnt = count() by bin(TimeGenerated, 5m)
+      | where cnt > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

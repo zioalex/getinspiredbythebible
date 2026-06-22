@@ -1025,4 +1025,27 @@ class VerseRefLinkTest {
         val result = citedVerses(assistant("…", verses = emptyList(), cited = listOf("John 3:16")))
         assertTrue(result.isEmpty())
     }
+
+    // ── Parenthesized / bracketed citations (cross-parser parity, AGENTS.md) ───
+    // The backend parser must detect references wrapped in ( ) [ ] / fullwidth
+    // （ ）. This asserts the Android parser — which must stay in sync — links them
+    // too. `(Book C:V)` is the single most common citation format.
+
+    @Test
+    fun `injectVerseLinks wraps a reference in parentheses`() {
+        val result = injectVerseLinks("Take heart (John 3:16) today.")
+        assertTrue(result, result.contains("[John 3:16](verse://John/3/16)"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps a reference in square brackets`() {
+        val result = injectVerseLinks("Hope [Psalm 23:1] holds.")
+        assertTrue(result, result.contains("[Psalm 23:1]") || result.contains("[Psalms 23:1]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps an italian reference in parentheses`() {
+        val result = injectVerseLinks("Coraggio (Giovanni 3:16).")
+        assertTrue(result, result.contains("[Giovanni 3:16]"))
+    }
 }
