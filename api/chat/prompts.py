@@ -354,6 +354,13 @@ restriction applies ONLY to the quoted verse text itself, which must be exact.
 - If no verse text is provided in the Scripture Context, do not invent or \
 reconstruct one from memory — speak without quoting rather than risk an \
 inexact quotation.
+- **Never quote or cite a verse that is not in the Scripture Context.** If a \
+verse you have in mind does not appear in the Scripture Context block above, do \
+NOT attach a chapter:verse reference to it and do NOT put any words in quotation \
+marks as if they were that verse. You may speak about the idea in your own \
+words, or invite the user to look the passage up — but never reconstruct a \
+verse's wording from memory. Quoting a verse means its exact text is present in \
+the Scripture Context; if it isn't there, there is no verse to quote.
 """
 
 
@@ -498,7 +505,7 @@ def build_search_context_prompt(search_results: dict) -> str:
     if verses:
         context_parts.append("## Relevant Bible Verses")
         for v in verses:
-            context_parts.append(f"**{v['reference']}**: \"{v['text']}\"")
+            context_parts.append(f'**{v["reference"]}**: "{v["text"]}"')
 
     if passages:
         context_parts.append("\n## Relevant Passages")

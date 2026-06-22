@@ -40,6 +40,15 @@ These gaps are low-impact for BITB-051 today (its `relevant_refs` and the retrie
 references are both English-canonical), but they affect any localized input and the
 app's shared verse-linking path, and they undermine confidence in per-language scores.
 
+> **Update (2026-06-19) — concrete reproductions from verse-grounding debugging.**
+> `extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, and `"Songs 2:1"` all return `[]`
+> (with *and* without parentheses), while `"Ps 23:1"` works and full names
+> (`1 Corinthians`, `Song of Solomon`) work — confirming the abbreviation / numbered-book
+> gaps above. Also a **parser-divergence** finding for the "robust matching" scope: the
+> frontend verse parser (`frontend/src/lib/versePatterns.ts`) does not support German comma
+> separators (`Johannes 3,16`) that the backend (`api/utils/verse_parser.py`) does — the
+> three parsers must be reconciled here.
+
 ## Scope
 
 In scope:
