@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-19
+**Last Updated:** 2026-06-20
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -890,6 +890,34 @@ Testing & Documentation:
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+
+### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-20
+
+**As the** operator, **I want** the scripture/chat pipeline to emit explicit failure and
+degradation signals (metrics, alerts, synthetic checks) instead of swallowing errors and serving a
+verse-less answer, **so that** a broken search/grounding path is detected in minutes, not weeks.
+
+**Why P2:** A misplaced `# nosec` broke all DB-backed verse retrieval for ~2 weeks with zero alerts
+(fixed in PR #764). The pipeline fails open through three `except` blocks, monitoring is reactive
+log-scraping the bug slipped through twice, no metric distinguished "served with verses" from
+"served empty," and CI never executes the real SQL. This hardens the whole class of failure.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Explicit error counters in the three `except` paths; alert on the metric, not log text
+- [ ] Business SLI: rate of responses served with zero DB verses / zero resolved citations
+- [ ] End-to-end synthetic check that the chat path returns cited/grounded verses
+- [ ] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
+- [ ] Fail loud (guard/CI check) when prod alerting is disabled
+- [ ] Integration test running the real search/grounding SQL against the Postgres service container
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-055-scripture-pipeline-observability.md`
+
+---
 
 ### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
 

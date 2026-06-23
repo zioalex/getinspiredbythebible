@@ -418,6 +418,9 @@ Additional documentation is available in the `docs/` directory:
 - **[How to Enable Content Safety](docs/HOW-TO-ENABLE-CONTENT-SAFETY.md)** - Step-by-step
   guide to enable multi-language content safety filter (deployed 2026-03-04, currently
   disabled)
+- **[How to Read Chat Stage Timings](docs/HOW-TO-READ-CHAT-STAGE-TIMINGS.md)** - Find the
+  per-stage latency breakdown (`chat_stage_timings` log + `chat.stage.duration_ms` metric)
+  in container logs and Application Insights
 - **[GitHub Actions Security](docs/GITHUB_ACTIONS_SECURITY.md)** - CI/CD security best practices
 - **[Technical Debt](docs/TECHNICAL_DEBT.md)** - Known issues and improvement roadmap
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions

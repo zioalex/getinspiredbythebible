@@ -116,6 +116,7 @@
     <string name="error_network">Erro de rede. Verifique sua conexão.</string>
     <string name="error_timeout">Tempo esgotado. Por favor, tente novamente.</string>
     <string name="error_server">Erro no servidor. Por favor, tente mais tarde.</string>
+    <string name="error_verification">Não foi possível verificar o seu dispositivo. Aguarde um momento e tente novamente.</string>
     <string name="error_generic">Algo deu errado. Por favor, tente novamente.</string>
     <string name="error_message_too_long">A sua mensagem é um pouco longa (máximo %1$d caracteres). Encurte-a e tente novamente.</string>
     <string name="error_contact_email_invalid">Insira um e-mail válido para podermos responder.</string>

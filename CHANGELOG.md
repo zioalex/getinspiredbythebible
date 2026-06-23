@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.31.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.0...v1.31.1) (2026-06-23)
+
+### Bug Fixes
+
+* **frontend:** self-heal Turnstile widget and recover gated POSTs from 403 ([#781](https://github.com/zioalex/getinspiredbythebible/issues/781)) ([475b6c9](https://github.com/zioalex/getinspiredbythebible/commit/475b6c976b4941fe528b3775c8485a97caf98d77))
+* recover Turnstile widget to stop chat retry and bug-report 403s ([#779](https://github.com/zioalex/getinspiredbythebible/issues/779)) ([42ea0cb](https://github.com/zioalex/getinspiredbythebible/commit/42ea0cb25e9d23f6c4076e597d54441a2a8a5f19))
+
+## [1.31.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.1...v1.31.0) (2026-06-22)
+
+### Features
+
+* **api:** add typo-tolerance guidance to all system prompts (BITB-045) ([#756](https://github.com/zioalex/getinspiredbythebible/issues/756)) ([2f0a3da](https://github.com/zioalex/getinspiredbythebible/commit/2f0a3da38cd998f851c473fa915771f912199b6d))
+
+### Bug Fixes
+
+* **android:** dismiss keyboard on send and always start fresh chat (BITB-048/049) ([#751](https://github.com/zioalex/getinspiredbythebible/issues/751)) ([68c7b47](https://github.com/zioalex/getinspiredbythebible/commit/68c7b47cdbe17f36cebac1ddcb31360717b85bb0))
+
+## [1.30.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.0...v1.30.1) (2026-06-21)
+
+### Performance Improvements
+
+* **api:** index-backed hybrid search + working query expansion ([#772](https://github.com/zioalex/getinspiredbythebible/issues/772)) ([ff93286](https://github.com/zioalex/getinspiredbythebible/commit/ff932864c1a19fc51f9b358a0cfa297cd79c1dd2))
+
+## [1.30.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.4...v1.30.0) (2026-06-20)
+
+### Features
+
+* **api:** instrument per-stage chat pipeline timing ([#769](https://github.com/zioalex/getinspiredbythebible/issues/769)) ([db7ab72](https://github.com/zioalex/getinspiredbythebible/commit/db7ab722b20151ef6203ce3524b9fc6019619950))
+
+## [1.29.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.3...v1.29.4) (2026-06-20)
+
+### Bug Fixes
+
+* **api:** bind embedding via CAST() so asyncpg accepts the vector cast in scripture search ([#768](https://github.com/zioalex/getinspiredbythebible/issues/768)) ([ff455b1](https://github.com/zioalex/getinspiredbythebible/commit/ff455b15d02bf19ce5097f939d13b8912c26f9d1))
+
+### Documentation
+
+* add BITB-053 modern open translations research and BITB-054 first-run feature spotlight ([#757](https://github.com/zioalex/getinspiredbythebible/issues/757)) ([8f9c407](https://github.com/zioalex/getinspiredbythebible/commit/8f9c407357a414d4ec3e46254a42f0c33ff8bb41))
+* **backlog:** add BITB-055 scripture/chat pipeline observability story ([#765](https://github.com/zioalex/getinspiredbythebible/issues/765)) ([ea97f8b](https://github.com/zioalex/getinspiredbythebible/commit/ea97f8b0cb72ada86b92b7cffec31a25e1e5366e))
+
+## [1.29.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.2...v1.29.3) (2026-06-20)
+
+### Bug Fixes
+
+* **api:** remove misplaced # nosec that broke all scripture search SQL ([#764](https://github.com/zioalex/getinspiredbythebible/issues/764)) ([32f12dc](https://github.com/zioalex/getinspiredbythebible/commit/32f12dce7f4d437b7392bfcb7582e0a08fdfb72b))
+
 ## [1.29.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.29.1...v1.29.2) (2026-06-19)
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 # BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `TYPO_TOLERANCE_GUIDANCE` added to all three system prompts in `api/chat/prompts.py`
 **Priority:** P2 (Medium) — quality of answers on imperfect input
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12
