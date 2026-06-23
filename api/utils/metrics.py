@@ -86,6 +86,22 @@ scripture_fetch_errors_counter = meter.create_counter(
     unit="1",
 )
 
+# ── Scripture pipeline failure counters (BITB-055) ───────────────────────
+# Emitted by the three fail-open exception handlers in chat/service.py so
+# silent pipeline degradations surface as explicit metrics rather than
+# disappearing into swallowed log lines.
+scripture_pipeline_errors_counter = meter.create_counter(
+    name="scripture.pipeline.errors",
+    description="Fail-open exceptions in the chat scripture pipeline (stage: search/resolve/grounding)",
+    unit="1",
+)  # attributes: stage (search|resolve|grounding), error_type
+
+chat_verseless_responses_counter = meter.create_counter(
+    name="chat.responses.verseless",
+    description="Chat responses with include_search=True but zero DB context verses AND zero resolved citations",
+    unit="1",
+)  # attributes: language
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",

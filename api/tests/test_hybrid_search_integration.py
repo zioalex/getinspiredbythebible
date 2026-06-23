@@ -170,3 +170,34 @@ async def test_search_passages_hybrid_executes_against_real_db(seeded_repo):
     )
     assert rows, "passage hybrid search returned no rows from the real DB"
     assert rows[0][0].text == _VERSE_TEXT
+
+
+# ── BITB-055: guard the _resolve_cited_verses SQL paths ───────────────────
+# _resolve_cited_verses calls get_verse (single lookup) and get_verses_in_range
+# (range lookup). These tests run the real SQL against the seeded DB so a
+# regression in either path fails before merge — the same class of silent bug
+# that caused the 2-week verse-less outage (a stray # in the SQL string).
+
+
+async def test_get_verse_executes_against_real_db(seeded_repo):
+    """get_verse must return the seeded verse via real SQL.
+
+    Guards the _resolve_cited_verses single-verse branch used by the chat
+    pipeline. Fails on any SQL syntax regression (the stray-# class of bug)."""
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    assert verse is not None, "get_verse returned None for the seeded verse"
+    assert verse.text == _VERSE_TEXT
+    assert verse.chapter_number == 3
+    assert verse.verse_number == 16
+
+
+async def test_get_verses_in_range_executes_against_real_db(seeded_repo):
+    """get_verses_in_range must execute real SQL and return the seeded verse.
+
+    Guards the _resolve_cited_verses range branch. Only verse 16 is seeded,
+    so asking for 16-18 returns one row — enough to prove the SQL ran."""
+    verses = await seeded_repo.get_verses_in_range(
+        _BOOK_NAME, 3, start_verse=16, end_verse=18, translation=_TRANSLATION
+    )
+    assert verses, "get_verses_in_range returned empty for the seeded range"
+    assert any(v.text == _VERSE_TEXT for v in verses)
