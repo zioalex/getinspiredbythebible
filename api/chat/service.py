@@ -740,7 +740,9 @@ Keep it under 100 words."""
                 },
             )
         except Exception as e:
-            scripture_pipeline_errors_counter.add(1, {"stage": "search", "error_type": type(e).__name__})
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "search", "error_type": type(e).__name__}
+            )
             logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
             return None, ""
 
@@ -813,7 +815,9 @@ Keep it under 100 words."""
                     if verse:
                         resolved.setdefault(verse.reference.lower(), verse)
             except Exception as e:
-                scripture_pipeline_errors_counter.add(1, {"stage": "resolve", "error_type": type(e).__name__})
+                scripture_pipeline_errors_counter.add(
+                    1, {"stage": "resolve", "error_type": type(e).__name__}
+                )
                 logger.warning(f"Failed to resolve cited verse {ref}: {e}")
         return list(resolved.values())
 
@@ -853,7 +857,9 @@ Keep it under 100 words."""
                 strip_unresolved=settings.grounding_strip_unresolved,
             )
         except Exception as e:
-            scripture_pipeline_errors_counter.add(1, {"stage": "grounding", "language": language, "error_type": type(e).__name__})
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "grounding", "language": language, "error_type": type(e).__name__}
+            )
             logger.warning(f"Verse grounding skipped due to error: {e}")
             return text, []
 
@@ -1110,7 +1116,11 @@ Keep it under 100 words."""
         # SQL bug that broke all retrieval without any 5xx or user alert).
         # Off-topic early-returns (include_search=False) are excluded; those
         # are expected to be verse-less.
-        if request.include_search and not (scripture_context and scripture_context.verses) and not resolved_verses:
+        if (
+            request.include_search
+            and not (scripture_context and scripture_context.verses)
+            and not resolved_verses
+        ):
             chat_verseless_responses_counter.add(1, {"language": effective_language})
 
         # Track LLM structured output compliance — helps decide whether to
