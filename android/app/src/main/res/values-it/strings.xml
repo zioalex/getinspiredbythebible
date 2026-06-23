@@ -116,6 +116,7 @@
     <string name="error_network">Errore di rete. Controlla la connessione.</string>
     <string name="error_timeout">Richiesta scaduta. Riprova.</string>
     <string name="error_server">Errore del server. Riprova più tardi.</string>
+    <string name="error_verification">Non è stato possibile verificare il tuo dispositivo. Attendi un momento e riprova.</string>
     <string name="error_generic">Qualcosa è andato storto. Riprova.</string>
     <string name="error_message_too_long">Il tuo messaggio è un po\' lungo (massimo %1$d caratteri). Accorcialo e riprova.</string>
     <string name="error_contact_email_invalid">Inserisci un\'email valida così possiamo risponderti.</string>

@@ -1,6 +1,6 @@
 # BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 📋 Backlog (production verified 2026-05-31 — see Live verification)
+**Status:** ✅ Done — homepage server-renders hero text (PR #657); `/en` word count no longer thin; favicon.ico shipped
 
 ## User Story
 
