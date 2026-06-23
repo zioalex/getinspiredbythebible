@@ -1181,6 +1181,17 @@ class ChatViewModel @Inject constructor(
                 context.getString(R.string.error_server)
             }
         }
+        // 403: Cloudflare Turnstile bot verification. The backend returns a
+        // body with code TURNSTILE_REQUIRED (no/empty token reached the server)
+        // or TURNSTILE_FAILED (token rejected, e.g. stale/duplicate). Log the
+        // body so future diagnostic reports show which one it was, then tell the
+        // user it's a verification hiccup — not a generic "server error" — since
+        // the Turnstile widget self-heals and a retry usually succeeds.
+        e is HttpException && e.code() == 403 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            Timber.w("Turnstile verification rejected request (HTTP 403): %s", body)
+            context.getString(R.string.error_verification)
+        }
         // 422 request validation: the realistic client-controllable cause is an
         // over-long message. Tell the user to shorten it rather than showing a
         // generic server error.
