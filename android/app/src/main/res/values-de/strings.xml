@@ -116,6 +116,7 @@
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
+    <string name="error_verification">Wir konnten dein Gerät nicht verifizieren. Bitte warte einen Moment und versuche es erneut.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
     <string name="error_message_too_long">Deine Nachricht ist etwas lang (max. %1$d Zeichen). Bitte kürze sie und versuche es erneut.</string>
     <string name="error_contact_email_invalid">Bitte gib eine gültige E-Mail an, damit wir antworten können.</string>

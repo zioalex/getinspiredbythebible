@@ -10,6 +10,7 @@ import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -111,6 +112,45 @@ class TurnstileInterceptorTest {
         assertTrue("expected to wait for the token, took ${elapsed}ms", elapsed >= 40)
     }
 
+    @Test
+    fun `403 resets and retries with a freshly recovered token even after prior error`() {
+        // Reproduces the wedge fix: the widget has errored (hasError=true), so the
+        // first attempt goes out token-less and the server replies 403. The WebView
+        // recovery then delivers a fresh token; the interceptor must request a
+        // reset, wait *through* hasError on the retry path, and resend with that
+        // token instead of immediately failing open.
+        manager.onError("110200")
+        interceptor.retryTokenWaitMillis = 5_000L
+
+        val captured = mutableListOf<Request>()
+        val chain: Interceptor.Chain = mockk()
+        every { chain.request() } returns post("https://api.example.com/api/v1/chat/stream")
+        every { chain.proceed(capture(captured)) } answers {
+            if (captured.size == 1) {
+                // First (token-less) attempt rejected; a worker delivers a fresh
+                // token shortly after so the retry wait can observe it.
+                Thread {
+                    Thread.sleep(50)
+                    manager.onTokenReceived("recovered-token")
+                }.start()
+                response(firstArg(), 403)
+            } else {
+                response(firstArg(), 200)
+            }
+        }
+
+        interceptor.intercept(chain)
+
+        assertEquals("expected one retry after the 403", 2, captured.size)
+        assertNull(
+            "first attempt is token-less (prior error short-circuits the wait)",
+            captured[0].header("X-Turnstile-Token"),
+        )
+        assertEquals("recovered-token", captured[1].header("X-Turnstile-Token"))
+        // The single-use token is consumed after the successful retry.
+        assertNull(manager.currentToken())
+    }
+
     private fun runIntercept(request: Request): Request {
         val chain: Interceptor.Chain = mockk()
         val captured = slot<Request>()
@@ -133,6 +173,15 @@ class TurnstileInterceptorTest {
         .protocol(Protocol.HTTP_1_1)
         .code(200)
         .message("OK")
+        .build()
+
+    // Response with a body so the interceptor can call close() on the 403 path.
+    private fun response(forRequest: Request, code: Int): Response = Response.Builder()
+        .request(forRequest)
+        .protocol(Protocol.HTTP_1_1)
+        .code(code)
+        .message(if (code in 200..299) "OK" else "Error")
+        .body("{}".toResponseBody("application/json".toMediaType()))
         .build()
 
 }
