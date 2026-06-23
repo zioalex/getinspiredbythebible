@@ -994,9 +994,9 @@ describe("Turnstile 403 recovery", () => {
 
     (global.fetch as any).mockResolvedValue({ ok: false, status: 403 });
 
-    await expect(
-      searchChurches("Zurich"),
-    ).rejects.toBeInstanceOf(VerificationError);
+    await expect(searchChurches("Zurich")).rejects.toBeInstanceOf(
+      VerificationError,
+    );
   });
 });
 
