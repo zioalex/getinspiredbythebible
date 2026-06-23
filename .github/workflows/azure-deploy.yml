@@ -761,6 +761,19 @@ jobs:
         with:
           ref: ${{ env.DEPLOY_SHA }}
 
+
+      - name: Guard — prod alerting must be configured (BITB-055)
+        run: |
+          # TF_VAR_alert_email drives Azure Monitor alerts. Without it, alerts_enabled
+          # evaluates to false and all monitoring silently stops. Catch this before deploy.
+          if [ -z "$TF_VAR_alert_email" ]; then
+            echo "::error::TF_VAR_ALERT_EMAIL secret is not set — Azure Monitor alert email will be empty and all prod alerts will be silently disabled (alerts_enabled = false). Set the secret in repo settings."
+            exit 1
+          fi
+          echo "Guard passed: TF_VAR_alert_email is configured"
+        env:
+          TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
+
       - name: Login to Azure
         uses: azure/login@v3
         with:

@@ -229,6 +229,90 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_grounding_e
   tags = local.tags
 }
 
+# Scripture pipeline error metric alert (BITB-055).
+# Fires when any of the three fail-open exception handlers in the chat
+# scripture pipeline (search / resolve / grounding) increments the
+# scripture.pipeline.errors custom metric. Metric-based alerts are more
+# reliable than the log-based scripture_grounding_errors rule above because
+# they fire on the counter increment — not on a log keyword that may land on
+# a different line from the | ERROR | level marker. Keep both as defence-in-depth.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_pipeline_errors" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-scripture-pipeline-errors"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "A fail-open exception in the chat scripture pipeline (search/resolve/grounding) was caught and the response was silently degraded to verse-less. Emitted by scripture.pipeline.errors custom metric."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "scripture.pipeline.errors"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Verseless response SLI alert (BITB-055).
+# Fires when a meaningful number of chat requests with include_search=True
+# are served with zero DB context verses AND zero resolved citations over 15
+# minutes — the exact silent-degradation signature of a broken retrieval path.
+# Threshold of 10 is conservative; tune down once a baseline is observed.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_verseless_responses" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-chat-verseless-responses"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "More than 10 chat responses served with zero DB context verses AND zero resolved citations in the last 15 minutes (chat.responses.verseless metric). This is the silent-degradation signature of a broken scripture retrieval path."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(15m)
+      | where name == "chat.responses.verseless"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 10
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 3
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
 # Verse/chapter fetch p95 latency alert (BITB-041).
 # Fires when p95 of db.query.duration_ms for verse/chapter ops exceeds 1000ms.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_latency_p95" {

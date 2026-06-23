@@ -259,14 +259,18 @@ jobs:
           err_re="${err_re}|postgressyntaxerror|infailedsqltransactionerror|current transaction is aborted)"
           # `sample` is a KQL operator; using it as a column name causes
           # SYN0002. Use `sample_log` instead.
-          # KQL has no !matches operator — it only supports ! for scalar
-          # string operators (!contains, !startswith). Use a positive level
-          # filter so only ERROR/WARNING/CRITICAL lines are scanned; INFO
-          # logs like "Monitor probe — bypassing rate limit" are excluded.
+          # BITB-055: decouple level-marker and keyword conditions. The former
+          # AND-join caused multi-line tracebacks to be silently missed: the
+          # | ERROR | marker lands on one line and the exception keyword on the
+          # next, so no single log line matched both conditions. Fix: drop the
+          # level-marker WHERE clause and instead exclude the one known benign
+          # INFO string that the denylist would otherwise surface. The
+          # scripture-pipeline metric alerts (BITB-055) cover swallowed
+          # exceptions structurally; this log-scan is the backstop.
           query="ContainerAppConsoleLogs_CL
             | where TimeGenerated > ago(10m)
             | where ContainerAppName_s == \"bible-app-backend\"
-            | where Log_s matches regex \"\\\\| (ERROR|WARNING|CRITICAL)\\\\s*\\\\|\"
+            | where Log_s !contains \"bypassing rate limit\"
             | where Log_s matches regex \"${err_re}\"
             | summarize cnt = count(), sample_log = any(Log_s)
             | project cnt, sample_log"
