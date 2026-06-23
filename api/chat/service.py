@@ -326,12 +326,16 @@ Keep it under 100 words."""
         )
         return extra_embeddings
 
+    @timed_stage("embedding")
     async def _embed_query(self, text: str) -> list[float]:
-        """Embed ``text`` for semantic search (counted within the ``retrieval`` stage).
+        """Embed ``text`` for semantic search, recorded as the ``embedding`` stage.
 
         Extracted so the original-query embedding can run concurrently with query
         expansion in ``_search_scripture`` instead of serially inside the search
-        service, trimming one embedding round-trip off TTFT.
+        service, trimming one embedding round-trip off TTFT. Timing it as its own
+        stage makes the embed cost observable and lets us confirm the overlap:
+        ``retrieval`` should reflect ``max(embedding, query_expansion)`` rather than
+        their sum.
         """
         response = await self.embedding.embed(text)
         return response.embedding
