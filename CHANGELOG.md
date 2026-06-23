@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.32.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.1...v1.32.0) (2026-06-23)
+
+
+### Features
+
+* **api+ci:** instrument scripture pipeline for silent-failure detection (BITB-055) ([#778](https://github.com/zioalex/getinspiredbythebible/issues/778)) ([fdee9d4](https://github.com/zioalex/getinspiredbythebible/commit/fdee9d461e9ec117cdef228e39ff69b6bd91a3e0))
+
+
+### Performance Improvements
+
+* **api:** parallelize query embed with expansion to trim TTFT ([#776](https://github.com/zioalex/getinspiredbythebible/issues/776)) ([f12b673](https://github.com/zioalex/getinspiredbythebible/commit/f12b673bc82c9d71c0b133bbf09493bae1eb09b1))
+
 ## [1.31.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.0...v1.31.1) (2026-06-23)
 
 ### Bug Fixes
