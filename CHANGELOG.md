@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.32.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.1...v1.32.0) (2026-06-23)
 
-
 ### Features
 
 * **api+ci:** instrument scripture pipeline for silent-failure detection (BITB-055) ([#778](https://github.com/zioalex/getinspiredbythebible/issues/778)) ([fdee9d4](https://github.com/zioalex/getinspiredbythebible/commit/fdee9d461e9ec117cdef228e39ff69b6bd91a3e0))
-
 
 ### Performance Improvements
 
