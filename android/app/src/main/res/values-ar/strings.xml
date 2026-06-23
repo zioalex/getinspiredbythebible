@@ -116,6 +116,7 @@
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>
     <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>
+    <string name="error_verification">تعذّر التحقق من جهازك. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
     <string name="error_message_too_long">رسالتك طويلة بعض الشيء (الحد الأقصى %1$d حرفًا). يرجى اختصارها والمحاولة مرة أخرى.</string>
     <string name="error_contact_email_invalid">يرجى إدخال بريد إلكتروني صالح حتى نتمكن من الرد.</string>

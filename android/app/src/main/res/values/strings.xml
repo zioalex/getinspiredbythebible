@@ -183,6 +183,7 @@
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_timeout">Request timed out. Please try again.</string>
     <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_verification">We couldn\'t verify your device. Please wait a moment and try again.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
     <string name="error_message_too_long">Your message is a little long (max %1$d characters). Please shorten it and try again.</string>
     <string name="error_contact_email_invalid">Please enter a valid email so we can reply.</string>
