@@ -17,6 +17,7 @@ import {
   ColdStartError,
   StreamTimeoutError,
   MessageTooLongError,
+  VerificationError,
   type ChatResponse,
   type ScriptureContext,
   type Verse,
@@ -939,6 +940,63 @@ describe("Turnstile awaiter (ensureTurnstileToken)", () => {
     });
 
     expect(awaiter).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("Turnstile 403 recovery", () => {
+  afterEach(() => {
+    setTurnstileToken(null);
+    setOnTokenConsumed(null);
+    setTurnstileAwaiter(null);
+  });
+
+  it("retries once with a freshly recovered token after a 403 and succeeds", async () => {
+    setTurnstileToken("stale-token");
+    // The first token is consumed on the failed attempt; the awaiter (backed by
+    // the self-healing widget) supplies a fresh token for the retry.
+    const awaiter = vi.fn().mockResolvedValue("fresh-token");
+    setTurnstileAwaiter(awaiter);
+
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, status: 403 })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "ok", provider: "ollama", model: "m" }),
+      });
+
+    const result = await sendMessage("hi");
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(
+      (global.fetch as any).mock.calls[0][1].headers["X-Turnstile-Token"],
+    ).toBe("stale-token");
+    expect(
+      (global.fetch as any).mock.calls[1][1].headers["X-Turnstile-Token"],
+    ).toBe("fresh-token");
+    expect(result).toEqual(expect.objectContaining({ message: "ok" }));
+  });
+
+  it("throws VerificationError when the 403 persists and no fresh token arrives", async () => {
+    setTurnstileToken("stale-token");
+    const awaiter = vi.fn().mockResolvedValue(null); // recovery didn't land in time
+    setTurnstileAwaiter(awaiter);
+
+    (global.fetch as any).mockResolvedValue({ ok: false, status: 403 });
+
+    await expect(sendMessage("hi")).rejects.toBeInstanceOf(VerificationError);
+    // No retry without a fresh token — fail open with a clear error instead.
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces VerificationError from a non-chat gated POST (contact form)", async () => {
+    setTurnstileToken("stale-token");
+    setTurnstileAwaiter(vi.fn().mockResolvedValue(null));
+
+    (global.fetch as any).mockResolvedValue({ ok: false, status: 403 });
+
+    await expect(
+      searchChurches("Zurich"),
+    ).rejects.toBeInstanceOf(VerificationError);
   });
 });
 

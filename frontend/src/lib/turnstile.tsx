@@ -100,7 +100,12 @@ export function TurnstileProvider({
   const widgetIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const retryCountRef = useRef(0);
+  // After this many fast retries we report telemetry once, then keep retrying
+  // with the capped backoff below (we never permanently stop — see error-callback).
   const MAX_RETRIES = 3;
+  // Upper bound on the self-heal backoff so a wedged widget keeps trying to
+  // recover at a steady cadence instead of hammering Cloudflare.
+  const MAX_RECOVERY_DELAY_MS = 30_000;
 
   // Refs mirror state so awaitToken (called outside React) can read live values
   // and notify any pending waiters whenever the relevant state changes.
@@ -234,24 +239,32 @@ export function TurnstileProvider({
         },
         "error-callback": (error: unknown) => {
           console.warn("Turnstile challenge error:", error);
-          if (retryCountRef.current < MAX_RETRIES) {
-            retryCountRef.current += 1;
-            const delay = 1000 * retryCountRef.current;
-            console.warn(
-              `Retrying Turnstile (${retryCountRef.current}/${MAX_RETRIES}) in ${delay}ms`,
-            );
-            setTimeout(() => refreshToken(), delay);
-          } else {
-            console.error(
-              "Turnstile failed after retries, proceeding without token",
-            );
+          // Self-heal with exponential backoff and NEVER permanently give up.
+          // Each gated POST consumes its single-use token and resets the widget;
+          // a burst of resets can make Cloudflare fire this error-callback. If we
+          // stopped retrying (the old behaviour after MAX_RETRIES), the widget
+          // would stay token-less and every subsequent chat/feedback/contact POST
+          // would 403 for the rest of the session. Instead we keep retrying with a
+          // capped delay until a token arrives (the success callback resets the
+          // counter). Fail open in the meantime so input isn't blocked — the
+          // backend, not a stuck widget, decides whether to accept the request.
+          retryCountRef.current += 1;
+          const attempt = retryCountRef.current;
+          const delay = Math.min(
+            1000 * 2 ** (attempt - 1),
+            MAX_RECOVERY_DELAY_MS,
+          );
+          if (attempt === MAX_RETRIES) {
+            // Report once when the fast retries are exhausted, then keep trying.
             reportTurnstileError(
               "challenge_failed",
-              "max retries exceeded",
+              `retrying with backoff after ${attempt} attempts`,
               apiUrl,
             );
-            setIsReady(true);
           }
+          console.warn(`Retrying Turnstile (attempt ${attempt}) in ${delay}ms`);
+          setIsReady(true);
+          setTimeout(() => refreshToken(), delay);
         },
         "expired-callback": () => {
           setToken(null);
