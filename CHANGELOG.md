@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.31.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.0...v1.31.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **frontend:** self-heal Turnstile widget and recover gated POSTs from 403 ([#781](https://github.com/zioalex/getinspiredbythebible/issues/781)) ([475b6c9](https://github.com/zioalex/getinspiredbythebible/commit/475b6c976b4941fe528b3775c8485a97caf98d77))
+* recover Turnstile widget to stop chat retry and bug-report 403s ([#779](https://github.com/zioalex/getinspiredbythebible/issues/779)) ([42ea0cb](https://github.com/zioalex/getinspiredbythebible/commit/42ea0cb25e9d23f6c4076e597d54441a2a8a5f19))
+
 ## [1.31.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.1...v1.31.0) (2026-06-22)
 
 ### Features
