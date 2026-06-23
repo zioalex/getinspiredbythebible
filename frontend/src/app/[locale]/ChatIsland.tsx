@@ -43,6 +43,7 @@ import {
   SessionLimitError,
   StreamTimeoutError,
   MessageTooLongError,
+  VerificationError,
   MAX_MESSAGE_LENGTH,
   checkBackendReady,
   warmupBackend,
@@ -657,6 +658,15 @@ export default function ChatIsland({
       // it instead of showing a misleading connection error.
       if (error instanceof MessageTooLongError) {
         showError(tChat("messageTooLong", { max: MAX_MESSAGE_LENGTH }));
+        setIsLoading(false);
+        return;
+      }
+
+      // Turnstile couldn't verify the request (403) even after a retry — tell
+      // the user it's a verification hiccup that a quick retry usually fixes,
+      // rather than a generic connection failure.
+      if (error instanceof VerificationError) {
+        showError(tChat("errorVerification"));
         setIsLoading(false);
         return;
       }
