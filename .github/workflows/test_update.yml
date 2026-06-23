@@ -50,6 +50,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Guard — prod Application Insights must remain enabled (BITB-055)
+        run: |
+          # Prevent someone from accidentally disabling the alert layer by setting
+          # enable_application_insights = false in terraform.tfvars. All metric-based
+          # and log-based Azure Monitor alerts are gated on this flag; disabling it
+          # silently turns off prod monitoring.
+          if grep -qE '^\s*enable_application_insights\s*=\s*false' deployment/terraform.tfvars; then
+            msg="enable_application_insights is disabled — this silently turns off all"
+            msg="$msg prod Azure Monitor alerts (BITB-055 guard). Re-enable it or remove the line."
+            echo "::error file=deployment/terraform.tfvars::$msg"
+            exit 1
+          fi
+          echo "Guard passed: enable_application_insights is not disabled in terraform.tfvars"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
