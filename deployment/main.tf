@@ -332,8 +332,10 @@ resource "azurerm_postgresql_flexible_server" "main" {
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
 
-  # Burstable B1ms - cheapest option (~$13-16/month)
-  sku_name = "B_Standard_B1ms"
+  # Burstable B2s - 2 vCores / 4 GB RAM (~$33/month all-in). Upgraded from B1ms
+  # (1 vCore / 2 GB) so the per-translation partial HNSW indexes (migration 007)
+  # stay cached and the second vCore absorbs concurrent multilingual search load.
+  sku_name = "B_Standard_B2s"
 
   storage_mb                   = 32768 # 32GB minimum
   backup_retention_days        = 7
@@ -374,7 +376,8 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_client" {
 resource "azurerm_postgresql_flexible_server_configuration" "extensions" {
   name      = "azure.extensions"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "vector,uuid-ossp,pg_cron"
+  # pg_prewarm lets migration 007 warm the partial HNSW indexes into shared_buffers.
+  value = "vector,uuid-ossp,pg_cron,pg_prewarm"
 }
 
 # Run pg_cron jobs against the application database (default is `postgres`).
@@ -400,19 +403,19 @@ resource "azurerm_postgresql_flexible_server_configuration" "maintenance_work_me
 }
 
 # Increase shared_buffers for better query caching
-# PostgreSQL best practice: 25% of RAM for dedicated DB servers
+# PostgreSQL best practice: 25% of RAM. B2s = 4 GB RAM -> 1 GB.
 resource "azurerm_postgresql_flexible_server_configuration" "shared_buffers" {
   name      = "shared_buffers"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "65536" # 512MB (in 8KB pages)
+  value     = "131072" # 1GB (in 8KB pages) = 25% of 4GB
 }
 
 # Set effective_cache_size to help query planner estimate available OS cache
-# PostgreSQL best practice: 50-75% of total RAM
+# PostgreSQL best practice: 50-75% of total RAM. B2s = 4 GB RAM -> 3 GB.
 resource "azurerm_postgresql_flexible_server_configuration" "effective_cache_size" {
   name      = "effective_cache_size"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "196608" # 1.5GB (in 8KB pages)
+  value     = "393216" # 3GB (in 8KB pages) = 75% of 4GB
 }
 
 # Increase work_mem for complex sorts and joins (especially pgvector searches)

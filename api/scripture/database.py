@@ -9,7 +9,6 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
 
 from config import settings
 
@@ -57,12 +56,24 @@ def get_async_database_url() -> tuple[str, dict]:
 # Get async URL and connection args
 _async_url, _connect_args = get_async_database_url()
 
-# Create async engine
+# Create async engine.
+#
+# Use SQLAlchemy's default async pool (AsyncAdaptedQueuePool) rather than NullPool.
+# NullPool opens a fresh connection per request: under concurrent multilingual load
+# that means repeated connect/TLS handshakes and an unbounded number of backends
+# hitting a small burstable Postgres. A bounded QueuePool reuses warm connections and
+# caps concurrent backends (pool_size + max_overflow) well under the server's
+# max_connections. pool_pre_ping validates a connection before use (handles Azure idle
+# drops); pool_recycle proactively retires long-lived connections.
 engine = create_async_engine(
     _async_url,
-    poolclass=NullPool,  # Better for async
     echo=settings.debug,
     connect_args=_connect_args,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_timeout=settings.db_pool_timeout,
+    pool_recycle=settings.db_pool_recycle,
+    pool_pre_ping=True,
 )
 
 # Session factory
