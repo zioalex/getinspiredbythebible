@@ -421,7 +421,7 @@ fun ChatMessageItem(
     modifier: Modifier = Modifier,
     userMessage: String = "",
     onRetry: (() -> Unit)? = null,
-    onFeedback: ((messageLocalId: String, rating: String, comment: String) -> Unit)? = null,
+    onFeedback: ((messageLocalId: String, rating: String, comment: String, reason: String?) -> Unit)? = null,
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
