@@ -686,7 +686,7 @@ fun ChatMessageItem(
             if (showFeedback) {
                 FeedbackControls(
                     feedbackGiven = feedbackGiven,
-                    onSubmit = { rating, comment -> onFeedback!!(message.id, rating, comment) },
+                    onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
                     trailing = trailingActions,
                 )
             } else if (showShare) {

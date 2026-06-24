@@ -202,6 +202,12 @@
     <string name="feedback_send">Отправить</string>
     <string name="feedback_sending">Отправка отзыва…</string>
     <string name="feedback_maintainer_notice">Ваше сообщение будет передано ответственному за приложение.</string>
+    <string name="feedback_reason_prompt">Что пошло не так?</string>
+    <string name="feedback_reason_inaccurate">Неточно</string>
+    <string name="feedback_reason_unhelpful">Бесполезно</string>
+    <string name="feedback_reason_wrong_verse">Неверный стих</string>
+    <string name="feedback_reason_tone">Тон</string>
+    <string name="feedback_reason_other">Другое</string>
     <string name="backend_warming_up">Подключение к серверу… (первый запрос может занять до 30 с)</string>
     <string name="action_scroll_to_bottom">Прокрутить вниз</string>
 

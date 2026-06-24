@@ -16,4 +16,5 @@ data class FeedbackRequestDto(
     @SerialName("user_message") val userMessage: String = "",
     @SerialName("assistant_response") val assistantResponse: String = "",
     @SerialName("comment") val comment: String? = null,
+    @SerialName("reason") val reason: String? = null,
 )

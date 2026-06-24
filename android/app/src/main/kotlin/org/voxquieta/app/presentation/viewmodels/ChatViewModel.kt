@@ -811,7 +811,7 @@ class ChatViewModel @Inject constructor(
      * @param rating "positive" or "negative".
      * @param comment Optional free-text comment the user added on thumbs-down.
      */
-    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null, reason: String? = null) {
         // Look up the message and its context (user message preceding it).
         val messages = _uiState.value.messages
         val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
@@ -832,6 +832,7 @@ class ChatViewModel @Inject constructor(
                     userMessage = userMessage?.content ?: "",
                     assistantResponse = assistantMsg.content,
                     comment = comment,
+                    reason = if (feedbackRating == FeedbackRating.NEGATIVE) reason else null,
                 )
                 _uiState.update { state ->
                     state.copy(

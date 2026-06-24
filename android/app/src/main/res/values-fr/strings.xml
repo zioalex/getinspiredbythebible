@@ -202,6 +202,12 @@
     <string name="feedback_send">Envoyer</string>
     <string name="feedback_sending">Envoi du retour…</string>
     <string name="feedback_maintainer_notice">Votre message sera transmis au responsable de l\'application.</string>
+    <string name="feedback_reason_prompt">Qu'est-ce qui s'est mal passé ?</string>
+    <string name="feedback_reason_inaccurate">Inexact</string>
+    <string name="feedback_reason_unhelpful">Peu utile</string>
+    <string name="feedback_reason_wrong_verse">Mauvais verset</string>
+    <string name="feedback_reason_tone">Ton</string>
+    <string name="feedback_reason_other">Autre</string>
     <string name="backend_warming_up">Connexion au serveur… (la première requête peut prendre jusqu\'à 30 s)</string>
     <string name="action_scroll_to_bottom">Faire défiler vers le bas</string>
 
