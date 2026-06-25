@@ -22,7 +22,6 @@ from dataclasses import dataclass
 
 from utils.verse_parser import (
     InlineQuote,
-    ReferenceMention,
     VerseReference,
     extract_inline_quotes,
     extract_reference_mentions,
@@ -177,6 +176,48 @@ def _classify_paraphrase(content_text: str, canonical: str) -> bool:
     return ratio >= PARAPHRASE_SIMILARITY_THRESHOLD and abs_count >= _PARAPHRASE_OVERLAP_ABS_MIN
 
 
+def _apply_paraphrase_grounding(
+    text: str,
+    canonical_by_key: dict[tuple[str, int, int], str],
+    handled_ref_keys: set[tuple[str, int, int]],
+    edits: list[tuple[int, int, str]],
+    corrections: list[Correction],
+) -> None:
+    """Pass 2: detect unquoted paraphrases and append canonical verse text (BITB-053)."""
+    if not canonical_by_key:
+        return
+    for mention in extract_reference_mentions(text):
+        ref_key = (
+            mention.reference.book.lower(),
+            mention.reference.chapter,
+            mention.reference.verse_start,
+        )
+        if ref_key in handled_ref_keys:
+            continue
+        canonical = _canonical_text(mention.reference, canonical_by_key)
+        if not canonical:
+            continue
+        canonical_norm = _normalize_for_compare(canonical)
+        sentence_norm = _normalize_for_compare(mention.sentence)
+        if canonical_norm in sentence_norm:
+            continue
+        if _has_quotation(mention.content_text):
+            continue
+        if not _classify_paraphrase(mention.content_text, canonical):
+            continue
+        insert_pos = mention.ref_span[1]
+        edits.append((insert_pos, insert_pos, f' ("{canonical}")'))
+        handled_ref_keys.add(ref_key)
+        corrections.append(
+            Correction(
+                reference=str(mention.reference),
+                reason="paraphrased",
+                original_quote=mention.content_text,
+                corrected_quote=canonical,
+            )
+        )
+
+
 def ground_response(
     text: str,
     resolved_verses: list,
@@ -244,43 +285,8 @@ def ground_response(
         )
 
     # --- Pass 2: unquoted / paraphrased citation grounding (BITB-053) ---
-    if ground_paraphrases and canonical_by_key:
-        for mention in extract_reference_mentions(text):
-            ref_key = (
-                mention.reference.book.lower(),
-                mention.reference.chapter,
-                mention.reference.verse_start,
-            )
-            # Skip if the quoted-verse pass already handled this reference.
-            if ref_key in handled_ref_keys:
-                continue
-            canonical = _canonical_text(mention.reference, canonical_by_key)
-            if not canonical:
-                continue  # verse not in resolved set — nothing to append
-            # Idempotency guard: skip if canonical text is already present in the sentence.
-            canonical_norm = _normalize_for_compare(canonical)
-            sentence_norm = _normalize_for_compare(mention.sentence)
-            if canonical_norm in sentence_norm:
-                continue
-            # If the sentence already contains any quote character the verse was
-            # likely presented quoted (even if not adjacently detected by pass-1).
-            # Skip so we don't also append via the paraphrase path.
-            if _has_quotation(mention.content_text):
-                continue
-            if not _classify_paraphrase(mention.content_text, canonical):
-                continue
-            # Append the canonical verse in quotes immediately after the reference.
-            insert_pos = mention.ref_span[1]
-            edits.append((insert_pos, insert_pos, f' ("{canonical}")'))
-            handled_ref_keys.add(ref_key)
-            corrections.append(
-                Correction(
-                    reference=str(mention.reference),
-                    reason="paraphrased",
-                    original_quote=mention.content_text,
-                    corrected_quote=canonical,
-                )
-            )
+    if ground_paraphrases:
+        _apply_paraphrase_grounding(text, canonical_by_key, handled_ref_keys, edits, corrections)
 
     if not edits:
         return text, corrections

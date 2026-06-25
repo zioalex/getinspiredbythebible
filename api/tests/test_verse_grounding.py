@@ -445,7 +445,7 @@ class TestGroundParaphrase:
 
     def test_quoted_verse_not_double_processed(self):
         # A quoted verse handled by pass-1 must not also get a paraphrase append.
-        text = f'John 3:16 says: "God loved the whole planet greatly and sent his child."'
+        text = 'John 3:16 says: "God loved the whole planet greatly and sent his child."'
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
         out, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
         # Pass-1 corrects the quote; pass-2 must not add a second append.
