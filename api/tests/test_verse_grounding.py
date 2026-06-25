@@ -364,7 +364,10 @@ class TestExtractReferenceMentions:
         text = "Dio ci dice di non temere perché Lui ci rende forti (Isaia 41:10)."
         mentions = extract_reference_mentions(text)
         assert len(mentions) == 1
-        assert "isaia" in str(mentions[0].reference).lower() or "isaiah" in str(mentions[0].reference).lower()
+        assert (
+            "isaia" in str(mentions[0].reference).lower()
+            or "isaiah" in str(mentions[0].reference).lower()
+        )
 
     def test_sentence_boundary_stops_at_period(self):
         text = "This is a prior sentence. In John 3:16 God so loved the world. Next sentence here."
@@ -437,7 +440,7 @@ class TestGroundParaphrase:
 
     def test_idempotency_canonical_already_present(self):
         # If the canonical text is already in the sentence, do not append again.
-        text = f'In John 3:16 {JOHN_3_16_EN_FULL} — this is the verse.'
+        text = f"In John 3:16 {JOHN_3_16_EN_FULL} — this is the verse."
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
         out, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
         assert corrections == []
@@ -454,9 +457,7 @@ class TestGroundParaphrase:
     def test_paraphrase_disabled_by_flag(self):
         text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
-        out, corrections = ground_response(
-            text, [jn], context_refs=set(), ground_paraphrases=False
-        )
+        out, corrections = ground_response(text, [jn], context_refs=set(), ground_paraphrases=False)
         assert corrections == []
         assert out == text
 
@@ -508,14 +509,62 @@ class TestGroundParaphraseCrossLanguage:
 
     # Each case: (lang_id, text_with_unquoted_paraphrase, book, ch, vs)
     CASES = [
-        ("en", "In John 3:16 God greatly loved the world and gave his only begotten Son.", "John", 3, 16),
-        ("it", "In Giovanni 3:16 Dio ha amato il mondo tanto da dare il suo unico Figlio.", "John", 3, 16),
-        ("de", "In Johannes 3,16 hat Gott die Welt so sehr geliebt dass er seinen Sohn gab.", "John", 3, 16),
-        ("fr", "Dans Jean 3:16 Dieu a tellement aimé le monde qu il a donné son Fils.", "John", 3, 16),
-        ("es", "En Juan 3:16 Dios amó tanto al mundo que entregó a su Hijo unigénito.", "John", 3, 16),
-        ("pt", "Em João 3:16 Deus amou o mundo de tal forma que deu seu Filho unigênito.", "John", 3, 16),
-        ("ru", "В Иоанна 3:16 Бог так возлюбил мир что отдал Сына Своего Единородного.", "John", 3, 16),
-        ("it-isa", "In Isaia 41:10 Dio ci dice di non temere perché Lui ci rende forti.", "Isaiah", 41, 10),
+        (
+            "en",
+            "In John 3:16 God greatly loved the world and gave his only begotten Son.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "it",
+            "In Giovanni 3:16 Dio ha amato il mondo tanto da dare il suo unico Figlio.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "de",
+            "In Johannes 3,16 hat Gott die Welt so sehr geliebt dass er seinen Sohn gab.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "fr",
+            "Dans Jean 3:16 Dieu a tellement aimé le monde qu il a donné son Fils.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "es",
+            "En Juan 3:16 Dios amó tanto al mundo que entregó a su Hijo unigénito.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "pt",
+            "Em João 3:16 Deus amou o mundo de tal forma que deu seu Filho unigênito.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "ru",
+            "В Иоанна 3:16 Бог так возлюбил мир что отдал Сына Своего Единородного.",
+            "John",
+            3,
+            16,
+        ),
+        (
+            "it-isa",
+            "In Isaia 41:10 Dio ci dice di non temere perché Lui ci rende forti.",
+            "Isaiah",
+            41,
+            10,
+        ),
     ]
 
     CANONICAL_MAP = {

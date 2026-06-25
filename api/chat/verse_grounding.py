@@ -135,14 +135,20 @@ def _token_overlap_ratio(candidate_norm: str, canonical_norm: str) -> tuple[floa
 # (possibly non-adjacently), so the unquoted-paraphrase path is skipped.
 _QUOTE_CHARS: frozenset[str] = frozenset(
     [
-        "\"",
+        '"',
         "'",
-        "\u201c", "\u201d",
-        "\u00ab", "\u00bb",
-        "\u300c", "\u300d",
-        "\u300e", "\u300f",
-        "\u2039", "\u203a",
-        "\u2018", "\u2019",
+        "\u201c",
+        "\u201d",
+        "\u00ab",
+        "\u00bb",
+        "\u300c",
+        "\u300d",
+        "\u300e",
+        "\u300f",
+        "\u2039",
+        "\u203a",
+        "\u2018",
+        "\u2019",
     ]
 )
 
@@ -155,7 +161,6 @@ def _has_quotation(text: str) -> bool:
     adjacently), so we do not also trigger the paraphrase append path.
     """
     return any(c in _QUOTE_CHARS for c in text)
-
 
 
 def _classify_paraphrase(content_text: str, canonical: str) -> bool:
@@ -265,7 +270,9 @@ def ground_response(
         reason = _classify(q.quoted_text, canonical, in_context)
         if reason is None:
             # Quote is faithful — still mark as handled so paraphrase pass skips it.
-            handled_ref_keys.add((q.reference.book.lower(), q.reference.chapter, q.reference.verse_start))
+            handled_ref_keys.add(
+                (q.reference.book.lower(), q.reference.chapter, q.reference.verse_start)
+            )
             continue
         if reason == "unresolved":
             corrected = None
@@ -274,7 +281,9 @@ def ground_response(
         else:
             corrected = canonical
             edits.append((q.span[0], q.span[1], canonical))
-        handled_ref_keys.add((q.reference.book.lower(), q.reference.chapter, q.reference.verse_start))
+        handled_ref_keys.add(
+            (q.reference.book.lower(), q.reference.chapter, q.reference.verse_start)
+        )
         corrections.append(
             Correction(
                 reference=str(q.reference),
