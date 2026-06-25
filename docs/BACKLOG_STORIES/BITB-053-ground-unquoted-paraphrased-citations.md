@@ -1,6 +1,6 @@
 # BITB-053: Ground Unquoted / Paraphrased Verse Citations
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2 (Medium) — scripture fidelity; closes the largest remaining grounding gap
 **Size:** M (1-2 days)
 **Created:** 2026-06-19

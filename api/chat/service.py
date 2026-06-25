@@ -881,6 +881,7 @@ Keep it under 100 words."""
                 resolved_verses,
                 context_refs,
                 strip_unresolved=settings.grounding_strip_unresolved,
+                ground_paraphrases=settings.grounding_paraphrases_enabled,
             )
         except Exception as e:
             scripture_pipeline_errors_counter.add(

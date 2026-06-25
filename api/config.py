@@ -141,6 +141,9 @@ class Settings(BaseSettings):
     # quotation rather than only logging it. Off by default — grammar-safe
     # stripping across 11 languages is risky, so detect-and-log first.
     grounding_strip_unresolved: bool = False
+    # Ground unquoted/paraphrased verse citations by appending the canonical text.
+    # Catches the case where the LLM presents a verse without quotation marks.
+    grounding_paraphrases_enabled: bool = True
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

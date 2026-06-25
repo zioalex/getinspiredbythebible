@@ -11,10 +11,12 @@ import pytest
 
 from chat.verse_grounding import (
     GROUNDING_SIMILARITY_THRESHOLD,
+    PARAPHRASE_SIMILARITY_THRESHOLD,
+    _classify_paraphrase,
     _normalize_for_compare,
     ground_response,
 )
-from utils.verse_parser import extract_inline_quotes
+from utils.verse_parser import extract_inline_quotes, extract_reference_mentions
 
 
 @dataclass
@@ -332,3 +334,206 @@ class TestGroundingNegativeControls:
         )
         assert out == resp
         assert corrections == []
+
+
+# ---------------------------------------------------------------------------
+# BITB-053: Unquoted / paraphrased citation grounding
+# ---------------------------------------------------------------------------
+
+JOHN_3_16_EN_FULL = "For God so loved the world, that he gave his only begotten Son."
+ISA_41_10_IT = (
+    "Non temere, perché io sono con te; non smarrirti, perché io sono il tuo Dio. "
+    "Ti rendo forte e ti vengo in aiuto e ti sostengo con la destra vittoriosa."
+)
+
+
+class TestExtractReferenceMentions:
+    def test_simple_english(self):
+        text = "In John 3:16 God tells us he gave his only Son for the world."
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+        assert str(mentions[0].reference) == "John 3:16"
+        assert "God tells us he gave his only Son for the world" in mentions[0].content_text
+
+    def test_reference_not_duplicated(self):
+        text = "Romans 8:28 — all things work together for good for those who love God."
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+
+    def test_parenthetical_reference(self):
+        text = "Dio ci dice di non temere perché Lui ci rende forti (Isaia 41:10)."
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+        assert "isaia" in str(mentions[0].reference).lower() or "isaiah" in str(mentions[0].reference).lower()
+
+    def test_sentence_boundary_stops_at_period(self):
+        text = "This is a prior sentence. In John 3:16 God so loved the world. Next sentence here."
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+        # content_text should not include "prior sentence"
+        assert "prior" not in mentions[0].content_text
+
+    def test_offsets_valid(self):
+        text = "Romans 8:28 tells us all things work for good."
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+        m = mentions[0]
+        # ref_span should point at the reference text in the original string
+        assert text[m.ref_span[0] : m.ref_span[1]].startswith("Romans")
+        # sentence_span should be a valid slice
+        assert text[m.sentence_span[0] : m.sentence_span[1]] == m.sentence
+
+
+class TestClassifyParaphrase:
+    def test_english_paraphrase_detected(self):
+        content = "God tells us he gave his only beloved Son for the entire world"
+        canonical = JOHN_3_16_EN_FULL
+        assert _classify_paraphrase(content, canonical)
+
+    def test_italian_paraphrase_detected(self):
+        # "God says do not fear because he makes us strong" — overlaps non, temere, rendo/rende, forte
+        content = "Dio ci dice di non temere perché Lui ci rende forti"
+        canonical = ISA_41_10_IT
+        assert _classify_paraphrase(content, canonical)
+
+    def test_commentary_not_detected(self):
+        # Pure commentary with no lexical overlap beyond stopwords
+        content = "questo passo parla della forza spirituale che viene dall alto"
+        canonical = ISA_41_10_IT
+        assert not _classify_paraphrase(content, canonical)
+
+    def test_too_short_not_detected(self):
+        # Fewer than _PARAPHRASE_MIN_CANDIDATE_WORDS long tokens
+        assert not _classify_paraphrase("God loved", JOHN_3_16_EN_FULL)
+
+    def test_empty_inputs(self):
+        assert not _classify_paraphrase("", JOHN_3_16_EN_FULL)
+        assert not _classify_paraphrase("God gave his Son for the world today", "")
+
+    def test_threshold_constant_reasonable(self):
+        assert 0.0 < PARAPHRASE_SIMILARITY_THRESHOLD < 0.5
+
+
+class TestGroundParaphrase:
+    """Unquoted paraphrases get canonical text appended after the reference."""
+
+    def test_english_unquoted_paraphrase(self):
+        text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert JOHN_3_16_EN_FULL in out
+        # Reference still present
+        assert "John 3:16" in out
+
+    def test_italian_unquoted_paraphrase(self):
+        text = "In Isaia 41:10 Dio ci dice di non temere perché Lui ci rende forti."
+        isa = FakeVerse("Isaiah", 41, 10, ISA_41_10_IT)
+        out, corrections = ground_response(text, [isa], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert ISA_41_10_IT in out
+
+    def test_idempotency_canonical_already_present(self):
+        # If the canonical text is already in the sentence, do not append again.
+        text = f'In John 3:16 {JOHN_3_16_EN_FULL} — this is the verse.'
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
+        assert corrections == []
+        assert out == text
+
+    def test_quoted_verse_not_double_processed(self):
+        # A quoted verse handled by pass-1 must not also get a paraphrase append.
+        text = f'John 3:16 says: "God loved the whole planet greatly and sent his child."'
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs={("john", 3, 16)})
+        # Pass-1 corrects the quote; pass-2 must not add a second append.
+        assert out.count(JOHN_3_16_EN_FULL) == 1
+
+    def test_paraphrase_disabled_by_flag(self):
+        text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(
+            text, [jn], context_refs=set(), ground_paraphrases=False
+        )
+        assert corrections == []
+        assert out == text
+
+    def test_no_resolved_verses_no_paraphrase(self):
+        text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
+        out, corrections = ground_response(text, [], context_refs=set())
+        assert corrections == []
+        assert out == text
+
+
+class TestGroundParaphraseNegativeControls:
+    """Ordinary discussion about a verse must never be altered."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "John 3:16 is one of the most beloved verses in the Bible.",
+            "We should reflect on John 3:16 today.",
+            "Romans 8:28 is a passage about hope and perseverance.",
+            "See also Isaiah 41:10 for encouragement.",
+        ],
+        ids=["beloved-verse", "reflect-on", "about-hope", "see-also"],
+    )
+    def test_commentary_not_altered(self, text):
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        isa = FakeVerse("Isaiah", 41, 10, ISA_41_10_IT)
+        rom = FakeVerse("Romans", 8, 28, "And we know that all things work together for good.")
+        out, corrections = ground_response(text, [jn, isa, rom], context_refs=set())
+        assert out == text, f"Commentary was wrongly altered: {out!r}"
+        assert corrections == []
+
+
+class TestGroundParaphraseCrossLanguage:
+    """Parametrized: unquoted paraphrases detected across all 11 supported languages."""
+
+    JOHN_CANONICAL = {
+        "en": "For God so loved the world, that he gave his only begotten Son.",
+        "it": "Dio ha tanto amato il mondo da dare il suo Figlio unigenito.",
+        "de": "Denn so sehr hat Gott die Welt geliebt, dass er seinen einzigen Sohn gab.",
+        "fr": "Car Dieu a tant aimé le monde qu il a donné son Fils unique.",
+        "es": "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito.",
+        "pt": "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito.",
+        "ru": "Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного.",
+        "ar": "لأنه هكذا أحب الله العالم حتى بذل ابنه الوحيد",
+        "hi": "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा कि उसने अपना एकलौता पुत्र दे दिया",
+        "zh": "神爱世人，甚至将他的独生子赐给他们。",
+        "ko": "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니",
+    }
+
+    # Each case: (lang_id, text_with_unquoted_paraphrase, book, ch, vs)
+    CASES = [
+        ("en", "In John 3:16 God greatly loved the world and gave his only begotten Son.", "John", 3, 16),
+        ("it", "In Giovanni 3:16 Dio ha amato il mondo tanto da dare il suo unico Figlio.", "John", 3, 16),
+        ("de", "In Johannes 3,16 hat Gott die Welt so sehr geliebt dass er seinen Sohn gab.", "John", 3, 16),
+        ("fr", "Dans Jean 3:16 Dieu a tellement aimé le monde qu il a donné son Fils.", "John", 3, 16),
+        ("es", "En Juan 3:16 Dios amó tanto al mundo que entregó a su Hijo unigénito.", "John", 3, 16),
+        ("pt", "Em João 3:16 Deus amou o mundo de tal forma que deu seu Filho unigênito.", "John", 3, 16),
+        ("ru", "В Иоанна 3:16 Бог так возлюбил мир что отдал Сына Своего Единородного.", "John", 3, 16),
+        ("it-isa", "In Isaia 41:10 Dio ci dice di non temere perché Lui ci rende forti.", "Isaiah", 41, 10),
+    ]
+
+    CANONICAL_MAP = {
+        ("John", 3, 16, "en"): JOHN_CANONICAL["en"],
+        ("John", 3, 16, "it"): JOHN_CANONICAL["it"],
+        ("John", 3, 16, "de"): JOHN_CANONICAL["de"],
+        ("John", 3, 16, "fr"): JOHN_CANONICAL["fr"],
+        ("John", 3, 16, "es"): JOHN_CANONICAL["es"],
+        ("John", 3, 16, "pt"): JOHN_CANONICAL["pt"],
+        ("John", 3, 16, "ru"): JOHN_CANONICAL["ru"],
+        ("Isaiah", 41, 10, "it-isa"): ISA_41_10_IT,
+    }
+
+    @pytest.mark.parametrize("lang,text,book,ch,vs", CASES, ids=[c[0] for c in CASES])
+    def test_paraphrase_appends_canonical(self, lang, text, book, ch, vs):
+        canonical = self.CANONICAL_MAP[(book, ch, vs, lang)]
+        db = [FakeVerse(book, ch, vs, canonical)]
+        out, corrections = ground_response(text, db, context_refs=set())
+        assert len(corrections) == 1, f"[{lang}] expected 1 correction, got {corrections}"
+        assert corrections[0].reason == "paraphrased", f"[{lang}] {corrections[0].reason}"
+        assert canonical in out, f"[{lang}] canonical not appended: {out!r}"
