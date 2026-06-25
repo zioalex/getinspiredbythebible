@@ -68,6 +68,15 @@ class Settings(BaseSettings):
         "postgresql://CONFIGURE_ME:CONFIGURE_ME@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
+    # Async SQLAlchemy connection pool. Replaces the previous NullPool (no pooling):
+    # a bounded pool removes per-request connect/TLS overhead and caps the number of
+    # concurrent backends well under the PostgreSQL server's max_connections for a
+    # single API worker. db_pool_size + db_max_overflow is the hard ceiling on backends.
+    db_pool_size: int = 10
+    db_max_overflow: int = 10  # burst capacity above pool_size
+    db_pool_timeout: int = 30  # seconds to wait for a free connection before erroring
+    db_pool_recycle: int = 1800  # recycle a connection after 30 min (avoid stale/idle drops)
+
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
@@ -85,6 +94,12 @@ class Settings(BaseSettings):
     # threshold + hybrid re-ranking. Keeps vector search index-backed (the index
     # only accelerates `ORDER BY embedding <=> q LIMIT k`) instead of a full scan.
     vector_candidate_pool: int = 100
+    # HNSW query-time exploration depth (hnsw.ef_search). MUST be >= vector_candidate_pool,
+    # otherwise the ANN cannot return a full candidate pool and recall is silently capped
+    # (pgvector default is 40; migration 002 set 80 — below the pool of 100). This value is
+    # the single source of truth applied to the database by migration 007 via
+    # `ALTER DATABASE ... SET hnsw.ef_search`; the connection pool inherits it per session.
+    hnsw_ef_search: int = 120
 
     # Topic Boosting Settings
     topic_boosting_enabled: bool = False  # Feature flag for topic-based search boosting
@@ -217,6 +232,17 @@ class Settings(BaseSettings):
                 "Set the DATABASE_URL environment variable."
             )
         return v
+
+    @model_validator(mode="after")
+    def validate_hnsw_ef_search(self) -> "Settings":
+        """hnsw.ef_search must be >= the ANN candidate pool, else recall is silently capped."""
+        if self.hnsw_ef_search < self.vector_candidate_pool:
+            raise ValueError(
+                f"hnsw_ef_search ({self.hnsw_ef_search}) must be >= vector_candidate_pool "
+                f"({self.vector_candidate_pool}); a smaller ef_search caps the candidate pool "
+                "the HNSW index can return and degrades search recall."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_llm_provider_keys(self) -> "Settings":
