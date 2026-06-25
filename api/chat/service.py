@@ -32,6 +32,7 @@ from utils.metrics import (
     scripture_pipeline_errors_counter,
     verse_grounding_corrections_counter,
     verse_grounding_duration_histogram,
+    verse_grounding_paraphrase_appends_counter,
     verse_grounding_quotes_checked_counter,
 )
 from utils.timing import format_timings, record_stage, timed_stage
@@ -903,6 +904,12 @@ Keep it under 100 words."""
                 "book": c.reference.rsplit(" ", 1)[0],
             }
             verse_grounding_corrections_counter.add(1, correction_attrs)
+            if c.reason == "paraphrased":
+                # Measures BITB-053 Pass-2 appends and how often they land before
+                # a closing bracket (nested-parens artifact) — see monitoring.tf.
+                verse_grounding_paraphrase_appends_counter.add(
+                    1, {"language": language, "bracketed": c.bracketed}
+                )
             logger.warning(
                 "Scripture fidelity issue corrected",
                 extra={

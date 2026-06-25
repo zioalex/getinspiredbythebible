@@ -32,6 +32,11 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053)
+#       Observation alert: fires when an unquoted-paraphrase canonical-text append
+#       lands before a closing bracket (chat.verse_grounding.paraphrase_appends with
+#       bracketed=true), i.e. it nested inside a parenthetical reference. Cosmetic
+#       only; exists to measure whether the edge actually occurs before any fix.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -335,6 +340,52 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_laten
       | where op in ("get_verse", "get_chapter")
       | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
       | where p95 > 1000
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Unquoted-paraphrase nested-parens observation alert (BITB-053).
+# Pass 2 of verse grounding appends canonical verse text right after a reference.
+# When the reference is parenthesised — e.g. "(Isaia 41:10)" — the append lands
+# before the closing bracket and nests: (Isaia 41:10 ("Non temere…")). This is
+# cosmetic (offsets are safe), so rather than re-engineer the insertion point
+# blindly we measure it: chat.verse_grounding.paraphrase_appends carries a
+# `bracketed` dimension, and this rule fires on the first bracketed append in an
+# hour. Severity 3. Once a baseline is known, retune the threshold or remove it.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_paraphrase_brackets" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-verse-grounding-paraphrase-brackets"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT1H"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "A BITB-053 unquoted-paraphrase append landed before a closing bracket (nested-parens artifact) in the last hour. Cosmetic; this is an observation alert to confirm whether the edge occurs in production."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(1h)
+      | where name == "chat.verse_grounding.paraphrase_appends"
+      | extend bracketed = tostring(customDimensions["bracketed"])
+      | where bracketed == "true"
+      | summarize total = sum(valueSum) by bin(timestamp, 15m)
+      | where total > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

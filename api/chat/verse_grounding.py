@@ -57,6 +57,24 @@ _PUNCT_RE = re.compile(r"[^\w\s]", flags=re.UNICODE)
 _WS_RE = re.compile(r"\s+")
 _ELLIPSIS_RE = re.compile(r"(\.{3,}|…)")
 
+# Closing half of verse_parser._BRACKET_TO_SPACE. Used to detect when a
+# paraphrase append (inserted right after a reference) lands before a closing
+# bracket — i.e. the reference was parenthesised so the canonical text nests
+# inside it: (Isaia 41:10 ("Non temere…")). Cosmetic; measured via metrics.
+_CLOSING_BRACKETS: frozenset[str] = frozenset(")]）】」』》")
+
+
+def _append_lands_before_close_bracket(text: str, insert_pos: int) -> bool:
+    """True if the next non-space char at *insert_pos* is a closing bracket.
+
+    When that happens the paraphrase append would nest inside a parenthetical
+    reference, producing awkward output like ``(Isaia 41:10 ("…"))``.
+    """
+    i = insert_pos
+    while i < len(text) and text[i].isspace():
+        i += 1
+    return i < len(text) and text[i] in _CLOSING_BRACKETS
+
 
 def _normalize_for_compare(s: str) -> str:
     """Normalize verse text for similarity comparison.
@@ -77,9 +95,12 @@ class Correction:
     """A detected scripture-fidelity issue and what was done about it."""
 
     reference: str
-    reason: str  # "fabricated" | "mismatched" | "unresolved"
+    reason: str  # "fabricated" | "mismatched" | "unresolved" | "paraphrased"
     original_quote: str
     corrected_quote: str | None  # None when no canonical text was available
+    # Only meaningful for reason == "paraphrased": True when the canonical-text
+    # append landed before a closing bracket (nested-parens artifact). BITB-053.
+    bracketed: bool = False
 
 
 def _ref_keys(ref: VerseReference) -> list[tuple[str, int, int]]:
@@ -219,6 +240,7 @@ def _apply_paraphrase_grounding(
                 reason="paraphrased",
                 original_quote=mention.content_text,
                 corrected_quote=canonical,
+                bracketed=_append_lands_before_close_bracket(text, insert_pos),
             )
         )
 

@@ -67,6 +67,18 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
+# Unquoted-paraphrase grounding (BITB-053, Pass 2) appends canonical verse text
+# right after the reference. The `bracketed` dimension is True when that append
+# lands before a closing bracket — i.e. the reference was parenthesised and the
+# canonical text nests inside, e.g. (Isaia 41:10 ("Non temere…")). This metric
+# exists to measure whether that cosmetic edge actually occurs in production
+# before deciding to re-engineer the insertion point.
+verse_grounding_paraphrase_appends_counter = meter.create_counter(
+    name="chat.verse_grounding.paraphrase_appends",
+    description="Unquoted-paraphrase canonical-text appends (BITB-053); bracketed=True means it landed before a closing bracket (nested-parens artifact)",
+    unit="1",
+)  # attributes: language, bracketed (bool)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",

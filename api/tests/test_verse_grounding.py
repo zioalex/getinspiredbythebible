@@ -12,6 +12,7 @@ import pytest
 from chat.verse_grounding import (
     GROUNDING_SIMILARITY_THRESHOLD,
     PARAPHRASE_SIMILARITY_THRESHOLD,
+    _append_lands_before_close_bracket,
     _classify_paraphrase,
     _normalize_for_compare,
     ground_response,
@@ -586,3 +587,67 @@ class TestGroundParaphraseCrossLanguage:
         assert len(corrections) == 1, f"[{lang}] expected 1 correction, got {corrections}"
         assert corrections[0].reason == "paraphrased", f"[{lang}] {corrections[0].reason}"
         assert canonical in out, f"[{lang}] canonical not appended: {out!r}"
+
+
+# ---------------------------------------------------------------------------
+# BITB-053: nested-parens append detection (observability)
+# ---------------------------------------------------------------------------
+
+
+class TestAppendLandsBeforeCloseBracket:
+    """The bracket detector that drives the chat.verse_grounding.paraphrase_appends metric."""
+
+    def test_directly_before_ascii_close(self):
+        # "a (Gen 1:1)" — index 10 is the ')'.
+        assert _append_lands_before_close_bracket("a (Gen 1:1)", 10) is True
+
+    def test_before_close_after_whitespace(self):
+        # Trailing space between the reference and the ')'.
+        text = "a (Gen 1:1 )"
+        assert _append_lands_before_close_bracket(text, text.index(" )")) is True
+
+    def test_before_fullwidth_close(self):
+        text = "（創 1:1）"
+        assert _append_lands_before_close_bracket(text, text.index("）")) is True
+
+    def test_before_normal_text_is_false(self):
+        # "a Gen 1:1 b" — after the reference comes prose, not a bracket.
+        assert _append_lands_before_close_bracket("a Gen 1:1 b", 9) is False
+
+    def test_end_of_string_is_false(self):
+        assert _append_lands_before_close_bracket("Gen 1:1", 7) is False
+
+
+class TestGroundParaphraseBracketedFlag:
+    """Correction.bracketed records whether a paraphrase append nested in parens."""
+
+    def test_parenthetical_reference_is_bracketed(self):
+        # Reference sits inside parentheses, so the append lands before ')'.
+        text = "Dio ci dice di non temere perché Lui ci rende forti (Isaia 41:10)."
+        isa = FakeVerse("Isaiah", 41, 10, ISA_41_10_IT)
+        out, corrections = ground_response(text, [isa], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert corrections[0].bracketed is True
+        assert ISA_41_10_IT in out
+
+    def test_inline_reference_is_not_bracketed(self):
+        # Same paraphrase, reference inline — append is followed by prose.
+        text = "In Isaia 41:10 Dio ci dice di non temere perché Lui ci rende forti."
+        isa = FakeVerse("Isaiah", 41, 10, ISA_41_10_IT)
+        _out, corrections = ground_response(text, [isa], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].bracketed is False
+
+    def test_non_paraphrase_correction_defaults_unbracketed(self):
+        # A fabricated quoted verse (pass 1) carries the default bracketed=False.
+        text = (
+            'Un altro passaggio utile è: "Non temere, perché io sono con te; non '
+            "smarrirti, perché io sono il tuo Dio; io ti fortirò, io ti aiuterò, io ti "
+            'sosterrò con la mia destra fedele" (Isaia 41:10). Spero ti aiuti.'
+        )
+        isa = FakeVerse("Isaiah", 41, 10, ISAIAH_41_10_IT)
+        _out, corrections = ground_response(text, [isa], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].reason == "fabricated"
+        assert all(c.bracketed is False for c in corrections)
