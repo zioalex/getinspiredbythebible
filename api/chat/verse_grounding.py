@@ -49,8 +49,10 @@ _PARAPHRASE_OVERLAP_ABS_MIN: int = 4
 # Sentence must have at least this many long tokens to be a paraphrase candidate
 # (short sentences like "See John 3:16." have too little signal either way).
 _PARAPHRASE_MIN_CANDIDATE_WORDS: int = 4
-# Only count tokens of this length or longer — filters out articles, prepositions
-# ("is", "the", "di", "de") that are too common to be meaningful overlap signals.
+# Only count tokens of this length or longer — drops the shortest, most common
+# function words (≤2 chars: "is", "di", "de", "el"). Note 3-char words like "the"
+# / "and" are still counted; the _PARAPHRASE_OVERLAP_ABS_MIN floor (not this
+# length cutoff) is what stops stopword-only coincidences from triggering.
 _OVERLAP_TOKEN_MIN_LEN: int = 3
 
 _PUNCT_RE = re.compile(r"[^\w\s]", flags=re.UNICODE)
@@ -154,10 +156,16 @@ def _token_overlap_ratio(candidate_norm: str, canonical_norm: str) -> tuple[floa
 # Characters that indicate a sentence already contains a quotation.
 # If any appear in content_text the verse is already presented quoted
 # (possibly non-adjacently), so the unquoted-paraphrase path is skipped.
+#
+# Only *unambiguous* quotation marks belong here. The single-quote/apostrophe
+# forms (U+0027 ', U+2018 \u2018, U+2019 \u2019) are deliberately excluded: they double as
+# in-word apostrophes in ordinary prose \u2014 French elision ("qu'il", "l'amour"),
+# Italian ("l'uomo", "un'anima"), English possessives/contractions ("God's",
+# "doesn't"). Treating them as quote markers made the paraphrase pass skip whole
+# sentences in exactly the apostrophe-heavy languages it targets.
 _QUOTE_CHARS: frozenset[str] = frozenset(
     [
         '"',
-        "'",
         "\u201c",
         "\u201d",
         "\u00ab",
@@ -168,8 +176,6 @@ _QUOTE_CHARS: frozenset[str] = frozenset(
         "\u300f",
         "\u2039",
         "\u203a",
-        "\u2018",
-        "\u2019",
     ]
 )
 

@@ -158,7 +158,12 @@ class Settings(BaseSettings):
     grounding_strip_unresolved: bool = False
     # Ground unquoted/paraphrased verse citations by appending the canonical text.
     # Catches the case where the LLM presents a verse without quotation marks.
-    grounding_paraphrases_enabled: bool = True
+    # Ships OFF: this pass is additive (it injects verse text into the user-facing
+    # reply) and runs on every response, so a misfire is more visible than the
+    # quoted-quote correction. Enable it deliberately to measure the
+    # chat.verse_grounding.paraphrase_appends rate (and the nested-parens alert in
+    # monitoring.tf) before trusting it on all traffic.
+    grounding_paraphrases_enabled: bool = False
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

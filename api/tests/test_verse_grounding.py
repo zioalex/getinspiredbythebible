@@ -14,6 +14,7 @@ from chat.verse_grounding import (
     PARAPHRASE_SIMILARITY_THRESHOLD,
     _append_lands_before_close_bracket,
     _classify_paraphrase,
+    _has_quotation,
     _normalize_for_compare,
     ground_response,
 )
@@ -651,3 +652,47 @@ class TestGroundParaphraseBracketedFlag:
         assert len(corrections) == 1
         assert corrections[0].reason == "fabricated"
         assert all(c.bracketed is False for c in corrections)
+
+
+# ---------------------------------------------------------------------------
+# BITB-053: apostrophes must not be mistaken for quotation marks
+# ---------------------------------------------------------------------------
+
+JOHN_3_16_FR = "Car Dieu a tant aimé le monde qu'il a donné son Fils unique."
+
+
+class TestApostropheNotTreatedAsQuote:
+    """Apostrophes (', ‘, ’) are in-word prose, not quote markers.
+
+    Treating them as "already quoted" made the paraphrase pass skip whole
+    sentences in French / Italian / English — exactly the languages it targets.
+    """
+
+    def test_has_quotation_ignores_apostrophes(self):
+        assert _has_quotation("Dieu a tant aimé le monde qu'il a donné") is False
+        assert _has_quotation("God's love for the world is shown") is False
+        assert _has_quotation("l'amore di Dio per l'uomo") is False
+        # Curly single quote (typographic apostrophe) is also prose, not a quote.
+        assert _has_quotation("qu’il a donné son Fils") is False
+
+    def test_has_quotation_still_detects_real_quotes(self):
+        assert _has_quotation('he said "peace be with you"') is True
+        assert _has_quotation("dice: «Non temere»") is True
+        assert _has_quotation("「平和」") is True
+
+    def test_french_paraphrase_with_apostrophe_is_grounded(self):
+        # "qu'il" must not suppress grounding (regression: it used to).
+        text = "Dans Jean 3:16 Dieu a tellement aimé le monde qu'il a donné son Fils unique."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_FR)
+        out, corrections = ground_response(text, [jn], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert JOHN_3_16_FR in out
+
+    def test_english_possessive_does_not_suppress_grounding(self):
+        text = "In John 3:16 God's love is shown when he gave his only begotten Son."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs=set())
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert JOHN_3_16_EN_FULL in out
