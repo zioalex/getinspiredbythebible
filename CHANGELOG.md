@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.32.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.0...v1.32.1) (2026-06-25)
+
+
+### Performance Improvements
+
+* **search:** partial HNSW indexes, DB pool, B2s SKU + concurrency test ([#784](https://github.com/zioalex/getinspiredbythebible/issues/784)) ([e2a4dcc](https://github.com/zioalex/getinspiredbythebible/commit/e2a4dcce1593488f44b1680c544cbfdf0efc698b))
+
 ## [1.32.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.1...v1.32.0) (2026-06-23)
 
 ### Features
