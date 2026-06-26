@@ -340,7 +340,10 @@ resource "azurerm_postgresql_flexible_server" "main" {
   storage_mb                   = 32768 # 32GB minimum
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
-  auto_grow_enabled            = false
+  # BITB-056: auto-grow removes the disk-full write-failure cliff (storage was a fixed
+  # 32GB with no growth). Storage only ever grows, so this is a safe, one-way change;
+  # the db-storage-high alert (monitoring.tf) backstops a fill faster than growth.
+  auto_grow_enabled = true
 
   # Allow Azure services to connect
   public_network_access_enabled = true
