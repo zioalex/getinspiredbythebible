@@ -74,12 +74,25 @@ async def run_migration():
         # 1. ef_search >= candidate pool so the ANN returns a full pool. Use
         #    current_database() (not a hard-coded name like migration 002's
         #    `bibleapp`) so this is robust to the actual prod database name.
+        #
+        #    This is best-effort: ALTER DATABASE ... SET requires DB-owner/superuser
+        #    privileges that the Azure Flexible Server app role does not have, so it
+        #    raises InsufficientPrivilegeError there. The application applies the same
+        #    GUC per session in api/scripture/database.py (the runtime source of truth),
+        #    so a failure here is non-fatal — we just skip the DB-wide default, which
+        #    only benefits non-app clients (psql, ad-hoc tools).
         ef_search = max(settings.hnsw_ef_search, settings.vector_candidate_pool)
         dbname = await conn.fetchval("SELECT current_database()")
         log(f"Setting hnsw.ef_search = {ef_search} on database '{dbname}'")
         # dbname/ef_search are not bindable in ALTER DATABASE; dbname comes from the
         # server and ef_search is an int from config, so inlining is safe.
-        await conn.execute(f'ALTER DATABASE "{dbname}" SET hnsw.ef_search = {int(ef_search)}')
+        try:
+            await conn.execute(f'ALTER DATABASE "{dbname}" SET hnsw.ef_search = {int(ef_search)}')
+        except asyncpg.exceptions.InsufficientPrivilegeError:
+            log(
+                "Skipping ALTER DATABASE SET hnsw.ef_search (insufficient privilege); "
+                "the application sets it per session at the connection level instead."
+            )
 
         # 2. Discover the translations actually present so the index set tracks
         #    reality instead of a hard-coded list that can drift.

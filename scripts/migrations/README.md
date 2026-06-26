@@ -221,8 +221,15 @@ translations, then the `WHERE translation = :t` filter drops the non-matching ro
 at `ef_search = 80`) and hurting recall. A partial index per translation
 (`... WHERE translation = '<t>'`) is filtered *by the index*: no post-filter, the
 `LIMIT` fills, and the per-query working set drops ~12× (each partial ≈ 220 MB vs
-the 2.6 GB full index). It also sets `hnsw.ef_search = 120` (≥ `vector_candidate_pool`)
-so the ANN can return a full pool.
+the 2.6 GB full index). It also tries to set `hnsw.ef_search = 120`
+(≥ `vector_candidate_pool`) so the ANN can return a full pool.
+
+> **`hnsw.ef_search` is best-effort here.** `ALTER DATABASE ... SET hnsw.ef_search`
+> needs DB-owner/superuser privileges the managed-Postgres app role lacks, so the
+> migration skips it with a warning when it hits `InsufficientPrivilegeError`. The
+> **runtime source of truth** is the API connection pool, which applies the GUC per
+> session on connect (`api/scripture/database.py`); the DB-wide default only benefits
+> non-app clients (psql, ad-hoc tools).
 
 ### Why a `.py` migration
 
