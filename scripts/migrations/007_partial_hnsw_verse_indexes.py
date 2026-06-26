@@ -16,8 +16,17 @@ fills, and the per-query working set drops ~12x (each partial is ~1/12th the siz
 and fits in shared_buffers). The full index is kept for the no-translation search
 path (``/scripture/search`` without a translation).
 
-It also raises ``hnsw.ef_search`` to >= vector_candidate_pool so the ANN can
-return a full candidate pool (the old default of 80 was below the pool of 100).
+This migration does NOT set ``hnsw.ef_search``. The ANN needs
+``ef_search >= vector_candidate_pool`` to return a full candidate pool (pgvector's
+default of 40 and migration 002's 80 are both below the pool of 100), but managed
+Postgres (Azure Flexible Server, AWS RDS) forbids *persisting* that GUC at the
+database or role level: ``ALTER DATABASE/ROLE ... SET hnsw.ef_search`` raises
+``permission denied to set parameter`` even for the admin role. An earlier version
+of this migration ran ``ALTER DATABASE ... SET hnsw.ef_search`` and failed CI with
+exactly that error. The knob now lives in the application instead, which issues
+``SET hnsw.ef_search`` per session on every pooled connection (see
+``api/scripture/database.py``) — a session-level SET of a namespaced custom GUC
+needs no special privilege and is the vendor-recommended way to tune it.
 
 Why a .py migration (not .sql): ``CREATE INDEX CONCURRENTLY`` cannot run inside a
 transaction block, but ``run_migrations.py:run_sql_migration`` executes the whole
@@ -64,24 +73,21 @@ def index_name(translation: str) -> str:
 
 
 async def run_migration():
-    """Create per-translation partial HNSW indexes and raise hnsw.ef_search."""
+    """Create per-translation partial HNSW indexes for verse search."""
     log("Connecting to database...")
     database_url = settings.database_url
     clean_url, conn_kwargs = get_migration_connection_params(database_url)
     conn = await asyncpg.connect(clean_url, **conn_kwargs)
 
     try:
-        # 1. ef_search >= candidate pool so the ANN returns a full pool. Use
-        #    current_database() (not a hard-coded name like migration 002's
-        #    `bibleapp`) so this is robust to the actual prod database name.
-        ef_search = max(settings.hnsw_ef_search, settings.vector_candidate_pool)
-        dbname = await conn.fetchval("SELECT current_database()")
-        log(f"Setting hnsw.ef_search = {ef_search} on database '{dbname}'")
-        # dbname/ef_search are not bindable in ALTER DATABASE; dbname comes from the
-        # server and ef_search is an int from config, so inlining is safe.
-        await conn.execute(f'ALTER DATABASE "{dbname}" SET hnsw.ef_search = {int(ef_search)}')
+        # NOTE: hnsw.ef_search is intentionally NOT set here. Managed Postgres
+        # (Azure Flexible Server / AWS RDS) refuses to persist it at the database or
+        # role level — `ALTER DATABASE ... SET hnsw.ef_search` raised "permission
+        # denied to set parameter" and failed CI. The application sets it per session
+        # on every pooled connection instead (api/scripture/database.py), which needs
+        # no special privilege. See the module docstring for the full story.
 
-        # 2. Discover the translations actually present so the index set tracks
+        # 1. Discover the translations actually present so the index set tracks
         #    reality instead of a hard-coded list that can drift.
         rows = await conn.fetch(
             "SELECT DISTINCT translation FROM verses "
@@ -93,7 +99,7 @@ async def run_migration():
             return
         log(f"Found {len(translations)} translations: {', '.join(translations)}")
 
-        # 3. One partial HNSW index per translation. CONCURRENTLY keeps the verses
+        # 2. One partial HNSW index per translation. CONCURRENTLY keeps the verses
         #    table readable during the build; each statement runs in its own
         #    autocommit execute because CONCURRENTLY cannot run inside a txn.
         for t in translations:
@@ -110,7 +116,7 @@ async def run_migration():
                 f"WHERE translation = '{literal}'"
             )
 
-        # 4. Warm the new indexes into shared_buffers so the first post-deploy query
+        # 3. Warm the new indexes into shared_buffers so the first post-deploy query
         #    doesn't pay the cold-cache penalty. Best-effort: pg_prewarm must be
         #    allow-listed (azure.extensions); skip silently if unavailable.
         try:

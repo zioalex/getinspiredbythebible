@@ -96,9 +96,11 @@ class Settings(BaseSettings):
     vector_candidate_pool: int = 100
     # HNSW query-time exploration depth (hnsw.ef_search). MUST be >= vector_candidate_pool,
     # otherwise the ANN cannot return a full candidate pool and recall is silently capped
-    # (pgvector default is 40; migration 002 set 80 — below the pool of 100). This value is
-    # the single source of truth applied to the database by migration 007 via
-    # `ALTER DATABASE ... SET hnsw.ef_search`; the connection pool inherits it per session.
+    # (pgvector default is 40; migration 002 set 80 — below the pool of 100). The runtime
+    # source of truth is the connection pool, which applies this per session on connect
+    # (api/scripture/database.py); migration 007 also tries to set the DB-wide default via
+    # `ALTER DATABASE ... SET hnsw.ef_search`, but that is best-effort (the managed-Postgres
+    # app role lacks the privilege), so the per-session SET is what the search path relies on.
     hnsw_ef_search: int = 120
 
     # Topic Boosting Settings

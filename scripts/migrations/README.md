@@ -211,7 +211,8 @@ LIMIT 5;
 **Date:** 2026-06-24
 **Purpose:** Phase 2 chat-latency fix. Replace reliance on the single full HNSW
 index (`idx_verse_embedding_hnsw`) for per-language chat search with one **partial**
-HNSW index per translation, and raise `hnsw.ef_search` to match the candidate pool.
+HNSW index per translation. (`hnsw.ef_search` is tuned by the application per
+session, not by this migration — see the note below.)
 
 ### Why
 
@@ -221,8 +222,17 @@ translations, then the `WHERE translation = :t` filter drops the non-matching ro
 at `ef_search = 80`) and hurting recall. A partial index per translation
 (`... WHERE translation = '<t>'`) is filtered *by the index*: no post-filter, the
 `LIMIT` fills, and the per-query working set drops ~12× (each partial ≈ 220 MB vs
-the 2.6 GB full index). It also sets `hnsw.ef_search = 120` (≥ `vector_candidate_pool`)
-so the ANN can return a full pool.
+the 2.6 GB full index).
+
+> **Why this migration no longer touches `hnsw.ef_search`.** The ANN still needs
+> `ef_search ≥ vector_candidate_pool` (≥ 120) to return a full pool, but managed
+> Postgres (Azure Flexible Server, AWS RDS) refuses to *persist* that GUC at the
+> database/role level — `ALTER DATABASE ... SET hnsw.ef_search` raises
+> `permission denied to set parameter` even for the admin role, and an earlier
+> version of this migration failed CI with exactly that error. The knob now lives
+> in the API connection pool, which runs `SET hnsw.ef_search` per session on connect
+> (`api/scripture/database.py`); a session-level SET needs no special privilege and
+> is the vendor-recommended way to tune it.
 
 ### Why a `.py` migration
 
