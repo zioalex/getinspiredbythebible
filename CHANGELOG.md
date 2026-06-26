@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.33.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.1...v1.33.0) (2026-06-26)
+
+### Features
+
+* **db:** move hnsw.ef_search tuning from migration to connection pool ([#789](https://github.com/zioalex/getinspiredbythebible/issues/789)) ([1787b2f](https://github.com/zioalex/getinspiredbythebible/commit/1787b2f1786f98ce084ffb98152bb98ca7a89bc9))
+* **monitoring:** actionable ERROR-level backend alert + DB saturation detection (BITB-056) ([#788](https://github.com/zioalex/getinspiredbythebible/issues/788)) ([ddf4167](https://github.com/zioalex/getinspiredbythebible/commit/ddf4167110458d00e4c58fd4e89d87ead7968877))
+
 ## [1.32.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.0...v1.32.1) (2026-06-25)
 
 ### Performance Improvements
