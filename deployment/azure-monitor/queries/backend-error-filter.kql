@@ -1,0 +1,38 @@
+// Single source of truth for "a backend ERROR log line" (BITB-056).
+//
+// Consumed by two delivery channels, each of which appends its own aggregation tail:
+//   - deployment/monitoring.tf
+//       azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors        (Sev2 email + Telegram)
+//       azurerm_monitor_scheduled_query_rules_alert_v2.backend_error_rate_other (Sev3)
+//   - .github/workflows/prod-monitor.yml  (log-scan job -> Telegram)
+//
+// Why level, not keywords: the backend already encodes signal-vs-noise in the log LEVEL
+// (see api/utils/logging_config.py). Transient, self-recovered conditions — rate limits,
+// timeouts, server-side routing failures, client-side fallback churn, query-expansion
+// fallback, verse-grounding skips — are logged at WARNING. Genuinely actionable failures
+// (unhandled 5xx, all-models-down, DB failures) go through logger.exception()/logger.error
+// at ERROR. So we alert on the "| ERROR |" level marker, not on keyword substrings like
+// "traceback" or "internal server error" that also appear in handled/transient cases and in
+// multi-line stack dumps.
+//
+// This file contains ONLY the filter + field extraction. Do NOT add a summarize/aggregation
+// here — each consumer appends its own (see the call sites above).
+ContainerAppConsoleLogs_CL
+| where TimeGenerated > ago(10m)
+| where ContainerAppName_s == "bible-app-backend"
+| where Log_s matches regex @"\|\s*ERROR\s*\|"          // level marker, not keywords
+| where Log_s !contains "bypassing rate limit"          // known-benign INFO line
+| extend RequestId = extract(@"\|\s*\[([^\]]*)\]\s*\|", 1, Log_s)
+| extend ErrorCategory = case(
+    // DB connection-pool / server saturation (the conc>=32 threshold cliff). Checked first so
+    // a pool timeout surfaced via "Chat request failed: QueuePool limit ..." is labelled as the
+    // capacity signal it is, not as a generic chat error.
+    Log_s has "QueuePool limit" or Log_s has "connection timed out" or Log_s has "TimeoutError"
+        or Log_s has "too many connections" or Log_s has "remaining connection slots", "db_pool_timeout",
+    Log_s has "All OpenRouter" and Log_s has "unavailable",                    "llm_all_models_down",
+    Log_s has "Chat stream failed" or Log_s has "Chat stream runtime error",   "chat_stream_unhandled",
+    Log_s has "Chat request failed" or Log_s has "Chat runtime error",         "chat_unhandled",
+    Log_s has "Get verse context failed",                                      "verse_context_failed",
+    Log_s has "Scripture search failed",                                       "scripture_search_failed",
+    Log_s has "LLM provider error",                                            "llm_provider_error",
+    "other_error")
