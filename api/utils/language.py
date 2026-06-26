@@ -17,7 +17,11 @@ DEFAULT_LANGUAGE = "en"
 LANGUAGE_TRANSLATIONS = {
     "en": ["web", "kjv"],  # English: WEB (default), KJV
     "it": ["ita1927"],  # Italian: Riveduta 1927
-    "de": ["luther1912", "schlachter", "elberfelder1871"],  # German: Luther 1912 (default), Schlachter 1951, Elberfelder 1871
+    "de": [
+        "luther1912",
+        "schlachter",
+        "elberfelder1871",
+    ],  # German: Luther 1912 (default), Schlachter 1951, Elberfelder 1871
     "es": ["valera"],  # Spanish: Reina Valera 1909
     "fr": ["ls1910"],  # French: Louis Segond 1910
     "pt": ["almeida"],  # Portuguese: Almeida Atualizada
