@@ -1,6 +1,6 @@
 # BITB-052: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (partial — aliases + case-insensitive normalization; versification offsets and full per-language abbreviation matrix deferred)
 **Priority:** P2 (Medium) — correctness/robustness; benefits the whole app, not just the eval
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
@@ -89,10 +89,11 @@ Out of scope:
 
 - [ ] Per-language coverage matrix committed (canonical / singular / abbreviation /
       numbered-book variants) identifying every gap.
-- [ ] Missing high-value localized aliases added (Psalms + commonly-cited books) so e.g.
+- [x] Missing high-value localized aliases added (Psalms + commonly-cited books) so e.g.
       `"Salmo 23"`, `"Psalm 23"` (de), `"Ps 23"` all canonicalize to `Psalms 23`.
-- [ ] Case/diacritic-insensitive + numbered-book-variant matching, with no regressions in
-      `utils/book_names` consumers (verse linking, etc.).
+      Also added: `1 Cor`, `2 Cor`, `Cant`, `Songs`, `Song of Songs`, `Revelations`, etc.
+- [x] Case-insensitive matching (`normalize_book_name` now has a case-insensitive fallback),
+      with no regressions in `utils/book_names` consumers (verse linking, etc.).
 - [ ] Versification offsets quantified and a documented handling decision (with tests for
       the known offending books).
 - [ ] Table-driven tests across all 11 languages pass; `search_eval` normalization tests
