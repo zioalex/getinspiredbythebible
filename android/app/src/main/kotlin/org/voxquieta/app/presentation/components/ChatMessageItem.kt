@@ -445,8 +445,13 @@ fun ChatMessageItem(
     // Show the retry button when:
     //  - this is an assistant message
     //  - it is NOT currently streaming
-    //  - it was flagged as an error (blank content + error flag)
+    //  - it was flagged as an error
     val showRetry = !isUser && !message.isStreaming && message.isError
+
+    // Render the message bubble for normal messages, and also for error messages
+    // that carry explanatory text (e.g. the content-blocked / network-error copy) so
+    // the user sees *why* it failed above the Retry button — not a bare button alone.
+    val showBubble = !showRetry || message.content.isNotBlank()
 
     // Show the share button only for finished (non-streaming) assistant messages with content.
     val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
@@ -480,7 +485,7 @@ fun ChatMessageItem(
             modifier = Modifier.widthIn(max = 320.dp),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
-            if (!showRetry) {
+            if (showBubble) {
                 val bubbleModifier = if (isUser) {
                     // User bubble: filled primary, no border
                     Modifier

@@ -244,6 +244,61 @@ class TestContentFilter:
             allowed, _, _ = filter.check("Helloo there")
             assert allowed is True
 
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # The exact message from the reported false positive (ellipsis "......").
+            "mi manca tanto la....... Anna la mia Amica",
+            # Bare punctuation runs that natural messages contain.
+            ".......",
+            "!!!!!!!!",
+            "???????",
+            "--------",
+            # Accented (Unicode) text with an ellipsis must still be allowed.
+            "perché........ non lo so",
+        ],
+    )
+    def test_allows_repeated_punctuation(self, message):
+        """Repeated punctuation/whitespace (ellipses, !!!, ???) must not be spam.
+
+        Regression for the reported false positive where "mi manca tanto la......."
+        was rejected with HTTP 400 content_blocked because of the trailing dots.
+        """
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = True
+            mock_settings.content_filter_max_repeated_chars = 5
+            mock_settings.content_filter_max_urls = 1
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is True, f"Should NOT block punctuation: {message!r}"
+            assert violation is None
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "Hellooooooo there",  # existing case — stretched word
+            "soooooooo",
+            "aaaaaaaa",
+            "1111111",  # repeated digits are word chars, still spammy
+        ],
+    )
+    def test_blocks_stretched_words(self, message):
+        """Stretched *word* characters (letters/digits) must still be blocked."""
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = True
+            mock_settings.content_filter_max_repeated_chars = 5
+            mock_settings.content_filter_max_urls = 1
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is False, f"Should block stretched word: {message!r}"
+            assert violation == ViolationType.REPEATED_CHARS
+
     def test_disabled_filter_allows_all(self):
         """Disabled filter should allow all content."""
         filter = ContentFilter()
@@ -282,3 +337,46 @@ class TestSecurityIntegration:
             json={"message": "Hello", "session_id": "invalid!@#"},
         )
         assert response.status_code == 422
+
+
+class _FakeRequest:
+    """Minimal stand-in for a Starlette Request for the content-filter dependency."""
+
+    def __init__(self, body: dict):
+        self.method = "POST"
+        self.headers: dict[str, str] = {}
+        self.client = None
+        self._body = body
+
+    async def json(self):
+        return self._body
+
+
+class TestContentFilterDependency:
+    """End-to-end tests for the check_content_filter FastAPI dependency.
+
+    Exercises the real HTTP 400 `content_blocked` path that rejected the reported
+    message, without invoking the LLM.
+    """
+
+    @pytest.mark.asyncio
+    async def test_ellipsis_message_not_blocked(self):
+        """The reported ellipsis message must pass the content-filter dependency."""
+        from utils.security import check_content_filter
+
+        request = _FakeRequest({"message": "mi manca tanto la....... Anna la mia Amica"})
+        # Must NOT raise HTTPException(400, content_blocked).
+        await check_content_filter(request)  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_stretched_word_still_blocked(self):
+        """A stretched word still trips the dependency with HTTP 400 content_blocked."""
+        from fastapi import HTTPException
+
+        from utils.security import check_content_filter
+
+        request = _FakeRequest({"message": "Hellooooooo there"})
+        with pytest.raises(HTTPException) as exc_info:
+            await check_content_filter(request)  # type: ignore[arg-type]
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail["error"] == "content_blocked"

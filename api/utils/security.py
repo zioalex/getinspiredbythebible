@@ -134,7 +134,12 @@ class ContentFilter:
         # Check repeated characters
         if settings.content_filter_block_spam:
             max_repeat = settings.content_filter_max_repeated_chars
-            repeat_pattern = re.compile(r"(.)\1{" + str(max_repeat) + r",}")
+            # Only flag stretched *word* characters (e.g. "Hellooooooo", "aaaaaa").
+            # Punctuation/whitespace/emoji repetition — ellipses "......", "!!!",
+            # "???", "----" — is natural in real messages and must not be treated as
+            # spam. `\w` is Unicode-aware for str patterns, so accented letters (e.g.
+            # Italian "perché") are still covered. (Fixes ellipsis false positive.)
+            repeat_pattern = re.compile(r"(\w)\1{" + str(max_repeat) + r",}", re.UNICODE)
             if repeat_pattern.search(message):
                 return (
                     False,
