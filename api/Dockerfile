@@ -46,6 +46,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=appuser:appgroup . .
 
+# Bake the deployed git commit SHA into the image so the running service can
+# report exactly which build is live (exposed via GET /config). Defaults to
+# "unknown" for local builds that don't pass --build-arg GIT_SHA=...
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
 # Switch to non-root user
 USER appuser
 

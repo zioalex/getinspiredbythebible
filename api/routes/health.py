@@ -42,6 +42,7 @@ class HealthResponse(BaseModel):
 
     status: str  # "healthy", "unhealthy", "degraded"
     version: str
+    commit: str  # deployed git commit SHA ("unknown" when not built via CI)
     components: dict[str, ComponentHealth]
     memory: dict[str, Any]
 
@@ -225,6 +226,7 @@ async def health_check():
     response = HealthResponse(
         status=overall_status,
         version=settings.app_version,
+        commit=settings.git_sha,
         components=components,
         memory=memory,
     )

@@ -236,6 +236,10 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Bake the deployed commit into the image; DEPLOY_SHA is also the image
+          # tag, so GET /config reports the exact build that is running.
+          build-args: |
+            GIT_SHA=${{ env.DEPLOY_SHA }}
 
   # ---------------------------------------------------------------------------
   # Build and Push Frontend

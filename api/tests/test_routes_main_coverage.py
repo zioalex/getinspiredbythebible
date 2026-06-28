@@ -370,6 +370,7 @@ class TestMainApp:
             data = response.json()
             assert "name" in data
             assert "version" in data
+            assert "commit" in data
             assert "docs" in data
             assert "health" in data
 
@@ -384,11 +385,34 @@ class TestMainApp:
             response = client.get("/config")
             assert response.status_code == 200
             data = response.json()
+            assert "version" in data
+            assert "app_version" in data["version"]
+            assert "commit" in data["version"]
             assert "llm" in data
             assert "embedding" in data
             assert "chat" in data
             assert "provider" in data["llm"]
             assert "model" in data["llm"]
+
+    def test_config_endpoint_reports_deployed_version(self):
+        """/config must surface the running build's version and commit SHA so the
+        deployed image can be identified. The commit is injected at build time
+        (GIT_SHA env -> settings.git_sha)."""
+        with (
+            patch("main.init_db", new_callable=AsyncMock),
+            patch("main.close_db", new_callable=AsyncMock),
+        ):
+            import main
+            from main import app
+
+            with (
+                patch.object(main.settings, "app_version", "9.9.9"),
+                patch.object(main.settings, "git_sha", "deadbeef1234"),
+            ):
+                client = TestClient(app)
+                data = client.get("/config").json()
+                assert data["version"]["app_version"] == "9.9.9"
+                assert data["version"]["commit"] == "deadbeef1234"
 
     def test_provider_error_handler(self):
         with (

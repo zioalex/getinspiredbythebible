@@ -15,7 +15,11 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "Vox Quieta"
-    app_version: str = "0.1.0"
+    app_version: str = "1.33.0"  # x-release-please-version
+    # Deployed git commit SHA, injected at image build time (ENV GIT_SHA, set from
+    # the CI DEPLOY_SHA / image tag). "unknown" for local runs. Exposed via /config
+    # so the running service reports exactly which build is live.
+    git_sha: str = "unknown"
     debug: bool = False  # Set DEBUG=true in .env for development
 
     # LLM Configuration

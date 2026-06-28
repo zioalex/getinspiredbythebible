@@ -274,6 +274,7 @@ async def root():
     return {
         "name": settings.app_name,
         "version": settings.app_version,
+        "commit": settings.git_sha,
         "docs": "/docs",
         "health": "/health",
     }
@@ -293,6 +294,10 @@ async def get_config():
         llm_model = settings.llm_model
 
     return {
+        "version": {
+            "app_version": settings.app_version,
+            "commit": settings.git_sha,
+        },
         "telemetry": {
             "appinsights_configured": bool(_appinsights_conn),
             "appinsights_initialized": _appinsights_initialized,
