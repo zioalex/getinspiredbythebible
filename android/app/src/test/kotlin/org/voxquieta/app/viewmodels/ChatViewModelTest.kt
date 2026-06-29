@@ -117,6 +117,7 @@ class ChatViewModelTest {
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
             every { getString(R.string.error_contact_email_invalid) } returns "Please enter a valid email so we can reply."
+            every { getString(R.string.error_content_blocked) } returns "I wasn't able to respond to that one — please try rephrasing."
         }
         networkMonitor = mockk {
             every { isOffline } returns MutableStateFlow(false)
@@ -319,7 +320,10 @@ class ChatViewModelTest {
         assertEquals(Message.Role.ASSISTANT, lastMessage.role)
         assertTrue(lastMessage.isError)
         assertFalse(lastMessage.isStreaming)
-        assertEquals("", lastMessage.content)
+        // The error message now carries the explanatory text on the bubble (so it renders
+        // above the Retry button) instead of being left blank.
+        assertTrue(lastMessage.content.isNotBlank())
+        assertEquals("Network error. Please check your connection.", lastMessage.content)
     }
 
     @Test
@@ -1037,6 +1041,36 @@ class ChatViewModelTest {
         val errorBody = body.toResponseBody("application/json".toMediaType())
         val response = Response.error<Any>(422, errorBody)
         return HttpException(response)
+    }
+
+    private fun make400Exception(body: String): HttpException {
+        val errorBody = body.toResponseBody("application/json".toMediaType())
+        val response = Response.error<Any>(400, errorBody)
+        return HttpException(response)
+    }
+
+    @Test
+    fun `HTTP 400 content_blocked surfaces empathetic message on the assistant bubble`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make400Exception(
+                """{"detail": {"error": "content_blocked", "message": "blocked"}}""",
+            )
+        }
+
+        viewModel.sendMessage("mi manca tanto la....... Anna la mia Amica")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The blocked message must be shown to the user (not lost to a suppressed snackbar):
+        // it is carried on the error-flagged assistant bubble, where the Retry button renders
+        // beneath it.
+        val lastMsg = viewModel.uiState.value.messages.last()
+        assertEquals(Message.Role.ASSISTANT, lastMsg.role)
+        assertTrue(lastMsg.isError)
+        assertFalse(lastMsg.isStreaming)
+        assertEquals(
+            "I wasn't able to respond to that one — please try rephrasing.",
+            lastMsg.content,
+        )
     }
 
     @Test
