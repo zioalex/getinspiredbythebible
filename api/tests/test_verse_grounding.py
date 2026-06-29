@@ -158,10 +158,10 @@ class TestGroundResponse:
         assert corrections[0].corrected_quote is None
         assert corrected == text  # detect-and-log only
 
-    def test_unresolved_stripped_when_enabled(self):
+    def test_unresolved_stripped_when_mode_strip(self):
         text = 'Consider also: "a fabricated line never written here" (Obadiah 1:5).'
         corrected, corrections = ground_response(
-            text, [], context_refs=set(), strip_unresolved=True
+            text, [], context_refs=set(), unresolved_mode="strip"
         )
         assert corrections[0].reason == "unresolved"
         assert "a fabricated line never written here" not in corrected
@@ -332,3 +332,64 @@ class TestGroundingNegativeControls:
         )
         assert out == resp
         assert corrections == []
+
+
+class TestUnresolvedModes:
+    """Verify each unresolved_mode value produces the right behavior."""
+
+    TEXT = 'Consider this: "a verse invented from thin air" (Obadiah 1:5).'
+
+    def test_mode_keep_leaves_text_unchanged(self):
+        corrected, corrections = ground_response(
+            self.TEXT, [], context_refs=set(), unresolved_mode="keep"
+        )
+        assert corrected == self.TEXT
+        assert len(corrections) == 1
+        assert corrections[0].reason == "unresolved"
+        assert corrections[0].corrected_quote is None
+
+    def test_mode_strip_removes_invented_quote(self):
+        corrected, corrections = ground_response(
+            self.TEXT, [], context_refs=set(), unresolved_mode="strip"
+        )
+        assert "a verse invented from thin air" not in corrected
+        assert "(Obadiah 1:5)" in corrected
+        assert corrections[0].reason == "unresolved"
+
+    def test_mode_surface_replaces_quote_with_note(self):
+        note = "[not available in your translation]"
+        corrected, corrections = ground_response(
+            self.TEXT,
+            [],
+            context_refs=set(),
+            unresolved_mode="surface",
+            unavailable_note=note,
+        )
+        assert note in corrected
+        assert "a verse invented from thin air" not in corrected
+        assert corrections[0].corrected_quote == note
+
+    def test_mode_surface_without_note_falls_back_to_keep(self):
+        corrected, corrections = ground_response(
+            self.TEXT,
+            [],
+            context_refs=set(),
+            unresolved_mode="surface",
+            unavailable_note=None,
+        )
+        assert corrected == self.TEXT  # no note → no edit
+        assert corrections[0].corrected_quote is None
+
+    def test_resolved_verse_unaffected_by_mode(self):
+        """A faithful in-DB quote must never be touched regardless of mode."""
+        text = f'"{JOHN_3_16_EN}" (John 3:16).'
+        for mode in ("keep", "strip", "surface"):
+            out, corrections = ground_response(
+                text,
+                [FakeVerse("John", 3, 16, JOHN_3_16_EN)],
+                {("john", 3, 16)},
+                unresolved_mode=mode,
+                unavailable_note="[unavailable]",
+            )
+            assert out == text, f"Mode '{mode}' wrongly modified a correctly quoted verse"
+            assert corrections == []

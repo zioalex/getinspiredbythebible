@@ -99,7 +99,8 @@ def ground_response(
     resolved_verses: list,
     context_refs: set[tuple[str, int, int]],
     *,
-    strip_unresolved: bool = False,
+    unresolved_mode: str = "keep",
+    unavailable_note: str | None = None,
 ) -> tuple[str, list[Correction]]:
     """Correct fabricated/mismatched inline verse quotes in ``text``.
 
@@ -110,8 +111,11 @@ def ground_response(
         context_refs: (book, chapter, verse) keys that were in the Scripture
             Context, used to label a low-similarity quote ``fabricated`` (not
             provided) vs ``mismatched`` (provided but re-worded).
-        strip_unresolved: When a reference resolves to no DB text, remove the
-            invented quotation instead of only reporting it.
+        unresolved_mode: What to do when a cited verse has no DB text:
+            "keep" — leave as-is (legacy), "strip" — remove the quotation,
+            "surface" — replace with ``unavailable_note``.
+        unavailable_note: Localized placeholder for "surface" mode. When None
+            and mode is "surface", falls back to "keep".
 
     Returns:
         (corrected_text, corrections). ``corrected_text`` is ``text`` unchanged
@@ -136,8 +140,12 @@ def ground_response(
             continue
         if reason == "unresolved":
             corrected = None
-            if strip_unresolved:
+            if unresolved_mode == "strip":
                 edits.append(_strip_edit(text, q))
+            elif unresolved_mode == "surface" and unavailable_note is not None:
+                corrected = unavailable_note
+                edits.append((q.span[0], q.span[1], unavailable_note))
+            # "keep" (and "surface" without a note) → record only, no edit
         else:
             corrected = canonical
             edits.append((q.span[0], q.span[1], canonical))

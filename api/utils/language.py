@@ -1209,6 +1209,26 @@ ENGLISH_TO_KOREAN_BOOKS = {
 }
 
 
+VERSE_UNAVAILABLE_NOTE: dict[str, str] = {
+    "en": "[This verse isn't available in your translation yet]",
+    "it": "[Questo versetto non è ancora disponibile nella tua traduzione]",
+    "de": "[Dieser Vers ist in deiner Übersetzung noch nicht verfügbar]",
+    "es": "[Este versículo no está disponible aún en tu traducción]",
+    "fr": "[Ce verset n'est pas encore disponible dans votre traduction]",
+    "pt": "[Este versículo ainda não está disponível na sua tradução]",
+    "ar": "[هذه الآية غير متوفرة بعد في ترجمتك]",
+    "ru": "[Этот стих ещё недоступен в вашем переводе]",
+    "zh": "[此节经文暂未在您的译本中提供]",
+    "hi": "[यह पद अभी तक आपके अनुवाद में उपलब्ध नहीं है]",
+    "ko": "[이 구절은 아직 당신의 번역본에서 제공되지 않습니다]",
+}
+
+
+def get_verse_unavailable_note(language_code: str) -> str:
+    """Return a localized note for an unresolvable verse citation."""
+    return VERSE_UNAVAILABLE_NOTE.get(language_code, VERSE_UNAVAILABLE_NOTE["en"])
+
+
 def get_localized_book_name(english_name: str, translation_code: str) -> str:
     """
     Get the localized book name for a given translation.

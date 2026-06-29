@@ -157,7 +157,15 @@ class Settings(BaseSettings):
     # When a cited verse cannot be resolved in the DB at all, strip the invented
     # quotation rather than only logging it. Off by default — grammar-safe
     # stripping across 11 languages is risky, so detect-and-log first.
-    grounding_strip_unresolved: bool = False
+    grounding_strip_unresolved: bool = False  # Deprecated: use grounding_unresolved_mode="strip"
+    # How to handle a cited verse that resolves to no DB text for the active translation:
+    #   "keep"    — leave the LLM's text as-is (legacy; hallucination risk)
+    #   "strip"   — remove the invented quotation, keep the reference + prose
+    #   "surface" — replace the quotation with a localized "not available yet" note
+    grounding_unresolved_mode: Literal["keep", "strip", "surface"] = "surface"
+    # When True, log ERROR and raise at startup if any supported UI language has zero
+    # verses or embeddings (useful as a CI gate). Default False so prod never bounces.
+    grounding_fail_startup_on_empty_language: bool = False
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

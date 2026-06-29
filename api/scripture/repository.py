@@ -827,3 +827,23 @@ class ScriptureRepository:
             "verses_with_embeddings": embedded_count.scalar_one(),
             "passages": passages_count.scalar_one(),
         }
+
+    async def get_translation_coverage(self) -> list[dict]:
+        """Per-translation verse and embedding counts, grouped by translation code."""
+        result = await self.session.execute(
+            select(
+                Verse.translation,
+                func.count(Verse.id).label("verses"),
+                func.count(Verse.embedding).label("verses_with_embeddings"),
+            )
+            .group_by(Verse.translation)
+            .order_by(Verse.translation)
+        )
+        return [
+            {
+                "translation": row.translation,
+                "verses": row.verses,
+                "verses_with_embeddings": row.verses_with_embeddings,
+            }
+            for row in result.all()
+        ]

@@ -132,6 +132,19 @@ async def lifespan(app: FastAPI):
 
     await _purge_blocked_samples_at_startup()
 
+    try:
+        from scripture.coverage import run_startup_coverage_check
+
+        await run_startup_coverage_check(
+            fail_on_empty=settings.grounding_fail_startup_on_empty_language
+        )
+    except RuntimeError:
+        if settings.grounding_fail_startup_on_empty_language:
+            raise
+        logger.warning("Translation coverage check raised unexpectedly; continuing startup")
+    except Exception as e:
+        logger.warning("Translation coverage check failed at startup: %s", e)
+
     yield
 
     # Shutdown

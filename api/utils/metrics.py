@@ -102,6 +102,13 @@ chat_verseless_responses_counter = meter.create_counter(
     unit="1",
 )  # attributes: language
 
+# ── Translation data coverage (BITB-054) ─────────────────────────────────
+data_coverage_gaps_counter = meter.create_counter(
+    name="scripture.data_coverage.gaps",
+    description="Supported languages with zero verses or embeddings at startup",
+    unit="1",
+)  # attributes: language, translation, reason (no_verses|no_embeddings)
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",

@@ -876,11 +876,19 @@ Keep it under 100 words."""
                 for v in (scripture_context.verses if scripture_context else [])
             }
             quotes_checked = len(extract_inline_quotes(text))
+            mode = settings.grounding_unresolved_mode
+            # Legacy bool: grounding_strip_unresolved=True overrides mode when mode is still "keep"
+            if settings.grounding_strip_unresolved and mode == "keep":
+                mode = "strip"
+            from utils.language import get_verse_unavailable_note
+
+            note = get_verse_unavailable_note(language) if mode == "surface" else None
             corrected, corrections = ground_response(
                 text,
                 resolved_verses,
                 context_refs,
-                strip_unresolved=settings.grounding_strip_unresolved,
+                unresolved_mode=mode,
+                unavailable_note=note,
             )
         except Exception as e:
             scripture_pipeline_errors_counter.add(

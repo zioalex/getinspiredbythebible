@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from reports.weekly_report import build_weekly_report, render_html, render_text
 from scripture import get_db_session
+from scripture.coverage import find_coverage_gaps
+from scripture.repository import ScriptureRepository
 from utils.email_service import email_service
 from utils.logging_config import get_logger
 from utils.monitor_probe import is_monitor_probe
@@ -62,3 +64,21 @@ async def trigger_weekly_report(
         "email_sent": email_sent,
         "report": report.model_dump(mode="json"),
     }
+
+
+@router.get("/translation-coverage", include_in_schema=False)
+async def translation_coverage(
+    request: Request,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Return per-translation verse and embedding counts plus coverage gaps.
+
+    Guarded by the monitor-probe shared secret. Useful for ops checks and CI.
+    """
+    if not is_monitor_probe(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    repo = ScriptureRepository(db)
+    rows = await repo.get_translation_coverage()
+    gaps = find_coverage_gaps(rows)
+    return {"coverage": rows, "gaps": gaps}
