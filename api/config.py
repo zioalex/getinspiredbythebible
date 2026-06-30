@@ -76,6 +76,14 @@ class Settings(BaseSettings):
     db_max_overflow: int = 10  # burst capacity above pool_size
     db_pool_timeout: int = 30  # seconds to wait for a free connection before erroring
     db_pool_recycle: int = 1800  # recycle a connection after 30 min (avoid stale/idle drops)
+    # Per-query ceilings so a slow/hung backend fails fast and *visibly* (raises ->
+    # logged + metric + retried) instead of tying up a pooled connection until
+    # db_pool_timeout. db_command_timeout is the asyncpg client-side bound; the
+    # server-side statement_timeout (slightly lower) kills a runaway query first so
+    # the client gets a clean error rather than a wedged socket. Both sit well above
+    # normal request-path latency (<1s), so they only fire on genuine stalls.
+    db_command_timeout: int = 30  # asyncpg client-side per-query timeout (seconds)
+    db_statement_timeout_ms: int = 25000  # server-side statement_timeout (milliseconds)
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
@@ -133,6 +141,11 @@ class Settings(BaseSettings):
     health_check_timeout: int = (
         15  # Timeout for dependency checks in seconds (longer for free APIs)
     )
+    # Readiness probe checks ONLY the database and must answer well within the
+    # platform readiness-probe deadline (deployment/main.tf readiness_probe.timeout,
+    # currently 5s), so it uses a short timeout independent of the 15s budget the
+    # comprehensive /health endpoint allows for slow free-tier inference providers.
+    readiness_check_timeout: int = 3
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings

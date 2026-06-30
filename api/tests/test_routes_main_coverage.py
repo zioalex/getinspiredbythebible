@@ -82,6 +82,33 @@ class TestCheckDatabaseHealth:
         assert result.error is not None
         assert result.latency_ms is not None
 
+    @pytest.mark.asyncio
+    @patch("routes.health.logger")
+    @patch("routes.health.async_session_factory")
+    async def test_timeout_logs_warning(self, mock_factory, mock_logger):
+        """A stalled DB check must log a warning so a dependency stall is visible to
+        the log-scan even though the platform probe gives up silently."""
+        import asyncio
+
+        from routes.health import check_database_health
+
+        mock_session = AsyncMock()
+
+        async def slow_execute(*args, **kwargs):
+            await asyncio.sleep(100)
+
+        mock_session.execute = slow_execute
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_factory.return_value = mock_session
+
+        with patch("routes.health.settings") as mock_settings:
+            mock_settings.health_check_timeout = 0.001
+            result = await check_database_health()
+
+        assert result.status == "unhealthy"
+        mock_logger.warning.assert_called_once()
+
 
 class TestCheckLlmHealth:
     """Tests for check_llm_health()."""
@@ -325,13 +352,19 @@ class TestReadinessProbe:
     async def test_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
         from routes.health import ComponentHealth, readiness_probe
 
+        from config import settings
+
         mock_db_health.return_value = ComponentHealth(status="healthy", latency_ms=5.0)
-        mock_llm_health.return_value = ComponentHealth(status="healthy", latency_ms=10.0)
-        mock_embedding_health.return_value = ComponentHealth(status="healthy", latency_ms=8.0)
         result = await readiness_probe()
         assert result["status"] == "ready"
         assert result["database_latency_ms"] == 5.0
-        assert result["dependencies"]["database"] == "healthy"
+        assert result["dependencies"] == {"database": "healthy"}
+        # Readiness must be cheap and bounded: only the DB is probed, with the short
+        # readiness timeout. The LLM/embedding providers are deliberately NOT called
+        # here (probing them every scrape flapped the pod for weeks).
+        mock_db_health.assert_awaited_once_with(timeout=settings.readiness_check_timeout)
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("routes.health.check_embedding_health")
@@ -343,12 +376,13 @@ class TestReadinessProbe:
         mock_db_health.return_value = ComponentHealth(
             status="unhealthy", error="Connection refused"
         )
-        mock_llm_health.return_value = ComponentHealth(status="healthy")
-        mock_embedding_health.return_value = ComponentHealth(status="healthy")
         result = await readiness_probe()
         assert result.status_code == 503
         body = result.body
         assert b"not_ready" in body
+        assert b"database_unavailable" in body
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
 
 # ==================== Main App Tests ====================

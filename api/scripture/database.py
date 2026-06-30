@@ -59,6 +59,17 @@ def get_async_database_url() -> tuple[str, dict]:
 # Get async URL and connection args
 _async_url, _connect_args = get_async_database_url()
 
+# Bound every query at the driver and the server so a slow/hung backend fails fast
+# and *visibly* instead of tying up a pooled connection until db_pool_timeout.
+#   - command_timeout (asyncpg, client side): the request coroutine raises promptly,
+#     so the fail-open guard logs it, emits scripture.pipeline.errors and retries once.
+#   - statement_timeout (server side, ms, set a little lower): Postgres cancels the
+#     runaway query itself, so even a wedged client socket cannot hold a backend open.
+# Both sit well above normal request latency, so they only trip on genuine stalls.
+_connect_args.setdefault("command_timeout", settings.db_command_timeout)
+_server_settings = _connect_args.setdefault("server_settings", {})
+_server_settings.setdefault("statement_timeout", str(settings.db_statement_timeout_ms))
+
 # Create async engine.
 #
 # Use SQLAlchemy's default async pool (AsyncAdaptedQueuePool) rather than NullPool.
