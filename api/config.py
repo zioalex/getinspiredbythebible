@@ -77,13 +77,18 @@ class Settings(BaseSettings):
     db_pool_timeout: int = 30  # seconds to wait for a free connection before erroring
     db_pool_recycle: int = 1800  # recycle a connection after 30 min (avoid stale/idle drops)
     # Per-query ceilings so a slow/hung backend fails fast and *visibly* (raises ->
-    # logged + metric + retried) instead of tying up a pooled connection until
-    # db_pool_timeout. db_command_timeout is the asyncpg client-side bound; the
-    # server-side statement_timeout (slightly lower) kills a runaway query first so
-    # the client gets a clean error rather than a wedged socket. Both sit well above
-    # normal request-path latency (<1s), so they only fire on genuine stalls.
-    db_command_timeout: int = 30  # asyncpg client-side per-query timeout (seconds)
-    db_statement_timeout_ms: int = 25000  # server-side statement_timeout (milliseconds)
+    # logged + metric + retried) instead of holding a pooled connection until
+    # db_pool_timeout (30s) and cascading into pool exhaustion. Sizing: normal queries
+    # run <100ms (slow_query_threshold_ms); the p95 *saturation* SLOs are 1s (verse
+    # reads, BITB-041) and 2s (semantic search, BITB-056). These ceilings sit ~4x above
+    # the 2s saturation line — high enough never to cancel a legitimately slow query
+    # even during a concurrency spike (~8x baseline at conc 64), low enough to free the
+    # connection well before the 30s pool timeout. statement_timeout (server) is set
+    # below command_timeout (client) so Postgres cancels first and asyncpg surfaces a
+    # clean "canceling statement due to statement timeout" error instead of a raw
+    # socket timeout.
+    db_command_timeout: int = 10  # asyncpg client-side per-query timeout (seconds)
+    db_statement_timeout_ms: int = 8000  # server-side statement_timeout (milliseconds)
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
