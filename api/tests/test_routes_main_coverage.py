@@ -350,9 +350,8 @@ class TestReadinessProbe:
     @patch("routes.health.check_llm_health")
     @patch("routes.health.check_database_health")
     async def test_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
-        from routes.health import ComponentHealth, readiness_probe
-
         from config import settings
+        from routes.health import ComponentHealth, readiness_probe
 
         mock_db_health.return_value = ComponentHealth(status="healthy", latency_ms=5.0)
         result = await readiness_probe()
