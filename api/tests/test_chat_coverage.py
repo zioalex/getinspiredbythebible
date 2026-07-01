@@ -1342,6 +1342,172 @@ class TestChatServiceChatStream:
         assert "corrections" not in completion
 
 
+class TestScriptureGroundingGuardHelper:
+    """Unit tests for ChatService._scripture_grounding_unavailable() (BITB-058)."""
+
+    def _svc(self):
+        service, _, _ = _make_chat_service()
+        return service
+
+    def _ctx(self, verses=(), passages=()):
+        return SearchResults(query="q", verses=list(verses), passages=list(passages))
+
+    def test_flag_off_never_fires(self):
+        service = self._svc()
+        with patch("chat.service.settings") as s:
+            s.require_scripture_grounding = False
+            result = service._scripture_grounding_unavailable(
+                ChatRequest(message="x", include_search=True), "VERSE_LOOKUP", True, None
+            )
+        assert result is False
+
+    def test_include_search_false_never_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x", include_search=False), "VERSE_LOOKUP", True, None
+        )
+        assert result is False
+
+    def test_scripture_seeking_hard_failure_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "COMFORT", False, None
+        )
+        assert result is True
+
+    def test_scripture_seeking_empty_results_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GUIDANCE", False, self._ctx()
+        )
+        assert result is True
+
+    def test_scripture_seeking_with_verses_does_not_fire(self):
+        service = self._svc()
+        ctx = self._ctx(
+            verses=[VerseResult(reference="John 3:16", text="t", book="John", chapter=3, verse=16)]
+        )
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "VERSE_LOOKUP", True, ctx
+        )
+        assert result is False
+
+    def test_general_intent_not_fail_closed(self):
+        # A greeting (GENERAL, not a verse lookup) that hard-fails search must NOT nag.
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GENERAL", False, None
+        )
+        assert result is False
+
+    def test_verse_lookup_forces_scripture_seeking(self):
+        # Even with GENERAL intent, an explicit verse lookup is scripture-seeking.
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GENERAL", True, None
+        )
+        assert result is True
+
+
+class TestScriptureGroundingFailClosed:
+    """BITB-058: scripture-seeking requests that cannot be grounded fail closed —
+    the user is told to retry instead of receiving an ungrounded answer."""
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=True)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_fail_closed_on_hard_failure(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="VERSE_LOOKUP")
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        llm.chat_stream = MagicMock(
+            side_effect=AssertionError("LLM must not run when scripture is unavailable")
+        )
+
+        req = ChatRequest(message="What does John 3:16 say?")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert completion["scripture_unavailable"] is True
+        assert completion["verses_cited"] == []
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_fail_closed_on_zero_verses_scripture_seeking(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="COMFORT")
+        service._search_scripture = AsyncMock(
+            return_value=(SearchResults(query="q", verses=[], passages=[]), "")
+        )
+        llm.chat_stream = MagicMock(
+            side_effect=AssertionError("LLM must not run when scripture is unavailable")
+        )
+
+        req = ChatRequest(message="I feel anxious")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert completion["scripture_unavailable"] is True
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_greeting_not_fail_closed(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="GENERAL")
+        # Even a hard failure must NOT fail-closed for a non-scripture-seeking greeting.
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        service._ground_streamed_answer = AsyncMock(return_value=([], "Hello there!", []))
+
+        async def mock_stream(*_a, **_k):
+            yield "Hello there!"
+
+        llm.chat_stream = mock_stream
+
+        req = ChatRequest(message="hi")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == "Hello there!"
+        assert content != get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "scripture_unavailable" not in completion
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=True)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_nonstream_fail_closed_on_hard_failure(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="VERSE_LOOKUP")
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        llm.chat = AsyncMock(side_effect=AssertionError("LLM must not run (fail-closed)"))
+
+        response = await service.chat(ChatRequest(message="What does John 3:16 say?"))
+        assert response.message == get_scripture_unavailable_response("en")
+        assert response.scripture_context is None
+
+
 def _make_ref(book, chapter, verse_start, verse_end=None):
     """Build a mock VerseReference-like object for resolver tests."""
     ref = MagicMock()

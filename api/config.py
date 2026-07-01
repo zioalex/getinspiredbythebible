@@ -103,6 +103,12 @@ class Settings(BaseSettings):
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+    # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
+    # verse (hard retrieval failure OR zero results). Rather than answer without
+    # scripture — which undercuts a Bible-grounded product — return a localized
+    # "try again" message. Greetings / off-topic / GENERAL chit-chat are exempt so we
+    # never nag when no citation was expected.
+    require_scripture_grounding: bool = True
 
     # Query Expansion Settings
     query_expansion_enabled: bool = (

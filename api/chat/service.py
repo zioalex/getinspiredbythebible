@@ -30,6 +30,7 @@ from utils.language import (
 )
 from utils.logging_config import get_logger
 from utils.metrics import (
+    chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
     scripture_pipeline_errors_counter,
     verse_grounding_corrections_counter,
@@ -52,6 +53,7 @@ from .prompts import (
     get_blocked_response,
     get_compassionate_addendum,
     get_prayer_lookup_prompt,
+    get_scripture_unavailable_response,
     get_system_prompt,
     get_verse_lookup_prompt,
 )
@@ -64,6 +66,13 @@ logger = get_logger(__name__)
 # resolving cited verses for the client "Cited" panel. Guards against an LLM
 # emitting an absurd range (e.g. "Psalm 119:1-176") triggering a huge fetch.
 MAX_RANGE_SPAN = 50
+
+
+# Intents that indicate the user is actually seeking scripture/biblical guidance, as
+# opposed to greetings or small talk (GENERAL) or off-topic (OFF_TOPIC, handled
+# separately). Used by the fail-closed grounding guard (BITB-058): we only tell the
+# user "scripture unavailable" for requests that genuinely expect verses.
+SCRIPTURE_SEEKING_INTENTS = frozenset({"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP"})
 
 
 # Re-exported from utils.db_retry for backward compatibility — this used to be
@@ -451,6 +460,7 @@ Keep it under 100 words."""
             )
 
         # Intent detection: classify before scripture search
+        detected_intent = "GENERAL"
         if settings.content_filter_intent_detection:
             detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
@@ -486,6 +496,30 @@ Keep it under 100 words."""
             detected_language=effective_language,
             model_override=model_override,
         )
+
+        # Fail-closed grounding guard (BITB-058): a scripture-seeking request that
+        # could not be grounded in any verse gets an honest "try again" message
+        # instead of an ungrounded answer.
+        if self._scripture_grounding_unavailable(
+            request, detected_intent, is_verse_lookup, scripture_context
+        ):
+            chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            logger.warning(
+                "Scripture unavailable for a grounding-required request; returning a "
+                "fail-closed message instead of an ungrounded answer",
+                extra={"intent": detected_intent, "language": effective_language},
+            )
+            record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
+            return ChatResponse(
+                message_id=str(uuid.uuid4()),
+                message=get_scripture_unavailable_response(effective_language),
+                scripture_context=None,
+                provider=settings.llm_provider,
+                model=settings.llm_model,
+                detected_translation=translation,
+                translation_info=translation_info,
+                language_suggestion=language_suggestion,
+            )
 
         # Step 2: Build the message list
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
@@ -569,6 +603,33 @@ Keep it under 100 words."""
             detected_translation=translation,
             translation_info=translation_info,
             language_suggestion=language_suggestion,
+        )
+
+    def _scripture_grounding_unavailable(
+        self,
+        request: ChatRequest,
+        detected_intent: str,
+        is_verse_lookup: bool,
+        scripture_context: SearchResults | None,
+    ) -> bool:
+        """True when a scripture-seeking request could not be grounded in any verse.
+
+        Fail-closed guard (BITB-058): for a request that genuinely seeks scripture we
+        would rather tell the user retrieval is unavailable than answer without any
+        verses — the product's value is being grounded on the Bible. Hard failures
+        (``scripture_context is None``) and successful-but-empty retrieval both count
+        as unavailable. Greetings / small talk (GENERAL) and off-topic messages are
+        exempt so we never nag when no citation was expected.
+        """
+        if not settings.require_scripture_grounding:
+            return False
+        if not request.include_search:
+            return False
+        scripture_seeking = is_verse_lookup or detected_intent in SCRIPTURE_SEEKING_INTENTS
+        if not scripture_seeking:
+            return False
+        return scripture_context is None or not (
+            scripture_context.verses or scripture_context.passages
         )
 
     async def _handle_off_topic(
@@ -1085,6 +1146,7 @@ Keep it under 100 words."""
             return
 
         # Intent detection: short-circuit off-topic before scripture search
+        detected_intent = "GENERAL"
         if settings.content_filter_intent_detection:
             detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
@@ -1145,6 +1207,30 @@ Keep it under 100 words."""
             "translation_info": translation_info,
             "language_suggestion": language_suggestion,
         }
+
+        # Fail-closed grounding guard (BITB-058): if this scripture-seeking request
+        # could not be grounded in any verse, stream an honest "try again" message
+        # instead of an ungrounded LLM answer. Metadata was already sent above, so the
+        # client renders this like any other assistant message.
+        if self._scripture_grounding_unavailable(
+            request, detected_intent, is_verse_lookup, scripture_context
+        ):
+            chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            logger.warning(
+                "Scripture unavailable for a grounding-required stream; returning a "
+                "fail-closed message instead of an ungrounded answer",
+                extra={"intent": detected_intent, "language": effective_language},
+            )
+            record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
+            unavailable_msg = get_scripture_unavailable_response(effective_language)
+            yield {"type": "content", "content": unavailable_msg}
+            yield {
+                "type": "completion",
+                "verses_cited": [],
+                "resolved_verses": [],
+                "scripture_unavailable": True,
+            }
+            return
 
         # Step 3: Build messages with appropriate prompt type
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
