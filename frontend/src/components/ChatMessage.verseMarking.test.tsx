@@ -51,7 +51,9 @@ describe("ChatMessage inline verse marking — connector-word regression", () =>
   });
 
   it("calls onVerseClick for a connector-preceded reference", () => {
-    const { onVerseClick } = renderAssistant("the promise of Isaiah 41:10 is sure.");
+    const { onVerseClick } = renderAssistant(
+      "the promise of Isaiah 41:10 is sure.",
+    );
     fireEvent.click(screen.getByText("Isaiah 41:10"));
     expect(onVerseClick).toHaveBeenCalledWith("Isaiah", 41, 10);
   });

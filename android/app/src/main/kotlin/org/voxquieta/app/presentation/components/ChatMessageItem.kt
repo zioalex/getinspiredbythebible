@@ -60,6 +60,7 @@ import androidx.core.app.ShareCompat
 import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
+import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
