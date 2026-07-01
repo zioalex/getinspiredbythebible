@@ -215,6 +215,62 @@ class TestContentFilter:
                 assert allowed is False, f"Should block: {msg}"
                 assert violation == ViolationType.URL_DETECTED
 
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # The exact reported false positive: a German Bible reference written
+            # "<chapter>.<Book>" with no space looks like the domain "1.timotheus".
+            "1.Timotheus 2,1-2 ist eine der Bibel-Stellen in der wir zum "
+            "Grundsätzlichsten aufgefordert sind",
+            "2.Mose 20",
+            "1.Korinther 13",
+            "3.Johannes 4",
+            "Lies 1.Petrus 5,7",
+        ],
+    )
+    def test_allows_bible_references(self, message):
+        """German Bible references must not be mistaken for URLs.
+
+        Regression for the reported false positive where "1.Timotheus 2,1-2 ..."
+        was rejected with HTTP 400 content_blocked because "1.Timotheus" matched
+        the bare-domain URL pattern.
+        """
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = False
+            mock_settings.content_filter_max_urls = 0
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is True, f"Should NOT block Bible reference: {message!r}"
+            assert violation is None
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # Scheme / www URLs (first alternative) — unchanged behavior.
+            "Check out https://example.com",
+            "Visit www.example.com for more",
+            "Go to http://test.org",
+            # Bare domains (second alternative) — still caught via a real TLD.
+            "buy cheap meds at cheapmeds.ru",
+            "go to spam.com now",
+        ],
+    )
+    def test_blocks_real_urls_and_bare_domains(self, message):
+        """Genuine URLs and bare domains must still be blocked after the fix."""
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = False
+            mock_settings.content_filter_max_urls = 0
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is False, f"Should block URL/domain: {message!r}"
+            assert violation == ViolationType.URL_DETECTED
+
     def test_blocks_repeated_chars(self):
         """Excessive repeated characters should be blocked."""
         filter = ContentFilter()
@@ -365,6 +421,21 @@ class TestContentFilterDependency:
         from utils.security import check_content_filter
 
         request = _FakeRequest({"message": "mi manca tanto la....... Anna la mia Amica"})
+        # Must NOT raise HTTPException(400, content_blocked).
+        await check_content_filter(request)  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_bible_reference_not_blocked(self):
+        """The reported German Bible-reference message must pass the dependency."""
+        from utils.security import check_content_filter
+
+        request = _FakeRequest(
+            {
+                "message": "1.Timotheus 2,1-2 ist eine der Bibel-Stellen in der wir "
+                "zum Grundsätzlichsten, was wir tun sollen, aufgefordert sind. "
+                "Gib mir alle Bibel-Stellen die in ähnlicher Weise reden"
+            }
+        )
         # Must NOT raise HTTPException(400, content_blocked).
         await check_content_filter(request)  # type: ignore[arg-type]
 
