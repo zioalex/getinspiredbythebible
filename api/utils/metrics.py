@@ -200,6 +200,15 @@ openrouter_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+embedding_fallback_counter = meter.create_counter(
+    name="embedding.fallback_total",
+    description=(
+        "Count of embedding provider retries, timeouts, and circuit-open events "
+        "handled by ResilientEmbeddingProvider"
+    ),
+    unit="1",
+)
+
 circuit_breaker_state_counter = meter.create_counter(
     name="circuit_breaker.state_transitions",
     description="Circuit breaker state transitions (open/half_open/closed)",

@@ -17,8 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
+from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
 from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
+from utils.db_retry import is_disconnection_error, run_with_disconnect_retry
 from utils.language import (
     detect_language,
     detect_language_confident,
@@ -64,30 +66,10 @@ logger = get_logger(__name__)
 MAX_RANGE_SPAN = 50
 
 
-def _is_disconnection_error(exc: Exception) -> bool:
-    """True if ``exc`` indicates a dropped/invalidated Postgres connection.
-
-    ``pool_pre_ping`` validates a connection at checkout, but cannot save one that
-    dies *mid-operation* (e.g. Azure Postgres closing an idle backend, or asyncpg's
-    ``ConnectionDoesNotExistError: connection was closed in the middle of operation``).
-    Those are transient — SQLAlchemy invalidates the connection and the next checkout
-    gets a fresh, pre-pinged one — so the caller can safely retry once.
-    """
-    from sqlalchemy.exc import DBAPIError, DisconnectionError
-
-    transient_names = {
-        "ConnectionDoesNotExistError",
-        "ConnectionResetError",
-        "InterfaceError",
-    }
-    if isinstance(exc, DisconnectionError):
-        return True
-    if isinstance(exc, DBAPIError) and getattr(exc, "connection_invalidated", False):
-        return True
-    if type(exc).__name__ in transient_names:
-        return True
-    cause = getattr(exc, "orig", None) or getattr(exc, "__cause__", None)
-    return cause is not None and type(cause).__name__ in transient_names
+# Re-exported from utils.db_retry for backward compatibility — this used to be
+# defined locally; callers/tests importing `chat.service._is_disconnection_error`
+# keep working unchanged. New call sites should import from utils.db_retry directly.
+_is_disconnection_error = is_disconnection_error
 
 
 class ConversationMessage(BaseModel):
@@ -342,11 +324,22 @@ Keep it under 100 words."""
 
         Returns the extra embeddings to feed into semantic search, or ``None`` when
         expansion produced nothing new. Timed as the ``query_expansion`` stage.
+
+        Fails open to ``None`` (search proceeds on the original-query embedding
+        alone) when the embedding provider's circuit breaker is open — same
+        degrade shape as any other transient failure here, just with a clearer
+        log line so an open breaker isn't confused with a generic embed error.
         """
         expanded_query = await self._expand_query(message, detected_language, model_override)
         if expanded_query == message:
             return None
-        expansion_embed_response = await self.embedding.embed(expanded_query)
+        try:
+            expansion_embed_response = await self.embedding.embed(expanded_query)
+        except EmbeddingCircuitOpenError as e:
+            logger.warning(
+                "Embedding circuit breaker open, skipping query expansion embedding: %s", e
+            )
+            return None
         extra_embeddings = [expansion_embed_response.embedding]
         logger.info(
             "Query expansion embeddings generated",
@@ -364,6 +357,11 @@ Keep it under 100 words."""
         stage makes the embed cost observable and lets us confirm the overlap:
         ``retrieval`` should reflect ``max(embedding, query_expansion)`` rather than
         their sum.
+
+        Raises ``CircuitOpenError`` (providers/embedding_resilience.py) when the
+        embedding provider's breaker is open; the caller (``_search_scripture``)
+        catches this like any other search failure and degrades to a verse-less
+        response.
         """
         response = await self.embedding.embed(text)
         return response.embedding
@@ -681,10 +679,12 @@ Keep it under 100 words."""
         is_verse_lookup: bool,
         detected_language: str = "en",  # NEW
         model_override: str | None = None,  # NEW
-        _allow_retry: bool = True,  # retry once on a transient DB disconnect
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
+
+        Retries once on a transient DB disconnect via run_with_disconnect_retry
+        (utils/db_retry.py) before degrading to a verse-less reply.
 
         Returns:
             Tuple of (scripture_context, search_context_prompt)
@@ -693,90 +693,14 @@ Keep it under 100 words."""
             return None, ""
 
         search_start = time.time()
-        scripture_context = None
-        search_context_prompt = ""
 
         try:
-            # Direct verse lookups for specific references
-            direct_verses = await self._lookup_direct_verses(verse_refs, translation)
-
-            # Embed the original query *concurrently* with query expansion (the two are
-            # independent), so the original-query embedding is off the serial critical
-            # path. The precomputed embedding is passed into the search call below so the
-            # search service does not embed the same query a second time.
-            extra_embeddings: list[list[float]] | None = None
-            if settings.query_expansion_enabled:
-                query_embedding, extra_embeddings = await asyncio.gather(
-                    self._embed_query(request.message),
-                    self._build_expansion_embeddings(
-                        request.message, detected_language, model_override
-                    ),
-                )
-            else:
-                query_embedding = await self._embed_query(request.message)
-
-            # Topic detection for boosting (keyword-based, <10ms)
-            boost_topics: list[str] = []
-            if settings.topic_boosting_enabled:
-                boost_topics = self._detect_topics(request.message)
-
-            # Semantic or hybrid search (optionally with topic boosting).
-            # Query-expansion embeddings (when present) feed straight into the hybrid
-            # search so expansion actually widens recall on the result we use — and the
-            # HNSW candidate pool keeps it index-backed (no full-table scan).
-            if settings.hybrid_search_enabled:
-                if settings.topic_boosting_enabled and boost_topics:
-                    scripture_context = await self.search_service.search_hybrid_boosted(
-                        query=request.message,
-                        boost_topics=boost_topics,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        semantic_weight=settings.hybrid_search_semantic_weight,
-                        keyword_weight=settings.hybrid_search_keyword_weight,
-                        topic_boost_factor=settings.topic_boost_factor,
-                        extra_embeddings=extra_embeddings,
-                        query_embedding=query_embedding,
-                    )
-                else:
-                    scripture_context = await self.search_service.search_hybrid(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        semantic_weight=settings.hybrid_search_semantic_weight,
-                        keyword_weight=settings.hybrid_search_keyword_weight,
-                        extra_embeddings=extra_embeddings,
-                        query_embedding=query_embedding,
-                    )
-            else:
-                if settings.topic_boosting_enabled and boost_topics:
-                    scripture_context = await self.search_service.search_boosted(
-                        query=request.message,
-                        boost_topics=boost_topics,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        topic_boost_factor=settings.topic_boost_factor,
-                        extra_embeddings=extra_embeddings,
-                        query_embedding=query_embedding,
-                    )
-                else:
-                    scripture_context = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        extra_embeddings=extra_embeddings,
-                        query_embedding=query_embedding,
-                    )
-
-            # Merge direct lookup results with semantic search
-            self._merge_direct_verses(scripture_context, direct_verses)
+            scripture_context, extra_embeddings, boost_topics = await run_with_disconnect_retry(
+                lambda: self._do_search_scripture(
+                    request, translation, verse_refs, detected_language, model_override
+                ),
+                op_name="Scripture search",
+            )
 
             search_duration = time.time() - search_start
             logger.info(
@@ -792,24 +716,16 @@ Keep it under 100 words."""
                     "boost_topics": boost_topics if boost_topics else [],
                 },
             )
+        except EmbeddingCircuitOpenError as e:
+            # Embedding provider is known-down (breaker open) — degrade the same
+            # way as any other search failure, but without the noisy stack trace
+            # since this is an expected, already-logged condition.
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "search", "error_type": "EmbeddingCircuitOpenError"}
+            )
+            logger.warning(f"Scripture search skipped: embedding circuit breaker open: {e}")
+            return None, ""
         except Exception as e:
-            # A pooled connection dropped mid-operation is transient (pool_pre_ping
-            # only validates at checkout, not mid-query): retry the whole search once
-            # on a fresh, pre-pinged connection before degrading to a verse-less reply.
-            if _allow_retry and _is_disconnection_error(e):
-                logger.warning(
-                    f"Scripture search hit a transient DB disconnect "
-                    f"({type(e).__name__}); retrying once"
-                )
-                return await self._search_scripture(
-                    request,
-                    translation,
-                    verse_refs,
-                    is_verse_lookup,
-                    detected_language=detected_language,
-                    model_override=model_override,
-                    _allow_retry=False,
-                )
             scripture_pipeline_errors_counter.add(
                 1, {"stage": "search", "error_type": type(e).__name__}
             )
@@ -824,8 +740,106 @@ Keep it under 100 words."""
                     "passages": [p.model_dump() for p in scripture_context.passages],
                 }
             )
+        else:
+            search_context_prompt = ""
 
         return scripture_context, search_context_prompt
+
+    async def _do_search_scripture(
+        self,
+        request: ChatRequest,
+        translation: str,
+        verse_refs: list,
+        detected_language: str,
+        model_override: str | None,
+    ) -> tuple[SearchResults | None, list[list[float]] | None, list[str]]:
+        """One attempt of the scripture search body, run under run_with_disconnect_retry.
+
+        Returns (scripture_context, extra_embeddings, boost_topics) so the caller can
+        log the same fields it always has without re-deriving them.
+        """
+        # Direct verse lookups for specific references
+        direct_verses = await self._lookup_direct_verses(verse_refs, translation)
+
+        # Embed the original query *concurrently* with query expansion (the two are
+        # independent), so the original-query embedding is off the serial critical
+        # path. The precomputed embedding is passed into the search call below so the
+        # search service does not embed the same query a second time.
+        extra_embeddings: list[list[float]] | None = None
+        if settings.query_expansion_enabled:
+            query_embedding, extra_embeddings = await asyncio.gather(
+                self._embed_query(request.message),
+                self._build_expansion_embeddings(
+                    request.message, detected_language, model_override
+                ),
+            )
+        else:
+            query_embedding = await self._embed_query(request.message)
+
+        # Topic detection for boosting (keyword-based, <10ms)
+        boost_topics: list[str] = []
+        if settings.topic_boosting_enabled:
+            boost_topics = self._detect_topics(request.message)
+
+        # Semantic or hybrid search (optionally with topic boosting).
+        # Query-expansion embeddings (when present) feed straight into the hybrid
+        # search so expansion actually widens recall on the result we use — and the
+        # HNSW candidate pool keeps it index-backed (no full-table scan).
+        if settings.hybrid_search_enabled:
+            if settings.topic_boosting_enabled and boost_topics:
+                scripture_context = await self.search_service.search_hybrid_boosted(
+                    query=request.message,
+                    boost_topics=boost_topics,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    semantic_weight=settings.hybrid_search_semantic_weight,
+                    keyword_weight=settings.hybrid_search_keyword_weight,
+                    topic_boost_factor=settings.topic_boost_factor,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+            else:
+                scripture_context = await self.search_service.search_hybrid(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    semantic_weight=settings.hybrid_search_semantic_weight,
+                    keyword_weight=settings.hybrid_search_keyword_weight,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+        else:
+            if settings.topic_boosting_enabled and boost_topics:
+                scripture_context = await self.search_service.search_boosted(
+                    query=request.message,
+                    boost_topics=boost_topics,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    topic_boost_factor=settings.topic_boost_factor,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+            else:
+                scripture_context = await self.search_service.search(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+
+        # Merge direct lookup results with semantic search
+        self._merge_direct_verses(scripture_context, direct_verses)
+
+        return scripture_context, extra_embeddings, boost_topics
 
     async def _lookup_direct_verses(self, verse_refs: list, translation: str | None = None) -> list:
         """Look up specific verses from references, filtered by translation."""
@@ -862,7 +876,9 @@ Keep it under 100 words."""
         verses — so clients can merge them into their verse panel and the "Cited"
         tab is populated even for verses outside the pool. Dedupes by canonical
         reference and never raises: a DB miss or lookup error is skipped so the
-        stream is never broken.
+        stream is never broken. Each per-reference lookup retries once on a
+        transient DB disconnect via run_with_disconnect_retry (utils/db_retry.py)
+        before being skipped.
         """
         resolved: dict[str, object] = {}
         for ref in verse_refs:
@@ -871,16 +887,27 @@ Keep it under 100 words."""
                     # Cap pathological ranges (e.g. an LLM emitting "Psalm
                     # 119:1-176") so we never issue a huge fetch.
                     end = min(ref.verse_end, ref.verse_start + MAX_RANGE_SPAN - 1)
-                    range_verses = await self.search_service.get_verse_range(
-                        ref.book, ref.chapter, ref.verse_start, end, translation
+
+                    async def _fetch_range() -> list:
+                        return await self.search_service.get_verse_range(
+                            ref.book, ref.chapter, ref.verse_start, end, translation
+                        )
+
+                    range_verses = await run_with_disconnect_retry(
+                        _fetch_range, op_name="Cited verse range resolution"
                     )
                     for verse in range_verses:
                         resolved.setdefault(verse.reference.lower(), verse)
                 else:
                     # Single verse — also covers chapter-spanning ranges where the
                     # parser leaves verse_end < verse_start.
-                    verse = await self.search_service.get_verse(
-                        ref.book, ref.chapter, ref.verse_start, translation
+                    async def _fetch_single():
+                        return await self.search_service.get_verse(
+                            ref.book, ref.chapter, ref.verse_start, translation
+                        )
+
+                    verse = await run_with_disconnect_retry(
+                        _fetch_single, op_name="Cited verse resolution"
                     )
                     if verse:
                         resolved.setdefault(verse.reference.lower(), verse)

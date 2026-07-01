@@ -1461,6 +1461,34 @@ class TestChatServiceResolveCitedVerses:
         assert end - start + 1 <= 50
         assert end < 176
 
+    @pytest.mark.asyncio
+    async def test_retries_once_on_db_disconnect_then_succeeds(self):
+        """BITB-057 Phase 2: per-reference lookups now go through
+        run_with_disconnect_retry (utils/db_retry.py), so a transient disconnect
+        on the single-verse lookup is retried once instead of being skipped."""
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        verse = VerseResult(
+            reference="John 3:16",
+            text="For God so loved the world...",
+            book="John",
+            chapter=3,
+            verse=16,
+        )
+        service.search_service.get_verse = AsyncMock(
+            side_effect=[ConnectionDoesNotExistError("closed mid-operation"), verse]
+        )
+
+        result = await service._resolve_cited_verses([_make_ref("John", 3, 16)], "kjv")
+
+        assert len(result) == 1
+        assert result[0].reference == "John 3:16"
+        assert service.search_service.get_verse.await_count == 2
+
 
 class TestChatServiceGetVerseContext:
     """Tests for ChatService.get_verse_context()."""
