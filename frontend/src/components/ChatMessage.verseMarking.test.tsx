@@ -39,6 +39,38 @@ describe("ChatMessage inline verse marking — real references", () => {
   });
 });
 
+describe("ChatMessage inline verse marking — connector-word regression", () => {
+  // A connector word ("of", "de", …) before a real book name used to let a
+  // greedy alternative swallow the preceding prose ("you of Psalm"), which
+  // failed the known-book check and left the real reference unlinked.
+  it("marks a reference preceded by the English connector 'of'", () => {
+    renderAssistant("I also want to remind you of Psalm 56:9, which says.");
+    const span = screen.getByText("Psalm 56:9");
+    expect(span.tagName).toBe("SPAN");
+    expect(span.className).toContain("text-amber-800");
+  });
+
+  it("calls onVerseClick for a connector-preceded reference", () => {
+    const { onVerseClick } = renderAssistant("the promise of Isaiah 41:10 is sure.");
+    fireEvent.click(screen.getByText("Isaiah 41:10"));
+    expect(onVerseClick).toHaveBeenCalledWith("Isaiah", 41, 10);
+  });
+
+  it("marks a reference preceded by the Spanish connector 'de'", () => {
+    renderAssistant("Recuerda la palabra de Isaías 41:10 hoy.");
+    expect(screen.getByText("Isaías 41:10").className).toContain(
+      "text-amber-800",
+    );
+  });
+
+  it("still marks a legitimate multi-word book (Song of Solomon)", () => {
+    renderAssistant("Read Song of Solomon 2:1 for beauty.");
+    expect(screen.getByText("Song of Solomon 2:1").className).toContain(
+      "text-amber-800",
+    );
+  });
+});
+
 describe("ChatMessage inline verse marking — no longer cuts text", () => {
   it("does not mark German prose that merely contains numbers", () => {
     const text = "Gott schenkt uns Trost der Hoffnung 5:5 jeden Tag.";

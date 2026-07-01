@@ -91,10 +91,18 @@ export default function ChatMessage({
       // Only mark real Bible books.  The verse regex intentionally accepts any
       // "Word digit:digit" shape, so without this check prose like
       // "Trost der Hoffnung 5:5", clock times ("um 14:30") and greedy
-      // over-matches would be swallowed into clickable spans.  Leaving
-      // lastIndex unchanged is correct: the skipped span is folded into the
-      // next plain/quote segment, so no text is lost.
+      // over-matches would be swallowed into clickable spans.
+      //
+      // Rewind on rejection: a greedy alternative can swallow the words *before*
+      // a real reference (e.g. "you of Psalm 56:9" → book "you of Psalm"), so a
+      // rejected match may still hide a valid reference inside it.  Reset the
+      // scanner to one character past the start of the rejected match so the
+      // embedded reference ("Psalm 56:9") gets its own chance to match.  The
+      // local `lastIndex` (text-slice cursor) is untouched, so the skipped
+      // prefix is emitted as before-text of the recovered span and no text is
+      // lost.  `lastIndex` only ever advances, so this cannot loop forever.
       if (!isKnownBook(book)) {
+        verseRefPattern.lastIndex = match.index + 1;
         continue;
       }
 
