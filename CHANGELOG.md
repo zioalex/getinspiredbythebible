@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.34.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.0...v1.34.1) (2026-07-01)
 
-
 ### Bug Fixes
 
 * safe-filter false positive on German Bible references ([#799](https://github.com/zioalex/getinspiredbythebible/issues/799)) ([6e72186](https://github.com/zioalex/getinspiredbythebible/commit/6e7218623e55df08bbc131200b888783195f442e))
