@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.34.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.1...v1.34.0) (2026-07-01)
+
+### Features
+
+* **resilience:** embedding circuit breaker + fail-closed scripture grounding (BITB-057/058) ([#797](https://github.com/zioalex/getinspiredbythebible/issues/797)) ([30392f6](https://github.com/zioalex/getinspiredbythebible/commit/30392f64c8a2e619252e131e866d8da3780fc5a4))
+
 ## [1.33.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.0...v1.33.1) (2026-06-30)
 
 ### Bug Fixes
