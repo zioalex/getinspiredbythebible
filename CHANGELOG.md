@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.34.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.1...v1.34.2) (2026-07-01)
 
-
 ### Bug Fixes
 
 * **verse-links:** recover references hidden by greedy over-matches (web + android) ([#801](https://github.com/zioalex/getinspiredbythebible/issues/801)) ([0c6396d](https://github.com/zioalex/getinspiredbythebible/commit/0c6396ded48ae80ffa7a263cbc7487a67921395f))
