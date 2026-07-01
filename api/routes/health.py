@@ -46,14 +46,20 @@ class HealthResponse(BaseModel):
     memory: dict[str, Any]
 
 
-async def check_database_health() -> ComponentHealth:
-    """Check database connectivity and measure latency."""
+async def check_database_health(timeout: float | None = None) -> ComponentHealth:
+    """Check database connectivity and measure latency.
+
+    ``timeout`` defaults to ``settings.health_check_timeout`` (the comprehensive
+    ``/health`` budget). The readiness probe passes a shorter value so it answers
+    within the platform probe deadline instead of hanging up to the full budget.
+    """
+    timeout = settings.health_check_timeout if timeout is None else timeout
     start = time.perf_counter()
     try:
         async with async_session_factory() as session:
             result = await asyncio.wait_for(
                 session.execute(text("SELECT 1")),
-                timeout=settings.health_check_timeout,
+                timeout=timeout,
             )
             result.scalar()
             latency_ms = (time.perf_counter() - start) * 1000
@@ -62,9 +68,15 @@ async def check_database_health() -> ComponentHealth:
                 latency_ms=round(latency_ms, 2),
             )
     except asyncio.TimeoutError:
+        latency_ms = (time.perf_counter() - start) * 1000
+        # Log so a stalled DB is visible to the log-scan even though the platform
+        # readiness probe gives up (and stays silent) before this returns.
+        logger.warning(
+            f"Database health check timed out after {timeout}s (elapsed {latency_ms:.0f}ms)"
+        )
         return ComponentHealth(
             status="unhealthy",
-            error=f"Database check timed out after {settings.health_check_timeout}s",
+            error=f"Database check timed out after {timeout}s",
         )
     except Exception as e:
         latency_ms = (time.perf_counter() - start) * 1000
@@ -92,6 +104,10 @@ async def check_llm_health() -> ComponentHealth:
             details={"provider": provider.provider_name},
         )
     except asyncio.TimeoutError:
+        logger.warning(
+            f"LLM health check timed out after {settings.health_check_timeout}s "
+            f"(provider={settings.llm_provider})"
+        )
         return ComponentHealth(
             status="unhealthy",
             error=f"LLM check timed out after {settings.health_check_timeout}s",
@@ -136,6 +152,10 @@ async def check_embedding_health() -> ComponentHealth:
             },
         )
     except asyncio.TimeoutError:
+        logger.warning(
+            f"Embedding health check timed out after {settings.health_check_timeout}s "
+            f"(provider={settings.embedding_provider})"
+        )
         return ComponentHealth(
             status="unhealthy",
             error=f"Embedding check timed out after {settings.health_check_timeout}s",
@@ -254,42 +274,32 @@ async def readiness_probe():
     """
     Readiness probe for Kubernetes/orchestration.
 
-    Returns 200 if the app can serve requests, 503 only if critical
-    dependencies are unavailable.
+    Returns 200 if the app can serve requests, 503 only when the database —
+    the dependency that actually gates request serving — is unavailable.
 
-    Lenient by design: returns 200 when LLM **or** embedding is unhealthy
-    (single-dependency degradation should not bounce the pod). Returns 503
-    only when the database is unhealthy, or when **both** LLM and embedding
-    are down. The response body always lists each dependency's state so
-    Azure can scrape it for dependency-failure alerts (in addition to the
-    metric-based alerts on `llama_guard_fallback_total` /
-    `openrouter_fallback_total`).
+    Intentionally cheap: it checks ONLY the database, with a short timeout
+    (`settings.readiness_check_timeout`) that stays under the platform probe
+    deadline (`deployment/main.tf` readiness_probe.timeout). The LLM and
+    embedding providers are deliberately NOT probed here. Calling those external
+    APIs on every scrape (~every 10s) made readiness exceed the probe deadline
+    whenever a free-tier upstream was slow, flapping the pod for weeks while it
+    was otherwise serving fine. Their health is covered by the comprehensive
+    `/health` endpoint and by the LLM/embedding fallback metric alerts;
+    single-dependency inference degradation still serves (degraded) responses
+    and must not bounce the pod.
     """
-    db_health, llm_health, embedding_health = await asyncio.gather(
-        check_database_health(),
-        check_llm_health(),
-        check_embedding_health(),
-    )
+    db_health = await check_database_health(timeout=settings.readiness_check_timeout)
 
-    dependencies = {
-        "database": db_health.status,
-        "llm": llm_health.status,
-        "embedding": embedding_health.status,
-    }
+    dependencies = {"database": db_health.status}
 
-    db_down = db_health.status == "unhealthy"
-    both_inference_down = (
-        llm_health.status == "unhealthy" and embedding_health.status == "unhealthy"
-    )
-
-    if db_down or both_inference_down:
+    if db_health.status == "unhealthy":
         return JSONResponse(
             status_code=503,
             content={
                 "status": "not_ready",
-                "reason": "database_unavailable" if db_down else "inference_unavailable",
+                "reason": "database_unavailable",
                 "dependencies": dependencies,
-                "error": db_health.error if db_down else None,
+                "error": db_health.error,
             },
         )
 

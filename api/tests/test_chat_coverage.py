@@ -940,6 +940,81 @@ class TestChatServiceSearchScripture:
         assert context is None
         assert prompt == ""
 
+    @pytest.mark.asyncio
+    async def test_search_retries_once_on_db_disconnect(self):
+        service, _, embedding = _make_chat_service()
+        service.search_service = AsyncMock()
+
+        # A pooled connection dropped mid-operation surfaces as asyncpg
+        # ConnectionDoesNotExistError; _is_disconnection_error matches it by name.
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        search_result = SearchResults(
+            query="test",
+            verses=[
+                VerseResult(
+                    reference="John 3:16",
+                    text="For God so loved the world...",
+                    book="John",
+                    chapter=3,
+                    verse=16,
+                )
+            ],
+            passages=[],
+        )
+        service.search_service.search_hybrid = AsyncMock(
+            side_effect=[ConnectionDoesNotExistError("closed mid-operation"), search_result]
+        )
+
+        request = ChatRequest(message="test")
+        context, prompt = await service._search_scripture(request, "kjv", [], False)
+
+        # Retried once on a fresh connection rather than degrading to verse-less.
+        assert context is not None
+        assert len(context.verses) == 1
+        assert service.search_service.search_hybrid.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_search_does_not_retry_non_disconnect(self):
+        service, _, embedding = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search_hybrid = AsyncMock(side_effect=ValueError("bad query"))
+
+        request = ChatRequest(message="test")
+        context, prompt = await service._search_scripture(request, "kjv", [], False)
+
+        # Non-transient errors fail open immediately (no retry).
+        assert context is None
+        assert service.search_service.search_hybrid.await_count == 1
+
+
+class TestIsDisconnectionError:
+    """Tests for chat.service._is_disconnection_error()."""
+
+    def test_matches_asyncpg_connection_dropped_by_name(self):
+        from chat.service import _is_disconnection_error
+
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        assert _is_disconnection_error(ConnectionDoesNotExistError("closed mid-op")) is True
+
+    def test_matches_wrapped_cause(self):
+        from chat.service import _is_disconnection_error
+
+        class InterfaceError(Exception):
+            pass
+
+        wrapper = RuntimeError("DBAPIError")
+        wrapper.__cause__ = InterfaceError("connection lost")
+        assert _is_disconnection_error(wrapper) is True
+
+    def test_ignores_unrelated_errors(self):
+        from chat.service import _is_disconnection_error
+
+        assert _is_disconnection_error(ValueError("bad query")) is False
+
 
 class TestChatServiceLookupDirectVerses:
     """Tests for ChatService._lookup_direct_verses()."""

@@ -126,7 +126,12 @@ jobs:
         env:
           BACKEND_URL: ${{ env.BACKEND_URL }}
           MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
-          PROBE_MESSAGE: "hi"
+          # Must be a real scripture prompt: the probe asserts the response cites/
+          # resolves verses (PROBE_REQUIRE_VERSES defaults to 1, BITB-055). A greeting
+          # like "hi" only sometimes elicits a citation, so it produced nondeterministic
+          # false failures. A direct verse question deterministically exercises — and
+          # asserts on — the scripture-retrieval path the probe is meant to guard.
+          PROBE_MESSAGE: "What does John 3:16 say?"
           PROBE_TIMEOUT_SECONDS: "30"
           PROBE_FIRST_CHUNK_SECONDS: "20"
         run: python scripts/monitor/synthetic_chat.py --detail-out "$RUNNER_TEMP/detail.txt"
