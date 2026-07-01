@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-20
+**Last Updated:** 2026-07-01
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -881,6 +881,60 @@ Testing & Documentation:
 - [ ] No regression in deep-links to `chat/{conversationId}`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-027-android-chat-first-navigation.md`
+
+---
+
+### 🎯 BITB-057: Android — In-App Update API (Flexible Flow)
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** the app to tell me when a new version is available, **so that**
+I can update and get the latest features and fixes without checking the Play Store manually.
+
+**Why P1:** The app has no mechanism to detect or prompt for Play Store updates. Users on outdated
+builds receive no signal that improvements exist. Implements the flexible (background-download,
+non-disruptive) flow via `com.google.android.play:app-update-ktx`; guarded by `BuildConfig.DEBUG`
+so debug and sideloaded builds are unaffected.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `app-update-ktx` v2.1.0 added to `libs.versions.toml` + `build.gradle.kts`
+- [ ] `InAppUpdateManager.kt` wraps `AppUpdateManager` with constructor injection for testability
+- [ ] Flexible flow triggered on cold start when update available and staleness ≥ 3 days
+- [ ] Snackbar with "Install update" action shown when download completes; calls `completeUpdate()`
+- [ ] `onResume` re-checks for a pending install (app backgrounded during download)
+- [ ] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
+
+---
+
+### 🎯 BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 day)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** to see a brief "What's New" summary the first time I open the
+app after an update, **so that** I notice new features without digging into Settings manually.
+
+**Why P1:** The app updates silently; users have no post-update signal. BITB-031 added a changelog
+screen in Settings > About but requires active navigation. This story surfaces the top changelog
+entry automatically — once per update, never on fresh install — using the existing `changelog.json`
+asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `last_seen_version_code` persisted in `app_prefs`; helpers added alongside `hasSplashBeenSeen()` pattern
+- [ ] Modal skipped on fresh install (stored == -1); shown exactly once per update
+- [ ] `WhatsNewBottomSheet.kt` renders top `ChangelogEntry` via `MarkdownText`; graceful empty state
+- [ ] "Dismiss" closes sheet and marks version seen; "See All" navigates to `changelog` route and marks seen
+- [ ] String keys `whats_new_title`, `whats_new_dismiss`, `whats_new_see_all` added in all 11 locales
+- [ ] Unit tests: stored==-1 → false; stored==current → false; stored==current-1 → true
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-058-android-whats-new-on-launch.md`
 
 ---
 
