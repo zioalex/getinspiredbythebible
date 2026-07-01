@@ -285,6 +285,53 @@ resource "azurerm_monitor_metric_alert" "backend_restarts" {
   tags = local.tags
 }
 
+# Backend probe-failure alert.
+#
+# Container Apps logs readiness/liveness probe failures to ContainerAppSystemLogs_CL
+# as ReplicaUnhealthy events. These never reach ContainerAppConsoleLogs_CL (so
+# backend_errors can't see them) and do NOT increment RestartCount when the pod keeps
+# failing readiness without being restarted (so backend_restarts can't see them either).
+# That blind spot let a multi-week readiness incident — /health/ready timing out on slow
+# upstream dependencies — run with no alert. This watches the platform probe signal
+# directly. The query gates on a burst (> 10 in 15m) so single-replica blips during a
+# deploy (a few "connection refused" at container start) do not page.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failures" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-probe-failures"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 2
+  description          = "The backend container failed its readiness/liveness probe (ReplicaUnhealthy) more than 10 times in the last 15 minutes. Usually /health/ready timing out on a slow dependency, or the container is unhealthy. These ContainerAppSystemLogs_CL events do not trigger RestartCount, so this is the only alert that covers them. The payload carries a sample probe-failure line."
+
+  criteria {
+    query                   = <<-KQL
+      ContainerAppSystemLogs_CL
+      | where ContainerAppName_s == "bible-app-backend"
+      | where Reason_s == "ReplicaUnhealthy"
+      | where Log_s has "probe failed"
+      | summarize cnt = count(), Sample = any(Log_s)
+      | where cnt > 10
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
 # Backend error-log alert (BITB-056).
 #
 # Fires on ERROR-level backend log lines only. The error definition (the level

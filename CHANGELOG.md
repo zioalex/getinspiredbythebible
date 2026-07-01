@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.33.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.0...v1.33.1) (2026-06-30)
+
+### Bug Fixes
+
+* **api+ci:** stop readiness-probe flapping; bound + observe upstream dependencies ([#796](https://github.com/zioalex/getinspiredbythebible/issues/796)) ([7d4d73e](https://github.com/zioalex/getinspiredbythebible/commit/7d4d73e7c73fb9bce3974fdf79b2564ad3cd2033))
+* **content-filter:** stop blocking ellipses and surface blocked message on Android ([#792](https://github.com/zioalex/getinspiredbythebible/issues/792)) ([a20ed05](https://github.com/zioalex/getinspiredbythebible/commit/a20ed051e0845ebd8302199bad8c9d1b2e1b092a))
+
 ## [1.33.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.1...v1.33.0) (2026-06-26)
 
 ### Features

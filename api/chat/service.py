@@ -64,6 +64,32 @@ logger = get_logger(__name__)
 MAX_RANGE_SPAN = 50
 
 
+def _is_disconnection_error(exc: Exception) -> bool:
+    """True if ``exc`` indicates a dropped/invalidated Postgres connection.
+
+    ``pool_pre_ping`` validates a connection at checkout, but cannot save one that
+    dies *mid-operation* (e.g. Azure Postgres closing an idle backend, or asyncpg's
+    ``ConnectionDoesNotExistError: connection was closed in the middle of operation``).
+    Those are transient — SQLAlchemy invalidates the connection and the next checkout
+    gets a fresh, pre-pinged one — so the caller can safely retry once.
+    """
+    from sqlalchemy.exc import DBAPIError, DisconnectionError
+
+    transient_names = {
+        "ConnectionDoesNotExistError",
+        "ConnectionResetError",
+        "InterfaceError",
+    }
+    if isinstance(exc, DisconnectionError):
+        return True
+    if isinstance(exc, DBAPIError) and getattr(exc, "connection_invalidated", False):
+        return True
+    if type(exc).__name__ in transient_names:
+        return True
+    cause = getattr(exc, "orig", None) or getattr(exc, "__cause__", None)
+    return cause is not None and type(cause).__name__ in transient_names
+
+
 class ConversationMessage(BaseModel):
     """A message in the conversation."""
 
@@ -655,6 +681,7 @@ Keep it under 100 words."""
         is_verse_lookup: bool,
         detected_language: str = "en",  # NEW
         model_override: str | None = None,  # NEW
+        _allow_retry: bool = True,  # retry once on a transient DB disconnect
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
@@ -766,6 +793,23 @@ Keep it under 100 words."""
                 },
             )
         except Exception as e:
+            # A pooled connection dropped mid-operation is transient (pool_pre_ping
+            # only validates at checkout, not mid-query): retry the whole search once
+            # on a fresh, pre-pinged connection before degrading to a verse-less reply.
+            if _allow_retry and _is_disconnection_error(e):
+                logger.warning(
+                    f"Scripture search hit a transient DB disconnect "
+                    f"({type(e).__name__}); retrying once"
+                )
+                return await self._search_scripture(
+                    request,
+                    translation,
+                    verse_refs,
+                    is_verse_lookup,
+                    detected_language=detected_language,
+                    model_override=model_override,
+                    _allow_retry=False,
+                )
             scripture_pipeline_errors_counter.add(
                 1, {"stage": "search", "error_type": type(e).__name__}
             )
