@@ -668,11 +668,17 @@ class VerseRefLinkTest {
         // Chapter-only refs like "Psalm 23" have no colon, so the verse group is empty.
         val input = "read Psalm 23 for comfort."
         val result = injectVerseLinks(input)
+        // Display keeps the wording the LLM used …
         assertTrue("should contain Psalm 23 as link", result.contains("[Psalm 23]"))
         assertFalse("should not append trailing colon for chapter-only ref",
             result.contains("[Psalm 23:]"))
-        assertTrue("URL should have no verse segment",
-            result.contains("verse://Psalm/23") || result.contains("verse://Psalms/23"))
+        // … while the link target is canonicalized to the real book "Psalms" (the singular
+        // alias "Psalm" resolves via the book-name map), and there is no /verse segment.
+        val lower = result.lowercase()
+        assertTrue("URL should target chapter 23 of canonical Psalms with no verse segment",
+            lower.contains("verse://psalms/23?") || lower.contains("verse://psalms/23)"))
+        assertFalse("chapter-only URL must not have a verse segment",
+            lower.contains("verse://psalms/23/"))
     }
 
     // ── Bold wrapping (verse reference prominence) ────────────────────────────
