@@ -970,21 +970,32 @@ export function extractVerseReferences(text: string): Set<string> {
   const versePattern = _createVersePatternGlobal();
 
   const references = new Set<string>();
-  const matches = Array.from(text.matchAll(versePattern));
 
-  for (const match of matches) {
+  // Iterate with exec() (not matchAll) so we can rewind the scanner on a
+  // rejected match — see the isKnownBook branch below.
+  let match: RegExpExecArray | null;
+  while ((match = versePattern.exec(text)) !== null) {
     const book = match[1].trim();
-    // Normalize Devanagari (३→3) and Eastern Arabic (٣→3) digits
-    const chapter = normalizeDigits(match[2]);
-    const verse = normalizeDigits(match[3]);
 
     // Skip anything whose "book" is not a real Bible book in any supported
     // language.  This rejects conjunctions ("e 51:17", "und 3:16"), prose that
     // happens to contain numbers ("Trost der Hoffnung 5:5"), clock times
     // ("um 14:30") and greedy over-matches — none of which are verses.
+    //
+    // Rewind on rejection: a greedy alternative can swallow the words *before*
+    // a real reference (e.g. "you of Psalm 56:9" → book "you of Psalm"), so a
+    // rejected match may still hide a valid reference inside it.  Reset the
+    // scanner to one character past the start of the rejected match so the
+    // embedded reference ("Psalm 56:9") is still extracted.  `lastIndex` only
+    // ever advances, so this cannot loop forever.
     if (!isKnownBook(book)) {
+      versePattern.lastIndex = match.index + 1;
       continue;
     }
+
+    // Normalize Devanagari (३→3) and Eastern Arabic (٣→3) digits
+    const chapter = normalizeDigits(match[2]);
+    const verse = normalizeDigits(match[3]);
 
     // Normalize the book name to English before storing, so that
     // isVerseReferenced() can match against English verse.reference values.

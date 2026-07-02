@@ -74,13 +74,54 @@ class VerseRefLinkTest {
 
     @Test
     fun `injectVerseLinks wraps multi-word books with connector words`() {
-        // "of" connector — Song of Solomon
+        // "of" connector — Song of Solomon is a real (known) book, linked whole.
         val result1 = injectVerseLinks("Song of Solomon 1:1 is beautiful")
         assertTrue(result1.contains("[Song of Solomon 1:1]"))
 
-        // "de" connector — Portuguese/French books
+        // "de" connector: "Livro de Salmos" ("Book of Psalms") is NOT a canonical book, so the
+        // allowlist gate rejects the greedy "Livro de Salmos" over-match and the scan rewinds to
+        // the real book "Salmos". (Same outcome the web produces via isKnownBook + rewind.)
         val result2 = injectVerseLinks("Livro de Salmos 23:1")
-        assertTrue(result2.contains("[Livro de Salmos 23:1]"))
+        assertTrue(result2.contains("[Salmos 23:1]"))
+        assertFalse(result2.contains("[Livro de Salmos 23:1]"))
+    }
+
+    // ── Connector-word / greedy over-match regression (unified with web) ──────
+
+    @Test
+    fun `injectVerseLinks recovers a reference preceded by the connector 'of'`() {
+        // Greedy branch used to capture "you of Psalm" and, failing the allowlist gate, drop the
+        // real reference. The rewind now recovers it. (Mirrors the web ChatMessage fix.)
+        val result = injectVerseLinks("I also want to remind you of Psalm 56:9, which says.")
+        assertTrue(result, result.contains("[Psalm 56:9]"))
+        assertFalse(result.contains("[you of Psalm"))
+    }
+
+    @Test
+    fun `injectVerseLinks recovers a reference preceded by the connector in prose`() {
+        val result = injectVerseLinks("the promise of Isaiah 41:10 is sure")
+        assertTrue(result, result.contains("[Isaiah 41:10]"))
+    }
+
+    @Test
+    fun `injectVerseLinks recovers a reference hidden by a greedy numbered over-match`() {
+        val result = injectVerseLinks("Wie in 1 day of Psalm 56:9 beschrieben.")
+        assertTrue(result, result.contains("[Psalm 56:9]"))
+        assertFalse(result.contains("[1 day of Psalm"))
+    }
+
+    // ── Lowercase references (previously dropped by the uppercase-first regex) ──
+
+    @Test
+    fun `injectVerseLinks links a lowercase-emitted reference`() {
+        val result = injectVerseLinks("As john 3:16 says, God loves us.")
+        assertTrue(result, result.contains("[john 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not link a clock time`() {
+        val input = "Wir treffen uns um 14:30 Uhr."
+        assertEquals(input, injectVerseLinks(input))
     }
 
     // ── Non-English book names: German ───────────────────────────────────────
@@ -520,9 +561,9 @@ class VerseRefLinkTest {
 
     @Test
     fun `injectVerseLinks wraps Hindi alternate transliteration लेवियतियुस`() {
-        // Unknown-to-the-map Hindi book names should still be wrapped because
-        // the generic BOOK_NAME pattern accepts any \p{Lo} starting character.
-        // Backend HINDI_ALIASES will normalize लेवियतियुस → Leviticus on tap.
+        // This alternate transliteration is a known alias in the bundled book-name map, so it
+        // passes the allowlist gate and is linked. Backend HINDI_ALIASES also normalizes
+        // लेवियतियुस → Leviticus on tap.
         val input = "लेवियतियुस 1:3 में बलिदान का उल्लेख है"
         val result = injectVerseLinks(input)
         assertTrue(result.contains("[लेवियतियुस 1:3]"))
@@ -627,11 +668,17 @@ class VerseRefLinkTest {
         // Chapter-only refs like "Psalm 23" have no colon, so the verse group is empty.
         val input = "read Psalm 23 for comfort."
         val result = injectVerseLinks(input)
+        // Display keeps the wording the LLM used …
         assertTrue("should contain Psalm 23 as link", result.contains("[Psalm 23]"))
         assertFalse("should not append trailing colon for chapter-only ref",
             result.contains("[Psalm 23:]"))
-        assertTrue("URL should have no verse segment",
-            result.contains("verse://Psalm/23") || result.contains("verse://Psalms/23"))
+        // … while the link target is canonicalized to the real book "Psalms" (the singular
+        // alias "Psalm" resolves via the book-name map), and there is no /verse segment.
+        val lower = result.lowercase()
+        assertTrue("URL should target chapter 23 of canonical Psalms with no verse segment",
+            lower.contains("verse://psalms/23?") || lower.contains("verse://psalms/23)"))
+        assertFalse("chapter-only URL must not have a verse segment",
+            lower.contains("verse://psalms/23/"))
     }
 
     // ── Bold wrapping (verse reference prominence) ────────────────────────────
@@ -923,23 +970,6 @@ class VerseRefLinkTest {
     // ── Link target resolution from the cited verse list ─────────────────────
 
     @Test
-    fun `injectVerseLinks resolves wrong-language book via the verse list`() {
-        // "Proverbia" is the Latin/Vulgate name — in no book-name map. The backend cited the
-        // verse with its canonical English book, so the link target should use that ("Proverbs")
-        // while the displayed text keeps the LLM's wording ("Proverbia 17:17").
-        val verses = listOf(
-            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "Ein Freund liebt jederzeit"),
-        )
-        val result = injectVerseLinks(
-            "In Proverbia 17:17 steht geschrieben",
-            verses = verses,
-        )
-        assertTrue("display text keeps Proverbia", result.contains("[Proverbia 17:17]"))
-        assertTrue("link target uses canonical Proverbs", result.contains("verse://Proverbs/17/17"))
-        assertFalse("link target must not be the Latin name", result.contains("verse://Proverbia/17/17"))
-    }
-
-    @Test
     fun `injectVerseLinks normalizes localized book via the map before the verse list`() {
         val map = mapOf("Matthäus" to "Matthew")
         val result = injectVerseLinks(
@@ -974,21 +1004,19 @@ class VerseRefLinkTest {
     }
 
     @Test
-    fun `injectVerseLinks leaves the raw book when neither map nor verse list resolves`() {
-        // Unknown book, no matching verse → unchanged target (no regression).
-        val result = injectVerseLinks("In Proverbia 17:17 steht", verses = emptyList())
-        assertTrue(result.contains("verse://Proverbia/17/17"))
-    }
-
-    @Test
-    fun `injectVerseLinks does not resolve when the verse list is ambiguous`() {
-        // Two different books share 17:17 → cannot safely pick one, keep the raw name.
+    fun `injectVerseLinks does not link an unmapped book name (allowlist gate, web parity)`() {
+        // "Proverbia" is the Latin/Vulgate name — in no book-name map. Under the unified
+        // algorithm the allowlist gate rejects any name that is not a real Bible book, exactly
+        // as the web does (the web never linked "Proverbia" either). So the reference is left as
+        // plain text, even when the backend cited a verse at that chapter:verse.
         val verses = listOf(
-            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "a"),
-            Verse(book = "John", chapter = 17, verse = 17, text = "b"),
+            Verse(book = "Proverbs", chapter = 17, verse = 17, text = "Ein Freund liebt jederzeit"),
         )
-        val result = injectVerseLinks("In Proverbia 17:17 steht", verses = verses)
-        assertTrue(result.contains("verse://Proverbia/17/17"))
+        val withVerse = injectVerseLinks("In Proverbia 17:17 steht", verses = verses)
+        assertEquals("In Proverbia 17:17 steht", withVerse)
+
+        val withoutVerse = injectVerseLinks("In Proverbia 17:17 steht", verses = emptyList())
+        assertEquals("In Proverbia 17:17 steht", withoutVerse)
     }
 
     // ── citedVerses ──────────────────────────────────────────────────────────

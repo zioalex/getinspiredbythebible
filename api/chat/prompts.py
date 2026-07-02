@@ -1066,3 +1066,54 @@ def get_blocked_response(reason: str, language_code: str = "en") -> str:
         or by_lang.get("en")
         or _BLOCKED_RESPONSE_TEMPLATES["generic"]["en"]
     )
+
+
+# Fail-closed grounding message (BITB-058). When a scripture-seeking request cannot be
+# grounded in any verse, we tell the user instead of answering ungrounded — the whole
+# value of the product is being grounded on the Bible. Localized with an English
+# fallback, mirroring the _BLOCKED_RESPONSE_TEMPLATES shape.
+_SCRIPTURE_UNAVAILABLE_RESPONSES: dict[str, str] = {
+    "en": (
+        "I'm sorry — I can't reach the Scripture library right now, so I can't ground my "
+        "answer in the Bible. Please try again in a moment."
+    ),
+    "it": (
+        "Mi dispiace — al momento non riesco ad accedere alla raccolta delle Scritture, "
+        "quindi non posso fondare la mia risposta sulla Bibbia. Riprova tra poco."
+    ),
+    "de": (
+        "Es tut mir leid — ich kann derzeit nicht auf die Schriftsammlung zugreifen und "
+        "meine Antwort daher nicht in der Bibel verankern. Bitte versuche es gleich noch einmal."
+    ),
+    "es": (
+        "Lo siento — en este momento no puedo acceder a la biblioteca de las Escrituras, "
+        "así que no puedo fundamentar mi respuesta en la Biblia. Inténtalo de nuevo en un momento."
+    ),
+    "fr": (
+        "Je suis désolé — je n'arrive pas à accéder à la bibliothèque des Écritures pour le "
+        "moment, je ne peux donc pas fonder ma réponse sur la Bible. Veuillez réessayer dans un instant."
+    ),
+    "pt": (
+        "Desculpe — não consigo aceder à biblioteca das Escrituras neste momento, por isso "
+        "não posso fundamentar a minha resposta na Bíblia. Por favor, tente novamente daqui a pouco."
+    ),
+    "ar": (
+        "أعتذر، لا يمكنني الوصول إلى مكتبة الكتاب المقدس الآن، لذا لا أستطيع تأسيس إجابتي على "
+        "الكتاب المقدس. من فضلك حاول مرة أخرى بعد قليل."
+    ),
+}
+
+
+def get_scripture_unavailable_response(language_code: str = "en") -> str:
+    """Return the localized fail-closed message used when scripture cannot be retrieved.
+
+    Args:
+        language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar).
+
+    Returns:
+        Localized message string; falls back to English.
+    """
+    return (
+        _SCRIPTURE_UNAVAILABLE_RESPONSES.get(language_code)
+        or _SCRIPTURE_UNAVAILABLE_RESPONSES["en"]
+    )

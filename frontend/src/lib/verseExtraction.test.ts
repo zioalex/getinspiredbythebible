@@ -35,6 +35,35 @@ describe("extractVerseReferences", () => {
     expect(refs.size).toBe(1);
   });
 
+  // Regression: a connector word ("of", "de", …) before a real book name used to
+  // let a greedy alternative swallow the preceding prose ("you of Psalm"), which
+  // then failed the known-book check and hid the real reference.  The scanner now
+  // rewinds so the embedded reference is still recovered.
+  it("recovers a reference preceded by a connector word (English 'of')", () => {
+    const text = "I also want to remind you of Psalm 56:9, which says.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
+  it("recovers a reference preceded by a Spanish connector 'de'", () => {
+    const text = "Recuerda la palabra de Isaías 41:10 hoy.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("isaiah 41:10")).toBe(true);
+  });
+
+  it("recovers a reference hidden by a greedy numbered over-match", () => {
+    const text = "Wie in 1 day of Psalm 56:9 beschrieben.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
+  it("still extracts a legitimate multi-word book after the fix", () => {
+    const text = "Read Song of Solomon 2:1 and remind you of Psalm 56:9 today.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("song of solomon 2:1")).toBe(true);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
   it("should handle verse ranges", () => {
     const text = "Read Matthew 5:3-12 for the beatitudes";
     const refs = extractVerseReferences(text);
