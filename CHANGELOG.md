@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.34.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.2...v1.34.3) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** accept comma chapter-verse separator (de/fr/it citations) ([#804](https://github.com/zioalex/getinspiredbythebible/issues/804)) ([5ccb9ed](https://github.com/zioalex/getinspiredbythebible/commit/5ccb9ed1903c6efec49a21138af341c7223455c2))
+
 ## [1.34.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.1...v1.34.2) (2026-07-01)
 
 ### Bug Fixes
