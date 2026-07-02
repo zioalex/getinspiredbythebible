@@ -133,7 +133,7 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
     // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
     // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
-    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
@@ -147,7 +147,7 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // Uses COND_WS so CJK/Hangul book names can abut the chapter number without a space.
         // [\u300B\u300D\u300F]? optionally consumes a closing bracket (》」』) after the
         // book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not block the match.
-        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
@@ -214,11 +214,11 @@ internal fun buildVerseRefRegex(
 
     return Regex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
-        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
             // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
-            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 
@@ -333,7 +333,11 @@ internal fun injectVerseLinks(
         } else {
             val linkBook = resolveLinkBook(book, chapter, verse, verses, localizedToEnglish)
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
-            val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
+            // Preserve the chapter/verse separator the source used (":" or ",") so a German /
+            // French / Italian citation like "Römer 13,1" is not rewritten to "13:1". The
+            // verse:// target below uses numeric path segments only, so it is unaffected.
+            val sep = if (Regex("\\d,\\d").containsMatchIn(result.value)) "," else ":"
+            val display = if (verse.isNotEmpty()) "$book $chapter$sep$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
             // Carry the localized book token in the URL so parseVerseLink can set it on
             // PendingVerseLink without discarding the name the LLM used.
