@@ -73,7 +73,9 @@ describe("extractVerseReferences", () => {
     });
 
     it("extracts a German comma reference without a range", () => {
-      const refs = extractVerseReferences("Jakobus 1,27 spricht von Frömmigkeit.");
+      const refs = extractVerseReferences(
+        "Jakobus 1,27 spricht von Frömmigkeit.",
+      );
       expect(refs.has("james 1:27")).toBe(true);
     });
 
