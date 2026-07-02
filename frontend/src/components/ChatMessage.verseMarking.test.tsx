@@ -73,6 +73,36 @@ describe("ChatMessage inline verse marking — connector-word regression", () =>
   });
 });
 
+describe("ChatMessage inline verse marking — comma citation style", () => {
+  // German/French/Italian cite chapter,verse with a comma ("Römer 13,1").
+  it("marks a plain comma reference as an amber clickable span", () => {
+    renderAssistant("Das steht in Römer 13,1 geschrieben.");
+    const span = screen.getByText("Römer 13,1");
+    expect(span.tagName).toBe("SPAN");
+    expect(span.className).toContain("text-amber-800");
+  });
+
+  it("calls onVerseClick with the parsed book/chapter/verse for a comma ref", () => {
+    const { onVerseClick } = renderAssistant("Lies Römer 13,1 heute.");
+    fireEvent.click(screen.getByText("Römer 13,1"));
+    expect(onVerseClick).toHaveBeenCalledWith("Römer", 13, 1);
+  });
+
+  it("marks a comma reference with a range (Galater 5,22-23)", () => {
+    renderAssistant("Siehe Galater 5,22-23 für die Frucht.");
+    expect(screen.getByText("Galater 5,22-23").className).toContain(
+      "text-amber-800",
+    );
+  });
+
+  it("does not mark a decimal amount as a verse", () => {
+    const text = "Ich habe 3,50 Euro gespart.";
+    const { container } = renderAssistant(text);
+    expect(container.textContent).toContain(text);
+    expect(container.querySelectorAll("span.text-amber-800").length).toBe(0);
+  });
+});
+
 describe("ChatMessage inline verse marking — no longer cuts text", () => {
   it("does not mark German prose that merely contains numbers", () => {
     const text = "Gott schenkt uns Trost der Hoffnung 5:5 jeden Tag.";
