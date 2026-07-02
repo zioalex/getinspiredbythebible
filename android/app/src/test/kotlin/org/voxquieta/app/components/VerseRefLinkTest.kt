@@ -131,8 +131,9 @@ class VerseRefLinkTest {
         val result = injectVerseLinks("Das steht in Römer 13,1-2 geschrieben.")
         // Display keeps the comma the reader wrote …
         assertTrue(result, result.contains("[Römer 13,1-2]"))
-        // … while the link target is the canonical English book.
-        assertTrue(result, result.contains("verse://Romans/13"))
+        // … while the link target is the canonical English book. The bundled book-name map
+        // canonicalizes to lowercase ("romans"); the backend lookup is case-insensitive.
+        assertTrue(result, result.lowercase().contains("verse://romans/13"))
     }
 
     @Test
