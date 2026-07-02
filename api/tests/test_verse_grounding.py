@@ -161,11 +161,29 @@ class TestGroundResponse:
     def test_unresolved_stripped_when_enabled(self):
         text = 'Consider also: "a fabricated line never written here" (Obadiah 1:5).'
         corrected, corrections = ground_response(
-            text, [], context_refs=set(), strip_unresolved=True
+            text, [], context_refs=set(), unresolved_behavior="strip"
         )
         assert corrections[0].reason == "unresolved"
         assert "a fabricated line never written here" not in corrected
         assert "(Obadiah 1:5)" in corrected
+
+    def test_unresolved_notice_replaces_quote(self):
+        text = 'Consider also: "a fabricated line never written here" (Obadiah 1:5).'
+        corrected, corrections = ground_response(
+            text, [], context_refs=set(), unresolved_behavior="notice", language="it"
+        )
+        assert corrections[0].reason == "unresolved"
+        assert corrections[0].corrected_quote is None
+        assert "a fabricated line never written here" not in corrected
+        assert "(Obadiah 1:5)" in corrected
+        assert "questo versetto non è ancora disponibile" in corrected
+
+    def test_unresolved_notice_falls_back_to_english(self):
+        text = 'Consider also: "a fabricated line never written here" (Obadiah 1:5).'
+        corrected, _ = ground_response(
+            text, [], context_refs=set(), unresolved_behavior="notice", language="xx"
+        )
+        assert "this verse isn't available in this translation yet" in corrected
 
     def test_no_quotes_returns_input_unchanged(self):
         text = "Take heart and be encouraged today."

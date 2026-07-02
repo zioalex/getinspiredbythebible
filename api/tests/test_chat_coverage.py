@@ -35,6 +35,7 @@ from chat.service import (
     ChatService,
     ConversationMessage,
 )
+from config import settings
 from providers import LLMResponse
 from scripture.search import SearchResults, VerseResult
 
@@ -1654,6 +1655,70 @@ class TestChatServiceResolveCitedVerses:
         assert len(result) == 1
         assert result[0].reference == "John 3:16"
         assert service.search_service.get_verse.await_count == 2
+
+
+class TestApplyVerseGroundingUnresolvedBehavior:
+    """Tests for ChatService._apply_verse_grounding()'s handling of the 3
+    ``grounding_unresolved_behavior`` modes (BITB-054): keep/strip/notice."""
+
+    UNRESOLVED_TEXT = 'Consider also: "a fabricated line never written here" (Obadiah 1:5).'
+
+    @pytest.mark.asyncio
+    async def test_keep_mode_leaves_text_unchanged_but_records_correction(self):
+        service, _, _ = _make_chat_service()
+        with patch.object(settings, "grounding_unresolved_behavior", "keep"):
+            corrected, corrections = await service._apply_verse_grounding(
+                self.UNRESOLVED_TEXT, None, "kjv", "en", resolved_verses=[]
+            )
+        assert corrected == self.UNRESOLVED_TEXT
+        assert len(corrections) == 1
+        assert corrections[0].reason == "unresolved"
+        assert corrections[0].corrected_quote is None
+
+    @pytest.mark.asyncio
+    async def test_strip_mode_removes_invented_quote(self):
+        service, _, _ = _make_chat_service()
+        with patch.object(settings, "grounding_unresolved_behavior", "strip"):
+            corrected, corrections = await service._apply_verse_grounding(
+                self.UNRESOLVED_TEXT, None, "kjv", "en", resolved_verses=[]
+            )
+        assert "a fabricated line never written here" not in corrected
+        assert "(Obadiah 1:5)" in corrected
+        assert corrections[0].reason == "unresolved"
+
+    @pytest.mark.asyncio
+    async def test_notice_mode_inserts_localized_message(self):
+        service, _, _ = _make_chat_service()
+        with patch.object(settings, "grounding_unresolved_behavior", "notice"):
+            corrected, corrections = await service._apply_verse_grounding(
+                self.UNRESOLVED_TEXT, None, "kjv", "it", resolved_verses=[]
+            )
+        assert "a fabricated line never written here" not in corrected
+        assert "(Obadiah 1:5)" in corrected
+        assert "questo versetto non è ancora disponibile" in corrected
+        assert corrections[0].reason == "unresolved"
+
+    @pytest.mark.asyncio
+    async def test_unresolved_correction_observable_via_counter_and_log(self):
+        """AC: grounding reason=unresolved must be observable via the existing
+        corrections metric/log (already emitted by _apply_verse_grounding)."""
+        service, _, _ = _make_chat_service()
+        with (
+            patch.object(settings, "grounding_unresolved_behavior", "strip"),
+            patch("chat.service.verse_grounding_corrections_counter") as mock_counter,
+        ):
+            await service._apply_verse_grounding(
+                self.UNRESOLVED_TEXT, None, "kjv", "en", resolved_verses=[]
+            )
+        mock_counter.add.assert_any_call(
+            1,
+            {
+                "language": "en",
+                "reason": "unresolved",
+                "corrected": False,
+                "book": "Obadiah",
+            },
+        )
 
 
 class TestChatServiceGetVerseContext:
