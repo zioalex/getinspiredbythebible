@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.34.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.3...v1.34.4) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** link references everywhere via string-level linkify (web) ([#806](https://github.com/zioalex/getinspiredbythebible/issues/806)) ([7a0cd03](https://github.com/zioalex/getinspiredbythebible/commit/7a0cd03a2870e7a0b435b7c29f15e3f39a043ce7))
+
 ## [1.34.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.2...v1.34.3) (2026-07-02)
 
 ### Bug Fixes
