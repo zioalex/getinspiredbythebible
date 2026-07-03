@@ -482,6 +482,11 @@ jobs:
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
+      # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
+      # bot token is written to Key Vault out-of-band (see the deploy job's
+      # "Populate Telegram bot token in Key Vault" step), so it never enters terraform
+      # state. Leave the chat id unset to keep Azure alert delivery email-only.
+      TF_VAR_telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
       # Default to empty JSON array when the secret is unset; an empty TF_VAR_
       # for a list(string) variable would crash terraform parsing otherwise.
       TF_VAR_budget_alert_emails: ${{ secrets.TF_VAR_BUDGET_ALERT_EMAILS || '[]' }}
@@ -751,6 +756,11 @@ jobs:
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
+      # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
+      # bot token is written to Key Vault out-of-band (see the deploy job's
+      # "Populate Telegram bot token in Key Vault" step), so it never enters terraform
+      # state. Leave the chat id unset to keep Azure alert delivery email-only.
+      TF_VAR_telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
       # Default to empty JSON array when the secret is unset; an empty TF_VAR_
       # for a list(string) variable would crash terraform parsing otherwise.
       TF_VAR_budget_alert_emails: ${{ secrets.TF_VAR_BUDGET_ALERT_EMAILS || '[]' }}
@@ -760,6 +770,21 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Guard — prod alerting must be configured (BITB-055)
+        run: |
+          # TF_VAR_alert_email drives Azure Monitor alerts. Without it, alerts_enabled
+          # evaluates to false and all monitoring silently stops. Catch this before deploy.
+          if [ -z "$TF_VAR_alert_email" ]; then
+            msg="TF_VAR_ALERT_EMAIL secret is not set — Azure Monitor alert email will be"
+            msg="$msg empty and all prod alerts will be silently disabled"
+            msg="$msg (alerts_enabled = false). Set the secret in repo settings."
+            echo "::error::$msg"
+            exit 1
+          fi
+          echo "Guard passed: TF_VAR_alert_email is configured"
+        env:
+          TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -961,6 +986,40 @@ jobs:
               "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
               "tenantId": "${{ secrets.ARM_TENANT_ID }}"
             }
+
+      # BITB-056: set the Telegram bot token into Key Vault out-of-band, so it never
+      # enters terraform state. No-op unless the Telegram bridge is enabled (the
+      # telegram_kv_name output is non-empty, i.e. TF_VAR_telegram_chat_id was set).
+      - name: Populate Telegram bot token in Key Vault (BITB-056)
+        working-directory: deployment
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          set -o pipefail
+          kv=$(terraform output -raw telegram_kv_name 2>/dev/null || echo "")
+          if [ -z "$kv" ]; then
+            echo "Telegram bridge disabled (no Key Vault) — skipping token upload."
+            exit 0
+          fi
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+            echo "::warning::TELEGRAM_BOT_TOKEN empty; KV exists but Logic App can't post until it is set."
+            exit 0
+          fi
+          # Retry: the deployer access policy can take a few seconds to propagate.
+          for i in 1 2 3 4; do
+            if az keyvault secret set \
+                 --vault-name "$kv" \
+                 --name telegram-bot-token \
+                 --value "$TELEGRAM_BOT_TOKEN" \
+                 --output none; then
+              echo "Telegram bot token stored in Key Vault $kv."
+              exit 0
+            fi
+            echo "secret set attempt $i failed (access policy may still be propagating); retrying..."
+            sleep $((i * 5))
+          done
+          echo "::error::Failed to set telegram-bot-token in Key Vault $kv after retries."
+          exit 1
 
       - name: Verify Deployment
         id: verify
@@ -1172,6 +1231,11 @@ jobs:
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
+      # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
+      # bot token is written to Key Vault out-of-band (see the deploy job's
+      # "Populate Telegram bot token in Key Vault" step), so it never enters terraform
+      # state. Leave the chat id unset to keep Azure alert delivery email-only.
+      TF_VAR_telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
       # Default to empty JSON array when the secret is unset; an empty TF_VAR_
       # for a list(string) variable would crash terraform parsing otherwise.
       TF_VAR_budget_alert_emails: ${{ secrets.TF_VAR_BUDGET_ALERT_EMAILS || '[]' }}

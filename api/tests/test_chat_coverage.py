@@ -974,6 +974,81 @@ class TestChatServiceSearchScripture:
         assert context is None
         assert prompt == ""
 
+    @pytest.mark.asyncio
+    async def test_search_retries_once_on_db_disconnect(self):
+        service, _, embedding = _make_chat_service()
+        service.search_service = AsyncMock()
+
+        # A pooled connection dropped mid-operation surfaces as asyncpg
+        # ConnectionDoesNotExistError; _is_disconnection_error matches it by name.
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        search_result = SearchResults(
+            query="test",
+            verses=[
+                VerseResult(
+                    reference="John 3:16",
+                    text="For God so loved the world...",
+                    book="John",
+                    chapter=3,
+                    verse=16,
+                )
+            ],
+            passages=[],
+        )
+        service.search_service.search_hybrid = AsyncMock(
+            side_effect=[ConnectionDoesNotExistError("closed mid-operation"), search_result]
+        )
+
+        request = ChatRequest(message="test")
+        context, prompt = await service._search_scripture(request, "kjv", [], False)
+
+        # Retried once on a fresh connection rather than degrading to verse-less.
+        assert context is not None
+        assert len(context.verses) == 1
+        assert service.search_service.search_hybrid.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_search_does_not_retry_non_disconnect(self):
+        service, _, embedding = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search_hybrid = AsyncMock(side_effect=ValueError("bad query"))
+
+        request = ChatRequest(message="test")
+        context, prompt = await service._search_scripture(request, "kjv", [], False)
+
+        # Non-transient errors fail open immediately (no retry).
+        assert context is None
+        assert service.search_service.search_hybrid.await_count == 1
+
+
+class TestIsDisconnectionError:
+    """Tests for chat.service._is_disconnection_error()."""
+
+    def test_matches_asyncpg_connection_dropped_by_name(self):
+        from chat.service import _is_disconnection_error
+
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        assert _is_disconnection_error(ConnectionDoesNotExistError("closed mid-op")) is True
+
+    def test_matches_wrapped_cause(self):
+        from chat.service import _is_disconnection_error
+
+        class InterfaceError(Exception):
+            pass
+
+        wrapper = RuntimeError("DBAPIError")
+        wrapper.__cause__ = InterfaceError("connection lost")
+        assert _is_disconnection_error(wrapper) is True
+
+    def test_ignores_unrelated_errors(self):
+        from chat.service import _is_disconnection_error
+
+        assert _is_disconnection_error(ValueError("bad query")) is False
+
 
 class TestChatServiceLookupDirectVerses:
     """Tests for ChatService._lookup_direct_verses()."""
@@ -1301,6 +1376,172 @@ class TestChatServiceChatStream:
         assert "corrections" not in completion
 
 
+class TestScriptureGroundingGuardHelper:
+    """Unit tests for ChatService._scripture_grounding_unavailable() (BITB-058)."""
+
+    def _svc(self):
+        service, _, _ = _make_chat_service()
+        return service
+
+    def _ctx(self, verses=(), passages=()):
+        return SearchResults(query="q", verses=list(verses), passages=list(passages))
+
+    def test_flag_off_never_fires(self):
+        service = self._svc()
+        with patch("chat.service.settings") as s:
+            s.require_scripture_grounding = False
+            result = service._scripture_grounding_unavailable(
+                ChatRequest(message="x", include_search=True), "VERSE_LOOKUP", True, None
+            )
+        assert result is False
+
+    def test_include_search_false_never_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x", include_search=False), "VERSE_LOOKUP", True, None
+        )
+        assert result is False
+
+    def test_scripture_seeking_hard_failure_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "COMFORT", False, None
+        )
+        assert result is True
+
+    def test_scripture_seeking_empty_results_fires(self):
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GUIDANCE", False, self._ctx()
+        )
+        assert result is True
+
+    def test_scripture_seeking_with_verses_does_not_fire(self):
+        service = self._svc()
+        ctx = self._ctx(
+            verses=[VerseResult(reference="John 3:16", text="t", book="John", chapter=3, verse=16)]
+        )
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "VERSE_LOOKUP", True, ctx
+        )
+        assert result is False
+
+    def test_general_intent_not_fail_closed(self):
+        # A greeting (GENERAL, not a verse lookup) that hard-fails search must NOT nag.
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GENERAL", False, None
+        )
+        assert result is False
+
+    def test_verse_lookup_forces_scripture_seeking(self):
+        # Even with GENERAL intent, an explicit verse lookup is scripture-seeking.
+        service = self._svc()
+        result = service._scripture_grounding_unavailable(
+            ChatRequest(message="x"), "GENERAL", True, None
+        )
+        assert result is True
+
+
+class TestScriptureGroundingFailClosed:
+    """BITB-058: scripture-seeking requests that cannot be grounded fail closed —
+    the user is told to retry instead of receiving an ungrounded answer."""
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=True)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_fail_closed_on_hard_failure(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="VERSE_LOOKUP")
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        llm.chat_stream = MagicMock(
+            side_effect=AssertionError("LLM must not run when scripture is unavailable")
+        )
+
+        req = ChatRequest(message="What does John 3:16 say?")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert completion["scripture_unavailable"] is True
+        assert completion["verses_cited"] == []
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_fail_closed_on_zero_verses_scripture_seeking(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="COMFORT")
+        service._search_scripture = AsyncMock(
+            return_value=(SearchResults(query="q", verses=[], passages=[]), "")
+        )
+        llm.chat_stream = MagicMock(
+            side_effect=AssertionError("LLM must not run when scripture is unavailable")
+        )
+
+        req = ChatRequest(message="I feel anxious")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert completion["scripture_unavailable"] is True
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_stream_greeting_not_fail_closed(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="GENERAL")
+        # Even a hard failure must NOT fail-closed for a non-scripture-seeking greeting.
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        service._ground_streamed_answer = AsyncMock(return_value=([], "Hello there!", []))
+
+        async def mock_stream(*_a, **_k):
+            yield "Hello there!"
+
+        llm.chat_stream = mock_stream
+
+        req = ChatRequest(message="hi")
+        chunks = [c async for c in service.chat_stream(req)]
+
+        content = "".join(c["content"] for c in chunks if c["type"] == "content")
+        assert content == "Hello there!"
+        assert content != get_scripture_unavailable_response("en")
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "scripture_unavailable" not in completion
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=True)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_nonstream_fail_closed_on_hard_failure(self, *_mocks):
+        from chat.prompts import get_scripture_unavailable_response
+
+        service, llm, _ = _make_chat_service()
+        service._detect_intent = AsyncMock(return_value="VERSE_LOOKUP")
+        service._search_scripture = AsyncMock(return_value=(None, ""))
+        llm.chat = AsyncMock(side_effect=AssertionError("LLM must not run (fail-closed)"))
+
+        response = await service.chat(ChatRequest(message="What does John 3:16 say?"))
+        assert response.message == get_scripture_unavailable_response("en")
+        assert response.scripture_context is None
+
+
 def _make_ref(book, chapter, verse_start, verse_end=None):
     """Build a mock VerseReference-like object for resolver tests."""
     ref = MagicMock()
@@ -1419,6 +1660,34 @@ class TestChatServiceResolveCitedVerses:
         start, end = call_args[2], call_args[3]
         assert end - start + 1 <= 50
         assert end < 176
+
+    @pytest.mark.asyncio
+    async def test_retries_once_on_db_disconnect_then_succeeds(self):
+        """BITB-057 Phase 2: per-reference lookups now go through
+        run_with_disconnect_retry (utils/db_retry.py), so a transient disconnect
+        on the single-verse lookup is retried once instead of being skipped."""
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+
+        class ConnectionDoesNotExistError(Exception):
+            pass
+
+        verse = VerseResult(
+            reference="John 3:16",
+            text="For God so loved the world...",
+            book="John",
+            chapter=3,
+            verse=16,
+        )
+        service.search_service.get_verse = AsyncMock(
+            side_effect=[ConnectionDoesNotExistError("closed mid-operation"), verse]
+        )
+
+        result = await service._resolve_cited_verses([_make_ref("John", 3, 16)], "kjv")
+
+        assert len(result) == 1
+        assert result[0].reference == "John 3:16"
+        assert service.search_service.get_verse.await_count == 2
 
 
 class TestChatServiceGetVerseContext:
