@@ -19,6 +19,7 @@ from chat.prompts import (
     LANGUAGE_NAMES,
     RESPONSE_DEPTH_GUIDANCE,
     SCRIPTURE_FIDELITY_GUIDANCE,
+    SPECIFIC_FOCUS_GUIDANCE,
     SYSTEM_PROMPT,
     TYPO_TOLERANCE_GUIDANCE,
     build_conversation_context,
@@ -614,6 +615,39 @@ class TestTypoToleranceGuidance:
     def test_existing_unclear_section_still_present(self):
         result = get_system_prompt("de")
         assert "When the Request Is Unclear" in result
+
+
+class TestSpecificFocusGuidance:
+    """BITB-050: the assistant must identify and engage the user's specific
+    point directly and first, never substituting a generic overview."""
+
+    def test_guidance_constant_describes_specific_focus(self):
+        text = SPECIFIC_FOCUS_GUIDANCE.lower()
+        assert "specific focus" in text
+        assert "directly" in text and "first" in text
+        assert "overview" in text or "generic" in text or "generalities" in text
+
+    def test_guidance_constant_covers_identify_and_engage(self):
+        text = SPECIFIC_FOCUS_GUIDANCE.lower()
+        assert "identify" in text
+        assert "nuance" in text or "detail" in text
+
+    def test_system_prompt_contains_specific_focus_guidance_english(self):
+        result = get_system_prompt("en")
+        assert "Addressing the User's Specific Focus" in result
+
+    def test_system_prompt_specific_focus_guidance_for_all_languages(self):
+        for lang in ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"):
+            result = get_system_prompt(lang)
+            assert "Addressing the User's Specific Focus" in result, f"missing for lang={lang}"
+
+    def test_verse_lookup_prompt_contains_specific_focus_guidance(self):
+        result = get_verse_lookup_prompt("en")
+        assert "Addressing the User's Specific Focus" in result
+
+    def test_specific_focus_guidance_must_not_skip_the_specific_point(self):
+        text = SPECIFIC_FOCUS_GUIDANCE.lower()
+        assert "must not be skipped" in text or "never" in text
 
 
 # ==================== Chat Service Tests ====================

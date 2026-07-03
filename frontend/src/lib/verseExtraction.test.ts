@@ -64,6 +64,48 @@ describe("extractVerseReferences", () => {
     expect(refs.has("psalms 56:9")).toBe(true);
   });
 
+  // German/French/Italian cite chapter,verse with a comma ("Römer 13,1").
+  // The separator regex accepts [:,] (mirroring the backend), so these link too.
+  describe("comma separator (German/French/Italian citation style)", () => {
+    it("extracts a German comma reference with a range", () => {
+      const refs = extractVerseReferences("Siehe Römer 13,1-2 für Kontext.");
+      expect(refs.has("romans 13:1")).toBe(true);
+    });
+
+    it("extracts a German comma reference without a range", () => {
+      const refs = extractVerseReferences(
+        "Jakobus 1,27 spricht von Frömmigkeit.",
+      );
+      expect(refs.has("james 1:27")).toBe(true);
+    });
+
+    it("extracts a numbered German comma reference", () => {
+      const refs = extractVerseReferences("Lies 1. Petrus 2,13-17 heute.");
+      expect(refs.has("1 peter 2:13")).toBe(true);
+    });
+
+    it("extracts a French comma reference", () => {
+      const refs = extractVerseReferences("Lis Jean 3,16 aujourd'hui.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("extracts an Italian comma reference", () => {
+      const refs = extractVerseReferences("Leggi Giovanni 3,16 oggi.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("still extracts colon references (no regression)", () => {
+      const refs = extractVerseReferences("Read John 3:16 today.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("does not treat a decimal amount as a verse", () => {
+      // "habe" is not a known book, so the isKnownBook gate rejects "habe 3,50".
+      const refs = extractVerseReferences("Ich habe 3,50 Euro gespart.");
+      expect(refs.size).toBe(0);
+    });
+  });
+
   it("should handle verse ranges", () => {
     const text = "Read Matthew 5:3-12 for the beatitudes";
     const refs = extractVerseReferences(text);
