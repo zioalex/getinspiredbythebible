@@ -33,6 +33,7 @@ jobs:
         run: npm install --no-save --no-audit --no-fund @commitlint/cli @commitlint/config-conventional
 
       - name: Lint commits
+        shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -40,7 +41,9 @@ jobs:
           status=0
           while IFS= read -r sha; do
             message="$(git log -1 --format=%B "$sha")"
-            if [ "$message" = "Initial plan" ]; then
+            author_email="$(git log -1 --format=%ae "$sha")"
+            if [ "$message" = "Initial plan" ] && \
+              [ "$author_email" = "198982749+Copilot@users.noreply.github.com" ]; then
               echo "Skipping agent planning commit $sha"
               continue
             fi
