@@ -101,17 +101,16 @@ def _empty_engagement() -> EngagementStats:
 
 def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
     orig = getattr(error, "orig", None)
-    # asyncpg exposes PostgreSQL SQLSTATE as ``sqlstate`` on its exceptions, while
-    # psycopg-style DBAPI exceptions conventionally use ``pgcode``.
+    # asyncpg exposes PostgreSQL SQLSTATE as `sqlstate` on its exceptions, while
+    # psycopg-style DBAPI exceptions conventionally use `pgcode`.
     sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
     if sqlstate in UNDEFINED_SESSIONS_SQLSTATES:
         return True
 
     message = str(error).lower()
-    undefined_table = any(token in message for token in ("undefinedtable", "undefined table", "undefined_table"))
-    undefined_column = any(
-        token in message for token in ("undefinedcolumn", "undefined column", "undefined_column")
-    )
+    normalized_message = message.replace(" ", "").replace("_", "")
+    undefined_table = "undefinedtable" in normalized_message
+    undefined_column = "undefinedcolumn" in normalized_message
     return (
         ("sessions" in message and ("does not exist" in message or undefined_table))
         or (undefined_column and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS))
