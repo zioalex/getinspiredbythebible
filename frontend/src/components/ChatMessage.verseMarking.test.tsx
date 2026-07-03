@@ -163,3 +163,48 @@ describe("ChatMessage inline verse marking — markdown links", () => {
     expect(anchor!.textContent).toBe("Bible Gateway");
   });
 });
+
+describe("ChatMessage inline verse marking — references inside list items", () => {
+  // Regression: verse refs in a (tight) markdown bullet list used to render as
+  // plain text because only the `p` renderer processed them. linkifyVerses now
+  // pre-links refs anywhere in the markdown string, so list items link too.
+  const listMessage = [
+    "Hier sind einige Bibelstellen:",
+    "",
+    '- Römer 12,14: "Segnet, die euch verfolgen; segnet und flucht nicht!"',
+    '- Matthäus 5,44: "Liebet eure Feinde, segnet, die euch fluchen"',
+    '- Lukas 6,28: "segnet, die euch fluchen"',
+    "",
+    "In **1. Timotheus 2,1-2** heißt es mehr dazu.",
+  ].join("\n");
+
+  it("marks every reference in the bullet list (not just the bold one)", () => {
+    renderAssistant(listMessage);
+    for (const ref of ["Römer 12,14", "Matthäus 5,44", "Lukas 6,28"]) {
+      const span = screen.getByText(ref);
+      expect(span.className).toContain("text-amber-800");
+    }
+  });
+
+  it("makes a list-item reference clickable", () => {
+    const { onVerseClick } = renderAssistant(listMessage);
+    fireEvent.click(screen.getByText("Römer 12,14"));
+    expect(onVerseClick).toHaveBeenCalledWith("Römer", 12, 14);
+  });
+
+  it("highlights a quote inside a list item", () => {
+    const { container } = renderAssistant(listMessage);
+    // The bullet quotes ("Segnet…", "Liebet…", "segnet…") now get the amber
+    // quote styling, which previously only worked inside paragraphs.
+    expect(
+      container.querySelectorAll("span.bg-amber-50").length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("still marks the bold paragraph reference", () => {
+    renderAssistant(listMessage);
+    expect(screen.getByText("1. Timotheus 2,1-2").className).toContain(
+      "text-amber-800",
+    );
+  });
+});
