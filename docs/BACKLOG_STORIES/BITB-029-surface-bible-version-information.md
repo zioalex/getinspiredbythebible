@@ -1,5 +1,7 @@
 # BITB-029: Surface Bible Version Information More Clearly
 
+**Status:** ✅ Done — amber chip badge in top header bar (web); backend prompt guidance already wired (`BIBLE_VERSION_GUIDANCE`).
+
 ## User Story
 
 As a user reading AI responses, I want the currently selected Bible version to be clearly visible and easy to open, so that I can trust the translation context behind quoted verses.

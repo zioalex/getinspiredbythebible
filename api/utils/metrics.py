@@ -102,6 +102,12 @@ chat_verseless_responses_counter = meter.create_counter(
     unit="1",
 )  # attributes: language
 
+chat_scripture_unavailable_counter = meter.create_counter(
+    name="chat.responses.scripture_unavailable",
+    description="Scripture-seeking chat requests answered fail-closed (BITB-058) because no scripture could be retrieved",
+    unit="1",
+)  # attributes: language
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",
@@ -197,6 +203,15 @@ llama_guard_fallback_counter = meter.create_counter(
 openrouter_fallback_counter = meter.create_counter(
     name="openrouter.fallback_total",
     description="Count of OpenRouter primary-model failures that triggered client-side fallback",
+    unit="1",
+)
+
+embedding_fallback_counter = meter.create_counter(
+    name="embedding.fallback_total",
+    description=(
+        "Count of embedding provider retries, timeouts, and circuit-open events "
+        "handled by ResilientEmbeddingProvider"
+    ),
     unit="1",
 )
 

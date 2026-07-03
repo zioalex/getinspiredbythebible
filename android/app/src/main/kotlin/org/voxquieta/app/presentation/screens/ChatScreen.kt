@@ -80,6 +80,7 @@ import org.voxquieta.app.presentation.components.WelcomeBanner
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
+import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,6 +101,22 @@ fun ChatScreen(
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val multiWordNames by viewModel.multiWordNames.collectAsState()
     val localizedToEnglish by viewModel.localizedToEnglish.collectAsState()
+    // Seed multi-word book names from the bundled fallback map so connector books (e.g.
+    // "Song of Solomon", "Cantico dei Cantici") resolve offline / before the API loads, unioned
+    // with any server-provided names. Number-prefixed keys ("1 samuele", "1. mose", "1 शमूएल")
+    // are excluded: the numbered-prefix branch (Alt 1) already handles them via the generic book
+    // pattern, and including them here would double-consume the "1 " prefix.
+    //
+    // NB: we intentionally do NOT seed CJK names here. A non-empty CJK list makes
+    // buildVerseRefRegex exclude BOTH Han and Hangul from the generic pattern, but only Han
+    // names get an explicit alternation — so seeding it offline would break Korean. CJK/Hangul
+    // are matched by the generic pattern (they are \p{L}) plus the isKnownBook gate instead.
+    val bundledMultiWord = remember {
+        LOCALIZED_BOOK_TO_ENGLISH.keys.filter { it.contains(' ') && !it.first().isDigit() }
+    }
+    val allMultiWord = remember(multiWordNames) {
+        (multiWordNames + bundledMultiWord).distinct().sortedByDescending { it.length }
+    }
     // Extract CJK (Han-script) book names from the localized map for no-space matching.
     val cjkBookNames = remember(localizedToEnglish) {
         localizedToEnglish.keys.filter { key ->
@@ -108,8 +125,8 @@ fun ChatScreen(
             }
         }.sortedByDescending { it.length }
     }
-    val verseRefRegex = remember(multiWordNames, cjkBookNames) {
-        buildVerseRefRegex(multiWordNames, cjkBookNames)
+    val verseRefRegex = remember(allMultiWord, cjkBookNames) {
+        buildVerseRefRegex(allMultiWord, cjkBookNames)
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()

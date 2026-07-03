@@ -202,3 +202,96 @@ WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'purge-blocked-message
 ORDER BY start_time DESC
 LIMIT 5;
 ```
+
+---
+
+## Migration 007: Per-translation partial HNSW indexes for verse search
+
+**File:** `007_partial_hnsw_verse_indexes.py`
+**Date:** 2026-06-24
+**Purpose:** Phase 2 chat-latency fix. Replace reliance on the single full HNSW
+index (`idx_verse_embedding_hnsw`) for per-language chat search with one **partial**
+HNSW index per translation. (`hnsw.ef_search` is tuned by the application per
+session, not by this migration — see the note below.)
+
+### Why
+
+The full index returns `hnsw.ef_search` nearest neighbours across **all**
+translations, then the `WHERE translation = :t` filter drops the non-matching rows
+*after* the index scan — thinning the candidate pool (observed 32 kept / 48 removed
+at `ef_search = 80`) and hurting recall. A partial index per translation
+(`... WHERE translation = '<t>'`) is filtered *by the index*: no post-filter, the
+`LIMIT` fills, and the per-query working set drops ~12× (each partial ≈ 220 MB vs
+the 2.6 GB full index).
+
+> **Why this migration no longer touches `hnsw.ef_search`.** The ANN still needs
+> `ef_search ≥ vector_candidate_pool` (≥ 120) to return a full pool, but managed
+> Postgres (Azure Flexible Server, AWS RDS) refuses to *persist* that GUC at the
+> database/role level — `ALTER DATABASE ... SET hnsw.ef_search` raises
+> `permission denied to set parameter` even for the admin role, and an earlier
+> version of this migration failed CI with exactly that error. The knob now lives
+> in the API connection pool, which runs `SET hnsw.ef_search` per session on connect
+> (`api/scripture/database.py`); a session-level SET needs no special privilege and
+> is the vendor-recommended way to tune it.
+
+### Why a `.py` migration
+
+`CREATE INDEX CONCURRENTLY` cannot run inside a transaction block, but the SQL
+runner executes a whole `.sql` file in one implicit transaction. This `.py`
+migration issues each `CONCURRENTLY` build as its own autocommit statement. It
+**discovers translations dynamically** (`SELECT DISTINCT translation FROM verses`),
+so the index set never drifts from a hard-coded list.
+
+### Prerequisites
+
+- `verses` table populated (the migration indexes the translations it finds).
+- `pg_prewarm` allow-listed via `azure.extensions` (added in `deployment/main.tf`)
+  for the optional cache-warming step — non-fatal if missing.
+- The full `idx_verse_embedding_hnsw` index is **kept** for the no-translation
+  `/scripture/search` path.
+
+### Run
+
+```bash
+psql is not used; run via the migration runner (or directly):
+python scripts/migrations/007_partial_hnsw_verse_indexes.py
+```
+
+### Verify
+
+```sql
+-- One partial index per translation, each with a WHERE predicate:
+SELECT indexname, indexdef FROM pg_indexes
+WHERE tablename = 'verses' AND indexname LIKE 'idx_verse_emb_hnsw_%';
+
+-- ef_search applied at the database level:
+SELECT setting FROM pg_settings WHERE name = 'hnsw.ef_search';  -- expect 120
+
+-- EXPLAIN should now use the partial index with NO post-filter:
+-- EXPLAIN (ANALYZE, BUFFERS) SELECT id FROM verses
+--   WHERE embedding IS NOT NULL AND translation = 'valera'
+--   ORDER BY embedding <=> '<vec>'::vector LIMIT 100;
+-- -> Index Scan using idx_verse_emb_hnsw_valera, Rows Removed by Filter: 0
+```
+
+### Rollback
+
+```sql
+-- Drop the partial indexes (full index is untouched):
+DO $$ DECLARE r record; BEGIN
+  FOR r IN SELECT indexname FROM pg_indexes
+           WHERE tablename = 'verses' AND indexname LIKE 'idx_verse_emb_hnsw_%'
+  LOOP EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(r.indexname); END LOOP;
+END $$;
+-- Optionally restore the previous ef_search:
+-- ALTER DATABASE <db> SET hnsw.ef_search = 80;
+```
+
+### Performance impact
+
+- Build: each partial covers ~1/12th of the verses (~2.6k rows) and builds in
+  seconds; `CONCURRENTLY` keeps `verses` readable throughout.
+- Disk: ~2.6 GB total for the partials (on top of the 2.6 GB full index) — fits the
+  32 GB volume. On a 4 GB box (`B2s`) only the *active* languages' partials need to
+  stay hot; see `scripts/perf/search_concurrency_test.py` to measure whether 4 GB
+  suffices under concurrent multilingual load.

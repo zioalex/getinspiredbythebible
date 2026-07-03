@@ -35,6 +35,77 @@ describe("extractVerseReferences", () => {
     expect(refs.size).toBe(1);
   });
 
+  // Regression: a connector word ("of", "de", …) before a real book name used to
+  // let a greedy alternative swallow the preceding prose ("you of Psalm"), which
+  // then failed the known-book check and hid the real reference.  The scanner now
+  // rewinds so the embedded reference is still recovered.
+  it("recovers a reference preceded by a connector word (English 'of')", () => {
+    const text = "I also want to remind you of Psalm 56:9, which says.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
+  it("recovers a reference preceded by a Spanish connector 'de'", () => {
+    const text = "Recuerda la palabra de Isaías 41:10 hoy.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("isaiah 41:10")).toBe(true);
+  });
+
+  it("recovers a reference hidden by a greedy numbered over-match", () => {
+    const text = "Wie in 1 day of Psalm 56:9 beschrieben.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
+  it("still extracts a legitimate multi-word book after the fix", () => {
+    const text = "Read Song of Solomon 2:1 and remind you of Psalm 56:9 today.";
+    const refs = extractVerseReferences(text);
+    expect(refs.has("song of solomon 2:1")).toBe(true);
+    expect(refs.has("psalms 56:9")).toBe(true);
+  });
+
+  // German/French/Italian cite chapter,verse with a comma ("Römer 13,1").
+  // The separator regex accepts [:,] (mirroring the backend), so these link too.
+  describe("comma separator (German/French/Italian citation style)", () => {
+    it("extracts a German comma reference with a range", () => {
+      const refs = extractVerseReferences("Siehe Römer 13,1-2 für Kontext.");
+      expect(refs.has("romans 13:1")).toBe(true);
+    });
+
+    it("extracts a German comma reference without a range", () => {
+      const refs = extractVerseReferences(
+        "Jakobus 1,27 spricht von Frömmigkeit.",
+      );
+      expect(refs.has("james 1:27")).toBe(true);
+    });
+
+    it("extracts a numbered German comma reference", () => {
+      const refs = extractVerseReferences("Lies 1. Petrus 2,13-17 heute.");
+      expect(refs.has("1 peter 2:13")).toBe(true);
+    });
+
+    it("extracts a French comma reference", () => {
+      const refs = extractVerseReferences("Lis Jean 3,16 aujourd'hui.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("extracts an Italian comma reference", () => {
+      const refs = extractVerseReferences("Leggi Giovanni 3,16 oggi.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("still extracts colon references (no regression)", () => {
+      const refs = extractVerseReferences("Read John 3:16 today.");
+      expect(refs.has("john 3:16")).toBe(true);
+    });
+
+    it("does not treat a decimal amount as a verse", () => {
+      // "habe" is not a known book, so the isKnownBook gate rejects "habe 3,50".
+      const refs = extractVerseReferences("Ich habe 3,50 Euro gespart.");
+      expect(refs.size).toBe(0);
+    });
+  });
+
   it("should handle verse ranges", () => {
     const text = "Read Matthew 5:3-12 for the beatitudes";
     const refs = extractVerseReferences(text);
