@@ -202,6 +202,12 @@
     <string name="feedback_send">भेजें</string>
     <string name="feedback_sending">प्रतिक्रिया भेजी जा रही है…</string>
     <string name="feedback_maintainer_notice">आपका संदेश ऐप के अनुरक्षक के साथ साझा किया जाएगा।</string>
+    <string name="feedback_reason_prompt">क्या गलत हुआ?</string>
+    <string name="feedback_reason_inaccurate">अशुद्ध</string>
+    <string name="feedback_reason_unhelpful">अनुपयोगी</string>
+    <string name="feedback_reason_wrong_verse">गलत पद</string>
+    <string name="feedback_reason_tone">लहजा</string>
+    <string name="feedback_reason_other">अन्य</string>
     <string name="backend_warming_up">सर्वर से जुड़ रहे हैं… (पहले अनुरोध में 30 सेकंड तक लग सकते हैं)</string>
     <string name="action_scroll_to_bottom">नीचे स्क्रॉल करें</string>
 

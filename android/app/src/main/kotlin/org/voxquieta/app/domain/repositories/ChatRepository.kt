@@ -56,6 +56,8 @@ interface ChatRepository {
      * @param userMessage   The user's original question (provides context).
      * @param assistantResponse The assistant's reply text (provides context).
      * @param comment Optional free-text comment the user added (thumbs-down).
+     * @param reason Optional category chip the user selected on thumbs-down
+     *   (e.g. "inaccurate", "unhelpful", "wrong_verse", "tone", "other").
      */
     suspend fun submitFeedback(
         messageId: String,
@@ -63,5 +65,6 @@ interface ChatRepository {
         userMessage: String = "",
         assistantResponse: String = "",
         comment: String? = null,
+        reason: String? = null,
     )
 }
