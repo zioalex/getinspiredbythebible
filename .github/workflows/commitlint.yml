@@ -37,13 +37,14 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PLANNING_AUTHOR_EMAIL: 198982749+Copilot@users.noreply.github.com
         run: |
           status=0
           while IFS= read -r sha; do
             message="$(git log -1 --format=%B "$sha")"
             author_email="$(git log -1 --format=%ae "$sha")"
             if [ "$message" = "Initial plan" ] && \
-              [ "$author_email" = "198982749+Copilot@users.noreply.github.com" ]; then
+              [ "$author_email" = "$PLANNING_AUTHOR_EMAIL" ]; then
               echo "Skipping agent planning commit $sha"
               continue
             fi
