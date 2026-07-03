@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from sqlalchemy.exc import ProgrammingError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -108,6 +109,58 @@ async def test_build_report_empty_data_no_divide_error():
     assert "Weekly Activity Digest" in render_text(report)
     assert "n/a" in render_text(report)
     assert "<html>" in render_html(report)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error_message", "pgcode"),
+    [
+        ('relation "sessions" does not exist', None),
+        ("undefinedtable: sessions", None),
+        ('column "is_mobile" does not exist', "42703"),
+    ],
+)
+async def test_build_report_falls_back_when_sessions_schema_is_missing(
+    error_message: str, pgcode: str | None
+):
+    class DummyOrigError(Exception):
+        def __init__(self, message: str, *, pgcode: str | None):
+            super().__init__(message)
+            self.pgcode = pgcode
+
+    db = MagicMock()
+    actions = iter(
+        [
+            _result(all_=[("positive", 2)]),
+            _result(all_=[]),
+            _result(all_=[("bug", 1)]),
+            ProgrammingError(
+                "SELECT active_sessions FROM sessions",
+                {},
+                DummyOrigError(error_message, pgcode=pgcode),
+            ),
+            _result(scalar_=0),
+        ]
+    )
+
+    async def execute(*_args, **_kwargs):
+        action = next(actions)
+        if isinstance(action, Exception):
+            raise action
+        return action
+
+    db.execute = AsyncMock(side_effect=execute)
+
+    report = await build_weekly_report(db, now=NOW)
+
+    assert report.feedback.total == 2
+    assert report.contact.by_subject == {"bug": 1}
+    assert report.engagement.active_sessions == 0
+    assert report.engagement.new_sessions == 0
+    assert report.engagement.total_messages == 0
+    assert report.engagement.top_languages == []
+    assert report.new_sessions_prev == 0
+    assert db.execute.await_count == 5
 
 
 def _report_with_comment(comment: str) -> WeeklyReport:
