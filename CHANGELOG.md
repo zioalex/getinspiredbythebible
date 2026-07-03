@@ -4,13 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [1.35.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.4...v1.35.0) (2026-07-03)
 
-
 ### Features
 
 * **android:** negative-feedback reason chips (BITB-042) ([#783](https://github.com/zioalex/getinspiredbythebible/issues/783)) ([3c603e5](https://github.com/zioalex/getinspiredbythebible/commit/3c603e5c2822f6ec6301823fe69f8b89eac0a703))
 * **api:** address user's specific focus and improve prophetic-justice expansion (BITB-050) ([#758](https://github.com/zioalex/getinspiredbythebible/issues/758)) ([72c18fc](https://github.com/zioalex/getinspiredbythebible/commit/72c18fc604d2054b573fb5024ade6b5ca253864f))
 * **web:** surface Bible version as amber chip badge in header (BITB-029) ([#763](https://github.com/zioalex/getinspiredbythebible/issues/763)) ([2da373a](https://github.com/zioalex/getinspiredbythebible/commit/2da373a5f7c3976f0e8ecb4b5b2f3ebfce96747e))
-
 
 ### Documentation
 
