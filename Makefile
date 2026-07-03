@@ -4,7 +4,8 @@
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
-	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	repo-metrics
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -828,3 +829,10 @@ tf-refresh: ## Refresh Terraform state
 tf-state-list: ## List resources in Terraform state
 	@echo "$(BLUE)Resources in Terraform state:$(NC)"
 	@cd $(TF_DIR) && terraform state list
+
+repo-metrics: ## Regenerate repo productivity dashboard + report (docs/metrics/) from git history
+	@echo "$(BLUE)Analyzing git history...$(NC)"
+	@git fetch origin main --tags --quiet 2>/dev/null || echo "$(YELLOW)⚠ could not fetch origin/main — using local state$(NC)"
+	@$(PYTHON_VERSION) tools/repo-metrics/analyze.py
+	@$(PYTHON_VERSION) tools/repo-metrics/render.py
+	@echo "$(GREEN)✓ docs/metrics/index.html and docs/metrics/report.md updated$(NC)"
