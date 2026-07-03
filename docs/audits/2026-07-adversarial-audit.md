@@ -35,6 +35,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 ## 1. ARCHITECTURAL DEBT
 
 ### A1 — The triple-maintained verse parser
+
 - **[SEVERITY]:** CRITICAL
 - **[RISK PROFILE]:** Maintainability / Correctness
 - **[THE ROOT CAUSE]:** The verse-reference engine is implemented three separate times in three languages and two regex dialects: Kotlin (`android/.../ChatMessageItem.kt:104–362`, Java regex `\p{IsHan}`), TypeScript (`frontend/src/lib/versePatterns.ts` + `verseExtraction.ts`, JS regex `\p{Script=Han}`), and Python (`api/utils/verse_parser.py`). The 737-line `LocalizedBookToEnglish.kt` is a self-described "parity copy — do not edit by hand" of the 1,073-line web map, guarded only by an **entry-count** test — counts can match while contents diverge.
@@ -42,6 +43,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Pick one source of truth. Either (a) generate all three artifacts (regex source + book maps) from a single spec file at build time, or (b) move reference extraction server-side entirely — the backend already parses verses — and have both clients render server-annotated spans. At minimum, replace the entry-count test with a full content-equivalence check generated from the web map.
 
 ### A2 — `ChatIsland.tsx`: a 1,357-line client-side monolith
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Maintainability
 - **[THE ROOT CAUSE]:** One `"use client"` component (`frontend/src/app/[locale]/ChatIsland.tsx`) owns chat state, the SSE consumer, verse filtering, church-finder gamification, language switching, feedback, translation selection, mobile panels, and splash — via ~30 `useState`/`useRef` hooks and 9 effects. The streaming consumer alone (`submitMessage`, lines 368–677) is ~310 lines.
@@ -49,6 +51,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Extract the streaming consumer into a `useChatStream` hook with an explicit reducer, and split church-finder/language-switch/translation-picker into sibling components. Mechanical, low-risk, high-payoff.
 
 ### A3 — `ChatViewModel.kt`: the Android god-object
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Maintainability
 - **[THE ROOT CAUSE]:** `android/.../ChatViewModel.kt` is 1,214 lines with a 23-field `ChatUiState` (lines 82–139), owning chat, chapter sheet, church finder, contact form, diagnostics, feedback, locale, theme, and translation prefs. Its test file is 2,325 lines — the test size is the debt made visible.
@@ -56,6 +59,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Split by feature into focused ViewModels (chat, settings, church) sharing scoped state holders. The 23-field UiState should decompose along the same seams.
 
 ### A4 — Duplicated request plumbing in `api.ts`
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Maintainability / Correctness
 - **[THE ROOT CAUSE]:** `frontend/src/lib/api.ts` (947 lines) contains two parallel request paths: `turnstilePost` (221–252) and a hand-inlined fetch in `streamMessage` (584–619). The Turnstile 403-retry block and the request body are duplicated verbatim; the status→typed-error mapping is duplicated (470–498 vs 621–661) **and already diverged** — 422 message-too-long is handled only in the streaming path. Turnstile tokens are bridged through module-level mutable globals (129–132) wired imperatively from `providers.tsx`.
@@ -63,6 +67,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** One request core: a single `apiFetch` that handles Turnstile attach/retry and status mapping, consumed by both the JSON and streaming paths. Kill the module-global token bridge in favor of the existing React context.
 
 ### A5 — Cosmetic dependency injection in the provider factory
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Maintainability / Testability
 - **[THE ROOT CAUSE]:** `api/providers/factory.py:137–146` — `get_llm_provider`/`get_embedding_provider` are `@lru_cache` singletons that bind the module-level `settings`, ignoring the `Settings` FastAPI injects. Meanwhile `config.py:22` allows `llm_provider="openai"` as a valid Literal, but the factory raises `ProviderError("not yet implemented")` (`factory.py:71`) — config validation passes, boot fails.
@@ -70,6 +75,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Make the factory take `Settings` as a real parameter with app-lifetime caching in `lifespan`, and remove `openai` from the Literal until it exists.
 
 ### A6 — Circuit breaker with side-effecting reads and thread locks in an async app
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `api/utils/circuit_breaker.py:54–68` — `is_open()` mutates state (OPEN→HALF_OPEN) as a side effect and guards with `threading.Lock` inside an asyncio app; it's called inside boolean expressions (`providers/openrouter.py:230–235, 395–400`). Half-open admits one probe in theory, but concurrent coroutines can all read `is_open()==False` before any records a result. Separately, `chat()` and `chat_stream()` duplicate the entire breaker+fallback dance (both tagged `# noqa: C901`).
@@ -77,6 +83,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Make `is_open()` pure; add an explicit `try_acquire_probe()` guarded by `asyncio.Lock`. Extract the shared fallback loop from `chat`/`chat_stream` into one generator-friendly helper.
 
 ### A7 — Circular import with a load-order contract
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Maintainability
 - **[THE ROOT CAUSE]:** `frontend/src/lib/verseExtraction.ts:12–18` ↔ `versePatterns.ts:15–21, 58–70` import each other and *document* that it only works because of ES-module live-binding evaluation order.
@@ -84,6 +91,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Extract the shared book-name data into a third leaf module both import. One hour of work removes a documented landmine.
 
 ### A8 — Client/server contracts as magic numbers and error-string grep
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Correctness
 - **[THE ROOT CAUSE]:** Android hardcodes `MAX_INTERACTIONS=10` (`ChatViewModel.kt:163`) and `MAX_MESSAGE_LENGTH=300` (`:173`), mirroring backend `config.py` values by convention only, and classifies backend failures by substring-matching `errorBody().string()` for `"session_lifetime_limit"` / `"content_blocked"` (`ChatViewModel.kt:1176, 1185`).
@@ -91,6 +99,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Serve limits from the existing `GET /config` endpoint (it already exists!) and return machine-readable error `code` fields instead of prose to be grepped.
 
 ### A9 — Transaction hygiene: commit-on-every-GET
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Correctness / Performance
 - **[THE ROOT CAUSE]:** `api/scripture/database.py:126–143` — the `get_db_session` dependency commits unconditionally on every request, including pure reads. Combined with `utils/session_tracker.py:52` swallowing its own exceptions mid-transaction, the dependency's final `commit()` can throw on an already-aborted transaction (see E6).
@@ -98,6 +107,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Commit only where writes happen; give read paths a no-commit session dependency.
 
 ### A10 — Dead code kept on life support
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Maintainability
 - **[THE ROOT CAUSE]:** Five exported `api.ts` functions (`sendMessage`, `searchScripture`, `getVerse`, `getVerseContext`, `checkHealth` — lines 444, 743, 768, 827, 847) are referenced only by their own tests. Android's `injectVerseQuoteHighlights` is a documented no-op (`ChatMessageItem.kt:377`); `resolveResumeConversationId` is dead (`MainActivity.kt:712`). Committed cruft: `scripts/load_bible.py.backup`, `AGENTS.md.old`, `AGENTS.old.md`.
@@ -109,6 +119,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 ## 2. EDGE-CASE FAILURES
 
 ### E1 — The 503 that can never fire *(hand-verified)*
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Reliability / Observability
 - **[THE ROOT CAUSE]:** `api/providers/openrouter.py:308, 491` raise `RuntimeError("All models unavailable or rate limited…")` / `("All models unavailable in streaming…")` when all fallbacks are exhausted. The routes check `if "All models rate limited" in str(e)` (`api/routes/chat.py:75, 124`). **That substring appears in neither message.** The intended 503 branch is unreachable.
@@ -116,6 +127,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Raise a typed `AllModelsExhaustedError` and catch the type, not prose. Add the one test that would have caught this: assert the provider's exhaustion error maps to 503 at the route.
 
 ### E2 — Turnstile verification fails open on *any* exception *(hand-verified)*
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Security / Abuse
 - **[THE ROOT CAUSE]:** `api/utils/turnstile.py:92–103` — timeout → allow; HTTP error → allow; **any `Exception` → allow**. Bot verification is availability-first by design at every failure branch.
@@ -123,6 +135,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Fail closed on verification *rejection* and on repeated errors (breaker-style: fail open for the first blip, closed when siteverify is persistently erroring), and alarm loudly when the fail-open branch is taken. At minimum emit a metric; today the bypass is silent.
 
 ### E3 — Verse click handler forgot half the alphabet *(hand-verified)*
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Correctness (i18n)
 - **[THE ROOT CAUSE]:** `frontend/src/components/ChatMessage.tsx:52–74` — the click path does `parseInt(match[2])` / `parseInt(match[3])` with no `normalizeDigits()`, and passes the raw localized `match[1]` book name to `onVerseClick`. The extraction path right next door does it correctly (`verseExtraction.ts:997–1002`). The shared regex explicitly matches Devanagari/Eastern-Arabic numerals (`versePatterns.ts:281`).
@@ -130,6 +143,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Route the click handler through the same `normalizeDigits`/`normalizeBookName` pipeline as extraction — it's four lines away. Add one test with non-Latin numerals on the click path.
 
 ### E4 — Room database with no escape hatch
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Reliability (mobile data loss / crash loop)
 - **[THE ROOT CAUSE]:** `android/.../VoxQuietaDatabase.kt` is `version = 1` with zero `Migration` objects and no `fallbackToDestructiveMigration()` anywhere. Verses are stored as a serialized JSON blob column (`MessageEntity.kt:33`), unqueryable and schema-opaque.
@@ -137,6 +151,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Before the *next* schema change: add a migration test harness (Room's `MigrationTestHelper` + the exported `schemas/1.json`), decide the destructive-fallback policy explicitly, and write Migration 1→2 alongside whatever change triggers it.
 
 ### E5 — Retry helper used against its own contract
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `api/utils/db_retry.py:56–72` documents that the retried function must acquire a *fresh* session per attempt. `chat/service.py:759` and `feedback/repository.py:43, 81` retry against the same request-scoped session anyway (the feedback repo's docstring admits it and bets on `pool_pre_ping`).
@@ -144,6 +159,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Give the retry wrapper a session *factory*, not a session. The one correct usage (`feedback/blocked_samples.py:75–118`) already shows the pattern.
 
 ### E6 — Streamed chats are invisible to your own analytics
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Observability / Correctness
 - **[THE ROOT CAUSE]:** `track_session` is called only on the non-streaming path (`api/routes/chat.py:70`); the streaming endpoint — which is what both clients actually use — never calls it. It also swallows its own DB errors (`utils/session_tracker.py:52`) after possibly aborting the shared transaction (see A9).
@@ -151,6 +167,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Track on stream completion (the `completion` chunk already exists as the hook point), in its own short-lived session.
 
 ### E7 — Boot-anyway startup
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `api/main.py:127–132` — `init_db()` failure at startup is caught and logged; the app boots anyway and 500s on first DB use.
@@ -158,6 +175,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Let startup die on DB init failure (Container Apps revisions handle the rollback), or wire the failure into `/health/ready` so the replica never receives traffic.
 
 ### E8 — Unguarded `localStorage` writes
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `ChatIsland.tsx:249–252` writes `localStorage` bare, while `api.ts:264–303` carefully try/catches the identical operation two directories away. Safari private mode and storage-blocked contexts throw here.
@@ -165,6 +183,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** One `safeStorage` util, used everywhere. Delete both inline patterns.
 
 ### E9 — English-only guardrail in an 11-language product
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Correctness (safety UX)
 - **[THE ROOT CAUSE]:** `api/chat/service.py:578` — the safe-filter heuristic checks `if "Not from the Bible" in response.content[:120]`. The product ships in 11 locales; the LLM answers in the user's language.
@@ -172,6 +191,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Have the prompt emit a language-independent sentinel token (e.g. `[NOT_SCRIPTURE]`) and match that, not English prose.
 
 ### E10 — Android's two-brains language store and fire-and-forget session reset
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Correctness
 - **[THE ROOT CAUSE]:** `android/.../LanguagePreferences.kt:35–61` writes both SharedPreferences and DataStore but reads initial state from one and the flow from the other; `ChatViewModel.kt:766–780` documents a locale-revert race in a comment instead of fixing it. `startNewConversation` (`:723–743`) resets the session id in a detached, un-awaited coroutine while synchronously resetting UI state.
@@ -179,6 +199,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Single store (DataStore) with one synchronous initial read; make session reset a suspend point the send path awaits.
 
 ### E11 — Migration runner: checksums for decoration, duplicate version numbers
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability (schema drift)
 - **[THE ROOT CAUSE]:** `scripts/migrations/run_migrations.py:229–231` computes a SHA-256 checksum per migration, records it — and never compares it: already-applied versions are skipped by name alone. The directory contains duplicate number prefixes (two `002_*`, two `003_*`), no rollback support, and empty SQL files get recorded as successfully applied.
@@ -186,6 +207,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Verify checksums on every run (fail loudly on mismatch), enforce unique version prefixes in CI, or accept reality and adopt Alembic — you have already reimplemented a third of it.
 
 ### E12 — Mutable closure index inside React state updaters
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Correctness
 - **[THE ROOT CAUSE]:** `ChatIsland.tsx:391, 413` — `assistantMessageIndex` is a closure variable assigned *inside* a `setMessages` updater, then read by later updaters. Updaters must be pure; StrictMode double-invocation or batched re-execution can skew the index.
@@ -193,6 +215,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Identify the placeholder by a stable message id, not a captured array index.
 
 ### E13 — A 600-character regex with nested quantifiers on untrusted input
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability (ReDoS) / Maintainability
 - **[THE ROOT CAUSE]:** `frontend/src/lib/versePatterns.ts:274–281` builds a single ~600-char pattern with multiple lookbehinds and a connector branch `[\p{L}\p{M}]{2,}(?:\s+(?:of|dei|…)\s+[\p{L}\p{M}]+)+` — nested unbounded quantifiers — executed over every LLM output chunk on every render (and re-implemented on Android, see A1).
@@ -204,6 +227,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 ## 3. SCALABILITY BOTTLENECKS
 
 ### S1 — Synchronous HTTP freezes the async event loop *(hand-verified)*
+
 - **[SEVERITY]:** CRITICAL
 - **[RISK PROFILE]:** Performance / Reliability
 - **[THE ROOT CAUSE]:** `api/utils/email_service.py:73` uses **sync** `httpx.Client(timeout=10.0)`, called directly (no `await`, no thread offload) from `async def` routes: `routes/feedback.py:72, 145` and `routes/admin.py:47`.
@@ -211,6 +235,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** `httpx.AsyncClient` (three-line change), or wrap in `anyio.to_thread.run_sync`. Then add a lint/test guard against sync HTTP clients in `api/`.
 
 ### S2 — Public search endpoint does the full scan the hybrid path was built to avoid *(hand-verified)*
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Scalability
 - **[THE ROOT CAUSE]:** `api/scripture/repository.py:283` — pure semantic search filters `WHERE (1 - cosine_distance) >= threshold`, the exact predicate the candidate-pool CTE's own docstring (lines 46–48) says forces a full scan past the HNSW index. Same pattern in `search_passages_semantic` / `search_topics_semantic` (668–691, 799–811); `topics.embedding` has **no vector index at all** (`models.py:233`); `search_verses_text` uses leading-wildcard `ILIKE '%q%'` (247–255). All reachable from the public `GET /api/v1/scripture/search`.
@@ -218,6 +243,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Route the pure-semantic path through the existing candidate-pool CTE (rank by index first, filter by threshold in the outer query). Add the missing HNSW index on `topics.embedding`. Replace ILIKE with the FTS machinery you already have.
 
 ### S3 — Rate limiting that forgets and divides
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Scalability / Abuse
 - **[THE ROOT CAUSE]:** `api/utils/rate_limiter.py:54–56` — in-memory dicts, per process. Prod runs up to 2 replicas (`deployment/terraform.tfvars:56–59`); each replica enforces the full limit independently, and every deploy/restart resets all counters including the 10-message session lifetime cap.
@@ -225,6 +251,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Move counters to Postgres (an `UPSERT`-based sliding window is fine at this traffic; you already run pg_cron for cleanup) or a managed Redis. Keep the in-memory limiter as a local pre-filter only.
 
 ### S4 — Per-token full re-render of an unbounded, unmemoized chat list
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Performance (client)
 - **[THE ROOT CAUSE]:** Every streamed token copies the whole message array (`ChatIsland.tsx:486–496`) and re-renders every `ChatMessage` — no `React.memo`, keys are array indices (`:974`), and each render re-runs ReactMarkdown plus the A1 mega-regex over every message. `relevantVerses` grows append-only across the whole conversation (`:461–465`) with dedup applied only to the other verse source.
@@ -232,6 +259,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** `React.memo` on `ChatMessage` keyed by stable message ids; isolate the streaming message so only it re-renders per token; dedupe `relevantVerses` at append.
 
 ### S5 — The whole product balances on one small public database
+
 - **[SEVERITY]:** MEDIUM (capacity) — see O3 for the exposure half
 - **[RISK PROFILE]:** Scalability / Reliability
 - **[THE ROOT CAUSE]:** `deployment/main.tf:338–356` — single `B_Standard_B2s` (2 vCPU / 4 GB) Postgres Flexible Server, no HA standby, serving vector search for 12 translations plus all app traffic, with the backend allowed to scale to 2 replicas against it.
@@ -239,6 +267,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Fix S2 first (it buys the most headroom per euro), add `pg_prewarm` for hot indexes (extension is already allow-listed), and write down the upgrade trigger: at what P95 do you move off B2s?
 
 ### S6 — `runBlocking` in the hot path, twice
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Performance (mobile)
 - **[THE ROOT CAUSE]:** `android/.../TurnstileInterceptor.kt:85, 97` — `runBlocking { withTimeoutOrNull(5s/8s) }` parks OkHttp worker threads waiting for a WebView token. `ChatViewModel.kt:183` — `runBlocking { themePreferences.themeModeFlow.first() }` blocks the main thread at ViewModel construction on a cold DataStore disk read.
@@ -246,6 +275,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Make token acquisition a suspend fun in an Authenticator-style layer, not an interceptor block; load the theme asynchronously with a sensible default frame.
 
 ### S7 — Death by a thousand round-trips
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Performance
 - **[THE ROOT CAUSE]:** Every hybrid search runs ranking SQL then a second hydration `SELECT … WHERE id IN (…)` (`repository.py:405–410` et al.); FTS recomputes `to_tsvector('simple', v.text)` per query in the CTE (`:366–369`) with no persisted tsvector/GIN column; frontend `isVerseReferenced` is O(verses × refs) inside a render-path memo (`verseExtraction.ts:1015–1073`).
@@ -253,6 +283,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Persist a generated tsvector column with a GIN index; fold hydration into the ranking query; index verse refs into a Set before the loop.
 
 ### S8 — Ollama: five minutes of hope, no breaker
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `api/providers/ollama.py:55` — `AsyncClient(timeout=300.0)`, no retry, no circuit breaker, and `model_override` silently ignored (`:66, 100`) while other providers honor it.
@@ -264,6 +295,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 ## 4. DOCUMENTATION & TEST GAPS
 
 ### D1 — The deployment doc describes a deployment that no longer exists
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Maintainability / Operations
 - **[THE ROOT CAUSE]:** `DEPLOYMENT.md:19–54` documents docker-compose behind a Cloudflare Tunnel to `getinspiredbythebible.ai4you.sh`. Actual production is Azure Container Apps + Terraform + `voxquieta.org` (`azure-deploy.yml`, `deployment/main.tf`). Azure is not mentioned once.
@@ -271,6 +303,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Rewrite `DEPLOYMENT.md` around the Azure reality (the `azure-deploy.yml` job graph is the outline); move the compose instructions to `LOCAL_DEVELOPMENT.md`.
 
 ### D2 — End-to-end coverage: one spec, and it's about a button
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Test coverage
 - **[THE ROOT CAUSE]:** The entire Playwright suite is `e2e/turnstile-ready.spec.ts` (4 tests on button/prompt state). Playwright's `webServer` auto-start is commented out "due to Node version compatibility" (`playwright.config.ts:19–27`). Untested end-to-end: chat streaming, verse-link click → chapter modal, church finder, feedback, language switch with conversation preservation, error states.
@@ -278,6 +311,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Fix the webServer config (the Node issue is a pinned-version problem, not a law of physics), then add the two highest-value specs: full chat stream against a mocked SSE backend, and verse-click → chapter modal in a non-English locale.
 
 ### D3 — Android's merge gate is decorative where it matters
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Test coverage / Process
 - **[THE ROOT CAUSE]:** Compose UI tests are excluded from the required unit-test task (`app/build.gradle.kts:337–341`) and run in a separate workflow with `continue-on-error: true` (`android-compose-tests.yml:32–42`) so "flakiness cannot block merges". The OWASP CVE scan runs nightly-only and never gates PRs (`android-dependency-check.yml`). Instrumented coverage is a single `MainActivityTest`.
@@ -285,6 +319,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Quarantine the individually-flaky tests, not the whole tier — make the Compose workflow required with a retry policy. Add the dependency check (fail on CVSS ≥ 9) to the PR pipeline; keep the deep nightly scan.
 
 ### D4 — The untested modules are precisely the load-bearing ones
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Test coverage
 - **[THE ROOT CAUSE]:** No dedicated tests for: `utils/rate_limiter.py` (the abuse control), `utils/session_tracker.py` (the analytics), `feedback/blocked_samples.py`, `providers/azure_openai.py` (the *production* embedding provider — its content-safety cousin is tested, it isn't). And no test pins the OpenRouter exhaustion message to the route's substring match — which is exactly how E1 shipped and survived.
@@ -292,6 +327,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** One test file per module above; for cross-module string/code contracts, a single contract test that imports both sides.
 
 ### D5 — The type checker is excused from checking the tests
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Test coverage / Maintainability
 - **[THE ROOT CAUSE]:** `frontend/tsconfig.json` excludes `*.test.ts(x)` and `src/test/**` from `tsc --noEmit`; 26 test files (including the 2,370-line verse suite) are never typechecked. `react-hooks/exhaustive-deps` is warn-only, and `ChatIsland.tsx:213, 221, 244, 282` lean on `[]` effects that reference outer values.
@@ -299,6 +335,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Add a `tsconfig.test.json` that includes tests in typecheck; promote `exhaustive-deps` to error and annotate the intentional cases individually.
 
 ### D6 — Two sources of configuration truth, both confident
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Operations
 - **[THE ROOT CAUSE]:** `api/.env.example` disagrees with `api/config.py` defaults: `DEBUG=true` (`:88`) vs safe-off; `content_safety_mode` documented as `keyword_only` (`:160`) vs actual default `ml_only` (`config.py:235`); different `turnstile_skip_paths` lists; a concrete `bible123` DATABASE_URL (`:49`) where config demands a placeholder. `RateLimiter.__init__` carries a divergent default (100) from config (10) (`rate_limiter.py:38` vs `config.py:177`).
@@ -306,6 +343,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Generate `.env.example` from the pydantic `Settings` schema (one script, run in CI) so it cannot drift. Ship example defaults safe-side (`DEBUG=false`).
 
 ### D7 — Doc rot as a lifestyle
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Maintainability
 - **[THE ROOT CAUSE]:** Three agent-guidance files (`AGENTS.md`, `AGENTS.md.old`, `AGENTS.old.md`); committed backups (`scripts/load_bible.py.backup`, stray `ChapterModal.test.tsx.backup`); duplicate BITB story numbers across `docs/BACKLOG_STORIES/` (multiple BITB-018/-037/-043/-050); `changelog.json` both committed and regenerated at build (`app/build.gradle.kts:274–331`); six docker-compose variants with no README explaining which is canonical.
@@ -317,6 +355,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 ## 5. OPERATIONAL / SECURITY RISK
 
 ### O1 — The default compose file is a dev stack with the keys taped to the door *(hand-verified)*
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Security / Operations
 - **[THE ROOT CAUSE]:** `docker-compose.yml` (the file `docker compose up` picks by default): `POSTGRES_PASSWORD=bible123` in plaintext (`:67`), Postgres published on `0.0.0.0:5432` (`:64`), Ollama on `0.0.0.0:11434`, uvicorn `--reload` with a source bind-mount, frontend as `npm run dev`, zero restart policies or resource limits, `ollama/ollama:latest` unpinned (`:38`). The hardened bindings live in `docker-compose.dev.yml` — the *non-default* file.
@@ -324,6 +363,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Swap the file roles: default compose binds `127.0.0.1`, requires an env file for credentials, pins images. Keep the all-interfaces variant behind an explicit `-f` flag with a warning banner.
 
 ### O2 — Content safety: off by default, open on failure
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Security / Safety
 - **[THE ROOT CAUSE]:** `content_safety_enabled` defaults `False` (`api/config.py:234`). When on, every stage fails open: OpenAI moderation → keyword fallback on bare `except Exception` (`content_safety.py:426–428`), Llama Guard → allow on transient error (`:351–361`) and on *empty response* (`llama_guard.py:111–113`), Azure stage → allow on exception (`:482–494`).
@@ -331,6 +371,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** For self-harm/violence categories specifically, fail *closed* (keyword-stage minimum always runs — it's local and free). Emit a metric on every fail-open branch and alert on its rate. Flip the default on.
 
 ### O3 — Production database on the public internet, disaster recovery: hope
+
 - **[SEVERITY]:** HIGH
 - **[RISK PROFILE]:** Security / Reliability
 - **[THE ROOT CAUSE]:** `deployment/main.tf:349` — `public_network_access_enabled = true` on the prod Postgres Flexible Server; `:342` `geo_redundant_backup_enabled = false`; 7-day backup retention; no HA (`high_availability` appears only in `ignore_changes`, `:355–356`).
@@ -338,6 +379,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Private endpoint + VNet integration to Container Apps (Terraform change, no app change). Enable geo-redundant backup — at B2s scale it costs pocket change. Document the restore procedure and *test it once*.
 
 ### O4 — CORS: credentials allowed, everything allowed, localhost forever
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Security
 - **[THE ROOT CAUSE]:** `api/main.py:245–246` — `allow_credentials=True` with `allow_methods=["*"]`, `allow_headers=["*"]`, and origins that unconditionally include `localhost:3000/3001` even in production (`:211–215`).
@@ -345,6 +387,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Localhost origins only when `settings.debug`; enumerate the methods and headers actually used.
 
 ### O5 — Free-for-all telemetry endpoint
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Security / Cost
 - **[THE ROOT CAUSE]:** `POST /api/v1/client-errors` (`api/main.py:324`) is unauthenticated, Turnstile-exempt (`config.py:208` skip-list), un-rate-limited, and does `await request.json()` on arbitrary bodies before any size check. Its output flows to App Insights, which bills by ingestion.
@@ -352,6 +395,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Content-length cap (16 KB), per-IP token bucket (the limiter exists), and a schema check before accepting.
 
 ### O6 — The 72-kilobyte deploy workflow
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Operations / Maintainability
 - **[THE ROOT CAUSE]:** `.github/workflows/azure-deploy.yml` is a single 72 KB file: `workflow_run`-chained triggering, ~10 jobs, repeated `always() && (result=='success' || result=='skipped')` gating (`:1339–1343, 1423–1426`), Azure SP credentials assembled inline in multiple jobs, and resource names hardcoded under an explicit TODO (`:122–126`, `bible-app-*` vs the Vox Quieta rename).
@@ -359,6 +403,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Split into composite actions / reusable workflows per concern (build, tf, deploy, seed); replace result-string gating with explicit `needs` + job-level `if`; do the rename or delete the TODO — a two-year-old TODO is documentation of learned helplessness.
 
 ### O7 — Supply-chain seams
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Security
 - **[THE ROOT CAUSE]:** Bandit skips B608, the SQL-string-construction check, repo-wide (`.pre-commit-config.yaml:59`) — in a codebase that hand-builds SQL (`repository.py:304–657`). Dependabot ignores **all** semver-major updates in every ecosystem (`.github/dependabot.yml:19–21, 70–72`). Frontend runs `node:25-alpine` (bleeding-edge, short-support). Android pulls markdown rendering from JitPack (`settings.gradle.kts:25–27`) and force-downgrades BouncyCastle to 1.77 (`build.gradle.kts:20–28`).
@@ -366,6 +411,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Re-enable B608 with targeted `# nosec` on the audited query builders; change dependabot majors from *ignored* to *grouped quarterly*; pin Node to the current LTS; vendor or mirror the JitPack dependency.
 
 ### O8 — Release engineering by coincidence (Android)
+
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Operations
 - **[THE ROOT CAUSE]:** `versionCode` = Unix epoch seconds (`android-publish.yml:194, 209`) — collides if two builds start the same second and burns the 2.1B code space; versionName is extracted by two different mechanisms (gradle regex on the release-please manifest vs workflow grep, `app/build.gradle.kts:24–35` vs `android-publish.yml:202–203`); the promote lane's default source track is the literal space-containing string `"extend testing"` parsed by comma-splitting bash (`fastlane/Fastfile:118`, `android-publish.yml:370–397`); CI's "Build Prod APK" artifact is a **debuggable, debug-keyed build pointed at production** (`android-ci.yml:341–346`).
@@ -373,6 +419,7 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[REFACTOR ACTION]:** Derive versionCode from the release-please version (monotonic by construction); one versionName extractor, used by both; rename the CI artifact `debug-apk-prod-backend`; give the track a space-free id.
 
 ### O9 — Monitoring that assumes the world never changes
+
 - **[SEVERITY]:** LOW
 - **[RISK PROFILE]:** Operations
 - **[THE ROOT CAUSE]:** `prod-monitor.yml` hardcodes a fallback backend FQDN (`:62`) and resolves the Log Analytics workspace as `[0].name` (`:243–245`) — first-item-wins. `scripts/validate-env.py` cross-checks env vars by regex-parsing compose YAML and Terraform HCL (`:47–112`), and only the base compose file at that.

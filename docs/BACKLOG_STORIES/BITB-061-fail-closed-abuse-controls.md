@@ -33,12 +33,14 @@ Three independent controls, one shared philosophy — availability over protecti
 ## Acceptance Criteria
 
 ### Turnstile
+
 - [ ] Verification *rejections* fail closed (403). Transient siteverify errors may fail open for
       isolated blips, but persistent errors trip to fail-closed (circuit-breaker style — reuse
       `utils/circuit_breaker.py`).
 - [ ] Every fail-open occurrence emits a metric/log; an alert fires on its rate.
 
 ### Rate limiting
+
 - [ ] Counters live in a shared store surviving restarts and consistent across replicas — Postgres
       UPSERT sliding window (pg_cron cleanup already available) or managed Redis; decision recorded
       in the story on implementation.
@@ -46,6 +48,7 @@ Three independent controls, one shared philosophy — availability over protecti
 - [ ] `utils/rate_limiter.py` gains dedicated unit tests (window expiry, session cap, concurrency).
 
 ### Content safety
+
 - [ ] Keyword stage (local, free) **always** runs for self-harm/violence categories regardless of
       ML-stage availability; ML-stage failure degrades to keyword-only, not to allow-all.
 - [ ] Empty Llama Guard response is treated as an error, not as "safe".

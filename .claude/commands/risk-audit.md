@@ -38,6 +38,7 @@ For every significant flaw, output exactly:
 Report structure: header (scope, method, date) → executive summary with top-5 ranked risks and severity counts → **load-bearing strengths** (3–5 bullets max: what must NOT be broken during refactoring) → findings grouped by the five categories, severity-ordered within each, with stable IDs (A1, E1, S1, D1, O1 …) → resolved-since-last-audit section → closing verdict.
 
 Rules:
+
 - Ignore everything that is written well, except for the load-bearing strengths section.
 - No finding without a file:line you read. No file:line you didn't read.
 - Findings are ranked by (blast radius × likelihood), not discovery order.
