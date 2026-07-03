@@ -202,6 +202,12 @@
     <string name="feedback_send">إرسال</string>
     <string name="feedback_sending">جارٍ إرسال الملاحظات…</string>
     <string name="feedback_maintainer_notice">ستتم مشاركة رسالتك مع مشرف التطبيق.</string>
+    <string name="feedback_reason_prompt">ماذا حدث خطأ؟</string>
+    <string name="feedback_reason_inaccurate">غير دقيق</string>
+    <string name="feedback_reason_unhelpful">غير مفيد</string>
+    <string name="feedback_reason_wrong_verse">آية خاطئة</string>
+    <string name="feedback_reason_tone">الأسلوب</string>
+    <string name="feedback_reason_other">أخرى</string>
     <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
     <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 

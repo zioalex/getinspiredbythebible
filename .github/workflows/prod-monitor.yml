@@ -126,7 +126,12 @@ jobs:
         env:
           BACKEND_URL: ${{ env.BACKEND_URL }}
           MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
-          PROBE_MESSAGE: "hi"
+          # Must be a real scripture prompt: the probe asserts the response cites/
+          # resolves verses (PROBE_REQUIRE_VERSES defaults to 1, BITB-055). A greeting
+          # like "hi" only sometimes elicits a citation, so it produced nondeterministic
+          # false failures. A direct verse question deterministically exercises — and
+          # asserts on — the scripture-retrieval path the probe is meant to guard.
+          PROBE_MESSAGE: "What does John 3:16 say?"
           PROBE_TIMEOUT_SECONDS: "30"
           PROBE_FIRST_CHUNK_SECONDS: "20"
         run: python scripts/monitor/synthetic_chat.py --detail-out "$RUNNER_TEMP/detail.txt"
@@ -246,33 +251,17 @@ jobs:
         id: query
         run: |
           set -o pipefail
-          err_re='(?i)(openrouter error|llm streaming error|anthropic error'
-          err_re="${err_re}|internal server error|traceback"
-          err_re="${err_re}|rate.?limit.*(error|exceeded|hit|reached)|quota exceeded"
-          err_re="${err_re}|invalid.?api.?key|api.?key.*(invalid|missing|expired)"
-          err_re="${err_re}|embedding.*error|connection.*error|connection refused"
-          err_re="${err_re}|unhandled exception|critical error|fatal"
-          # Scripture search / cited-verse / grounding failures. These paths fail
-          # open (verse-less answer, no 5xx), so match their log signatures directly
-          # rather than relying on a `traceback` token that may not be captured.
-          err_re="${err_re}|scripture search failed|failed to resolve cited verse|verse grounding skipped"
-          err_re="${err_re}|postgressyntaxerror|infailedsqltransactionerror|current transaction is aborted)"
-          # `sample` is a KQL operator; using it as a column name causes
-          # SYN0002. Use `sample_log` instead.
-          # BITB-055: decouple level-marker and keyword conditions. The former
-          # AND-join caused multi-line tracebacks to be silently missed: the
-          # | ERROR | marker lands on one line and the exception keyword on the
-          # next, so no single log line matched both conditions. Fix: drop the
-          # level-marker WHERE clause and instead exclude the one known benign
-          # INFO string that the denylist would otherwise surface. The
-          # scripture-pipeline metric alerts (BITB-055) cover swallowed
-          # exceptions structurally; this log-scan is the backstop.
-          query="ContainerAppConsoleLogs_CL
-            | where TimeGenerated > ago(10m)
-            | where ContainerAppName_s == \"bible-app-backend\"
-            | where Log_s !contains \"bypassing rate limit\"
-            | where Log_s matches regex \"${err_re}\"
-            | summarize cnt = count(), sample_log = any(Log_s)
+          # BITB-056: single source of truth for the error definition, shared with the
+          # Azure rule (deployment/monitoring.tf -> backend-error-filter.kql). This job
+          # only appends its own aggregation tail. The shared filter selects ERROR-level
+          # lines (the backend logs transient, self-recovered conditions at WARNING), so
+          # this Telegram early-warning no longer fires on rate-limit / timeout / fallback
+          # noise — the synthetic-chat, verse-search and health probes already cover the
+          # user-facing symptoms of those. `sample` is a KQL operator, so the column is
+          # `sample_log`; each sample is prefixed with its ErrorCategory.
+          filter=$(cat deployment/azure-monitor/queries/backend-error-filter.kql)
+          query="${filter}
+            | summarize cnt = count(), sample_log = any(strcat('[', ErrorCategory, '] ', Log_s))
             | project cnt, sample_log"
           result=$(az monitor log-analytics query \
             --workspace "${{ steps.ws.outputs.id }}" \

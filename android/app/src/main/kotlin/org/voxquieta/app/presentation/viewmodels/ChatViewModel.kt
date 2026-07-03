@@ -463,8 +463,15 @@ class ChatViewModel @Inject constructor(
                                             isError = false,
                                         )
                                     } else {
+                                        // Carry the (often empathetic) explanation on the
+                                        // message itself so it renders in the chat bubble
+                                        // above the Retry button. Previously this was left
+                                        // empty and the text only went to the snackbar, which
+                                        // ChatScreen suppresses whenever an inline Retry exists
+                                        // — so blocked/error messages showed only a bare Retry
+                                        // button with no explanation.
                                         msg.copy(
-                                            content = "",
+                                            content = errorMessage,
                                             isStreaming = false,
                                             isError = true,
                                         )
@@ -811,7 +818,7 @@ class ChatViewModel @Inject constructor(
      * @param rating "positive" or "negative".
      * @param comment Optional free-text comment the user added on thumbs-down.
      */
-    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null, reason: String? = null) {
         // Look up the message and its context (user message preceding it).
         val messages = _uiState.value.messages
         val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
@@ -832,6 +839,7 @@ class ChatViewModel @Inject constructor(
                     userMessage = userMessage?.content ?: "",
                     assistantResponse = assistantMsg.content,
                     comment = comment,
+                    reason = if (feedbackRating == FeedbackRating.NEGATIVE) reason else null,
                 )
                 _uiState.update { state ->
                     state.copy(

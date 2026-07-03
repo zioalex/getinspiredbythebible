@@ -36,10 +36,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "negative",
                 comment = "",
+                reason = null,
                 commentOpen = false,
                 progress = { 1f },
                 onCommentFocus = {},
                 onCommentChange = {},
+                onReasonChange = {},
                 onUndo = {},
                 onSend = {},
             )
@@ -55,10 +57,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "negative",
                 comment = "",
+                reason = null,
                 commentOpen = false,
                 progress = { 1f },
                 onCommentFocus = {},
                 onCommentChange = {},
+                onReasonChange = {},
                 onUndo = {},
                 onSend = {},
             )
@@ -72,10 +76,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "positive",
                 comment = "",
+                reason = null,
                 commentOpen = false,
                 progress = { 1f },
                 onCommentFocus = {},
                 onCommentChange = {},
+                onReasonChange = {},
                 onUndo = {},
                 onSend = {},
             )
@@ -90,10 +96,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "negative",
                 comment = "",
+                reason = null,
                 commentOpen = false,
                 progress = { 1f },
                 onCommentFocus = {},
                 onCommentChange = {},
+                onReasonChange = {},
                 onUndo = { undone = true },
                 onSend = {},
             )
@@ -110,10 +118,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "negative",
                 comment = comment,
+                reason = null,
                 commentOpen = false,
                 progress = { 1f },
                 onCommentFocus = {},
                 onCommentChange = { comment = it },
+                onReasonChange = {},
                 onUndo = {},
                 onSend = { sentComment = comment },
             )
@@ -129,10 +139,12 @@ class FeedbackPendingPanelComposeTest : ComposeTestHarness() {
             FeedbackPendingPanel(
                 rating = "positive",
                 comment = "",
+                reason = null,
                 commentOpen = false,
                 progress = { 0.5f },
                 onCommentFocus = {},
                 onCommentChange = {},
+                onReasonChange = {},
                 onUndo = {},
                 onSend = {},
             )

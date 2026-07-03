@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.35.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.4...v1.35.0) (2026-07-03)
+
+### Features
+
+* **android:** negative-feedback reason chips (BITB-042) ([#783](https://github.com/zioalex/getinspiredbythebible/issues/783)) ([3c603e5](https://github.com/zioalex/getinspiredbythebible/commit/3c603e5c2822f6ec6301823fe69f8b89eac0a703))
+* **api:** address user's specific focus and improve prophetic-justice expansion (BITB-050) ([#758](https://github.com/zioalex/getinspiredbythebible/issues/758)) ([72c18fc](https://github.com/zioalex/getinspiredbythebible/commit/72c18fc604d2054b573fb5024ade6b5ca253864f))
+* **web:** surface Bible version as amber chip badge in header (BITB-029) ([#763](https://github.com/zioalex/getinspiredbythebible/issues/763)) ([2da373a](https://github.com/zioalex/getinspiredbythebible/commit/2da373a5f7c3976f0e8ecb4b5b2f3ebfce96747e))
+
+### Documentation
+
+* **audit:** adversarial risk audit baseline, periodic playbook, /risk-audit command, and top-5 backlog stories ([#809](https://github.com/zioalex/getinspiredbythebible/issues/809)) ([d53ca8c](https://github.com/zioalex/getinspiredbythebible/commit/d53ca8cf9773f5851f4f707e55e5f24f7075d950))
+
+## [1.34.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.3...v1.34.4) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** link references everywhere via string-level linkify (web) ([#806](https://github.com/zioalex/getinspiredbythebible/issues/806)) ([7a0cd03](https://github.com/zioalex/getinspiredbythebible/commit/7a0cd03a2870e7a0b435b7c29f15e3f39a043ce7))
+
+## [1.34.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.2...v1.34.3) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** accept comma chapter-verse separator (de/fr/it citations) ([#804](https://github.com/zioalex/getinspiredbythebible/issues/804)) ([5ccb9ed](https://github.com/zioalex/getinspiredbythebible/commit/5ccb9ed1903c6efec49a21138af341c7223455c2))
+
+## [1.34.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.1...v1.34.2) (2026-07-01)
+
+### Bug Fixes
+
+* **verse-links:** recover references hidden by greedy over-matches (web + android) ([#801](https://github.com/zioalex/getinspiredbythebible/issues/801)) ([0c6396d](https://github.com/zioalex/getinspiredbythebible/commit/0c6396ded48ae80ffa7a263cbc7487a67921395f))
+
+## [1.34.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.0...v1.34.1) (2026-07-01)
+
+### Bug Fixes
+
+* safe-filter false positive on German Bible references ([#799](https://github.com/zioalex/getinspiredbythebible/issues/799)) ([6e72186](https://github.com/zioalex/getinspiredbythebible/commit/6e7218623e55df08bbc131200b888783195f442e))
+
+## [1.34.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.1...v1.34.0) (2026-07-01)
+
+### Features
+
+* **resilience:** embedding circuit breaker + fail-closed scripture grounding (BITB-057/058) ([#797](https://github.com/zioalex/getinspiredbythebible/issues/797)) ([30392f6](https://github.com/zioalex/getinspiredbythebible/commit/30392f64c8a2e619252e131e866d8da3780fc5a4))
+
+## [1.33.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.0...v1.33.1) (2026-06-30)
+
+### Bug Fixes
+
+* **api+ci:** stop readiness-probe flapping; bound + observe upstream dependencies ([#796](https://github.com/zioalex/getinspiredbythebible/issues/796)) ([7d4d73e](https://github.com/zioalex/getinspiredbythebible/commit/7d4d73e7c73fb9bce3974fdf79b2564ad3cd2033))
+* **content-filter:** stop blocking ellipses and surface blocked message on Android ([#792](https://github.com/zioalex/getinspiredbythebible/issues/792)) ([a20ed05](https://github.com/zioalex/getinspiredbythebible/commit/a20ed051e0845ebd8302199bad8c9d1b2e1b092a))
+
+## [1.33.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.1...v1.33.0) (2026-06-26)
+
+### Features
+
+* **db:** move hnsw.ef_search tuning from migration to connection pool ([#789](https://github.com/zioalex/getinspiredbythebible/issues/789)) ([1787b2f](https://github.com/zioalex/getinspiredbythebible/commit/1787b2f1786f98ce084ffb98152bb98ca7a89bc9))
+* **monitoring:** actionable ERROR-level backend alert + DB saturation detection (BITB-056) ([#788](https://github.com/zioalex/getinspiredbythebible/issues/788)) ([ddf4167](https://github.com/zioalex/getinspiredbythebible/commit/ddf4167110458d00e4c58fd4e89d87ead7968877))
+
+## [1.32.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.0...v1.32.1) (2026-06-25)
+
+### Performance Improvements
+
+* **search:** partial HNSW indexes, DB pool, B2s SKU + concurrency test ([#784](https://github.com/zioalex/getinspiredbythebible/issues/784)) ([e2a4dcc](https://github.com/zioalex/getinspiredbythebible/commit/e2a4dcce1593488f44b1680c544cbfdf0efc698b))
+
 ## [1.32.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.1...v1.32.0) (2026-06-23)
 
 ### Features

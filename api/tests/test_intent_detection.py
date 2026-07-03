@@ -168,6 +168,12 @@ class TestChatOffTopicFlow:
         mock_settings.max_context_verses = 10
         mock_settings.max_conversation_history = 10
         mock_settings.query_expansion_enabled = False  # NEW: disable query expansion
+        # This test isolates intent routing (on-topic proceeds to generation). The
+        # BITB-058 fail-closed grounding guard — which would intercept a scripture-
+        # seeking request that finds zero verses — is covered separately in
+        # test_chat_coverage; keep it non-blocking here so search returning None
+        # still exercises the normal generation path.
+        mock_settings.require_scripture_grounding = False
 
         # First call: intent detection returns COMFORT
         # Second call: main LLM response

@@ -6,23 +6,35 @@
 # channel is Telegram via .github/workflows/prod-monitor.yml, which catches
 # functional failures (e.g. in-band SSE error chunks the way the OpenRouter
 # 401 incident manifested). This Azure-native baseline covers the case where
-# GitHub Actions itself is degraded.
+# GitHub Actions itself is degraded. BITB-056 also pushes this baseline to
+# Telegram (via the Logic App bridge below) so the backup channel matches.
 #
 # All resources are gated on var.alert_email being non-empty; leave it empty
 # in non-prod to skip the email action group and downstream alerts entirely.
 #
 # Resources defined here:
 #   - azurerm_monitor_action_group.ops_email
-#       Email-only action group, target: var.alert_email.
+#       Email action group (+ Telegram logic_app_receiver when telegram_chat_id set).
+#   - azurerm_key_vault.alerts + azurerm_logic_app_workflow/_trigger/_action_custom.telegram_* (BITB-056)
+#       Bridge that reposts the common alert schema to Telegram. The bot token lives in
+#       Key Vault (set out-of-band by the deploy workflow) and is read at run time via the
+#       Logic App's managed identity, so it never enters terraform state. Gated on
+#       telegram_enabled (= alerts_enabled && telegram_chat_id != "").
 #   - azurerm_monitor_metric_alert.backend_availability
 #       Wires the existing azurerm_application_insights_standard_web_test
 #       (defined in main.tf) to the action group. Without this, the web test
 #       runs but never alerts.
 #   - azurerm_monitor_metric_alert.backend_restarts
 #       Fires when the backend container app reports >0 restarts in 15 min.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors
-#       Same KQL the prod-monitor.yml log-scan job runs; alerts via email if
-#       any backend error log line is seen in the last 10 minutes.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors (BITB-056)
+#       ERROR-level backend log lines, categorised; shares backend-error-filter.kql
+#       with the prod-monitor.yml log-scan job. Sev2 for hard-failure categories.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_error_rate_other (BITB-056)
+#       Sev3 companion: 5+ uncategorised ERROR lines in 10 min.
+#   - azurerm_monitor_metric_alert.db_cpu/db_memory/db_storage/db_connections_failed (BITB-056)
+#       Postgres flexible-server resource saturation (the conc~32 threshold knee) + disk-full.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_search_latency_p95 (BITB-056)
+#       Semantic-search p95 > 2000ms — the user-facing signal of the DB saturation knee.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_errors (BITB-041)
 #       Fires when verse/chapter fetch failures (timeout/db_error/empty_text) occur.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041)
@@ -38,9 +50,19 @@
 #       parenthetical references. Buffered (>5 per 15-min bin) and clustered (2 of
 #       3 evaluations) so a single stray event never pages. Cosmetic; dormant until
 #       grounding_paraphrases_enabled is turned on for a measurement rollout.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
+#       Fires when the embedding provider's circuit breaker records any retry,
+#       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
+#       degrades to verse-less responses silently while this persists.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
+  # BITB-056: the Azure-native action group also pushes to Telegram (so the backup
+  # channel matches prod-monitor.yml) when a chat id is supplied. The bot token is
+  # NOT a TF var — it lives in Key Vault (set out-of-band by the deploy workflow) and
+  # is fetched by the Logic App at run time via managed identity, so it never enters
+  # terraform state.
+  telegram_enabled = local.alerts_enabled && var.telegram_chat_id != ""
 }
 
 resource "azurerm_monitor_action_group" "ops_email" {
@@ -55,7 +77,167 @@ resource "azurerm_monitor_action_group" "ops_email" {
     use_common_alert_schema = true
   }
 
+  # BITB-056: deliver the same alerts to Telegram via the Logic App bridge below.
+  # Gated on telegram_enabled so apply still succeeds when the Telegram vars are unset
+  # (email-only). use_common_alert_schema keeps the payload shape the Logic App parses.
+  dynamic "logic_app_receiver" {
+    for_each = local.telegram_enabled ? [1] : []
+    content {
+      name                    = "telegram"
+      resource_id             = azurerm_logic_app_workflow.telegram_alert[0].id
+      callback_url            = azurerm_logic_app_trigger_http_request.telegram_alert[0].callback_url
+      use_common_alert_schema = true
+    }
+  }
+
   tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Azure Monitor -> Telegram bridge (BITB-056)
+# -----------------------------------------------------------------------------
+# Action-group webhooks post the Azure common alert schema, which Telegram's
+# sendMessage API cannot consume directly. This Consumption Logic App accepts the
+# alert payload on an HTTP trigger and reposts a formatted message to Telegram, so
+# the Azure-native baseline (the channel that exists for when GitHub Actions is
+# degraded) lands in the same chat as prod-monitor.yml. Gated on telegram_enabled.
+#
+# Secret handling: the bot token is NEVER a Terraform value. It is written to the
+# Key Vault below by the deploy workflow (`az keyvault secret set`, from the
+# TELEGRAM_BOT_TOKEN repo secret) and the Logic App fetches it at run time using its
+# system-assigned managed identity. Terraform state therefore contains no token —
+# only the vault name and a managed-identity grant.
+
+data "azurerm_client_config" "current" {}
+
+# Vault that holds the Telegram bot token. The secret VALUE is set out-of-band by
+# the deploy workflow, so it is not declared as an azurerm_key_vault_secret (that
+# would put the value back into state).
+resource "azurerm_key_vault" "alerts" {
+  count                      = local.telegram_enabled ? 1 : 0
+  name                       = "${local.name_prefix}-akv-${local.resource_suffix}"
+  location                   = azurerm_resource_group.main.location
+  resource_group_name        = azurerm_resource_group.main.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  soft_delete_retention_days = 7
+  purge_protection_enabled   = false
+
+  tags = local.tags
+}
+
+# Deployer (the Terraform/az service principal) may set/read the token secret so the
+# workflow's `az keyvault secret set` step works. Standalone resource (not an inline
+# access_policy block) so it doesn't conflict with telegram_logic_app below — the
+# azurerm provider forbids mixing inline and standalone access policies on one vault.
+resource "azurerm_key_vault_access_policy" "telegram_deployer" {
+  count        = local.telegram_enabled ? 1 : 0
+  key_vault_id = azurerm_key_vault.alerts[0].id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  secret_permissions = ["Get", "List", "Set", "Delete", "Purge"]
+}
+
+resource "azurerm_logic_app_workflow" "telegram_alert" {
+  count               = local.telegram_enabled ? 1 : 0
+  name                = "${local.name_prefix}-telegram-alert"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+
+  # System-assigned managed identity used to read the bot token from Key Vault.
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = local.tags
+}
+
+# Grant the Logic App's managed identity read access to the token secret only.
+resource "azurerm_key_vault_access_policy" "telegram_logic_app" {
+  count        = local.telegram_enabled ? 1 : 0
+  key_vault_id = azurerm_key_vault.alerts[0].id
+  tenant_id    = azurerm_logic_app_workflow.telegram_alert[0].identity[0].tenant_id
+  object_id    = azurerm_logic_app_workflow.telegram_alert[0].identity[0].principal_id
+
+  secret_permissions = ["Get"]
+}
+
+resource "azurerm_logic_app_trigger_http_request" "telegram_alert" {
+  count        = local.telegram_enabled ? 1 : 0
+  name         = "When_an_Azure_alert_fires"
+  logic_app_id = azurerm_logic_app_workflow.telegram_alert[0].id
+
+  # Permissive schema: the action group sends the common alert schema; we only read
+  # a few fields from it, so accept any object rather than pinning the full schema.
+  schema = jsonencode({
+    type = "object"
+  })
+}
+
+# Step 1: read the bot token from Key Vault using the Logic App's managed identity.
+# Defined as a custom action because azurerm_logic_app_action_http cannot express
+# ManagedServiceIdentity authentication. secureData hides the token from run history.
+resource "azurerm_logic_app_action_custom" "telegram_get_token" {
+  count        = local.telegram_enabled ? 1 : 0
+  name         = "Get_token"
+  logic_app_id = azurerm_logic_app_workflow.telegram_alert[0].id
+
+  # The trigger and both actions each read-modify-write the same workflow definition;
+  # serialize their creation so the azurerm provider doesn't race on parallel writes.
+  depends_on = [azurerm_logic_app_trigger_http_request.telegram_alert]
+
+  body = jsonencode({
+    type = "Http"
+    inputs = {
+      method = "GET"
+      uri    = "${azurerm_key_vault.alerts[0].vault_uri}secrets/telegram-bot-token?api-version=7.4"
+      authentication = {
+        type     = "ManagedServiceIdentity"
+        audience = "https://vault.azure.net"
+      }
+    }
+    runtimeConfiguration = {
+      secureData = {
+        properties = ["outputs"]
+      }
+    }
+    runAfter = {}
+  })
+}
+
+# Step 2: post to Telegram. The token is injected from the Get_token output at run
+# time (@{body('Get_token')?['value']}) — it is never stored in the definition.
+# Plain text (no parse_mode) so a stray '<' or '&' in a dynamic field can't make
+# Telegram reject the message; coalesce guards fields absent for some alert types.
+resource "azurerm_logic_app_action_custom" "telegram_send" {
+  count        = local.telegram_enabled ? 1 : 0
+  name         = "Send_to_Telegram"
+  logic_app_id = azurerm_logic_app_workflow.telegram_alert[0].id
+
+  # Serialize after Get_token (see note there) to avoid parallel workflow writes.
+  depends_on = [azurerm_logic_app_action_custom.telegram_get_token]
+
+  body = jsonencode({
+    type = "Http"
+    inputs = {
+      method  = "POST"
+      uri     = "https://api.telegram.org/bot@{body('Get_token')?['value']}/sendMessage"
+      headers = { "Content-Type" = "application/json" }
+      body = {
+        chat_id = var.telegram_chat_id
+        text    = "@{concat('🚨 ', coalesce(triggerBody()?['data']?['essentials']?['monitorCondition'], 'Alert'), ' — ', coalesce(triggerBody()?['data']?['essentials']?['severity'], ''), ' ', coalesce(triggerBody()?['data']?['essentials']?['alertRule'], 'Azure Monitor alert'), decodeUriComponent('%0A'), coalesce(triggerBody()?['data']?['essentials']?['description'], ''), decodeUriComponent('%0A'), 'Fired: ', coalesce(triggerBody()?['data']?['essentials']?['firedDateTime'], ''))}"
+      }
+    }
+    runtimeConfiguration = {
+      secureData = {
+        properties = ["inputs"]
+      }
+    }
+    runAfter = {
+      Get_token = ["Succeeded"]
+    }
+  })
 }
 
 # Wire the existing standard web test to the action group so a region failing
@@ -113,9 +295,65 @@ resource "azurerm_monitor_metric_alert" "backend_restarts" {
   tags = local.tags
 }
 
-# Backend error-log alert (mirror of prod-monitor.yml's log-scan job).
-# Runs every 5 minutes; fires if any error-shaped log line was emitted in the
-# last 10 minutes.
+# Backend probe-failure alert.
+#
+# Container Apps logs readiness/liveness probe failures to ContainerAppSystemLogs_CL
+# as ReplicaUnhealthy events. These never reach ContainerAppConsoleLogs_CL (so
+# backend_errors can't see them) and do NOT increment RestartCount when the pod keeps
+# failing readiness without being restarted (so backend_restarts can't see them either).
+# That blind spot let a multi-week readiness incident — /health/ready timing out on slow
+# upstream dependencies — run with no alert. This watches the platform probe signal
+# directly. The query gates on a burst (> 10 in 15m) so single-replica blips during a
+# deploy (a few "connection refused" at container start) do not page.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failures" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-probe-failures"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 2
+  description          = "The backend container failed its readiness/liveness probe (ReplicaUnhealthy) more than 10 times in the last 15 minutes. Usually /health/ready timing out on a slow dependency, or the container is unhealthy. These ContainerAppSystemLogs_CL events do not trigger RestartCount, so this is the only alert that covers them. The payload carries a sample probe-failure line."
+
+  criteria {
+    query                   = <<-KQL
+      ContainerAppSystemLogs_CL
+      | where ContainerAppName_s == "bible-app-backend"
+      | where Reason_s == "ReplicaUnhealthy"
+      | where Log_s has "probe failed"
+      | summarize cnt = count(), Sample = any(Log_s)
+      | where cnt > 10
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Backend error-log alert (BITB-056).
+#
+# Fires on ERROR-level backend log lines only. The error definition (the level
+# filter + known-benign exclusion + RequestId/ErrorCategory extraction) lives in a
+# single checked-in file shared with the prod-monitor.yml log-scan job so the two
+# channels cannot drift; this rule just appends an aggregation tail. The previous
+# version matched keyword substrings (traceback|internal server error|...) regardless
+# of level, so it paged at Sev2 on handled/transient WARNINGs and multi-line stack
+# dumps while carrying no sample/count/request-id to act on.
+#
+# This rule covers the hard-failure categories (everything except "other_error");
+# uncategorised ERROR noise is handled at Sev3 by backend_error_rate_other below.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-error-logs"
@@ -125,16 +363,53 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   window_duration      = "PT10M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 2
-  description          = "Backend logs contain error-shaped messages (OpenRouter, LLM, traceback) in the last 10 minutes."
+  description          = "Backend logged an actionable ERROR in the last 10 minutes. Category is one of: db_pool_timeout (DB connection-pool/server saturation), llm_all_models_down, chat_unhandled / chat_stream_unhandled (unhandled 5xx), verse_context_failed, scripture_search_failed, llm_provider_error. The alert payload carries the count, ErrorCategory, a Sample log line and up to 5 RequestIds per category — triage from those before opening the portal."
+
+  criteria {
+    # Shared filter (ERROR-level + category extraction) + this rule's aggregation tail.
+    query                   = <<-KQL
+      ${file("${path.module}/azure-monitor/queries/backend-error-filter.kql")}
+      | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5) by ErrorCategory
+      | where ErrorCategory != "other_error"
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Uncategorised ERROR-rate alert (BITB-056). Sev3 informational companion to
+# backend_errors: surfaces a sustained spike of ERROR lines that don't match a known
+# hard-failure category, without paging at Sev2 on a single blip. Threshold of 5 over
+# 10 minutes is conservative; tune once a baseline is observed.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_error_rate_other" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-error-rate-other"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 3
+  description          = "5+ uncategorised backend ERROR lines (ErrorCategory=other_error) in the last 10 minutes. Informational: investigate the Sample to decide whether it warrants a new explicit category in backend-error-filter.kql."
 
   criteria {
     query                   = <<-KQL
-      ContainerAppConsoleLogs_CL
-      | where TimeGenerated > ago(10m)
-      | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
-      | where Log_s matches regex "(?i)(openrouter error|llm streaming error|anthropic error|internal server error|traceback)"
-      | summarize cnt = count() by bin(TimeGenerated, 5m)
-      | where cnt > 0
+      ${file("${path.module}/azure-monitor/queries/backend-error-filter.kql")}
+      | where ErrorCategory == "other_error"
+      | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5)
+      | where cnt >= 5
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
@@ -359,6 +634,161 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_laten
   tags = local.tags
 }
 
+# -----------------------------------------------------------------------------
+# Database saturation / threshold-failure alerts (BITB-056)
+# -----------------------------------------------------------------------------
+# A concurrency load test of /api/v1/scripture/search showed a clean latency knee
+# at concurrency ~32 (p95 4-8x baseline, ~0% errors) on the 2-vCore burstable
+# B_Standard_B2s: pgvector HNSW search is CPU-bound, so DB CPU is the wall and the
+# connection pool (size 10 + overflow 10) adds queue-wait above it. Previously NONE
+# of the DB server's own metrics were alerted. These rules add the *leading* signals
+# so the threshold is visible before users see errors. (Root-cause hardening — storage
+# auto-grow, DB tier, pool retune — is tracked in main.tf and the BITB-056 story.)
+
+# Primary leading signal: CPU is the wall for the CPU-bound HNSW search workload.
+resource "azurerm_monitor_metric_alert" "db_cpu" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-db-cpu-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "PostgreSQL CPU averaged >85% over 15 minutes — the leading indicator of the CPU-bound search saturation knee (measured at concurrency ~32). Sustained high CPU degrades search/chat latency before errors appear; consider a tier bump."
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "cpu_percent"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 85
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+resource "azurerm_monitor_metric_alert" "db_memory" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-db-memory-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "PostgreSQL memory averaged >90% over 15 minutes. On a 4GB burstable this risks cache thrash (HNSW indexes spilling out of shared_buffers) and OOM."
+  severity            = 3
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "memory_percent"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 90
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Disk-full is a hard write-failure cliff. auto_grow is being enabled (main.tf), but
+# keep this as a backstop in case growth lags a fast fill.
+resource "azurerm_monitor_metric_alert" "db_storage" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-db-storage-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "PostgreSQL storage averaged >85% over 30 minutes. Past full, writes fail and the server can go read-only. auto_grow should absorb this; investigate if it is climbing despite auto-grow."
+  severity            = 2
+  frequency           = "PT15M"
+  window_size         = "PT30M"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "storage_percent"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 85
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# The hard form of the threshold cliff: the server rejecting connections.
+resource "azurerm_monitor_metric_alert" "db_connections_failed" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-db-connections-failed"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "PostgreSQL rejected one or more connections in the last 15 minutes (connections_failed > 0). This is the hard threshold breach — clients could not get a DB connection."
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "connections_failed"
+    aggregation      = "Total"
+    operator         = "GreaterThan"
+    threshold        = 0
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Direct user-facing signal of the measured knee: semantic-search p95. The load test
+# baseline p95 was ~0.5s and the degraded knee at concurrency ~32 was ~1.9-2.1s, so a
+# sustained p95 > 2000ms means we are at/over the saturation threshold. Uses the
+# existing db.search.duration_ms histogram (api/scripture/repository.py) — no app change.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_latency_p95" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-scripture-search-latency-p95"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "p95 of pgvector semantic search (db.search.duration_ms) exceeded 2000ms over the last 15 minutes — the search saturation knee measured at concurrency ~32. Indicates the DB is CPU-bound under load; check the db-cpu-high alert and consider a tier bump / pool retune."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(15m)
+      | where name == "db.search.duration_ms"
+      | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
+      | where p95 > 2000
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
 # Unquoted-paraphrase nested-parens observation alert (BITB-053).
 # Pass 2 of verse grounding appends canonical verse text right after a reference.
 # When the reference is parenthesised — e.g. "(Isaia 41:10)" — the append lands
@@ -404,6 +834,49 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
     failing_periods {
       minimum_failing_periods_to_trigger_alert = 2
       number_of_evaluation_periods             = 3
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Embedding provider resilience alert (BITB-057 Phase 2).
+# Fires when the embedding.fallback_total custom metric records any retry,
+# timeout, or circuit-open event (providers/embedding_resilience.py) in the
+# last 10 minutes. A sustained rate here means the embedding provider is
+# degraded/down — chat requests degrade to verse-less responses per the
+# EmbeddingCircuitOpenError handling in chat/service.py, which is otherwise
+# silent (no 5xx), so this metric is the signal.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-embedding-fallback-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Embedding provider retries, timeouts, or circuit-open events (embedding.fallback_total metric) in the last 10 minutes. Chat requests are degrading to verse-less responses while this persists — see providers/embedding_resilience.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "embedding.fallback_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
   }
 

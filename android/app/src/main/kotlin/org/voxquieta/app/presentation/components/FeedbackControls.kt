@@ -3,8 +3,11 @@ package org.voxquieta.app.presentation.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +25,8 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -84,18 +89,20 @@ const val FEEDBACK_RETHINK_MS = 10_000L
  *
  * @param feedbackGiven Rating already recorded for this message ("positive" /
  *   "negative"), or null. Locks the controls once set.
- * @param onSubmit Called exactly once per rating, with the trimmed comment.
+ * @param onSubmit Called exactly once per rating, with the trimmed comment and
+ *   the selected reason chip value (null for thumbs-up or when no chip selected).
  * @param trailing Rendered at the trailing edge of the thumbs row (copy/share).
  */
 @Composable
 fun FeedbackControls(
     feedbackGiven: String?,
-    onSubmit: (rating: String, comment: String) -> Unit,
+    onSubmit: (rating: String, comment: String, reason: String?) -> Unit,
     modifier: Modifier = Modifier,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     var pending by remember { mutableStateOf<String?>(null) }
     var comment by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf<String?>(null) }
     var commentOpen by remember { mutableStateOf(false) }
     var localGiven by remember { mutableStateOf<String?>(null) }
     var committed by remember { mutableStateOf(false) }
@@ -112,12 +119,13 @@ fun FeedbackControls(
         localGiven = rating
         pending = null
         commentOpen = false
-        onSubmit(rating, text.trim())
+        onSubmit(rating, text.trim(), if (rating == "negative") reason else null)
     }
 
     fun startPending(rating: String) {
         committed = false
         comment = ""
+        reason = null
         commentOpen = false
         pending = rating
     }
@@ -125,6 +133,7 @@ fun FeedbackControls(
     fun cancel() {
         pending = null
         comment = ""
+        reason = null
         commentOpen = false
     }
 
@@ -215,10 +224,12 @@ fun FeedbackControls(
                         FeedbackPendingPanel(
                             rating = pendingRating,
                             comment = comment,
+                            reason = reason,
                             commentOpen = commentOpen,
                             progress = { progress.value },
                             onCommentFocus = { commentOpen = true },
                             onCommentChange = { comment = it },
+                            onReasonChange = { reason = it },
                             onUndo = { cancel() },
                             onSend = { doCommit(pendingRating, comment) },
                         )
@@ -241,14 +252,17 @@ fun FeedbackControls(
  * @param commentOpen true once the countdown has been paused (the user focused
  *   the comment); drives whether the progress bar is shown.
  */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun FeedbackPendingPanel(
     rating: String,
     comment: String,
+    reason: String?,
     commentOpen: Boolean,
     progress: () -> Float,
     onCommentFocus: () -> Unit,
     onCommentChange: (String) -> Unit,
+    onReasonChange: (String?) -> Unit,
     onUndo: () -> Unit,
     onSend: () -> Unit,
     modifier: Modifier = Modifier,
@@ -270,6 +284,31 @@ internal fun FeedbackPendingPanel(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Reason chips — let users quickly categorise the issue.
+            Text(
+                text = stringResource(R.string.feedback_reason_prompt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            val reasonChips = listOf(
+                "inaccurate" to stringResource(R.string.feedback_reason_inaccurate),
+                "unhelpful" to stringResource(R.string.feedback_reason_unhelpful),
+                "wrong_verse" to stringResource(R.string.feedback_reason_wrong_verse),
+                "tone" to stringResource(R.string.feedback_reason_tone),
+                "other" to stringResource(R.string.feedback_reason_other),
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                reasonChips.forEach { (value, label) ->
+                    FilterChip(
+                        selected = reason == value,
+                        onClick = { onReasonChange(if (reason == value) null else value) },
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
