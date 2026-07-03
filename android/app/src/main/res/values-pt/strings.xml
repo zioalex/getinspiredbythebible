@@ -202,6 +202,12 @@
     <string name="feedback_send">Enviar</string>
     <string name="feedback_sending">A enviar feedback…</string>
     <string name="feedback_maintainer_notice">A sua mensagem será partilhada com o responsável da aplicação.</string>
+    <string name="feedback_reason_prompt">O que correu mal?</string>
+    <string name="feedback_reason_inaccurate">Impreciso</string>
+    <string name="feedback_reason_unhelpful">Pouco útil</string>
+    <string name="feedback_reason_wrong_verse">Versículo errado</string>
+    <string name="feedback_reason_tone">Tom</string>
+    <string name="feedback_reason_other">Outro</string>
     <string name="backend_warming_up">Conectando ao servidor… (a primeira solicitação pode levar até 30 s)</string>
     <string name="action_scroll_to_bottom">Rolar para baixo</string>
 

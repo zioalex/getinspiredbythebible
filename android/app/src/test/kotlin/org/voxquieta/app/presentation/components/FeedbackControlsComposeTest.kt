@@ -42,7 +42,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
     fun `tapping a thumb does not send immediately`() {
         var submitted: Pair<String, String>? = null
         setContentThemed {
-            FeedbackControls(feedbackGiven = null, onSubmit = { r, c -> submitted = r to c })
+            FeedbackControls(feedbackGiven = null, onSubmit = { r, c, _ -> submitted = r to c })
         }
 
         composeRule.onNodeWithContentDescription(notHelpful).performClick()
@@ -55,7 +55,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
     fun `re-tapping the same thumb cancels and sends nothing`() {
         var submitted: Pair<String, String>? = null
         setContentThemed {
-            FeedbackControls(feedbackGiven = null, onSubmit = { r, c -> submitted = r to c })
+            FeedbackControls(feedbackGiven = null, onSubmit = { r, c, _ -> submitted = r to c })
         }
 
         val up = composeRule.onNodeWithContentDescription(helpful)
@@ -70,7 +70,7 @@ class FeedbackControlsComposeTest : ComposeTestHarness() {
     @Test
     fun `given feedback shows thanks and disables the thumbs`() {
         setContentThemed {
-            FeedbackControls(feedbackGiven = "positive", onSubmit = { _, _ -> })
+            FeedbackControls(feedbackGiven = "positive", onSubmit = { _, _, _ -> })
         }
 
         composeRule.onNodeWithText("Thanks for your feedback!").assertIsDisplayed()
