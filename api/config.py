@@ -199,14 +199,20 @@ class Settings(BaseSettings):
     # historical default (grounding_strip_unresolved=False) — stripping the
     # unverifiable text while keeping the reference is the safer default.
     grounding_unresolved_behavior: Literal["keep", "strip", "notice"] = "strip"
-    # Ground unquoted/paraphrased verse citations by appending the canonical text.
-    # Catches the case where the LLM presents a verse without quotation marks.
-    # Ships OFF: this pass is additive (it injects verse text into the user-facing
-    # reply) and runs on every response, so a misfire is more visible than the
-    # quoted-quote correction. Enable it deliberately to measure the
-    # chat.verse_grounding.paraphrase_appends rate (and the nested-parens alert in
-    # monitoring.tf) before trusting it on all traffic.
-    grounding_paraphrases_enabled: bool = False
+    # BITB-053: ground unquoted/paraphrased verse citations — the LLM presenting a
+    # verse as plain prose without quotation marks, which pass 1 (quoted-span
+    # grounding) can never see.
+    #   off    — pass 2 does not run.
+    #   detect — classify every response and count detections
+    #            (chat.verse_grounding.paraphrase_detections, applied=false) but
+    #            never edit the text. Zero user-visible effect.
+    #   append — additionally append the canonical verse text in quotes right
+    #            after the reference, so the user sees the real wording.
+    # Default "detect": the append is additive (injects verse text into the
+    # user-facing reply), so it must earn its way in with data. Run detect on all
+    # traffic first, then follow docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md to
+    # decide whether the detection rate and sampled precision justify "append".
+    grounding_paraphrases_mode: Literal["off", "detect", "append"] = "detect"
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

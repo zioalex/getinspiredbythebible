@@ -474,12 +474,60 @@ class TestGroundParaphrase:
         # Pass-1 corrects the quote; pass-2 must not add a second append.
         assert out.count(JOHN_3_16_EN_FULL) == 1
 
-    def test_paraphrase_disabled_by_flag(self):
+    def test_append_mode_marks_correction_applied(self):
         text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
         jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
-        out, corrections = ground_response(text, [jn], context_refs=set(), ground_paraphrases=False)
+        _out, corrections = ground_response(
+            text, [jn], context_refs=set(), paraphrase_mode="append"
+        )
+        assert len(corrections) == 1
+        assert corrections[0].applied is True
+
+    def test_off_mode_skips_pass_entirely(self):
+        text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs=set(), paraphrase_mode="off")
         assert corrections == []
         assert out == text
+
+    def test_detect_mode_reports_but_never_edits(self):
+        # "detect" is the measurement rollout: the classifier runs in full and a
+        # Correction is recorded, but the response text is left untouched.
+        text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(text, [jn], context_refs=set(), paraphrase_mode="detect")
+        assert out == text
+        assert len(corrections) == 1
+        assert corrections[0].reason == "paraphrased"
+        assert corrections[0].applied is False
+        # The would-be canonical text is still reported so logs/sampling can show it.
+        assert corrections[0].corrected_quote == JOHN_3_16_EN_FULL
+
+    def test_detect_mode_still_computes_bracketed(self):
+        # The bracketed signal must be measurable in detect mode so the rollout
+        # data covers the nested-parens artifact before "append" is enabled.
+        text = "Dio ci dice di non temere perché Lui ci rende forti (Isaia 41:10)."
+        isa = FakeVerse("Isaiah", 41, 10, ISA_41_10_IT)
+        out, corrections = ground_response(
+            text, [isa], context_refs=set(), paraphrase_mode="detect"
+        )
+        assert out == text
+        assert len(corrections) == 1
+        assert corrections[0].bracketed is True
+        assert corrections[0].applied is False
+
+    def test_detect_mode_does_not_touch_pass_1(self):
+        # Pass 1 (quoted-verse grounding) still corrects in detect mode — the
+        # mode only gates pass 2's text edits.
+        text = 'John 3:16 says: "God loved the whole planet greatly and sent his child."'
+        jn = FakeVerse("John", 3, 16, JOHN_3_16_EN_FULL)
+        out, corrections = ground_response(
+            text, [jn], context_refs={("john", 3, 16)}, paraphrase_mode="detect"
+        )
+        assert JOHN_3_16_EN_FULL in out
+        assert len(corrections) == 1
+        assert corrections[0].reason == "mismatched"
+        assert corrections[0].applied is True
 
     def test_no_resolved_verses_no_paraphrase(self):
         text = "In John 3:16 God so loved the world that he gave his only beloved Son for us."
@@ -614,7 +662,7 @@ class TestGroundParaphraseCrossLanguage:
 
 
 class TestAppendLandsBeforeCloseBracket:
-    """The bracket detector that drives the chat.verse_grounding.paraphrase_appends metric."""
+    """The bracket detector that drives the chat.verse_grounding.paraphrase_detections metric."""
 
     def test_directly_before_ascii_close(self):
         # "a (Gen 1:1)" — index 10 is the ')'.

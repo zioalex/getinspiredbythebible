@@ -67,17 +67,20 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
-# Unquoted-paraphrase grounding (BITB-053, Pass 2) appends canonical verse text
-# right after the reference. The `bracketed` dimension is True when that append
-# lands before a closing bracket — i.e. the reference was parenthesised and the
-# canonical text nests inside, e.g. (Isaia 41:10 ("Non temere…")). This metric
-# exists to measure whether that cosmetic edge actually occurs in production
-# before deciding to re-engineer the insertion point.
-verse_grounding_paraphrase_appends_counter = meter.create_counter(
-    name="chat.verse_grounding.paraphrase_appends",
-    description="Unquoted-paraphrase canonical-text appends (BITB-053); bracketed=True means it landed before a closing bracket (nested-parens artifact)",
+# Unquoted-paraphrase grounding (BITB-053, Pass 2). One count per detected
+# paraphrase. `applied` is False in detect-only mode (grounding_paraphrases_mode
+# = "detect": classified and counted but the text is untouched) and True when
+# the canonical text was actually appended ("append" mode). `bracketed` is True
+# when the (would-be) append lands before a closing bracket — i.e. the reference
+# was parenthesised and the canonical text nests inside, e.g.
+# (Isaia 41:10 ("Non temere…")). This metric drives the measurement rollout in
+# docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md and the nested-parens alert in
+# monitoring.tf.
+verse_grounding_paraphrase_detections_counter = meter.create_counter(
+    name="chat.verse_grounding.paraphrase_detections",
+    description="Unquoted-paraphrase detections (BITB-053); applied=True means canonical text was appended, bracketed=True means the append point sits before a closing bracket (nested-parens artifact)",
     unit="1",
-)  # attributes: language, bracketed (bool)
+)  # attributes: language, bracketed (bool), applied (bool)
 
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never

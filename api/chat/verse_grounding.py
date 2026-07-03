@@ -32,6 +32,14 @@ from .prompts import get_unresolved_verse_notice
 
 UnresolvedBehavior = Literal["keep", "strip", "notice"]
 
+# BITB-053: what pass 2 (unquoted-paraphrase grounding) does with a detection.
+#   "off"    — pass 2 does not run at all.
+#   "detect" — classify and report a Correction (applied=False) but never edit
+#              the text; powers the measurement rollout before "append" is
+#              trusted on live traffic (see docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md).
+#   "append" — append the canonical verse text in quotes right after the reference.
+ParaphraseMode = Literal["off", "detect", "append"]
+
 # Quotes scoring at or above this normalized similarity to the canonical verse
 # are treated as faithful. A verbatim quote with only punctuation/casing noise
 # scores ~0.95+; reconstructed-from-memory text scores well below 0.6, so 0.90
@@ -108,6 +116,9 @@ class Correction:
     # Only meaningful for reason == "paraphrased": True when the canonical-text
     # append landed before a closing bracket (nested-parens artifact). BITB-053.
     bracketed: bool = False
+    # False when the issue was only detected, not corrected in the text — i.e.
+    # a "paraphrased" detection under paraphrase_mode="detect". BITB-053.
+    applied: bool = True
 
 
 def _ref_keys(ref: VerseReference) -> list[tuple[str, int, int]]:
@@ -219,9 +230,15 @@ def _apply_paraphrase_grounding(
     handled_ref_keys: set[tuple[str, int, int]],
     edits: list[tuple[int, int, str]],
     corrections: list[Correction],
+    mode: ParaphraseMode,
 ) -> None:
-    """Pass 2: detect unquoted paraphrases and append canonical verse text (BITB-053)."""
-    if not canonical_by_key:
+    """Pass 2: detect unquoted paraphrases and append canonical verse text (BITB-053).
+
+    In "detect" mode the classifier runs in full (including the ``bracketed``
+    computation) and a Correction is recorded with ``applied=False``, but no
+    edit is queued — the response text is left untouched.
+    """
+    if mode == "off" or not canonical_by_key:
         return
     for mention in extract_reference_mentions(text):
         ref_key = (
@@ -243,7 +260,8 @@ def _apply_paraphrase_grounding(
         if not _classify_paraphrase(mention.content_text, canonical):
             continue
         insert_pos = mention.ref_span[1]
-        edits.append((insert_pos, insert_pos, f' ("{canonical}")'))
+        if mode == "append":
+            edits.append((insert_pos, insert_pos, f' ("{canonical}")'))
         handled_ref_keys.add(ref_key)
         corrections.append(
             Correction(
@@ -252,6 +270,7 @@ def _apply_paraphrase_grounding(
                 original_quote=mention.content_text,
                 corrected_quote=canonical,
                 bracketed=_append_lands_before_close_bracket(text, insert_pos),
+                applied=mode == "append",
             )
         )
 
@@ -263,7 +282,7 @@ def ground_response(
     *,
     unresolved_behavior: UnresolvedBehavior = "keep",
     language: str = "en",
-    ground_paraphrases: bool = True,
+    paraphrase_mode: ParaphraseMode = "append",
 ) -> tuple[str, list[Correction]]:
     """Correct fabricated/mismatched inline verse quotes in ``text``.
 
@@ -283,9 +302,13 @@ def ground_response(
                          message ("this verse isn't available ... yet").
         language: ISO 639-1 language code used to localize the "notice" message.
             Ignored for "keep"/"strip".
-        ground_paraphrases: When True (default), also detect unquoted
-            paraphrases and append the canonical verse text after the reference
-            so the user sees the real wording (BITB-053).
+        paraphrase_mode: What pass 2 does with unquoted paraphrases (BITB-053):
+              "off"    — pass 2 does not run.
+              "detect" — report a Correction (``applied=False``) but leave the
+                         text untouched; used for the measurement rollout.
+              "append" — append the canonical verse text in quotes after the
+                         reference so the user sees the real wording (default,
+                         so library/unit-test behaviour matches the flag-on path).
 
     Returns:
         (corrected_text, corrections). ``corrected_text`` is ``text`` unchanged
@@ -341,8 +364,9 @@ def ground_response(
         )
 
     # --- Pass 2: unquoted / paraphrased citation grounding (BITB-053) ---
-    if ground_paraphrases:
-        _apply_paraphrase_grounding(text, canonical_by_key, handled_ref_keys, edits, corrections)
+    _apply_paraphrase_grounding(
+        text, canonical_by_key, handled_ref_keys, edits, corrections, paraphrase_mode
+    )
 
     if not edits:
         return text, corrections

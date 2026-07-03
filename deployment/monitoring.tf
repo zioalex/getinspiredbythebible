@@ -46,10 +46,11 @@
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053)
 #       Observation alert: bracketed unquoted-paraphrase appends
-#       (chat.verse_grounding.paraphrase_appends, bracketed=true) clustering inside
-#       parenthetical references. Buffered (>5 per 15-min bin) and clustered (2 of
-#       3 evaluations) so a single stray event never pages. Cosmetic; dormant until
-#       grounding_paraphrases_enabled is turned on for a measurement rollout.
+#       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
+#       clustering inside parenthetical references. Buffered (>5 per 15-min bin)
+#       and clustered (2 of 3 evaluations) so a single stray event never pages.
+#       Cosmetic; dormant until grounding_paraphrases_mode is set to "append" per
+#       docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
@@ -790,14 +791,16 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
 }
 
 # Unquoted-paraphrase nested-parens observation alert (BITB-053).
-# Pass 2 of verse grounding appends canonical verse text right after a reference.
-# When the reference is parenthesised — e.g. "(Isaia 41:10)" — the append lands
-# before the closing bracket and nests: (Isaia 41:10 ("Non temere…")). This is
-# cosmetic (offsets are safe), so rather than re-engineer the insertion point
-# blindly we measure it via the chat.verse_grounding.paraphrase_appends counter
-# (bracketed dimension). NOTE: grounding_paraphrases_enabled ships OFF, so this
-# stays dormant until the flag is enabled for a measurement rollout — at which
-# point this rule is the guardrail that tells us if the edge is real.
+# In "append" mode, pass 2 of verse grounding appends canonical verse text right
+# after a reference. When the reference is parenthesised — e.g. "(Isaia 41:10)" —
+# the append lands before the closing bracket and nests:
+# (Isaia 41:10 ("Non temere…")). This is cosmetic (offsets are safe), so rather
+# than re-engineer the insertion point blindly we measure it via the
+# chat.verse_grounding.paraphrase_detections counter (bracketed + applied
+# dimensions). NOTE: grounding_paraphrases_mode ships as "detect" (count only,
+# no text edits — applied=false), so this alert stays dormant until the mode is
+# switched to "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md — at
+# which point this rule is the guardrail that tells us if the edge is real.
 #
 # Buffer + clustering (deliberately not a hair-trigger on a single event):
 #   - buffer: a 15-minute bin must accrue > 5 bracketed appends to count as a
@@ -815,15 +818,16 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
   window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >5 bracketed appends per 15-min bin, sustained across 2 of the last 3 evaluations. Cosmetic; observation alert active only while grounding_paraphrases_enabled is on."
+  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >5 bracketed applied appends per 15-min bin, sustained across 2 of the last 3 evaluations. Cosmetic; observation alert active only while grounding_paraphrases_mode is 'append'."
 
   criteria {
     query                   = <<-KQL
       customMetrics
       | where timestamp > ago(1h)
-      | where name == "chat.verse_grounding.paraphrase_appends"
+      | where name == "chat.verse_grounding.paraphrase_detections"
       | extend bracketed = tostring(customDimensions["bracketed"])
-      | where bracketed == "true"
+      | extend applied = tostring(customDimensions["applied"])
+      | where bracketed == "true" and applied == "true"
       | summarize total = sum(valueSum) by bin(timestamp, 15m)
       | where total > 5
     KQL
