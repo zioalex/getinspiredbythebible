@@ -4,12 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.36.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.35.0...v1.36.0) (2026-07-03)
 
-
 ### Features
 
 * **api:** per-translation data observability + honest unresolved citations (BITB-054) ([#803](https://github.com/zioalex/getinspiredbythebible/issues/803)) ([5b17abf](https://github.com/zioalex/getinspiredbythebible/commit/5b17abfb64ef1f924d20435bd51b42ef5c5d013e))
 * **web+android:** one-tap copy of user prompt (BITB-047) ([#771](https://github.com/zioalex/getinspiredbythebible/issues/771)) ([535822b](https://github.com/zioalex/getinspiredbythebible/commit/535822b843fb92fb6da781503de762cce78cfd03))
-
 
 ### Bug Fixes
 
