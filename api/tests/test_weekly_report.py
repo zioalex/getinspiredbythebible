@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from sqlalchemy.exc import ProgrammingError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -108,6 +109,47 @@ async def test_build_report_empty_data_no_divide_error():
     assert "Weekly Activity Digest" in render_text(report)
     assert "n/a" in render_text(report)
     assert "<html>" in render_html(report)
+
+
+@pytest.mark.asyncio
+async def test_build_report_falls_back_when_sessions_schema_is_missing():
+    class DummyOrig(Exception):
+        pass
+
+    db = MagicMock()
+    calls = 0
+
+    async def execute(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return _result(all_=[("positive", 2)])  # 1 ratings
+        if calls == 2:
+            return _result(all_=[])  # 2 neg comments
+        if calls == 3:
+            return _result(all_=[("bug", 1)])  # 3 contact
+        if calls == 4:
+            raise ProgrammingError(
+                "SELECT active_sessions FROM sessions",
+                {},
+                DummyOrig('relation "sessions" does not exist'),
+            )
+        if calls == 5:
+            return _result(scalar_=0)  # 6 prev feedback total
+        raise AssertionError(f"Unexpected execute call #{calls}")
+
+    db.execute = AsyncMock(side_effect=execute)
+
+    report = await build_weekly_report(db, now=NOW)
+
+    assert report.feedback.total == 2
+    assert report.contact.by_subject == {"bug": 1}
+    assert report.engagement.active_sessions == 0
+    assert report.engagement.new_sessions == 0
+    assert report.engagement.total_messages == 0
+    assert report.engagement.top_languages == []
+    assert report.new_sessions_prev == 0
+    assert db.execute.await_count == 5
 
 
 def _report_with_comment(comment: str) -> WeeklyReport:

@@ -16,14 +16,18 @@ from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from feedback.models import ContactSubmission, Feedback
+from utils.logging_config import get_logger
 
 # How many recent negative comments to surface in the digest.
 MAX_NEGATIVE_COMMENTS = 10
 # How many top languages to list.
 MAX_LANGUAGES = 5
+
+logger = get_logger(__name__)
 
 
 # ==================== Result models ====================
@@ -74,6 +78,24 @@ class WeeklyReport(BaseModel):
     # Week-over-week comparison points (previous window of equal length).
     feedback_total_prev: int
     new_sessions_prev: int
+
+
+def _empty_engagement() -> EngagementStats:
+    return EngagementStats(
+        active_sessions=0,
+        new_sessions=0,
+        total_messages=0,
+        web_sessions=0,
+        mobile_sessions=0,
+        top_languages=[],
+    )
+
+
+def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
+    message = str(error).lower()
+    return "sessions" in message and (
+        "does not exist" in message or "undefinedtable" in message or "undefinedcolumn" in message
+    )
 
 
 # ==================== Builder ====================
@@ -157,60 +179,73 @@ async def build_weekly_report(
     by_subject = {subject: count for subject, count in contact_rows}
     contact = ContactStats(total=sum(by_subject.values()), by_subject=by_subject)
 
-    # 4. Engagement aggregate (raw SQL — there is no ORM model for `sessions`).
-    eng_row = (
-        await db.execute(
-            text("""
-                SELECT
-                    COUNT(*) FILTER (
-                        WHERE last_activity >= :start AND last_activity < :end
-                    ) AS active_sessions,
-                    COUNT(*) FILTER (
-                        WHERE created_at >= :start AND created_at < :end
-                    ) AS new_sessions,
-                    COALESCE(SUM(message_count) FILTER (
-                        WHERE last_activity >= :start AND last_activity < :end
-                    ), 0) AS total_messages,
-                    COUNT(*) FILTER (
-                        WHERE last_activity >= :start AND last_activity < :end
-                        AND is_mobile
-                    ) AS mobile_sessions,
-                    COUNT(*) FILTER (
-                        WHERE last_activity >= :start AND last_activity < :end
-                        AND NOT is_mobile
-                    ) AS web_sessions
-                FROM sessions
-            """),
-            {"start": start, "end": end},
-        )
-    ).one()
-    active_sessions, new_sessions, total_messages, mobile_sessions, web_sessions = eng_row
+    sessions_analytics_available = True
+    try:
+        # 4. Engagement aggregate (raw SQL — there is no ORM model for `sessions`).
+        eng_row = (
+            await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) FILTER (
+                            WHERE last_activity >= :start AND last_activity < :end
+                        ) AS active_sessions,
+                        COUNT(*) FILTER (
+                            WHERE created_at >= :start AND created_at < :end
+                        ) AS new_sessions,
+                        COALESCE(SUM(message_count) FILTER (
+                            WHERE last_activity >= :start AND last_activity < :end
+                        ), 0) AS total_messages,
+                        COUNT(*) FILTER (
+                            WHERE last_activity >= :start AND last_activity < :end
+                            AND is_mobile
+                        ) AS mobile_sessions,
+                        COUNT(*) FILTER (
+                            WHERE last_activity >= :start AND last_activity < :end
+                            AND NOT is_mobile
+                        ) AS web_sessions
+                    FROM sessions
+                """),
+                {"start": start, "end": end},
+            )
+        ).one()
+        active_sessions, new_sessions, total_messages, mobile_sessions, web_sessions = eng_row
 
-    # 5. Top languages among active sessions (raw SQL).
-    lang_rows = (
-        await db.execute(
-            text("""
-                SELECT language, COUNT(*) AS cnt
-                FROM sessions
-                WHERE last_activity >= :start AND last_activity < :end
-                  AND language IS NOT NULL
-                GROUP BY language
-                ORDER BY cnt DESC
-                LIMIT :limit
-            """),
-            {"start": start, "end": end, "limit": MAX_LANGUAGES},
-        )
-    ).all()
-    top_languages = [LanguageCount(language=language, count=count) for language, count in lang_rows]
+        # 5. Top languages among active sessions (raw SQL).
+        lang_rows = (
+            await db.execute(
+                text("""
+                    SELECT language, COUNT(*) AS cnt
+                    FROM sessions
+                    WHERE last_activity >= :start AND last_activity < :end
+                      AND language IS NOT NULL
+                    GROUP BY language
+                    ORDER BY cnt DESC
+                    LIMIT :limit
+                """),
+                {"start": start, "end": end, "limit": MAX_LANGUAGES},
+            )
+        ).all()
+        top_languages = [
+            LanguageCount(language=language, count=count) for language, count in lang_rows
+        ]
 
-    engagement = EngagementStats(
-        active_sessions=active_sessions,
-        new_sessions=new_sessions,
-        total_messages=total_messages,
-        web_sessions=web_sessions,
-        mobile_sessions=mobile_sessions,
-        top_languages=top_languages,
-    )
+        engagement = EngagementStats(
+            active_sessions=active_sessions,
+            new_sessions=new_sessions,
+            total_messages=total_messages,
+            web_sessions=web_sessions,
+            mobile_sessions=mobile_sessions,
+            top_languages=top_languages,
+        )
+    except ProgrammingError as exc:
+        if not _is_missing_sessions_schema(exc):
+            raise
+        logger.warning(
+            "Weekly report sessions analytics unavailable; falling back to zero engagement stats",
+            extra={"error": str(exc)},
+        )
+        sessions_analytics_available = False
+        engagement = _empty_engagement()
 
     # 6. Previous-window feedback total (ORM) — week-over-week delta.
     feedback_total_prev = (
@@ -222,18 +257,21 @@ async def build_weekly_report(
     ).scalar() or 0
 
     # 7. Previous-window new sessions (raw SQL) — week-over-week delta.
-    new_sessions_prev = (
-        (
-            await db.execute(
-                text("""
-                SELECT COUNT(*) FROM sessions
-                WHERE created_at >= :prev_start AND created_at < :start
-            """),
-                {"prev_start": prev_start, "start": start},
-            )
-        ).scalar()
-        or 0
-    )
+    if sessions_analytics_available:
+        new_sessions_prev = (
+            (
+                await db.execute(
+                    text("""
+                    SELECT COUNT(*) FROM sessions
+                    WHERE created_at >= :prev_start AND created_at < :start
+                """),
+                    {"prev_start": prev_start, "start": start},
+                )
+            ).scalar()
+            or 0
+        )
+    else:
+        new_sessions_prev = 0
 
     return WeeklyReport(
         window_start=start,
