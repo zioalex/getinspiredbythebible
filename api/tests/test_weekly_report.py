@@ -127,28 +127,27 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
         def __init__(self, message: str, *, pgcode: str | None):
             super().__init__(message)
             self.pgcode = pgcode
-
     db = MagicMock()
-    calls = 0
-
-    async def execute(*_args, **_kwargs):
-        nonlocal calls
-        calls += 1
-        if calls == 1:
-            return _result(all_=[("positive", 2)])  # 1 ratings
-        if calls == 2:
-            return _result(all_=[])  # 2 neg comments
-        if calls == 3:
-            return _result(all_=[("bug", 1)])  # 3 contact
-        if calls == 4:
-            raise ProgrammingError(
+    db = MagicMock()
+    actions = iter(
+        [
+            _result(all_=[("positive", 2)]),
+            _result(all_=[]),
+            _result(all_=[("bug", 1)]),
+            ProgrammingError(
                 "SELECT active_sessions FROM sessions",
                 {},
                 DummyOrig(error_message, pgcode=pgcode),
-            )
-        if calls == 5:
-            return _result(scalar_=0)  # 6 prev feedback total
-        raise AssertionError(f"Unexpected execute call #{calls}")
+            ),
+            _result(scalar_=0),
+        ]
+    )
+
+    async def execute(*_args, **_kwargs):
+        action = next(actions)
+        if isinstance(action, Exception):
+            raise action
+        return action
 
     db.execute = AsyncMock(side_effect=execute)
 

@@ -26,6 +26,14 @@ from utils.logging_config import get_logger
 MAX_NEGATIVE_COMMENTS = 10
 # How many top languages to list.
 MAX_LANGUAGES = 5
+UNDEFINED_SESSIONS_SQLSTATES = {"42P01", "42703"}
+SESSIONS_ANALYTICS_ERROR_MARKERS = (
+    "sessions",
+    "last_activity",
+    "message_count",
+    "is_mobile",
+    "language",
+)
 
 logger = get_logger(__name__)
 
@@ -93,8 +101,10 @@ def _empty_engagement() -> EngagementStats:
 
 def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
     orig = getattr(error, "orig", None)
+    # asyncpg exposes PostgreSQL SQLSTATE as ``sqlstate`` on its exceptions, while
+    # psycopg-style DBAPI exceptions conventionally use ``pgcode``.
     sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
-    if sqlstate in {"42P01", "42703"}:
+    if sqlstate in UNDEFINED_SESSIONS_SQLSTATES:
         return True
 
     message = str(error).lower()
@@ -102,10 +112,7 @@ def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
         ("sessions" in message and ("does not exist" in message or "undefinedtable" in message))
         or (
             "undefinedcolumn" in message
-            and any(
-                marker in message
-                for marker in ("sessions", "last_activity", "message_count", "is_mobile", "language")
-            )
+            and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS)
         )
     )
 
