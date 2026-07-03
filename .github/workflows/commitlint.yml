@@ -43,12 +43,13 @@ jobs:
           while IFS= read -r sha; do
             message="$(git log -1 --format=%B "$sha")"
             author_email="$(git log -1 --format=%ae "$sha")"
-            if [ "$message" = "Initial plan" ] && \
+            if [[ "$message" =~ ^[Ii]nitial[[:space:]]plan ]] && \
               [ "$author_email" = "$PLANNING_AUTHOR_EMAIL" ]; then
               echo "Skipping agent planning commit $sha"
               continue
             fi
             if ! printf '%s\n' "$message" | npx --no-install commitlint --config commitlint.config.cjs; then
+              echo "Commit $sha failed commitlint"
               status=1
             fi
           done < <(git rev-list --reverse "${BASE_SHA}..${HEAD_SHA}")
