@@ -112,9 +112,21 @@ async def test_build_report_empty_data_no_divide_error():
 
 
 @pytest.mark.asyncio
-async def test_build_report_falls_back_when_sessions_schema_is_missing():
+@pytest.mark.parametrize(
+    ("error_message", "pgcode"),
+    [
+        ('relation "sessions" does not exist', None),
+        ("undefinedtable: sessions", None),
+        ('column "is_mobile" does not exist', "42703"),
+    ],
+)
+async def test_build_report_falls_back_when_sessions_schema_is_missing(
+    error_message: str, pgcode: str | None
+):
     class DummyOrig(Exception):
-        pass
+        def __init__(self, message: str, *, pgcode: str | None):
+            super().__init__(message)
+            self.pgcode = pgcode
 
     db = MagicMock()
     calls = 0
@@ -132,7 +144,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing():
             raise ProgrammingError(
                 "SELECT active_sessions FROM sessions",
                 {},
-                DummyOrig('relation "sessions" does not exist'),
+                DummyOrig(error_message, pgcode=pgcode),
             )
         if calls == 5:
             return _result(scalar_=0)  # 6 prev feedback total

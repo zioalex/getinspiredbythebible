@@ -92,9 +92,21 @@ def _empty_engagement() -> EngagementStats:
 
 
 def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
+    orig = getattr(error, "orig", None)
+    sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
+    if sqlstate in {"42P01", "42703"}:
+        return True
+
     message = str(error).lower()
-    return "sessions" in message and (
-        "does not exist" in message or "undefinedtable" in message or "undefinedcolumn" in message
+    return (
+        ("sessions" in message and ("does not exist" in message or "undefinedtable" in message))
+        or (
+            "undefinedcolumn" in message
+            and any(
+                marker in message
+                for marker in ("sessions", "last_activity", "message_count", "is_mobile", "language")
+            )
+        )
     )
 
 
