@@ -127,7 +127,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
         def __init__(self, message: str, *, pgcode: str | None):
             super().__init__(message)
             self.pgcode = pgcode
-    db = MagicMock()
+
     db = MagicMock()
     actions = iter(
         [

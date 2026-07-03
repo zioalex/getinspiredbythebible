@@ -108,12 +108,13 @@ def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
         return True
 
     message = str(error).lower()
+    undefined_table = any(token in message for token in ("undefinedtable", "undefined table", "undefined_table"))
+    undefined_column = any(
+        token in message for token in ("undefinedcolumn", "undefined column", "undefined_column")
+    )
     return (
-        ("sessions" in message and ("does not exist" in message or "undefinedtable" in message))
-        or (
-            "undefinedcolumn" in message
-            and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS)
-        )
+        ("sessions" in message and ("does not exist" in message or undefined_table))
+        or (undefined_column and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS))
     )
 
 
