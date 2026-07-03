@@ -1146,3 +1146,37 @@ def get_scripture_unavailable_response(language_code: str = "en") -> str:
         _SCRIPTURE_UNAVAILABLE_RESPONSES.get(language_code)
         or _SCRIPTURE_UNAVAILABLE_RESPONSES["en"]
     )
+
+
+# Unresolved-citation notice (BITB-054, "notice" mode of grounding_unresolved_behavior).
+# When an inline-quoted citation cannot be resolved to any canonical DB text (the
+# translation isn't loaded, is partial, or the reference is invalid), "notice" mode
+# replaces the invented quotation with this short message instead of leaving a
+# possibly-hallucinated quote untouched or silently deleting it. Covers all 11
+# languages in utils.language.SUPPORTED_LANGUAGES, mirroring the
+# _SCRIPTURE_UNAVAILABLE_RESPONSES dict+getter shape (BITB-058) with an English fallback.
+_UNRESOLVED_VERSE_NOTICES: dict[str, str] = {
+    "en": "this verse isn't available in this translation yet",
+    "it": "questo versetto non è ancora disponibile in questa traduzione",
+    "de": "dieser Vers ist in dieser Übersetzung noch nicht verfügbar",
+    "es": "este versículo aún no está disponible en esta traducción",
+    "fr": "ce verset n'est pas encore disponible dans cette traduction",
+    "pt": "este versículo ainda não está disponível nesta tradução",
+    "ar": "هذه الآية غير متوفرة بعد في هذه الترجمة",
+    "ru": "этот стих пока недоступен в этом переводе",
+    "zh": "该经文尚未收录在此译本中",
+    "hi": "यह पद अभी इस अनुवाद में उपलब्ध नहीं है",
+    "ko": "이 구절은 아직 이 번역본에서 제공되지 않습니다",
+}
+
+
+def get_unresolved_verse_notice(language_code: str = "en") -> str:
+    """Return the localized notice text used by grounding's "notice" mode (BITB-054).
+
+    Args:
+        language_code: ISO 639-1 language code (any of SUPPORTED_LANGUAGES).
+
+    Returns:
+        Localized message string; falls back to English.
+    """
+    return _UNRESOLVED_VERSE_NOTICES.get(language_code) or _UNRESOLVED_VERSE_NOTICES["en"]
