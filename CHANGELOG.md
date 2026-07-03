@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.34.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.3...v1.34.4) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** link references everywhere via string-level linkify (web) ([#806](https://github.com/zioalex/getinspiredbythebible/issues/806)) ([7a0cd03](https://github.com/zioalex/getinspiredbythebible/commit/7a0cd03a2870e7a0b435b7c29f15e3f39a043ce7))
+
+## [1.34.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.2...v1.34.3) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** accept comma chapter-verse separator (de/fr/it citations) ([#804](https://github.com/zioalex/getinspiredbythebible/issues/804)) ([5ccb9ed](https://github.com/zioalex/getinspiredbythebible/commit/5ccb9ed1903c6efec49a21138af341c7223455c2))
+
+## [1.34.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.1...v1.34.2) (2026-07-01)
+
+### Bug Fixes
+
+* **verse-links:** recover references hidden by greedy over-matches (web + android) ([#801](https://github.com/zioalex/getinspiredbythebible/issues/801)) ([0c6396d](https://github.com/zioalex/getinspiredbythebible/commit/0c6396ded48ae80ffa7a263cbc7487a67921395f))
+
+## [1.34.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.0...v1.34.1) (2026-07-01)
+
+### Bug Fixes
+
+* safe-filter false positive on German Bible references ([#799](https://github.com/zioalex/getinspiredbythebible/issues/799)) ([6e72186](https://github.com/zioalex/getinspiredbythebible/commit/6e7218623e55df08bbc131200b888783195f442e))
+
+## [1.34.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.1...v1.34.0) (2026-07-01)
+
+### Features
+
+* **resilience:** embedding circuit breaker + fail-closed scripture grounding (BITB-057/058) ([#797](https://github.com/zioalex/getinspiredbythebible/issues/797)) ([30392f6](https://github.com/zioalex/getinspiredbythebible/commit/30392f64c8a2e619252e131e866d8da3780fc5a4))
+
 ## [1.33.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.0...v1.33.1) (2026-06-30)
 
 ### Bug Fixes

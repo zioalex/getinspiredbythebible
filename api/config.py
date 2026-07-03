@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
+    # Embedding resilience (BITB-057 Phase 2). Mirrors the circuit-breaker/timeout
+    # pattern already used for OpenRouter (providers/openrouter.py) and Llama Guard
+    # (providers/llama_guard.py), applied to the embedding call path via
+    # providers/embedding_resilience.py::ResilientEmbeddingProvider.
+    embedding_request_timeout: float = 15.0  # Seconds before an embed() call is abandoned
+    embedding_breaker_failure_threshold: int = 5  # Consecutive failures before the breaker opens
+    embedding_breaker_cooldown_seconds: float = 30.0  # Time before a half-open probe is allowed
+    embedding_retry_max_attempts: int = 2  # Total attempts (including the first) per embed call
+    embedding_retry_base_delay_seconds: float = 0.5  # Base for jittered exponential backoff
+
     # Azure OpenAI Settings (optional - for Azure deployment)
     azure_openai_endpoint: str | None = None
     azure_openai_api_key: str | None = None
@@ -93,6 +103,12 @@ class Settings(BaseSettings):
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+    # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
+    # verse (hard retrieval failure OR zero results). Rather than answer without
+    # scripture — which undercuts a Bible-grounded product — return a localized
+    # "try again" message. Greetings / off-topic / GENERAL chit-chat are exempt so we
+    # never nag when no citation was expected.
+    require_scripture_grounding: bool = True
 
     # Query Expansion Settings
     query_expansion_enabled: bool = (

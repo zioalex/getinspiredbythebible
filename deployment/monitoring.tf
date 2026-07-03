@@ -44,6 +44,10 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
+#       Fires when the embedding provider's circuit breaker records any retry,
+#       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
+#       degrades to verse-less responses silently while this persists.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -761,6 +765,49 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
       | where name == "db.search.duration_ms"
       | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
       | where p95 > 2000
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Embedding provider resilience alert (BITB-057 Phase 2).
+# Fires when the embedding.fallback_total custom metric records any retry,
+# timeout, or circuit-open event (providers/embedding_resilience.py) in the
+# last 10 minutes. A sustained rate here means the embedding provider is
+# degraded/down — chat requests degrade to verse-less responses per the
+# EmbeddingCircuitOpenError handling in chat/service.py, which is otherwise
+# silent (no 5xx), so this metric is the signal.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-embedding-fallback-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Embedding provider retries, timeouts, or circuit-open events (embedding.fallback_total metric) in the last 10 minutes. Chat requests are degrading to verse-less responses while this persists — see providers/embedding_resilience.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "embedding.fallback_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
