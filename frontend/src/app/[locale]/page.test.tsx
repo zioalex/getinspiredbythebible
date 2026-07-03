@@ -9,9 +9,19 @@ import enMessages from "../../../messages/en.json";
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn();
 
-// Mock react-markdown to simplify rendering
+// Mock react-markdown to simplify rendering. ChatMessage pre-links verse
+// references via linkifyVerses() (e.g. "John 3:16" -> "[John 3:16](verse://…)"),
+// so reduce markdown links to their display text — what real react-markdown
+// renders — otherwise the raw "[...](...)" syntax leaks into the asserted text.
 vi.mock("react-markdown", () => ({
-  default: ({ children }: { children: string }) => <p>{children}</p>,
+  default: ({ children }: { children: string }) => (
+    <p>
+      {typeof children === "string"
+        ? children.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        : children}
+    </p>
+  ),
+  defaultUrlTransform: (url: string) => url,
 }));
 
 // Mock the API module
@@ -39,6 +49,10 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
     extractVerseReferences: actual.extractVerseReferences,
     isVerseReferenced: actual.isVerseReferenced,
     LOCALIZED_BOOK_TO_ENGLISH: actual.LOCALIZED_BOOK_TO_ENGLISH,
+    // ChatMessage now pre-links verses via linkifyVerses(), which calls
+    // isKnownBook() at render time (previously only reached through the
+    // react-markdown renderers, which this suite stubs out).
+    isKnownBook: actual.isKnownBook,
   };
 });
 
