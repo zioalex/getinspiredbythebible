@@ -1,14 +1,19 @@
 """
 Synthetic chat probe.
 
-Sends a tiny chat request to /api/v1/chat/stream and validates the SSE
-response. Catches the exact failure mode that caused the OpenRouter 401
-incident — HTTP 200 with an in-band {"type": "error", ...} chunk that
-naive 5xx alerts cannot see.
+Sends a chat request to /api/v1/chat/stream and validates the SSE response.
+Catches two distinct failure modes:
+
+1. In-band SSE error chunks — HTTP 200 with {"type": "error", ...} (the
+   failure mode that caused the OpenRouter 401 incident).
+2. Silent scripture degradation — completion chunk has zero cited/resolved
+   verses despite a scripture-focused prompt (the failure mode from the
+   2-week SQL bug, BITB-055). Guarded by PROBE_REQUIRE_VERSES (default: 1).
 
 Exit codes:
     0 — probe passed (saw a 'completion' chunk, no errors)
-    1 — probe failed (in-band error, missing chunks, timeout, or HTTP error)
+    1 — probe failed (in-band error, missing chunks, timeout, HTTP error,
+        or zero cited verses when PROBE_REQUIRE_VERSES=1)
 
 The failure detail is also written to a file path passed via --detail-out
 so the caller (CI workflow) can include it in alert messages.
@@ -19,9 +24,12 @@ Required environment variables:
                                (sent as X-Monitor-Probe-Secret header to bypass Turnstile + rate limits)
 
 Optional:
-    PROBE_MESSAGE            — prompt to send (default: "hi")
+    PROBE_MESSAGE            — prompt to send (default: "What does John 3:16 say?")
     PROBE_TIMEOUT_SECONDS    — overall timeout (default: 30)
     PROBE_FIRST_CHUNK_SECONDS — fail if no content chunk arrives within this (default: 15)
+    PROBE_REQUIRE_VERSES     — "1" (default) to assert cited/resolved verses in the completion
+                               chunk; set "0" to skip the verse assertion (e.g. for a quick
+                               liveness check with a non-scripture prompt)
 """
 
 from __future__ import annotations
@@ -77,16 +85,17 @@ def main() -> int:
     if not probe_secret:
         return fail("MONITOR_PROBE_SECRET env var is required", args.detail_out)
 
-    message = os.environ.get("PROBE_MESSAGE", "hi")
+    message = os.environ.get("PROBE_MESSAGE", "What does John 3:16 say?")
     overall_timeout = float(os.environ.get("PROBE_TIMEOUT_SECONDS", "30"))
     first_chunk_timeout = float(os.environ.get("PROBE_FIRST_CHUNK_SECONDS", "15"))
+    require_verses = os.environ.get("PROBE_REQUIRE_VERSES", "1") == "1"
 
     url = f"{backend_url}/api/v1/chat/stream"
     session_id = f"monitor-probe-{uuid.uuid4().hex[:12]}"
     body = {
         "message": message,
         "conversation_history": [],
-        "include_search": False,
+        "include_search": True,
         "session_id": session_id,
     }
     headers = {
@@ -97,6 +106,7 @@ def main() -> int:
     started = time.monotonic()
     saw_content = False
     saw_completion = False
+    completion_chunk: dict | None = None
     first_chunk_at: float | None = None
     last_chunk: dict | None = None
 
@@ -153,6 +163,7 @@ def main() -> int:
                         saw_content = True
                     elif chunk_type == "completion":
                         saw_completion = True
+                        completion_chunk = parsed
     except httpx.ReadTimeout as e:
         return fail(
             f"server unresponsive: no data received within {first_chunk_timeout}s "
@@ -171,6 +182,17 @@ def main() -> int:
             f"stream ended without completion chunk (last={last_chunk!r})",
             args.detail_out,
         )
+
+    if require_verses:
+        cited = (completion_chunk or {}).get("verses_cited") or []
+        resolved = (completion_chunk or {}).get("resolved_verses") or []
+        if not cited and not resolved:
+            return fail(
+                f"completion chunk had zero cited/resolved verses for prompt {message!r} "
+                f"— this is the silent-degradation signature of a broken scripture retrieval "
+                f"path (BITB-055). completion={completion_chunk!r}",
+                args.detail_out,
+            )
 
     elapsed = time.monotonic() - started
     print(

@@ -463,8 +463,15 @@ class ChatViewModel @Inject constructor(
                                             isError = false,
                                         )
                                     } else {
+                                        // Carry the (often empathetic) explanation on the
+                                        // message itself so it renders in the chat bubble
+                                        // above the Retry button. Previously this was left
+                                        // empty and the text only went to the snackbar, which
+                                        // ChatScreen suppresses whenever an inline Retry exists
+                                        // — so blocked/error messages showed only a bare Retry
+                                        // button with no explanation.
                                         msg.copy(
-                                            content = "",
+                                            content = errorMessage,
                                             isStreaming = false,
                                             isError = true,
                                         )
