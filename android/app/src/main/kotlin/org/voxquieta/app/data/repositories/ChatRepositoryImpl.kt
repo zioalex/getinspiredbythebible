@@ -99,6 +99,7 @@ class ChatRepositoryImpl @Inject constructor(
         userMessage: String,
         assistantResponse: String,
         comment: String?,
+        reason: String?,
     ) {
         try {
             val dto = FeedbackRequestDto(
@@ -107,6 +108,7 @@ class ChatRepositoryImpl @Inject constructor(
                 userMessage = userMessage,
                 assistantResponse = assistantResponse,
                 comment = comment?.takeIf { it.isNotBlank() },
+                reason = reason?.takeIf { it.isNotBlank() },
             )
             api.submitFeedback(dto)
         } catch (e: Exception) {
