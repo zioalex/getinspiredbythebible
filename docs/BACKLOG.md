@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-20
+**Last Updated:** 2026-07-03
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1144,10 +1144,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🎯 Todo (production verified 2026-05-31 — favicon and robots.txt addressed; server-render-homepage remains)
+**Status:** 🚧 In Progress (server-render homepage confirmed done in code; JSON-LD + OG image landing 2026-07-03; only Search-Console submission remains, a manual operator action)
 **Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
 **Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
-**Created:** 2026-05-29 · **Updated:** 2026-05-31
+**Created:** 2026-05-29 · **Updated:** 2026-07-03
 
 **As a** person searching for Bible inspiration on Google (or asking an AI assistant),
 **I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews,
@@ -1157,12 +1157,12 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [x] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
 - [x] `/favicon.ico` returns 200 with the brand icon
 - [x] Production `/robots.txt` contains `Sitemap: https://voxquieta.org/sitemap.xml` (verified)
-- [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
-- [ ] `og:image` resolves and Twitter card is `summary_large_image`
-- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console
+- [x] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
+- [x] `og:image` resolves and Twitter card is `summary_large_image`
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console *(manual operator action remaining)*
 
 **Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
 
