@@ -188,10 +188,17 @@ class Settings(BaseSettings):
 
     # Verse grounding (post-generation scripture fidelity)
     verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
-    # When a cited verse cannot be resolved in the DB at all, strip the invented
-    # quotation rather than only logging it. Off by default — grammar-safe
-    # stripping across 11 languages is risky, so detect-and-log first.
-    grounding_strip_unresolved: bool = False
+    # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any
+    # canonical DB text (translation not loaded/partial, or the reference is invalid).
+    #   keep   — leave the model's text untouched (a Correction is still recorded).
+    #   strip  — remove the invented quotation, keeping the reference and surrounding prose.
+    #   notice — replace the invented quotation with a short localized message
+    #            ("this verse isn't available in <language> yet").
+    # Default "strip": per BITB-054 analysis, leaving an unverifiable, possibly
+    # hallucinated quotation untouched is not least-user-harm even though it was the
+    # historical default (grounding_strip_unresolved=False) — stripping the
+    # unverifiable text while keeping the reference is the safer default.
+    grounding_unresolved_behavior: Literal["keep", "strip", "notice"] = "strip"
     # Ground unquoted/paraphrased verse citations by appending the canonical text.
     # Catches the case where the LLM presents a verse without quotation marks.
     # Ships OFF: this pass is additive (it injects verse text into the user-facing

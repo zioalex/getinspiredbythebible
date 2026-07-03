@@ -5,7 +5,7 @@ Coverage targets:
 - scripture/repository.py: get_all_books, get_book_by_name, get_book_by_id,
   get_verse, get_verses_in_range, get_chapter_verses, search_verses_text,
   search_verses_semantic, get_passage_by_id, search_passages_semantic,
-  get_all_topics, search_topics_semantic, get_stats
+  get_all_topics, search_topics_semantic, get_stats, get_translation_coverage
 - scripture/search.py: ScriptureSearchService.search, get_verse, get_verse_range,
   get_context, text_search, _get_localized_reference
 """
@@ -603,6 +603,44 @@ class TestGetStats:
         assert stats["verses"] == 31102
         assert stats["verses_with_embeddings"] == 30000
         assert stats["passages"] == 150
+
+
+class TestGetTranslationCoverage:
+    """Tests for ScriptureRepository.get_translation_coverage() (BITB-054)."""
+
+    @pytest.mark.asyncio
+    async def test_returns_per_translation_totals(self):
+        session = _make_mock_session()
+        mock_result = MagicMock()
+        # (translation, total_verses, verses_with_embeddings) — 'it' has some
+        # NULL embeddings (partial embedding coverage).
+        mock_result.all.return_value = [
+            ("kjv", 31102, 31102),
+            ("it", 31102, 15000),
+            ("empty", 0, 0),
+        ]
+        session.execute = AsyncMock(return_value=mock_result)
+
+        repo = ScriptureRepository(session)
+        coverage = await repo.get_translation_coverage()
+
+        assert coverage == [
+            {"translation": "kjv", "total_verses": 31102, "verses_with_embeddings": 31102},
+            {"translation": "it", "total_verses": 31102, "verses_with_embeddings": 15000},
+            {"translation": "empty", "total_verses": 0, "verses_with_embeddings": 0},
+        ]
+
+    @pytest.mark.asyncio
+    async def test_empty_database_returns_empty_list(self):
+        session = _make_mock_session()
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        session.execute = AsyncMock(return_value=mock_result)
+
+        repo = ScriptureRepository(session)
+        coverage = await repo.get_translation_coverage()
+
+        assert coverage == []
 
 
 # ==================== Search Service Tests ====================
