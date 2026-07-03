@@ -67,6 +67,18 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
+# ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
+# A supported UI language whose backing translation has zero verses (never
+# loaded) or zero embeddings (loaded but unsearchable) degrades silently —
+# empty search results, or citations grounding can never resolve. Checked at
+# startup (api/main.py) and on-demand via the admin diagnostic endpoint
+# (routes/admin.py), both backed by scripture/coverage.py.
+translation_data_missing_counter = meter.create_counter(
+    name="scripture.translation_data.missing",
+    description="Supported language whose backing translation has zero verses or zero embeddings",
+    unit="1",
+)  # attributes: language, translation, problem (no_verses|no_embeddings)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",
