@@ -111,9 +111,8 @@ def _is_missing_sessions_schema(error: ProgrammingError) -> bool:
     normalized_message = message.replace(" ", "").replace("_", "")
     undefined_table = "undefinedtable" in normalized_message
     undefined_column = "undefinedcolumn" in normalized_message
-    return (
-        ("sessions" in message and ("does not exist" in message or undefined_table))
-        or (undefined_column and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS))
+    return ("sessions" in message and ("does not exist" in message or undefined_table)) or (
+        undefined_column and any(marker in message for marker in SESSIONS_ANALYTICS_ERROR_MARKERS)
     )
 
 

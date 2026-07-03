@@ -123,7 +123,7 @@ async def test_build_report_empty_data_no_divide_error():
 async def test_build_report_falls_back_when_sessions_schema_is_missing(
     error_message: str, pgcode: str | None
 ):
-    class DummyOrig(Exception):
+    class DummyOrigError(Exception):
         def __init__(self, message: str, *, pgcode: str | None):
             super().__init__(message)
             self.pgcode = pgcode
@@ -137,7 +137,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
             ProgrammingError(
                 "SELECT active_sessions FROM sessions",
                 {},
-                DummyOrig(error_message, pgcode=pgcode),
+                DummyOrigError(error_message, pgcode=pgcode),
             ),
             _result(scalar_=0),
         ]
