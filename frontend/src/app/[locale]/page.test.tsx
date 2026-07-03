@@ -377,6 +377,82 @@ describe("Home page responsive layout", () => {
       const select = screen.getByLabelText<HTMLSelectElement>("Bible version");
       expect(select.value).toBe("");
     });
+
+    it("BITB-029: chip label shows short_name of manually selected translation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+        {
+          code: "nvi",
+          language: "Italian",
+          short_name: "NVI",
+          full_name: "Nuova Versione Italiana",
+        },
+      ]);
+
+      renderWithIntl(<Home />);
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
+
+      // Before selection: chip's visible label span shows placeholder
+      const chipLabels = screen.getAllByText("Bible version");
+      // At minimum the chip span (visible) and the placeholder option (in hidden select)
+      expect(chipLabels.length).toBeGreaterThanOrEqual(1);
+
+      // Select KJV
+      fireEvent.change(select, { target: { value: "kjv" } });
+      // After selection: chip label updates to the short_name
+      await waitFor(() => expect(screen.getByText("KJV")).toBeInTheDocument());
+      // The chip's visible span no longer shows the placeholder
+      const visibleChipSpan = screen
+        .getAllByText(/^(Bible version|KJV)$/)
+        .find((el) => el.tagName === "SPAN" && !el.closest("select"));
+      expect(visibleChipSpan?.textContent).toBe("KJV");
+    });
+
+    it("BITB-029: chip shows short_name for auto-detected translation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-chip-detect",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "Here is the verse." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "test query" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      // After detection, chip label updates to KJV short_name
+      await waitFor(() => expect(screen.getByText("KJV")).toBeInTheDocument());
+    });
   });
 
   describe("responsive main container", () => {
