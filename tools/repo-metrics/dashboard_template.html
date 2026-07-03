@@ -1,0 +1,717 @@
+<title>Repo productivity — Vox Quieta</title>
+<style>
+  .mx-root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --ink-1: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --good: #006300;
+    --s-feat: #2a78d6;
+    --s-fix: #1baf7a;
+    --s-build: #eda100;
+    --s-ci: #008300;
+    --s-docs: #4a3aa7;
+    --s-other: #e34948;
+    --seq: #2a78d6;
+    --div-pos: #2a78d6;
+    --div-neg: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    .mx-root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --ink-1: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-3: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --good: #0ca30c;
+      --s-feat: #3987e5;
+      --s-fix: #199e70;
+      --s-build: #c98500;
+      --s-ci: #008300;
+      --s-docs: #9085e9;
+      --s-other: #e66767;
+      --seq: #3987e5;
+      --div-pos: #3987e5;
+      --div-neg: #e66767;
+    }
+  }
+  :root[data-theme="light"] .mx-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7; --ink-1: #0b0b0b; --ink-2: #52514e;
+    --ink-3: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10); --good: #006300;
+    --s-feat: #2a78d6; --s-fix: #1baf7a; --s-build: #eda100; --s-ci: #008300;
+    --s-docs: #4a3aa7; --s-other: #e34948; --seq: #2a78d6;
+    --div-pos: #2a78d6; --div-neg: #e34948;
+  }
+  :root[data-theme="dark"] .mx-root {
+    --surface-1: #1a1a19; --page: #0d0d0d; --ink-1: #ffffff; --ink-2: #c3c2b7;
+    --ink-3: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --border: rgba(255,255,255,0.10); --good: #0ca30c;
+    --s-feat: #3987e5; --s-fix: #199e70; --s-build: #c98500; --s-ci: #008300;
+    --s-docs: #9085e9; --s-other: #e66767; --seq: #3987e5;
+    --div-pos: #3987e5; --div-neg: #e66767;
+  }
+
+  .mx-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink-1);
+    margin: 0;
+    padding: 24px 20px 64px;
+    line-height: 1.45;
+  }
+  .mx-wrap { max-width: 1080px; margin: 0 auto; }
+  .mx-root h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
+  .mx-root h2 { font-size: 15px; font-weight: 650; margin: 40px 0 12px; }
+  .mx-sub { color: var(--ink-2); font-size: 13px; margin: 0 0 24px; }
+  .mx-sub a { color: inherit; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .kpi .lbl { font-size: 12px; color: var(--ink-2); }
+  .kpi .val { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .kpi .note { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px 10px; margin-top: 12px;
+  }
+  .card h3 { font-size: 13.5px; font-weight: 650; margin: 0 0 2px; }
+  .card .desc { font-size: 12px; color: var(--ink-2); margin: 0 0 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); margin: 4px 0 8px; }
+  .legend .it { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend .ln { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+
+  .chart { position: relative; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: inherit; }
+  .tick { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .tip {
+    position: absolute; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14); min-width: 130px;
+  }
+  .tip .t-h { color: var(--ink-2); margin-bottom: 4px; font-size: 11.5px; }
+  .tip .t-r { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .tip .t-k { width: 12px; height: 3px; border-radius: 1px; flex: none; }
+  .tip .t-v { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tip .t-n { color: var(--ink-2); }
+
+  details.tbl { margin: 4px 0 8px; font-size: 12px; color: var(--ink-2); }
+  details.tbl summary { cursor: pointer; }
+  .mx-root table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 6px 0 10px; }
+  .mx-root th { text-align: left; color: var(--ink-2); font-weight: 600; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--grid); }
+  .mx-root td { padding: 5px 10px 5px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .mx-root td.num, .mx-root th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .mx-root code { font-size: 11.5px; background: var(--page); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+  .mx-root a { color: var(--s-feat); text-decoration: none; }
+  .mx-root a:hover { text-decoration: underline; }
+  .scrollx { overflow-x: auto; }
+  .foot { color: var(--ink-3); font-size: 12px; margin-top: 40px; }
+  .foot ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+
+<div class="mx-root">
+  <div class="mx-wrap">
+    <h1>Repo productivity — Vox Quieta</h1>
+    <p class="mx-sub" id="subtitle"></p>
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Velocity</h2>
+    <div class="card">
+      <h3>Work landed per week</h3>
+      <p class="desc">First-parent commits on main by conventional type (release bumps excluded).</p>
+      <div id="c-weekly"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Code lines per week</h3>
+        <p class="desc">Added above the baseline, deleted below. Lockfiles, CHANGELOG and data/ excluded.</p>
+        <div id="c-loc"></div>
+      </div>
+      <div class="card">
+        <h3>Codebase growth</h3>
+        <p class="desc">Cumulative net code lines over time.</p>
+        <div id="c-growth"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Pre-launch vs post-launch</h3>
+      <p class="desc" id="phase-desc"></p>
+      <div class="scrollx" id="c-phases"></div>
+    </div>
+
+    <h2>Quality &amp; errors</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>fix : feat ratio by month</h3>
+        <p class="desc">Above 1.0 means more fixing than building. The most recent month may be partial.</p>
+        <div id="c-ratio"></div>
+      </div>
+      <div class="card">
+        <h3>Releases per week</h3>
+        <p class="desc">Patch releases tagged &lt;24h after the previous one count as hotfixes.</p>
+        <div id="c-rel"></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Fastest regressions</h3>
+        <p class="desc">Fixes landing closest to the feature they patch (≤7 days, same scope or shared file).</p>
+        <div class="scrollx" id="c-regr"></div>
+      </div>
+      <div class="card">
+        <h3>Incidents</h3>
+        <p class="desc">Same-day hotfix releases and reverts.</p>
+        <div class="scrollx" id="c-inc"></div>
+      </div>
+    </div>
+
+    <h2>Churn &amp; rework</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Fix chains</h3>
+        <p class="desc">≥2 fixes on one scope with ≤7-day gaps — features that wouldn't stay fixed.</p>
+        <div class="scrollx" id="c-chains"></div>
+      </div>
+      <div class="card">
+        <h3>Hotspot files</h3>
+        <p class="desc">Code files touched by the most units of work.</p>
+        <div class="scrollx" id="c-hot"></div>
+      </div>
+    </div>
+
+    <h2>Codebase health</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Lines of code by component</h3>
+        <p class="desc">Current snapshot of tracked files.</p>
+        <div id="c-comp"></div>
+      </div>
+      <div class="card">
+        <h3>Tests &amp; cruft</h3>
+        <p class="desc">Test files per component; leftover files that want deleting.</p>
+        <div class="scrollx" id="c-health"></div>
+      </div>
+    </div>
+
+    <h2>Run-over-run</h2>
+    <div class="card">
+      <p class="desc">One row per metrics snapshot — deltas appear as the monthly workflow accumulates history.</p>
+      <div class="scrollx" id="c-runs"></div>
+    </div>
+
+    <div class="foot" id="foot">
+      Methodology:
+      <ul>
+        <li>One unit of work = one first-parent commit on <code>main</code> (squash-merged PR, merge commit, or direct commit); release-please version bumps excluded.</li>
+        <li>Line counts exclude generated files (lockfiles, CHANGELOG) and <code>data/</code>; docs counted separately.</li>
+        <li>Regression fix = fix ≤7 days after a feat sharing scope or a code file — a proxy, not a verdict.</li>
+        <li>Regenerate with <code>make repo-metrics</code>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="tip" id="tip"></div>
+</div>
+
+<script>
+"use strict";
+const DATA = /*__DATA__*/null;
+
+/* ---------- helpers ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function h(tag, attrs, parent) {
+  const isSvg = ["svg","g","rect","path","line","circle","text","title"].includes(tag);
+  const el = isSvg ? document.createElementNS(SVGNS, tag) : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "text") el.textContent = v;
+    else if (k === "style") el.setAttribute("style", v);
+    else el.setAttribute(k, v);
+  }
+  if (parent) parent.appendChild(el);
+  return el;
+}
+function fmtN(n) {
+  if (n === null || n === undefined) return "—";
+  if (Math.abs(n) >= 100000) return (n / 1000).toFixed(0) + "k";
+  if (Math.abs(n) >= 10000) return (n / 1000).toFixed(1) + "k";
+  return n.toLocaleString("en-US");
+}
+function monthShort(iso) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function niceTicks(max, count) {
+  if (max <= 0) return [0, 1];
+  const step0 = max / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const ticks = [];
+  for (let v = 0; v <= max + 1e-9; v += step) ticks.push(Math.round(v * 1000) / 1000);
+  return ticks;
+}
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById("tip");
+function showTip(anchor, evt, head, rows) {
+  tip.textContent = "";
+  h("div", { class: "t-h", text: head }, tip);
+  for (const r of rows) {
+    const row = h("div", { class: "t-r" }, tip);
+    h("span", { class: "t-k", style: "background:" + (r.color || "transparent") }, row);
+    h("span", { class: "t-v", text: r.value }, row);
+    h("span", { class: "t-n", text: r.name }, row);
+  }
+  tip.style.display = "block";
+  const root = document.querySelector(".mx-root");
+  const rb = root.getBoundingClientRect();
+  let x = evt.clientX - rb.left + 14, y = evt.clientY - rb.top + 14;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  if (x + tw > rb.width - 8) x = evt.clientX - rb.left - tw - 14;
+  if (y + th > root.offsetHeight - 8) y = evt.clientY - rb.top - th - 14;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+/* ---------- chart frame ---------- */
+const W = 960, PAD = { l: 46, r: 12, t: 12, b: 26 };
+function frame(container, height, yMax, yFmt, yMin) {
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const plotW = W - PAD.l - PAD.r, plotH = height - PAD.t - PAD.b;
+  yMin = yMin || 0;
+  const ticks = niceTicks(yMax, 4);
+  const span = ticks[ticks.length - 1] - yMin;
+  const yPos = v => PAD.t + plotH - ((v - yMin) / span) * plotH;
+  for (const tv of ticks) {
+    const y = yPos(tv);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--grid);stroke-width:1" }, svg);
+    h("text", { x: PAD.l - 8, y: y + 4, "text-anchor": "end", class: "tick",
+      text: (yFmt || fmtN)(tv) }, svg);
+  }
+  h("line", { x1: PAD.l, x2: W - PAD.r, y1: yPos(0), y2: yPos(0),
+    style: "stroke:var(--baseline);stroke-width:1" }, svg);
+  return { svg, plotW, plotH, yPos, yMaxNice: ticks[ticks.length - 1] };
+}
+function xLabels(svg, labels, xOf, height, every) {
+  labels.forEach((lb, i) => {
+    if (i % every !== 0) return;
+    h("text", { x: xOf(i), y: height - 8, "text-anchor": "middle", class: "tick",
+      text: lb }, svg);
+  });
+}
+function roundedTopRect(x, y, w, hgt, r) {
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${y + hgt} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + hgt} Z`;
+}
+function roundedBottomRect(x, y, w, hgt, r) {
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${y} L${x + w},${y} L${x + w},${y + hgt - r} Q${x + w},${y + hgt} ${x + w - r},${y + hgt} L${x + r},${y + hgt} Q${x},${y + hgt} ${x},${y + hgt - r} Z`;
+}
+
+/* ---------- stacked columns ---------- */
+function stackedColumns(container, rows, series, labels, opts) {
+  opts = opts || {};
+  const height = opts.height || 260;
+  const totals = rows.map(r => series.reduce((a, s) => a + (r[s.key] || 0), 0));
+  const yMax = Math.max(...totals, 1);
+  const { svg, plotW, yPos } = frame(container, height, yMax);
+  const n = rows.length;
+  const band = plotW / n;
+  const bw = Math.min(24, band * 0.72);
+  const gap = 2;
+  rows.forEach((row, i) => {
+    const x = PAD.l + band * i + (band - bw) / 2;
+    let acc = 0;
+    const segs = series.filter(s => (row[s.key] || 0) > 0);
+    segs.forEach((s, si) => {
+      const v = row[s.key];
+      const y1 = yPos(acc + v), y0 = yPos(acc);
+      const isTop = si === segs.length - 1;
+      const hgt = Math.max(y0 - y1 - (isTop ? 0 : gap), 1);
+      if (isTop) {
+        h("path", { d: roundedTopRect(x, y1, bw, y0 - y1, 4),
+          style: `fill:var(${s.color})` }, svg);
+      } else {
+        h("rect", { x, y: y1 + gap, width: bw, height: hgt,
+          style: `fill:var(${s.color})` }, svg);
+      }
+      acc += v;
+    });
+    const hit = h("rect", { x: PAD.l + band * i, y: PAD.t, width: band,
+      height: height - PAD.t - PAD.b, tabindex: "0",
+      style: "fill:transparent;outline:none" }, svg);
+    const cs = getComputedStyle(document.querySelector(".mx-root"));
+    const tipRows = () => series.slice().reverse()
+      .filter(s => (row[s.key] || 0) > 0 || !opts.skipZero)
+      .map(s => ({ name: s.name, value: fmtN(row[s.key] || 0),
+        color: cs.getPropertyValue(s.color) }));
+    const head = (opts.head || (l => l))(labels[i], row);
+    hit.addEventListener("pointermove", e => showTip(hit, e, head, tipRows()));
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("focus", () => {
+      const r = hit.getBoundingClientRect();
+      showTip(hit, { clientX: r.left + r.width / 2, clientY: r.top + 20 }, head, tipRows());
+    });
+    hit.addEventListener("blur", hideTip);
+  });
+  xLabels(svg, labels.map(monthShort), i => PAD.l + band * i + band / 2, height,
+    Math.ceil(n / 9));
+}
+
+/* ---------- diverging columns (added / deleted) ---------- */
+function divergingColumns(container, rows, labels) {
+  const height = 260;
+  const maxUp = Math.max(...rows.map(r => r.up), 1);
+  const maxDn = Math.max(...rows.map(r => r.down), 1);
+  const tU = niceTicks(maxUp, 3), tD = niceTicks(maxDn, 2);
+  const yMaxN = tU[tU.length - 1], yMinN = -tD[tD.length - 1];
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const plotW = W - PAD.l - PAD.r, plotH = height - PAD.t - PAD.b;
+  const span = yMaxN - yMinN;
+  const yPos = v => PAD.t + plotH - ((v - yMinN) / span) * plotH;
+  for (const tv of [...tD.map(v => -v), ...tU]) {
+    const y = yPos(tv);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--grid);stroke-width:1" }, svg);
+    h("text", { x: PAD.l - 8, y: y + 4, "text-anchor": "end", class: "tick",
+      text: fmtN(Math.abs(tv)) }, svg);
+  }
+  h("line", { x1: PAD.l, x2: W - PAD.r, y1: yPos(0), y2: yPos(0),
+    style: "stroke:var(--baseline);stroke-width:1" }, svg);
+  const n = rows.length, band = plotW / n, bw = Math.min(24, band * 0.72);
+  const cs = getComputedStyle(document.querySelector(".mx-root"));
+  rows.forEach((row, i) => {
+    const x = PAD.l + band * i + (band - bw) / 2;
+    if (row.up > 0)
+      h("path", { d: roundedTopRect(x, yPos(row.up), bw, yPos(0) - yPos(row.up), 4),
+        style: "fill:var(--div-pos)" }, svg);
+    if (row.down > 0)
+      h("path", { d: roundedBottomRect(x, yPos(0) + 2, bw, yPos(-row.down) - yPos(0) - 2, 4),
+        style: "fill:var(--div-neg)" }, svg);
+    const hit = h("rect", { x: PAD.l + band * i, y: PAD.t, width: band, height: plotH,
+      tabindex: "0", style: "fill:transparent;outline:none" }, svg);
+    const head = "week of " + monthShort(labels[i]);
+    const tipRows = () => [
+      { name: "added", value: "+" + fmtN(row.up), color: cs.getPropertyValue("--div-pos") },
+      { name: "deleted", value: "−" + fmtN(row.down), color: cs.getPropertyValue("--div-neg") },
+    ];
+    hit.addEventListener("pointermove", e => showTip(hit, e, head, tipRows()));
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("focus", () => {
+      const r = hit.getBoundingClientRect();
+      showTip(hit, { clientX: r.left + r.width / 2, clientY: r.top + 20 }, head, tipRows());
+    });
+    hit.addEventListener("blur", hideTip);
+  });
+  xLabels(svg, labels.map(monthShort), i => PAD.l + band * i + band / 2, height,
+    Math.ceil(n / 9));
+}
+
+/* ---------- line chart with crosshair ---------- */
+function lineChart(container, labels, values, opts) {
+  opts = opts || {};
+  const height = opts.height || 260;
+  const clean = values.map(v => v === null ? 0 : v);
+  const yMax = Math.max(...clean, opts.minYMax || 1);
+  const { svg, plotW, plotH, yPos, yMaxNice } = frame(container, height, yMax, opts.yFmt);
+  const n = values.length;
+  const xOf = i => PAD.l + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+  if (opts.refLine !== undefined && opts.refLine <= yMaxNice) {
+    const y = yPos(opts.refLine);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--ink-3);stroke-width:1;stroke-dasharray:none;opacity:.55" }, svg);
+    h("text", { x: W - PAD.r - 2, y: y - 5, "text-anchor": "end", class: "tick",
+      text: opts.refLabel || "" }, svg);
+  }
+  const pts = values.map((v, i) => v === null ? null : [xOf(i), yPos(v)]);
+  const seg = pts.filter(p => p);
+  if (opts.area) {
+    const d = "M" + seg.map(p => p.join(",")).join(" L") +
+      ` L${seg[seg.length - 1][0]},${yPos(0)} L${seg[0][0]},${yPos(0)} Z`;
+    h("path", { d, style: "fill:var(--seq);opacity:.1" }, svg);
+  }
+  h("path", { d: "M" + seg.map(p => p.join(",")).join(" L"),
+    style: "stroke:var(--seq);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round" }, svg);
+  const last = seg[seg.length - 1];
+  h("circle", { cx: last[0], cy: last[1], r: 4.5,
+    style: "fill:var(--seq);stroke:var(--surface-1);stroke-width:2" }, svg);
+  h("text", { x: last[0] - 8, y: last[1] - 10, "text-anchor": "end",
+    style: "fill:var(--ink-1);font-size:12px;font-weight:650",
+    text: (opts.yFmt || fmtN)(values[n - 1]) }, svg);
+  xLabels(svg, labels.map(opts.xFmt || monthShort), xOf, height, Math.ceil(n / 9));
+
+  const cross = h("line", { y1: PAD.t, y2: PAD.t + plotH,
+    style: "stroke:var(--ink-3);stroke-width:1;opacity:0" }, svg);
+  const dot = h("circle", { r: 4.5,
+    style: "fill:var(--seq);stroke:var(--surface-1);stroke-width:2;opacity:0" }, svg);
+  const hit = h("rect", { x: PAD.l, y: PAD.t, width: plotW, height: plotH,
+    style: "fill:transparent" }, svg);
+  const cs = getComputedStyle(document.querySelector(".mx-root"));
+  hit.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(xOf(i) - px);
+      if (d < bd && values[i] !== null) { bd = d; best = i; }
+    }
+    cross.setAttribute("x1", xOf(best)); cross.setAttribute("x2", xOf(best));
+    cross.style.opacity = ".5";
+    dot.setAttribute("cx", xOf(best)); dot.setAttribute("cy", yPos(values[best]));
+    dot.style.opacity = "1";
+    showTip(hit, e, (opts.xFmt || monthShort)(labels[best]), [
+      { name: opts.name || "", value: (opts.yFmt || fmtN)(values[best]),
+        color: cs.getPropertyValue("--seq") },
+    ]);
+  });
+  hit.addEventListener("pointerleave", () => {
+    cross.style.opacity = "0"; dot.style.opacity = "0"; hideTip();
+  });
+}
+
+/* ---------- horizontal bars ---------- */
+function hBars(container, items) {
+  const rowH = 30, height = items.length * rowH + 8;
+  const labW = 92;
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const max = Math.max(...items.map(i => i.value), 1);
+  const plotW = W - labW - 90;
+  items.forEach((it, i) => {
+    const y = i * rowH + 6, bh = 18;
+    h("text", { x: labW - 10, y: y + 14, "text-anchor": "end",
+      style: "fill:var(--ink-2);font-size:12.5px", text: it.label }, svg);
+    const w = Math.max((it.value / max) * plotW, 1.5);
+    const r = Math.min(4, w / 2);
+    h("path", { d: `M${labW},${y + bh} L${labW},${y} L${labW + w - r},${y} Q${labW + w},${y} ${labW + w},${y + r} L${labW + w},${y + bh - r} Q${labW + w},${y + bh} ${labW + w - r},${y + bh} Z`,
+      style: "fill:var(--seq)" }, svg);
+    h("text", { x: labW + w + 8, y: y + 14,
+      style: "fill:var(--ink-1);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums",
+      text: fmtN(it.value) + (it.suffix || "") }, svg);
+  });
+}
+
+/* ---------- legend + table view ---------- */
+function legend(container, items, kind) {
+  const div = h("div", { class: "legend" });
+  container.prepend(div);
+  for (const it of items) {
+    const s = h("span", { class: "it" }, div);
+    h("span", { class: kind === "line" ? "ln" : "sw",
+      style: "background:var(" + it.color + ")" }, s);
+    s.appendChild(document.createTextNode(it.name));
+  }
+}
+function tableView(container, header, rows) {
+  const det = h("details", { class: "tbl" }, container);
+  h("summary", { text: "Data table" }, det);
+  const tbl = h("table", {}, det);
+  const tr = h("tr", {}, tbl);
+  header.forEach((c, i) => h("th", { class: i ? "num" : "", text: c }, tr));
+  for (const r of rows) {
+    const tr2 = h("tr", {}, tbl);
+    r.forEach((c, i) => h("td", { class: i ? "num" : "", text: String(c) }, tr2));
+  }
+}
+function mkTable(container, header, rows, opts) {
+  opts = opts || {};
+  const tbl = h("table", {}, container);
+  const tr = h("tr", {}, tbl);
+  header.forEach((c, i) => h("th", { class: (opts.numFrom !== undefined && i >= opts.numFrom) ? "num" : "", text: c }, tr));
+  for (const r of rows) {
+    const tr2 = h("tr", {}, tbl);
+    r.forEach((c, i) => {
+      const td = h("td", { class: (opts.numFrom !== undefined && i >= opts.numFrom) ? "num" : "" }, tr2);
+      if (c && typeof c === "object" && c.href) {
+        h("a", { href: c.href, text: c.text, target: "_blank", rel: "noopener" }, td);
+      } else if (c && typeof c === "object" && c.code) {
+        h("code", { text: c.code }, td);
+      } else td.textContent = String(c);
+    });
+  }
+}
+
+/* ================= build the page ================= */
+(function () {
+  const d = DATA, t = d.totals;
+  document.getElementById("subtitle").append(
+    `${d.range.first} → ${d.range.last} · generated ${d.generated} · `,
+  );
+  const a = document.createElement("a");
+  a.href = d.repoUrl; a.textContent = d.repoUrl.replace("https://github.com/", "");
+  a.target = "_blank"; a.rel = "noopener";
+  document.getElementById("subtitle").append(a);
+
+  /* KPI row */
+  const kpis = [
+    { lbl: "Units of work", val: fmtN(t.units), note: `${fmtN(t.prs_seen)} PRs seen · max #${t.max_pr}` },
+    { lbl: "Active days", val: `${t.active_days}`, note: `of ${t.calendar_days} calendar days (${Math.round(100 * t.active_days / t.calendar_days)}%)` },
+    { lbl: "Net code lines", val: "+" + fmtN(t.net_code), note: `+${fmtN(t.added_code)} / −${fmtN(t.deleted_code)}` },
+    { lbl: "Releases", val: fmtN(t.releases), note: `${t.hotfix_releases} same-day hotfixes` },
+    { lbl: "fix : feat", val: t.fix_per_feat, note: `${d.types.fix || 0} fixes / ${d.types.feat || 0} feats` },
+    { lbl: "Regression fixes", val: fmtN(t.regression_fixes), note: `${t.regression_fixes_same_scope} same-scope · ${t.fix_chain_count} fix chains` },
+  ];
+  const kwrap = document.getElementById("kpis");
+  for (const k of kpis) {
+    const div = h("div", { class: "kpi" }, kwrap);
+    h("div", { class: "lbl", text: k.lbl }, div);
+    h("div", { class: "val", text: String(k.val) }, div);
+    h("div", { class: "note", text: k.note }, div);
+  }
+
+  /* weekly stacked units */
+  const SERIES = [
+    { key: "feat", name: "feat", color: "--s-feat" },
+    { key: "fix", name: "fix", color: "--s-fix" },
+    { key: "build", name: "build/deps", color: "--s-build" },
+    { key: "ci", name: "ci", color: "--s-ci" },
+    { key: "docs", name: "docs", color: "--s-docs" },
+    { key: "other", name: "other", color: "--s-other" },
+  ];
+  const wRows = d.weekly.map(w => ({ ...w.units }));
+  const wLabels = d.weekly.map(w => w.week);
+  const cw = document.getElementById("c-weekly");
+  stackedColumns(cw, wRows, SERIES, wLabels,
+    { head: l => "week of " + monthShort(l), skipZero: true });
+  legend(cw, SERIES);
+  tableView(cw, ["week", ...SERIES.map(s => s.name), "total"],
+    d.weekly.map(w => [w.week, ...SERIES.map(s => w.units[s.key] || 0),
+      SERIES.reduce((acc, s) => acc + (w.units[s.key] || 0), 0)]));
+
+  /* weekly LOC diverging */
+  const cl = document.getElementById("c-loc");
+  divergingColumns(cl, d.weekly.map(w => ({ up: w.added, down: w.deleted })), wLabels);
+  legend(cl, [{ name: "added", color: "--div-pos" }, { name: "deleted", color: "--div-neg" }]);
+  tableView(cl, ["week", "added", "deleted"],
+    d.weekly.map(w => [w.week, w.added, w.deleted]));
+
+  /* growth line */
+  const cg = document.getElementById("c-growth");
+  lineChart(cg, wLabels, d.weekly.map(w => w.cum_net),
+    { area: true, name: "net code lines", yFmt: fmtN });
+  tableView(cg, ["week", "cumulative net code lines"],
+    d.weekly.map(w => [w.week, w.cum_net]));
+
+  /* phases */
+  document.getElementById("phase-desc").textContent =
+    "v0.1.0 shipped " + d.launch + " — the split between building toward launch and operating in production.";
+  mkTable(document.getElementById("c-phases"),
+    ["Phase", "Units", "Active days", "Units/active day", "feat", "fix", "fix:feat", "Code +", "Code −"],
+    [["Pre-launch", d.phases.pre_launch.units,
+      `${d.phases.pre_launch.active_days}/${d.phases.pre_launch.days}`,
+      d.phases.pre_launch.units_per_active_day, d.phases.pre_launch.feat,
+      d.phases.pre_launch.fix, d.phases.pre_launch.fix_per_feat,
+      "+" + fmtN(d.phases.pre_launch.added_code), "−" + fmtN(d.phases.pre_launch.deleted_code)],
+     ["Post-launch", d.phases.post_launch.units,
+      `${d.phases.post_launch.active_days}/${d.phases.post_launch.days}`,
+      d.phases.post_launch.units_per_active_day, d.phases.post_launch.feat,
+      d.phases.post_launch.fix, d.phases.post_launch.fix_per_feat,
+      "+" + fmtN(d.phases.post_launch.added_code), "−" + fmtN(d.phases.post_launch.deleted_code)]],
+    { numFrom: 1 });
+
+  /* monthly ratio */
+  const cr = document.getElementById("c-ratio");
+  lineChart(cr, d.monthly.map(r => r.month), d.monthly.map(r => r.ratio),
+    { name: "fix : feat", refLine: 1, refLabel: "1.0 — parity",
+      xFmt: m => new Date(m + "-01T00:00:00").toLocaleDateString("en-US", { month: "short" }),
+      yFmt: v => v === null ? "—" : v.toFixed(2), minYMax: 1.2 });
+  tableView(cr, ["month", "feat", "fix", "ratio"],
+    d.monthly.map(r => [r.month, r.feat, r.fix, r.ratio === null ? "—" : r.ratio]));
+
+  /* releases per week */
+  const relLabels = wLabels.filter(w => d.relWeekly[w] !== undefined || true);
+  const relRows = wLabels.map(w => d.relWeekly[w] || { minor: 0, patch: 0, hotfix: 0 });
+  const cre = document.getElementById("c-rel");
+  const REL_SERIES = [
+    { key: "minor", name: "minor/major", color: "--s-feat" },
+    { key: "patch", name: "patch", color: "--s-fix" },
+  ];
+  stackedColumns(cre, relRows.map((r, i) => ({ ...r })), REL_SERIES, wLabels,
+    { head: (l, row) => "week of " + monthShort(l) +
+        (row.hotfix ? ` · ${row.hotfix} hotfix${row.hotfix > 1 ? "es" : ""}` : "") });
+  legend(cre, REL_SERIES);
+  tableView(cre, ["week", "minor/major", "patch", "of which hotfix"],
+    wLabels.map((w, i) => [w, relRows[i].minor, relRows[i].patch, relRows[i].hotfix]));
+
+  /* regressions */
+  mkTable(document.getElementById("c-regr"),
+    ["Fix", "Patched feature", "Gap"],
+    d.regressions.map(r => [
+      r.fix_pr ? { href: d.repoUrl + "/pull/" + r.fix_pr, text: "#" + r.fix_pr + " " + r.fix } : r.fix,
+      r.feat_pr ? { href: d.repoUrl + "/pull/" + r.feat_pr, text: "#" + r.feat_pr } : "—",
+      r.days === 0 ? "same day" : r.days + "d",
+    ]), { numFrom: 2 });
+
+  /* incidents */
+  const inc = document.getElementById("c-inc");
+  mkTable(inc, ["Hotfix release", "Date", "After previous"],
+    d.hotfixes.slice(-8).reverse().map(hf =>
+      [{ code: "v" + hf.version }, hf.date, hf.hours_since_prev + "h"]), { numFrom: 1 });
+  if (d.reverts.length) {
+    const p = h("p", { class: "desc", text: "Reverts:" }, inc);
+    mkTable(inc, ["PR", "Date", "What"], d.reverts.map(r =>
+      [r.pr ? { href: d.repoUrl + "/pull/" + r.pr, text: "#" + r.pr } : "—",
+       r.date, r.desc]));
+  }
+
+  /* chains */
+  mkTable(document.getElementById("c-chains"),
+    ["Scope", "Fixes", "Window"],
+    d.chains.map(c => [{ code: c.scope }, c.count, c.start + " → " + c.end]),
+    { numFrom: 1 });
+
+  /* hotspots */
+  mkTable(document.getElementById("c-hot"),
+    ["File", "Changes"],
+    d.hotspots.map(hs => [{ code: hs.path }, hs.changes]), { numFrom: 1 });
+
+  /* components */
+  const comps = Object.entries(d.components)
+    .filter(([k, v]) => v.loc > 0)
+    .sort((a, b) => b[1].loc - a[1].loc);
+  hBars(document.getElementById("c-comp"),
+    comps.map(([k, v]) => ({ label: k, value: v.loc })));
+  tableView(document.getElementById("c-comp"), ["component", "LOC", "files"],
+    comps.map(([k, v]) => [k, v.loc, v.files]));
+
+  /* health table + cruft */
+  const ch = document.getElementById("c-health");
+  mkTable(ch, ["Component", "Files", "Test files", "Test LOC"],
+    comps.map(([k, v]) => [k, v.files, v.test_files, v.test_loc]), { numFrom: 1 });
+  if (d.cruft.length) {
+    h("p", { class: "desc", text: "Cruft — candidates for deletion:" }, ch);
+    const ul = h("ul", { style: "margin:4px 0 10px;padding-left:18px;font-size:12.5px" }, ch);
+    for (const c of d.cruft) {
+      const li = h("li", {}, ul);
+      h("code", { text: c }, li);
+    }
+  }
+
+  /* runs */
+  mkTable(document.getElementById("c-runs"),
+    ["Snapshot", "Units", "fix:feat", "Net code LOC", "Releases", "Regression fixes"],
+    d.runs.map((r, i) => {
+      const prev = i > 0 ? d.runs[i - 1] : null;
+      const dlt = (k) => prev ? ` (+${fmtN(r[k] - prev[k])})` : "";
+      return [r.generated, fmtN(r.units) + dlt("units"), r.fix_per_feat,
+        fmtN(r.net_code) + dlt("net_code"), fmtN(r.releases) + dlt("releases"),
+        fmtN(r.regression_fixes) + dlt("regression_fixes")];
+    }), { numFrom: 1 });
+})();
+</script>
