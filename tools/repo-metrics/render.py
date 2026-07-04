@@ -28,7 +28,7 @@ MODEL_INFO = {
     "Claude (unversioned)": "Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers.",
     "Claude (moonshotai/kimi-k2.5)": "A third-party model (Moonshot Kimi K2.5) driven through a Claude-Code-style harness.",
     "GitHub Copilot": "GitHub's autonomous coding agent (copilot-swe-agent) — assigned issues/PRs directly on GitHub.",
-    "Android Dev alias": "Commit persona used by the opencode Android subagents (android-dev@bibleinspiration.app).",
+    "Android Dev alias": "Commit persona used by the opencode Android subagents (`android-dev@bibleinspiration.app`).",
     "opencode/minimax-m2.5-free": "MiniMax M2.5 via the opencode gateway — implementation model for opencode specialist subagents.",
     "openrouter/qwen/qwen3-coder": "Alibaba Qwen3-Coder via OpenRouter — the opencode android-gemini subagent's model.",
     "github-copilot/claude-opus-4.6": "Claude Opus 4.6 accessed through the GitHub Copilot provider — the opencode orchestrator model.",
