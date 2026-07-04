@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.37.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.36.0...v1.37.0) (2026-07-04)
+
+
+### Features
+
+* **metrics:** add repo productivity analytics tool, dashboard and monthly workflow ([#813](https://github.com/zioalex/getinspiredbythebible/issues/813)) ([e53c559](https://github.com/zioalex/getinspiredbythebible/commit/e53c559eef0dde662bf71cf85a95bd1008c0565d))
+* **metrics:** audit trend framework — tools/audit-metrics with report, dashboard and workflow ([#817](https://github.com/zioalex/getinspiredbythebible/issues/817)) ([6556c88](https://github.com/zioalex/getinspiredbythebible/commit/6556c8848485512c3fcac49bac896d894052ff4d))
+
+
+### Bug Fixes
+
+* **api:** repair weekly report 500 and harden its workflow ([#815](https://github.com/zioalex/getinspiredbythebible/issues/815)) ([0a6b26d](https://github.com/zioalex/getinspiredbythebible/commit/0a6b26ddab11e1249fd438e3bbfd1f4cdd58ffda))
+* **BITB-060:** stop email service from blocking the event loop ([#814](https://github.com/zioalex/getinspiredbythebible/issues/814)) ([5737889](https://github.com/zioalex/getinspiredbythebible/commit/57378894d868cfa1f29eec8cb4fa31fe4e2a8c63))
+
 ## [1.36.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.35.0...v1.36.0) (2026-07-03)
 
 ### Features
