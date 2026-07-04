@@ -557,7 +557,7 @@ class TestFeedbackRoutes:
             assistant_response="response",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             result = await submit_feedback(request, mock_repo)
             mock_email.send_feedback_notification.assert_called_once()
 
@@ -625,7 +625,7 @@ class TestFeedbackRoutes:
             email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = True
             result = await submit_contact(request, mock_repo)
 
@@ -652,7 +652,7 @@ class TestFeedbackRoutes:
             email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = False
             result = await submit_contact(request, mock_repo)
 
