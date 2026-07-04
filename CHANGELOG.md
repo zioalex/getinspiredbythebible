@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.38.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.37.0...v1.38.0) (2026-07-04)
+
+
+### Features
+
+* **claude:** add risk-auditor subagent for the adversarial risk audit ([#819](https://github.com/zioalex/getinspiredbythebible/issues/819)) ([5381297](https://github.com/zioalex/getinspiredbythebible/commit/538129765c9cfab7d26e43adda9549c31517375b))
+
 ## [1.37.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.36.0...v1.37.0) (2026-07-04)
 
 ### Features
