@@ -150,6 +150,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
         return action
 
     db.execute = AsyncMock(side_effect=execute)
+    db.rollback = AsyncMock()
 
     report = await build_weekly_report(db, now=NOW)
 
@@ -161,6 +162,9 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
     assert report.engagement.top_languages == []
     assert report.new_sessions_prev == 0
     assert db.execute.await_count == 5
+    # The failed sessions query aborts the transaction; the fallback must roll
+    # it back or the remaining queries die with InFailedSQLTransaction.
+    db.rollback.assert_awaited_once()
 
 
 def _report_with_comment(comment: str) -> WeeklyReport:

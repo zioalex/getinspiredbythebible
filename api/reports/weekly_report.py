@@ -258,6 +258,10 @@ async def build_weekly_report(
     except ProgrammingError as exc:
         if not _is_missing_sessions_schema(exc):
             raise
+        # The failed statement leaves the transaction aborted (SQLSTATE 25P02);
+        # without a rollback the remaining queries in this session would all
+        # fail with InFailedSQLTransaction and turn into a 500.
+        await db.rollback()
         logger.warning(
             "Weekly report sessions analytics unavailable; falling back to zero engagement stats",
             extra={"error": str(exc)},

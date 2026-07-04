@@ -10,6 +10,9 @@ name: Weekly Report
 # Postgres cannot send email, so the schedule lives here rather than in
 # pg_cron; the backend (which already has DB + SMTP configured) does the work.
 #
+# Full architecture, configuration, and troubleshooting guide:
+#   docs/WEEKLY_REPORT.md
+#
 # Required repo secrets:
 #   MONITOR_PROBE_SECRET - shared secret; must match settings.monitor_probe_secret
 #                          in the deployed backend (same one prod-monitor uses).
@@ -45,7 +48,7 @@ jobs:
   weekly-report:
     name: Send weekly digest
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Trigger weekly report
         env:
@@ -53,17 +56,69 @@ jobs:
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: |
           set -o pipefail
-          resp=$(curl -fsS --max-time 60 -X POST \
-            "${BACKEND_URL%/}/api/v1/admin/weekly-report?dry_run=${DRY_RUN}" \
-            -H "X-Monitor-Probe-Secret: ${MONITOR_PROBE_SECRET}")
-          echo "$resp" | jq '{dry_run, email_sent}' || echo "$resp"
-          # Fail the job if a live run did not actually send the email
-          # (e.g. SMTP disabled/misconfigured in the backend).
+
+          if [ -z "$MONITOR_PROBE_SECRET" ]; then
+            echo "::error::MONITOR_PROBE_SECRET secret is not set on the repository;" \
+              "the backend would reject the request with 401. See docs/WEEKLY_REPORT.md."
+            exit 1
+          fi
+
+          url="${BACKEND_URL%/}/api/v1/admin/weekly-report?dry_run=${DRY_RUN}"
+
+          # Retry only transient failures: connection errors (curl exit != 0 ->
+          # http_code=000) and 502/503/504 (gateway / Container Apps cold start).
+          # A 500 is a real backend bug and is NOT retried, both to fail loudly
+          # and to avoid any duplicate-email edge case.
+          attempt=1
+          max_attempts=3
+          while :; do
+            http_code=$(curl -sS -o resp.json -w '%{http_code}' --max-time 60 -X POST \
+              "$url" -H "X-Monitor-Probe-Secret: ${MONITOR_PROBE_SECRET}") || http_code=000
+
+            if [ "$http_code" = "200" ]; then
+              break
+            fi
+
+            case "$http_code" in
+              000|502|503|504)
+                if [ "$attempt" -lt "$max_attempts" ]; then
+                  echo "Attempt ${attempt}/${max_attempts} got HTTP ${http_code}; retrying in $((attempt * 15))s..."
+                  sleep $((attempt * 15))
+                  attempt=$((attempt + 1))
+                  continue
+                fi
+                ;;
+            esac
+
+            echo "::error::weekly-report request failed with HTTP ${http_code} (see docs/WEEKLY_REPORT.md)"
+            echo "Response body:"
+            cat resp.json 2>/dev/null || echo "(no response body)"
+            exit 1
+          done
+
+          echo "Backend response:"
+          jq '{dry_run, email_sent}' resp.json
+
+          {
+            echo "### Weekly report"
+            echo ""
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| HTTP status | ${http_code} |"
+            echo "| dry_run | $(jq -r '.dry_run' resp.json) |"
+            echo "| email_sent | $(jq -r '.email_sent' resp.json) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
           if [ "$DRY_RUN" = "true" ]; then
-            echo "$resp" | jq -e '.dry_run == true' > /dev/null
+            jq -e '.dry_run == true' resp.json > /dev/null || {
+              echo "::error::backend did not honor dry_run=true"
+              exit 1
+            }
           else
-            echo "$resp" | jq -e '.email_sent == true' > /dev/null || {
-              echo "::error::weekly report did not send (email_sent != true)"
+            # Fail the job if a live run did not actually send the email
+            # (e.g. SMTP disabled/misconfigured in the backend).
+            jq -e '.email_sent == true' resp.json > /dev/null || {
+              echo "::error::weekly report did not send (email_sent != true) — check backend SMTP configuration"
               exit 1
             }
           fi
