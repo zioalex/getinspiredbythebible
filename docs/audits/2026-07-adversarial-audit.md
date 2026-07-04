@@ -18,7 +18,8 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 4. **The public semantic-search endpoint runs the exact full-scan predicate the hybrid path was rewritten to avoid**, on a 2-vCPU/4GB Postgres that the team's own migration notes admit may thrash. *(S2, S5)*
 5. **A total LLM outage returns generic 500s instead of the intended 503**, because the route matches an error substring the provider never emits. The one scenario the fallback chain was built for is the one it misreports. *(E1)*
 
-**Finding counts:** 2 CRITICAL · 12 HIGH · 16 MEDIUM · 6 LOW.
+**Finding counts:** 47 findings — 2 CRITICAL · 15 HIGH · 24 MEDIUM · 6 LOW.
+*(Corrected from an initial hand-count of 36; the tally is now machine-verified by `tools/audit-metrics/`.)*
 
 ---
 

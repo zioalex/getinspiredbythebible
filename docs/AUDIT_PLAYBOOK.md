@@ -92,4 +92,12 @@ Rank by **blast radius × likelihood**. A finding without a concrete failure sce
 
 ## Baseline
 
-The first report is `docs/audits/2026-07-adversarial-audit.md` (36 findings: 2 CRITICAL, 12 HIGH, 16 MEDIUM, 6 LOW). All future runs diff against the latest report in that directory.
+The first report is `docs/audits/2026-07-adversarial-audit.md` (47 findings: 2 CRITICAL, 15 HIGH, 24 MEDIUM, 6 LOW — machine-verified by `tools/audit-metrics/`). All future runs diff against the latest report in that directory.
+
+## Metrics & trends
+
+`tools/audit-metrics/` (companion to `tools/repo-metrics/`) turns the audit history into a trend: a weighted risk score per report, hotspot-file line counts, and hygiene counters, rendered as `docs/audits/metrics/report.md` and a dashboard at `docs/audits/metrics/index.html`.
+
+- Run `make audit-metrics` after every `/risk-audit` so each report gets a same-day snapshot.
+- The `audit-metrics.yml` workflow also snapshots monthly and whenever a new audit report lands on `main`, so hotspot/hygiene drift stays visible between audits.
+- When a finding is fixed or a new monolith appears, update `HOTSPOTS` / `HYGIENE_COUNTERS` at the top of `tools/audit-metrics/analyze.py` (keep them in sync with the parity ledger above).
