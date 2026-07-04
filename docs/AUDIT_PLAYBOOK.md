@@ -17,7 +17,9 @@ In Claude Code, from the repo root:
 
 The command (defined in `.claude/commands/risk-audit.md`) carries the full persona, procedure, output protocol, and diff rules. It reads this playbook for scope and severity. To run the audit with a different AI tool or a human reviewer, hand them both files.
 
-Budget: a thorough run reads several hundred files. Expect it to take a while; parallel read-only subagents (one per area below) keep it tractable.
+Budget: a thorough run reads several hundred files. Expect it to take a while; the command delegates each of the four areas to a parallel `risk-auditor` subagent (`.claude/agents/risk-auditor.md`) to keep it tractable.
+
+For a narrower or delegated audit that shouldn't touch `docs/audits/` or git — e.g. "just audit `api/` for this PR", or a check run from another agent/task — invoke the `risk-auditor` subagent directly (Agent tool, `subagent_type: risk-auditor`). It carries the same persona, checklists, and output format as the command but is strictly read-only: it returns the report as text instead of writing and committing it.
 
 ## Scope map & per-area checklists
 
