@@ -43,8 +43,7 @@ async def trigger_weekly_report(
             "[Vox Quieta] Weekly Activity Digest — "
             f"{report.window_start:%Y-%m-%d} to {report.window_end:%Y-%m-%d}"
         )
-        # send_email is synchronous (httpx.Client) — do not await.
-        email_sent = email_service.send_email(
+        email_sent = await email_service.send_email(
             to_email=settings.weekly_report_recipient,
             subject=subject,
             body_text=render_text(report),
