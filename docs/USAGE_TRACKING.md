@@ -15,8 +15,11 @@ us a stable "user" identifier for DAU/MAU counting without requiring sign-up.
 
 ### Sessions Table
 
-Each chat request upserts a row in the `sessions` table
-(`scripts/init.sql`). Columns:
+Each chat request upserts a row in the `sessions` table. The table is created
+by `scripts/init.sql` on fresh databases and by
+`scripts/migrations/008_add_sessions_table.sql` on existing ones (production
+predates the table, so only the migration creates it there). It also feeds the
+weekly digest email — see [WEEKLY_REPORT.md](WEEKLY_REPORT.md). Columns:
 
 | Column | Type | Purpose |
 |--------|------|---------|

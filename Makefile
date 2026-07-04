@@ -5,7 +5,7 @@
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	repo-metrics
+	repo-metrics audit-metrics
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -836,3 +836,9 @@ repo-metrics: ## Regenerate repo productivity dashboard + report (docs/metrics/)
 	@$(PYTHON_VERSION) tools/repo-metrics/analyze.py
 	@$(PYTHON_VERSION) tools/repo-metrics/render.py
 	@echo "$(GREEN)✓ docs/metrics/index.html and docs/metrics/report.md updated$(NC)"
+
+audit-metrics: ## Regenerate audit trend dashboard + report (docs/audits/metrics/) from audit reports
+	@echo "$(BLUE)Analyzing audit reports and worktree...$(NC)"
+	@$(PYTHON_VERSION) tools/audit-metrics/analyze.py
+	@$(PYTHON_VERSION) tools/audit-metrics/render.py
+	@echo "$(GREEN)✓ docs/audits/metrics/index.html and docs/audits/metrics/report.md updated$(NC)"

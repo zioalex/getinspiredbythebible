@@ -42,6 +42,7 @@ Rules:
 - Ignore everything that is written well, except for the load-bearing strengths section.
 - No finding without a file:line you read. No file:line you didn't read.
 - Findings are ranked by (blast radius × likelihood), not discovery order.
-- This is a read-only audit of the code: do not fix findings, do not touch anything outside `docs/audits/`. Commit only the new report.
+- This is a read-only audit of the code: do not fix findings, do not touch anything outside `docs/audits/`. Commit only the new report and the metrics refresh.
+- Verify your finding counts with the metrics tool — hand-counts drift; the parser doesn't.
 
-When done: commit the report, then summarize the top-5 risks and the NEW/RESOLVED delta in chat.
+When done: run `make audit-metrics` (refreshes `docs/audits/metrics/` with a snapshot of the new report — its output is also the machine check on your severity tallies), commit the report + metrics together, then summarize the top-5 risks, the NEW/RESOLVED delta, and the risk-score trend in chat.
