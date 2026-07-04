@@ -13,6 +13,11 @@ Python, dated JSON snapshots, rendered report + self-contained dashboard).
 | `index.html` | Self-contained dashboard with trend lines (open locally) |
 | `history/YYYY-MM-DD.json` | Dated snapshot — accumulates so runs can be compared over time |
 
+On the shared GitHub Pages site the dashboard is published under
+**`/audit/`** (the coding-analysis dashboard from `tools/repo-metrics/`
+owns the root). Both `repo-metrics.yml` and `audit-metrics.yml` assemble
+and deploy the combined site, so either refresh publishes both.
+
 ## Run it
 
 ```sh

@@ -96,7 +96,7 @@ The first report is `docs/audits/2026-07-adversarial-audit.md` (47 findings: 2 C
 
 ## Metrics & trends
 
-`tools/audit-metrics/` (companion to `tools/repo-metrics/`) turns the audit history into a trend: a weighted risk score per report, hotspot-file line counts, and hygiene counters, rendered as `docs/audits/metrics/report.md` and a dashboard at `docs/audits/metrics/index.html`.
+`tools/audit-metrics/` (companion to `tools/repo-metrics/`) turns the audit history into a trend: a weighted risk score per report, hotspot-file line counts, and hygiene counters, rendered as `docs/audits/metrics/report.md` and a dashboard at `docs/audits/metrics/index.html` (published on the GitHub Pages site under `/audit/`, next to the coding-analysis dashboard at the root).
 
 - Run `make audit-metrics` after every `/risk-audit` so each report gets a same-day snapshot.
 - The `audit-metrics.yml` workflow also snapshots monthly and whenever a new audit report lands on `main`, so hotspot/hygiene drift stays visible between audits.
