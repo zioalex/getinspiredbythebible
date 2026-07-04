@@ -2,6 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.38.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.37.0...v1.38.0) (2026-07-04)
+
+### Features
+
+* **claude:** add risk-auditor subagent for the adversarial risk audit ([#819](https://github.com/zioalex/getinspiredbythebible/issues/819)) ([5381297](https://github.com/zioalex/getinspiredbythebible/commit/538129765c9cfab7d26e43adda9549c31517375b))
+
+## [1.37.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.36.0...v1.37.0) (2026-07-04)
+
+### Features
+
+* **metrics:** add repo productivity analytics tool, dashboard and monthly workflow ([#813](https://github.com/zioalex/getinspiredbythebible/issues/813)) ([e53c559](https://github.com/zioalex/getinspiredbythebible/commit/e53c559eef0dde662bf71cf85a95bd1008c0565d))
+* **metrics:** audit trend framework — tools/audit-metrics with report, dashboard and workflow ([#817](https://github.com/zioalex/getinspiredbythebible/issues/817)) ([6556c88](https://github.com/zioalex/getinspiredbythebible/commit/6556c8848485512c3fcac49bac896d894052ff4d))
+
+### Bug Fixes
+
+* **api:** repair weekly report 500 and harden its workflow ([#815](https://github.com/zioalex/getinspiredbythebible/issues/815)) ([0a6b26d](https://github.com/zioalex/getinspiredbythebible/commit/0a6b26ddab11e1249fd438e3bbfd1f4cdd58ffda))
+* **BITB-060:** stop email service from blocking the event loop ([#814](https://github.com/zioalex/getinspiredbythebible/issues/814)) ([5737889](https://github.com/zioalex/getinspiredbythebible/commit/57378894d868cfa1f29eec8cb4fa31fe4e2a8c63))
+
+## [1.36.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.35.0...v1.36.0) (2026-07-03)
+
+### Features
+
+* **api:** per-translation data observability + honest unresolved citations (BITB-054) ([#803](https://github.com/zioalex/getinspiredbythebible/issues/803)) ([5b17abf](https://github.com/zioalex/getinspiredbythebible/commit/5b17abfb64ef1f924d20435bd51b42ef5c5d013e))
+* **web+android:** one-tap copy of user prompt (BITB-047) ([#771](https://github.com/zioalex/getinspiredbythebible/issues/771)) ([535822b](https://github.com/zioalex/getinspiredbythebible/commit/535822b843fb92fb6da781503de762cce78cfd03))
+
+### Bug Fixes
+
+* **api:** prevent weekly digest crash on missing session analytics ([#811](https://github.com/zioalex/getinspiredbythebible/issues/811)) ([28b0efb](https://github.com/zioalex/getinspiredbythebible/commit/28b0efb1421ccc99c92a0a13169bb362ab662f46))
+
+## [1.35.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.4...v1.35.0) (2026-07-03)
+
+### Features
+
+* **android:** negative-feedback reason chips (BITB-042) ([#783](https://github.com/zioalex/getinspiredbythebible/issues/783)) ([3c603e5](https://github.com/zioalex/getinspiredbythebible/commit/3c603e5c2822f6ec6301823fe69f8b89eac0a703))
+* **api:** address user's specific focus and improve prophetic-justice expansion (BITB-050) ([#758](https://github.com/zioalex/getinspiredbythebible/issues/758)) ([72c18fc](https://github.com/zioalex/getinspiredbythebible/commit/72c18fc604d2054b573fb5024ade6b5ca253864f))
+* **web:** surface Bible version as amber chip badge in header (BITB-029) ([#763](https://github.com/zioalex/getinspiredbythebible/issues/763)) ([2da373a](https://github.com/zioalex/getinspiredbythebible/commit/2da373a5f7c3976f0e8ecb4b5b2f3ebfce96747e))
+
+### Documentation
+
+* **audit:** adversarial risk audit baseline, periodic playbook, /risk-audit command, and top-5 backlog stories ([#809](https://github.com/zioalex/getinspiredbythebible/issues/809)) ([d53ca8c](https://github.com/zioalex/getinspiredbythebible/commit/d53ca8cf9773f5851f4f707e55e5f24f7075d950))
+
+## [1.34.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.3...v1.34.4) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** link references everywhere via string-level linkify (web) ([#806](https://github.com/zioalex/getinspiredbythebible/issues/806)) ([7a0cd03](https://github.com/zioalex/getinspiredbythebible/commit/7a0cd03a2870e7a0b435b7c29f15e3f39a043ce7))
+
+## [1.34.3](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.2...v1.34.3) (2026-07-02)
+
+### Bug Fixes
+
+* **verse-links:** accept comma chapter-verse separator (de/fr/it citations) ([#804](https://github.com/zioalex/getinspiredbythebible/issues/804)) ([5ccb9ed](https://github.com/zioalex/getinspiredbythebible/commit/5ccb9ed1903c6efec49a21138af341c7223455c2))
+
+## [1.34.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.1...v1.34.2) (2026-07-01)
+
+### Bug Fixes
+
+* **verse-links:** recover references hidden by greedy over-matches (web + android) ([#801](https://github.com/zioalex/getinspiredbythebible/issues/801)) ([0c6396d](https://github.com/zioalex/getinspiredbythebible/commit/0c6396ded48ae80ffa7a263cbc7487a67921395f))
+
+## [1.34.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.0...v1.34.1) (2026-07-01)
+
+### Bug Fixes
+
+* safe-filter false positive on German Bible references ([#799](https://github.com/zioalex/getinspiredbythebible/issues/799)) ([6e72186](https://github.com/zioalex/getinspiredbythebible/commit/6e7218623e55df08bbc131200b888783195f442e))
+
+## [1.34.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.1...v1.34.0) (2026-07-01)
+
+### Features
+
+* **resilience:** embedding circuit breaker + fail-closed scripture grounding (BITB-057/058) ([#797](https://github.com/zioalex/getinspiredbythebible/issues/797)) ([30392f6](https://github.com/zioalex/getinspiredbythebible/commit/30392f64c8a2e619252e131e866d8da3780fc5a4))
+
+## [1.33.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.33.0...v1.33.1) (2026-06-30)
+
+### Bug Fixes
+
+* **api+ci:** stop readiness-probe flapping; bound + observe upstream dependencies ([#796](https://github.com/zioalex/getinspiredbythebible/issues/796)) ([7d4d73e](https://github.com/zioalex/getinspiredbythebible/commit/7d4d73e7c73fb9bce3974fdf79b2564ad3cd2033))
+* **content-filter:** stop blocking ellipses and surface blocked message on Android ([#792](https://github.com/zioalex/getinspiredbythebible/issues/792)) ([a20ed05](https://github.com/zioalex/getinspiredbythebible/commit/a20ed051e0845ebd8302199bad8c9d1b2e1b092a))
+
+## [1.33.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.1...v1.33.0) (2026-06-26)
+
+### Features
+
+* **db:** move hnsw.ef_search tuning from migration to connection pool ([#789](https://github.com/zioalex/getinspiredbythebible/issues/789)) ([1787b2f](https://github.com/zioalex/getinspiredbythebible/commit/1787b2f1786f98ce084ffb98152bb98ca7a89bc9))
+* **monitoring:** actionable ERROR-level backend alert + DB saturation detection (BITB-056) ([#788](https://github.com/zioalex/getinspiredbythebible/issues/788)) ([ddf4167](https://github.com/zioalex/getinspiredbythebible/commit/ddf4167110458d00e4c58fd4e89d87ead7968877))
+
+## [1.32.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.32.0...v1.32.1) (2026-06-25)
+
+### Performance Improvements
+
+* **search:** partial HNSW indexes, DB pool, B2s SKU + concurrency test ([#784](https://github.com/zioalex/getinspiredbythebible/issues/784)) ([e2a4dcc](https://github.com/zioalex/getinspiredbythebible/commit/e2a4dcce1593488f44b1680c544cbfdf0efc698b))
+
+## [1.32.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.1...v1.32.0) (2026-06-23)
+
+### Features
+
+* **api+ci:** instrument scripture pipeline for silent-failure detection (BITB-055) ([#778](https://github.com/zioalex/getinspiredbythebible/issues/778)) ([fdee9d4](https://github.com/zioalex/getinspiredbythebible/commit/fdee9d461e9ec117cdef228e39ff69b6bd91a3e0))
+
+### Performance Improvements
+
+* **api:** parallelize query embed with expansion to trim TTFT ([#776](https://github.com/zioalex/getinspiredbythebible/issues/776)) ([f12b673](https://github.com/zioalex/getinspiredbythebible/commit/f12b673bc82c9d71c0b133bbf09493bae1eb09b1))
+
+## [1.31.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.31.0...v1.31.1) (2026-06-23)
+
+### Bug Fixes
+
+* **frontend:** self-heal Turnstile widget and recover gated POSTs from 403 ([#781](https://github.com/zioalex/getinspiredbythebible/issues/781)) ([475b6c9](https://github.com/zioalex/getinspiredbythebible/commit/475b6c976b4941fe528b3775c8485a97caf98d77))
+* recover Turnstile widget to stop chat retry and bug-report 403s ([#779](https://github.com/zioalex/getinspiredbythebible/issues/779)) ([42ea0cb](https://github.com/zioalex/getinspiredbythebible/commit/42ea0cb25e9d23f6c4076e597d54441a2a8a5f19))
+
+## [1.31.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.1...v1.31.0) (2026-06-22)
+
+### Features
+
+* **api:** add typo-tolerance guidance to all system prompts (BITB-045) ([#756](https://github.com/zioalex/getinspiredbythebible/issues/756)) ([2f0a3da](https://github.com/zioalex/getinspiredbythebible/commit/2f0a3da38cd998f851c473fa915771f912199b6d))
+
+### Bug Fixes
+
+* **android:** dismiss keyboard on send and always start fresh chat (BITB-048/049) ([#751](https://github.com/zioalex/getinspiredbythebible/issues/751)) ([68c7b47](https://github.com/zioalex/getinspiredbythebible/commit/68c7b47cdbe17f36cebac1ddcb31360717b85bb0))
+
 ## [1.30.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.30.0...v1.30.1) (2026-06-21)
 
 ### Performance Improvements

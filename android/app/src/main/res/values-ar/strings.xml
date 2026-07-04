@@ -116,6 +116,7 @@
     <string name="error_network">خطأ في الشبكة. يرجى التحقق من الاتصال.</string>
     <string name="error_timeout">انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.</string>
     <string name="error_server">خطأ في الخادم. يرجى المحاولة لاحقاً.</string>
+    <string name="error_verification">تعذّر التحقق من جهازك. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.</string>
     <string name="error_generic">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
     <string name="error_message_too_long">رسالتك طويلة بعض الشيء (الحد الأقصى %1$d حرفًا). يرجى اختصارها والمحاولة مرة أخرى.</string>
     <string name="error_contact_email_invalid">يرجى إدخال بريد إلكتروني صالح حتى نتمكن من الرد.</string>
@@ -201,6 +202,12 @@
     <string name="feedback_send">إرسال</string>
     <string name="feedback_sending">جارٍ إرسال الملاحظات…</string>
     <string name="feedback_maintainer_notice">ستتم مشاركة رسالتك مع مشرف التطبيق.</string>
+    <string name="feedback_reason_prompt">ماذا حدث خطأ؟</string>
+    <string name="feedback_reason_inaccurate">غير دقيق</string>
+    <string name="feedback_reason_unhelpful">غير مفيد</string>
+    <string name="feedback_reason_wrong_verse">آية خاطئة</string>
+    <string name="feedback_reason_tone">الأسلوب</string>
+    <string name="feedback_reason_other">أخرى</string>
     <string name="backend_warming_up">جارٍ الاتصال بالخادم… (قد يستغرق الطلب الأول حتى 30 ثانية)</string>
     <string name="action_scroll_to_bottom">التمرير إلى الأسفل</string>
 

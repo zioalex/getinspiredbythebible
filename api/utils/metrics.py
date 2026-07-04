@@ -67,6 +67,18 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
+# ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
+# A supported UI language whose backing translation has zero verses (never
+# loaded) or zero embeddings (loaded but unsearchable) degrades silently —
+# empty search results, or citations grounding can never resolve. Checked at
+# startup (api/main.py) and on-demand via the admin diagnostic endpoint
+# (routes/admin.py), both backed by scripture/coverage.py.
+translation_data_missing_counter = meter.create_counter(
+    name="scripture.translation_data.missing",
+    description="Supported language whose backing translation has zero verses or zero embeddings",
+    unit="1",
+)  # attributes: language, translation, problem (no_verses|no_embeddings)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",
@@ -85,6 +97,28 @@ scripture_fetch_errors_counter = meter.create_counter(
     description="Verse/chapter fetch failures by reason (timeout/db_error/empty_text) and endpoint",
     unit="1",
 )
+
+# ── Scripture pipeline failure counters (BITB-055) ───────────────────────
+# Emitted by the three fail-open exception handlers in chat/service.py so
+# silent pipeline degradations surface as explicit metrics rather than
+# disappearing into swallowed log lines.
+scripture_pipeline_errors_counter = meter.create_counter(
+    name="scripture.pipeline.errors",
+    description="Fail-open exceptions in the chat scripture pipeline (stage: search/resolve/grounding)",
+    unit="1",
+)  # attributes: stage (search|resolve|grounding), error_type
+
+chat_verseless_responses_counter = meter.create_counter(
+    name="chat.responses.verseless",
+    description="Chat responses with include_search=True but zero DB context verses AND zero resolved citations",
+    unit="1",
+)  # attributes: language
+
+chat_scripture_unavailable_counter = meter.create_counter(
+    name="chat.responses.scripture_unavailable",
+    description="Scripture-seeking chat requests answered fail-closed (BITB-058) because no scripture could be retrieved",
+    unit="1",
+)  # attributes: language
 
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
@@ -181,6 +215,15 @@ llama_guard_fallback_counter = meter.create_counter(
 openrouter_fallback_counter = meter.create_counter(
     name="openrouter.fallback_total",
     description="Count of OpenRouter primary-model failures that triggered client-side fallback",
+    unit="1",
+)
+
+embedding_fallback_counter = meter.create_counter(
+    name="embedding.fallback_total",
+    description=(
+        "Count of embedding provider retries, timeouts, and circuit-open events "
+        "handled by ResilientEmbeddingProvider"
+    ),
     unit="1",
 )
 

@@ -116,6 +116,7 @@
     <string name="error_network">Ошибка сети. Проверьте подключение.</string>
     <string name="error_timeout">Запрос истёк. Повторите попытку.</string>
     <string name="error_server">Ошибка сервера. Повторите попытку позже.</string>
+    <string name="error_verification">Не удалось подтвердить ваше устройство. Подождите немного и попробуйте снова.</string>
     <string name="error_generic">Что-то пошло не так. Повторите попытку.</string>
     <string name="error_message_too_long">Ваше сообщение слишком длинное (максимум %1$d символов). Сократите его и попробуйте снова.</string>
     <string name="error_contact_email_invalid">Введите действительный email, чтобы мы могли ответить.</string>
@@ -201,6 +202,12 @@
     <string name="feedback_send">Отправить</string>
     <string name="feedback_sending">Отправка отзыва…</string>
     <string name="feedback_maintainer_notice">Ваше сообщение будет передано ответственному за приложение.</string>
+    <string name="feedback_reason_prompt">Что пошло не так?</string>
+    <string name="feedback_reason_inaccurate">Неточно</string>
+    <string name="feedback_reason_unhelpful">Бесполезно</string>
+    <string name="feedback_reason_wrong_verse">Неверный стих</string>
+    <string name="feedback_reason_tone">Тон</string>
+    <string name="feedback_reason_other">Другое</string>
     <string name="backend_warming_up">Подключение к серверу… (первый запрос может занять до 30 с)</string>
     <string name="action_scroll_to_bottom">Прокрутить вниз</string>
 

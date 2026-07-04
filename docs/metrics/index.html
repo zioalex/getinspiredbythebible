@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; background: #f9f9f7; }
+  @media (prefers-color-scheme: dark) { body { background: #0d0d0d; } }
+</style>
+</head>
+<body>
+<title>Repo productivity — Vox Quieta</title>
+<style>
+  .mx-root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --ink-1: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --good: #006300;
+    --s-feat: #2a78d6;
+    --s-fix: #1baf7a;
+    --s-build: #eda100;
+    --s-ci: #008300;
+    --s-docs: #4a3aa7;
+    --s-other: #e34948;
+    --seq: #2a78d6;
+    --div-pos: #2a78d6;
+    --div-neg: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    .mx-root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --ink-1: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-3: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --good: #0ca30c;
+      --s-feat: #3987e5;
+      --s-fix: #199e70;
+      --s-build: #c98500;
+      --s-ci: #008300;
+      --s-docs: #9085e9;
+      --s-other: #e66767;
+      --seq: #3987e5;
+      --div-pos: #3987e5;
+      --div-neg: #e66767;
+    }
+  }
+  :root[data-theme="light"] .mx-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7; --ink-1: #0b0b0b; --ink-2: #52514e;
+    --ink-3: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10); --good: #006300;
+    --s-feat: #2a78d6; --s-fix: #1baf7a; --s-build: #eda100; --s-ci: #008300;
+    --s-docs: #4a3aa7; --s-other: #e34948; --seq: #2a78d6;
+    --div-pos: #2a78d6; --div-neg: #e34948;
+  }
+  :root[data-theme="dark"] .mx-root {
+    --surface-1: #1a1a19; --page: #0d0d0d; --ink-1: #ffffff; --ink-2: #c3c2b7;
+    --ink-3: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --border: rgba(255,255,255,0.10); --good: #0ca30c;
+    --s-feat: #3987e5; --s-fix: #199e70; --s-build: #c98500; --s-ci: #008300;
+    --s-docs: #9085e9; --s-other: #e66767; --seq: #3987e5;
+    --div-pos: #3987e5; --div-neg: #e66767;
+  }
+
+  .mx-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink-1);
+    margin: 0;
+    padding: 24px 20px 64px;
+    line-height: 1.45;
+  }
+  .mx-wrap { max-width: 1080px; margin: 0 auto; }
+  .mx-root h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
+  .mx-root h2 { font-size: 15px; font-weight: 650; margin: 40px 0 12px; }
+  .mx-sub { color: var(--ink-2); font-size: 13px; margin: 0 0 24px; }
+  .mx-sub a { color: inherit; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .kpi .lbl { font-size: 12px; color: var(--ink-2); }
+  .kpi .val { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .kpi .note { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px 10px; margin-top: 12px;
+  }
+  .card h3 { font-size: 13.5px; font-weight: 650; margin: 0 0 2px; }
+  .card .desc { font-size: 12px; color: var(--ink-2); margin: 0 0 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); margin: 4px 0 8px; }
+  .legend .it { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend .ln { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+
+  .chart { position: relative; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: inherit; }
+  .tick { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .tip {
+    position: absolute; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14); min-width: 130px;
+  }
+  .tip .t-h { color: var(--ink-2); margin-bottom: 4px; font-size: 11.5px; }
+  .tip .t-r { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .tip .t-k { width: 12px; height: 3px; border-radius: 1px; flex: none; }
+  .tip .t-v { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tip .t-n { color: var(--ink-2); }
+
+  details.tbl { margin: 4px 0 8px; font-size: 12px; color: var(--ink-2); }
+  details.tbl summary { cursor: pointer; }
+  .mx-root table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 6px 0 10px; }
+  .mx-root th { text-align: left; color: var(--ink-2); font-weight: 600; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--grid); }
+  .mx-root td { padding: 5px 10px 5px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .mx-root td.num, .mx-root th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .mx-root code { font-size: 11.5px; background: var(--page); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+  .mx-root a { color: var(--s-feat); text-decoration: none; }
+  .mx-root a:hover { text-decoration: underline; }
+  .scrollx { overflow-x: auto; }
+  .foot { color: var(--ink-3); font-size: 12px; margin-top: 40px; }
+  .foot ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+
+<div class="mx-root">
+  <div class="mx-wrap">
+    <h1>Repo productivity — Vox Quieta</h1>
+    <p class="mx-sub" id="subtitle"></p>
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Velocity</h2>
+    <div class="card">
+      <h3>Work landed per week</h3>
+      <p class="desc">First-parent commits on main by conventional type (release bumps excluded).</p>
+      <div id="c-weekly"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Code lines per week</h3>
+        <p class="desc">Added above the baseline, deleted below. Lockfiles, CHANGELOG and data/ excluded.</p>
+        <div id="c-loc"></div>
+      </div>
+      <div class="card">
+        <h3>Codebase growth</h3>
+        <p class="desc">Cumulative net code lines over time.</p>
+        <div id="c-growth"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Pre-launch vs post-launch</h3>
+      <p class="desc" id="phase-desc"></p>
+      <div class="scrollx" id="c-phases"></div>
+    </div>
+
+    <h2>Quality &amp; errors</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>fix : feat ratio by month</h3>
+        <p class="desc">Above 1.0 means more fixing than building. The most recent month may be partial.</p>
+        <div id="c-ratio"></div>
+      </div>
+      <div class="card">
+        <h3>Releases per week</h3>
+        <p class="desc">Patch releases tagged &lt;24h after the previous one count as hotfixes.</p>
+        <div id="c-rel"></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Fastest regressions</h3>
+        <p class="desc">Fixes landing closest to the feature they patch (≤7 days, same scope or shared file).</p>
+        <div class="scrollx" id="c-regr"></div>
+      </div>
+      <div class="card">
+        <h3>Incidents</h3>
+        <p class="desc">Same-day hotfix releases and reverts.</p>
+        <div class="scrollx" id="c-inc"></div>
+      </div>
+    </div>
+
+    <h2>Churn &amp; rework</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Fix chains</h3>
+        <p class="desc">≥2 fixes on one scope with ≤7-day gaps — features that wouldn't stay fixed.</p>
+        <div class="scrollx" id="c-chains"></div>
+      </div>
+      <div class="card">
+        <h3>Hotspot files</h3>
+        <p class="desc">Code files touched by the most units of work.</p>
+        <div class="scrollx" id="c-hot"></div>
+      </div>
+    </div>
+
+    <h2>Codebase health</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Lines of code by component</h3>
+        <p class="desc">Current snapshot of tracked files.</p>
+        <div id="c-comp"></div>
+      </div>
+      <div class="card">
+        <h3>Tests &amp; cruft</h3>
+        <p class="desc">Test files per component; leftover files that want deleting.</p>
+        <div class="scrollx" id="c-health"></div>
+      </div>
+    </div>
+
+    <h2>Run-over-run</h2>
+    <div class="card">
+      <p class="desc">One row per metrics snapshot — deltas appear as the monthly workflow accumulates history.</p>
+      <div class="scrollx" id="c-runs"></div>
+    </div>
+
+    <div class="foot" id="foot">
+      Methodology:
+      <ul>
+        <li>One unit of work = one first-parent commit on <code>main</code> (squash-merged PR, merge commit, or direct commit); release-please version bumps excluded.</li>
+        <li>Line counts exclude generated files (lockfiles, CHANGELOG) and <code>data/</code>; docs counted separately.</li>
+        <li>Regression fix = fix ≤7 days after a feat sharing scope or a code file — a proxy, not a verdict.</li>
+        <li>Regenerate with <code>make repo-metrics</code>.</li>
+        <li>Audit trend dashboard: <a href="./audit/">./audit/</a> on the published site (repo: <code>docs/audits/metrics/</code>).</li>
+      </ul>
+    </div>
+  </div>
+  <div class="tip" id="tip"></div>
+</div>
+
+<script>
+"use strict";
+const DATA = {"generated":"2026-07-03","range":{"first":"2026-01-18","last":"2026-07-02"},"launch":"2026-05-02","repoUrl":"https://github.com/zioalex/getinspiredbythebible","totals":{"units":610,"release_prs":66,"prs_seen":645,"max_pr":807,"calendar_days":166,"active_days":132,"added_code":126470,"deleted_code":20956,"net_code":105514,"churn_ratio":0.166,"fix_per_feat":1.88,"releases":67,"hotfix_releases":24,"reverts":2,"regression_fixes":158,"regression_fixes_same_scope":57,"fix_chain_count":24},"types":{"fix":245,"feat":130,"build":83,"other":43,"docs":40,"ci":35,"test":14,"refactor":7,"chore":7,"perf":5,"revert":1},"weekly":[{"week":"2026-01-12","units":{"feat":2,"fix":0,"build":1,"ci":0,"docs":0,"other":1},"added":10175,"deleted":4889,"cum_net":5286,"active_days":1},{"week":"2026-01-19","units":{"feat":0,"fix":7,"build":16,"ci":2,"docs":1,"other":5},"added":1577,"deleted":198,"cum_net":6665,"active_days":4},{"week":"2026-01-26","units":{"feat":0,"fix":10,"build":0,"ci":0,"docs":3,"other":7},"added":14986,"deleted":754,"cum_net":20897,"active_days":6},{"week":"2026-02-02","units":{"feat":8,"fix":16,"build":2,"ci":0,"docs":1,"other":3},"added":3182,"deleted":1211,"cum_net":22868,"active_days":7},{"week":"2026-02-09","units":{"feat":5,"fix":6,"build":0,"ci":0,"docs":0,"other":1},"added":5544,"deleted":1414,"cum_net":26998,"active_days":5},{"week":"2026-02-16","units":{"feat":7,"fix":17,"build":14,"ci":0,"docs":8,"other":7},"added":13578,"deleted":458,"cum_net":40118,"active_days":6},{"week":"2026-02-23","units":{"feat":3,"fix":11,"build":3,"ci":1,"docs":1,"other":1},"added":2134,"deleted":286,"cum_net":41966,"active_days":2},{"week":"2026-03-02","units":{"feat":14,"fix":23,"build":8,"ci":5,"docs":4,"other":4},"added":10620,"deleted":1362,"cum_net":51224,"active_days":6},{"week":"2026-03-09","units":{"feat":23,"fix":23,"build":7,"ci":5,"docs":1,"other":6},"added":17923,"deleted":2569,"cum_net":66578,"active_days":7},{"week":"2026-03-16","units":{"feat":5,"fix":6,"build":5,"ci":0,"docs":0,"other":1},"added":2891,"deleted":212,"cum_net":69257,"active_days":6},{"week":"2026-03-23","units":{"feat":4,"fix":5,"build":0,"ci":0,"docs":0,"other":7},"added":4332,"deleted":560,"cum_net":73029,"active_days":4},{"week":"2026-03-30","units":{"feat":2,"fix":4,"build":0,"ci":1,"docs":1,"other":3},"added":3049,"deleted":226,"cum_net":75852,"active_days":6},{"week":"2026-04-06","units":{"feat":1,"fix":4,"build":6,"ci":2,"docs":0,"other":2},"added":1205,"deleted":137,"cum_net":76920,"active_days":3},{"week":"2026-04-13","units":{"feat":1,"fix":6,"build":0,"ci":0,"docs":0,"other":0},"added":1255,"deleted":692,"cum_net":77483,"active_days":6},{"week":"2026-04-20","units":{"feat":1,"fix":5,"build":3,"ci":0,"docs":1,"other":3},"added":1251,"deleted":24,"cum_net":78710,"active_days":4},{"week":"2026-04-27","units":{"feat":4,"fix":23,"build":0,"ci":0,"docs":1,"other":5},"added":3333,"deleted":480,"cum_net":81563,"active_days":6},{"week":"2026-05-04","units":{"feat":5,"fix":15,"build":0,"ci":4,"docs":4,"other":6},"added":3666,"deleted":446,"cum_net":84783,"active_days":7},{"week":"2026-05-11","units":{"feat":7,"fix":15,"build":3,"ci":9,"docs":4,"other":5},"added":2760,"deleted":466,"cum_net":87077,"active_days":7},{"week":"2026-05-18","units":{"feat":8,"fix":8,"build":7,"ci":2,"docs":0,"other":1},"added":2011,"deleted":199,"cum_net":88889,"active_days":6},{"week":"2026-05-25","units":{"feat":11,"fix":6,"build":8,"ci":3,"docs":3,"other":1},"added":4992,"deleted":1426,"cum_net":92455,"active_days":6},{"week":"2026-06-01","units":{"feat":3,"fix":10,"build":0,"ci":0,"docs":3,"other":4},"added":3971,"deleted":1875,"cum_net":94551,"active_days":6},{"week":"2026-06-08","units":{"feat":8,"fix":11,"build":0,"ci":1,"docs":2,"other":1},"added":3845,"deleted":385,"cum_net":98011,"active_days":7},{"week":"2026-06-15","units":{"feat":3,"fix":5,"build":0,"ci":0,"docs":2,"other":1},"added":2896,"deleted":169,"cum_net":100738,"active_days":5},{"week":"2026-06-22","units":{"feat":4,"fix":4,"build":0,"ci":0,"docs":0,"other":2},"added":2010,"deleted":188,"cum_net":102560,"active_days":6},{"week":"2026-06-29","units":{"feat":1,"fix":5,"build":0,"ci":0,"docs":0,"other":0},"added":3284,"deleted":330,"cum_net":105514,"active_days":3}],"relWeekly":{"2026-04-27":{"minor":1,"patch":0,"hotfix":0},"2026-05-04":{"minor":5,"patch":0,"hotfix":0},"2026-05-11":{"minor":7,"patch":7,"hotfix":7},"2026-05-18":{"minor":4,"patch":0,"hotfix":0},"2026-05-25":{"minor":8,"patch":3,"hotfix":3},"2026-06-01":{"minor":2,"patch":4,"hotfix":2},"2026-06-08":{"minor":5,"patch":2,"hotfix":1},"2026-06-15":{"minor":3,"patch":5,"hotfix":5},"2026-06-22":{"minor":3,"patch":2,"hotfix":2},"2026-06-29":{"minor":1,"patch":5,"hotfix":4}},"monthly":[{"month":"2026-01","feat":2,"fix":17,"ratio":8.5},{"month":"2026-02","feat":23,"fix":50,"ratio":2.17},{"month":"2026-03","feat":46,"fix":58,"ratio":1.26},{"month":"2026-04","feat":5,"fix":37,"ratio":7.4},{"month":"2026-05","feat":35,"fix":48,"ratio":1.37},{"month":"2026-06","feat":18,"fix":31,"ratio":1.72},{"month":"2026-07","feat":1,"fix":4,"ratio":4.0}],"phases":{"pre_launch":{"units":396,"days":104,"active_days":77,"units_per_active_day":5.14,"feat":76,"fix":164,"fix_per_feat":2.16,"added_code":95585,"deleted_code":15378},"post_launch":{"units":214,"days":62,"active_days":53,"units_per_active_day":4.04,"feat":54,"fix":81,"fix_per_feat":1.5,"added_code":30885,"deleted_code":5578}},"chains":[{"scope":"android","count":34,"start":"2026-04-27","end":"2026-05-20","prs":[439,452,453,454,457,458,455,459,460,463,461,468,469,472,485,487,488,489,490,500,501,505,509,530,540,543,548,555,559,567,572,590,598,599],"subjects":["wait briefly for Turnstile token on POST requests","resolve all lintRelease errors and warnings","harden ProGuard/R8 rules for release builds","correct language count in changelog and trim screenshots to 8","inline field validation for contact and church-finder forms","eliminate theme flash on cold start by reading initial mode synchronously","remove dead 192.168.0.0 cleartext exception from network_security_config","raise splash duration to 700 ms and dismiss early when backend responds","pin Google/Android/AndroidX artifacts to google() Maven to prevent 403 flakiness","set touched only on submit, not on every keystroke","lint hardening, plurals i18n, schema export + docs worktree pattern","Church Finder 403 \u2014 pre-warm Turnstile globally + consume tokens in the interceptor","fix version grep in publish workflow, improve signing config, document Play Store process","change applicationId to org.voxquieta","override attachBaseContext so language selection actually changes UI strings","provide LocalResources so language picker actually changes UI strings","live language swap via Compose, no Activity recreate","remove AD_ID permission auto-merged by Play Services","exclude play-services-ads-identifier from firebase-analytics","declare AD_ID usage for Firebase Analytics","provide LocalResources so language picker actually swaps strings","make debug APK always installable alongside release","eliminate NetworkOnMainThreadException and HTTP 403 in chatStream","auto-detect language when user has not set an explicit preference","show submitting/success/error feedback in diagnostic report sheet","re-throw CancellationException in all coroutine catch blocks","rename post-send dismiss button from Cancel to Done (BITB-033)","show \"Bible Version\" on translation chip instead of \"Auto\"","allow partial text selection in assistant messages","wrap message persistence in NonCancellable context (#565)","correct app branding with golden bible icon and rays (#569)","fix analytics over-counting and locale-revert-to-English bugs","restore Compose test tier isolation (BITB-034)","show the raster PNG launcher icon on all API levels"]},{"scope":"android","count":12,"start":"2026-03-07","end":"2026-03-28","prs":[252,298,295,303,304,313,341,346,345,347,361,369],"subjects":["make debug BASE_URL configurable via -PbaseUrl","locale UI switching, remove ignored language field from API (#4)","refresh Turnstile token after each message","fix 3 real-device crashes \u2014 JsonDecodingException, nested-scroll BottomSheet, Settings nav","use LocalConfiguration instead of LocalContext for locale override","re-enable strict lint with abortOnError=true and baseline-continue CI strategy","call TurnstileManager.onTokenConsumed() after contact form submission","correct Bible translation picker endpoint and add retry","reset session ID when starting a new conversation","fix chapter view deserialization, Unicode verse reference linking, and bottom sheet UX","display verse references by extracting verses from SSE metadata event","display share and feedback buttons in a single horizontal Row"]},{"scope":"android","count":10,"start":"2026-05-30","end":"2026-06-22","prs":[648,661,689,692,694,722,740,743,750,751],"subjects":["resolve localized verse taps and stop quote truncation","render changelog body as markdown so links are tappable","preserve chat on device rotation (BITB-039)","float feedback rethink panel as a popover over the thumbs","localized book name in verse-detail header (BITB-040)","chapter load timeout + hide placeholder verse text (BITB-041)","prevent white screen when resuming app from background","make user-query text selection readable in both themes","show email-specific error on contact 422 and require email (BITB-051)","dismiss keyboard on send and always start fresh chat (BITB-048/049)"]},{"scope":"ops","count":6,"start":"2026-04-26","end":"2026-04-30","prs":[435,436,462,464,465,466],"subjects":["add actions/checkout to prod-monitor health and log-scan jobs","rename `sample` column in log-scan KQL to avoid keyword collision","strengthen prod monitor \u2014 search probe, frontend probe, re-alerts","fix prod-monitor false positives","KQL log-scan: replace invalid !matches with positive level filter","remove stray (?i) flag from KQL level-filter regex (SYN0002)"]},{"scope":"ci","count":5,"start":"2026-03-04","end":"2026-03-08","prs":[224,225,231,232,264],"subjects":["run DB migrations automatically in deploy pipeline","allow migrations to run when deploy is skipped","use PIPESTATUS[0] to capture terraform plan exit code through pipe","disable terraform wrapper to preserve -detailed-exitcode exit code","remove matrix context from job-level if, use shell early-exit instead"]},{"scope":"frontend","count":5,"start":"2026-03-09","end":"2026-03-10","prs":[285,287,289,290,294],"subjects":["correct verse-link regex for Russian multi-word book names","add cross-language verse reference matching for Russian, Chinese, Korean","restore missing next-intl/@swc/helpers in package-lock.json","restore next-intl/@swc/helpers in package-lock.json after deps bumps","build localized verse reference from parts, not string replacement"]},{"scope":"frontend","count":5,"start":"2026-05-07","end":"2026-05-23","prs":[498,508,521,577,607],"subjects":["repair /[locale]/privacy, /[locale]/terms, and changelog pages","complete smart auto-scroll \u2014 reset on send + i18n scroll button","default verse panel to Referenced filter","pass UI locale to chat API so AI responds in selected language","prevent horizontal overflow on narrow mobile viewports"]},{"scope":"frontend","count":5,"start":"2026-06-02","end":"2026-06-13","prs":[674,699,709,721,739],"subjects":["restore emphasized tester CTA lost in homepage refactor","patch 3 moderate dependabot advisories","show effective Bible translation in header selector (BITB-029)","surface chat stream stalls & empty responses instead of failing silently","resolve high-severity esbuild/vite audit advisories"]}],"regressions":[{"fix_pr":91,"fix":"fix/remove-fallback-url","fix_date":"2026-02-05","feat_pr":92,"feat":"feat/manual-deploy-workflow","feat_date":"2026-02-05","days":0,"match":"files"},{"fix_pr":102,"fix":"fix/skip-deploy-for-dependabot","fix_date":"2026-02-07","feat_pr":111,"feat":"feat/gate-deploy-on-test-success","feat_date":"2026-02-07","days":0,"match":"files"},{"fix_pr":112,"fix":"fix/paths-filter-base-sha","fix_date":"2026-02-07","feat_pr":111,"feat":"feat/gate-deploy-on-test-success","feat_date":"2026-02-07","days":0,"match":"files"},{"fix_pr":113,"fix":"fix/warmup-timeout-and-scale-cooldown","fix_date":"2026-02-08","feat_pr":115,"feat":"feat/application-insights-monitoring","feat_date":"2026-02-08","days":0,"match":"files"},{"fix_pr":131,"fix":"fix/mobile-overflow","fix_date":"2026-02-14","feat_pr":130,"feat":"feat/mobile-responsive","feat_date":"2026-02-14","days":0,"match":"files"},{"fix_pr":132,"fix":"fix/mobile-overflow-clipping","fix_date":"2026-02-14","feat_pr":130,"feat":"feat/mobile-responsive","feat_date":"2026-02-14","days":0,"match":"files"},{"fix_pr":151,"fix":"Add Arabic to LANGUAGE_NAMES so responses come in Arabic","fix_date":"2026-02-20","feat_pr":149,"feat":"Add Spanish, French, Portuguese, Arabic Bible translation support","feat_date":"2026-02-20","days":0,"match":"files"},{"fix_pr":150,"fix":"app insights initialization, flushing, and missing metrics","fix_date":"2026-02-20","feat_pr":144,"feat":"Add usage tracking with persistent sessions and custom metrics","feat_date":"2026-02-20","days":0,"match":"files"},{"fix_pr":157,"fix":"Multilanguage support for Spanish, French, Portuguese, Arabic","fix_date":"2026-02-21","feat_pr":156,"feat":"Android app scaffold \u2014 MVVM + Clean Architecture + Compose","feat_date":"2026-02-21","days":0,"match":"files"},{"fix_pr":160,"fix":"Redesign smoke tests as e2e (frontend) + functional API (backend)","fix_date":"2026-02-21","feat_pr":156,"feat":"Android app scaffold \u2014 MVVM + Clean Architecture + Compose","feat_date":"2026-02-21","days":0,"match":"files"}],"hotspots":[{"path":".github/workflows/azure-deploy.yml","changes":74},{"path":"api/config.py","changes":46},{"path":"android/app/src/main/res/values/strings.xml","changes":43},{"path":"frontend/package.json","changes":40},{"path":"android/app/src/main/res/values-it/strings.xml","changes":39},{"path":"android/app/src/main/res/values-de/strings.xml","changes":39},{"path":"android/app/src/main/res/values-es/strings.xml","changes":39},{"path":"android/app/src/main/res/values-ar/strings.xml","changes":39},{"path":"android/app/src/main/res/values-pt/strings.xml","changes":39},{"path":"android/app/src/main/res/values-fr/strings.xml","changes":39},{"path":"frontend/src/lib/api.ts","changes":37},{"path":"android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt","changes":35},{"path":"api/chat/service.py","changes":34},{"path":"frontend/src/app/[locale]/page.tsx","changes":34},{"path":".github/workflows/android-ci.yml","changes":34}],"components":{"android":{"files":218,"loc":25917,"test_files":44,"test_loc":9139},"api":{"files":141,"loc":43112,"test_files":59,"test_loc":24808},"ci":{"files":18,"loc":4715,"test_files":1,"test_loc":492},"data":{"files":4,"loc":0,"test_files":0,"test_loc":0},"docs":{"files":146,"loc":31150,"test_files":0,"test_loc":0},"frontend":{"files":126,"loc":32004,"test_files":32,"test_loc":8324},"infra":{"files":26,"loc":6456,"test_files":0,"test_loc":0},"root":{"files":24,"loc":3515,"test_files":0,"test_loc":0},"scripts":{"files":34,"loc":6085,"test_files":3,"test_loc":773}},"cruft":["AGENTS.md.old","AGENTS.old.md","frontend/src/components/ChapterModal.test.tsx.backup","scripts/load_bible.py.backup"],"hotfixes":[{"version":"1.5.1","date":"2026-05-14","hours_since_prev":7.6},{"version":"1.6.1","date":"2026-05-15","hours_since_prev":1.6},{"version":"1.6.2","date":"2026-05-16","hours_since_prev":12.7},{"version":"1.6.3","date":"2026-05-16","hours_since_prev":1.6},{"version":"1.6.4","date":"2026-05-16","hours_since_prev":7.6},{"version":"1.6.5","date":"2026-05-17","hours_since_prev":16.9},{"version":"1.6.6","date":"2026-05-17","hours_since_prev":0.5},{"version":"1.18.1","date":"2026-05-30","hours_since_prev":8.9},{"version":"1.18.2","date":"2026-05-30","hours_since_prev":7.0},{"version":"1.18.3","date":"2026-05-30","hours_since_prev":5.5},{"version":"1.21.2","date":"2026-06-06","hours_since_prev":5.5},{"version":"1.22.1","date":"2026-06-06","hours_since_prev":17.1},{"version":"1.25.1","date":"2026-06-10","hours_since_prev":12.4},{"version":"1.29.1","date":"2026-06-19","hours_since_prev":22.8},{"version":"1.29.2","date":"2026-06-19","hours_since_prev":0.7},{"version":"1.29.3","date":"2026-06-20","hours_since_prev":14.5},{"version":"1.29.4","date":"2026-06-20","hours_since_prev":6.2},{"version":"1.30.1","date":"2026-06-21","hours_since_prev":7.0},{"version":"1.31.1","date":"2026-06-23","hours_since_prev":12.6},{"version":"1.32.1","date":"2026-06-25","hours_since_prev":16.2},{"version":"1.34.1","date":"2026-07-01","hours_since_prev":8.3},{"version":"1.34.2","date":"2026-07-01","hours_since_prev":1.3},{"version":"1.34.3","date":"2026-07-02","hours_since_prev":10.4},{"version":"1.34.4","date":"2026-07-02","hours_since_prev":12.3}],"reverts":[{"pr":321,"date":"2026-03-14","desc":"revert DB backup retention to 7 days and disable geo-redundant backup"},{"pr":491,"date":"2026-05-07","desc":"restore manifest + build.gradle.kts to pre-AD_ID-fix state"}],"runs":[{"generated":"2026-07-03","units":610,"fix_per_feat":1.88,"net_code":105514,"releases":67,"regression_fixes":158}]};
+
+/* ---------- helpers ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function h(tag, attrs, parent) {
+  const isSvg = ["svg","g","rect","path","line","circle","text","title"].includes(tag);
+  const el = isSvg ? document.createElementNS(SVGNS, tag) : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "text") el.textContent = v;
+    else if (k === "style") el.setAttribute("style", v);
+    else el.setAttribute(k, v);
+  }
+  if (parent) parent.appendChild(el);
+  return el;
+}
+function fmtN(n) {
+  if (n === null || n === undefined) return "—";
+  if (Math.abs(n) >= 100000) return (n / 1000).toFixed(0) + "k";
+  if (Math.abs(n) >= 10000) return (n / 1000).toFixed(1) + "k";
+  return n.toLocaleString("en-US");
+}
+function monthShort(iso) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function niceTicks(max, count) {
+  if (max <= 0) return [0, 1];
+  const step0 = max / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const ticks = [];
+  for (let v = 0; v <= max + 1e-9; v += step) ticks.push(Math.round(v * 1000) / 1000);
+  return ticks;
+}
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById("tip");
+function showTip(anchor, evt, head, rows) {
+  tip.textContent = "";
+  h("div", { class: "t-h", text: head }, tip);
+  for (const r of rows) {
+    const row = h("div", { class: "t-r" }, tip);
+    h("span", { class: "t-k", style: "background:" + (r.color || "transparent") }, row);
+    h("span", { class: "t-v", text: r.value }, row);
+    h("span", { class: "t-n", text: r.name }, row);
+  }
+  tip.style.display = "block";
+  const root = document.querySelector(".mx-root");
+  const rb = root.getBoundingClientRect();
+  let x = evt.clientX - rb.left + 14, y = evt.clientY - rb.top + 14;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  if (x + tw > rb.width - 8) x = evt.clientX - rb.left - tw - 14;
+  if (y + th > root.offsetHeight - 8) y = evt.clientY - rb.top - th - 14;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+/* ---------- chart frame ---------- */
+const W = 960, PAD = { l: 46, r: 12, t: 12, b: 26 };
+function frame(container, height, yMax, yFmt, yMin) {
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const plotW = W - PAD.l - PAD.r, plotH = height - PAD.t - PAD.b;
+  yMin = yMin || 0;
+  const ticks = niceTicks(yMax, 4);
+  const span = ticks[ticks.length - 1] - yMin;
+  const yPos = v => PAD.t + plotH - ((v - yMin) / span) * plotH;
+  for (const tv of ticks) {
+    const y = yPos(tv);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--grid);stroke-width:1" }, svg);
+    h("text", { x: PAD.l - 8, y: y + 4, "text-anchor": "end", class: "tick",
+      text: (yFmt || fmtN)(tv) }, svg);
+  }
+  h("line", { x1: PAD.l, x2: W - PAD.r, y1: yPos(0), y2: yPos(0),
+    style: "stroke:var(--baseline);stroke-width:1" }, svg);
+  return { svg, plotW, plotH, yPos, yMaxNice: ticks[ticks.length - 1] };
+}
+function xLabels(svg, labels, xOf, height, every) {
+  labels.forEach((lb, i) => {
+    if (i % every !== 0) return;
+    h("text", { x: xOf(i), y: height - 8, "text-anchor": "middle", class: "tick",
+      text: lb }, svg);
+  });
+}
+function roundedTopRect(x, y, w, hgt, r) {
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${y + hgt} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + hgt} Z`;
+}
+function roundedBottomRect(x, y, w, hgt, r) {
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${y} L${x + w},${y} L${x + w},${y + hgt - r} Q${x + w},${y + hgt} ${x + w - r},${y + hgt} L${x + r},${y + hgt} Q${x},${y + hgt} ${x},${y + hgt - r} Z`;
+}
+
+/* ---------- stacked columns ---------- */
+function stackedColumns(container, rows, series, labels, opts) {
+  opts = opts || {};
+  const height = opts.height || 260;
+  const totals = rows.map(r => series.reduce((a, s) => a + (r[s.key] || 0), 0));
+  const yMax = Math.max(...totals, 1);
+  const { svg, plotW, yPos } = frame(container, height, yMax);
+  const n = rows.length;
+  const band = plotW / n;
+  const bw = Math.min(24, band * 0.72);
+  const gap = 2;
+  rows.forEach((row, i) => {
+    const x = PAD.l + band * i + (band - bw) / 2;
+    let acc = 0;
+    const segs = series.filter(s => (row[s.key] || 0) > 0);
+    segs.forEach((s, si) => {
+      const v = row[s.key];
+      const y1 = yPos(acc + v), y0 = yPos(acc);
+      const isTop = si === segs.length - 1;
+      const hgt = Math.max(y0 - y1 - (isTop ? 0 : gap), 1);
+      if (isTop) {
+        h("path", { d: roundedTopRect(x, y1, bw, y0 - y1, 4),
+          style: `fill:var(${s.color})` }, svg);
+      } else {
+        h("rect", { x, y: y1 + gap, width: bw, height: hgt,
+          style: `fill:var(${s.color})` }, svg);
+      }
+      acc += v;
+    });
+    const hit = h("rect", { x: PAD.l + band * i, y: PAD.t, width: band,
+      height: height - PAD.t - PAD.b, tabindex: "0",
+      style: "fill:transparent;outline:none" }, svg);
+    const cs = getComputedStyle(document.querySelector(".mx-root"));
+    const tipRows = () => series.slice().reverse()
+      .filter(s => (row[s.key] || 0) > 0 || !opts.skipZero)
+      .map(s => ({ name: s.name, value: fmtN(row[s.key] || 0),
+        color: cs.getPropertyValue(s.color) }));
+    const head = (opts.head || (l => l))(labels[i], row);
+    hit.addEventListener("pointermove", e => showTip(hit, e, head, tipRows()));
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("focus", () => {
+      const r = hit.getBoundingClientRect();
+      showTip(hit, { clientX: r.left + r.width / 2, clientY: r.top + 20 }, head, tipRows());
+    });
+    hit.addEventListener("blur", hideTip);
+  });
+  xLabels(svg, labels.map(monthShort), i => PAD.l + band * i + band / 2, height,
+    Math.ceil(n / 9));
+}
+
+/* ---------- diverging columns (added / deleted) ---------- */
+function divergingColumns(container, rows, labels) {
+  const height = 260;
+  const maxUp = Math.max(...rows.map(r => r.up), 1);
+  const maxDn = Math.max(...rows.map(r => r.down), 1);
+  const tU = niceTicks(maxUp, 3), tD = niceTicks(maxDn, 2);
+  const yMaxN = tU[tU.length - 1], yMinN = -tD[tD.length - 1];
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const plotW = W - PAD.l - PAD.r, plotH = height - PAD.t - PAD.b;
+  const span = yMaxN - yMinN;
+  const yPos = v => PAD.t + plotH - ((v - yMinN) / span) * plotH;
+  for (const tv of [...tD.map(v => -v), ...tU]) {
+    const y = yPos(tv);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--grid);stroke-width:1" }, svg);
+    h("text", { x: PAD.l - 8, y: y + 4, "text-anchor": "end", class: "tick",
+      text: fmtN(Math.abs(tv)) }, svg);
+  }
+  h("line", { x1: PAD.l, x2: W - PAD.r, y1: yPos(0), y2: yPos(0),
+    style: "stroke:var(--baseline);stroke-width:1" }, svg);
+  const n = rows.length, band = plotW / n, bw = Math.min(24, band * 0.72);
+  const cs = getComputedStyle(document.querySelector(".mx-root"));
+  rows.forEach((row, i) => {
+    const x = PAD.l + band * i + (band - bw) / 2;
+    if (row.up > 0)
+      h("path", { d: roundedTopRect(x, yPos(row.up), bw, yPos(0) - yPos(row.up), 4),
+        style: "fill:var(--div-pos)" }, svg);
+    if (row.down > 0)
+      h("path", { d: roundedBottomRect(x, yPos(0) + 2, bw, yPos(-row.down) - yPos(0) - 2, 4),
+        style: "fill:var(--div-neg)" }, svg);
+    const hit = h("rect", { x: PAD.l + band * i, y: PAD.t, width: band, height: plotH,
+      tabindex: "0", style: "fill:transparent;outline:none" }, svg);
+    const head = "week of " + monthShort(labels[i]);
+    const tipRows = () => [
+      { name: "added", value: "+" + fmtN(row.up), color: cs.getPropertyValue("--div-pos") },
+      { name: "deleted", value: "−" + fmtN(row.down), color: cs.getPropertyValue("--div-neg") },
+    ];
+    hit.addEventListener("pointermove", e => showTip(hit, e, head, tipRows()));
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("focus", () => {
+      const r = hit.getBoundingClientRect();
+      showTip(hit, { clientX: r.left + r.width / 2, clientY: r.top + 20 }, head, tipRows());
+    });
+    hit.addEventListener("blur", hideTip);
+  });
+  xLabels(svg, labels.map(monthShort), i => PAD.l + band * i + band / 2, height,
+    Math.ceil(n / 9));
+}
+
+/* ---------- line chart with crosshair ---------- */
+function lineChart(container, labels, values, opts) {
+  opts = opts || {};
+  const height = opts.height || 260;
+  const clean = values.map(v => v === null ? 0 : v);
+  const yMax = Math.max(...clean, opts.minYMax || 1);
+  const { svg, plotW, plotH, yPos, yMaxNice } = frame(container, height, yMax, opts.yFmt);
+  const n = values.length;
+  const xOf = i => PAD.l + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+  if (opts.refLine !== undefined && opts.refLine <= yMaxNice) {
+    const y = yPos(opts.refLine);
+    h("line", { x1: PAD.l, x2: W - PAD.r, y1: y, y2: y,
+      style: "stroke:var(--ink-3);stroke-width:1;stroke-dasharray:none;opacity:.55" }, svg);
+    h("text", { x: W - PAD.r - 2, y: y - 5, "text-anchor": "end", class: "tick",
+      text: opts.refLabel || "" }, svg);
+  }
+  const pts = values.map((v, i) => v === null ? null : [xOf(i), yPos(v)]);
+  const seg = pts.filter(p => p);
+  if (opts.area) {
+    const d = "M" + seg.map(p => p.join(",")).join(" L") +
+      ` L${seg[seg.length - 1][0]},${yPos(0)} L${seg[0][0]},${yPos(0)} Z`;
+    h("path", { d, style: "fill:var(--seq);opacity:.1" }, svg);
+  }
+  h("path", { d: "M" + seg.map(p => p.join(",")).join(" L"),
+    style: "stroke:var(--seq);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round" }, svg);
+  const last = seg[seg.length - 1];
+  h("circle", { cx: last[0], cy: last[1], r: 4.5,
+    style: "fill:var(--seq);stroke:var(--surface-1);stroke-width:2" }, svg);
+  h("text", { x: last[0] - 8, y: last[1] - 10, "text-anchor": "end",
+    style: "fill:var(--ink-1);font-size:12px;font-weight:650",
+    text: (opts.yFmt || fmtN)(values[n - 1]) }, svg);
+  xLabels(svg, labels.map(opts.xFmt || monthShort), xOf, height, Math.ceil(n / 9));
+
+  const cross = h("line", { y1: PAD.t, y2: PAD.t + plotH,
+    style: "stroke:var(--ink-3);stroke-width:1;opacity:0" }, svg);
+  const dot = h("circle", { r: 4.5,
+    style: "fill:var(--seq);stroke:var(--surface-1);stroke-width:2;opacity:0" }, svg);
+  const hit = h("rect", { x: PAD.l, y: PAD.t, width: plotW, height: plotH,
+    style: "fill:transparent" }, svg);
+  const cs = getComputedStyle(document.querySelector(".mx-root"));
+  hit.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(xOf(i) - px);
+      if (d < bd && values[i] !== null) { bd = d; best = i; }
+    }
+    cross.setAttribute("x1", xOf(best)); cross.setAttribute("x2", xOf(best));
+    cross.style.opacity = ".5";
+    dot.setAttribute("cx", xOf(best)); dot.setAttribute("cy", yPos(values[best]));
+    dot.style.opacity = "1";
+    showTip(hit, e, (opts.xFmt || monthShort)(labels[best]), [
+      { name: opts.name || "", value: (opts.yFmt || fmtN)(values[best]),
+        color: cs.getPropertyValue("--seq") },
+    ]);
+  });
+  hit.addEventListener("pointerleave", () => {
+    cross.style.opacity = "0"; dot.style.opacity = "0"; hideTip();
+  });
+}
+
+/* ---------- horizontal bars ---------- */
+function hBars(container, items) {
+  const rowH = 30, height = items.length * rowH + 8;
+  const labW = 92;
+  const svg = h("svg", { viewBox: `0 0 ${W} ${height}`, role: "img" }, container);
+  const max = Math.max(...items.map(i => i.value), 1);
+  const plotW = W - labW - 90;
+  items.forEach((it, i) => {
+    const y = i * rowH + 6, bh = 18;
+    h("text", { x: labW - 10, y: y + 14, "text-anchor": "end",
+      style: "fill:var(--ink-2);font-size:12.5px", text: it.label }, svg);
+    const w = Math.max((it.value / max) * plotW, 1.5);
+    const r = Math.min(4, w / 2);
+    h("path", { d: `M${labW},${y + bh} L${labW},${y} L${labW + w - r},${y} Q${labW + w},${y} ${labW + w},${y + r} L${labW + w},${y + bh - r} Q${labW + w},${y + bh} ${labW + w - r},${y + bh} Z`,
+      style: "fill:var(--seq)" }, svg);
+    h("text", { x: labW + w + 8, y: y + 14,
+      style: "fill:var(--ink-1);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums",
+      text: fmtN(it.value) + (it.suffix || "") }, svg);
+  });
+}
+
+/* ---------- legend + table view ---------- */
+function legend(container, items, kind) {
+  const div = h("div", { class: "legend" });
+  container.prepend(div);
+  for (const it of items) {
+    const s = h("span", { class: "it" }, div);
+    h("span", { class: kind === "line" ? "ln" : "sw",
+      style: "background:var(" + it.color + ")" }, s);
+    s.appendChild(document.createTextNode(it.name));
+  }
+}
+function tableView(container, header, rows) {
+  const det = h("details", { class: "tbl" }, container);
+  h("summary", { text: "Data table" }, det);
+  const tbl = h("table", {}, det);
+  const tr = h("tr", {}, tbl);
+  header.forEach((c, i) => h("th", { class: i ? "num" : "", text: c }, tr));
+  for (const r of rows) {
+    const tr2 = h("tr", {}, tbl);
+    r.forEach((c, i) => h("td", { class: i ? "num" : "", text: String(c) }, tr2));
+  }
+}
+function mkTable(container, header, rows, opts) {
+  opts = opts || {};
+  const tbl = h("table", {}, container);
+  const tr = h("tr", {}, tbl);
+  header.forEach((c, i) => h("th", { class: (opts.numFrom !== undefined && i >= opts.numFrom) ? "num" : "", text: c }, tr));
+  for (const r of rows) {
+    const tr2 = h("tr", {}, tbl);
+    r.forEach((c, i) => {
+      const td = h("td", { class: (opts.numFrom !== undefined && i >= opts.numFrom) ? "num" : "" }, tr2);
+      if (c && typeof c === "object" && c.href) {
+        h("a", { href: c.href, text: c.text, target: "_blank", rel: "noopener" }, td);
+      } else if (c && typeof c === "object" && c.code) {
+        h("code", { text: c.code }, td);
+      } else td.textContent = String(c);
+    });
+  }
+}
+
+/* ================= build the page ================= */
+(function () {
+  const d = DATA, t = d.totals;
+  document.getElementById("subtitle").append(
+    `${d.range.first} → ${d.range.last} · generated ${d.generated} · `,
+  );
+  const a = document.createElement("a");
+  a.href = d.repoUrl; a.textContent = d.repoUrl.replace("https://github.com/", "");
+  a.target = "_blank"; a.rel = "noopener";
+  document.getElementById("subtitle").append(a);
+
+  /* KPI row */
+  const kpis = [
+    { lbl: "Units of work", val: fmtN(t.units), note: `${fmtN(t.prs_seen)} PRs seen · max #${t.max_pr}` },
+    { lbl: "Active days", val: `${t.active_days}`, note: `of ${t.calendar_days} calendar days (${Math.round(100 * t.active_days / t.calendar_days)}%)` },
+    { lbl: "Net code lines", val: "+" + fmtN(t.net_code), note: `+${fmtN(t.added_code)} / −${fmtN(t.deleted_code)}` },
+    { lbl: "Releases", val: fmtN(t.releases), note: `${t.hotfix_releases} same-day hotfixes` },
+    { lbl: "fix : feat", val: t.fix_per_feat, note: `${d.types.fix || 0} fixes / ${d.types.feat || 0} feats` },
+    { lbl: "Regression fixes", val: fmtN(t.regression_fixes), note: `${t.regression_fixes_same_scope} same-scope · ${t.fix_chain_count} fix chains` },
+  ];
+  const kwrap = document.getElementById("kpis");
+  for (const k of kpis) {
+    const div = h("div", { class: "kpi" }, kwrap);
+    h("div", { class: "lbl", text: k.lbl }, div);
+    h("div", { class: "val", text: String(k.val) }, div);
+    h("div", { class: "note", text: k.note }, div);
+  }
+
+  /* weekly stacked units */
+  const SERIES = [
+    { key: "feat", name: "feat", color: "--s-feat" },
+    { key: "fix", name: "fix", color: "--s-fix" },
+    { key: "build", name: "build/deps", color: "--s-build" },
+    { key: "ci", name: "ci", color: "--s-ci" },
+    { key: "docs", name: "docs", color: "--s-docs" },
+    { key: "other", name: "other", color: "--s-other" },
+  ];
+  const wRows = d.weekly.map(w => ({ ...w.units }));
+  const wLabels = d.weekly.map(w => w.week);
+  const cw = document.getElementById("c-weekly");
+  stackedColumns(cw, wRows, SERIES, wLabels,
+    { head: l => "week of " + monthShort(l), skipZero: true });
+  legend(cw, SERIES);
+  tableView(cw, ["week", ...SERIES.map(s => s.name), "total"],
+    d.weekly.map(w => [w.week, ...SERIES.map(s => w.units[s.key] || 0),
+      SERIES.reduce((acc, s) => acc + (w.units[s.key] || 0), 0)]));
+
+  /* weekly LOC diverging */
+  const cl = document.getElementById("c-loc");
+  divergingColumns(cl, d.weekly.map(w => ({ up: w.added, down: w.deleted })), wLabels);
+  legend(cl, [{ name: "added", color: "--div-pos" }, { name: "deleted", color: "--div-neg" }]);
+  tableView(cl, ["week", "added", "deleted"],
+    d.weekly.map(w => [w.week, w.added, w.deleted]));
+
+  /* growth line */
+  const cg = document.getElementById("c-growth");
+  lineChart(cg, wLabels, d.weekly.map(w => w.cum_net),
+    { area: true, name: "net code lines", yFmt: fmtN });
+  tableView(cg, ["week", "cumulative net code lines"],
+    d.weekly.map(w => [w.week, w.cum_net]));
+
+  /* phases */
+  document.getElementById("phase-desc").textContent =
+    "v0.1.0 shipped " + d.launch + " — the split between building toward launch and operating in production.";
+  mkTable(document.getElementById("c-phases"),
+    ["Phase", "Units", "Active days", "Units/active day", "feat", "fix", "fix:feat", "Code +", "Code −"],
+    [["Pre-launch", d.phases.pre_launch.units,
+      `${d.phases.pre_launch.active_days}/${d.phases.pre_launch.days}`,
+      d.phases.pre_launch.units_per_active_day, d.phases.pre_launch.feat,
+      d.phases.pre_launch.fix, d.phases.pre_launch.fix_per_feat,
+      "+" + fmtN(d.phases.pre_launch.added_code), "−" + fmtN(d.phases.pre_launch.deleted_code)],
+     ["Post-launch", d.phases.post_launch.units,
+      `${d.phases.post_launch.active_days}/${d.phases.post_launch.days}`,
+      d.phases.post_launch.units_per_active_day, d.phases.post_launch.feat,
+      d.phases.post_launch.fix, d.phases.post_launch.fix_per_feat,
+      "+" + fmtN(d.phases.post_launch.added_code), "−" + fmtN(d.phases.post_launch.deleted_code)]],
+    { numFrom: 1 });
+
+  /* monthly ratio */
+  const cr = document.getElementById("c-ratio");
+  lineChart(cr, d.monthly.map(r => r.month), d.monthly.map(r => r.ratio),
+    { name: "fix : feat", refLine: 1, refLabel: "1.0 — parity",
+      xFmt: m => new Date(m + "-01T00:00:00").toLocaleDateString("en-US", { month: "short" }),
+      yFmt: v => v === null ? "—" : v.toFixed(2), minYMax: 1.2 });
+  tableView(cr, ["month", "feat", "fix", "ratio"],
+    d.monthly.map(r => [r.month, r.feat, r.fix, r.ratio === null ? "—" : r.ratio]));
+
+  /* releases per week */
+  const relLabels = wLabels.filter(w => d.relWeekly[w] !== undefined || true);
+  const relRows = wLabels.map(w => d.relWeekly[w] || { minor: 0, patch: 0, hotfix: 0 });
+  const cre = document.getElementById("c-rel");
+  const REL_SERIES = [
+    { key: "minor", name: "minor/major", color: "--s-feat" },
+    { key: "patch", name: "patch", color: "--s-fix" },
+  ];
+  stackedColumns(cre, relRows.map((r, i) => ({ ...r })), REL_SERIES, wLabels,
+    { head: (l, row) => "week of " + monthShort(l) +
+        (row.hotfix ? ` · ${row.hotfix} hotfix${row.hotfix > 1 ? "es" : ""}` : "") });
+  legend(cre, REL_SERIES);
+  tableView(cre, ["week", "minor/major", "patch", "of which hotfix"],
+    wLabels.map((w, i) => [w, relRows[i].minor, relRows[i].patch, relRows[i].hotfix]));
+
+  /* regressions */
+  mkTable(document.getElementById("c-regr"),
+    ["Fix", "Patched feature", "Gap"],
+    d.regressions.map(r => [
+      r.fix_pr ? { href: d.repoUrl + "/pull/" + r.fix_pr, text: "#" + r.fix_pr + " " + r.fix } : r.fix,
+      r.feat_pr ? { href: d.repoUrl + "/pull/" + r.feat_pr, text: "#" + r.feat_pr } : "—",
+      r.days === 0 ? "same day" : r.days + "d",
+    ]), { numFrom: 2 });
+
+  /* incidents */
+  const inc = document.getElementById("c-inc");
+  mkTable(inc, ["Hotfix release", "Date", "After previous"],
+    d.hotfixes.slice(-8).reverse().map(hf =>
+      [{ code: "v" + hf.version }, hf.date, hf.hours_since_prev + "h"]), { numFrom: 1 });
+  if (d.reverts.length) {
+    const p = h("p", { class: "desc", text: "Reverts:" }, inc);
+    mkTable(inc, ["PR", "Date", "What"], d.reverts.map(r =>
+      [r.pr ? { href: d.repoUrl + "/pull/" + r.pr, text: "#" + r.pr } : "—",
+       r.date, r.desc]));
+  }
+
+  /* chains */
+  mkTable(document.getElementById("c-chains"),
+    ["Scope", "Fixes", "Window"],
+    d.chains.map(c => [{ code: c.scope }, c.count, c.start + " → " + c.end]),
+    { numFrom: 1 });
+
+  /* hotspots */
+  mkTable(document.getElementById("c-hot"),
+    ["File", "Changes"],
+    d.hotspots.map(hs => [{ code: hs.path }, hs.changes]), { numFrom: 1 });
+
+  /* components */
+  const comps = Object.entries(d.components)
+    .filter(([k, v]) => v.loc > 0)
+    .sort((a, b) => b[1].loc - a[1].loc);
+  hBars(document.getElementById("c-comp"),
+    comps.map(([k, v]) => ({ label: k, value: v.loc })));
+  tableView(document.getElementById("c-comp"), ["component", "LOC", "files"],
+    comps.map(([k, v]) => [k, v.loc, v.files]));
+
+  /* health table + cruft */
+  const ch = document.getElementById("c-health");
+  mkTable(ch, ["Component", "Files", "Test files", "Test LOC"],
+    comps.map(([k, v]) => [k, v.files, v.test_files, v.test_loc]), { numFrom: 1 });
+  if (d.cruft.length) {
+    h("p", { class: "desc", text: "Cruft — candidates for deletion:" }, ch);
+    const ul = h("ul", { style: "margin:4px 0 10px;padding-left:18px;font-size:12.5px" }, ch);
+    for (const c of d.cruft) {
+      const li = h("li", {}, ul);
+      h("code", { text: c }, li);
+    }
+  }
+
+  /* runs */
+  mkTable(document.getElementById("c-runs"),
+    ["Snapshot", "Units", "fix:feat", "Net code LOC", "Releases", "Regression fixes"],
+    d.runs.map((r, i) => {
+      const prev = i > 0 ? d.runs[i - 1] : null;
+      const dlt = (k) => prev ? ` (+${fmtN(r[k] - prev[k])})` : "";
+      return [r.generated, fmtN(r.units) + dlt("units"), r.fix_per_feat,
+        fmtN(r.net_code) + dlt("net_code"), fmtN(r.releases) + dlt("releases"),
+        fmtN(r.regression_fixes) + dlt("regression_fixes")];
+    }), { numFrom: 1 });
+})();
+</script>
+</body>
+</html>

@@ -317,7 +317,7 @@ When the user asks which Bible version, translation, or edition is being used \
 - Briefly explain that the answers draw from whichever Bible translation the user \
 has selected in the app.
 - Point them to the Bible version selector in the user interface:
-  - On the web app: the version dropdown in the top header bar.
+  - On the web app: the Bible version chip (amber badge) in the top header bar.
   - On the mobile app: the Bible version chip at the top of the chat screen.
 - Invite them to switch translations there at any time if they prefer a different one.
 - Keep the answer to two or three sentences, warm and concise, then return to \
@@ -392,6 +392,70 @@ factual one, a shorter answer is right — match the depth to what they actually
 """
 
 
+# ---------------------------------------------------------------------------
+# Typo-tolerance guidance (BITB-045)
+# ---------------------------------------------------------------------------
+# A single misspelling in an otherwise clear question (e.g. German
+# "reichsheilugtm" for "Reichsheiligtum", "bet el" for "Bet-El") was
+# derailing the assistant into a generic "I don't understand" non-answer.
+# This tells the model to read charitably through obvious spelling slips
+# and answer the evidently-intended question, while still allowing a
+# clarifying fallback when intent is genuinely unrecoverable. It
+# deliberately complements — and does not replace — the existing
+# "When the Request Is Unclear" section.
+TYPO_TOLERANCE_GUIDANCE = """
+## Handling Typos and Spelling Errors
+People often type quickly and make spelling mistakes, drop or add letters, or
+split or join words. A misspelling is NOT the same as an unclear request. Read
+the message charitably and answer the question the user evidently meant:
+
+- If a word is misspelled but its intended meaning is clear from how it is \
+spelled and from the surrounding context (for example a proper name, place, \
+biblical term, or book name with a few letters wrong, or words run together \
+or split apart), silently interpret it as the correct word and answer the \
+question fully.
+- You may briefly and warmly confirm your reading in passing (for example, \
+"If you mean …") and then proceed — but do NOT make confirmation a \
+precondition for helping, and do NOT stop to ask when the intended word is \
+obvious.
+- This applies in EVERY language, including accents, diacritics, and \
+compound words (for example German compounds, or hyphenated place names).
+- Do NOT refuse, deflect, or give a generic "I don't understand" response \
+merely because of spelling, typos, or unusual capitalization.
+- Only ask a clarifying question (per "When the Request Is Unclear" above) \
+when the intent is genuinely unrecoverable — that is, when no reasonable \
+reading of the words yields an understandable request — not simply because \
+a word is misspelled.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Specific-focus guidance (BITB-050)
+# ---------------------------------------------------------------------------
+# Appended to the main conversational and verse-lookup system prompts. When a
+# user raises a precise detail or nuance the model tends to reply with a broad
+# overview that skips the actual point — this instructs it to identify and
+# address the user's specific focus directly and first.
+SPECIFIC_FOCUS_GUIDANCE = """
+## Addressing the User's Specific Focus
+When the user raises a specific point, detail, nuance, or tension — not just a \
+general topic — engage that exact point directly, and engage it first. Do not \
+substitute a broad overview for the precise thing they asked about.
+
+- **Identify the specific focus**: pin down the particular detail, question, or \
+nuance the user actually raised (for example, a specific verse and the precise \
+interpretive point they flagged about it), and make that the heart of your reply.
+- **Engage it directly and first**: address that specific point before offering \
+any wider context — never bury it under, or replace it with, a generic summary.
+- **Honor the detail**: if the user notes a textual, historical, or theological \
+nuance, respond to that nuance specifically rather than restating well-known \
+generalities about the passage.
+- **Then widen if it helps**: once you have genuinely engaged their point, you \
+may add brief surrounding context or application — but the specific focus comes \
+first and must not be skipped.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -436,6 +500,8 @@ def get_system_prompt(language_code: str = "en") -> str:
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
         + RESPONSE_DEPTH_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
+        + SPECIFIC_FOCUS_GUIDANCE
     )
 
 
@@ -462,6 +528,8 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
+        + SPECIFIC_FOCUS_GUIDANCE
     )
 
 
@@ -484,6 +552,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         )
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
+        + TYPO_TOLERANCE_GUIDANCE
     )
 
 
@@ -1026,3 +1095,88 @@ def get_blocked_response(reason: str, language_code: str = "en") -> str:
         or by_lang.get("en")
         or _BLOCKED_RESPONSE_TEMPLATES["generic"]["en"]
     )
+
+
+# Fail-closed grounding message (BITB-058). When a scripture-seeking request cannot be
+# grounded in any verse, we tell the user instead of answering ungrounded — the whole
+# value of the product is being grounded on the Bible. Localized with an English
+# fallback, mirroring the _BLOCKED_RESPONSE_TEMPLATES shape.
+_SCRIPTURE_UNAVAILABLE_RESPONSES: dict[str, str] = {
+    "en": (
+        "I'm sorry — I can't reach the Scripture library right now, so I can't ground my "
+        "answer in the Bible. Please try again in a moment."
+    ),
+    "it": (
+        "Mi dispiace — al momento non riesco ad accedere alla raccolta delle Scritture, "
+        "quindi non posso fondare la mia risposta sulla Bibbia. Riprova tra poco."
+    ),
+    "de": (
+        "Es tut mir leid — ich kann derzeit nicht auf die Schriftsammlung zugreifen und "
+        "meine Antwort daher nicht in der Bibel verankern. Bitte versuche es gleich noch einmal."
+    ),
+    "es": (
+        "Lo siento — en este momento no puedo acceder a la biblioteca de las Escrituras, "
+        "así que no puedo fundamentar mi respuesta en la Biblia. Inténtalo de nuevo en un momento."
+    ),
+    "fr": (
+        "Je suis désolé — je n'arrive pas à accéder à la bibliothèque des Écritures pour le "
+        "moment, je ne peux donc pas fonder ma réponse sur la Bible. Veuillez réessayer dans un instant."
+    ),
+    "pt": (
+        "Desculpe — não consigo aceder à biblioteca das Escrituras neste momento, por isso "
+        "não posso fundamentar a minha resposta na Bíblia. Por favor, tente novamente daqui a pouco."
+    ),
+    "ar": (
+        "أعتذر، لا يمكنني الوصول إلى مكتبة الكتاب المقدس الآن، لذا لا أستطيع تأسيس إجابتي على "
+        "الكتاب المقدس. من فضلك حاول مرة أخرى بعد قليل."
+    ),
+}
+
+
+def get_scripture_unavailable_response(language_code: str = "en") -> str:
+    """Return the localized fail-closed message used when scripture cannot be retrieved.
+
+    Args:
+        language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar).
+
+    Returns:
+        Localized message string; falls back to English.
+    """
+    return (
+        _SCRIPTURE_UNAVAILABLE_RESPONSES.get(language_code)
+        or _SCRIPTURE_UNAVAILABLE_RESPONSES["en"]
+    )
+
+
+# Unresolved-citation notice (BITB-054, "notice" mode of grounding_unresolved_behavior).
+# When an inline-quoted citation cannot be resolved to any canonical DB text (the
+# translation isn't loaded, is partial, or the reference is invalid), "notice" mode
+# replaces the invented quotation with this short message instead of leaving a
+# possibly-hallucinated quote untouched or silently deleting it. Covers all 11
+# languages in utils.language.SUPPORTED_LANGUAGES, mirroring the
+# _SCRIPTURE_UNAVAILABLE_RESPONSES dict+getter shape (BITB-058) with an English fallback.
+_UNRESOLVED_VERSE_NOTICES: dict[str, str] = {
+    "en": "this verse isn't available in this translation yet",
+    "it": "questo versetto non è ancora disponibile in questa traduzione",
+    "de": "dieser Vers ist in dieser Übersetzung noch nicht verfügbar",
+    "es": "este versículo aún no está disponible en esta traducción",
+    "fr": "ce verset n'est pas encore disponible dans cette traduction",
+    "pt": "este versículo ainda não está disponível nesta tradução",
+    "ar": "هذه الآية غير متوفرة بعد في هذه الترجمة",
+    "ru": "этот стих пока недоступен в этом переводе",
+    "zh": "该经文尚未收录在此译本中",
+    "hi": "यह पद अभी इस अनुवाद में उपलब्ध नहीं है",
+    "ko": "이 구절은 아직 이 번역본에서 제공되지 않습니다",
+}
+
+
+def get_unresolved_verse_notice(language_code: str = "en") -> str:
+    """Return the localized notice text used by grounding's "notice" mode (BITB-054).
+
+    Args:
+        language_code: ISO 639-1 language code (any of SUPPORTED_LANGUAGES).
+
+    Returns:
+        Localized message string; falls back to English.
+    """
+    return _UNRESOLVED_VERSE_NOTICES.get(language_code) or _UNRESOLVED_VERSE_NOTICES["en"]

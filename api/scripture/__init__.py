@@ -2,6 +2,7 @@
 Scripture package - Bible data models, repository, and search.
 """
 
+from .coverage import UnusableLanguage, check_translation_coverage, find_unusable_languages
 from .database import DbSession, close_db, get_db_session, init_db
 from .models import Base, Book, Chapter, Passage, Topic, Verse
 from .repository import ScriptureRepository
@@ -27,4 +28,8 @@ __all__ = [
     "VerseResult",
     "PassageResult",
     "SearchResults",
+    # Translation coverage diagnostics (BITB-054)
+    "UnusableLanguage",
+    "check_translation_coverage",
+    "find_unusable_languages",
 ]

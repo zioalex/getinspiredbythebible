@@ -95,10 +95,24 @@ class ContentFilter:
         r"\bp+i+s+s+",
     ]
 
+    # Recognized TLDs for detecting *bare* domains (no scheme). Requiring a real
+    # TLD prevents false positives on run-together text and abbreviations — most
+    # importantly German Bible references such as "1.Timotheus" or "2.Mose", where
+    # "<chapter>.<Book>" looks like "label.label". (Scheme/www URLs are matched by
+    # the first alternative below and are unaffected.)
+    _COMMON_TLDS = (
+        "com|org|net|edu|gov|mil|int|io|co|info|biz|app|dev|ai|xyz|online|site|"
+        "shop|store|me|tv|cc|"
+        # ccTLDs for supported locales / common regions
+        "de|it|es|fr|pt|uk|us|ca|eu|ru|cn|in|kr|jp|br|mx|ch|at|nl|be|pl|se|no|"
+        "dk|fi|sa|ae|eg|au"
+    )
+
     # URL patterns
     URL_PATTERN = re.compile(
-        r"(?:https?://|www\.|ftp://)"  # Protocol or www
-        r"|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}",  # Domain pattern
+        r"(?:https?://|www\.|ftp://)"  # Protocol or www — always treated as a URL
+        r"|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"  # one or more domain labels
+        rf"(?:{_COMMON_TLDS})\b",  # …ending in a recognized TLD (bare-domain spam)
         re.IGNORECASE,
     )
 
@@ -134,7 +148,12 @@ class ContentFilter:
         # Check repeated characters
         if settings.content_filter_block_spam:
             max_repeat = settings.content_filter_max_repeated_chars
-            repeat_pattern = re.compile(r"(.)\1{" + str(max_repeat) + r",}")
+            # Only flag stretched *word* characters (e.g. "Hellooooooo", "aaaaaa").
+            # Punctuation/whitespace/emoji repetition — ellipses "......", "!!!",
+            # "???", "----" — is natural in real messages and must not be treated as
+            # spam. `\w` is Unicode-aware for str patterns, so accented letters (e.g.
+            # Italian "perché") are still covered. (Fixes ellipsis false positive.)
+            repeat_pattern = re.compile(r"(\w)\1{" + str(max_repeat) + r",}", re.UNICODE)
             if repeat_pattern.search(message):
                 return (
                     False,
