@@ -2675,7 +2675,7 @@
    "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-ar/strings.xml",
+   "path": "android/app/src/main/res/values-fr/strings.xml",
    "changes": 40
   },
   {
@@ -2683,19 +2683,19 @@
    "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-es/strings.xml",
-   "changes": 40
-  },
-  {
    "path": "android/app/src/main/res/values-it/strings.xml",
    "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-fr/strings.xml",
+   "path": "android/app/src/main/res/values-de/strings.xml",
    "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-de/strings.xml",
+   "path": "android/app/src/main/res/values-ar/strings.xml",
+   "changes": 40
+  },
+  {
+   "path": "android/app/src/main/res/values-es/strings.xml",
    "changes": 40
   },
   {
@@ -2727,11 +2727,11 @@
    "changes": 31
   },
   {
-   "path": "android/app/src/main/res/values-zh/strings.xml",
+   "path": "android/app/src/main/res/values-hi/strings.xml",
    "changes": 31
   },
   {
-   "path": "android/app/src/main/res/values-hi/strings.xml",
+   "path": "android/app/src/main/res/values-zh/strings.xml",
    "changes": 31
   },
   {
@@ -3803,8 +3803,8 @@
     "test_loc": 0
    },
    "docs": {
-    "files": 149,
-    "loc": 35956,
+    "files": 150,
+    "loc": 39814,
     "test_files": 0,
     "test_loc": 0
    },
@@ -3845,7 +3845,7 @@
    "frontend/src/components/ChapterModal.test.tsx.backup",
    "scripts/load_bible.py.backup"
   ],
-  "docs_loc": 38410,
-  "tracked_files": 745
+  "docs_loc": 38417,
+  "tracked_files": 746
  }
 }

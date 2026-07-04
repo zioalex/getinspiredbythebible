@@ -66,12 +66,12 @@ Hotspot files (code files touched by the most units of work):
 | `api/config.py` | 47 |
 | `android/app/src/main/res/values/strings.xml` | 44 |
 | `frontend/package.json` | 40 |
-| `android/app/src/main/res/values-ar/strings.xml` | 40 |
-| `android/app/src/main/res/values-pt/strings.xml` | 40 |
-| `android/app/src/main/res/values-es/strings.xml` | 40 |
-| `android/app/src/main/res/values-it/strings.xml` | 40 |
 | `android/app/src/main/res/values-fr/strings.xml` | 40 |
+| `android/app/src/main/res/values-pt/strings.xml` | 40 |
+| `android/app/src/main/res/values-it/strings.xml` | 40 |
 | `android/app/src/main/res/values-de/strings.xml` | 40 |
+| `android/app/src/main/res/values-ar/strings.xml` | 40 |
+| `android/app/src/main/res/values-es/strings.xml` | 40 |
 | `frontend/src/lib/api.ts` | 37 |
 | `api/chat/service.py` | 36 |
 | `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 36 |
@@ -121,7 +121,7 @@ Of 1,052 commits in the full graph, 112 are automation bots; of the rest, **583 
 | human/unattributed | 357 | 52 | 111 |  |
 | Claude (unversioned) | 258 | 67 | 110 | Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers. |
 | Claude Opus 4.5 | 168 | 42 | 69 | Anthropic's frontier Opus-tier model (released Nov 2025) — the strongest reasoning/agentic tier of its generation; workhorse of this repo's pre-launch phase. |
-| Android Dev alias | 57 | 21 | 26 | Commit persona used by the opencode Android subagents (android-dev@bibleinspiration.app). |
+| Android Dev alias | 57 | 21 | 26 | Commit persona used by the opencode Android subagents (`android-dev@bibleinspiration.app`). |
 | Claude Opus 4.6 | 56 | 11 | 30 | Opus-tier successor (early 2026) with adaptive thinking and a 1M-token context window; used in the later phase and as the opencode orchestrator. |
 | GitHub Copilot | 23 | 1 | 15 | GitHub's autonomous coding agent (copilot-swe-agent) — assigned issues/PRs directly on GitHub. |
 | Claude Sonnet 4.6 | 11 | 3 | 4 | Sonnet-tier successor (early 2026); the 'build' model in the Plan→Build→Verify relay documented in AGENTS.md. |
@@ -140,7 +140,7 @@ Of 1,052 commits in the full graph, 112 are automation bots; of the rest, **583 
 | api | 141 | 43,112 | 59 | 24,808 |
 | ci | 19 | 4,808 | 1 | 492 |
 | data | 4 | 0 | 0 | 0 |
-| docs | 149 | 35,956 | 0 | 0 |
+| docs | 150 | 39,814 | 0 | 0 |
 | frontend | 126 | 32,004 | 32 | 8,324 |
 | infra | 26 | 6,456 | 0 | 0 |
 | root | 24 | 3,515 | 0 | 0 |
