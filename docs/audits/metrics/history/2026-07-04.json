@@ -1,6 +1,6 @@
 {
  "generated": "2026-07-04",
- "commit": "e53c559",
+ "commit": "3e66dd7",
  "reports": [
   {
    "file": "2026-07-adversarial-audit.md",
@@ -93,8 +93,8 @@
   ".github/workflows/azure-deploy.yml": 1642
  },
  "hygiene": {
-  "api_sync_httpx_client": 4,
-  "api_broad_except": 73,
+  "api_sync_httpx_client": 6,
+  "api_broad_except": 74,
   "api_noqa": 21,
   "frontend_eslint_disable": 0,
   "frontend_ts_suppress": 0,
@@ -106,10 +106,10 @@
  },
  "areas": {
   "api": {
-   "src_lines": 17938,
+   "src_lines": 17941,
    "src_files": 68,
-   "test_lines": 24957,
-   "test_files": 57
+   "test_lines": 25161,
+   "test_files": 58
   },
   "frontend": {
    "src_lines": 7542,
