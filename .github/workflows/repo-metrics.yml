@@ -75,10 +75,20 @@ jobs:
             --body "Automated monthly refresh of docs/metrics/ by the Repo Metrics workflow." \
             --base main --head "$BRANCH" || echo "PR already exists"
 
+      # The Pages site hosts both dashboards: coding analysis at the root,
+      # audit trend under /audit/. Keep this assembly in sync with
+      # audit-metrics.yml — whichever workflow deploys last defines the
+      # whole site, so both must ship both dashboards.
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/audit
+          cp -r docs/metrics/. _site/
+          cp -r docs/audits/metrics/. _site/audit/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/metrics
+          path: _site
 
   deploy-pages:
     name: Publish dashboard to Pages
