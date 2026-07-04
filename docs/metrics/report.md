@@ -1,18 +1,18 @@
 # Repo productivity report
 
-*Generated 2026-07-03 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-02. Interactive dashboard: [index.html](./index.html).*
+*Generated 2026-07-04 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-03. Interactive dashboard: [index.html](./index.html).*
 
 ## Headline
 
 | Metric | Value |
 |---|---|
-| Units of work landed on main (PRs + direct commits, release bumps excluded) | **610** |
-| Calendar span | 166 days (132 active — 80%) |
-| Code lines added / deleted | +126,470 / −20,956 (net +105,514) |
+| Units of work landed on main (PRs + direct commits, release bumps excluded) | **618** |
+| Calendar span | 167 days (133 active — 80%) |
+| Code lines added / deleted | +133,804 / −21,068 (net +112,736) |
 | Releases shipped | 67 |
-| fix : feat ratio | **1.88** |
+| fix : feat ratio | **1.81** |
 | Same-day hotfix releases (<24h after previous) | 24 |
-| Regression fixes (fix ≤7 days after related feat) | 158 (57 same-scope) |
+| Regression fixes (fix ≤7 days after related feat) | 159 (58 same-scope) |
 | Fix chains (≥2 fixes, same scope, ≤7-day gaps) | 24 |
 | Reverts | 2 |
 
@@ -21,17 +21,17 @@
 | Phase | Units | Active days | Units/active day | feat | fix | fix:feat | Code +/− |
 |---|---|---|---|---|---|---|---|
 | Pre-launch (→ v0.1.0, 2026-05-02) | 396 | 77/104 | 5.14 | 76 | 164 | 2.16 | +95,585 / −15,378 |
-| Post-launch | 214 | 53/62 | 4.04 | 54 | 81 | 1.5 | +30,885 / −5,578 |
+| Post-launch | 222 | 54/63 | 4.11 | 60 | 82 | 1.37 | +38,219 / −5,690 |
 
 Work landed by type:
 
 | Type | Count |
 |---|---|
-| fix | 245 |
-| feat | 130 |
+| fix | 246 |
+| feat | 136 |
 | build | 83 |
 | other | 43 |
-| docs | 40 |
+| docs | 41 |
 | ci | 35 |
 | test | 14 |
 | refactor | 7 |
@@ -41,7 +41,7 @@ Work landed by type:
 
 ## Churn & rework
 
-Overall churn ratio (deleted/added code lines): **0.166** — 17% of written code was later removed or rewritten.
+Overall churn ratio (deleted/added code lines): **0.157** — 16% of written code was later removed or rewritten.
 
 Top fix chains (bursts of fixes on one scope):
 
@@ -63,18 +63,18 @@ Hotspot files (code files touched by the most units of work):
 | File | Changes |
 |---|---|
 | `.github/workflows/azure-deploy.yml` | 74 |
-| `api/config.py` | 46 |
-| `android/app/src/main/res/values/strings.xml` | 43 |
+| `api/config.py` | 47 |
+| `android/app/src/main/res/values/strings.xml` | 44 |
 | `frontend/package.json` | 40 |
-| `android/app/src/main/res/values-it/strings.xml` | 39 |
-| `android/app/src/main/res/values-de/strings.xml` | 39 |
-| `android/app/src/main/res/values-es/strings.xml` | 39 |
-| `android/app/src/main/res/values-ar/strings.xml` | 39 |
-| `android/app/src/main/res/values-pt/strings.xml` | 39 |
-| `android/app/src/main/res/values-fr/strings.xml` | 39 |
+| `android/app/src/main/res/values-ar/strings.xml` | 40 |
+| `android/app/src/main/res/values-pt/strings.xml` | 40 |
+| `android/app/src/main/res/values-es/strings.xml` | 40 |
+| `android/app/src/main/res/values-it/strings.xml` | 40 |
+| `android/app/src/main/res/values-fr/strings.xml` | 40 |
+| `android/app/src/main/res/values-de/strings.xml` | 40 |
 | `frontend/src/lib/api.ts` | 37 |
-| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 35 |
-| `api/chat/service.py` | 34 |
+| `api/chat/service.py` | 36 |
+| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 36 |
 | `frontend/src/app/[locale]/page.tsx` | 34 |
 | `.github/workflows/android-ci.yml` | 34 |
 
@@ -90,7 +90,7 @@ Monthly fix vs feat:
 | 2026-04 | 5 | 37 | 7.4 |
 | 2026-05 | 35 | 48 | 1.37 |
 | 2026-06 | 18 | 31 | 1.72 |
-| 2026-07 | 1 | 4 | 4.0 |
+| 2026-07 | 7 | 5 | 0.71 |
 
 Production-incident proxies: 24 same-day hotfix releases out of 67 total; 2 reverts.
 
@@ -101,16 +101,36 @@ Most bug-prone scopes (by fix count):
 
 | Scope | Total units | feat | fix |
 |---|---|---|---|
-| android | 107 | 37 | 59 |
+| android | 109 | 39 | 59 |
 | frontend | 21 | 3 | 16 |
 | ci | 19 | 3 | 16 |
-| api | 24 | 12 | 10 |
+| api | 27 | 14 | 11 |
 | ops | 8 | 1 | 7 |
-| web | 6 | 1 | 5 |
+| web | 8 | 3 | 5 |
 | chat | 5 | 1 | 3 |
 | android-publish | 5 | 0 | 3 |
 | migrations | 4 | 1 | 3 |
 | verse-links | 3 | 0 | 3 |
+
+## Models & harness
+
+Of 1,052 commits in the full graph, 112 are automation bots; of the rest, **583 (62%) carry an AI co-author trailer**. Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved — early history under-reports.
+
+| Model / author | Commits | feat | fix | About |
+|---|---|---|---|---|
+| human/unattributed | 357 | 52 | 111 |  |
+| Claude (unversioned) | 258 | 67 | 110 | Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers. |
+| Claude Opus 4.5 | 168 | 42 | 69 | Anthropic's frontier Opus-tier model (released Nov 2025) — the strongest reasoning/agentic tier of its generation; workhorse of this repo's pre-launch phase. |
+| Android Dev alias | 57 | 21 | 26 | Commit persona used by the opencode Android subagents (android-dev@bibleinspiration.app). |
+| Claude Opus 4.6 | 56 | 11 | 30 | Opus-tier successor (early 2026) with adaptive thinking and a 1M-token context window; used in the later phase and as the opencode orchestrator. |
+| GitHub Copilot | 23 | 1 | 15 | GitHub's autonomous coding agent (copilot-swe-agent) — assigned issues/PRs directly on GitHub. |
+| Claude Sonnet 4.6 | 11 | 3 | 4 | Sonnet-tier successor (early 2026); the 'build' model in the Plan→Build→Verify relay documented in AGENTS.md. |
+| Claude Sonnet 4.5 | 9 | 0 | 0 | Mid-tier Anthropic model balancing speed and capability; used for implementation-heavy subtasks. |
+| Claude (moonshotai/kimi-k2.5) | 1 | 1 | 0 | A third-party model (Moonshot Kimi K2.5) driven through a Claude-Code-style harness. |
+
+- **Claude Code** — AGENTS.md context file; Plan→Build→Verify relay across models; Claude Co-Authored-By trailers. Models: Claude Opus (plan + verify), Claude Sonnet (build).
+- **opencode** — opencode.json multi-agent config (orchestrator + specialist subagents). Models: github-copilot/claude-opus-4.6, opencode/minimax-m2.5-free, openrouter/qwen/qwen3-coder, qwen3.5:cloud, qwen3:30b-a3b, qwen3:8b-16k.
+- **GitHub Copilot coding agent** — 23 commits co-authored by Copilot / copilot-swe-agent[bot].
 
 ## Codebase health
 
@@ -118,13 +138,14 @@ Most bug-prone scopes (by fix count):
 |---|---|---|---|---|
 | android | 218 | 25,917 | 44 | 9,139 |
 | api | 141 | 43,112 | 59 | 24,808 |
-| ci | 18 | 4,715 | 1 | 492 |
+| ci | 19 | 4,808 | 1 | 492 |
 | data | 4 | 0 | 0 | 0 |
-| docs | 146 | 31,150 | 0 | 0 |
+| docs | 149 | 35,956 | 0 | 0 |
 | frontend | 126 | 32,004 | 32 | 8,324 |
 | infra | 26 | 6,456 | 0 | 0 |
 | root | 24 | 3,515 | 0 | 0 |
 | scripts | 34 | 6,085 | 3 | 773 |
+| tools | 4 | 1,834 | 0 | 0 |
 
 Leftover cruft (candidates for deletion):
 
@@ -132,6 +153,13 @@ Leftover cruft (candidates for deletion):
 - `AGENTS.old.md`
 - `frontend/src/components/ChapterModal.test.tsx.backup`
 - `scripts/load_bible.py.backup`
+
+## Run-over-run
+
+| Snapshot | Units | fix:feat | Net code LOC | Releases | Regression fixes |
+|---|---|---|---|---|---|
+| 2026-07-03 | 610 | 1.88 | 105,514 | 67 | 158 |
+| 2026-07-04 | 618 | 1.81 | 112,736 | 67 | 159 |
 
 ## Methodology
 
