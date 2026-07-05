@@ -24,7 +24,12 @@ openai==1.109.1
 # Azure Monitor (Application Insights via OpenTelemetry)
 # azure-monitor-opentelemetry pins its opentelemetry-sdk and instrumentation
 # versions exactly, so we let it manage those transitive dependencies.
-azure-monitor-opentelemetry==1.8.8
+# NOTE: keep this >= 1.8.9. 1.8.8 pinned opentelemetry-instrumentation-fastapi==0.61b0,
+# whose _get_route_details does `route.path` on every app.routes entry and crashes on the
+# `_IncludedRouter` object that FastAPI 0.137 / starlette 1.3.1 now stores there
+# ('_IncludedRouter' object has no attribute 'path' → HTTP 500 on every CORS preflight).
+# 1.8.9 pulls 0.64b0, which handles _IncludedRouter. See BITB-064.
+azure-monitor-opentelemetry==1.8.9
 
 # Azure Content Safety (for multi-language harm detection)
 azure-ai-contentsafety==1.0.0

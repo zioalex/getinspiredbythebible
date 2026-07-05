@@ -65,9 +65,40 @@ export function pageMetadata({
       locale,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
     },
   };
+}
+
+/**
+ * Build the WebSite + Organization JSON-LD graph for a locale page, as a
+ * JSON string ready for `dangerouslySetInnerHTML`. No SearchAction is
+ * included — this site has no query-string search endpoint to point one at.
+ */
+export function buildJsonLd({
+  locale,
+  description,
+}: {
+  locale: string;
+  description: string;
+}): string {
+  const website = {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: `${SITE_URL}/${locale}`,
+    description,
+    inLanguage: locale,
+  };
+  const organization = {
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon.svg`,
+  };
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [website, organization],
+  });
 }

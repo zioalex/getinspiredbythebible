@@ -990,7 +990,35 @@ FRENCH_ALIASES: dict[str, str] = {
 # canonical keys in ENGLISH_TO_ITALIAN (which uses "Psalms" with the trailing 's').
 ENGLISH_ALIASES: dict[str, str] = {
     "Psalm": "Psalms",  # singular form, e.g. "Psalm 23" — very common in English prose
-    "Song of Solomon": "Song of Solomon",  # common English alias; also known as Song of Songs
+    "Song of Solomon": "Song of Solomon",  # identity mapping so the alias set includes it
+    # ── Song of Solomon alternate titles ─────────────────────────────────
+    "Song of Songs": "Song of Solomon",
+    "Songs": "Song of Solomon",
+    "Canticles": "Song of Solomon",
+    "Cant": "Song of Solomon",
+    "SoS": "Song of Solomon",
+    # ── Common misspelling ────────────────────────────────────────────────
+    "Revelations": "Revelation",
+    # ── Numbered-book short forms (2–3 letter abbreviations) ─────────────
+    # Old Testament
+    "1 Sam": "1 Samuel",
+    "2 Sam": "2 Samuel",
+    "1 Kgs": "1 Kings",
+    "2 Kgs": "2 Kings",
+    "1 Chr": "1 Chronicles",
+    "2 Chr": "2 Chronicles",
+    # New Testament
+    "1 Cor": "1 Corinthians",
+    "2 Cor": "2 Corinthians",
+    "1 Thess": "1 Thessalonians",
+    "2 Thess": "2 Thessalonians",
+    "1 Tim": "1 Timothy",
+    "2 Tim": "2 Timothy",
+    "1 Pet": "1 Peter",
+    "2 Pet": "2 Peter",
+    "1 Jn": "1 John",
+    "2 Jn": "2 John",
+    "3 Jn": "3 John",
 }
 
 EXTRA_REVERSE_MAPPINGS: dict[str, str] = {

@@ -8,7 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
-import { pageMetadata, SITE_NAME } from "@/lib/seo";
+import { pageMetadata, buildJsonLd, SITE_NAME } from "@/lib/seo";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Footer from "@/components/Footer";
@@ -69,6 +69,9 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
 
+  const t = await getTranslations({ locale, namespace: "Metadata" });
+  const jsonLd = buildJsonLd({ locale, description: t("description") });
+
   // When the Turnstile site key is baked into the build, kick off the script
   // fetch from <head> so it races with the HTML download and the dynamic
   // <script> injection in TurnstileProvider hits a warm cache.
@@ -78,6 +81,10 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd }}
+        />
         {preloadTurnstile && (
           <>
             <link

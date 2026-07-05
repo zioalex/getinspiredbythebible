@@ -839,6 +839,7 @@ repo-metrics: ## Regenerate repo productivity dashboard + report (docs/metrics/)
 
 audit-metrics: ## Regenerate audit trend dashboard + report (docs/audits/metrics/) from audit reports
 	@echo "$(BLUE)Analyzing audit reports and worktree...$(NC)"
+	@$(PYTHON_VERSION) tools/audit-metrics/test_analyze.py
 	@$(PYTHON_VERSION) tools/audit-metrics/analyze.py
 	@$(PYTHON_VERSION) tools/audit-metrics/render.py
 	@echo "$(GREEN)✓ docs/audits/metrics/index.html and docs/audits/metrics/report.md updated$(NC)"

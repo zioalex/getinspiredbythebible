@@ -696,3 +696,115 @@ class TestNormalizeEdgeCases:
     def test_russian_james_nominative_alias(self):
         """Russian nominative 'Иаков' → James (canonical is 'Иакову')."""
         assert normalize_book_name("Иаков") == "James"
+
+
+# ===========================================================================
+# BITB-052 — English aliases and case-insensitive normalization
+# ===========================================================================
+
+
+class TestEnglishAliases:
+    """New ENGLISH_ALIASES entries added for BITB-052."""
+
+    # Song of Solomon alternate titles
+    def test_song_of_songs(self):
+        assert normalize_book_name("Song of Songs") == "Song of Solomon"
+
+    def test_songs(self):
+        assert normalize_book_name("Songs") == "Song of Solomon"
+
+    def test_canticles(self):
+        assert normalize_book_name("Canticles") == "Song of Solomon"
+
+    def test_cant(self):
+        assert normalize_book_name("Cant") == "Song of Solomon"
+
+    def test_sos(self):
+        assert normalize_book_name("SoS") == "Song of Solomon"
+
+    # Common misspelling
+    def test_revelations_maps_to_revelation(self):
+        assert normalize_book_name("Revelations") == "Revelation"
+
+    # Numbered OT abbreviations
+    @pytest.mark.parametrize(
+        "alias,expected",
+        [
+            ("1 Sam", "1 Samuel"),
+            ("2 Sam", "2 Samuel"),
+            ("1 Kgs", "1 Kings"),
+            ("2 Kgs", "2 Kings"),
+            ("1 Chr", "1 Chronicles"),
+            ("2 Chr", "2 Chronicles"),
+        ],
+    )
+    def test_ot_numbered_abbreviations(self, alias, expected):
+        assert normalize_book_name(alias) == expected
+
+    # Numbered NT abbreviations
+    @pytest.mark.parametrize(
+        "alias,expected",
+        [
+            ("1 Cor", "1 Corinthians"),
+            ("2 Cor", "2 Corinthians"),
+            ("1 Thess", "1 Thessalonians"),
+            ("2 Thess", "2 Thessalonians"),
+            ("1 Tim", "1 Timothy"),
+            ("2 Tim", "2 Timothy"),
+            ("1 Pet", "1 Peter"),
+            ("2 Pet", "2 Peter"),
+            ("1 Jn", "1 John"),
+            ("2 Jn", "2 John"),
+            ("3 Jn", "3 John"),
+        ],
+    )
+    def test_nt_numbered_abbreviations(self, alias, expected):
+        assert normalize_book_name(alias) == expected
+
+
+class TestCaseInsensitiveNormalization:
+    """normalize_book_name must handle case variations without returning the input unchanged."""
+
+    def test_lowercase_genesis(self):
+        assert normalize_book_name("genesis") == "Genesis"
+
+    def test_uppercase_psalms(self):
+        assert normalize_book_name("PSALMS") == "Psalms"
+
+    def test_lowercase_italian_salmi(self):
+        assert normalize_book_name("salmi") == "Psalms"
+
+    def test_mixed_case_italian_genesi(self):
+        assert normalize_book_name("GENESI") == "Genesis"
+
+    def test_lowercase_german_genesis(self):
+        # Canonical German form is "1. Mose" (with space); lowercase should map to Genesis.
+        assert normalize_book_name("1. mose") == "Genesis"
+
+    def test_lowercase_french_psaume(self):
+        assert normalize_book_name("psaume") == "Psalms"
+
+    def test_lowercase_psalm_singular(self):
+        assert normalize_book_name("psalm") == "Psalms"
+
+    def test_lowercase_cant_alias(self):
+        assert normalize_book_name("cant") == "Song of Solomon"
+
+    def test_lowercase_revelations(self):
+        assert normalize_book_name("revelations") == "Revelation"
+
+
+class TestConcreteFailingCases:
+    """Exact citations that returned [] before BITB-052 (verified against backlog story)."""
+
+    def test_1_cor_normalizes(self):
+        """'1 Cor' should resolve to '1 Corinthians'."""
+        assert normalize_book_name("1 Cor") == "1 Corinthians"
+
+    def test_cant_normalizes(self):
+        """'Cant' should resolve to 'Song of Solomon'."""
+        assert normalize_book_name("Cant") == "Song of Solomon"
+
+    def test_songs_normalizes(self):
+        """'Songs' should resolve to 'Song of Solomon'."""
+        assert normalize_book_name("Songs") == "Song of Solomon"
