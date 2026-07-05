@@ -182,6 +182,36 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
+
+**Status:** 🎯 Todo — follow-up from the 2026-07-05 `_IncludedRouter` 500 incident
+**Size:** M (one new synthetic probe + Telegram wiring; optional Azure availability test)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** a synthetic monitor that hits the API the way a browser does (a
+cross-origin CORS preflight) and the production request path exercised with OpenTelemetry
+instrumentation on, **so that** a browser-only outage pages me on Telegram in minutes instead of
+waiting for a user report.
+
+**Why P1:** A total browser-facing chat outage shipped to production (FastAPI 0.137's `_IncludedRouter`
+crashed the pinned OpenTelemetry instrumentation, returning HTTP 500 on every `OPTIONS /api/v1/*`
+preflight) and **no monitor, Azure alert, or Telegram notification fired**. The break was browser-only:
+`OPTIONS` preflight → 500, but direct `GET`/`POST` → 200. Every safety net (Azure `/health/ready` test,
+the `synthetic-chat` and `verse-search` probes) sends non-browser requests, so all stayed green — the
+same reason native Android kept working.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] New CORS-preflight synthetic probe (`OPTIONS /api/v1/chat/stream` with `Origin` +
+      `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers
+- [ ] Wired into `prod-monitor.yml` on the 5-min schedule via the shared `notify-telegram` action
+- [ ] (Recommended) Azure availability test parity so the always-on path also alerts
+- [ ] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
+
+---
+
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
 **Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
