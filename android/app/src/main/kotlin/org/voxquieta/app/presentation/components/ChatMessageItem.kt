@@ -463,7 +463,7 @@ fun ChatMessageItem(
     modifier: Modifier = Modifier,
     userMessage: String = "",
     onRetry: (() -> Unit)? = null,
-    onFeedback: ((messageLocalId: String, rating: String, comment: String) -> Unit)? = null,
+    onFeedback: ((messageLocalId: String, rating: String, comment: String, reason: String?) -> Unit)? = null,
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
@@ -663,6 +663,29 @@ fun ChatMessageItem(
                 }
             }
 
+            // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
+            if (isUser && message.content.isNotBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
+                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.action_copy_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Inline scripture cards — show the actual text of the verses the backend cited
             // for this answer, directly under the message (matching the web's verse cards),
             // so the verse text is visible without opening the top-bar Verses panel.
@@ -733,7 +756,7 @@ fun ChatMessageItem(
             if (showFeedback) {
                 FeedbackControls(
                     feedbackGiven = feedbackGiven,
-                    onSubmit = { rating, comment -> onFeedback!!(message.id, rating, comment) },
+                    onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
                     trailing = trailingActions,
                 )
             } else if (showShare) {

@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.38.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.37.0...v1.38.0) (2026-07-04)
+
+### Features
+
+* **claude:** add risk-auditor subagent for the adversarial risk audit ([#819](https://github.com/zioalex/getinspiredbythebible/issues/819)) ([5381297](https://github.com/zioalex/getinspiredbythebible/commit/538129765c9cfab7d26e43adda9549c31517375b))
+
+## [1.37.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.36.0...v1.37.0) (2026-07-04)
+
+### Features
+
+* **metrics:** add repo productivity analytics tool, dashboard and monthly workflow ([#813](https://github.com/zioalex/getinspiredbythebible/issues/813)) ([e53c559](https://github.com/zioalex/getinspiredbythebible/commit/e53c559eef0dde662bf71cf85a95bd1008c0565d))
+* **metrics:** audit trend framework — tools/audit-metrics with report, dashboard and workflow ([#817](https://github.com/zioalex/getinspiredbythebible/issues/817)) ([6556c88](https://github.com/zioalex/getinspiredbythebible/commit/6556c8848485512c3fcac49bac896d894052ff4d))
+
+### Bug Fixes
+
+* **api:** repair weekly report 500 and harden its workflow ([#815](https://github.com/zioalex/getinspiredbythebible/issues/815)) ([0a6b26d](https://github.com/zioalex/getinspiredbythebible/commit/0a6b26ddab11e1249fd438e3bbfd1f4cdd58ffda))
+* **BITB-060:** stop email service from blocking the event loop ([#814](https://github.com/zioalex/getinspiredbythebible/issues/814)) ([5737889](https://github.com/zioalex/getinspiredbythebible/commit/57378894d868cfa1f29eec8cb4fa31fe4e2a8c63))
+
+## [1.36.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.35.0...v1.36.0) (2026-07-03)
+
+### Features
+
+* **api:** per-translation data observability + honest unresolved citations (BITB-054) ([#803](https://github.com/zioalex/getinspiredbythebible/issues/803)) ([5b17abf](https://github.com/zioalex/getinspiredbythebible/commit/5b17abfb64ef1f924d20435bd51b42ef5c5d013e))
+* **web+android:** one-tap copy of user prompt (BITB-047) ([#771](https://github.com/zioalex/getinspiredbythebible/issues/771)) ([535822b](https://github.com/zioalex/getinspiredbythebible/commit/535822b843fb92fb6da781503de762cce78cfd03))
+
+### Bug Fixes
+
+* **api:** prevent weekly digest crash on missing session analytics ([#811](https://github.com/zioalex/getinspiredbythebible/issues/811)) ([28b0efb](https://github.com/zioalex/getinspiredbythebible/commit/28b0efb1421ccc99c92a0a13169bb362ab662f46))
+
+## [1.35.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.4...v1.35.0) (2026-07-03)
+
+### Features
+
+* **android:** negative-feedback reason chips (BITB-042) ([#783](https://github.com/zioalex/getinspiredbythebible/issues/783)) ([3c603e5](https://github.com/zioalex/getinspiredbythebible/commit/3c603e5c2822f6ec6301823fe69f8b89eac0a703))
+* **api:** address user's specific focus and improve prophetic-justice expansion (BITB-050) ([#758](https://github.com/zioalex/getinspiredbythebible/issues/758)) ([72c18fc](https://github.com/zioalex/getinspiredbythebible/commit/72c18fc604d2054b573fb5024ade6b5ca253864f))
+* **web:** surface Bible version as amber chip badge in header (BITB-029) ([#763](https://github.com/zioalex/getinspiredbythebible/issues/763)) ([2da373a](https://github.com/zioalex/getinspiredbythebible/commit/2da373a5f7c3976f0e8ecb4b5b2f3ebfce96747e))
+
+### Documentation
+
+* **audit:** adversarial risk audit baseline, periodic playbook, /risk-audit command, and top-5 backlog stories ([#809](https://github.com/zioalex/getinspiredbythebible/issues/809)) ([d53ca8c](https://github.com/zioalex/getinspiredbythebible/commit/d53ca8cf9773f5851f4f707e55e5f24f7075d950))
+
 ## [1.34.4](https://github.com/zioalex/getinspiredbythebible/compare/v1.34.3...v1.34.4) (2026-07-02)
 
 ### Bug Fixes

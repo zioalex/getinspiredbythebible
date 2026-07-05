@@ -21,12 +21,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Lint commits
-        uses: wagoid/commitlint-github-action@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          configFile: commitlint.config.cjs
+          node-version: "22.x"
+
+      - name: Install commitlint
+        run: npm install --no-save --no-audit --no-fund @commitlint/cli @commitlint/config-conventional
+
+      - name: Lint commits
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PLANNING_AUTHOR_EMAIL: 198982749+Copilot@users.noreply.github.com
+        run: |
+          status=0
+          while IFS= read -r sha; do
+            message="$(git log -1 --format=%B "$sha")"
+            author_email="$(git log -1 --format=%ae "$sha")"
+            if [[ "$message" =~ ^[Ii]nitial[[:space:]]plan ]] && \
+              [ "$author_email" = "$PLANNING_AUTHOR_EMAIL" ]; then
+              echo "Skipping agent planning commit $sha"
+              continue
+            fi
+            if ! printf '%s\n' "$message" | npx --no-install commitlint --config commitlint.config.cjs; then
+              echo "Commit $sha failed commitlint"
+              status=1
+            fi
+          done < <(git rev-list --reverse "${BASE_SHA}..${HEAD_SHA}")
+          exit $status
 
   commitlint-pr-title:
     # PR titles become the commit subject on squash-merge — which is what

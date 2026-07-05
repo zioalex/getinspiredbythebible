@@ -69,7 +69,7 @@ async def submit_feedback(
             request.rating == "positive" and bool(request.comment)
         )
         if should_notify:
-            email_service.send_feedback_notification(
+            await email_service.send_feedback_notification(
                 rating=request.rating,
                 comment=request.comment,
                 user_message=request.user_message,
@@ -142,7 +142,7 @@ async def submit_contact(
         )
 
         # Send email notification
-        email_sent = email_service.send_contact_notification(
+        email_sent = await email_service.send_contact_notification(
             subject_type=request.subject,
             message=request.message,
             reply_email=request.email,

@@ -294,11 +294,20 @@ Then build a focused expanded query that stays on theme, including:
 - Scriptural vocabulary and synonyms for those themes
 - The concrete life situation the person is facing
 
+- When the message names a specific Bible passage, book, or figure (e.g. Amos, \
+Isaiah, the prophets), include that passage's key theological themes — for the \
+prophetic books this often means prophetic indictment, divine judgment, justice, \
+and covenant faithfulness
+- When the message touches on injustice, poverty, oppression, exploitation, or \
+inequality, include social-justice and prophetic-justice themes (the cry of the \
+poor, oppression of the needy, righteous judgment) — these are core biblical \
+concerns, not off-theme drift
+
 Prefer depth on the real theme over breadth: a tight set of on-theme terms retrieves \
 better verses than a long, scattered list. Use recognizable scriptural wording.
 
 Respond ONLY with the expanded query text in {language}, no explanation.
-Keep it under 100 words."""
+Keep it under 120 words."""
 
         start_time = time.time()
         try:
@@ -1012,7 +1021,8 @@ Keep it under 100 words."""
                 text,
                 resolved_verses,
                 context_refs,
-                strip_unresolved=settings.grounding_strip_unresolved,
+                unresolved_behavior=settings.grounding_unresolved_behavior,
+                language=language,
             )
         except Exception as e:
             scripture_pipeline_errors_counter.add(

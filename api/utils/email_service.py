@@ -23,7 +23,7 @@ class EmailService:
         self.sender_email = settings.smtp2go_sender_email
         self.sender_name = settings.smtp2go_sender_name
 
-    def send_email(
+    async def send_email(
         self,
         to_email: str,
         subject: str,
@@ -70,8 +70,8 @@ class EmailService:
             if reply_to:
                 payload["custom_headers"] = [{"header": "Reply-To", "value": reply_to}]
 
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(SMTP2GO_API_URL, json=payload)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(SMTP2GO_API_URL, json=payload)
 
             if response.status_code == 200:
                 result = response.json()
@@ -120,7 +120,7 @@ class EmailService:
             )
             return False
 
-    def send_contact_notification(
+    async def send_contact_notification(
         self,
         subject_type: str,
         message: str,
@@ -185,9 +185,9 @@ User Agent: {user_agent or 'Not provided'}
 </html>
         """.strip()
 
-        return self.send_email(to_email, subject, body_text, body_html, reply_to=reply_email)
+        return await self.send_email(to_email, subject, body_text, body_html, reply_to=reply_email)
 
-    def send_feedback_notification(
+    async def send_feedback_notification(
         self,
         rating: str,
         comment: str | None,
@@ -293,7 +293,7 @@ Message ID: {message_id or 'Not specified'}
 </html>
         """.strip()
 
-        return self.send_email(to_email, subject, body_text, body_html)
+        return await self.send_email(to_email, subject, body_text, body_html)
 
 
 # Singleton instance
