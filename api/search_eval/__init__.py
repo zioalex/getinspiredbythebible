@@ -6,6 +6,7 @@ validated and tuned. Distinct from the ``golden_set`` package, which scores
 chat *response* quality.
 """
 
+from .loader import coverage_summary, load_golden_set, supported_languages
 from .metrics import false_positives_at_k, mrr, precision_at_k, recall_at_k
 from .models import GoldenCase
 from .normalize import (
@@ -27,4 +28,7 @@ __all__ = [
     "recall_at_k",
     "mrr",
     "false_positives_at_k",
+    "load_golden_set",
+    "supported_languages",
+    "coverage_summary",
 ]
