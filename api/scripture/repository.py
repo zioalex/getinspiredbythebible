@@ -827,3 +827,32 @@ class ScriptureRepository:
             "verses_with_embeddings": embedded_count.scalar_one(),
             "passages": passages_count.scalar_one(),
         }
+
+    async def get_translation_coverage(self) -> list[dict]:
+        """Per-translation verse/embedding coverage (BITB-054).
+
+        Reuses the diagnostic SQL documented in ``NEXT_STEPS.md``
+        (``SELECT translation, COUNT(*), COUNT(embedding) FROM verses GROUP BY
+        translation``) so a missing or partially-loaded translation is
+        queryable instead of requiring a manual psql session.
+
+        Returns:
+            One dict per translation: ``{"translation", "total_verses",
+            "verses_with_embeddings"}``. A translation with zero rows in
+            ``verses`` (never loaded) simply does not appear.
+        """
+        result = await self.session.execute(
+            select(
+                Verse.translation,
+                func.count(Verse.id),
+                func.count(Verse.embedding),
+            ).group_by(Verse.translation)
+        )
+        return [
+            {
+                "translation": translation,
+                "total_verses": total_verses,
+                "verses_with_embeddings": verses_with_embeddings,
+            }
+            for translation, total_verses, verses_with_embeddings in result.all()
+        ]

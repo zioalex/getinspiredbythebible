@@ -124,6 +124,55 @@ class VerseRefLinkTest {
         assertEquals(input, injectVerseLinks(input))
     }
 
+    // ── Comma citation style (German / French / Italian: "Römer 13,1") ─────────
+
+    @Test
+    fun `injectVerseLinks links a German comma reference and preserves the comma`() {
+        val result = injectVerseLinks("Das steht in Römer 13,1-2 geschrieben.")
+        // Display keeps the comma the reader wrote …
+        assertTrue(result, result.contains("[Römer 13,1-2]"))
+        // … while the link target is the canonical English book. The bundled book-name map
+        // canonicalizes to lowercase ("romans"); the backend lookup is case-insensitive.
+        assertTrue(result, result.lowercase().contains("verse://romans/13"))
+    }
+
+    @Test
+    fun `injectVerseLinks links a comma reference without a range`() {
+        val result = injectVerseLinks("Jakobus 1,27 spricht von Frömmigkeit.")
+        assertTrue(result, result.contains("[Jakobus 1,27]"))
+    }
+
+    @Test
+    fun `injectVerseLinks links a numbered comma reference`() {
+        val result = injectVerseLinks("Lies 1. Petrus 2,13-17 heute.")
+        assertTrue(result, result.contains("[1. Petrus 2,13-17]"))
+    }
+
+    @Test
+    fun `injectVerseLinks links a French comma reference`() {
+        val result = injectVerseLinks("Lis Jean 3,16 aujourd'hui.")
+        assertTrue(result, result.contains("[Jean 3,16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks still links colon references and keeps the colon`() {
+        val result = injectVerseLinks("As Jesus said in John 3:16, God so loved.")
+        assertTrue(result, result.contains("[John 3:16]"))
+    }
+
+    @Test
+    fun `injectVerseLinks does not link a decimal amount`() {
+        val input = "Ich habe 3,50 Euro gespart."
+        assertEquals(input, injectVerseLinks(input))
+    }
+
+    @Test
+    fun `injectVerseLinks does not link a comma followed by a space`() {
+        // "Kapitel" is not a book, and the comma is followed by a space — no verse match.
+        val input = "In Kapitel 5, Vers 3 steht es."
+        assertEquals(input, injectVerseLinks(input))
+    }
+
     // ── Non-English book names: German ───────────────────────────────────────
 
     @Test

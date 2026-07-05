@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { User, BookOpen } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import React, { useState } from "react";
+import { User, BookOpen, Copy, Check } from "lucide-react";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { Message } from "@/lib/api";
 import ShareMenu from "./ShareMenu";
 import FeedbackControls from "./FeedbackControls";
@@ -11,6 +11,11 @@ import {
   createVersePatternGlobal,
 } from "@/lib/versePatterns";
 import { isKnownBook } from "@/lib/verseExtraction";
+import {
+  linkifyVerses,
+  parseVerseHref,
+  VERSE_SCHEME,
+} from "@/lib/linkifyVerses";
 
 /** Recursively extract the plain-text content of a React node (e.g. link children). */
 function getNodeText(node: React.ReactNode): string {
@@ -47,6 +52,25 @@ export default function ChatMessage({
   feedbackDisabled = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = message.content;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Parse verse references like "John 3:16", "Genesis 1:1", "Giovanni 3:16", "1. Mose 1:1"
   const handleTextClick = (e: React.MouseEvent) => {
@@ -195,11 +219,32 @@ export default function ChatMessage({
         }`}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <>
+            <p className="whitespace-pre-wrap">{message.content}</p>
+            <div className="flex justify-end mt-1.5">
+              <button
+                onClick={handleCopyPrompt}
+                aria-label={copied ? "Copied" : "Copy message"}
+                className="p-1 rounded text-white/60 hover:text-white transition-colors"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2">
               <ReactMarkdown
+                // Preserve our in-app verse:// links; sanitize everything else
+                // as usual. Without this, react-markdown's defaultUrlTransform
+                // strips the unknown verse:// scheme and the links go dead.
+                urlTransform={(url) =>
+                  url.startsWith(VERSE_SCHEME) ? url : defaultUrlTransform(url)
+                }
                 components={{
                   // Custom paragraph renderer to highlight verse references
                   p: ({ children }) => {
@@ -217,6 +262,23 @@ export default function ChatMessage({
                         {processedChildren}
                       </p>
                     );
+                  },
+                  // List items need the same string processing as paragraphs —
+                  // a tight markdown list puts text directly in <li> (not in a
+                  // <p>), so without this, quotes in bullets go unstyled. Verse
+                  // references are already pre-linked by linkifyVerses(), so
+                  // they arrive as <a> children and pass straight through.
+                  li: ({ children }) => {
+                    const processedChildren = React.Children.map(
+                      children,
+                      (child, idx) => {
+                        if (typeof child === "string") {
+                          return highlightText(child, idx);
+                        }
+                        return child;
+                      },
+                    );
+                    return <li>{processedChildren}</li>;
                   },
                   // Style bold text (often verse references) - make them clickable
                   strong: ({ children }) => (
@@ -247,6 +309,26 @@ export default function ChatMessage({
                   // inline verse marking — amber, clickable, opening the
                   // in-app verse view — not a default blue external link.
                   a: ({ href, children }) => {
+                    // In-app verse:// links injected by linkifyVerses(): parse
+                    // the reference straight from the href so it works anywhere
+                    // (paragraphs, list items, headings, …).
+                    const verse = parseVerseHref(href);
+                    if (verse) {
+                      return (
+                        <span
+                          className="text-amber-800 font-semibold cursor-pointer hover:underline"
+                          onClick={() =>
+                            onVerseClick?.(
+                              verse.book,
+                              verse.chapter,
+                              verse.verse,
+                            )
+                          }
+                        >
+                          {children}
+                        </span>
+                      );
+                    }
                     const linkText = getNodeText(children);
                     const match = linkText.match(createVersePattern());
                     if (match && isKnownBook(match[1].trim())) {
@@ -280,7 +362,7 @@ export default function ChatMessage({
                   ),
                 }}
               >
-                {message.content}
+                {linkifyVerses(message.content)}
               </ReactMarkdown>
             </div>
 

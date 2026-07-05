@@ -432,8 +432,8 @@ fun ChatScreen(
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
-                            onFeedback = { messageLocalId, rating, comment ->
-                                viewModel.submitFeedback(messageLocalId, rating, comment.ifBlank { null })
+                            onFeedback = { messageLocalId, rating, comment, reason ->
+                                viewModel.submitFeedback(messageLocalId, rating, comment.ifBlank { null }, reason)
                             },
                             feedbackGiven = uiState.feedbackGiven[message.id],
                             verseRefRegex = verseRefRegex,

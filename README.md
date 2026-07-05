@@ -362,6 +362,17 @@ Get a specific verse.
 
 Get all verses in a chapter.
 
+### Admin Diagnostics (Internal)
+
+These endpoints are operational diagnostics and are not part of the public API schema.
+They require the `X-Monitor-Probe-Secret` header.
+
+#### GET `/api/v1/admin/translation-coverage`
+
+Returns per-translation verse and embedding counts plus unusable language mappings
+(`unusable_languages`) for supported UI languages whose translation data has zero
+verses or zero embeddings.
+
 ## 🧪 Development
 
 ### Running Without Docker
