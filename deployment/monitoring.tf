@@ -44,6 +44,10 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
+#       Fires when the embedding provider's circuit breaker records any retry,
+#       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
+#       degrades to verse-less responses silently while this persists.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -280,6 +284,53 @@ resource "azurerm_monitor_metric_alert" "backend_restarts" {
 
   action {
     action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Backend probe-failure alert.
+#
+# Container Apps logs readiness/liveness probe failures to ContainerAppSystemLogs_CL
+# as ReplicaUnhealthy events. These never reach ContainerAppConsoleLogs_CL (so
+# backend_errors can't see them) and do NOT increment RestartCount when the pod keeps
+# failing readiness without being restarted (so backend_restarts can't see them either).
+# That blind spot let a multi-week readiness incident — /health/ready timing out on slow
+# upstream dependencies — run with no alert. This watches the platform probe signal
+# directly. The query gates on a burst (> 10 in 15m) so single-replica blips during a
+# deploy (a few "connection refused" at container start) do not page.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failures" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-probe-failures"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT15M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 2
+  description          = "The backend container failed its readiness/liveness probe (ReplicaUnhealthy) more than 10 times in the last 15 minutes. Usually /health/ready timing out on a slow dependency, or the container is unhealthy. These ContainerAppSystemLogs_CL events do not trigger RestartCount, so this is the only alert that covers them. The payload carries a sample probe-failure line."
+
+  criteria {
+    query                   = <<-KQL
+      ContainerAppSystemLogs_CL
+      | where ContainerAppName_s == "bible-app-backend"
+      | where Reason_s == "ReplicaUnhealthy"
+      | where Log_s has "probe failed"
+      | summarize cnt = count(), Sample = any(Log_s)
+      | where cnt > 10
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
   }
 
   tags = local.tags
@@ -714,6 +765,49 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
       | where name == "db.search.duration_ms"
       | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
       | where p95 > 2000
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Embedding provider resilience alert (BITB-057 Phase 2).
+# Fires when the embedding.fallback_total custom metric records any retry,
+# timeout, or circuit-open event (providers/embedding_resilience.py) in the
+# last 10 minutes. A sustained rate here means the embedding provider is
+# degraded/down — chat requests degrade to verse-less responses per the
+# EmbeddingCircuitOpenError handling in chat/service.py, which is otherwise
+# silent (no 5xx), so this metric is the signal.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-embedding-fallback-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Embedding provider retries, timeouts, or circuit-open events (embedding.fallback_total metric) in the last 10 minutes. Chat requests are degrading to verse-less responses while this persists — see providers/embedding_resilience.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "embedding.fallback_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

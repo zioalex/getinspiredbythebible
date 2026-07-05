@@ -67,6 +67,18 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
+# ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
+# A supported UI language whose backing translation has zero verses (never
+# loaded) or zero embeddings (loaded but unsearchable) degrades silently —
+# empty search results, or citations grounding can never resolve. Checked at
+# startup (api/main.py) and on-demand via the admin diagnostic endpoint
+# (routes/admin.py), both backed by scripture/coverage.py.
+translation_data_missing_counter = meter.create_counter(
+    name="scripture.translation_data.missing",
+    description="Supported language whose backing translation has zero verses or zero embeddings",
+    unit="1",
+)  # attributes: language, translation, problem (no_verses|no_embeddings)
+
 # ── Scripture metrics ─────────────────────────────────────────────────────
 scripture_search_counter = meter.create_counter(
     name="scripture.search.total",
@@ -99,6 +111,12 @@ scripture_pipeline_errors_counter = meter.create_counter(
 chat_verseless_responses_counter = meter.create_counter(
     name="chat.responses.verseless",
     description="Chat responses with include_search=True but zero DB context verses AND zero resolved citations",
+    unit="1",
+)  # attributes: language
+
+chat_scripture_unavailable_counter = meter.create_counter(
+    name="chat.responses.scripture_unavailable",
+    description="Scripture-seeking chat requests answered fail-closed (BITB-058) because no scripture could be retrieved",
     unit="1",
 )  # attributes: language
 
@@ -200,8 +218,23 @@ openrouter_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+embedding_fallback_counter = meter.create_counter(
+    name="embedding.fallback_total",
+    description=(
+        "Count of embedding provider retries, timeouts, and circuit-open events "
+        "handled by ResilientEmbeddingProvider"
+    ),
+    unit="1",
+)
+
 circuit_breaker_state_counter = meter.create_counter(
     name="circuit_breaker.state_transitions",
     description="Circuit breaker state transitions (open/half_open/closed)",
     unit="1",
 )
+
+turnstile_fail_open_counter = meter.create_counter(
+    name="turnstile.fail_open_total",
+    description="Count of Turnstile siteverify transient failures that were allowed through (failed open)",
+    unit="1",
+)  # attributes: reason (timeout|http_<status>|http_error|<exc_name>)

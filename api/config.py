@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
+    # Embedding resilience (BITB-057 Phase 2). Mirrors the circuit-breaker/timeout
+    # pattern already used for OpenRouter (providers/openrouter.py) and Llama Guard
+    # (providers/llama_guard.py), applied to the embedding call path via
+    # providers/embedding_resilience.py::ResilientEmbeddingProvider.
+    embedding_request_timeout: float = 15.0  # Seconds before an embed() call is abandoned
+    embedding_breaker_failure_threshold: int = 5  # Consecutive failures before the breaker opens
+    embedding_breaker_cooldown_seconds: float = 30.0  # Time before a half-open probe is allowed
+    embedding_retry_max_attempts: int = 2  # Total attempts (including the first) per embed call
+    embedding_retry_base_delay_seconds: float = 0.5  # Base for jittered exponential backoff
+
     # Azure OpenAI Settings (optional - for Azure deployment)
     azure_openai_endpoint: str | None = None
     azure_openai_api_key: str | None = None
@@ -76,10 +86,29 @@ class Settings(BaseSettings):
     db_max_overflow: int = 10  # burst capacity above pool_size
     db_pool_timeout: int = 30  # seconds to wait for a free connection before erroring
     db_pool_recycle: int = 1800  # recycle a connection after 30 min (avoid stale/idle drops)
+    # Per-query ceilings so a slow/hung backend fails fast and *visibly* (raises ->
+    # logged + metric + retried) instead of holding a pooled connection until
+    # db_pool_timeout (30s) and cascading into pool exhaustion. Sizing: normal queries
+    # run <100ms (slow_query_threshold_ms); the p95 *saturation* SLOs are 1s (verse
+    # reads, BITB-041) and 2s (semantic search, BITB-056). These ceilings sit ~4x above
+    # the 2s saturation line — high enough never to cancel a legitimately slow query
+    # even during a concurrency spike (~8x baseline at conc 64), low enough to free the
+    # connection well before the 30s pool timeout. statement_timeout (server) is set
+    # below command_timeout (client) so Postgres cancels first and asyncpg surfaces a
+    # clean "canceling statement due to statement timeout" error instead of a raw
+    # socket timeout.
+    db_command_timeout: int = 10  # asyncpg client-side per-query timeout (seconds)
+    db_statement_timeout_ms: int = 8000  # server-side statement_timeout (milliseconds)
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+    # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
+    # verse (hard retrieval failure OR zero results). Rather than answer without
+    # scripture — which undercuts a Bible-grounded product — return a localized
+    # "try again" message. Greetings / off-topic / GENERAL chit-chat are exempt so we
+    # never nag when no citation was expected.
+    require_scripture_grounding: bool = True
 
     # Query Expansion Settings
     query_expansion_enabled: bool = (
@@ -133,6 +162,11 @@ class Settings(BaseSettings):
     health_check_timeout: int = (
         15  # Timeout for dependency checks in seconds (longer for free APIs)
     )
+    # Readiness probe checks ONLY the database and must answer well within the
+    # platform readiness-probe deadline (deployment/main.tf readiness_probe.timeout,
+    # currently 5s), so it uses a short timeout independent of the 15s budget the
+    # comprehensive /health endpoint allows for slow free-tier inference providers.
+    readiness_check_timeout: int = 3
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings
@@ -154,10 +188,17 @@ class Settings(BaseSettings):
 
     # Verse grounding (post-generation scripture fidelity)
     verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
-    # When a cited verse cannot be resolved in the DB at all, strip the invented
-    # quotation rather than only logging it. Off by default — grammar-safe
-    # stripping across 11 languages is risky, so detect-and-log first.
-    grounding_strip_unresolved: bool = False
+    # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any
+    # canonical DB text (translation not loaded/partial, or the reference is invalid).
+    #   keep   — leave the model's text untouched (a Correction is still recorded).
+    #   strip  — remove the invented quotation, keeping the reference and surrounding prose.
+    #   notice — replace the invented quotation with a short localized message
+    #            ("this verse isn't available in <language> yet").
+    # Default "strip": per BITB-054 analysis, leaving an unverifiable, possibly
+    # hallucinated quotation untouched is not least-user-harm even though it was the
+    # historical default (grounding_strip_unresolved=False) — stripping the
+    # unverifiable text while keeping the reference is the safer default.
+    grounding_unresolved_behavior: Literal["keep", "strip", "notice"] = "strip"
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)

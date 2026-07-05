@@ -54,7 +54,9 @@ class TestTurnstileVerifier:
 
     @pytest.mark.asyncio
     async def test_verify_failure(self):
-        """Invalid token should fail verification."""
+        """Invalid token should fail verification (AC1 regression: explicit
+        rejection fails closed) and must NOT trip the breaker or fail-open metric —
+        siteverify answering means the endpoint is healthy."""
         verifier = TurnstileVerifier("test-secret")
 
         mock_response = MagicMock()
@@ -69,10 +71,14 @@ class TestTurnstileVerifier:
             mock_client.post.return_value = mock_response
             mock_get_client.return_value = mock_client
 
-            success, error = await verifier.verify("invalid-token")
+            with patch("utils.turnstile.turnstile_fail_open_counter") as mock_counter:
+                success, error = await verifier.verify("invalid-token")
 
-            assert success is False
-            assert "invalid-input-response" in error
+                assert success is False
+                assert "invalid-input-response" in error
+                mock_counter.add.assert_not_called()
+
+            assert verifier._breaker.is_open() is False
 
     @pytest.mark.asyncio
     async def test_verify_missing_token(self):
@@ -86,7 +92,8 @@ class TestTurnstileVerifier:
 
     @pytest.mark.asyncio
     async def test_verify_timeout_fails_open(self):
-        """Timeout should fail open (allow request)."""
+        """Timeout should fail open (allow request) and emit the fail-open metric
+        with a 'timeout' reason, while the breaker stays closed for an isolated blip."""
         verifier = TurnstileVerifier("test-secret")
 
         with patch.object(verifier, "_get_client") as mock_get_client:
@@ -94,15 +101,23 @@ class TestTurnstileVerifier:
             mock_client.post.side_effect = httpx.TimeoutException("Connection timeout")
             mock_get_client.return_value = mock_client
 
-            success, error = await verifier.verify("token")
+            with patch("utils.turnstile.turnstile_fail_open_counter") as mock_counter:
+                success, error = await verifier.verify("token")
 
-            # Should fail open on timeout
-            assert success is True
-            assert error is None
+                # Should fail open on an isolated timeout
+                assert success is True
+                assert error is None
+                mock_counter.add.assert_called_once()
+                args, kwargs = mock_counter.add.call_args
+                assert args[0] == 1
+                assert "timeout" in args[1]["reason"]
+
+            assert verifier._breaker.is_open() is False
 
     @pytest.mark.asyncio
     async def test_verify_http_error_fails_open(self):
-        """HTTP error should fail open (allow request)."""
+        """HTTP error should fail open (allow request) and emit the fail-open metric
+        with a reason derived from the exception type."""
         verifier = TurnstileVerifier("test-secret")
 
         with patch.object(verifier, "_get_client") as mock_get_client:
@@ -110,11 +125,53 @@ class TestTurnstileVerifier:
             mock_client.post.side_effect = httpx.HTTPError("Server error")
             mock_get_client.return_value = mock_client
 
-            success, error = await verifier.verify("token")
+            with patch("utils.turnstile.turnstile_fail_open_counter") as mock_counter:
+                success, error = await verifier.verify("token")
 
-            # Should fail open on HTTP error
-            assert success is True
-            assert error is None
+                # Should fail open on HTTP error
+                assert success is True
+                assert error is None
+                mock_counter.add.assert_called_once()
+                args, kwargs = mock_counter.add.call_args
+                assert args[0] == 1
+                assert "reason" in args[1]
+
+            assert verifier._breaker.is_open() is False
+
+    @pytest.mark.asyncio
+    async def test_verify_repeated_transient_errors_trip_breaker(self):
+        """Repeated siteverify failures should trip the circuit breaker to fail
+        closed, and once open, verify() must short-circuit without re-invoking
+        the network client."""
+        verifier = TurnstileVerifier("test-secret")
+        failure_threshold = verifier._breaker.failure_threshold
+
+        with patch.object(verifier, "_get_client") as mock_get_client:
+            mock_client = AsyncMock()
+            mock_client.post.side_effect = httpx.TimeoutException("Connection timeout")
+            mock_get_client.return_value = mock_client
+
+            with patch("utils.turnstile.turnstile_fail_open_counter") as mock_counter:
+                results = []
+                for _ in range(failure_threshold + 2):
+                    results.append(await verifier.verify("token"))
+
+                # Failures 1..threshold-1 fail open; the threshold-th call trips
+                # the breaker and fails closed; subsequent calls also fail closed.
+                for success, _ in results[: failure_threshold - 1]:
+                    assert success is True
+                for success, _ in results[failure_threshold - 1 :]:
+                    assert success is False
+
+                # The network was only ever hit up to (and including) the call
+                # that tripped the breaker — later calls short-circuit.
+                assert mock_client.post.call_count == failure_threshold
+
+                # The fail-open metric only fires for the isolated blips, not
+                # for the call that trips the breaker or any call after.
+                assert mock_counter.add.call_count == failure_threshold - 1
+
+        assert verifier._breaker.is_open() is True
 
 
 class TestPathSkipping:

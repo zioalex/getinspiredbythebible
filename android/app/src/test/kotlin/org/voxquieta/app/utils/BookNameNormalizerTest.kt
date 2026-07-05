@@ -121,7 +121,40 @@ class BookNameNormalizerTest {
     }
 
     @Test
-    fun `returns input unchanged when map is empty`() {
-        assertEquals("2 Korinther", normalizeBookName("2 Korinther", emptyMap()))
+    fun `resolves via the bundled fallback map when the API map is empty`() {
+        // Before the /api/v1/scripture/book-names call returns, the runtime map is empty.
+        // The bundled fallback (lowercased keys, lowercase English values) still resolves
+        // localized names offline — the backend chapter lookup is case-insensitive.
+        assertEquals("2 corinthians", normalizeBookName("2 Korinther", emptyMap()))
+        assertEquals("john", normalizeBookName("Giovanni", emptyMap()))
+    }
+
+    @Test
+    fun `leaves genuinely unknown names unchanged even with the bundled map`() {
+        assertEquals("Nonexistent", normalizeBookName("Nonexistent", emptyMap()))
+        assertEquals("Proverbia", normalizeBookName("Proverbia", emptyMap()))
+    }
+
+    // ── isKnownBook allowlist (gates greedy regex over-matches) ─────────────────
+
+    @Test
+    fun `isKnownBook recognizes books from the bundled map without the API`() {
+        assertEquals(true, isKnownBook("Psalm")) // English alias key
+        assertEquals(true, isKnownBook("psalm")) // lowercase
+        assertEquals(true, isKnownBook("Psalms")) // English canonical value
+        assertEquals(true, isKnownBook("Giovanni")) // Italian key
+        assertEquals(true, isKnownBook("Isaiah")) // English value
+    }
+
+    @Test
+    fun `isKnownBook rejects non-books`() {
+        assertEquals(false, isKnownBook("you of Psalm"))
+        assertEquals(false, isKnownBook("Trost der Hoffnung"))
+        assertEquals(false, isKnownBook("um"))
+    }
+
+    @Test
+    fun `isKnownBook also honours runtime API names`() {
+        assertEquals(true, isKnownBook("Matthäus", map))
     }
 }

@@ -202,6 +202,12 @@
     <string name="feedback_send">Senden</string>
     <string name="feedback_sending">Feedback wird gesendet…</string>
     <string name="feedback_maintainer_notice">Deine Nachricht wird an den Betreuer der App weitergegeben.</string>
+    <string name="feedback_reason_prompt">Was ist schiefgelaufen?</string>
+    <string name="feedback_reason_inaccurate">Ungenau</string>
+    <string name="feedback_reason_unhelpful">Nicht hilfreich</string>
+    <string name="feedback_reason_wrong_verse">Falscher Vers</string>
+    <string name="feedback_reason_tone">Ton</string>
+    <string name="feedback_reason_other">Sonstiges</string>
     <string name="backend_warming_up">Verbindung zum Server wird hergestellt… (erste Anfrage kann bis zu 30 s dauern)</string>
     <string name="action_scroll_to_bottom">Nach unten scrollen</string>
 
