@@ -4,13 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [1.39.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.38.0...v1.39.0) (2026-07-05)
 
-
 ### Features
 
 * **BITB-053:** ground unquoted/paraphrased verse citations (ships in detect-only mode) ([#785](https://github.com/zioalex/getinspiredbythebible/issues/785)) ([b0d71df](https://github.com/zioalex/getinspiredbythebible/commit/b0d71df5dff41246e662196ce1edc9b18a419402))
 * **search-eval:** bitb-051 p2 — golden set + loader + --validate + non-blocking ci ([#795](https://github.com/zioalex/getinspiredbythebible/issues/795)) ([51332f3](https://github.com/zioalex/getinspiredbythebible/commit/51332f384d8bba25aee9fae5f7aa3a9fba349281))
 * **seo:** add WebSite/Organization JSON-LD and branded OG image (BITB-037) ([#808](https://github.com/zioalex/getinspiredbythebible/issues/808)) ([c89e9b6](https://github.com/zioalex/getinspiredbythebible/commit/c89e9b69f6adc63b922c2c0affb8cc87cfcbb768))
-
 
 ### Bug Fixes
 
