@@ -1,6 +1,6 @@
 # BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** 📋 Backlog
+**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
 **Priority:** P1 (High) — 2026-07 adversarial audit E2 + S3 + O2 (all HIGH); every layer of bot/abuse/safety protection currently fails open, silently
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
@@ -34,10 +34,18 @@ Three independent controls, one shared philosophy — availability over protecti
 
 ### Turnstile
 
-- [ ] Verification *rejections* fail closed (403). Transient siteverify errors may fail open for
+- [x] Verification *rejections* fail closed (403). Transient siteverify errors may fail open for
       isolated blips, but persistent errors trip to fail-closed (circuit-breaker style — reuse
       `utils/circuit_breaker.py`).
-- [ ] Every fail-open occurrence emits a metric/log; an alert fires on its rate.
+- [x] Every fail-open occurrence emits a metric/log; an alert fires on its rate.
+
+**Implemented 2026-07-05:** instance `CircuitBreaker(name="turnstile", failure_threshold=5,
+cooldown_seconds=30)` in `TurnstileVerifier.__init__`; explicit `success:false` rejections and
+confirmed successes both record breaker success (siteverify answered — endpoint healthy); transient
+exceptions (timeout/HTTP error/other) record a breaker failure and, while the breaker is still
+closed, fail open and emit `utils.metrics.turnstile_fail_open_counter` labelled by `reason`. Once
+the breaker trips open, `verify()` short-circuits to fail-closed without hitting the network until
+the cooldown elapses.
 
 ### Rate limiting
 
