@@ -1,19 +1,19 @@
 # Repo productivity report
 
-*Generated 2026-07-03 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-02. Interactive dashboard: [index.html](./index.html).*
+*Generated 2026-07-05 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-05. Interactive dashboard: [index.html](./index.html).*
 
 ## Headline
 
 | Metric | Value |
 |---|---|
-| Units of work landed on main (PRs + direct commits, release bumps excluded) | **610** |
-| Calendar span | 166 days (132 active — 80%) |
-| Code lines added / deleted | +126,470 / −20,956 (net +105,514) |
-| Releases shipped | 67 |
-| fix : feat ratio | **1.88** |
-| Same-day hotfix releases (<24h after previous) | 24 |
-| Regression fixes (fix ≤7 days after related feat) | 158 (57 same-scope) |
-| Fix chains (≥2 fixes, same scope, ≤7-day gaps) | 24 |
+| Units of work landed on main (PRs + direct commits, release bumps excluded) | **639** |
+| Calendar span | 169 days (135 active — 80%) |
+| Code lines added / deleted | +137,683 / −21,251 (net +116,432) |
+| Releases shipped | 73 |
+| fix : feat ratio | **1.79** |
+| Same-day hotfix releases (<24h after previous) | 25 |
+| Regression fixes (fix ≤7 days after related feat) | 164 (60 same-scope) |
+| Fix chains (≥2 fixes, same scope, ≤7-day gaps) | 25 |
 | Reverts | 2 |
 
 ## Velocity
@@ -21,18 +21,18 @@
 | Phase | Units | Active days | Units/active day | feat | fix | fix:feat | Code +/− |
 |---|---|---|---|---|---|---|---|
 | Pre-launch (→ v0.1.0, 2026-05-02) | 396 | 77/104 | 5.14 | 76 | 164 | 2.16 | +95,585 / −15,378 |
-| Post-launch | 214 | 53/62 | 4.04 | 54 | 81 | 1.5 | +30,885 / −5,578 |
+| Post-launch | 243 | 56/65 | 4.34 | 65 | 88 | 1.35 | +42,098 / −5,873 |
 
 Work landed by type:
 
 | Type | Count |
 |---|---|
-| fix | 245 |
-| feat | 130 |
-| build | 83 |
+| fix | 252 |
+| feat | 141 |
+| build | 92 |
 | other | 43 |
-| docs | 40 |
-| ci | 35 |
+| docs | 41 |
+| ci | 36 |
 | test | 14 |
 | refactor | 7 |
 | chore | 7 |
@@ -41,7 +41,7 @@ Work landed by type:
 
 ## Churn & rework
 
-Overall churn ratio (deleted/added code lines): **0.166** — 17% of written code was later removed or rewritten.
+Overall churn ratio (deleted/added code lines): **0.154** — 15% of written code was later removed or rewritten.
 
 Top fix chains (bursts of fixes on one scope):
 
@@ -63,20 +63,20 @@ Hotspot files (code files touched by the most units of work):
 | File | Changes |
 |---|---|
 | `.github/workflows/azure-deploy.yml` | 74 |
-| `api/config.py` | 46 |
-| `android/app/src/main/res/values/strings.xml` | 43 |
-| `frontend/package.json` | 40 |
-| `android/app/src/main/res/values-it/strings.xml` | 39 |
-| `android/app/src/main/res/values-de/strings.xml` | 39 |
-| `android/app/src/main/res/values-es/strings.xml` | 39 |
-| `android/app/src/main/res/values-ar/strings.xml` | 39 |
-| `android/app/src/main/res/values-pt/strings.xml` | 39 |
-| `android/app/src/main/res/values-fr/strings.xml` | 39 |
+| `api/config.py` | 48 |
+| `android/app/src/main/res/values/strings.xml` | 44 |
+| `frontend/package.json` | 43 |
+| `android/app/src/main/res/values-pt/strings.xml` | 40 |
+| `android/app/src/main/res/values-it/strings.xml` | 40 |
+| `android/app/src/main/res/values-de/strings.xml` | 40 |
+| `android/app/src/main/res/values-es/strings.xml` | 40 |
+| `android/app/src/main/res/values-fr/strings.xml` | 40 |
+| `android/app/src/main/res/values-ar/strings.xml` | 40 |
+| `api/chat/service.py` | 37 |
 | `frontend/src/lib/api.ts` | 37 |
-| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 35 |
-| `api/chat/service.py` | 34 |
+| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 36 |
+| `.github/workflows/android-ci.yml` | 35 |
 | `frontend/src/app/[locale]/page.tsx` | 34 |
-| `.github/workflows/android-ci.yml` | 34 |
 
 ## Quality & errors
 
@@ -90,9 +90,9 @@ Monthly fix vs feat:
 | 2026-04 | 5 | 37 | 7.4 |
 | 2026-05 | 35 | 48 | 1.37 |
 | 2026-06 | 18 | 31 | 1.72 |
-| 2026-07 | 1 | 4 | 4.0 |
+| 2026-07 | 12 | 11 | 0.92 |
 
-Production-incident proxies: 24 same-day hotfix releases out of 67 total; 2 reverts.
+Production-incident proxies: 25 same-day hotfix releases out of 73 total; 2 reverts.
 
 - 2026-03-14 revert: revert DB backup retention to 7 days and disable geo-redundant backup [#321](https://github.com/zioalex/getinspiredbythebible/pull/321)
 - 2026-05-07 revert: restore manifest + build.gradle.kts to pre-AD_ID-fix state [#491](https://github.com/zioalex/getinspiredbythebible/pull/491)
@@ -101,12 +101,12 @@ Most bug-prone scopes (by fix count):
 
 | Scope | Total units | feat | fix |
 |---|---|---|---|
-| android | 107 | 37 | 59 |
+| android | 109 | 39 | 59 |
 | frontend | 21 | 3 | 16 |
 | ci | 19 | 3 | 16 |
-| api | 24 | 12 | 10 |
+| api | 29 | 14 | 13 |
 | ops | 8 | 1 | 7 |
-| web | 6 | 1 | 5 |
+| web | 8 | 3 | 5 |
 | chat | 5 | 1 | 3 |
 | android-publish | 5 | 0 | 3 |
 | migrations | 4 | 1 | 3 |
@@ -116,15 +116,16 @@ Most bug-prone scopes (by fix count):
 
 | Component | Files | LOC | Test files | Test LOC |
 |---|---|---|---|---|
-| android | 218 | 25,917 | 44 | 9,139 |
-| api | 141 | 43,112 | 59 | 24,808 |
-| ci | 18 | 4,715 | 1 | 492 |
+| android | 219 | 26,121 | 45 | 9,208 |
+| api | 148 | 45,950 | 63 | 26,245 |
+| ci | 20 | 5,043 | 1 | 521 |
 | data | 4 | 0 | 0 | 0 |
-| docs | 146 | 31,150 | 0 | 0 |
-| frontend | 126 | 32,004 | 32 | 8,324 |
-| infra | 26 | 6,456 | 0 | 0 |
-| root | 24 | 3,515 | 0 | 0 |
-| scripts | 34 | 6,085 | 3 | 773 |
+| docs | 165 | 37,578 | 0 | 0 |
+| frontend | 128 | 31,868 | 33 | 8,529 |
+| infra | 26 | 6,521 | 0 | 0 |
+| root | 26 | 3,696 | 0 | 0 |
+| scripts | 36 | 6,221 | 3 | 773 |
+| tools | 8 | 2,391 | 1 | 96 |
 
 Leftover cruft (candidates for deletion):
 
@@ -132,6 +133,13 @@ Leftover cruft (candidates for deletion):
 - `AGENTS.old.md`
 - `frontend/src/components/ChapterModal.test.tsx.backup`
 - `scripts/load_bible.py.backup`
+
+## Run-over-run
+
+| Snapshot | Units | fix:feat | Net code LOC | Releases | Regression fixes |
+|---|---|---|---|---|---|
+| 2026-07-03 | 610 | 1.88 | 105,514 | 67 | 158 |
+| 2026-07-05 | 639 | 1.79 | 116,432 | 73 | 164 |
 
 ## Methodology
 
