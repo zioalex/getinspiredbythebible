@@ -110,6 +110,7 @@ class ScriptureSearchService:
         similarity_threshold: float = 0.4,
         translation: str | None = None,
         extra_embeddings: list[list[float]] | None = None,  # NEW: for query expansion
+        query_embedding: list[float] | None = None,  # NEW: precomputed to skip re-embed
     ) -> SearchResults:
         """
         Search for relevant scripture based on a natural language query.
@@ -125,9 +126,10 @@ class ScriptureSearchService:
         Returns:
             SearchResults with matching verses and passages
         """
-        # Generate embedding for the query
-        embedding_response = await self.embedding_provider.embed(query)
-        query_embedding = embedding_response.embedding
+        # Generate embedding for the query (skip when the caller precomputed it).
+        if query_embedding is None:
+            embedding_response = await self.embedding_provider.embed(query)
+            query_embedding = embedding_response.embedding
 
         # Build list of embeddings (original + any expansion embeddings)
         query_embeddings = [query_embedding]
@@ -194,6 +196,8 @@ class ScriptureSearchService:
         translation: str | None = None,
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
+        extra_embeddings: list[list[float]] | None = None,
+        query_embedding: list[float] | None = None,
     ) -> SearchResults:
         """
         Hybrid search combining semantic similarity and keyword matching.
@@ -210,11 +214,13 @@ class ScriptureSearchService:
         Returns:
             SearchResults with matching verses and passages
         """
-        # Generate embedding for the query
-        embedding_response = await self.embedding_provider.embed(query)
-        query_embedding = embedding_response.embedding
+        # Generate embedding for the query (skip when the caller precomputed it so the
+        # original-query embed isn't repeated after running concurrently upstream).
+        if query_embedding is None:
+            embedding_response = await self.embedding_provider.embed(query)
+            query_embedding = embedding_response.embedding
 
-        # Hybrid search verses
+        # Hybrid search verses (multi-embedding when query expansion supplies extras)
         verse_results = await self.repo.search_verses_hybrid(
             query_text=query,
             query_embedding=query_embedding,
@@ -223,6 +229,7 @@ class ScriptureSearchService:
             similarity_threshold=similarity_threshold,
             limit=max_verses,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(
@@ -282,6 +289,7 @@ class ScriptureSearchService:
         translation: str | None = None,
         topic_boost_factor: float = 0.2,
         extra_embeddings: list[list[float]] | None = None,
+        query_embedding: list[float] | None = None,
     ) -> SearchResults:
         """
         Semantic search with topic-based boosting.
@@ -295,8 +303,9 @@ class ScriptureSearchService:
         Returns:
             SearchResults with topic-boosted verse ranking
         """
-        embedding_response = await self.embedding_provider.embed(query)
-        query_embedding = embedding_response.embedding
+        if query_embedding is None:
+            embedding_response = await self.embedding_provider.embed(query)
+            query_embedding = embedding_response.embedding
 
         verse_results = await self.repo.search_verses_semantic_boosted(
             query_embedding=query_embedding,
@@ -305,6 +314,7 @@ class ScriptureSearchService:
             limit=max_verses,
             similarity_threshold=similarity_threshold,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(
@@ -362,12 +372,15 @@ class ScriptureSearchService:
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
         topic_boost_factor: float = 0.2,
+        extra_embeddings: list[list[float]] | None = None,
+        query_embedding: list[float] | None = None,
     ) -> SearchResults:
         """
         Hybrid search with topic-based boosting.
         """
-        embedding_response = await self.embedding_provider.embed(query)
-        query_embedding = embedding_response.embedding
+        if query_embedding is None:
+            embedding_response = await self.embedding_provider.embed(query)
+            query_embedding = embedding_response.embedding
 
         verse_results = await self.repo.search_verses_hybrid_boosted(
             query_text=query,
@@ -379,6 +392,7 @@ class ScriptureSearchService:
             similarity_threshold=similarity_threshold,
             limit=max_verses,
             translation=translation,
+            extra_embeddings=extra_embeddings,
         )
 
         logger.info(

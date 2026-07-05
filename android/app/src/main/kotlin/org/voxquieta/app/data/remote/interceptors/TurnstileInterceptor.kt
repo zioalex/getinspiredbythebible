@@ -17,6 +17,10 @@ class TurnstileInterceptor @Inject constructor(
     // dispatcher. Hilt provides the production instance via the @Inject constructor.
     internal var tokenWaitMillis: Long = DEFAULT_TOKEN_WAIT_MILLIS
 
+    // Wait used on the 403-retry path; longer than the first-attempt wait because
+    // it may need to cover the WebView's error-recovery backoff. Mutable for tests.
+    internal var retryTokenWaitMillis: Long = DEFAULT_RETRY_TOKEN_WAIT_MILLIS
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
         // Turnstile-gated endpoints on this backend are all POST requests
@@ -46,13 +50,19 @@ class TurnstileInterceptor @Inject constructor(
             chain.proceed(original)
         }
 
-        // On 403 for any POST the token was missing or stale. The WebView reset
-        // was already triggered by onTokenConsumed() above (or was never needed).
-        // Wait for the fresh token and retry exactly once before surfacing the
-        // error — fail-open: if still no token after the wait, proceed without one.
+        // On 403 for any POST the token was missing or stale. Kick the widget to
+        // re-render (this also nudges recovery if the widget is in an error state —
+        // TurnstileWebView reloads on hasError) and wait for a fresh token, then
+        // retry exactly once. We wait via awaitFreshTokenOrNull(), which — unlike
+        // the first-attempt path — does NOT short-circuit on hasError: a 403 means
+        // we already need a token, so we give the WebView's recovery a chance to
+        // deliver one instead of immediately failing open. Fail-open remains the
+        // last resort: if no token arrives within the (longer) wait, proceed
+        // without one and let the backend's 403 surface to the user.
         if (response.code == 403 && needsToken) {
             response.close()
-            val freshToken = awaitTokenOrNull()
+            turnstileManager.requestReset()
+            val freshToken = awaitFreshTokenOrNull()
                 ?: return chain.proceed(original)
             val retried = chain.proceed(
                 original.newBuilder()
@@ -79,7 +89,19 @@ class TurnstileInterceptor @Inject constructor(
         }
     }
 
+    // Like awaitTokenOrNull() but does NOT short-circuit on hasError, and waits
+    // longer. Used only on the 403-retry path: a 403 means the request genuinely
+    // needs a token, so we give the WebView's error-recovery (reload + re-render,
+    // which can take a backoff tick) time to produce a fresh one rather than
+    // bailing out immediately the way the latency-sensitive first attempt does.
+    private fun awaitFreshTokenOrNull(): String? = runBlocking {
+        withTimeoutOrNull(retryTokenWaitMillis) {
+            turnstileManager.tokenFlow.filterNotNull().first()
+        }
+    }
+
     companion object {
         const val DEFAULT_TOKEN_WAIT_MILLIS: Long = 5_000L
+        const val DEFAULT_RETRY_TOKEN_WAIT_MILLIS: Long = 8_000L
     }
 }

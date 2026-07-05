@@ -11,6 +11,18 @@ output "resource_group_name" {
   value       = azurerm_resource_group.main.name
 }
 
+# BITB-056: name of the Key Vault holding the Telegram bot token (empty when the
+# Telegram bridge is disabled). The deploy workflow reads this to set the secret
+# value out-of-band, so the token never enters terraform state.
+output "telegram_kv_name" {
+  description = "Key Vault name for the Telegram bot token (empty when the bridge is disabled)"
+  value       = local.telegram_enabled ? azurerm_key_vault.alerts[0].name : ""
+  # Marked sensitive only because the value derives from the sensitive
+  # telegram_chat_id var; the vault name itself is not secret. `terraform output
+  # -raw telegram_kv_name` still returns it for the deploy workflow.
+  sensitive = true
+}
+
 output "resource_group_id" {
   description = "ID of the resource group"
   value       = azurerm_resource_group.main.id

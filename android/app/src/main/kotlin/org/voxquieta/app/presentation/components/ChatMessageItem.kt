@@ -60,6 +60,7 @@ import androidx.core.app.ShareCompat
 import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
+import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -101,13 +102,16 @@ internal data class PendingVerseLink(
  * match in the replace lambda (if preceded by '[', the ref is already a link display text).
  */
 // Book-name sub-pattern (multi-word, with connector words like "of", "de", "van", …).
-// First character must be \p{Lu} (uppercase Latin/Cyrillic) or \p{Lo} (CJK/other caseless).
+// First character is any Unicode letter \p{L} (upper OR lower case) so that lowercase-emitted
+// references ("as john 3:16 says") are detected too — the previous \p{Lu}\p{Lo} (uppercase /
+// caseless only) silently dropped them. False positives are no longer prevented by casing but
+// by the isKnownBook() allowlist gate + rewind loop in injectVerseLinks (mirrors the web).
 // Continuation chars include \p{M} (combining marks) for Hindi/Arabic diacritics.
 // Connector words include Western (of, de, des, …), Hindi (के), and Arabic article (ال).
 private val BOOK_NAME =
-    "[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]*" +
+    "[\\p{L}][\\p{L}\\p{M}\\d]*" +
         "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af|के|ال)" +
-        "\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]*)*"
+        "\\s+[\\p{L}][\\p{L}\\p{M}\\d]*)*"
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
 // while un-numbered books also support chapter-only references (e.g. "Psalm 23").
@@ -129,16 +133,21 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
     // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
     // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
-    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
         // match "See" as book + "1" as chapter; the digit must not be followed by a word
         // that looks like a book name (preventing false numbered-book splits).
+        // NOTE: this guard intentionally stays UPPERCASE (\p{Lu}\p{Lo}), unlike the book-name
+        // pattern which was relaxed to any letter. It disambiguates a numbered book (next word
+        // is a capitalized "Corinthians") from ordinary prose after a chapter-only reference
+        // ("Psalm 23 is comforting"); relaxing it to \p{L} would break chapter-only refs
+        // followed by a lowercase word.
         // Uses COND_WS so CJK/Hangul book names can abut the chapter number without a space.
         // [\u300B\u300D\u300F]? optionally consumes a closing bracket (》」』) after the
         // book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not block the match.
-        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
@@ -205,11 +214,11 @@ internal fun buildVerseRefRegex(
 
     return Regex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
-        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
             // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
-            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?::(\\d+(?:-\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 
@@ -278,30 +287,57 @@ internal fun injectVerseLinks(
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     verses: List<Verse> = emptyList(),
     localizedToEnglish: Map<String, String> = emptyMap(),
-): String =
-    verseRefRegex.replace(markdown) { result ->
-        // If the match is immediately preceded by '[', it is already the display text of a
-        // markdown link — skip it to avoid double-wrapping.
-        val before = if (result.range.first > 0) markdown[result.range.first - 1] else '\u0000'
-        if (before == '[') {
-            result.value
+): String {
+    // Allowlist computed once and reused for every candidate (see knownBooks docs).
+    val known = knownBooks(localizedToEnglish)
+
+    // Manual scan (instead of Regex.replace) so we can rewind on a rejected match. The verse
+    // regex deliberately accepts any "Word digit:digit" shape and is case-agnostic at the book
+    // position, so a greedy alternative can swallow the words *before* a real reference
+    // ("you of Psalm 56:9" -> book "you of Psalm"). Such a match fails the isKnownBook gate; we
+    // then rewind one character past its start so the embedded reference ("Psalm 56:9") still
+    // gets linked. This mirrors the web highlightText()/extractVerseReferences() rewind.
+    val out = StringBuilder(markdown.length)
+    var appendedUpTo = 0 // markdown copied into `out` up to here (exclusive)
+    var searchStart = 0
+    while (true) {
+        val result = verseRefRegex.find(markdown, searchStart) ?: break
+        val g = result.groupValues
+
+        // Alt 1 (numbered prefix) populates groups 1-3; Alt 2 populates groups 4-6.
+        val book: String
+        val chapter: String
+        val verse: String
+        if (g[1].isNotEmpty()) {
+            book = g[1]; chapter = g[2]; verse = g[3]
         } else {
-            // Alt 1 (numbered prefix) populates groups 1-3; Alt 2 populates groups 4-6.
-            val book: String
-            val chapter: String
-            val verse: String
-            if (result.groupValues[1].isNotEmpty()) {
-                book = result.groupValues[1]
-                chapter = result.groupValues[2]
-                verse = result.groupValues[3]
-            } else {
-                book = result.groupValues[4]
-                chapter = result.groupValues[5]
-                verse = result.groupValues[6]
-            }
+            book = g[4]; chapter = g[5]; verse = g[6]
+        }
+
+        // Reject anything that is not a real Bible book, then rewind so a valid reference
+        // hidden inside a greedy over-match is still recovered. `searchStart` strictly
+        // increases, so this cannot loop forever.
+        if (book.trim().lowercase() !in known) {
+            searchStart = result.range.first + 1
+            continue
+        }
+
+        // Copy the untouched text between the previous output point and this match.
+        out.append(markdown, appendedUpTo, result.range.first)
+
+        // If the match is immediately preceded by '[', it is already the display text of a
+        // markdown link -- leave it unchanged to avoid double-wrapping.
+        val before = if (result.range.first > 0) markdown[result.range.first - 1] else ' '
+        if (before == '[') {
+            out.append(result.value)
+        } else {
             val linkBook = resolveLinkBook(book, chapter, verse, verses, localizedToEnglish)
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
-            val display = if (verse.isNotEmpty()) "$book $chapter:$verse" else "$book $chapter"
+            // Preserve the chapter/verse separator the source used (":" or ",") so a German /
+            // French / Italian citation like "Römer 13,1" is not rewritten to "13:1". The
+            // verse:// target below uses numeric path segments only, so it is unaffected.
+            val sep = if (Regex("\\d,\\d").containsMatchIn(result.value)) "," else ":"
+            val display = if (verse.isNotEmpty()) "$book $chapter$sep$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
             // Carry the localized book token in the URL so parseVerseLink can set it on
             // PendingVerseLink without discarding the name the LLM used.
@@ -314,10 +350,16 @@ internal fun injectVerseLinks(
             // Wrap in bold so verse references are visually prominent (matching the web's
             // font-semibold styling) regardless of whether the LLM already used bold markdown.
             // If the LLM already wrapped the ref in ** (before == '*'), the surrounding **
-            // in the original text stays in place and provides the bold — just linkify.
-            if (before == '*') link else "**$link**"
+            // in the original text stays in place and provides the bold -- just linkify.
+            out.append(if (before == '*') link else "**$link**")
         }
+
+        appendedUpTo = result.range.last + 1
+        searchStart = result.range.last + 1
     }
+    out.append(markdown, appendedUpTo, markdown.length)
+    return out.toString()
+}
 
 // Matches any quoted text with supported quote-mark pairs, minimum 3 content chars.
 // Mirrors the web's highlightQuotes() which matches all double-quoted text, extended with
@@ -421,7 +463,7 @@ fun ChatMessageItem(
     modifier: Modifier = Modifier,
     userMessage: String = "",
     onRetry: (() -> Unit)? = null,
-    onFeedback: ((messageLocalId: String, rating: String, comment: String) -> Unit)? = null,
+    onFeedback: ((messageLocalId: String, rating: String, comment: String, reason: String?) -> Unit)? = null,
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
@@ -445,8 +487,13 @@ fun ChatMessageItem(
     // Show the retry button when:
     //  - this is an assistant message
     //  - it is NOT currently streaming
-    //  - it was flagged as an error (blank content + error flag)
+    //  - it was flagged as an error
     val showRetry = !isUser && !message.isStreaming && message.isError
+
+    // Render the message bubble for normal messages, and also for error messages
+    // that carry explanatory text (e.g. the content-blocked / network-error copy) so
+    // the user sees *why* it failed above the Retry button — not a bare button alone.
+    val showBubble = !showRetry || message.content.isNotBlank()
 
     // Show the share button only for finished (non-streaming) assistant messages with content.
     val showShare = !isUser && !message.isStreaming && !message.isError && message.content.isNotBlank()
@@ -480,7 +527,7 @@ fun ChatMessageItem(
             modifier = Modifier.widthIn(max = 320.dp),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
-            if (!showRetry) {
+            if (showBubble) {
                 val bubbleModifier = if (isUser) {
                     // User bubble: filled primary, no border
                     Modifier
@@ -616,6 +663,29 @@ fun ChatMessageItem(
                 }
             }
 
+            // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
+            if (isUser && message.content.isNotBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
+                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.action_copy_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Inline scripture cards — show the actual text of the verses the backend cited
             // for this answer, directly under the message (matching the web's verse cards),
             // so the verse text is visible without opening the top-bar Verses panel.
@@ -686,7 +756,7 @@ fun ChatMessageItem(
             if (showFeedback) {
                 FeedbackControls(
                     feedbackGiven = feedbackGiven,
-                    onSubmit = { rating, comment -> onFeedback!!(message.id, rating, comment) },
+                    onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
                     trailing = trailingActions,
                 )
             } else if (showShare) {

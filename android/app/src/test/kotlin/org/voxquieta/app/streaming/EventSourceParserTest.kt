@@ -331,4 +331,44 @@ class EventSourceParserTest {
         assertEquals("John", chunks[0].resolvedVerses[0].book)
         assertEquals(27, chunks[0].resolvedVerses[0].verse)
     }
+
+    /**
+     * 17. Completion event with corrected_message — the authoritative corrected body
+     *     and the corrections list are parsed onto the chunk.
+     */
+    @Test
+    fun `completion event parses corrected_message and corrections`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","verses_cited":["Isaiah 41:10"],""" +
+                """"corrected_message":"Do not fear, for I am with you.",""" +
+                """"corrections":[{"reference":"Isaiah 41:10","reason":"fabricated"}]}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("Do not fear, for I am with you.", chunks[0].correctedMessage)
+        assertEquals(1, chunks[0].corrections.size)
+        assertEquals("Isaiah 41:10", chunks[0].corrections[0].reference)
+        assertEquals("fabricated", chunks[0].corrections[0].reason)
+    }
+
+    /**
+     * 18. Completion event without corrected_message — the field stays null so the
+     *     streamed text is left untouched.
+     */
+    @Test
+    fun `completion event without corrected_message leaves it null`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","verses_cited":["John 3:16"]}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertNull(chunks[0].correctedMessage)
+        assertTrue(chunks[0].corrections.isEmpty())
+    }
 }

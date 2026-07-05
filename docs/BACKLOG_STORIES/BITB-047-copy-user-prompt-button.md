@@ -1,6 +1,6 @@
 # BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2 (Medium) — UX convenience for power users
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12

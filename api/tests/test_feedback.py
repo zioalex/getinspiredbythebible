@@ -309,7 +309,7 @@ class TestContactEndpoint:
 class TestFeedbackEmailIntegration:
     """Tests for email notification integration in feedback endpoints."""
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_negative_feedback_sends_email(self, mock_email_service):
         """Test that negative feedback triggers email notification."""
         mock_email_service.send_feedback_notification.return_value = True
@@ -337,7 +337,7 @@ class TestFeedbackEmailIntegration:
             assert call_kwargs["assistant_response"] == "Let me help you find peace..."
             mock_email_service.send_feedback_notification.assert_called_once()
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_positive_feedback_bare_skips_email(self, mock_email_service):
         """Test that bare positive feedback (no comment) does NOT trigger email notification."""
         response = client.post(
@@ -355,7 +355,7 @@ class TestFeedbackEmailIntegration:
         # Email should NOT be called for bare positive feedback (no comment)
         mock_email_service.send_feedback_notification.assert_not_called()
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_positive_feedback_with_comment_sends_email(self, mock_email_service):
         """Test that positive feedback WITH a comment triggers email notification."""
         mock_email_service.send_feedback_notification.return_value = True
@@ -380,7 +380,7 @@ class TestFeedbackEmailIntegration:
             assert call_kwargs["rating"] == "positive"
             assert call_kwargs["comment"] == "Great response! The verse was perfect."
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_feedback_succeeds_when_email_fails(self, mock_email_service):
         """Test that feedback submission succeeds even if email sending fails."""
         mock_email_service.send_feedback_notification.return_value = False
@@ -404,7 +404,7 @@ class TestFeedbackEmailIntegration:
 class TestContactEmailIntegration:
     """Tests for email notification integration in contact endpoint."""
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_contact_sends_email_notification(self, mock_email_service):
         """Test that contact form submission triggers email notification."""
         mock_email_service.send_contact_notification.return_value = True
@@ -429,7 +429,7 @@ class TestContactEmailIntegration:
                 user_agent="Mozilla/5.0 Chrome/120.0",
             )
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_contact_sends_email_with_reply_email(self, mock_email_service):
         """Test contact notification with reply email provided."""
         mock_email_service.send_contact_notification.return_value = True
@@ -453,7 +453,7 @@ class TestContactEmailIntegration:
                 user_agent=None,
             )
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_contact_succeeds_when_email_fails(self, mock_email_service):
         """Test that contact submission succeeds even if email sending fails."""
         mock_email_service.send_contact_notification.return_value = False
@@ -577,7 +577,7 @@ class TestContactRouteWithMockedDB:
             message="I am struggling with doubt. Please share a verse about faith.",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = True
             result = await submit_contact(request, mock_repo)
 

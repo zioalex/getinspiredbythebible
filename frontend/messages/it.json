@@ -126,6 +126,7 @@
     "errorConnection": "Mi dispiace, ho problemi di connessione. Potrebbe essere un problema temporaneo: riprova tra un momento. Se il problema persiste, puoi contattarci a contact@voxquieta.org",
     "errorTimeout": "La risposta si è interrotta prima di completarsi. Di solito è un breve problema di rete o del server: riprova. Se continua a succedere, puoi contattarci a contact@voxquieta.org",
     "messageTooLong": "Il tuo messaggio è un po' lungo (massimo {max} caratteri). Accorcialo e riprova.",
+    "errorVerification": "Non è stato possibile verificare il tuo dispositivo. Attendi un momento e riprova.",
     "startNewSession": "Avvia nuova sessione",
     "sessionLimitMessage": "Hai inviato 10 messaggi in questa sessione! Perché non ti prendi un momento per riflettere su ciò che hai ricevuto e goderti il creato di Dio? 🌳 Quando sei pronto, avvia una nuova sessione qui sotto.",
     "contentBlockedMessage": "Non sono riuscito a rispondere a questo messaggio — il nostro sistema di sicurezza lo ha trattenuto e potrebbe aver semplicemente frainteso le tue parole. Prova a riformulare il tuo pensiero, e se qualcosa non ti convince scrivici a contact@voxquieta.org. Siamo contenti che tu sia qui.",

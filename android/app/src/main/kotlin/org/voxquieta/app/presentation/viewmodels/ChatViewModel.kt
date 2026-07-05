@@ -463,8 +463,15 @@ class ChatViewModel @Inject constructor(
                                             isError = false,
                                         )
                                     } else {
+                                        // Carry the (often empathetic) explanation on the
+                                        // message itself so it renders in the chat bubble
+                                        // above the Retry button. Previously this was left
+                                        // empty and the text only went to the snackbar, which
+                                        // ChatScreen suppresses whenever an inline Retry exists
+                                        // — so blocked/error messages showed only a bare Retry
+                                        // button with no explanation.
                                         msg.copy(
-                                            content = "",
+                                            content = errorMessage,
                                             isStreaming = false,
                                             isError = true,
                                         )
@@ -612,6 +619,21 @@ class ChatViewModel @Inject constructor(
                         // follow-up text, not what the answer actually cited.
                         if (chunk.resolvedVerses.isNotEmpty()) {
                             finalResolvedVerses = chunk.resolvedVerses
+                        }
+                        // Grounding rewrote a fabricated/mismatched verse quote: the
+                        // streamed text is already on screen, so replace it with the
+                        // authoritative corrected body.
+                        chunk.correctedMessage?.let { corrected ->
+                            accumulatedContent = corrected
+                            _uiState.update { state ->
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) {
+                                            msg.copy(content = accumulatedContent)
+                                        } else msg
+                                    },
+                                )
+                            }
                         }
                         return@collect
                     }
@@ -796,7 +818,7 @@ class ChatViewModel @Inject constructor(
      * @param rating "positive" or "negative".
      * @param comment Optional free-text comment the user added on thumbs-down.
      */
-    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null, reason: String? = null) {
         // Look up the message and its context (user message preceding it).
         val messages = _uiState.value.messages
         val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
@@ -817,6 +839,7 @@ class ChatViewModel @Inject constructor(
                     userMessage = userMessage?.content ?: "",
                     assistantResponse = assistantMsg.content,
                     comment = comment,
+                    reason = if (feedbackRating == FeedbackRating.NEGATIVE) reason else null,
                 )
                 _uiState.update { state ->
                     state.copy(
@@ -996,7 +1019,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit contact form")
                 _contactFormState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -1040,7 +1063,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to send diagnostic email")
                 _diagnosticReportState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -1130,6 +1153,20 @@ class ChatViewModel @Inject constructor(
     // Private helpers
     // ---------------------------------------------------------------------------
 
+    /**
+     * Error mapping for the contact pipeline (contact form + diagnostic report).
+     *
+     * Unlike the chat path — where a 422 realistically means an over-long message —
+     * a 422 from `POST /api/v1/feedback/contact` is the required email field being
+     * missing or malformed. Surface that instead of the misleading "message too
+     * long" string; everything else falls back to the shared mapping.
+     */
+    private fun mapContactExceptionToMessage(e: Throwable): String = when {
+        e is HttpException && e.code() == 422 ->
+            context.getString(R.string.error_contact_email_invalid)
+        else -> mapExceptionToMessage(e)
+    }
+
     private fun mapExceptionToMessage(e: Throwable): String = when {
         e is UnknownHostException || e is ConnectException ->
             context.getString(R.string.error_network)
@@ -1151,6 +1188,17 @@ class ChatViewModel @Inject constructor(
             } else {
                 context.getString(R.string.error_server)
             }
+        }
+        // 403: Cloudflare Turnstile bot verification. The backend returns a
+        // body with code TURNSTILE_REQUIRED (no/empty token reached the server)
+        // or TURNSTILE_FAILED (token rejected, e.g. stale/duplicate). Log the
+        // body so future diagnostic reports show which one it was, then tell the
+        // user it's a verification hiccup — not a generic "server error" — since
+        // the Turnstile widget self-heals and a retry usually succeeds.
+        e is HttpException && e.code() == 403 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            Timber.w("Turnstile verification rejected request (HTTP 403): %s", body)
+            context.getString(R.string.error_verification)
         }
         // 422 request validation: the realistic client-controllable cause is an
         // over-long message. Tell the user to shorten it rather than showing a
