@@ -1,0 +1,103 @@
+name: Repo Metrics
+
+# Monthly repo productivity retrospective.
+#
+# Regenerates docs/metrics/ (dashboard + report + dated history snapshot)
+# from the full git history via tools/repo-metrics/, commits the result to
+# main, and publishes the dashboard to GitHub Pages.
+#
+# The commit message carries [skip ci] so the metrics refresh does not
+# trigger the test/deploy pipeline. If direct push to main is rejected
+# (branch protection), the workflow falls back to opening a PR.
+#
+# One-time setup for the Pages deploy:
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions".
+#
+# Manual run: Actions → Repo Metrics → Run workflow.
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    # 06:00 UTC on the 1st of every month.
+    - cron: "0 6 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: repo-metrics
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Regenerate metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Generate metrics
+        run: |
+          python3 tools/repo-metrics/analyze.py --branch main
+          python3 tools/repo-metrics/render.py
+
+      - name: Commit to main
+        id: push
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/metrics
+          if git diff --cached --quiet; then
+            echo "no metric changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(metrics): refresh repo productivity dashboard $(date -u +%Y-%m) [skip ci]"
+          git push origin main
+
+      - name: Fall back to a PR (branch protection)
+        if: steps.push.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="chore/repo-metrics-$(date -u +%Y-%m)"
+          git checkout -B "$BRANCH"
+          git push -u origin "$BRANCH" --force
+          gh pr create \
+            --title "chore(metrics): refresh repo productivity dashboard $(date -u +%Y-%m)" \
+            --body "Automated monthly refresh of docs/metrics/ by the Repo Metrics workflow." \
+            --base main --head "$BRANCH" || echo "PR already exists"
+
+      # The Pages site hosts both dashboards: coding analysis at the root,
+      # audit trend under /audit/. Keep this assembly in sync with
+      # audit-metrics.yml — whichever workflow deploys last defines the
+      # whole site, so both must ship both dashboards.
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/audit
+          cp -r docs/metrics/. _site/
+          cp -r docs/audits/metrics/. _site/audit/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy-pages:
+    name: Publish dashboard to Pages
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

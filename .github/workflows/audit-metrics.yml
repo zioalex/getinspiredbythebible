@@ -1,0 +1,114 @@
+name: Audit Metrics
+
+# Audit trend refresh (companion of repo-metrics.yml).
+#
+# Regenerates docs/audits/metrics/ (trend report + dashboard + dated history
+# snapshot) via tools/audit-metrics/ and commits the result to main. Runs:
+#   - when a new audit report lands on main (docs/audits/*.md — the path
+#     filter's `*` does not cross `/`, so the workflow's own commits under
+#     docs/audits/metrics/ cannot re-trigger it),
+#   - monthly, so hotspot/hygiene drift stays visible between audits,
+#   - on demand (Actions → Audit Metrics → Run workflow).
+#
+# The commit message carries [skip ci] so the refresh does not trigger the
+# test/deploy pipeline. If direct push to main is rejected (branch
+# protection), the workflow falls back to opening a PR — same pattern as
+# repo-metrics.yml.
+#
+# Publishes to the shared GitHub Pages site: coding analysis at the root,
+# audit trend under /audit/. The site assembly must stay in sync with
+# repo-metrics.yml — whichever workflow deploys last defines the whole
+# site, so both ship both dashboards.
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  push:
+    branches: [main]
+    paths:
+      - "docs/audits/*.md"
+  schedule:
+    # 06:17 UTC on the 2nd of every month (offset from repo-metrics).
+    - cron: "17 6 2 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: audit-metrics
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Regenerate audit metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # Validate the parser before trusting it to snapshot the report, so
+      # report-template drift fails here instead of corrupting the trend.
+      - name: Test parser
+        run: python3 tools/audit-metrics/test_analyze.py
+
+      - name: Generate metrics
+        run: |
+          python3 tools/audit-metrics/analyze.py
+          python3 tools/audit-metrics/render.py
+
+      - name: Commit to main
+        id: push
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audits/metrics
+          if git diff --cached --quiet; then
+            echo "no metric changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(metrics): refresh audit trend $(date -u +%Y-%m-%d) [skip ci]"
+          git push origin main
+
+      - name: Fall back to a PR (branch protection)
+        if: steps.push.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="chore/audit-metrics-$(date -u +%Y-%m-%d)"
+          git checkout -B "$BRANCH"
+          git push -u origin "$BRANCH" --force
+          gh pr create \
+            --title "chore(metrics): refresh audit trend $(date -u +%Y-%m-%d)" \
+            --body "Automated refresh of docs/audits/metrics/ by the Audit Metrics workflow." \
+            --base main --head "$BRANCH" || echo "PR already exists"
+
+      # Coding analysis at the root, audit trend under /audit/ — keep in
+      # sync with the identical step in repo-metrics.yml.
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/audit
+          cp -r docs/metrics/. _site/
+          cp -r docs/audits/metrics/. _site/audit/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy-pages:
+    name: Publish dashboards to Pages
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
