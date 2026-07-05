@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-20
+**Last Updated:** 2026-07-05
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -181,6 +181,39 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
+**Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
+
+**As** the operator, **I want** bot verification, rate limiting, and content safety to hold their
+line when their dependencies fail — and to alert me when they can't — **so that** an attacker's
+cheapest path to free LLM usage (or a user in crisis's path past safety screening) is not "wait for
+an upstream hiccup".
+
+**Why P1:** Three independent controls share the same silent-fail-open philosophy, all flagged HIGH
+in the 2026-07 adversarial audit. **E2:** Turnstile allowed every request through on any siteverify
+timeout/error, with no metric marking the bypass. **S3:** the rate limiter is in-memory and
+per-process, so limits are 2x too loose across replicas and reset on every deploy. **O2:** content
+safety defaults off, and every stage (OpenAI moderation, Llama Guard, Azure) falls back to allow on
+error — unacceptable for a pastoral-care product serving people in crisis.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
+      breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
+- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+      session lifetime cap survives deploys; dedicated unit tests added
+- [ ] Content safety: keyword stage always runs regardless of ML-stage availability; empty Llama Guard
+      response treated as an error, not "safe"; every fallback branch emits a metric; `content_safety_enabled`
+      default flipped on
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
+
+---
 
 ### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
 

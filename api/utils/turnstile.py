@@ -24,6 +24,8 @@ import httpx
 from fastapi import Depends, HTTPException, Request
 
 from config import settings
+from utils.circuit_breaker import CircuitBreaker
+from utils.metrics import turnstile_fail_open_counter
 
 from .monitor_probe import is_monitor_probe
 
@@ -32,12 +34,33 @@ logger = logging.getLogger(__name__)
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
+def _classify_transient_error(e: Exception) -> str:
+    """Categorize a siteverify transient failure for the fail-open metric label."""
+    if isinstance(e, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(e, httpx.HTTPStatusError):
+        status = getattr(e.response, "status_code", None)
+        return f"http_{status}" if status else "http_error"
+    if isinstance(e, httpx.HTTPError):
+        return type(e).__name__.lower()
+    return type(e).__name__.lower()
+
+
 class TurnstileVerifier:
     """Verifies Cloudflare Turnstile tokens."""
 
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
         self._client: httpx.AsyncClient | None = None
+        # Trip after 5 consecutive siteverify failures; cooldown 30s. While
+        # open, verify() fails CLOSED without hitting the network. Isolated
+        # blips (breaker still closed) fail OPEN but emit
+        # turnstile_fail_open_counter so the bypass is observable/alertable.
+        self._breaker = CircuitBreaker(
+            name="turnstile",
+            failure_threshold=5,
+            cooldown_seconds=30.0,
+        )
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
@@ -59,6 +82,12 @@ class TurnstileVerifier:
         if not token:
             return False, "Missing Turnstile token"
 
+        # Breaker open → siteverify is persistently failing → fail CLOSED
+        # without re-hitting the network (no per-request timeout paid).
+        if self._breaker.is_open():
+            logger.error("Turnstile siteverify circuit open — failing closed")
+            return False, "Verification temporarily unavailable"
+
         try:
             client = await self._get_client()
 
@@ -74,6 +103,9 @@ class TurnstileVerifier:
 
             result = response.json()
 
+            # siteverify answered → endpoint healthy regardless of token verdict.
+            self._breaker.record_success()
+
             if result.get("success"):
                 logger.debug(
                     "Turnstile verification successful",
@@ -87,20 +119,35 @@ class TurnstileVerifier:
                     "Turnstile verification failed",
                     extra={"error_codes": error_codes, "remote_ip": remote_ip},
                 )
-                return False, error_msg
+                return False, error_msg  # explicit rejection → fail CLOSED
 
-        except httpx.TimeoutException:
-            logger.error("Turnstile verification timeout")
-            # On timeout, allow the request (fail open for availability)
-            return True, None
-        except httpx.HTTPError as e:
-            logger.error("Turnstile HTTP error", extra={"error": str(e)})
-            # On HTTP error, allow the request (fail open for availability)
-            return True, None
         except Exception as e:
-            logger.error("Turnstile verification error", extra={"error": str(e)})
-            # On unexpected error, allow the request
-            return True, None
+            return self._handle_transient_error(e, remote_ip)
+
+    def _handle_transient_error(
+        self, e: Exception, remote_ip: str | None
+    ) -> tuple[bool, str | None]:
+        """Handle a siteverify network/transport failure: record it against the
+        breaker, then fail open (isolated blip) or closed (persistent outage)."""
+        reason = _classify_transient_error(e)
+        self._breaker.record_failure()
+        if self._breaker.is_open():
+            # This failure tripped the breaker (or it re-opened) → persistent
+            # outage → fail CLOSED.
+            logger.error(
+                "Turnstile siteverify persistently failing (%s) — failing closed",
+                reason,
+                extra={"error": str(e), "remote_ip": remote_ip},
+            )
+            return False, "Verification temporarily unavailable"
+        # Isolated blip, breaker still closed → fail OPEN, but make it observable.
+        turnstile_fail_open_counter.add(1, {"reason": reason})
+        logger.warning(
+            "Turnstile siteverify %s — failing open (breaker closed)",
+            reason,
+            extra={"error": str(e), "remote_ip": remote_ip},
+        )
+        return True, None
 
     async def close(self):
         """Close the HTTP client."""

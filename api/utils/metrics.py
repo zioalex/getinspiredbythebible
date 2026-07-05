@@ -232,3 +232,9 @@ circuit_breaker_state_counter = meter.create_counter(
     description="Circuit breaker state transitions (open/half_open/closed)",
     unit="1",
 )
+
+turnstile_fail_open_counter = meter.create_counter(
+    name="turnstile.fail_open_total",
+    description="Count of Turnstile siteverify transient failures that were allowed through (failed open)",
+    unit="1",
+)  # attributes: reason (timeout|http_<status>|http_error|<exc_name>)
