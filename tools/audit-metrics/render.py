@@ -49,6 +49,24 @@ def load_history(history_dir: Path) -> list[dict]:
     return snaps
 
 
+def latest_report(snap: dict) -> dict:
+    """The most recent report's tallies for a snapshot. New snapshots store it
+    under `report`; older ones embedded the full `reports` list (read the last).
+    """
+    if "report" in snap:
+        return snap["report"]
+    return snap["reports"][-1]
+
+
+def resolved_cumulative(snap: dict) -> int:
+    """Cumulative resolved-finding count. New snapshots store the int directly;
+    older ones require summing the embedded report list.
+    """
+    if "resolved_cumulative" in snap:
+        return snap["resolved_cumulative"]
+    return sum(len(r["resolved_ids"]) for r in snap.get("reports", []))
+
+
 def fmt(n) -> str:
     return "—" if n is None else str(n)
 
@@ -78,11 +96,33 @@ def metric_rows(snaps: list[dict], label: str, getter) -> list[str]:
     return [label, *cells]
 
 
+def hotspot_label(latest: dict, path: str) -> str:
+    """Row label for a hotspot: basename, plus a moved-warning if the file is
+    gone from its path but its filename reappears elsewhere in the repo."""
+    base = path.rsplit("/", 1)[-1]
+    moves = latest.get("hotspot_moves", {})
+    if latest["hotspots"].get(path) is None and moves.get(path):
+        return f"`{base}` ⚠ moved?"
+    return f"`{base}`"
+
+
+def hotspot_move_notes(latest: dict) -> list[str]:
+    """Footnote lines naming the candidate new locations for moved hotspots."""
+    moves = latest.get("hotspot_moves", {})
+    if not moves:
+        return []
+    notes = ["", "> **Moved hotspots** (path gone, filename found elsewhere —"
+             " update `HOTSPOTS` in `analyze.py`):"]
+    for path, candidates in moves.items():
+        notes.append(f"> - `{path}` → {', '.join(f'`{c}`' for c in candidates)}")
+    return notes
+
+
 def render_report(snaps: list[dict]) -> str:
     shown = snaps[-MAX_COLUMNS:]
     dates = [s["generated"] for s in shown]
     latest = shown[-1]
-    latest_rep = latest["reports"][-1]
+    latest_rep = latest_report(latest)
 
     lines = [
         "# Audit Trend Report",
@@ -103,12 +143,11 @@ def render_report(snaps: list[dict]) -> str:
         table([
             ["Metric", *dates],
             metric_rows(shown, "Risk score", lambda s: s["risk_score"]),
-            metric_rows(shown, "Open findings", lambda s: s["reports"][-1]["open_total"]),
+            metric_rows(shown, "Open findings", lambda s: latest_report(s)["open_total"]),
             *[metric_rows(shown, sev.title(),
-                          lambda s, v=sev: s["reports"][-1]["open_by_severity"].get(v))
+                          lambda s, v=sev: latest_report(s)["open_by_severity"].get(v))
               for sev in SEVERITIES],
-            metric_rows(shown, "Resolved (cumulative)",
-                        lambda s: sum(len(r["resolved_ids"]) for r in s["reports"])),
+            metric_rows(shown, "Resolved (cumulative)", resolved_cumulative),
         ]),
         "",
         "## Open findings by category",
@@ -116,23 +155,33 @@ def render_report(snaps: list[dict]) -> str:
         table([
             ["Category", *dates],
             *[metric_rows(shown, label,
-                          lambda s, k=key: s["reports"][-1]["open_by_category"].get(k))
+                          lambda s, k=key: latest_report(s)["open_by_category"].get(k))
               for key, label in CATEGORY_LABELS.items()],
         ]),
         "",
         "## Hotspot watch (lines)",
         "",
         "Files flagged by the audits as monoliths or hand-synchronized copies."
-        " The goal is for these rows to shrink or disappear (— = file deleted).",
+        " The goal is for these rows to shrink. A `—` means the path is gone —"
+        " a win only if the code was removed; **⚠ moved?** flags a path whose"
+        " filename reappears elsewhere (likely a rename/split, so the"
+        " complexity moved rather than left — re-point `HOTSPOTS` and verify).",
         "",
         table([
             ["File", *dates],
-            *[metric_rows(shown, f"`{path.rsplit('/', 1)[-1]}`",
+            *[metric_rows(shown, hotspot_label(latest, path),
                           lambda s, p=path: s["hotspots"].get(p))
               for path in latest["hotspots"]],
         ]),
+        *hotspot_move_notes(latest),
         "",
         "## Hygiene counters",
+        "",
+        "Grep-cheap proxies, not exact measures: the regexes scan raw file text,"
+        " so a counter can move because of a string literal, a comment, or a test"
+        " fixture that names the pattern on purpose. Read them as directional"
+        " signals, and confirm against the audit report before treating a jump"
+        " as real debt.",
         "",
         table([
             ["Counter", *dates],
@@ -204,17 +253,17 @@ def svg_line(series: list, width=560, height=120, color="#2563eb") -> str:
 def render_dashboard(snaps: list[dict]) -> str:
     dates = [s["generated"] for s in snaps]
     latest = snaps[-1]
-    latest_rep = latest["reports"][-1]
+    latest_rep = latest_report(latest)
 
     def series(getter):
         return [getter(s) for s in snaps]
 
     cards = [
         ("Risk score", series(lambda s: s["risk_score"]), "#dc2626"),
-        ("Open findings", series(lambda s: s["reports"][-1]["open_total"]), "#ea580c"),
+        ("Open findings", series(lambda s: latest_report(s)["open_total"]), "#ea580c"),
         ("CRITICAL + HIGH open",
-         series(lambda s: s["reports"][-1]["open_by_severity"].get("CRITICAL", 0)
-                + s["reports"][-1]["open_by_severity"].get("HIGH", 0)), "#b91c1c"),
+         series(lambda s: latest_report(s)["open_by_severity"].get("CRITICAL", 0)
+                + latest_report(s)["open_by_severity"].get("HIGH", 0)), "#b91c1c"),
         ("Hotspot lines (total)",
          series(lambda s: sum(v for v in s["hotspots"].values() if v)), "#2563eb"),
         ("Hygiene counters (total)",
@@ -233,7 +282,7 @@ def render_dashboard(snaps: list[dict]) -> str:
 
     sev_rows = "".join(
         f"<tr><td>{sev.title()}</td>"
-        + "".join(f"<td>{fmt(s['reports'][-1]['open_by_severity'].get(sev))}</td>"
+        + "".join(f"<td>{fmt(latest_report(s)['open_by_severity'].get(sev))}</td>"
                   for s in snaps)
         + "</tr>"
         for sev in SEVERITIES

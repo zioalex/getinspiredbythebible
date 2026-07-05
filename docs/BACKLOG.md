@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-20
+**Last Updated:** 2026-07-05
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -181,6 +181,39 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
+**Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
+
+**As** the operator, **I want** bot verification, rate limiting, and content safety to hold their
+line when their dependencies fail — and to alert me when they can't — **so that** an attacker's
+cheapest path to free LLM usage (or a user in crisis's path past safety screening) is not "wait for
+an upstream hiccup".
+
+**Why P1:** Three independent controls share the same silent-fail-open philosophy, all flagged HIGH
+in the 2026-07 adversarial audit. **E2:** Turnstile allowed every request through on any siteverify
+timeout/error, with no metric marking the bypass. **S3:** the rate limiter is in-memory and
+per-process, so limits are 2x too loose across replicas and reset on every deploy. **O2:** content
+safety defaults off, and every stage (OpenAI moderation, Llama Guard, Azure) falls back to allow on
+error — unacceptable for a pastoral-care product serving people in crisis.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
+      breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
+- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+      session lifetime cap survives deploys; dedicated unit tests added
+- [ ] Content safety: keyword stage always runs regardless of ML-stage availability; empty Llama Guard
+      response treated as an error, not "safe"; every fallback branch emits a metric; `content_safety_enabled`
+      default flipped on
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
+
+---
 
 ### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
 
@@ -884,6 +917,60 @@ Testing & Documentation:
 
 ---
 
+### 🎯 BITB-057: Android — In-App Update API (Flexible Flow)
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** the app to tell me when a new version is available, **so that**
+I can update and get the latest features and fixes without checking the Play Store manually.
+
+**Why P1:** The app has no mechanism to detect or prompt for Play Store updates. Users on outdated
+builds receive no signal that improvements exist. Implements the flexible (background-download,
+non-disruptive) flow via `com.google.android.play:app-update-ktx`; guarded by `BuildConfig.DEBUG`
+so debug and sideloaded builds are unaffected.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `app-update-ktx` v2.1.0 added to `libs.versions.toml` + `build.gradle.kts`
+- [ ] `InAppUpdateManager.kt` wraps `AppUpdateManager` with constructor injection for testability
+- [ ] Flexible flow triggered on cold start when update available and staleness ≥ 3 days
+- [ ] Snackbar with "Install update" action shown when download completes; calls `completeUpdate()`
+- [ ] `onResume` re-checks for a pending install (app backgrounded during download)
+- [ ] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
+
+---
+
+### 🎯 BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 day)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** to see a brief "What's New" summary the first time I open the
+app after an update, **so that** I notice new features without digging into Settings manually.
+
+**Why P1:** The app updates silently; users have no post-update signal. BITB-031 added a changelog
+screen in Settings > About but requires active navigation. This story surfaces the top changelog
+entry automatically — once per update, never on fresh install — using the existing `changelog.json`
+asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `last_seen_version_code` persisted in `app_prefs`; helpers added alongside `hasSplashBeenSeen()` pattern
+- [ ] Modal skipped on fresh install (stored == -1); shown exactly once per update
+- [ ] `WhatsNewBottomSheet.kt` renders top `ChangelogEntry` via `MarkdownText`; graceful empty state
+- [ ] "Dismiss" closes sheet and marks version seen; "See All" navigates to `changelog` route and marks seen
+- [ ] String keys `whats_new_title`, `whats_new_dismiss`, `whats_new_see_all` added in all 11 locales
+- [ ] Unit tests: stored==-1 → false; stored==current → false; stored==current-1 → true
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-058-android-whats-new-on-launch.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
@@ -1144,10 +1231,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🎯 Todo (production verified 2026-05-31 — favicon and robots.txt addressed; server-render-homepage remains)
+**Status:** 🚧 In Progress (server-render homepage confirmed done in code; JSON-LD + OG image landing 2026-07-03; only Search-Console submission remains, a manual operator action)
 **Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
 **Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
-**Created:** 2026-05-29 · **Updated:** 2026-05-31
+**Created:** 2026-05-29 · **Updated:** 2026-07-03
 
 **As a** person searching for Bible inspiration on Google (or asking an AI assistant),
 **I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews,
@@ -1157,12 +1244,12 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [x] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
 - [x] `/favicon.ico` returns 200 with the brand icon
 - [x] Production `/robots.txt` contains `Sitemap: https://voxquieta.org/sitemap.xml` (verified)
-- [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
-- [ ] `og:image` resolves and Twitter card is `summary_large_image`
-- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console
+- [x] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
+- [x] `og:image` resolves and Twitter card is `summary_large_image`
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console *(manual operator action remaining)*
 
 **Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
 

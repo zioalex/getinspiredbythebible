@@ -127,7 +127,16 @@ def parse_report(path: Path) -> dict:
             resolved_ids.append(fid)
             continue
         if not sev:
-            continue
+            # A finding heading with no [SEVERITY] line and no RESOLVED status
+            # is template drift — the whole point of this tool is to be the
+            # machine check on the tallies, so fail loud instead of silently
+            # dropping the finding and reporting a false count.
+            raise ValueError(
+                f"{path.name}: finding '{fid}' has a heading but no "
+                f"[SEVERITY] line (status={status}). Fix the report, or "
+                f"update SEVERITY_LINE/STATUS_LINE in analyze.py if the "
+                f"report template changed."
+            )
         open_ids.append(fid)
         open_by_severity[sev.group(1)] += 1
         category = CATEGORIES.get(fid[0])
@@ -175,6 +184,28 @@ def hotspot_sizes(repo: Path) -> dict:
         rel: (count_lines(repo / rel) if (repo / rel).is_file() else None)
         for rel in HOTSPOTS
     }
+
+
+def hotspot_moves(repo: Path) -> dict:
+    """For each missing hotspot, guess whether it was removed or just moved.
+
+    A missing hotspot is only a "win" if the code is actually gone. The common
+    refactor for a monolith is a rename or split, which leaves the trend line
+    lying. Cheap heuristic: if a tracked file with the same basename exists at
+    a different path, the hotspot likely moved there — surface the candidates
+    rather than celebrating a deletion. Splits into differently-named files
+    still read as "removed" (a documented limitation).
+    """
+    tracked = run_git(repo, "ls-files").splitlines()
+    moves = {}
+    for rel in HOTSPOTS:
+        if (repo / rel).is_file():
+            continue
+        base = rel.rsplit("/", 1)[-1]
+        candidates = [t for t in tracked if t.rsplit("/", 1)[-1] == base and t != rel]
+        if candidates:
+            moves[rel] = candidates
+    return moves
 
 
 def hygiene(repo: Path) -> dict:
@@ -237,13 +268,21 @@ def main() -> None:
     if not reports:
         raise SystemExit("no audit reports found under docs/audits/ — run /risk-audit first")
 
+    # Store only what a snapshot needs: the latest report's tallies plus a
+    # running resolved counter. Embedding the full parsed history in every
+    # dated file (the workflow writes one monthly + on every audit) would
+    # re-store the whole growing corpus forever — unbounded git bloat. The
+    # cumulative-resolved figure is recomputed here from all reports each run,
+    # so the snapshot keeps a single int, not the list.
     snapshot = {
         "generated": as_of,
         "commit": run_git(repo, "rev-parse", "--short", "HEAD").strip(),
-        "reports": reports,
+        "report": reports[-1],
         "latest_report": reports[-1]["month"],
         "risk_score": reports[-1]["risk_score"],
+        "resolved_cumulative": sum(len(r["resolved_ids"]) for r in reports),
         "hotspots": hotspot_sizes(repo),
+        "hotspot_moves": hotspot_moves(repo),
         "hygiene": hygiene(repo),
         "areas": loc_and_tests(repo),
     }
