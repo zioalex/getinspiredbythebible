@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.39.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.0...v1.39.1) (2026-07-05)
 
-
 ### Bug Fixes
 
 * **api:** resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel) ([#824](https://github.com/zioalex/getinspiredbythebible/issues/824)) ([033ed6b](https://github.com/zioalex/getinspiredbythebible/commit/033ed6b815c7e727cd8f878399614947eb193b4f))
