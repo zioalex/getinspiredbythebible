@@ -51,6 +51,11 @@ jobs:
         with:
           ref: main
 
+      # Validate the parser before trusting it to snapshot the report, so
+      # report-template drift fails here instead of corrupting the trend.
+      - name: Test parser
+        run: python3 tools/audit-metrics/test_analyze.py
+
       - name: Generate metrics
         run: |
           python3 tools/audit-metrics/analyze.py
