@@ -759,3 +759,93 @@ def is_verse_lookup_request(text: str) -> bool:
         return len(verses) > 0
 
     return False
+
+
+# ---------------------------------------------------------------------------
+# Unquoted / paraphrased citation detection (BITB-053)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ReferenceMention:
+    """A verse reference with its enclosing sentence window and offsets.
+
+    Used by the unquoted-paraphrase grounding path to supply the prose
+    surrounding a reference without requiring DB access.
+    """
+
+    reference: VerseReference
+    ref_span: tuple[int, int]  # (start, end) of the reference token in *text*
+    sentence: str  # sentence window that contains the reference
+    sentence_span: tuple[int, int]  # (start, end) of that sentence in *text*
+    content_text: str  # sentence text with the reference itself removed
+
+
+_SENTENCE_TERMINATORS: frozenset[str] = frozenset("。！？؟।.!?\n")
+_MAX_SENTENCE_WINDOW: int = 240  # chars to scan before/after reference for a boundary
+
+
+def _sentence_bounds(text: str, ref_start: int, ref_end: int) -> tuple[int, int]:
+    """Return (start, end) of the sentence window enclosing [ref_start, ref_end].
+
+    Scans backwards for a sentence terminator or _MAX_SENTENCE_WINDOW chars,
+    then forwards for the next terminator.  Handles CJK, Arabic, and Latin
+    terminator characters.
+    """
+    floor = max(0, ref_start - _MAX_SENTENCE_WINDOW)
+    start = ref_start
+    while start > floor:
+        if text[start - 1] in _SENTENCE_TERMINATORS:
+            break
+        start -= 1
+    # Skip leading whitespace after the previous terminator
+    while start < ref_start and text[start].isspace():
+        start += 1
+
+    ceil = min(len(text), ref_end + _MAX_SENTENCE_WINDOW)
+    end = ref_end
+    while end < ceil:
+        ch = text[end]
+        if ch in _SENTENCE_TERMINATORS:
+            end += 1  # include the terminator
+            break
+        end += 1
+    return start, end
+
+
+def extract_reference_mentions(text: str) -> list[ReferenceMention]:
+    """Return every verse reference in *text* with its enclosing sentence window.
+
+    Uses the original text (no Arabic diacritic normalization) so that the
+    returned span offsets remain valid against *text*.  Pure — no DB calls.
+    Used by the unquoted-paraphrase grounding path in ``verse_grounding.py``.
+    """
+    mentions: list[ReferenceMention] = []
+    seen: set[str] = set()
+    # Translate brackets to spaces so the pattern fires on "(John 3:16)" etc.,
+    # but use offsets against the *original* text so spans stay correct.
+    search_text = text.translate(_BRACKET_TO_SPACE)
+    for m in _VERSE_PATTERN.finditer(search_text):
+        ref = _match_to_verse_reference(m)
+        if ref is None:
+            continue
+        # Deduplicate same reference at same offset (pattern can match twice for
+        # single-verse vs range capture groups).
+        key = f"{ref}@{m.start()}"
+        if key in seen:
+            continue
+        seen.add(key)
+        ref_span = (m.start(), m.end())
+        s_start, s_end = _sentence_bounds(text, m.start(), m.end())
+        sentence = text[s_start:s_end]
+        content_text = (text[s_start : m.start()] + text[m.end() : s_end]).strip()
+        mentions.append(
+            ReferenceMention(
+                reference=ref,
+                ref_span=ref_span,
+                sentence=sentence,
+                sentence_span=(s_start, s_end),
+                content_text=content_text,
+            )
+        )
+    return mentions

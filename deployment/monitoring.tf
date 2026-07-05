@@ -44,6 +44,13 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053)
+#       Observation alert: bracketed unquoted-paraphrase appends
+#       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
+#       clustering inside parenthetical references. Buffered (>5 per 15-min bin)
+#       and clustered (2 of 3 evaluations) so a single stray event never pages.
+#       Cosmetic; dormant until grounding_paraphrases_mode is set to "append" per
+#       docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
@@ -773,6 +780,64 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
     failing_periods {
       minimum_failing_periods_to_trigger_alert = 1
       number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Unquoted-paraphrase nested-parens observation alert (BITB-053).
+# In "append" mode, pass 2 of verse grounding appends canonical verse text right
+# after a reference. When the reference is parenthesised — e.g. "(Isaia 41:10)" —
+# the append lands before the closing bracket and nests:
+# (Isaia 41:10 ("Non temere…")). This is cosmetic (offsets are safe), so rather
+# than re-engineer the insertion point blindly we measure it via the
+# chat.verse_grounding.paraphrase_detections counter (bracketed + applied
+# dimensions). NOTE: grounding_paraphrases_mode ships as "detect" (count only,
+# no text edits — applied=false), so this alert stays dormant until the mode is
+# switched to "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md — at
+# which point this rule is the guardrail that tells us if the edge is real.
+#
+# Buffer + clustering (deliberately not a hair-trigger on a single event):
+#   - buffer: a 15-minute bin must accrue > 5 bracketed appends to count as a
+#     breach, so one-off coincidences are ignored.
+#   - clustering: the breach must recur in at least 2 of the last 3 fifteen-minute
+#     evaluations before paging, so a lone noisy bin does not alert.
+# Severity 3. Retune the bin threshold / failing-period ratio once a baseline
+# exists, or remove the rule if the edge proves negligible.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_paraphrase_brackets" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-verse-grounding-paraphrase-brackets"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT1H"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >5 bracketed applied appends per 15-min bin, sustained across 2 of the last 3 evaluations. Cosmetic; observation alert active only while grounding_paraphrases_mode is 'append'."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(1h)
+      | where name == "chat.verse_grounding.paraphrase_detections"
+      | extend bracketed = tostring(customDimensions["bracketed"])
+      | extend applied = tostring(customDimensions["applied"])
+      | where bracketed == "true" and applied == "true"
+      | summarize total = sum(valueSum) by bin(timestamp, 15m)
+      | where total > 5
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 3
     }
   }
 

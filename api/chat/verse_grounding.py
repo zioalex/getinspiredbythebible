@@ -21,11 +21,24 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Literal
 
-from utils.verse_parser import InlineQuote, VerseReference, extract_inline_quotes
+from utils.verse_parser import (
+    InlineQuote,
+    VerseReference,
+    extract_inline_quotes,
+    extract_reference_mentions,
+)
 
 from .prompts import get_unresolved_verse_notice
 
 UnresolvedBehavior = Literal["keep", "strip", "notice"]
+
+# BITB-053: what pass 2 (unquoted-paraphrase grounding) does with a detection.
+#   "off"    — pass 2 does not run at all.
+#   "detect" — classify and report a Correction (applied=False) but never edit
+#              the text; powers the measurement rollout before "append" is
+#              trusted on live traffic (see docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md).
+#   "append" — append the canonical verse text in quotes right after the reference.
+ParaphraseMode = Literal["off", "detect", "append"]
 
 # Quotes scoring at or above this normalized similarity to the canonical verse
 # are treated as faithful. A verbatim quote with only punctuation/casing noise
@@ -36,9 +49,46 @@ GROUNDING_SIMILARITY_THRESHOLD = 0.90
 # false-positive risk), so it is left untouched.
 MIN_QUOTE_LEN = 12
 
+# --- Paraphrase detection thresholds (BITB-053) ---
+# Minimum token-overlap ratio (|cand ∩ canon| / |canon|) for a sentence to be
+# treated as paraphrasing the cited verse.  Calibrated across 11 languages so
+# that morphologically rich languages (Italian, Russian, Arabic) still trigger
+# on partial-stem overlap while pure commentary ("John 3:16 is about love")
+# doesn't.  See BITB-053 for the per-language calibration table.
+PARAPHRASE_SIMILARITY_THRESHOLD: float = 0.18
+# Absolute minimum number of matching long tokens — prevents a single unusual
+# word coincidentally pushing the ratio above threshold.
+_PARAPHRASE_OVERLAP_ABS_MIN: int = 4
+# Sentence must have at least this many long tokens to be a paraphrase candidate
+# (short sentences like "See John 3:16." have too little signal either way).
+_PARAPHRASE_MIN_CANDIDATE_WORDS: int = 4
+# Only count tokens of this length or longer — drops the shortest, most common
+# function words (≤2 chars: "is", "di", "de", "el"). Note 3-char words like "the"
+# / "and" are still counted; the _PARAPHRASE_OVERLAP_ABS_MIN floor (not this
+# length cutoff) is what stops stopword-only coincidences from triggering.
+_OVERLAP_TOKEN_MIN_LEN: int = 3
+
 _PUNCT_RE = re.compile(r"[^\w\s]", flags=re.UNICODE)
 _WS_RE = re.compile(r"\s+")
 _ELLIPSIS_RE = re.compile(r"(\.{3,}|…)")
+
+# Closing half of verse_parser._BRACKET_TO_SPACE. Used to detect when a
+# paraphrase append (inserted right after a reference) lands before a closing
+# bracket — i.e. the reference was parenthesised so the canonical text nests
+# inside it: (Isaia 41:10 ("Non temere…")). Cosmetic; measured via metrics.
+_CLOSING_BRACKETS: frozenset[str] = frozenset(")]）】」』》")
+
+
+def _append_lands_before_close_bracket(text: str, insert_pos: int) -> bool:
+    """True if the next non-space char at *insert_pos* is a closing bracket.
+
+    When that happens the paraphrase append would nest inside a parenthetical
+    reference, producing awkward output like ``(Isaia 41:10 ("…"))``.
+    """
+    i = insert_pos
+    while i < len(text) and text[i].isspace():
+        i += 1
+    return i < len(text) and text[i] in _CLOSING_BRACKETS
 
 
 def _normalize_for_compare(s: str) -> str:
@@ -60,9 +110,15 @@ class Correction:
     """A detected scripture-fidelity issue and what was done about it."""
 
     reference: str
-    reason: str  # "fabricated" | "mismatched" | "unresolved"
+    reason: str  # "fabricated" | "mismatched" | "unresolved" | "paraphrased"
     original_quote: str
     corrected_quote: str | None  # None when no canonical text was available
+    # Only meaningful for reason == "paraphrased": True when the canonical-text
+    # append landed before a closing bracket (nested-parens artifact). BITB-053.
+    bracketed: bool = False
+    # False when the issue was only detected, not corrected in the text — i.e.
+    # a "paraphrased" detection under paraphrase_mode="detect". BITB-053.
+    applied: bool = True
 
 
 def _ref_keys(ref: VerseReference) -> list[tuple[str, int, int]]:
@@ -99,6 +155,126 @@ def _classify(quoted: str, canonical: str, in_context: bool) -> str | None:
     return "mismatched" if in_context else "fabricated"
 
 
+def _token_overlap_ratio(candidate_norm: str, canonical_norm: str) -> tuple[float, int]:
+    """Asymmetric token-set overlap: what fraction of canonical long tokens appear in candidate.
+
+    Returns (ratio, absolute_count).  Order-independent, so morphological
+    divergence (verb conjugation, declension) is handled gracefully.
+    """
+    cand_tokens = {w for w in candidate_norm.split() if len(w) >= _OVERLAP_TOKEN_MIN_LEN}
+    canon_tokens = {w for w in canonical_norm.split() if len(w) >= _OVERLAP_TOKEN_MIN_LEN}
+    if not canon_tokens or not cand_tokens:
+        return 0.0, 0
+    overlap = cand_tokens & canon_tokens
+    return len(overlap) / len(canon_tokens), len(overlap)
+
+
+# Characters that indicate a sentence already contains a quotation.
+# If any appear in content_text the verse is already presented quoted
+# (possibly non-adjacently), so the unquoted-paraphrase path is skipped.
+#
+# Only *unambiguous* quotation marks belong here. The single-quote/apostrophe
+# forms (U+0027 ', U+2018 \u2018, U+2019 \u2019) are deliberately excluded: they double as
+# in-word apostrophes in ordinary prose \u2014 French elision ("qu'il", "l'amour"),
+# Italian ("l'uomo", "un'anima"), English possessives/contractions ("God's",
+# "doesn't"). Treating them as quote markers made the paraphrase pass skip whole
+# sentences in exactly the apostrophe-heavy languages it targets.
+_QUOTE_CHARS: frozenset[str] = frozenset(
+    [
+        '"',
+        "\u201c",
+        "\u201d",
+        "\u00ab",
+        "\u00bb",
+        "\u300c",
+        "\u300d",
+        "\u300e",
+        "\u300f",
+        "\u2039",
+        "\u203a",
+    ]
+)
+
+
+def _has_quotation(text: str) -> bool:
+    """Return True if text contains any known quotation-mark character.
+
+    Used by the paraphrase classifier: if the sentence already contains
+    a quote char the verse text was likely already quoted (even if not
+    adjacently), so we do not also trigger the paraphrase append path.
+    """
+    return any(c in _QUOTE_CHARS for c in text)
+
+
+def _classify_paraphrase(content_text: str, canonical: str) -> bool:
+    """Return True when *content_text* looks like an unquoted paraphrase of *canonical*.
+
+    Uses token-overlap similarity rather than SequenceMatcher so that inflected
+    forms in Italian / Russian / Arabic still produce meaningful signal even
+    when surface forms differ from the canonical wording.
+    """
+    if not canonical or not content_text:
+        return False
+    content_norm = _normalize_for_compare(content_text)
+    canonical_norm = _normalize_for_compare(canonical)
+    meaningful = [w for w in content_norm.split() if len(w) >= _OVERLAP_TOKEN_MIN_LEN]
+    if len(meaningful) < _PARAPHRASE_MIN_CANDIDATE_WORDS:
+        return False
+    ratio, abs_count = _token_overlap_ratio(content_norm, canonical_norm)
+    return ratio >= PARAPHRASE_SIMILARITY_THRESHOLD and abs_count >= _PARAPHRASE_OVERLAP_ABS_MIN
+
+
+def _apply_paraphrase_grounding(
+    text: str,
+    canonical_by_key: dict[tuple[str, int, int], str],
+    handled_ref_keys: set[tuple[str, int, int]],
+    edits: list[tuple[int, int, str]],
+    corrections: list[Correction],
+    mode: ParaphraseMode,
+) -> None:
+    """Pass 2: detect unquoted paraphrases and append canonical verse text (BITB-053).
+
+    In "detect" mode the classifier runs in full (including the ``bracketed``
+    computation) and a Correction is recorded with ``applied=False``, but no
+    edit is queued — the response text is left untouched.
+    """
+    if mode == "off" or not canonical_by_key:
+        return
+    for mention in extract_reference_mentions(text):
+        ref_key = (
+            mention.reference.book.lower(),
+            mention.reference.chapter,
+            mention.reference.verse_start,
+        )
+        if ref_key in handled_ref_keys:
+            continue
+        canonical = _canonical_text(mention.reference, canonical_by_key)
+        if not canonical:
+            continue
+        canonical_norm = _normalize_for_compare(canonical)
+        sentence_norm = _normalize_for_compare(mention.sentence)
+        if canonical_norm in sentence_norm:
+            continue
+        if _has_quotation(mention.content_text):
+            continue
+        if not _classify_paraphrase(mention.content_text, canonical):
+            continue
+        insert_pos = mention.ref_span[1]
+        if mode == "append":
+            edits.append((insert_pos, insert_pos, f' ("{canonical}")'))
+        handled_ref_keys.add(ref_key)
+        corrections.append(
+            Correction(
+                reference=str(mention.reference),
+                reason="paraphrased",
+                original_quote=mention.content_text,
+                corrected_quote=canonical,
+                bracketed=_append_lands_before_close_bracket(text, insert_pos),
+                applied=mode == "append",
+            )
+        )
+
+
 def ground_response(
     text: str,
     resolved_verses: list,
@@ -106,6 +282,7 @@ def ground_response(
     *,
     unresolved_behavior: UnresolvedBehavior = "keep",
     language: str = "en",
+    paraphrase_mode: ParaphraseMode = "append",
 ) -> tuple[str, list[Correction]]:
     """Correct fabricated/mismatched inline verse quotes in ``text``.
 
@@ -125,14 +302,19 @@ def ground_response(
                          message ("this verse isn't available ... yet").
         language: ISO 639-1 language code used to localize the "notice" message.
             Ignored for "keep"/"strip".
+        paraphrase_mode: What pass 2 does with unquoted paraphrases (BITB-053):
+              "off"    — pass 2 does not run.
+              "detect" — report a Correction (``applied=False``) but leave the
+                         text untouched; used for the measurement rollout.
+              "append" — append the canonical verse text in quotes after the
+                         reference so the user sees the real wording (default,
+                         so library/unit-test behaviour matches the flag-on path).
 
     Returns:
         (corrected_text, corrections). ``corrected_text`` is ``text`` unchanged
         when nothing needed fixing.
     """
     quotes = extract_inline_quotes(text)
-    if not quotes:
-        return text, []
 
     canonical_by_key: dict[tuple[str, int, int], str] = {}
     for v in resolved_verses:
@@ -141,11 +323,20 @@ def ground_response(
     corrections: list[Correction] = []
     # (start, end, replacement) edits, applied right-to-left so offsets stay valid.
     edits: list[tuple[int, int, str]] = []
+
+    # --- Pass 1: quoted-verse grounding (existing behaviour) ---
+    # Track which (book, chapter, verse_start) keys are already handled so the
+    # paraphrase pass doesn't double-process the same reference.
+    handled_ref_keys: set[tuple[str, int, int]] = set()
     for q in quotes:
         canonical = _canonical_text(q.reference, canonical_by_key)
         in_context = any(k in context_refs for k in _ref_keys(q.reference))
         reason = _classify(q.quoted_text, canonical, in_context)
         if reason is None:
+            # Quote is faithful — still mark as handled so paraphrase pass skips it.
+            handled_ref_keys.add(
+                (q.reference.book.lower(), q.reference.chapter, q.reference.verse_start)
+            )
             continue
         if reason == "unresolved":
             # No canonical DB text was available, so `corrected_quote` stays None
@@ -160,6 +351,9 @@ def ground_response(
         else:
             corrected = canonical
             edits.append((q.span[0], q.span[1], canonical))
+        handled_ref_keys.add(
+            (q.reference.book.lower(), q.reference.chapter, q.reference.verse_start)
+        )
         corrections.append(
             Correction(
                 reference=str(q.reference),
@@ -168,6 +362,11 @@ def ground_response(
                 corrected_quote=corrected,
             )
         )
+
+    # --- Pass 2: unquoted / paraphrased citation grounding (BITB-053) ---
+    _apply_paraphrase_grounding(
+        text, canonical_by_key, handled_ref_keys, edits, corrections, paraphrase_mode
+    )
 
     if not edits:
         return text, corrections

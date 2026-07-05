@@ -1,6 +1,6 @@
 # BITB-049: Always Start with a Fresh Chat on App Launch (Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2 (Medium) — startup behaviour preference
 **Size:** S (< 1 hr)
 **Created:** 2026-06-12
