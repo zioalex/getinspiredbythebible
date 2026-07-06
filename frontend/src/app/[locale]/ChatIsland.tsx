@@ -59,6 +59,7 @@ import {
 import { updateMultiWordNames } from "@/lib/versePatterns";
 import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
+import { isSmokeMode } from "@/lib/smoke";
 import { useRouter, usePathname } from "@/i18n/navigation";
 
 // Extended message type with message_id for feedback tracking
@@ -92,8 +93,12 @@ export default function ChatIsland({
   // Block submissions until /config has resolved: until then we don't yet
   // know whether Turnstile is enabled, and a fast click could fire a POST
   // without an X-Turnstile-Token header and get bounced as 403.
+  // BITB-064: under the browser smoke test the backend bypasses Turnstile via
+  // the injected smoke secret, so don't leave the send button disabled waiting
+  // for a token a headless bot can't earn.
   const turnstileBlocked =
-    !turnstileConfigLoaded || (turnstileEnabled && !turnstileReady);
+    !isSmokeMode() &&
+    (!turnstileConfigLoaded || (turnstileEnabled && !turnstileReady));
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");

@@ -207,6 +207,13 @@ locals {
       "MONITOR_PROBE_SECRET" = {
         secret_name = "monitor-probe-secret" # pragma: allowlist secret
       }
+    } : {},
+
+    # Browser smoke-test bypass (only when secret is provided) — BITB-064
+    var.smoke_probe_secret != "" ? {
+      "SMOKE_PROBE_SECRET" = {
+        secret_name = "smoke-probe-secret" # pragma: allowlist secret
+      }
     } : {}
   )
 
@@ -531,6 +538,7 @@ resource "terraform_data" "backend_secret_trigger" {
   triggers_replace = sha256(join("|", [
     var.openrouter_api_key,
     var.monitor_probe_secret,
+    var.smoke_probe_secret,
   ]))
 }
 
@@ -657,6 +665,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "monitor-probe-secret"
       value = var.monitor_probe_secret
+    }
+  }
+
+  # Browser smoke-test secret (only when set) — BITB-064
+  dynamic "secret" {
+    for_each = var.smoke_probe_secret != "" ? [1] : []
+    content {
+      name  = "smoke-probe-secret"
+      value = var.smoke_probe_secret
     }
   }
 
@@ -795,7 +812,7 @@ resource "null_resource" "frontend_custom_domain" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
       APP="${azurerm_container_app.frontend.name}"
@@ -827,7 +844,7 @@ resource "null_resource" "backend_custom_domain" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
       APP="${azurerm_container_app.backend.name}"
@@ -873,7 +890,7 @@ resource "null_resource" "frontend_ssl_cert_upload" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for frontend..."
       az containerapp env certificate upload \
@@ -902,7 +919,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
       # Wildcard SAN one level up, e.g. api.voxquieta.org -> *.voxquieta.org.
@@ -957,7 +974,7 @@ resource "null_resource" "backend_ssl_cert_upload" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for backend..."
       az containerapp env certificate upload \
@@ -986,7 +1003,7 @@ resource "null_resource" "backend_ssl_cert_bind" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
       PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"

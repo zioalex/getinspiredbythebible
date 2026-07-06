@@ -182,9 +182,9 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🚧 BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
+### ✅ BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 
-**Status:** 🚧 In progress — scripted cross-origin smoke probe **delivered**; full browser smoke test open
+**Status:** ✅ Done — scripted cross-origin probe, Azure preflight web test, runbook, and full browser smoke test all delivered
 **Size:** M (one new synthetic probe + Telegram wiring; optional Azure availability test)
 **Created:** 2026-07-05
 
@@ -208,8 +208,8 @@ same reason native Android kept working.
 - [x] Wired into `prod-monitor.yml` as the `cross-origin-smoke` job on the 5-min schedule via `notify-telegram`
 - [x] Azure `backend_preflight` availability web test (OPTIONS + CORS headers) + alert → always-on channel
 - [x] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
-- [ ] Full production **browser** smoke test (Playwright vs voxquieta.org, submits a chat + asserts a
-      streamed reply); open Turnstile-in-automation decision — the only remaining item
+- [x] Full production **browser** smoke test (`prod-chat-smoke.spec.ts` + hourly `prod-browser-smoke.yml`),
+      Turnstile passed via a separate injected-at-test-time `smoke_probe_secret` (never in the bundle)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
 

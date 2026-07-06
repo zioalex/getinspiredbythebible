@@ -3,6 +3,7 @@
  */
 
 import { reportClientError } from "./clientErrorReporter";
+import { getSmokeSecret } from "./smoke";
 
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
@@ -199,6 +200,14 @@ function getHeaders(): HeadersInit {
   };
   if (turnstileToken) {
     headers["X-Turnstile-Token"] = turnstileToken;
+  }
+  // BITB-064: the production browser smoke test injects a smoke secret at
+  // runtime (never shipped in the bundle); when present, attach it so the
+  // backend bypasses Turnstile + rate limits deterministically. Inert (null)
+  // for real users.
+  const smokeSecret = getSmokeSecret();
+  if (smokeSecret) {
+    headers["X-Monitor-Probe-Secret"] = smokeSecret;
   }
   return headers;
 }

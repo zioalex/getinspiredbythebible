@@ -1,7 +1,7 @@
 # BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 
-**Status:** 🚧 In progress — scripted cross-origin smoke probe **delivered**; full production
-**browser** smoke test (real Chromium journey) remains open.
+**Status:** ✅ Done — scripted cross-origin probe, Azure preflight web test, runbook, AND the full
+production **browser** smoke test all delivered on the PR #824 branch.
 **Priority:** P1 (High) — a total browser-facing chat outage shipped to production and **no monitor,
 alert, or Telegram notification fired**; only a user report surfaced it.
 **Size:** M (1-2 days — one new synthetic probe + wiring; optional Azure availability test)
@@ -61,15 +61,16 @@ fix; this story covers the *production* smoke + alert half.)
       on the 500 this incident produced (verified against the broken vs fixed OTel pins).
 - [x] **Wired into `prod-monitor.yml`** as the `cross-origin-smoke` job on the `*/5 * * * *` schedule,
       using the shared `./.github/actions/notify-telegram` action.
-- [ ] **Full production browser smoke test (open).** Complete the incomplete Playwright spec so it
-      actually **submits a chat and asserts a streamed assistant reply** (today `turnstile-ready.spec.ts`
-      stops at asserting the user's own text), then run it on a schedule against
-      `PLAYWRIGHT_BASE_URL=https://voxquieta.org` via the pre-installed Chromium. This is the only test
-      that exercises the *full* real journey: rendered frontend → real CORS preflight → instrumented
-      API → streamed answer. **Open decision — Turnstile in automation:** (a) a smoke-scoped bypass
-      header (frontend attaches the monitor-probe-secret when a smoke secret is present, so only
-      Turnstile *verification* is bypassed) vs. (b) a staging deploy with Cloudflare Turnstile **test
-      keys** (always-pass). Resolve when scheduled.
+- [x] **Full production browser smoke test.** `frontend/e2e/prod-chat-smoke.spec.ts` loads the deployed
+      site in real Chromium, submits a chat, and asserts a **streamed assistant reply** renders (via a
+      new `data-testid="assistant-message"`) — the full real journey: rendered frontend → real CORS
+      preflight → instrumented API → streamed answer. Runs hourly via `.github/workflows/prod-browser-smoke.yml`,
+      wired to `notify-telegram`. **Turnstile decision resolved — smoke-scoped bypass header:** a
+      *separate*, rotatable `smoke_probe_secret` (distinct from `monitor_probe_secret`) is injected into
+      the CI browser at test time via `addInitScript` (never shipped in the bundle — verified); the
+      deployed bundle only reads `window.__VOXQUIETA_SMOKE_SECRET__` (inert for real users) via
+      `frontend/src/lib/smoke.ts`, and `getHeaders()` attaches `X-Monitor-Probe-Secret` +
+      `ChatIsland` relaxes the send gate only when it's present.
 - [x] **Azure availability test parity.** `backend_preflight` standard web test (`deployment/main.tf`)
       issues the `OPTIONS` preflight with the CORS request headers and expects 200, wired to the
       `backend_preflight_availability` metric alert (`deployment/monitoring.tf`) → `ops_email` →
@@ -77,10 +78,15 @@ fix; this story covers the *production* smoke + alert half.)
 - [x] **Runbook note** in `docs/TROUBLESHOOTING.md`: "browser 500 but native app / curl fine" ⇒ suspect
       the CORS-preflight / OTel-instrumentation path and a FastAPI-vs-instrumentation version skew.
 
-**Delivered in PR #824 branch:** the scripted `cross-origin-smoke` probe (`scripts/monitor/synthetic_preflight.py`
-+ `prod-monitor.yml` job), the `backend_preflight` Azure availability web test + alert, and the
-troubleshooting runbook note. **Remaining:** only the full production **browser** smoke test (Playwright
-vs voxquieta.org) with its open Turnstile-in-automation decision.
+**Delivered in PR #824 branch (all AC complete):** the scripted `cross-origin-smoke` probe
+(`scripts/monitor/synthetic_preflight.py` + `prod-monitor.yml` job), the `backend_preflight` Azure
+availability web test + alert, the troubleshooting runbook note, and the full production **browser**
+smoke test (`frontend/e2e/prod-chat-smoke.spec.ts` + `.github/workflows/prod-browser-smoke.yml`, with
+the `smoke_probe_secret` bypass wired through the backend + deploy).
+
+**Operational note:** set the `SMOKE_PROBE_SECRET` repo secret (and `TF_VAR_smoke_probe_secret` flows
+to the backend via `azure-deploy.yml`) to arm the browser smoke test; until then the scheduled job's
+test skips.
 
 ## Notes / Reuse
 
