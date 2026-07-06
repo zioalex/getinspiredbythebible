@@ -49,14 +49,16 @@ function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
   // observable. Registered once for the app lifetime.
   useEffect(() => {
     const onError = (e: ErrorEvent) => {
-      const detail = e.error?.stack || e.message || String(e.error ?? "unknown");
+      const detail =
+        e.error?.stack || e.message || String(e.error ?? "unknown");
       reportClientError("window_onerror", detail);
     };
     const onRejection = (e: PromiseRejectionEvent) => {
       const reason = e.reason;
       const detail =
-        (reason instanceof Error ? reason.stack || reason.message : String(reason)) ||
-        "unknown";
+        (reason instanceof Error
+          ? reason.stack || reason.message
+          : String(reason)) || "unknown";
       reportClientError("unhandledrejection", detail);
     };
     window.addEventListener("error", onError);

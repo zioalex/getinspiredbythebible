@@ -24,13 +24,17 @@ import { test, expect } from "@playwright/test";
 const SMOKE_SECRET = process.env.SMOKE_PROBE_SECRET;
 
 test.describe("production chat smoke", () => {
-  test.skip(!SMOKE_SECRET, "SMOKE_PROBE_SECRET not set — skipping prod smoke test");
+  test.skip(
+    !SMOKE_SECRET,
+    "SMOKE_PROBE_SECRET not set — skipping prod smoke test",
+  );
 
   test("submitting a message streams an assistant reply", async ({ page }) => {
     // Inject the smoke secret before any app code runs.
     await page.addInitScript((secret) => {
-      (window as unknown as { __VOXQUIETA_SMOKE_SECRET__?: string }).__VOXQUIETA_SMOKE_SECRET__ =
-        secret;
+      (
+        window as unknown as { __VOXQUIETA_SMOKE_SECRET__?: string }
+      ).__VOXQUIETA_SMOKE_SECRET__ = secret;
     }, SMOKE_SECRET);
 
     await page.goto("/en");

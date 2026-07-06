@@ -48,7 +48,10 @@ export function scrubPII(detail: string): string {
     // emails
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]")
     // JWTs / bearer / API-key-like long tokens
-    .replace(/\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[jwt]")
+    .replace(
+      /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+      "[jwt]",
+    )
     .replace(/\b[A-Za-z0-9_-]{24,}\b/g, "[token]")
     // long digit runs (phone numbers, ids)
     .replace(/\b\d{7,}\b/g, "[num]");
@@ -73,7 +76,10 @@ export function shouldReport(type: ClientErrorType, detail: string): boolean {
 /**
  * Report a client-side error. Fire-and-forget; never throws.
  */
-export function reportClientError(type: ClientErrorType, rawDetail: string): void {
+export function reportClientError(
+  type: ClientErrorType,
+  rawDetail: string,
+): void {
   if (typeof window === "undefined") return;
   try {
     const detail = scrubPII(rawDetail);

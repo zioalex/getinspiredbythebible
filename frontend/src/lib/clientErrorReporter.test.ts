@@ -26,9 +26,10 @@ describe("scrubPII", () => {
 
   it("redacts JWT-like and long token strings", () => {
     const jwt =
-      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w";
+      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"; // pragma: allowlist secret
     expect(scrubPII(`token ${jwt} leaked`)).toContain("[jwt]");
-    expect(scrubPII("key=ABCDEFGHIJKLMNOPQRSTUVWXYZ012345")).toContain("[token]");
+    const longToken = "key=ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"; // pragma: allowlist secret
+    expect(scrubPII(longToken)).toContain("[token]");
   });
 
   it("redacts long digit runs", () => {
@@ -65,7 +66,8 @@ describe("reportClientError", () => {
   it("POSTs a scrubbed {type, detail} body to /api/v1/client-errors", () => {
     reportClientError("window_onerror", "boom for user@example.com");
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0];
     expect(String(url)).toContain("/api/v1/client-errors");
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.type).toBe("window_onerror");

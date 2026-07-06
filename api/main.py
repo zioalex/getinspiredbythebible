@@ -50,9 +50,11 @@ from routes import (  # noqa: E402
 from scripture import check_translation_coverage, close_db, init_db  # noqa: E402
 from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
-from utils.metrics import client_errors_counter  # noqa: E402
+from utils.metrics import (  # noqa: E402
+    client_errors_counter,
+    translation_data_missing_counter,
+)
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
-from utils.metrics import translation_data_missing_counter  # noqa: E402
 from utils.security import require_rate_limit  # noqa: E402
 
 # Configure logging before anything else
