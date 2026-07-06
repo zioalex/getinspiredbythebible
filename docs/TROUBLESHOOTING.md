@@ -502,6 +502,45 @@ docker-compose exec postgres psql -U bible -d bibledb -c "SELECT 1;"
 
 ---
 
+## Production Incidents
+
+### Problem: Browser shows 500 / "Failed to fetch", but the native app and `curl` work fine
+
+**Symptoms:** The website chat fails for browser users (Firefox/Chrome show a CORS or network
+error, or the frontend renders a generic "something went wrong" bubble), yet the **Android app keeps
+working** and a direct `curl -X POST .../api/v1/chat/stream` returns 200. Health checks and the
+`synthetic-chat` monitor stay green.
+
+**Diagnosis:** This is the signature of a **CORS-preflight-only failure**. Browsers send a cross-origin
+`OPTIONS` preflight before the real `POST`; native apps and `curl` do not. If only the preflight
+breaks, every non-browser client (including all synthetic probes that don't send a preflight) stays
+green while every browser is down. Confirm with the exact preflight:
+
+```bash
+curl -i -X OPTIONS https://api.voxquieta.org/api/v1/chat/stream \
+  -H 'Origin: https://voxquieta.org' \
+  -H 'Access-Control-Request-Method: POST' \
+  -H 'Access-Control-Request-Headers: content-type,x-turnstile-token'
+# Healthy: HTTP 200/204 with Access-Control-Allow-Origin echoing the Origin.
+# Broken:  HTTP 500 (or missing Access-Control-Allow-* headers).
+```
+
+**Common root cause:** a **FastAPI-vs-OpenTelemetry version skew**. FastAPI ≥ 0.137 / starlette ≥ 1.3
+store an `_IncludedRouter` object in `app.routes`; an older `opentelemetry-instrumentation-fastapi`
+(pinned transitively by `azure-monitor-opentelemetry`) does `route.path` on it and raises
+`'_IncludedRouter' object has no attribute 'path'` on **every preflight** — but only when App Insights
+instrumentation is active (production), so it never reproduces in local/CI without
+`APPLICATIONINSIGHTS_CONNECTION_STRING` set. Fix: bump `azure-monitor-opentelemetry` to a version whose
+instrumentation handles `_IncludedRouter` (see PR #824 / BITB-064). More generally: this class lives in
+the OTel/CORS middleware **above** the app, so it emits a `uvicorn` "Exception in ASGI application"
+log line rather than the app's `| ERROR |` format, and records no App Insights `requests` row.
+
+**Which alerts catch it:** the `cross-origin-smoke` job in `prod-monitor.yml`, the Azure
+`*-preflight-failed` availability alert, and the `*-backend-asgi-exceptions` log alert (all BITB-064 /
+BITB-065). If none fired, verify `TF_VAR_ALERT_EMAIL` / `TELEGRAM_CHAT_ID` are set in the deploy env.
+
+---
+
 ## Getting Help
 
 If issues persist:

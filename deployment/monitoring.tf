@@ -269,6 +269,36 @@ resource "azurerm_monitor_metric_alert" "backend_availability" {
   tags = local.tags
 }
 
+# Wire the CORS-preflight web test (BITB-064) to the action group so a
+# browser-only preflight failure (like the 2026-07-05 _IncludedRouter 500)
+# pages via the always-on Azure-native path, independent of the GitHub cron
+# cross-origin-smoke probe.
+resource "azurerm_monitor_metric_alert" "backend_preflight_availability" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-preflight-failed"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes = [
+    azurerm_application_insights_standard_web_test.backend_preflight[0].id,
+    azurerm_application_insights.main[0].id,
+  ]
+  description = "Backend CORS-preflight (OPTIONS /api/v1/chat/stream) availability test failing from one or more regions — the browser-only failure signature of the _IncludedRouter/OTel incident."
+  severity    = 1
+  frequency   = "PT1M"
+  window_size = "PT5M"
+
+  application_insights_web_test_location_availability_criteria {
+    web_test_id           = azurerm_application_insights_standard_web_test.backend_preflight[0].id
+    component_id          = azurerm_application_insights.main[0].id
+    failed_location_count = 2
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
 # Backend container app restart alert. Restarts are normal during deploys but
 # unexpected ones often signal OOM/crash-loop.
 resource "azurerm_monitor_metric_alert" "backend_restarts" {

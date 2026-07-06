@@ -206,10 +206,10 @@ same reason native Android kept working.
       `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers,
       plus a cross-origin POST asserting a streamed answer (`scripts/monitor/synthetic_preflight.py`)
 - [x] Wired into `prod-monitor.yml` as the `cross-origin-smoke` job on the 5-min schedule via `notify-telegram`
+- [x] Azure `backend_preflight` availability web test (OPTIONS + CORS headers) + alert → always-on channel
+- [x] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
 - [ ] Full production **browser** smoke test (Playwright vs voxquieta.org, submits a chat + asserts a
-      streamed reply); open Turnstile-in-automation decision
-- [ ] (Recommended) Azure availability test parity so the always-on path also alerts
-- [ ] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
+      streamed reply); open Turnstile-in-automation decision — the only remaining item
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
 

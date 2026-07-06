@@ -293,6 +293,56 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
   tags = local.tags
 }
 
+# Browser CORS-preflight availability test (BITB-064). The /health/ready GET
+# test above stayed green through the 2026-07-05 _IncludedRouter outage because
+# that crash only hit the browser's cross-origin OPTIONS preflight — GET/POST
+# returned 200. This test issues that exact preflight (OPTIONS + Origin +
+# Access-Control-Request-*) against the instrumented backend and expects a 200,
+# so an always-on Azure-native alert fires on a preflight-only failure — not
+# just the 5-minute GitHub cross-origin-smoke probe. Complements it as the
+# second, independent channel.
+resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
+  count                   = var.enable_application_insights ? 1 : 0
+  name                    = "${local.name_prefix}-preflight"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  application_insights_id = azurerm_application_insights.main[0].id
+
+  geo_locations = [
+    "emea-nl-ams-azr", # West Europe
+    "emea-gb-db3-azr", # UK South
+    "us-va-ash-azr",   # East US
+  ]
+
+  frequency = 300 # every 5 minutes
+
+  request {
+    url       = "https://${azurerm_container_app.backend.ingress[0].fqdn}/api/v1/chat/stream"
+    http_verb = "OPTIONS"
+
+    header {
+      name  = "Origin"
+      value = "https://voxquieta.org"
+    }
+    header {
+      name  = "Access-Control-Request-Method"
+      value = "POST"
+    }
+    header {
+      name  = "Access-Control-Request-Headers"
+      value = "content-type,x-turnstile-token"
+    }
+  }
+
+  validation_rules {
+    # A healthy CORS layer answers the preflight with 200; the _IncludedRouter
+    # crash returned 500 here.
+    expected_status_code = 200
+  }
+
+  tags = local.tags
+}
+
 # -----------------------------------------------------------------------------
 # Container Apps Environment
 # -----------------------------------------------------------------------------

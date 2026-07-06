@@ -70,16 +70,17 @@ fix; this story covers the *production* smoke + alert half.)
       header (frontend attaches the monitor-probe-secret when a smoke secret is present, so only
       Turnstile *verification* is bypassed) vs. (b) a staging deploy with Cloudflare Turnstile **test
       keys** (always-pass). Resolve when scheduled.
-- [ ] **(Recommended) Azure availability test parity.** Add a second `azurerm_application_insights_web_test`
-      (or upgrade the existing one) that issues the CORS preflight, so the always-on Azure-native path
-      also alerts — not just the 5-min GitHub cron. *If cost/complexity is a concern, the GitHub probe
-      alone satisfies the story; note the decision.*
-- [ ] **Runbook note** in `docs/TROUBLESHOOTING.md`: "browser 500 but native app / curl fine" ⇒ suspect
+- [x] **Azure availability test parity.** `backend_preflight` standard web test (`deployment/main.tf`)
+      issues the `OPTIONS` preflight with the CORS request headers and expects 200, wired to the
+      `backend_preflight_availability` metric alert (`deployment/monitoring.tf`) → `ops_email` →
+      Telegram. Second, always-on channel independent of the GitHub cron.
+- [x] **Runbook note** in `docs/TROUBLESHOOTING.md`: "browser 500 but native app / curl fine" ⇒ suspect
       the CORS-preflight / OTel-instrumentation path and a FastAPI-vs-instrumentation version skew.
 
 **Delivered in PR #824 branch:** the scripted `cross-origin-smoke` probe (`scripts/monitor/synthetic_preflight.py`
-+ `prod-monitor.yml` job). Remaining: the full browser smoke test, the Azure web-test parity, and the
-runbook note.
++ `prod-monitor.yml` job), the `backend_preflight` Azure availability web test + alert, and the
+troubleshooting runbook note. **Remaining:** only the full production **browser** smoke test (Playwright
+vs voxquieta.org) with its open Turnstile-in-automation decision.
 
 ## Notes / Reuse
 
