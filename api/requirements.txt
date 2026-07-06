@@ -6,7 +6,7 @@ pydantic-settings==2.14.2
 email-validator==2.2.0
 
 # Database
-sqlalchemy==2.0.50
+sqlalchemy==2.0.51
 asyncpg==0.31.0
 psycopg2-binary==2.9.12
 pgvector==0.4.2
