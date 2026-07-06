@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
+    # Embedding resilience (BITB-057 Phase 2). Mirrors the circuit-breaker/timeout
+    # pattern already used for OpenRouter (providers/openrouter.py) and Llama Guard
+    # (providers/llama_guard.py), applied to the embedding call path via
+    # providers/embedding_resilience.py::ResilientEmbeddingProvider.
+    embedding_request_timeout: float = 15.0  # Seconds before an embed() call is abandoned
+    embedding_breaker_failure_threshold: int = 5  # Consecutive failures before the breaker opens
+    embedding_breaker_cooldown_seconds: float = 30.0  # Time before a half-open probe is allowed
+    embedding_retry_max_attempts: int = 2  # Total attempts (including the first) per embed call
+    embedding_retry_base_delay_seconds: float = 0.5  # Base for jittered exponential backoff
+
     # Azure OpenAI Settings (optional - for Azure deployment)
     azure_openai_endpoint: str | None = None
     azure_openai_api_key: str | None = None
@@ -68,17 +78,59 @@ class Settings(BaseSettings):
         "postgresql://CONFIGURE_ME:CONFIGURE_ME@localhost:5432/bibledb"  # pragma: allowlist secret
     )
 
+    # Async SQLAlchemy connection pool. Replaces the previous NullPool (no pooling):
+    # a bounded pool removes per-request connect/TLS overhead and caps the number of
+    # concurrent backends well under the PostgreSQL server's max_connections for a
+    # single API worker. db_pool_size + db_max_overflow is the hard ceiling on backends.
+    db_pool_size: int = 10
+    db_max_overflow: int = 10  # burst capacity above pool_size
+    db_pool_timeout: int = 30  # seconds to wait for a free connection before erroring
+    db_pool_recycle: int = 1800  # recycle a connection after 30 min (avoid stale/idle drops)
+    # Per-query ceilings so a slow/hung backend fails fast and *visibly* (raises ->
+    # logged + metric + retried) instead of holding a pooled connection until
+    # db_pool_timeout (30s) and cascading into pool exhaustion. Sizing: normal queries
+    # run <100ms (slow_query_threshold_ms); the p95 *saturation* SLOs are 1s (verse
+    # reads, BITB-041) and 2s (semantic search, BITB-056). These ceilings sit ~4x above
+    # the 2s saturation line — high enough never to cancel a legitimately slow query
+    # even during a concurrency spike (~8x baseline at conc 64), low enough to free the
+    # connection well before the 30s pool timeout. statement_timeout (server) is set
+    # below command_timeout (client) so Postgres cancels first and asyncpg surfaces a
+    # clean "canceling statement due to statement timeout" error instead of a raw
+    # socket timeout.
+    db_command_timeout: int = 10  # asyncpg client-side per-query timeout (seconds)
+    db_statement_timeout_ms: int = 8000  # server-side statement_timeout (milliseconds)
+
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
     max_conversation_history: int = 10  # Max messages to keep in context
+    # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
+    # verse (hard retrieval failure OR zero results). Rather than answer without
+    # scripture — which undercuts a Bible-grounded product — return a localized
+    # "try again" message. Greetings / off-topic / GENERAL chit-chat are exempt so we
+    # never nag when no citation was expected.
+    require_scripture_grounding: bool = True
 
     # Query Expansion Settings
-    query_expansion_enabled: bool = False  # Feature flag for A/B testing
+    query_expansion_enabled: bool = (
+        True  # BITB-043: enabled (improved theme-focused expansion, BITB-050)
+    )
 
     # Hybrid Search Settings
-    hybrid_search_enabled: bool = False  # Feature flag for A/B testing
+    hybrid_search_enabled: bool = True  # BITB-043: enabled (semantic + FTS keyword, no LLM cost)
     hybrid_search_semantic_weight: float = 0.7
     hybrid_search_keyword_weight: float = 0.3
+    # Size of the HNSW ANN candidate pool fetched per query embedding before
+    # threshold + hybrid re-ranking. Keeps vector search index-backed (the index
+    # only accelerates `ORDER BY embedding <=> q LIMIT k`) instead of a full scan.
+    vector_candidate_pool: int = 100
+    # HNSW query-time exploration depth (hnsw.ef_search). MUST be >= vector_candidate_pool,
+    # otherwise the ANN cannot return a full candidate pool and recall is silently capped
+    # (pgvector default is 40; migration 002 set 80 — below the pool of 100). The runtime
+    # source of truth is the connection pool, which applies this per session on connect
+    # (api/scripture/database.py); migration 007 also tries to set the DB-wide default via
+    # `ALTER DATABASE ... SET hnsw.ef_search`, but that is best-effort (the managed-Postgres
+    # app role lacks the privilege), so the per-session SET is what the search path relies on.
+    hnsw_ef_search: int = 120
 
     # Topic Boosting Settings
     topic_boosting_enabled: bool = False  # Feature flag for topic-based search boosting
@@ -90,6 +142,9 @@ class Settings(BaseSettings):
     smtp2go_sender_email: str = "noreply@voxquieta.org"
     smtp2go_sender_name: str = "Vox Quieta"
     contact_notification_email: str = "support@voxquieta.org"
+    # Recipient for the weekly activity digest (kept separate from the
+    # contact-form recipient so the two can be retargeted independently).
+    weekly_report_recipient: str = "support@voxquieta.org"
 
     # Production frontend URL (used for CORS, access audit, and Referer headers)
     # Change this when migrating to a new domain.
@@ -107,14 +162,22 @@ class Settings(BaseSettings):
     health_check_timeout: int = (
         15  # Timeout for dependency checks in seconds (longer for free APIs)
     )
+    # Readiness probe checks ONLY the database and must answer well within the
+    # platform readiness-probe deadline (deployment/main.tf readiness_probe.timeout,
+    # currently 5s), so it uses a short timeout independent of the 15s budget the
+    # comprehensive /health endpoint allows for slow free-tier inference providers.
+    readiness_check_timeout: int = 3
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings
-    max_message_length: int = 200  # Max characters per chat message
+    max_message_length: int = 300  # Max characters per chat message
     rate_limit_enabled: bool = True
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute
     rate_limit_session_max_requests: int = 10  # Lifetime max per session (encourages breaks)
+    rate_limit_session_ttl_seconds: int = (
+        3600  # Retain a session's lifetime counter for this long after its last request
+    )
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
@@ -123,8 +186,23 @@ class Settings(BaseSettings):
     content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
 
+    # Verse grounding (post-generation scripture fidelity)
+    verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
+    # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any
+    # canonical DB text (translation not loaded/partial, or the reference is invalid).
+    #   keep   — leave the model's text untouched (a Correction is still recorded).
+    #   strip  — remove the invented quotation, keeping the reference and surrounding prose.
+    #   notice — replace the invented quotation with a short localized message
+    #            ("this verse isn't available in <language> yet").
+    # Default "strip": per BITB-054 analysis, leaving an unverifiable, possibly
+    # hallucinated quotation untouched is not least-user-harm even though it was the
+    # historical default (grounding_strip_unresolved=False) — stripping the
+    # unverifiable text while keeping the reference is the safer default.
+    grounding_unresolved_behavior: Literal["keep", "strip", "notice"] = "strip"
+
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
+    verse_query_timeout_s: float = 10.0  # Max seconds for a verse/chapter DB query before 504
 
     # Cloudflare Turnstile (Bot Protection)
     # Get keys from: https://dash.cloudflare.com/?to=/:account/turnstile
@@ -194,6 +272,17 @@ class Settings(BaseSettings):
                 "Set the DATABASE_URL environment variable."
             )
         return v
+
+    @model_validator(mode="after")
+    def validate_hnsw_ef_search(self) -> "Settings":
+        """hnsw.ef_search must be >= the ANN candidate pool, else recall is silently capped."""
+        if self.hnsw_ef_search < self.vector_candidate_pool:
+            raise ValueError(
+                f"hnsw_ef_search ({self.hnsw_ef_search}) must be >= vector_candidate_pool "
+                f"({self.vector_candidate_pool}); a smaller ef_search caps the candidate pool "
+                "the HNSW index can return and degrades search recall."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_llm_provider_keys(self) -> "Settings":

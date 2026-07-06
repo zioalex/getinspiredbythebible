@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -129,6 +130,12 @@ data class ChatUiState(
     val detectedTranslation: String = "",
     /** True when the device has no active internet connection. */
     val isOffline: Boolean = false,
+    /**
+     * ISO 639-1 code of the language the backend detected the user typing in, when
+     * it differs from the explicitly-selected UI locale. Non-null means show the
+     * language-switch suggestion banner. Null means no banner.
+     */
+    val languageSuggestion: String? = null,
 )
 
 @HiltViewModel
@@ -154,6 +161,16 @@ class ChatViewModel @Inject constructor(
          * Must match the backend's RATE_LIMIT_SESSION_MAX_REQUESTS setting (default 10).
          */
         const val MAX_INTERACTIONS = 10
+
+        /** Chapter fetch client-side timeout; mirrors the backend verse_query_timeout_s. */
+        const val CHAPTER_LOAD_TIMEOUT_MS = 10_000L
+
+        /**
+         * Max characters allowed in a single chat message. Must match the
+         * backend's max_message_length setting (api/config.py); the server
+         * rejects anything longer with HTTP 422.
+         */
+        const val MAX_MESSAGE_LENGTH = 300
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -268,6 +285,21 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(themeMode = mode) }
             }
         }
+        // Restore the persisted per-session interaction count so the 10-message
+        // limit survives app restarts and conversation loads. The count is keyed
+        // to the session lifetime (reset by startNewConversation), so we seed both
+        // the counter and the limit flag from DataStore on cold start. We do NOT
+        // restore the church-finder banner/inline flags: those use one-shot
+        // triggers (== 3 / >= 5) and must not re-nag after a restart.
+        viewModelScope.launch {
+            val restoredCount = sessionPreferences.getInteractionCount()
+            _uiState.update {
+                it.copy(
+                    interactionCount = restoredCount,
+                    isSessionLimitReached = restoredCount >= MAX_INTERACTIONS,
+                )
+            }
+        }
         // Fetch available translations from the backend with retry.
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
@@ -366,6 +398,7 @@ class ChatViewModel @Inject constructor(
                 messages = it.messages + userMessage + assistantPlaceholder,
                 isLoading = true,
                 error = null,
+                languageSuggestion = null,
             )
         }
 
@@ -430,8 +463,15 @@ class ChatViewModel @Inject constructor(
                                             isError = false,
                                         )
                                     } else {
+                                        // Carry the (often empathetic) explanation on the
+                                        // message itself so it renders in the chat bubble
+                                        // above the Retry button. Previously this was left
+                                        // empty and the text only went to the snackbar, which
+                                        // ChatScreen suppresses whenever an inline Retry exists
+                                        // — so blocked/error messages showed only a bare Retry
+                                        // button with no explanation.
                                         msg.copy(
-                                            content = "",
+                                            content = errorMessage,
                                             isStreaming = false,
                                             isError = true,
                                         )
@@ -528,6 +568,10 @@ class ChatViewModel @Inject constructor(
                                     allVerses = state.allVerses + dedupedNew,
                                 )
                             }
+                            // Persist the new count so the 10-message limit survives
+                            // app restarts and conversation loads. state is the
+                            // in-memory mirror of the persisted value; write it back.
+                            sessionPreferences.setInteractionCount(_uiState.value.interactionCount)
                         }
                     }
                 }
@@ -552,6 +596,12 @@ class ChatViewModel @Inject constructor(
                                     } else msg
                                 },
                                 detectedTranslation = chunk.detectedTranslation.ifBlank { state.detectedTranslation },
+                                // Show the language-switch banner only when the backend is
+                                // confident the message was typed in a different language than
+                                // the user's explicitly-selected UI locale.
+                                languageSuggestion = chunk.languageSuggestion?.takeIf {
+                                    it.isNotBlank() && it != state.currentLocale
+                                },
                             )
                         }
                         return@collect
@@ -569,6 +619,21 @@ class ChatViewModel @Inject constructor(
                         // follow-up text, not what the answer actually cited.
                         if (chunk.resolvedVerses.isNotEmpty()) {
                             finalResolvedVerses = chunk.resolvedVerses
+                        }
+                        // Grounding rewrote a fabricated/mismatched verse quote: the
+                        // streamed text is already on screen, so replace it with the
+                        // authoritative corrected body.
+                        chunk.correctedMessage?.let { corrected ->
+                            accumulatedContent = corrected
+                            _uiState.update { state ->
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) {
+                                            msg.copy(content = accumulatedContent)
+                                        } else msg
+                                    },
+                                )
+                            }
                         }
                         return@collect
                     }
@@ -625,6 +690,13 @@ class ChatViewModel @Inject constructor(
                     .filter { it.role == Message.Role.ASSISTANT }
                     .flatMap { it.verses }
                     .distinctBy { "${it.book}${it.chapter}:${it.verse}" }
+                // Intentionally do NOT recompute interactionCount / isSessionLimitReached
+                // from these messages. The limit is per session_id (shared across all
+                // conversations and matching the backend), not per conversation thread —
+                // an old thread's historical messages belong to past sessions. The current
+                // session count is restored from DataStore on init and must be preserved
+                // here. Deriving it from the loaded thread would reintroduce
+                // per-conversation behaviour and diverge from the backend's 429.
                 _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
@@ -664,6 +736,7 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderBanner = false,
                 showChurchFinderInlineCard = false,
                 allVerses = emptyList(),
+                languageSuggestion = null,
             )
         }
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
@@ -745,7 +818,7 @@ class ChatViewModel @Inject constructor(
      * @param rating "positive" or "negative".
      * @param comment Optional free-text comment the user added on thumbs-down.
      */
-    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null) {
+    fun submitFeedback(messageLocalId: String, rating: String, comment: String? = null, reason: String? = null) {
         // Look up the message and its context (user message preceding it).
         val messages = _uiState.value.messages
         val assistantMsg = messages.firstOrNull { it.id == messageLocalId } ?: return
@@ -766,6 +839,7 @@ class ChatViewModel @Inject constructor(
                     userMessage = userMessage?.content ?: "",
                     assistantResponse = assistantMsg.content,
                     comment = comment,
+                    reason = if (feedbackRating == FeedbackRating.NEGATIVE) reason else null,
                 )
                 _uiState.update { state ->
                     state.copy(
@@ -827,8 +901,15 @@ class ChatViewModel @Inject constructor(
                 val lang = _uiState.value.currentLocale.ifBlank {
                     Locale.getDefault().language.ifBlank { "en" }
                 }
-                val response = bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
-                _chapterSheetState.value = ChapterSheetState.Success(response)
+                val response = withTimeoutOrNull(CHAPTER_LOAD_TIMEOUT_MS) {
+                    bibleApiService.getChapter(normalizedBook, chapter, translation, lang)
+                }
+                if (response == null) {
+                    _chapterSheetState.value =
+                        ChapterSheetState.Error(context.getString(R.string.error_timeout))
+                } else {
+                    _chapterSheetState.value = ChapterSheetState.Success(response)
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Timber.e(e, "loadChapter error: $book $chapter")
@@ -857,6 +938,11 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderInlineCard = false,
             )
         }
+    }
+
+    /** Dismisses the language-switch suggestion banner without switching locale. */
+    fun dismissLanguageSuggestion() {
+        _uiState.update { it.copy(languageSuggestion = null) }
     }
 
     /**
@@ -933,7 +1019,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to submit contact form")
                 _contactFormState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -977,7 +1063,7 @@ class ChatViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 Timber.e(e, "Failed to send diagnostic email")
                 _diagnosticReportState.value = ContactFormState.Error(
-                    mapExceptionToMessage(e),
+                    mapContactExceptionToMessage(e),
                 )
             }
         }
@@ -1067,6 +1153,20 @@ class ChatViewModel @Inject constructor(
     // Private helpers
     // ---------------------------------------------------------------------------
 
+    /**
+     * Error mapping for the contact pipeline (contact form + diagnostic report).
+     *
+     * Unlike the chat path — where a 422 realistically means an over-long message —
+     * a 422 from `POST /api/v1/feedback/contact` is the required email field being
+     * missing or malformed. Surface that instead of the misleading "message too
+     * long" string; everything else falls back to the shared mapping.
+     */
+    private fun mapContactExceptionToMessage(e: Throwable): String = when {
+        e is HttpException && e.code() == 422 ->
+            context.getString(R.string.error_contact_email_invalid)
+        else -> mapExceptionToMessage(e)
+    }
+
     private fun mapExceptionToMessage(e: Throwable): String = when {
         e is UnknownHostException || e is ConnectException ->
             context.getString(R.string.error_network)
@@ -1089,6 +1189,22 @@ class ChatViewModel @Inject constructor(
                 context.getString(R.string.error_server)
             }
         }
+        // 403: Cloudflare Turnstile bot verification. The backend returns a
+        // body with code TURNSTILE_REQUIRED (no/empty token reached the server)
+        // or TURNSTILE_FAILED (token rejected, e.g. stale/duplicate). Log the
+        // body so future diagnostic reports show which one it was, then tell the
+        // user it's a verification hiccup — not a generic "server error" — since
+        // the Turnstile widget self-heals and a retry usually succeeds.
+        e is HttpException && e.code() == 403 -> {
+            val body = e.response()?.errorBody()?.string() ?: ""
+            Timber.w("Turnstile verification rejected request (HTTP 403): %s", body)
+            context.getString(R.string.error_verification)
+        }
+        // 422 request validation: the realistic client-controllable cause is an
+        // over-long message. Tell the user to shorten it rather than showing a
+        // generic server error.
+        e is HttpException && e.code() == 422 ->
+            context.getString(R.string.error_message_too_long, MAX_MESSAGE_LENGTH)
         e is HttpException ->
             context.getString(R.string.error_server)
         e is IOException ->

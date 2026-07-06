@@ -23,7 +23,7 @@ class EmailService:
         self.sender_email = settings.smtp2go_sender_email
         self.sender_name = settings.smtp2go_sender_name
 
-    def send_email(
+    async def send_email(
         self,
         to_email: str,
         subject: str,
@@ -70,8 +70,8 @@ class EmailService:
             if reply_to:
                 payload["custom_headers"] = [{"header": "Reply-To", "value": reply_to}]
 
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(SMTP2GO_API_URL, json=payload)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(SMTP2GO_API_URL, json=payload)
 
             if response.status_code == 200:
                 result = response.json()
@@ -120,7 +120,7 @@ class EmailService:
             )
             return False
 
-    def send_contact_notification(
+    async def send_contact_notification(
         self,
         subject_type: str,
         message: str,
@@ -185,51 +185,115 @@ User Agent: {user_agent or 'Not provided'}
 </html>
         """.strip()
 
-        return self.send_email(to_email, subject, body_text, body_html, reply_to=reply_email)
+        return await self.send_email(to_email, subject, body_text, body_html, reply_to=reply_email)
 
-    def send_feedback_notification(
+    async def send_feedback_notification(
         self,
         rating: str,
         comment: str | None,
         user_message: str,
         assistant_response: str,
+        message_id: str | None = None,
+        verses_cited: list[str] | None = None,
+        model_used: str | None = None,
+        response_time_ms: int | None = None,
+        reason: str | None = None,
     ) -> bool:
         """
-        Send notification for negative feedback (for quality monitoring).
+        Send notification for feedback that warrants maintainer attention.
 
-        Only sends for negative feedback to alert about potential issues.
+        Sends for negative feedback, or positive feedback with a comment.
+        The caller decides when to invoke this; this method renders whatever
+        rating is passed.
 
         Args:
             rating: positive or negative
             comment: User's optional comment
             user_message: Original user question
             assistant_response: AI response that received feedback
+            message_id: Optional chat message UUID
+            verses_cited: Optional list of verse references
+            model_used: LLM model that generated the response
+            response_time_ms: Response generation time in ms
+            reason: Optional category of what went wrong (negative feedback)
 
         Returns:
             True if sent successfully
         """
-        # Only notify on negative feedback
-        if rating != "negative":
-            return True
-
         to_email = settings.contact_notification_email
-        subject = "[Vox Quieta] Negative Feedback Received"
+        rating_label = "Negative" if rating == "negative" else "Positive"
+        subject = f"[Vox Quieta] {rating_label} Feedback Received"
+
+        verses_str = ", ".join(verses_cited) if verses_cited else "None"
 
         body_text = f"""
-Negative feedback received on a response:
+{rating_label} feedback received on a response:
 
 User Comment: {comment or 'No comment provided'}
+Reason: {reason or 'Not specified'}
 
 ---
 Original Question:
-{user_message[:500]}{'...' if len(user_message) > 500 else ''}
+{user_message}
 
 ---
 AI Response:
-{assistant_response[:500]}{'...' if len(assistant_response) > 500 else ''}
+{assistant_response}
+
+---
+Metadata:
+Model: {model_used or 'Not specified'}
+Response time (ms): {response_time_ms if response_time_ms is not None else 'Not specified'}
+Verses cited: {verses_str}
+Message ID: {message_id or 'Not specified'}
         """.strip()
 
-        return self.send_email(to_email, subject, body_text)
+        body_html = f"""
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color: {'#c0392b' if rating == 'negative' else '#27ae60'};">{rating_label} Feedback Received</h2>
+
+    <h3>Comment</h3>
+    <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid {'#c0392b' if rating == 'negative' else '#27ae60'}; margin: 10px 0;">
+        {(comment or '<em>No comment provided</em>').replace(chr(10), '<br>')}
+    </div>
+
+    {f'<h3>Reason</h3><div style="display:inline-block; background:#e8e8e8; padding:4px 10px; border-radius:12px; font-size:13px;">{reason}</div>' if reason else ''}
+
+    <h3>Original Question</h3>
+    <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #5c6ac4; margin: 10px 0;">
+        {user_message.replace(chr(10), '<br>')}
+    </div>
+
+    <h3>AI Response</h3>
+    <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #5c6ac4; margin: 10px 0;">
+        {assistant_response.replace(chr(10), '<br>')}
+    </div>
+
+    <h3>Metadata</h3>
+    <table style="border-collapse: collapse; margin: 10px 0;">
+        <tr>
+            <td style="padding: 6px 12px; font-weight: bold; background: #f5f5f5;">Model</td>
+            <td style="padding: 6px 12px;">{model_used or '<em>Not specified</em>'}</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 12px; font-weight: bold; background: #f5f5f5;">Response time (ms)</td>
+            <td style="padding: 6px 12px;">{response_time_ms if response_time_ms is not None else '<em>Not specified</em>'}</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 12px; font-weight: bold; background: #f5f5f5;">Verses cited</td>
+            <td style="padding: 6px 12px;">{verses_str}</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 12px; font-weight: bold; background: #f5f5f5;">Message ID</td>
+            <td style="padding: 6px 12px;">{message_id or '<em>Not specified</em>'}</td>
+        </tr>
+    </table>
+</body>
+</html>
+        """.strip()
+
+        return await self.send_email(to_email, subject, body_text, body_html)
 
 
 # Singleton instance

@@ -11,6 +11,7 @@ Coverage targets:
 - main.py: lifespan, root, config, debug_embeddings, provider_error_handler, _get_cors_origins
 """
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -80,6 +81,33 @@ class TestCheckDatabaseHealth:
         assert result.status == "unhealthy"
         assert result.error is not None
         assert result.latency_ms is not None
+
+    @pytest.mark.asyncio
+    @patch("routes.health.logger")
+    @patch("routes.health.async_session_factory")
+    async def test_timeout_logs_warning(self, mock_factory, mock_logger):
+        """A stalled DB check must log a warning so a dependency stall is visible to
+        the log-scan even though the platform probe gives up silently."""
+        import asyncio
+
+        from routes.health import check_database_health
+
+        mock_session = AsyncMock()
+
+        async def slow_execute(*args, **kwargs):
+            await asyncio.sleep(100)
+
+        mock_session.execute = slow_execute
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_factory.return_value = mock_session
+
+        with patch("routes.health.settings") as mock_settings:
+            mock_settings.health_check_timeout = 0.001
+            result = await check_database_health()
+
+        assert result.status == "unhealthy"
+        mock_logger.warning.assert_called_once()
 
 
 class TestCheckLlmHealth:
@@ -322,15 +350,20 @@ class TestReadinessProbe:
     @patch("routes.health.check_llm_health")
     @patch("routes.health.check_database_health")
     async def test_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
+        from config import settings
         from routes.health import ComponentHealth, readiness_probe
 
         mock_db_health.return_value = ComponentHealth(status="healthy", latency_ms=5.0)
-        mock_llm_health.return_value = ComponentHealth(status="healthy", latency_ms=10.0)
-        mock_embedding_health.return_value = ComponentHealth(status="healthy", latency_ms=8.0)
         result = await readiness_probe()
         assert result["status"] == "ready"
         assert result["database_latency_ms"] == 5.0
-        assert result["dependencies"]["database"] == "healthy"
+        assert result["dependencies"] == {"database": "healthy"}
+        # Readiness must be cheap and bounded: only the DB is probed, with the short
+        # readiness timeout. The LLM/embedding providers are deliberately NOT called
+        # here (probing them every scrape flapped the pod for weeks).
+        mock_db_health.assert_awaited_once_with(timeout=settings.readiness_check_timeout)
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("routes.health.check_embedding_health")
@@ -342,12 +375,13 @@ class TestReadinessProbe:
         mock_db_health.return_value = ComponentHealth(
             status="unhealthy", error="Connection refused"
         )
-        mock_llm_health.return_value = ComponentHealth(status="healthy")
-        mock_embedding_health.return_value = ComponentHealth(status="healthy")
         result = await readiness_probe()
         assert result.status_code == 503
         body = result.body
         assert b"not_ready" in body
+        assert b"database_unavailable" in body
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
 
 # ==================== Main App Tests ====================
@@ -523,7 +557,7 @@ class TestFeedbackRoutes:
             assistant_response="response",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             result = await submit_feedback(request, mock_repo)
             mock_email.send_feedback_notification.assert_called_once()
 
@@ -591,7 +625,7 @@ class TestFeedbackRoutes:
             email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = True
             result = await submit_contact(request, mock_repo)
 
@@ -615,9 +649,10 @@ class TestFeedbackRoutes:
         request = ContactRequest(
             subject="feedback",
             message="Great app!",
+            email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = False
             result = await submit_contact(request, mock_repo)
 
@@ -636,6 +671,7 @@ class TestFeedbackRoutes:
         request = ContactRequest(
             subject="bug",
             message="Test message",
+            email="user@example.com",
         )
 
         with pytest.raises(HTTPException) as exc_info:
@@ -974,6 +1010,170 @@ class TestScriptureRoutes:
                 await get_chapter("NotABook", 1, mock_db, None)
 
             assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_timeout_returns_504(self):
+        """Chapter DB query timeout maps to HTTP 504 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=asyncio.TimeoutError)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, None)
+            assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_db_error_returns_500(self):
+        """Chapter DB error maps to HTTP 500 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(side_effect=RuntimeError("connection reset"))
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, None)
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_all_placeholder_text_returns_502(self):
+        """All-placeholder chapter (ITA1927 '////') maps to HTTP 502 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_chapter
+
+        mock_db = AsyncMock()
+        bad_verse = MagicMock()
+        bad_verse.text = "////"
+        bad_verse.translation = "ita1927"
+        bad_verse.book.name = "Genesis"
+        bad_verse.chapter_number = 1
+        bad_verse.verse_number = 1
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[bad_verse])
+            mock_repo_cls.return_value = mock_repo
+
+            mock_http = MagicMock()
+            mock_http.headers = {"accept-language": "it-IT"}
+            with pytest.raises(HTTPException) as exc_info:
+                await get_chapter("Genesis", 1, mock_db, "ita1927", http_request=mock_http)
+            assert exc_info.value.status_code == 502
+
+    @pytest.mark.asyncio
+    async def test_get_chapter_drops_placeholder_keeps_good_verses(self):
+        """Placeholder verses are filtered; real verses remain (BITB-041)."""
+        from routes.scripture import get_chapter
+
+        good = self._chapter_verse("ita1927")
+        good.text = "In principio Dio creò..."
+        bad = self._chapter_verse("ita1927")
+        bad.text = "////"
+
+        mock_db = AsyncMock()
+        with (
+            patch("routes.scripture.ScriptureRepository") as mock_repo_cls,
+            patch("routes.scripture.get_localized_book_name", return_value="Giovanni"),
+            patch("routes.scripture.get_translation_info", return_value={"name": "Riveduta 1927"}),
+        ):
+            mock_repo = AsyncMock()
+            mock_repo.get_chapter_verses = AsyncMock(return_value=[good, bad])
+            mock_repo_cls.return_value = mock_repo
+
+            result = await get_chapter("John", 3, mock_db, "ita1927")
+
+        assert len(result.verses) == 1
+        assert result.verses[0]["text"] == "In principio Dio creò..."
+
+    @pytest.mark.asyncio
+    async def test_get_verse_timeout_returns_504(self):
+        """Verse DB query timeout maps to HTTP 504 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(side_effect=asyncio.TimeoutError)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, "ita1927")
+            assert exc_info.value.status_code == 504
+
+    @pytest.mark.asyncio
+    async def test_get_verse_placeholder_text_returns_502(self):
+        """Verse with placeholder text ('////') maps to HTTP 502 (BITB-041)."""
+        from fastapi import HTTPException
+
+        from routes.scripture import get_verse
+
+        mock_db = AsyncMock()
+        mock_embedding = AsyncMock()
+        bad = MagicMock()
+        bad.text = "////"
+        bad.book.name = "John"
+        bad.translation = "ita1927"
+        bad.chapter_number = 3
+        bad.verse_number = 16
+        bad.reference = "John 3:16"
+
+        with patch("routes.scripture.ScriptureRepository") as mock_repo_cls:
+            mock_repo = AsyncMock()
+            mock_repo.get_verse = AsyncMock(return_value=bad)
+            mock_repo_cls.return_value = mock_repo
+
+            with pytest.raises(HTTPException) as exc_info:
+                await get_verse("John", 3, 16, mock_db, mock_embedding, "ita1927")
+            assert exc_info.value.status_code == 502
+
+    def test_is_placeholder(self):
+        """Placeholder guard catches all-punctuation/whitespace; keeps real text (BITB-041)."""
+        from routes.scripture import _is_placeholder
+
+        assert _is_placeholder("////") is True
+        assert _is_placeholder("----") is True  # stricter guard (was not caught before)
+        assert _is_placeholder("...") is True  # stricter guard
+        assert _is_placeholder("") is True
+        assert _is_placeholder("   ") is True
+        assert _is_placeholder(None) is True
+        assert _is_placeholder("For God so loved") is False
+        assert _is_placeholder("Бог") is False  # Cyrillic must NOT be blocked
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "For God so loved the world",  # en
+            "Poiché Iddio ha tanto amato il mondo",  # it
+            "Also hat Gott die Welt geliebt, süße",  # de (umlaut + ß)
+            "Porque de tal manera amó Dios, ñoño",  # es (ñ + accents)
+            "Car Dieu a tant aimé le monde, cœur",  # fr (œ + accents)
+            "Porque Deus amou o mundo, coração",  # pt (ã/ç)
+            "لأنه هكذا أحب الله العالم",  # ar (Arabic, RTL)
+            "Ибо так возлюбил Бог мир",  # ru (Cyrillic)
+            "神爱世人，甚至将他的独生子赐给他们",  # zh (Chinese)
+            "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा",  # hi (Devanagari + matras)
+            "하나님이 세상을 이처럼 사랑하사",  # ko (Hangul)
+        ],
+    )
+    def test_is_placeholder_keeps_all_languages(self, text):
+        """Real scripture in every supported language is never flagged as placeholder."""
+        from routes.scripture import _is_placeholder
+
+        assert _is_placeholder(text) is False
 
     @staticmethod
     def _chapter_verse(translation: str):

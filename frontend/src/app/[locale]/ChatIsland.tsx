@@ -41,6 +41,10 @@ import {
   ColdStartError,
   ContentBlockedError,
   SessionLimitError,
+  StreamTimeoutError,
+  MessageTooLongError,
+  VerificationError,
+  MAX_MESSAGE_LENGTH,
   checkBackendReady,
   warmupBackend,
   StreamChunk,
@@ -175,6 +179,18 @@ export default function ChatIsland({
   // Translation preference
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
   const [selectedTranslation, setSelectedTranslation] = useState<string>("");
+
+  // Active translation code (manual selection wins over auto-detected)
+  const activeTranslationCode =
+    selectedTranslation ||
+    (translations.some((t) => t.code === detectedTranslation)
+      ? (detectedTranslation as string)
+      : "");
+
+  const activeTranslation = useMemo(
+    () => translations.find((t) => t.code === activeTranslationCode),
+    [translations, activeTranslationCode],
+  );
 
   // Load translations and saved preference on mount
   useEffect(() => {
@@ -380,6 +396,12 @@ export default function ChatIsland({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // Hoisted out of the try so the catch block can replace the placeholder
+    // assistant bubble in place (e.g. on a stall timeout) instead of appending
+    // a second bubble next to an empty one.
+    let streamedContent = "";
+    let assistantMessageIndex = -1;
+
     try {
       // Convert messages to the API format (without extra fields)
       const apiMessages: Message[] = messages.map((m) => ({
@@ -389,9 +411,7 @@ export default function ChatIsland({
 
       // Streaming metadata and content
       let metadata: StreamMetadata | null = null;
-      let streamedContent = "";
       let receivedCompletion = false;
-      let assistantMessageIndex = -1;
 
       // Create a placeholder assistant message that will be updated as content streams
       const placeholderMessage: ChatMessage = {
@@ -489,6 +509,22 @@ export default function ChatIsland({
         } else if (chunk.type === "completion") {
           // Server-provided verse citations (dual-source: LLM structured + regex)
           receivedCompletion = true;
+          // If grounding rewrote a fabricated/mismatched verse quote, swap the
+          // streamed text for the authoritative corrected body.
+          if (chunk.corrected_message) {
+            streamedContent = chunk.corrected_message;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  content: streamedContent,
+                };
+              }
+              return updated;
+            });
+          }
           if (chunk.verses_cited) {
             const serverCited = (chunk.verses_cited as string[]).map(
               (v: string) => v.toLowerCase(),
@@ -514,6 +550,28 @@ export default function ChatIsland({
             );
           }
         }
+      }
+
+      // Resilience guard: the stream completed without error but no content
+      // arrived (empty LLM output, or chunks lost upstream). Don't leave the
+      // user staring at a blank assistant bubble — replace it with a clear,
+      // warm message inviting them to try again. A user-initiated stop is
+      // excluded: that keeps whatever (possibly empty) partial text silently.
+      if (!controller.signal.aborted && streamedContent.trim() === "") {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const msg = updated[assistantMessageIndex];
+          if (msg && msg.role === "assistant") {
+            updated[assistantMessageIndex] = {
+              ...msg,
+              content: tChat("errorConnection"),
+            };
+          }
+          return updated;
+        });
+        abortControllerRef.current = null;
+        setIsLoading(false);
+        return;
       }
 
       // Fallback: if no completion event received, extract client-side
@@ -564,13 +622,29 @@ export default function ChatIsland({
       console.error("Failed to send message:", error);
       setIsWarmingUp(false);
 
+      // Surface an error to the user. If an empty placeholder assistant bubble
+      // is already on screen (the common case — the error fires before or
+      // mid-stream), replace it in place so the user never sees a blank bubble
+      // sitting next to an error bubble; otherwise append a fresh message.
+      const showError = (content: string) => {
+        setMessages((prev) => {
+          const existing = prev[assistantMessageIndex];
+          if (
+            existing &&
+            existing.role === "assistant" &&
+            existing.content === ""
+          ) {
+            const updated = [...prev];
+            updated[assistantMessageIndex] = { ...existing, content };
+            return updated;
+          }
+          return [...prev, { role: "assistant", content }];
+        });
+      };
+
       // Handle session limit error specifically
       if (error instanceof SessionLimitError) {
-        const errorMessage: ChatMessage = {
-          role: "assistant",
-          content: tChat("sessionLimitMessage"),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        showError(tChat("sessionLimitMessage"));
         setShowSessionLimitButton(true);
         setIsLoading(false);
         return;
@@ -579,20 +653,37 @@ export default function ChatIsland({
       // Safety system blocked the message — show a warm notification
       // inviting the user to rephrase and to get in touch if something feels wrong.
       if (error instanceof ContentBlockedError) {
-        const errorMessage: ChatMessage = {
-          role: "assistant",
-          content: tChat("contentBlockedMessage"),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        showError(tChat("contentBlockedMessage"));
         setIsLoading(false);
         return;
       }
 
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        content: tChat("errorConnection"),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      // Stream stalled (no data within the inactivity window) — tell the user
+      // it was interrupted rather than leaving them on a silent empty bubble.
+      if (error instanceof StreamTimeoutError) {
+        showError(tChat("errorTimeout"));
+        setIsLoading(false);
+        return;
+      }
+
+      // Backend rejected an over-long message (422) — tell the user to shorten
+      // it instead of showing a misleading connection error.
+      if (error instanceof MessageTooLongError) {
+        showError(tChat("messageTooLong", { max: MAX_MESSAGE_LENGTH }));
+        setIsLoading(false);
+        return;
+      }
+
+      // Turnstile couldn't verify the request (403) even after a retry — tell
+      // the user it's a verification hiccup that a quick retry usually fixes,
+      // rather than a generic connection failure.
+      if (error instanceof VerificationError) {
+        showError(tChat("errorVerification"));
+        setIsLoading(false);
+        return;
+      }
+
+      showError(tChat("errorConnection"));
       setIsLoading(false);
     }
   };
@@ -688,6 +779,7 @@ export default function ChatIsland({
     messageId: string,
     rating: "positive" | "negative",
     comment: string,
+    reason?: string,
   ) => {
     const message = messages.find((m) => m.messageId === messageId);
     if (!message || message.role !== "assistant") return;
@@ -701,6 +793,7 @@ export default function ChatIsland({
         assistant_response: message.content,
         verses_cited: message.versesCited,
         model_used: message.model,
+        reason,
       };
 
       await submitFeedback(feedbackRequest);
@@ -783,18 +876,35 @@ export default function ChatIsland({
               {/* Language Switcher */}
               <LanguageSwitcher />
 
-              {/* Translation Selector - always visible, disabled when loading */}
-              <div className="flex items-center gap-2">
+              {/* Bible Version Chip — prominent amber badge; click opens native translation dropdown */}
+              <div
+                className={`relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-amber-400 ${
+                  translations.length === 0
+                    ? "border-gray-200 bg-gray-100 cursor-not-allowed"
+                    : "border-amber-300 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                }`}
+                title={tHeader("bibleVersion")}
+              >
+                <Book
+                  className={`w-3.5 h-3.5 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-700"}`}
+                />
+                <span
+                  className={`text-xs font-medium max-w-[5rem] sm:max-w-[8rem] truncate ${translations.length === 0 ? "text-gray-400" : "text-amber-800"}`}
+                >
+                  {activeTranslation
+                    ? activeTranslation.short_name
+                    : tHeader("bibleVersion")}
+                </span>
+                <ChevronDown
+                  className={`w-3 h-3 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-600"}`}
+                />
+                {/* Native select is invisible but handles click-to-open and keyboard navigation */}
                 <select
-                  value={selectedTranslation}
+                  value={activeTranslationCode}
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
-                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 max-w-[8rem] sm:max-w-none truncate focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    translations.length === 0
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-600"
-                  }`}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 >
                   <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (
@@ -894,11 +1004,12 @@ export default function ChatIsland({
                     onVerseClick={handleVerseClick}
                     onSubmitFeedback={
                       message.messageId
-                        ? (rating, comment) =>
+                        ? (rating, comment, reason) =>
                             handleFeedbackSubmit(
                               message.messageId!,
                               rating,
                               comment,
+                              reason,
                             )
                         : undefined
                     }
@@ -966,6 +1077,7 @@ export default function ChatIsland({
               onKeyDown={handleInputKeyDown}
               placeholder={tChat("inputPlaceholder")}
               rows={1}
+              maxLength={MAX_MESSAGE_LENGTH}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
               disabled={showSessionLimitButton}
             />
@@ -991,6 +1103,20 @@ export default function ChatIsland({
               </button>
             )}
           </form>
+          {/* Character counter — surfaces only as the user nears the limit so
+              they understand why a long message can't grow further. */}
+          {input.length >= MAX_MESSAGE_LENGTH * 0.8 && (
+            <p
+              className={`text-xs mt-1 text-right ${
+                input.length >= MAX_MESSAGE_LENGTH
+                  ? "text-red-500"
+                  : "text-gray-400"
+              }`}
+              aria-live="polite"
+            >
+              {input.length}/{MAX_MESSAGE_LENGTH}
+            </p>
+          )}
           <p className="text-xs text-gray-400 mt-2 text-center">
             {tChat("disclaimer")}
           </p>

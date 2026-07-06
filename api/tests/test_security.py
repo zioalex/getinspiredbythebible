@@ -19,6 +19,7 @@ from pydantic import ValidationError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from chat.service import ChatRequest
+from config import settings
 from main import app
 from utils.rate_limiter import RateLimiter
 from utils.security import ContentFilter, ViolationType
@@ -51,16 +52,18 @@ class TestInputValidation:
 
     def test_message_too_long_rejected(self):
         """Message exceeding max length should be rejected."""
-        long_message = "a" * 201  # Default max is 200
+        limit = settings.max_message_length
+        long_message = "a" * (limit + 1)
         with pytest.raises(ValidationError) as exc_info:
             ChatRequest(message=long_message)
-        assert "max_length" in str(exc_info.value).lower() or "200" in str(exc_info.value)
+        assert "max_length" in str(exc_info.value).lower() or str(limit) in str(exc_info.value)
 
     def test_message_at_max_length_accepted(self):
         """Message at exactly max length should be accepted."""
-        exact_message = "a" * 200
+        limit = settings.max_message_length
+        exact_message = "a" * limit
         request = ChatRequest(message=exact_message)
-        assert len(request.message) == 200
+        assert len(request.message) == limit
 
     def test_valid_session_id(self):
         """Accept valid session ID format."""
@@ -212,6 +215,62 @@ class TestContentFilter:
                 assert allowed is False, f"Should block: {msg}"
                 assert violation == ViolationType.URL_DETECTED
 
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # The exact reported false positive: a German Bible reference written
+            # "<chapter>.<Book>" with no space looks like the domain "1.timotheus".
+            "1.Timotheus 2,1-2 ist eine der Bibel-Stellen in der wir zum "
+            "Grundsätzlichsten aufgefordert sind",
+            "2.Mose 20",
+            "1.Korinther 13",
+            "3.Johannes 4",
+            "Lies 1.Petrus 5,7",
+        ],
+    )
+    def test_allows_bible_references(self, message):
+        """German Bible references must not be mistaken for URLs.
+
+        Regression for the reported false positive where "1.Timotheus 2,1-2 ..."
+        was rejected with HTTP 400 content_blocked because "1.Timotheus" matched
+        the bare-domain URL pattern.
+        """
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = False
+            mock_settings.content_filter_max_urls = 0
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is True, f"Should NOT block Bible reference: {message!r}"
+            assert violation is None
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # Scheme / www URLs (first alternative) — unchanged behavior.
+            "Check out https://example.com",
+            "Visit www.example.com for more",
+            "Go to http://test.org",
+            # Bare domains (second alternative) — still caught via a real TLD.
+            "buy cheap meds at cheapmeds.ru",
+            "go to spam.com now",
+        ],
+    )
+    def test_blocks_real_urls_and_bare_domains(self, message):
+        """Genuine URLs and bare domains must still be blocked after the fix."""
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = False
+            mock_settings.content_filter_max_urls = 0
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is False, f"Should block URL/domain: {message!r}"
+            assert violation == ViolationType.URL_DETECTED
+
     def test_blocks_repeated_chars(self):
         """Excessive repeated characters should be blocked."""
         filter = ContentFilter()
@@ -240,6 +299,61 @@ class TestContentFilter:
             # 5 or fewer repeated chars should be allowed
             allowed, _, _ = filter.check("Helloo there")
             assert allowed is True
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            # The exact message from the reported false positive (ellipsis "......").
+            "mi manca tanto la....... Anna la mia Amica",
+            # Bare punctuation runs that natural messages contain.
+            ".......",
+            "!!!!!!!!",
+            "???????",
+            "--------",
+            # Accented (Unicode) text with an ellipsis must still be allowed.
+            "perché........ non lo so",
+        ],
+    )
+    def test_allows_repeated_punctuation(self, message):
+        """Repeated punctuation/whitespace (ellipses, !!!, ???) must not be spam.
+
+        Regression for the reported false positive where "mi manca tanto la......."
+        was rejected with HTTP 400 content_blocked because of the trailing dots.
+        """
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = True
+            mock_settings.content_filter_max_repeated_chars = 5
+            mock_settings.content_filter_max_urls = 1
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is True, f"Should NOT block punctuation: {message!r}"
+            assert violation is None
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "Hellooooooo there",  # existing case — stretched word
+            "soooooooo",
+            "aaaaaaaa",
+            "1111111",  # repeated digits are word chars, still spammy
+        ],
+    )
+    def test_blocks_stretched_words(self, message):
+        """Stretched *word* characters (letters/digits) must still be blocked."""
+        filter = ContentFilter()
+        with patch("utils.security.settings") as mock_settings:
+            mock_settings.content_filter_enabled = True
+            mock_settings.content_filter_block_profanity = False
+            mock_settings.content_filter_block_spam = True
+            mock_settings.content_filter_max_repeated_chars = 5
+            mock_settings.content_filter_max_urls = 1
+
+            allowed, violation, _ = filter.check(message)
+            assert allowed is False, f"Should block stretched word: {message!r}"
+            assert violation == ViolationType.REPEATED_CHARS
 
     def test_disabled_filter_allows_all(self):
         """Disabled filter should allow all content."""
@@ -279,3 +393,61 @@ class TestSecurityIntegration:
             json={"message": "Hello", "session_id": "invalid!@#"},
         )
         assert response.status_code == 422
+
+
+class _FakeRequest:
+    """Minimal stand-in for a Starlette Request for the content-filter dependency."""
+
+    def __init__(self, body: dict):
+        self.method = "POST"
+        self.headers: dict[str, str] = {}
+        self.client = None
+        self._body = body
+
+    async def json(self):
+        return self._body
+
+
+class TestContentFilterDependency:
+    """End-to-end tests for the check_content_filter FastAPI dependency.
+
+    Exercises the real HTTP 400 `content_blocked` path that rejected the reported
+    message, without invoking the LLM.
+    """
+
+    @pytest.mark.asyncio
+    async def test_ellipsis_message_not_blocked(self):
+        """The reported ellipsis message must pass the content-filter dependency."""
+        from utils.security import check_content_filter
+
+        request = _FakeRequest({"message": "mi manca tanto la....... Anna la mia Amica"})
+        # Must NOT raise HTTPException(400, content_blocked).
+        await check_content_filter(request)  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_bible_reference_not_blocked(self):
+        """The reported German Bible-reference message must pass the dependency."""
+        from utils.security import check_content_filter
+
+        request = _FakeRequest(
+            {
+                "message": "1.Timotheus 2,1-2 ist eine der Bibel-Stellen in der wir "
+                "zum Grundsätzlichsten, was wir tun sollen, aufgefordert sind. "
+                "Gib mir alle Bibel-Stellen die in ähnlicher Weise reden"
+            }
+        )
+        # Must NOT raise HTTPException(400, content_blocked).
+        await check_content_filter(request)  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_stretched_word_still_blocked(self):
+        """A stretched word still trips the dependency with HTTP 400 content_blocked."""
+        from fastapi import HTTPException
+
+        from utils.security import check_content_filter
+
+        request = _FakeRequest({"message": "Hellooooooo there"})
+        with pytest.raises(HTTPException) as exc_info:
+            await check_content_filter(request)  # type: ignore[arg-type]
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail["error"] == "content_blocked"

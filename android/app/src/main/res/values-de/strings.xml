@@ -116,7 +116,10 @@
     <string name="error_network">Netzwerkfehler. Bitte Verbindung prüfen.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
     <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
+    <string name="error_verification">Wir konnten dein Gerät nicht verifizieren. Bitte warte einen Moment und versuche es erneut.</string>
     <string name="error_generic">Etwas ist schiefgelaufen. Bitte erneut versuchen.</string>
+    <string name="error_message_too_long">Deine Nachricht ist etwas lang (max. %1$d Zeichen). Bitte kürze sie und versuche es erneut.</string>
+    <string name="error_contact_email_invalid">Bitte gib eine gültige E-Mail an, damit wir antworten können.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Gespräche</string>
@@ -199,6 +202,12 @@
     <string name="feedback_send">Senden</string>
     <string name="feedback_sending">Feedback wird gesendet…</string>
     <string name="feedback_maintainer_notice">Deine Nachricht wird an den Betreuer der App weitergegeben.</string>
+    <string name="feedback_reason_prompt">Was ist schiefgelaufen?</string>
+    <string name="feedback_reason_inaccurate">Ungenau</string>
+    <string name="feedback_reason_unhelpful">Nicht hilfreich</string>
+    <string name="feedback_reason_wrong_verse">Falscher Vers</string>
+    <string name="feedback_reason_tone">Ton</string>
+    <string name="feedback_reason_other">Sonstiges</string>
     <string name="backend_warming_up">Verbindung zum Server wird hergestellt… (erste Anfrage kann bis zu 30 s dauern)</string>
     <string name="action_scroll_to_bottom">Nach unten scrollen</string>
 
@@ -225,6 +234,11 @@
     <string name="church_finder_website">Website</string>
     <string name="church_finder_email">E-Mail</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Es sieht aus, als würden Sie auf %s tippen. App-Sprache wechseln?</string>
+    <string name="language_switch_banner_switch">Wechseln</string>
+    <string name="language_switch_banner_dismiss">Sprachvorschlag verwerfen</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">Kontakt</string>
     <string name="contact_open_button">Kontakt aufnehmen</string>
@@ -236,7 +250,9 @@
     <string name="contact_subject_bug">Fehlerbericht</string>
     <string name="contact_subject_feature">Funktionsanfrage</string>
     <string name="contact_subject_other">Sonstiges</string>
-    <string name="contact_email_label">Deine E-Mail (optional, für Antwort)</string>
+    <string name="contact_email_label">Deine E-Mail (für unsere Antwort)</string>
+    <string name="contact_email_required">Bitte gib deine E-Mail an, damit wir antworten können</string>
+    <string name="contact_email_invalid">Bitte gib eine gültige E-Mail-Adresse ein</string>
     <string name="contact_email_placeholder">du@beispiel.de</string>
     <string name="contact_message_label">Nachricht</string>
     <string name="contact_message_placeholder">Teile deine Gedanken, melde ein Problem oder schlage eine Verbesserung vor…</string>

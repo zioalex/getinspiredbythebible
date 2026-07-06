@@ -18,8 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.voxquieta.app.R
 
@@ -32,13 +34,17 @@ fun ChatInputField(
     isLoading: Boolean = false,
     isTurnstileReady: Boolean = true,
     isSessionLimitReached: Boolean = false,
+    maxLength: Int = 300,
     onStop: () -> Unit = {},
 ) {
     val canSend = !isLoading && isTurnstileReady && !isSessionLimitReached
+    val nearLimit = value.length >= maxLength * 0.8
+    val focusManager = LocalFocusManager.current
 
     fun submit() {
         if (value.isNotBlank() && canSend) {
             onSend(value)
+            focusManager.clearFocus()
         }
     }
 
@@ -50,7 +56,9 @@ fun ChatInputField(
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            // Cap input at the backend limit so an over-long message can't be
+            // sent (and silently 422) — the user sees the counter stop growing.
+            onValueChange = { if (it.length <= maxLength) onValueChange(it) },
             modifier = Modifier.weight(1f),
             placeholder = { Text(stringResource(R.string.chat_input_hint)) },
             shape = RoundedCornerShape(24.dp),
@@ -61,6 +69,21 @@ fun ChatInputField(
             // Keep the text field editable while generation is running so the
             // user can already type the next message. We just block submit.
             enabled = !isSessionLimitReached,
+            // Surface a character counter only as the user nears the cap.
+            supportingText = if (nearLimit) {
+                {
+                    Text(
+                        text = "${value.length}/$maxLength",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End,
+                        color = if (value.length >= maxLength) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            } else null,
         )
 
         Spacer(Modifier.width(8.dp))

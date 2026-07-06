@@ -264,6 +264,13 @@ function buildPatternSource(): string {
   //
   // Chapter:verse digits: [\d\u0966-\u096F\u0660-\u0669] supports Western,
   // Devanagari (Hindi), and Eastern Arabic numerals.
+  //
+  // Chapter/verse separator [:,] accepts a colon (English etc.) OR a comma \u2014
+  // the convention in German/French/Italian citations ("R\u00F6mer 13,1"). This
+  // mirrors the backend parser (api/utils/verse_parser.py), so in-text links
+  // match exactly what the backend already recognises. The isKnownBook gate
+  // keeps the comma from matching prose/decimals ("habe 3,50"). The range
+  // accepts a hyphen or en-dash ([-\u2013]).
   _cachedPatternSource =
     `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=\\p{Script=Devanagari})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
     `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
@@ -271,7 +278,7 @@ function buildPatternSource(): string {
     `|${cjkPart}` +
     `${hangulPart}` +
     `${devanagariPart}` +
-    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\\p{Script=Devanagari}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)([\\d\u0966-\u096F\u0660-\u0669]+):([\\d\u0966-\u096F\u0660-\u0669]+)(?:-[\\d\u0966-\u096F\u0660-\u0669]+)?`;
+    `(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,})[\u300B\u300D\u300F]?(?:(?<=[\\p{Script=Han}])\\s*|(?<=[\\p{Script=Hangul}])\\s*|(?<=[\\p{Script=Devanagari}])\\s*|(?<=[\u300B\u300D\u300F])\\s*|\\s+)([\\d\u0966-\u096F\u0660-\u0669]+)[:,]([\\d\u0966-\u096F\u0660-\u0669]+)(?:[-\u2013][\\d\u0966-\u096F\u0660-\u0669]+)?`;
 
   return _cachedPatternSource;
 }

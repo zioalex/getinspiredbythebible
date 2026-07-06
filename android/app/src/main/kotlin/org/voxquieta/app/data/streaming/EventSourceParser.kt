@@ -1,5 +1,6 @@
 package org.voxquieta.app.data.streaming
 
+import org.voxquieta.app.data.remote.models.CorrectionDto
 import org.voxquieta.app.data.remote.models.StreamChunkDto
 import org.voxquieta.app.data.remote.models.VerseDto
 import kotlinx.coroutines.CancellationException
@@ -55,6 +56,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                         val messageId = jsonObj["message_id"]?.jsonPrimitive?.contentOrNull ?: ""
                         val model = jsonObj["model"]?.jsonPrimitive?.contentOrNull ?: ""
                         val detectedTranslation = jsonObj["detected_translation"]?.jsonPrimitive?.contentOrNull ?: ""
+                        val languageSuggestion = jsonObj["language_suggestion"]?.jsonPrimitive?.contentOrNull
                         // Extract verses from scripture_context.verses (the primary source for verse data).
                         val verses: List<VerseDto> = try {
                             val ctxEl = jsonObj["scripture_context"]
@@ -76,6 +78,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                                 messageId = messageId,
                                 model = model,
                                 detectedTranslation = detectedTranslation,
+                                languageSuggestion = languageSuggestion,
                             ),
                         )
                     }
@@ -99,11 +102,28 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                             Timber.w(e, "SSE: failed to parse resolved_verses")
                             emptyList()
                         }
+                        // Authoritative corrected body, present only when grounding
+                        // rewrote a fabricated/mismatched verse quote.
+                        val correctedMessage: String? =
+                            jsonObj["corrected_message"]?.jsonPrimitive?.contentOrNull
+                        val corrections: List<CorrectionDto> = try {
+                            val correctionsEl = jsonObj["corrections"]
+                            if (correctionsEl != null) {
+                                json.decodeFromJsonElement<List<CorrectionDto>>(correctionsEl)
+                            } else {
+                                emptyList()
+                            }
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse corrections")
+                            emptyList()
+                        }
                         emit(
                             StreamChunkDto(
                                 type = "completion",
                                 versesCited = versesCited,
                                 resolvedVerses = resolvedVerses,
+                                correctedMessage = correctedMessage,
+                                corrections = corrections,
                             ),
                         )
                     }

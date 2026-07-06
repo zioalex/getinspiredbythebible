@@ -74,6 +74,42 @@ class TestExpandQuery:
         assert len(result) > 0
 
     @pytest.mark.asyncio
+    async def test_expand_query_prompt_is_theme_focused(self):
+        """BITB-050: the expansion prompt must steer the LLM toward the core
+        theme and explicitly warn against drifting into off-theme terms that
+        pull in irrelevant verses."""
+        service, llm, _ = _make_chat_service()
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="peace trust", provider="test", model="m")
+        )
+        await service._expand_query("I'm anxious about the future", "en")
+        sent_prompt = llm.chat.call_args.kwargs["messages"][0].content.lower()
+        assert "thematically relevant" in sent_prompt
+        assert "central" in sent_prompt and "theme" in sent_prompt
+        # Must caution against topic drift / irrelevant verses.
+        assert "drift" in sent_prompt or "off-theme" in sent_prompt
+        assert "irrelevant" in sent_prompt
+
+    @pytest.mark.asyncio
+    async def test_expand_query_prompt_includes_justice_and_passage_themes(self):
+        """BITB-050: the expansion prompt must steer toward social-justice /
+        prophetic-justice themes and a named passage's key theology, and cap
+        the word count at 120 (not 100)."""
+        service, llm, _ = _make_chat_service()
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="justice judgment", provider="test", model="m")
+        )
+        await service._expand_query("What does Amos say about the poor?", "en")
+        sent_prompt = llm.chat.call_args.kwargs["messages"][0].content.lower()
+        # Must guide toward prophetic-justice themes when the question touches them.
+        assert "justice" in sent_prompt
+        assert "oppression" in sent_prompt or "poor" in sent_prompt or "inequality" in sent_prompt
+        assert "judgment" in sent_prompt
+        # Word cap raised to 120.
+        assert "120 words" in sent_prompt
+        assert "100 words" not in sent_prompt
+
+    @pytest.mark.asyncio
     async def test_expand_query_with_model_override(self):
         """_expand_query() should pass model_override to LLM."""
         service, llm, _ = _make_chat_service()

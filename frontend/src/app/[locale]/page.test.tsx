@@ -9,9 +9,19 @@ import enMessages from "../../../messages/en.json";
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn();
 
-// Mock react-markdown to simplify rendering
+// Mock react-markdown to simplify rendering. ChatMessage pre-links verse
+// references via linkifyVerses() (e.g. "John 3:16" -> "[John 3:16](verse://…)"),
+// so reduce markdown links to their display text — what real react-markdown
+// renders — otherwise the raw "[...](...)" syntax leaks into the asserted text.
 vi.mock("react-markdown", () => ({
-  default: ({ children }: { children: string }) => <p>{children}</p>,
+  default: ({ children }: { children: string }) => (
+    <p>
+      {typeof children === "string"
+        ? children.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        : children}
+    </p>
+  ),
+  defaultUrlTransform: (url: string) => url,
 }));
 
 // Mock the API module
@@ -23,6 +33,7 @@ vi.mock("@/lib/api", () => ({
   generateSessionId: vi.fn().mockReturnValue("test-session-id"),
   getOrCreateSessionId: vi.fn().mockReturnValue("test-session-id"),
   ColdStartError: class ColdStartError extends Error {},
+  MAX_MESSAGE_LENGTH: 300,
   checkBackendReady: vi.fn().mockResolvedValue(true),
   warmupBackend: vi.fn((onReady: () => void) => {
     onReady();
@@ -38,6 +49,10 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
     extractVerseReferences: actual.extractVerseReferences,
     isVerseReferenced: actual.isVerseReferenced,
     LOCALIZED_BOOK_TO_ENGLISH: actual.LOCALIZED_BOOK_TO_ENGLISH,
+    // ChatMessage now pre-links verses via linkifyVerses(), which calls
+    // isKnownBook() at render time (previously only reached through the
+    // react-markdown renderers, which this suite stubs out).
+    isKnownBook: actual.isKnownBook,
   };
 });
 
@@ -235,6 +250,208 @@ describe("Home page responsive layout", () => {
       const call = vi.mocked(api.streamMessage).mock.calls[0];
       // streamMessage(userMessageContent, apiMessages, { preferredTranslation, ... })
       expect(call[2]?.preferredTranslation).toBeUndefined();
+    });
+
+    it("BITB-029: select reflects detected_translation after first message", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-detect",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "God loves you." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
+      await waitFor(() => expect(select.value).toBe("kjv"));
+    });
+
+    it("BITB-029: detection does not write to localStorage or preferredTranslation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-detect2",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "ok" };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      await waitFor(() => expect(screen.getByText("ok")).toBeInTheDocument());
+
+      expect(localStorage.getItem("preferredTranslation")).toBeNull();
+      const call = vi.mocked(api.streamMessage).mock.calls[0];
+      expect(call[2]?.preferredTranslation).toBeUndefined();
+    });
+
+    it("BITB-029: select stays at placeholder when detected code is not in options list", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-unknown",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "esv",
+        };
+        yield { type: "content" as const, content: "ok" };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      await waitFor(() => expect(screen.getByText("ok")).toBeInTheDocument());
+
+      const select = screen.getByLabelText<HTMLSelectElement>("Bible version");
+      expect(select.value).toBe("");
+    });
+
+    it("BITB-029: chip label shows short_name of manually selected translation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+        {
+          code: "nvi",
+          language: "Italian",
+          short_name: "NVI",
+          full_name: "Nuova Versione Italiana",
+        },
+      ]);
+
+      renderWithIntl(<Home />);
+      const select =
+        await screen.findByLabelText<HTMLSelectElement>("Bible version");
+
+      // Before selection: chip's visible label span shows placeholder
+      const chipLabels = screen.getAllByText("Bible version");
+      // At minimum the chip span (visible) and the placeholder option (in hidden select)
+      expect(chipLabels.length).toBeGreaterThanOrEqual(1);
+
+      // Select KJV
+      fireEvent.change(select, { target: { value: "kjv" } });
+      // After selection: chip label updates to the short_name
+      await waitFor(() => expect(screen.getByText("KJV")).toBeInTheDocument());
+      // The chip's visible span no longer shows the placeholder
+      const visibleChipSpan = screen
+        .getAllByText(/^(Bible version|KJV)$/)
+        .find((el) => el.tagName === "SPAN" && !el.closest("select"));
+      expect(visibleChipSpan?.textContent).toBe("KJV");
+    });
+
+    it("BITB-029: chip shows short_name for auto-detected translation", async () => {
+      vi.mocked(api.getTranslations).mockResolvedValue([
+        {
+          code: "kjv",
+          language: "English",
+          short_name: "KJV",
+          full_name: "King James Version",
+        },
+      ]);
+      vi.mocked(api.streamMessage).mockImplementation(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-chip-detect",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+          detected_translation: "kjv",
+        };
+        yield { type: "content" as const, content: "Here is the verse." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      const { container } = renderWithIntl(<Home />);
+      await screen.findByLabelText("Bible version");
+
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "test query" } });
+      });
+      const submitButton = container.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+
+      // After detection, chip label updates to KJV short_name
+      await waitFor(() => expect(screen.getByText("KJV")).toBeInTheDocument());
     });
   });
 

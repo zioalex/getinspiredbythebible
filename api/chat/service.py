@@ -17,8 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
+from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
 from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
+from utils.db_retry import is_disconnection_error, run_with_disconnect_retry
 from utils.language import (
     detect_language,
     detect_language_confident,
@@ -27,8 +29,18 @@ from utils.language import (
     resolve_translation,
 )
 from utils.logging_config import get_logger
+from utils.metrics import (
+    chat_scripture_unavailable_counter,
+    chat_verseless_responses_counter,
+    scripture_pipeline_errors_counter,
+    verse_grounding_corrections_counter,
+    verse_grounding_duration_histogram,
+    verse_grounding_quotes_checked_counter,
+)
+from utils.timing import format_timings, record_stage, timed_stage
 from utils.verse_parser import (
     extract_all_references,
+    extract_inline_quotes,
     extract_references,
     is_verse_lookup_request,
     parse_structured_citations,
@@ -41,10 +53,12 @@ from .prompts import (
     get_blocked_response,
     get_compassionate_addendum,
     get_prayer_lookup_prompt,
+    get_scripture_unavailable_response,
     get_system_prompt,
     get_verse_lookup_prompt,
 )
 from .topics import detect_topics
+from .verse_grounding import ground_response
 
 logger = get_logger(__name__)
 
@@ -52,6 +66,19 @@ logger = get_logger(__name__)
 # resolving cited verses for the client "Cited" panel. Guards against an LLM
 # emitting an absurd range (e.g. "Psalm 119:1-176") triggering a huge fetch.
 MAX_RANGE_SPAN = 50
+
+
+# Intents that indicate the user is actually seeking scripture/biblical guidance, as
+# opposed to greetings or small talk (GENERAL) or off-topic (OFF_TOPIC, handled
+# separately). Used by the fail-closed grounding guard (BITB-058): we only tell the
+# user "scripture unavailable" for requests that genuinely expect verses.
+SCRIPTURE_SEEKING_INTENTS = frozenset({"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP"})
+
+
+# Re-exported from utils.db_retry for backward compatibility — this used to be
+# defined locally; callers/tests importing `chat.service._is_disconnection_error`
+# keep working unchanged. New call sites should import from utils.db_retry directly.
+_is_disconnection_error = is_disconnection_error
 
 
 class ConversationMessage(BaseModel):
@@ -130,7 +157,14 @@ class ChatService:
         self.llm = llm_provider
         self.embedding = embedding_provider
         self.search_service = ScriptureSearchService(db_session, embedding_provider)
+        # Per-request timing context read by the @timed_stage decorator. Set at the top
+        # of chat()/chat_stream(); a fresh ChatService is created per request
+        # (api/routes/chat.py), so these are safe to keep on the instance.
+        self._timings: dict[str, float] | None = None
+        self._stage_attrs: dict | None = None
+        self._active_stages: set[str] = set()
 
+    @timed_stage("intent")
     async def _detect_intent(self, message: str, model_override: str | None = None) -> str:
         """
         Classify user intent with a fast LLM call.
@@ -160,6 +194,7 @@ class ChatService:
             logger.warning("Intent detection failed, defaulting to GENERAL: %s", e)
             return "GENERAL"
 
+    @timed_stage("content_safety")
     async def _check_content_safety(
         self,
         message: str,
@@ -242,20 +277,37 @@ class ChatService:
         Uses low temperature for consistent expansion results.
         Falls back to original message on any error (fail-open).
         """
-        expansion_prompt = f"""You are helping expand a search query to find relevant Bible verses.
+        expansion_prompt = f"""You are helping expand a search query to find thematically relevant Bible verses.
 
 User's message: "{user_message}"
 Language: {language}
 
-Identify biblical themes, emotions, and related concepts that would help find relevant scripture.
-Generate an expanded search query including:
-- Core emotions/feelings (anxiety, peace, anger, joy, frustration, etc.)
-- Related biblical themes (trust in God, forgiveness, patience, God's love, self-control, etc.)
-- Synonyms and related words
-- Life situations this applies to
+First, identify the ONE or TWO central spiritual or emotional themes the person is \
+actually expressing (for example: anxiety, grief, forgiveness, guidance, hope, \
+loneliness). Stay anchored to those core themes — do NOT drift into loosely related \
+topics, because off-theme terms pull in irrelevant verses and hurt search quality.
+
+Then build a focused expanded query that stays on theme, including:
+- The core emotion(s)/feeling(s) actually present in the message
+- The closely related biblical themes they map to (e.g. anxiety → God's peace, trust, \
+"do not be afraid"; grief → comfort, hope, God's nearness; guilt → forgiveness, grace)
+- Scriptural vocabulary and synonyms for those themes
+- The concrete life situation the person is facing
+
+- When the message names a specific Bible passage, book, or figure (e.g. Amos, \
+Isaiah, the prophets), include that passage's key theological themes — for the \
+prophetic books this often means prophetic indictment, divine judgment, justice, \
+and covenant faithfulness
+- When the message touches on injustice, poverty, oppression, exploitation, or \
+inequality, include social-justice and prophetic-justice themes (the cry of the \
+poor, oppression of the needy, righteous judgment) — these are core biblical \
+concerns, not off-theme drift
+
+Prefer depth on the real theme over breadth: a tight set of on-theme terms retrieves \
+better verses than a long, scattered list. Use recognizable scriptural wording.
 
 Respond ONLY with the expanded query text in {language}, no explanation.
-Keep it under 100 words."""
+Keep it under 120 words."""
 
         start_time = time.time()
         try:
@@ -282,6 +334,56 @@ Keep it under 100 words."""
             logger.warning("Query expansion failed, using original query: %s", e)
             return user_message
 
+    @timed_stage("query_expansion")
+    async def _build_expansion_embeddings(
+        self, message: str, detected_language: str, model_override: str | None = None
+    ) -> list[list[float]] | None:
+        """Expand the query and embed the expansion for multi-embedding search.
+
+        Returns the extra embeddings to feed into semantic search, or ``None`` when
+        expansion produced nothing new. Timed as the ``query_expansion`` stage.
+
+        Fails open to ``None`` (search proceeds on the original-query embedding
+        alone) when the embedding provider's circuit breaker is open — same
+        degrade shape as any other transient failure here, just with a clearer
+        log line so an open breaker isn't confused with a generic embed error.
+        """
+        expanded_query = await self._expand_query(message, detected_language, model_override)
+        if expanded_query == message:
+            return None
+        try:
+            expansion_embed_response = await self.embedding.embed(expanded_query)
+        except EmbeddingCircuitOpenError as e:
+            logger.warning(
+                "Embedding circuit breaker open, skipping query expansion embedding: %s", e
+            )
+            return None
+        extra_embeddings = [expansion_embed_response.embedding]
+        logger.info(
+            "Query expansion embeddings generated",
+            extra={"num_extra_embeddings": len(extra_embeddings)},
+        )
+        return extra_embeddings
+
+    @timed_stage("embedding")
+    async def _embed_query(self, text: str) -> list[float]:
+        """Embed ``text`` for semantic search, recorded as the ``embedding`` stage.
+
+        Extracted so the original-query embedding can run concurrently with query
+        expansion in ``_search_scripture`` instead of serially inside the search
+        service, trimming one embedding round-trip off TTFT. Timing it as its own
+        stage makes the embed cost observable and lets us confirm the overlap:
+        ``retrieval`` should reflect ``max(embedding, query_expansion)`` rather than
+        their sum.
+
+        Raises ``CircuitOpenError`` (providers/embedding_resilience.py) when the
+        embedding provider's breaker is open; the caller (``_search_scripture``)
+        catches this like any other search failure and degrades to a verse-less
+        response.
+        """
+        response = await self.embedding.embed(text)
+        return response.embedding
+
     def _detect_topics(self, message: str) -> list[str]:
         """
         Detect biblical topics in user message using keyword-based mapping.
@@ -307,6 +409,12 @@ Keep it under 100 words."""
             ChatResponse with generated message and context
         """
         total_start = time.time()
+        timings: dict[str, float] = {}
+        stage_attrs = {"stream": False, "provider": settings.llm_provider}
+        # Activate the per-request timing context read by @timed_stage-decorated methods.
+        self._timings = timings
+        self._stage_attrs = stage_attrs
+        self._active_stages = set()
         # Track session interactions (history_count + 1 = total messages in session)
         session_message_count = len(request.conversation_history) + 1
         logger.info(
@@ -351,7 +459,7 @@ Keep it under 100 words."""
             },
         )
 
-        # Content safety check BEFORE LLM call
+        # Content safety check BEFORE LLM call (timed via @timed_stage on the method)
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat"
         )
@@ -361,6 +469,7 @@ Keep it under 100 words."""
             )
 
         # Intent detection: classify before scripture search
+        detected_intent = "GENERAL"
         if settings.content_filter_intent_detection:
             detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
@@ -387,7 +496,7 @@ Keep it under 100 words."""
                 },
             )
 
-        # Step 1: Search for relevant scripture (if enabled)
+        # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
             translation,
@@ -396,6 +505,30 @@ Keep it under 100 words."""
             detected_language=effective_language,
             model_override=model_override,
         )
+
+        # Fail-closed grounding guard (BITB-058): a scripture-seeking request that
+        # could not be grounded in any verse gets an honest "try again" message
+        # instead of an ungrounded answer.
+        if self._scripture_grounding_unavailable(
+            request, detected_intent, is_verse_lookup, scripture_context
+        ):
+            chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            logger.warning(
+                "Scripture unavailable for a grounding-required request; returning a "
+                "fail-closed message instead of an ungrounded answer",
+                extra={"intent": detected_intent, "language": effective_language},
+            )
+            record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
+            return ChatResponse(
+                message_id=str(uuid.uuid4()),
+                message=get_scripture_unavailable_response(effective_language),
+                scripture_context=None,
+                provider=settings.llm_provider,
+                model=settings.llm_model,
+                detected_translation=translation,
+                translation_info=translation_info,
+                language_suggestion=language_suggestion,
+            )
 
         # Step 2: Build the message list
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
@@ -420,6 +553,7 @@ Keep it under 100 words."""
                 model_override=model_override,
             )
             llm_duration = time.time() - llm_start
+            record_stage(timings, "generation", llm_duration * 1000, stage_attrs)
             logger.info(
                 "LLM response received",
                 extra={
@@ -456,15 +590,55 @@ Keep it under 100 words."""
                 extra={"response_preview": response.content[:200]},
             )
 
+        # Ground the response: rewrite any fabricated/mismatched inline verse
+        # quote to the canonical DB text before returning it to the client.
+        message, _ = await self._apply_verse_grounding(
+            response.content, scripture_context, translation, effective_language
+        )
+
+        record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
+        logger.info(
+            "chat_stage_timings %s",
+            format_timings(timings),
+            extra={"timings_ms": timings, "stream": False},
+        )
+
         return ChatResponse(
             message_id=message_id,
-            message=response.content,
+            message=message,
             scripture_context=scripture_context,
             provider=response.provider,
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
             language_suggestion=language_suggestion,
+        )
+
+    def _scripture_grounding_unavailable(
+        self,
+        request: ChatRequest,
+        detected_intent: str,
+        is_verse_lookup: bool,
+        scripture_context: SearchResults | None,
+    ) -> bool:
+        """True when a scripture-seeking request could not be grounded in any verse.
+
+        Fail-closed guard (BITB-058): for a request that genuinely seeks scripture we
+        would rather tell the user retrieval is unavailable than answer without any
+        verses — the product's value is being grounded on the Bible. Hard failures
+        (``scripture_context is None``) and successful-but-empty retrieval both count
+        as unavailable. Greetings / small talk (GENERAL) and off-topic messages are
+        exempt so we never nag when no citation was expected.
+        """
+        if not settings.require_scripture_grounding:
+            return False
+        if not request.include_search:
+            return False
+        scripture_seeking = is_verse_lookup or detected_intent in SCRIPTURE_SEEKING_INTENTS
+        if not scripture_seeking:
+            return False
+        return scripture_context is None or not (
+            scripture_context.verses or scripture_context.passages
         )
 
     async def _handle_off_topic(
@@ -566,6 +740,7 @@ Keep it under 100 words."""
             await asyncio.sleep(0)  # cooperative yield, no real delay
         yield {"type": "completion", "verses_cited": []}
 
+    @timed_stage("retrieval")
     async def _search_scripture(  # noqa: C901
         self,
         request: ChatRequest,
@@ -578,6 +753,9 @@ Keep it under 100 words."""
         """
         Search for relevant scripture, including direct lookups for specific verse references.
 
+        Retries once on a transient DB disconnect via run_with_disconnect_retry
+        (utils/db_retry.py) before degrading to a verse-less reply.
+
         Returns:
             Tuple of (scripture_context, search_context_prompt)
         """
@@ -585,110 +763,14 @@ Keep it under 100 words."""
             return None, ""
 
         search_start = time.time()
-        scripture_context = None
-        search_context_prompt = ""
 
         try:
-            # Direct verse lookups for specific references
-            direct_verses = await self._lookup_direct_verses(verse_refs, translation)
-
-            # Query expansion (optional feature flag)
-            extra_embeddings: list[list[float]] | None = None
-            if settings.query_expansion_enabled:
-                expanded_query = await self._expand_query(
-                    request.message, detected_language, model_override
-                )
-                if expanded_query != request.message:
-                    # Generate embedding for expanded query
-                    expansion_embed_response = await self.embedding.embed(expanded_query)
-                    extra_embeddings = [expansion_embed_response.embedding]
-                    logger.info(
-                        "Query expansion embeddings generated",
-                        extra={"num_extra_embeddings": len(extra_embeddings)},
-                    )
-
-            # Topic detection for boosting (keyword-based, <10ms)
-            boost_topics: list[str] = []
-            if settings.topic_boosting_enabled:
-                boost_topics = self._detect_topics(request.message)
-
-            # Semantic or hybrid search (optionally with topic boosting)
-            if settings.hybrid_search_enabled:
-                if settings.topic_boosting_enabled and boost_topics:
-                    semantic_results = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        extra_embeddings=extra_embeddings,
-                    )
-                    scripture_context = await self.search_service.search_hybrid_boosted(
-                        query=request.message,
-                        boost_topics=boost_topics,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        semantic_weight=settings.hybrid_search_semantic_weight,
-                        keyword_weight=settings.hybrid_search_keyword_weight,
-                        topic_boost_factor=settings.topic_boost_factor,
-                    )
-                else:
-                    semantic_results = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        extra_embeddings=extra_embeddings,
-                    )
-                    scripture_context = await self.search_service.search_hybrid(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        semantic_weight=settings.hybrid_search_semantic_weight,
-                        keyword_weight=settings.hybrid_search_keyword_weight,
-                    )
-                # Log differences for monitoring
-                semantic_refs = {v.reference for v in semantic_results.verses}
-                hybrid_refs = {v.reference for v in scripture_context.verses}
-                new_in_hybrid = hybrid_refs - semantic_refs
-                dropped_in_hybrid = semantic_refs - hybrid_refs
-                if new_in_hybrid or dropped_in_hybrid:
-                    logger.info(
-                        "Hybrid search result differences",
-                        extra={
-                            "new_in_hybrid": list(new_in_hybrid),
-                            "dropped_in_hybrid": list(dropped_in_hybrid),
-                        },
-                    )
-            else:
-                if settings.topic_boosting_enabled and boost_topics:
-                    scripture_context = await self.search_service.search_boosted(
-                        query=request.message,
-                        boost_topics=boost_topics,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        topic_boost_factor=settings.topic_boost_factor,
-                        extra_embeddings=extra_embeddings,
-                    )
-                else:
-                    scripture_context = await self.search_service.search(
-                        query=request.message,
-                        max_verses=settings.max_context_verses,
-                        max_passages=2,
-                        similarity_threshold=0.35,
-                        translation=translation,
-                        extra_embeddings=extra_embeddings,
-                    )
-
-            # Merge direct lookup results with semantic search
-            self._merge_direct_verses(scripture_context, direct_verses)
+            scripture_context, extra_embeddings, boost_topics = await run_with_disconnect_retry(
+                lambda: self._do_search_scripture(
+                    request, translation, verse_refs, detected_language, model_override
+                ),
+                op_name="Scripture search",
+            )
 
             search_duration = time.time() - search_start
             logger.info(
@@ -704,7 +786,19 @@ Keep it under 100 words."""
                     "boost_topics": boost_topics if boost_topics else [],
                 },
             )
+        except EmbeddingCircuitOpenError as e:
+            # Embedding provider is known-down (breaker open) — degrade the same
+            # way as any other search failure, but without the noisy stack trace
+            # since this is an expected, already-logged condition.
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "search", "error_type": "EmbeddingCircuitOpenError"}
+            )
+            logger.warning(f"Scripture search skipped: embedding circuit breaker open: {e}")
+            return None, ""
         except Exception as e:
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "search", "error_type": type(e).__name__}
+            )
             logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
             return None, ""
 
@@ -716,8 +810,106 @@ Keep it under 100 words."""
                     "passages": [p.model_dump() for p in scripture_context.passages],
                 }
             )
+        else:
+            search_context_prompt = ""
 
         return scripture_context, search_context_prompt
+
+    async def _do_search_scripture(
+        self,
+        request: ChatRequest,
+        translation: str,
+        verse_refs: list,
+        detected_language: str,
+        model_override: str | None,
+    ) -> tuple[SearchResults | None, list[list[float]] | None, list[str]]:
+        """One attempt of the scripture search body, run under run_with_disconnect_retry.
+
+        Returns (scripture_context, extra_embeddings, boost_topics) so the caller can
+        log the same fields it always has without re-deriving them.
+        """
+        # Direct verse lookups for specific references
+        direct_verses = await self._lookup_direct_verses(verse_refs, translation)
+
+        # Embed the original query *concurrently* with query expansion (the two are
+        # independent), so the original-query embedding is off the serial critical
+        # path. The precomputed embedding is passed into the search call below so the
+        # search service does not embed the same query a second time.
+        extra_embeddings: list[list[float]] | None = None
+        if settings.query_expansion_enabled:
+            query_embedding, extra_embeddings = await asyncio.gather(
+                self._embed_query(request.message),
+                self._build_expansion_embeddings(
+                    request.message, detected_language, model_override
+                ),
+            )
+        else:
+            query_embedding = await self._embed_query(request.message)
+
+        # Topic detection for boosting (keyword-based, <10ms)
+        boost_topics: list[str] = []
+        if settings.topic_boosting_enabled:
+            boost_topics = self._detect_topics(request.message)
+
+        # Semantic or hybrid search (optionally with topic boosting).
+        # Query-expansion embeddings (when present) feed straight into the hybrid
+        # search so expansion actually widens recall on the result we use — and the
+        # HNSW candidate pool keeps it index-backed (no full-table scan).
+        if settings.hybrid_search_enabled:
+            if settings.topic_boosting_enabled and boost_topics:
+                scripture_context = await self.search_service.search_hybrid_boosted(
+                    query=request.message,
+                    boost_topics=boost_topics,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    semantic_weight=settings.hybrid_search_semantic_weight,
+                    keyword_weight=settings.hybrid_search_keyword_weight,
+                    topic_boost_factor=settings.topic_boost_factor,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+            else:
+                scripture_context = await self.search_service.search_hybrid(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    semantic_weight=settings.hybrid_search_semantic_weight,
+                    keyword_weight=settings.hybrid_search_keyword_weight,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+        else:
+            if settings.topic_boosting_enabled and boost_topics:
+                scripture_context = await self.search_service.search_boosted(
+                    query=request.message,
+                    boost_topics=boost_topics,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    topic_boost_factor=settings.topic_boost_factor,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+            else:
+                scripture_context = await self.search_service.search(
+                    query=request.message,
+                    max_verses=settings.max_context_verses,
+                    max_passages=2,
+                    similarity_threshold=0.35,
+                    translation=translation,
+                    extra_embeddings=extra_embeddings,
+                    query_embedding=query_embedding,
+                )
+
+        # Merge direct lookup results with semantic search
+        self._merge_direct_verses(scripture_context, direct_verses)
+
+        return scripture_context, extra_embeddings, boost_topics
 
     async def _lookup_direct_verses(self, verse_refs: list, translation: str | None = None) -> list:
         """Look up specific verses from references, filtered by translation."""
@@ -754,7 +946,9 @@ Keep it under 100 words."""
         verses — so clients can merge them into their verse panel and the "Cited"
         tab is populated even for verses outside the pool. Dedupes by canonical
         reference and never raises: a DB miss or lookup error is skipped so the
-        stream is never broken.
+        stream is never broken. Each per-reference lookup retries once on a
+        transient DB disconnect via run_with_disconnect_retry (utils/db_retry.py)
+        before being skipped.
         """
         resolved: dict[str, object] = {}
         for ref in verse_refs:
@@ -763,22 +957,135 @@ Keep it under 100 words."""
                     # Cap pathological ranges (e.g. an LLM emitting "Psalm
                     # 119:1-176") so we never issue a huge fetch.
                     end = min(ref.verse_end, ref.verse_start + MAX_RANGE_SPAN - 1)
-                    range_verses = await self.search_service.get_verse_range(
-                        ref.book, ref.chapter, ref.verse_start, end, translation
+
+                    async def _fetch_range() -> list:
+                        return await self.search_service.get_verse_range(
+                            ref.book, ref.chapter, ref.verse_start, end, translation
+                        )
+
+                    range_verses = await run_with_disconnect_retry(
+                        _fetch_range, op_name="Cited verse range resolution"
                     )
                     for verse in range_verses:
                         resolved.setdefault(verse.reference.lower(), verse)
                 else:
                     # Single verse — also covers chapter-spanning ranges where the
                     # parser leaves verse_end < verse_start.
-                    verse = await self.search_service.get_verse(
-                        ref.book, ref.chapter, ref.verse_start, translation
+                    async def _fetch_single():
+                        return await self.search_service.get_verse(
+                            ref.book, ref.chapter, ref.verse_start, translation
+                        )
+
+                    verse = await run_with_disconnect_retry(
+                        _fetch_single, op_name="Cited verse resolution"
                     )
                     if verse:
                         resolved.setdefault(verse.reference.lower(), verse)
             except Exception as e:
+                scripture_pipeline_errors_counter.add(
+                    1, {"stage": "resolve", "error_type": type(e).__name__}
+                )
                 logger.warning(f"Failed to resolve cited verse {ref}: {e}")
         return list(resolved.values())
+
+    @timed_stage("grounding")
+    async def _apply_verse_grounding(
+        self,
+        text: str,
+        scripture_context: SearchResults | None,
+        translation: str | None,
+        language: str,
+        resolved_verses: list | None = None,
+    ) -> tuple[str, list]:
+        """Rewrite fabricated/mismatched inline verse quotes to canonical DB text.
+
+        Returns (possibly-corrected text, list[Correction]). Reuses pre-resolved
+        cited verses when the caller already has them (streaming path) to avoid a
+        second DB pass; otherwise resolves the references it finds in ``text``.
+        Never raises — grounding must never break a response.
+        """
+        if not settings.verse_grounding_enabled:
+            return text, []
+        start = time.perf_counter()
+        try:
+            if resolved_verses is None:
+                resolved_verses = await self._resolve_cited_verses(
+                    extract_all_references(text), translation
+                )
+            context_refs = {
+                (v.book.lower(), v.chapter, v.verse)
+                for v in (scripture_context.verses if scripture_context else [])
+            }
+            quotes_checked = len(extract_inline_quotes(text))
+            corrected, corrections = ground_response(
+                text,
+                resolved_verses,
+                context_refs,
+                unresolved_behavior=settings.grounding_unresolved_behavior,
+                language=language,
+            )
+        except Exception as e:
+            scripture_pipeline_errors_counter.add(
+                1, {"stage": "grounding", "language": language, "error_type": type(e).__name__}
+            )
+            logger.warning(f"Verse grounding skipped due to error: {e}")
+            return text, []
+
+        duration_ms = (time.perf_counter() - start) * 1000
+        attrs: dict[str, str | bool] = {"language": language, "corrected": bool(corrections)}
+        verse_grounding_duration_histogram.record(duration_ms, attrs)
+        if quotes_checked:
+            verse_grounding_quotes_checked_counter.add(quotes_checked, {"language": language})
+        for c in corrections:
+            correction_attrs: dict[str, str | bool] = {
+                "language": language,
+                "reason": c.reason,
+                "corrected": c.corrected_quote is not None,
+                "book": c.reference.rsplit(" ", 1)[0],
+            }
+            verse_grounding_corrections_counter.add(1, correction_attrs)
+            logger.warning(
+                "Scripture fidelity issue corrected",
+                extra={
+                    "reference": c.reference,
+                    "reason": c.reason,
+                    "original_quote": c.original_quote[:160],
+                    "corrected_quote": (c.corrected_quote or "")[:160],
+                    "language": language,
+                },
+            )
+        return corrected, corrections
+
+    @timed_stage("grounding")
+    async def _ground_streamed_answer(
+        self,
+        cited_refs: list,
+        full_response: str,
+        scripture_context: SearchResults | None,
+        translation: str | None,
+        language: str,
+    ) -> tuple[list, str, list]:
+        """Resolve cited verses and ground the streamed answer as one timed stage.
+
+        Returns ``(resolved_verses, corrected_message, corrections)``. The inner
+        ``_apply_verse_grounding`` is also ``@timed_stage("grounding")``, but the
+        re-entrancy guard means this outer frame owns the single "grounding"
+        measurement (resolve + rewrite), matching the previous streaming behaviour.
+        """
+        resolved_verses = await self._resolve_cited_verses(cited_refs, translation)
+        # Ground the streamed answer: detect fabricated/mismatched inline verse quotes
+        # and rewrite them to canonical text. Reuses resolved_verses (no extra DB calls).
+        # The tokens are already on the client's screen, so the correction is delivered
+        # as an authoritative `corrected_message` the client swaps in — only when
+        # something actually changed.
+        corrected_message, corrections = await self._apply_verse_grounding(
+            full_response,
+            scripture_context,
+            translation,
+            language,
+            resolved_verses=resolved_verses,
+        )
+        return resolved_verses, corrected_message, corrections
 
     def _merge_direct_verses(self, scripture_context: SearchResults, direct_verses: list) -> None:
         """Merge direct lookup verses into scripture context (at beginning)."""
@@ -802,6 +1109,14 @@ Keep it under 100 words."""
         """
         # Generate unique message ID for feedback tracking
         message_id = str(uuid.uuid4())
+
+        total_start = time.perf_counter()
+        timings: dict[str, float] = {}
+        stage_attrs = {"stream": True, "provider": settings.llm_provider}
+        # Activate the per-request timing context read by @timed_stage-decorated methods.
+        self._timings = timings
+        self._stage_attrs = stage_attrs
+        self._active_stages = set()
 
         # Resolve translation: user preference > language detection > default
         detected_language = detect_language(request.message)
@@ -829,7 +1144,7 @@ Keep it under 100 words."""
             },
         )
 
-        # Content safety check BEFORE LLM call
+        # Content safety check BEFORE LLM call (timed via @timed_stage on the method)
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat stream"
         )
@@ -841,6 +1156,7 @@ Keep it under 100 words."""
             return
 
         # Intent detection: short-circuit off-topic before scripture search
+        detected_intent = "GENERAL"
         if settings.content_filter_intent_detection:
             detected_intent = await self._detect_intent(request.message, model_override)
             if detected_intent == "OFF_TOPIC":
@@ -880,7 +1196,7 @@ Keep it under 100 words."""
         is_verse_lookup = is_verse_lookup_request(request.message)
         verse_refs, prayer_ref = extract_references(request.message)
 
-        # Step 1: Search for relevant scripture
+        # Step 1: Search for relevant scripture (timed via @timed_stage)
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
             translation,
@@ -902,6 +1218,30 @@ Keep it under 100 words."""
             "language_suggestion": language_suggestion,
         }
 
+        # Fail-closed grounding guard (BITB-058): if this scripture-seeking request
+        # could not be grounded in any verse, stream an honest "try again" message
+        # instead of an ungrounded LLM answer. Metadata was already sent above, so the
+        # client renders this like any other assistant message.
+        if self._scripture_grounding_unavailable(
+            request, detected_intent, is_verse_lookup, scripture_context
+        ):
+            chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            logger.warning(
+                "Scripture unavailable for a grounding-required stream; returning a "
+                "fail-closed message instead of an ungrounded answer",
+                extra={"intent": detected_intent, "language": effective_language},
+            )
+            record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
+            unavailable_msg = get_scripture_unavailable_response(effective_language)
+            yield {"type": "content", "content": unavailable_msg}
+            yield {
+                "type": "completion",
+                "verses_cited": [],
+                "resolved_verses": [],
+                "scripture_unavailable": True,
+            }
+            return
+
         # Step 3: Build messages with appropriate prompt type
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
 
@@ -916,14 +1256,24 @@ Keep it under 100 words."""
 
         # Step 4: Stream response content and accumulate full response
         full_response = ""
+        first_token_at: float | None = None
         async for token in self.llm.chat_stream(
             messages=messages,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
             model_override=model_override,
         ):
+            if first_token_at is None:
+                # TTFT = everything the user waits through before the first visible
+                # token (safety + intent + retrieval + provider latency).
+                first_token_at = time.perf_counter()
+                record_stage(timings, "ttft", (first_token_at - total_start) * 1000, stage_attrs)
             full_response += token
             yield {"type": "content", "content": token}
+        if first_token_at is not None:
+            record_stage(
+                timings, "generation", (time.perf_counter() - first_token_at) * 1000, stage_attrs
+            )
 
         # Step 5: Extract cited verses (dual-source) and yield completion event
         structured = parse_structured_citations(full_response)
@@ -945,7 +1295,26 @@ Keep it under 100 words."""
         # can merge them into its verse panel. Without this, a cited verse that
         # is outside the semantic pool (common on follow-up questions) never
         # appears in the "Cited" tab.
-        resolved_verses = await self._resolve_cited_verses(list(merged_refs.values()), translation)
+        resolved_verses, corrected_message, corrections = await self._ground_streamed_answer(
+            list(merged_refs.values()),
+            full_response,
+            scripture_context,
+            translation,
+            effective_language,
+        )
+
+        # AC2 (BITB-055): emit a business-level SLI when scripture search was
+        # attempted but produced zero DB context AND zero resolved citations —
+        # the exact signature of a silent pipeline failure (e.g. the 2-week
+        # SQL bug that broke all retrieval without any 5xx or user alert).
+        # Off-topic early-returns (include_search=False) are excluded; those
+        # are expected to be verse-less.
+        if (
+            request.include_search
+            and not (scripture_context and scripture_context.verses)
+            and not resolved_verses
+        ):
+            chat_verseless_responses_counter.add(1, {"language": effective_language})
 
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.
@@ -974,11 +1343,27 @@ Keep it under 100 words."""
         #                    merges these into its verse pool so the filter has
         #                    cards to match even for verses outside the semantic
         #                    search results.
-        yield {
+        completion: dict = {
             "type": "completion",
             "verses_cited": verses_cited,
             "resolved_verses": [v.model_dump() for v in resolved_verses],
         }
+        # Only sent when a quote was rewritten; older clients ignore unknown
+        # fields, so this is backward compatible.
+        if corrections:
+            completion["corrected_message"] = corrected_message
+            completion["corrections"] = [
+                {"reference": c.reference, "reason": c.reason} for c in corrections
+            ]
+
+        record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
+        logger.info(
+            "chat_stage_timings %s",
+            format_timings(timings),
+            extra={"timings_ms": timings, "stream": True},
+        )
+
+        yield completion
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

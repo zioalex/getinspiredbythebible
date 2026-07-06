@@ -182,6 +182,7 @@ class TestContactEndpoint:
         response = client.post(
             "/api/v1/feedback/contact",
             json={
+                "email": "user@example.com",
                 "subject": "feature",
                 "message": "It would be great to have a dark mode option.",
             },
@@ -193,6 +194,7 @@ class TestContactEndpoint:
         response = client.post(
             "/api/v1/feedback/contact",
             json={
+                "email": "user@example.com",
                 "subject": "feedback",
                 "message": "I love this app! It's been very helpful for my Bible study.",
             },
@@ -225,6 +227,7 @@ class TestContactEndpoint:
             response = client.post(
                 "/api/v1/feedback/contact",
                 json={
+                    "email": "user@example.com",
                     "subject": "spiritual",
                     "message": "I am struggling with doubt. Can you share a verse?",
                 },
@@ -268,7 +271,7 @@ class TestContactEndpoint:
         assert response.status_code == 422
 
     def test_submit_contact_no_email(self):
-        """Test that email is optional."""
+        """Test that email is now required — omitting it returns 422."""
         response = client.post(
             "/api/v1/feedback/contact",
             json={
@@ -276,14 +279,37 @@ class TestContactEndpoint:
                 "message": "Just wanted to say thanks!",
             },
         )
-        # Should succeed without email
-        assert response.status_code in [200, 500]
+        # Email is required; missing email must be rejected
+        assert response.status_code == 422
+
+    def test_submit_contact_missing_email(self):
+        """Test that missing email is rejected with 422."""
+        response = client.post(
+            "/api/v1/feedback/contact",
+            json={
+                "subject": "feature",
+                "message": "It would be great to have a dark mode option.",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_submit_contact_invalid_email(self):
+        """Test that an invalid email address is rejected with 422."""
+        response = client.post(
+            "/api/v1/feedback/contact",
+            json={
+                "email": "not-an-email",
+                "subject": "feedback",
+                "message": "Some feedback.",
+            },
+        )
+        assert response.status_code == 422
 
 
 class TestFeedbackEmailIntegration:
     """Tests for email notification integration in feedback endpoints."""
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_negative_feedback_sends_email(self, mock_email_service):
         """Test that negative feedback triggers email notification."""
         mock_email_service.send_feedback_notification.return_value = True
@@ -302,24 +328,23 @@ class TestFeedbackEmailIntegration:
         # Endpoint should succeed (or fail due to DB, not email)
         assert response.status_code in [200, 500]
 
-        # Verify email service was called with correct params
+        # Verify email service was called with correct core params
         if response.status_code == 200:
-            mock_email_service.send_feedback_notification.assert_called_once_with(
-                rating="negative",
-                comment="The response wasn't helpful.",
-                user_message="How can I find peace?",
-                assistant_response="Let me help you find peace...",
-            )
+            call_kwargs = mock_email_service.send_feedback_notification.call_args.kwargs
+            assert call_kwargs["rating"] == "negative"
+            assert call_kwargs["comment"] == "The response wasn't helpful."
+            assert call_kwargs["user_message"] == "How can I find peace?"
+            assert call_kwargs["assistant_response"] == "Let me help you find peace..."
+            mock_email_service.send_feedback_notification.assert_called_once()
 
-    @patch("routes.feedback.email_service")
-    def test_positive_feedback_skips_email(self, mock_email_service):
-        """Test that positive feedback does NOT trigger email notification."""
+    @patch("routes.feedback.email_service", autospec=True)
+    def test_positive_feedback_bare_skips_email(self, mock_email_service):
+        """Test that bare positive feedback (no comment) does NOT trigger email notification."""
         response = client.post(
             "/api/v1/feedback",
             json={
                 "message_id": str(uuid.uuid4()),
                 "rating": "positive",
-                "comment": "Great response!",
                 "user_message": "What does the Bible say about hope?",
                 "assistant_response": "The Bible speaks about hope...",
             },
@@ -327,10 +352,35 @@ class TestFeedbackEmailIntegration:
 
         assert response.status_code in [200, 500]
 
-        # Email should NOT be called for positive feedback
+        # Email should NOT be called for bare positive feedback (no comment)
         mock_email_service.send_feedback_notification.assert_not_called()
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
+    def test_positive_feedback_with_comment_sends_email(self, mock_email_service):
+        """Test that positive feedback WITH a comment triggers email notification."""
+        mock_email_service.send_feedback_notification.return_value = True
+
+        response = client.post(
+            "/api/v1/feedback",
+            json={
+                "message_id": str(uuid.uuid4()),
+                "rating": "positive",
+                "comment": "Great response! The verse was perfect.",
+                "user_message": "What does the Bible say about hope?",
+                "assistant_response": "The Bible speaks about hope...",
+            },
+        )
+
+        assert response.status_code in [200, 500]
+
+        # Email SHOULD be called for positive feedback with a comment
+        if response.status_code == 200:
+            mock_email_service.send_feedback_notification.assert_called_once()
+            call_kwargs = mock_email_service.send_feedback_notification.call_args.kwargs
+            assert call_kwargs["rating"] == "positive"
+            assert call_kwargs["comment"] == "Great response! The verse was perfect."
+
+    @patch("routes.feedback.email_service", autospec=True)
     def test_feedback_succeeds_when_email_fails(self, mock_email_service):
         """Test that feedback submission succeeds even if email sending fails."""
         mock_email_service.send_feedback_notification.return_value = False
@@ -354,7 +404,7 @@ class TestFeedbackEmailIntegration:
 class TestContactEmailIntegration:
     """Tests for email notification integration in contact endpoint."""
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_contact_sends_email_notification(self, mock_email_service):
         """Test that contact form submission triggers email notification."""
         mock_email_service.send_contact_notification.return_value = True
@@ -379,14 +429,15 @@ class TestContactEmailIntegration:
                 user_agent="Mozilla/5.0 Chrome/120.0",
             )
 
-    @patch("routes.feedback.email_service")
-    def test_contact_sends_email_without_reply_email(self, mock_email_service):
-        """Test contact notification with no reply email provided."""
+    @patch("routes.feedback.email_service", autospec=True)
+    def test_contact_sends_email_with_reply_email(self, mock_email_service):
+        """Test contact notification with reply email provided."""
         mock_email_service.send_contact_notification.return_value = True
 
         response = client.post(
             "/api/v1/feedback/contact",
             json={
+                "email": "user@example.com",
                 "subject": "feedback",
                 "message": "Great app!",
             },
@@ -398,11 +449,11 @@ class TestContactEmailIntegration:
             mock_email_service.send_contact_notification.assert_called_once_with(
                 subject_type="feedback",
                 message="Great app!",
-                reply_email=None,
+                reply_email="user@example.com",
                 user_agent=None,
             )
 
-    @patch("routes.feedback.email_service")
+    @patch("routes.feedback.email_service", autospec=True)
     def test_contact_succeeds_when_email_fails(self, mock_email_service):
         """Test that contact submission succeeds even if email sending fails."""
         mock_email_service.send_contact_notification.return_value = False
@@ -410,6 +461,7 @@ class TestContactEmailIntegration:
         response = client.post(
             "/api/v1/feedback/contact",
             json={
+                "email": "user@example.com",
                 "subject": "feature",
                 "message": "Please add dark mode.",
             },
@@ -438,7 +490,7 @@ class TestContactRequestModel:
         ValidationError and the endpoint returns 422.
         """
         for subject in ("spiritual", "bug", "feature", "feedback", "other"):
-            req = ContactRequest(subject=subject, message="Test message")
+            req = ContactRequest(email="user@example.com", subject=subject, message="Test message")
             assert req.subject == subject, f"ContactRequest rejected subject='{subject}'"
 
     def test_spiritual_subject_is_valid(self):
@@ -450,19 +502,37 @@ class TestContactRequestModel:
         causing HTTP 500 on every contact form submission with subject='spiritual'.
         Pairing this test with TestContactRouteWithMockedDB gives full coverage.
         """
-        req = ContactRequest(subject="spiritual", message="I need guidance from the Bible.")
+        req = ContactRequest(
+            email="user@example.com",
+            subject="spiritual",
+            message="I need guidance from the Bible.",
+        )
         assert req.subject == "spiritual"
         assert req.message == "I need guidance from the Bible."
+
+    def test_email_required(self):
+        """Email is now required — omitting it raises ValidationError."""
+        with pytest.raises(ValidationError):
+            ContactRequest(subject="feedback", message="Test message.")
+
+    def test_invalid_email_rejected(self):
+        """Invalid email format must raise ValidationError."""
+        with pytest.raises(ValidationError):
+            ContactRequest(email="not-an-email", subject="feedback", message="Test message.")
 
     def test_invalid_subject_rejected(self):
         """Non-allowed subjects must be rejected with a ValidationError."""
         with pytest.raises(ValidationError):
-            ContactRequest(subject="question", message="This should fail.")
+            ContactRequest(
+                email="user@example.com", subject="question", message="This should fail."
+            )
 
     def test_all_subjects_roundtrip(self):
         """All valid subjects survive a JSON round-trip (model_dump → model_validate)."""
         for subject in ("spiritual", "bug", "feature", "feedback", "other"):
-            req = ContactRequest(subject=subject, message="Round-trip test")
+            req = ContactRequest(
+                email="user@example.com", subject=subject, message="Round-trip test"
+            )
             data = req.model_dump()
             restored = ContactRequest.model_validate(data)
             assert restored.subject == subject
@@ -502,11 +572,12 @@ class TestContactRouteWithMockedDB:
         mock_repo.save_contact = AsyncMock(return_value=mock_submission)
 
         request = ContactRequest(
+            email="user@example.com",
             subject="spiritual",
             message="I am struggling with doubt. Please share a verse about faith.",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = True
             result = await submit_contact(request, mock_repo)
 
@@ -539,6 +610,7 @@ class TestContactRouteWithMockedDB:
         )
 
         request = ContactRequest(
+            email="user@example.com",
             subject="spiritual",
             message="Help me find a verse about hope.",
         )

@@ -9,11 +9,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -126,6 +130,14 @@ class MainActivity : ComponentActivity() {
                     if (context.hasSplashBeenSeen()) "resume" else "splash"
                 }
 
+                // Paint the themed background across the whole screen so no route
+                // (notably the async "resume" resolver) ever exposes the white
+                // window background. Uses `background` to match the post-splash
+                // windowBackground and the chat Scaffold for a seamless transition.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
                 Box {
                     NavHost(
                         navController = navController,
@@ -142,13 +154,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("resume") {
-                            // Tiny resolver: looks up the last conversation id
-                            // and replaces itself with the appropriate chat route.
-                            val resumeViewModel: ChatViewModel = hiltViewModel()
+                            // Always open a fresh chat on launch (BITB-049). Conversation
+                            // history remains reachable via the drawer. Navigation is
+                            // synchronous so no loading indicator is needed.
+                            // resolveResumeConversationId() / LastConversationPreferences
+                            // are kept for a future opt-in "resume last chat" setting.
                             LaunchedEffect(Unit) {
-                                val id = resumeViewModel.resolveResumeConversationId()
-                                val target = if (id != null) "chat/$id" else "chat/new"
-                                navController.navigate(target) {
+                                navController.navigate("chat/new") {
                                     popUpTo("resume") { inclusive = true }
                                 }
                             }
@@ -208,6 +220,7 @@ class MainActivity : ComponentActivity() {
                     // token already cached. The widget itself is 1.dp / invisible.
                     TurnstileWebView(turnstileManager = turnstileManager)
                 }
+                } // Surface
             }
         }
     }

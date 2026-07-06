@@ -72,6 +72,7 @@ import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
+import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
@@ -79,6 +80,7 @@ import org.voxquieta.app.presentation.components.WelcomeBanner
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
+import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +101,22 @@ fun ChatScreen(
     val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val multiWordNames by viewModel.multiWordNames.collectAsState()
     val localizedToEnglish by viewModel.localizedToEnglish.collectAsState()
+    // Seed multi-word book names from the bundled fallback map so connector books (e.g.
+    // "Song of Solomon", "Cantico dei Cantici") resolve offline / before the API loads, unioned
+    // with any server-provided names. Number-prefixed keys ("1 samuele", "1. mose", "1 शमूएल")
+    // are excluded: the numbered-prefix branch (Alt 1) already handles them via the generic book
+    // pattern, and including them here would double-consume the "1 " prefix.
+    //
+    // NB: we intentionally do NOT seed CJK names here. A non-empty CJK list makes
+    // buildVerseRefRegex exclude BOTH Han and Hangul from the generic pattern, but only Han
+    // names get an explicit alternation — so seeding it offline would break Korean. CJK/Hangul
+    // are matched by the generic pattern (they are \p{L}) plus the isKnownBook gate instead.
+    val bundledMultiWord = remember {
+        LOCALIZED_BOOK_TO_ENGLISH.keys.filter { it.contains(' ') && !it.first().isDigit() }
+    }
+    val allMultiWord = remember(multiWordNames) {
+        (multiWordNames + bundledMultiWord).distinct().sortedByDescending { it.length }
+    }
     // Extract CJK (Han-script) book names from the localized map for no-space matching.
     val cjkBookNames = remember(localizedToEnglish) {
         localizedToEnglish.keys.filter { key ->
@@ -107,8 +125,8 @@ fun ChatScreen(
             }
         }.sortedByDescending { it.length }
     }
-    val verseRefRegex = remember(multiWordNames, cjkBookNames) {
-        buildVerseRefRegex(multiWordNames, cjkBookNames)
+    val verseRefRegex = remember(allMultiWord, cjkBookNames) {
+        buildVerseRefRegex(allMultiWord, cjkBookNames)
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -381,7 +399,17 @@ fun ChatScreen(
                     if (uiState.messages.isEmpty()) {
                         item {
                             WelcomeBanner(
-                                onPromptSelected = { prompt -> inputText = prompt },
+                                onPromptSelected = { prompt ->
+                                    // Tapping a sample question submits it directly.
+                                    // If Turnstile isn't ready yet, fall back to
+                                    // filling the input so the Send button still works.
+                                    if (uiState.isTurnstileReady) {
+                                        viewModel.sendMessage(prompt)
+                                        inputText = ""
+                                    } else {
+                                        inputText = prompt
+                                    }
+                                },
                                 modifier = Modifier.padding(24.dp),
                             )
                         }
@@ -404,8 +432,8 @@ fun ChatScreen(
                             onLoadChapter = viewModel::loadChapter,
                             onDismissSheet = viewModel::clearChapterSheet,
                             onRetry = if (message.isError) viewModel::retryLastMessage else null,
-                            onFeedback = { messageLocalId, rating, comment ->
-                                viewModel.submitFeedback(messageLocalId, rating, comment.ifBlank { null })
+                            onFeedback = { messageLocalId, rating, comment, reason ->
+                                viewModel.submitFeedback(messageLocalId, rating, comment.ifBlank { null }, reason)
                             },
                             feedbackGiven = uiState.feedbackGiven[message.id],
                             verseRefRegex = verseRefRegex,
@@ -499,6 +527,16 @@ fun ChatScreen(
                 }
             }
 
+            // Language-switch suggestion banner — shown when the backend detects typing
+            // in a different language than the user's selected UI locale.
+            uiState.languageSuggestion?.let { suggestedLocale ->
+                LanguageSwitchBanner(
+                    suggestedLocale = suggestedLocale,
+                    onSwitch = { viewModel.setLocale(suggestedLocale) },
+                    onDismiss = viewModel::dismissLanguageSuggestion,
+                )
+            }
+
             // Church-finder banner — shown above the input field after 3 interactions.
             if (uiState.showChurchFinderBanner) {
                 ChurchFinderBanner(
@@ -535,6 +573,7 @@ fun ChatScreen(
                 isLoading = uiState.isLoading,
                 isTurnstileReady = uiState.isTurnstileReady,
                 isSessionLimitReached = uiState.isSessionLimitReached,
+                maxLength = ChatViewModel.MAX_MESSAGE_LENGTH,
             )
         }
     }

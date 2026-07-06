@@ -9,6 +9,34 @@ in responses, linking them to scripture. Deployed on Azure.
 **Tech stack:** Python 3.12 / FastAPI / PostgreSQL 16 + pgvector /
 Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
+## Standard Workflow: Plan → Build → Verify
+
+**This is the default operating procedure for any non-trivial task** (a feature,
+a bug fix, or a refactor — anything beyond a true one-line/typo change). It runs
+as a three-stage relay across models so that planning and verification are done
+by a stronger model and the bulk implementation by a faster one:
+
+1. **Plan — Opus.** Explore the codebase first (read the relevant files, find
+   existing utilities/patterns to reuse), then write an explicit plan: the
+   problem, the precise changes per file, and how it will be verified. Resolve
+   ambiguity with the user *before* coding, not after. Also create/update the
+   backlog story (see *Backlog Hygiene*) as part of planning.
+2. **Build — Sonnet.** Delegate the implementation to a Sonnet subagent
+   (`Agent` with `model: sonnet`), handing it the approved plan as its brief.
+   It makes all the code, test, migration, and i18n changes on the feature branch.
+3. **Verify — Opus.** Spin up a *separate* Opus subagent (`Agent` with
+   `model: opus`) to independently run the backend + frontend (+ Android, if
+   touched) test suites and review the diff against the plan's acceptance
+   criteria. It reports pass/fail with evidence; the main session fixes any gaps
+   it finds before commit/PR.
+
+This composes with — it does not replace — the **Testing** rule (every change
+ships with tests) and **Backlog Hygiene** (every change has a story). Trivial
+one-liners may skip the relay, but still need tests where behaviour changes.
+
+> One-shot entry point: the `/plan-build-verify <task>` slash command
+> (`.claude/commands/plan-build-verify.md`) runs this relay end to end.
+
 ## Repository Layout
 
 ```text
@@ -86,6 +114,27 @@ Critical variables:
 > Do not open or update a PR without tests. CI running green is necessary
 > but not sufficient — reviewers will reject PRs that lack coverage for
 > the changed code.
+
+### Multilingual & Multi-Version Correctness (required)
+
+> **Rule: any change touching verse parsing, scripture grounding,
+> citation/reference handling, search/retrieval, prompts, or anything else
+> that is translation-dependent MUST be planned, implemented, verified, and
+> tested across ALL 11 supported languages AND representative bible versions.**
+>
+> - Ship a **parametrized cross-language test** (en, it, de, es, fr, pt, ar, ru,
+>   zh, hi, ko) — not an English-only happy path. English-shaped coverage that
+>   silently breaks CJK/RTL/Devanagari is exactly how regressions ship.
+> - Cover the variants that actually occur in the wild: **parenthesized/bracketed
+>   citations** `(John 3:16)` / `[Salmo 23:1]`, **CJK/fullwidth punctuation**
+>   `（…）` `「…」` `：` `，`, **RTL Arabic**, **Devanagari**, **German comma
+>   separators** `Johannes 3,16`, **numbered books**, and **ranges**.
+> - Prove **version-faithfulness**: the result must use the *user's selected
+>   translation's* text, never a hardcoded one (test e.g. KJV vs WEB).
+> - Verse detection lives in **three parsers that must stay in sync** (backend,
+>   frontend, Android — see *Verse Detection / Parsing*). Mirror the change and
+>   add a parity test in each. They diverge subtly (e.g. the frontend does not
+>   support German comma separators; the backend does) — assert, don't assume.
 
 ### Backend Tests
 
@@ -369,13 +418,33 @@ Verse references are detected in three places (must stay in sync):
 **CJK-specific:** Chinese/Korean book names have no space between name
 and chapter number. Chinese also uses guillemet notation `<<BookName>>`.
 
+### Verse Grounding & Citation Resolution
+
+Post-generation grounding (`api/chat/verse_grounding.py`) rewrites an LLM's inline
+verse quote to the canonical DB text. It only acts on a quote that **(a)** parses to
+a reference via `extract_all_references` / `extract_inline_quotes` **and (b)** resolves
+to DB text for the user's translation. If either fails — e.g. a parenthesized
+reference the parser misses, or a translation with no rows — it no-ops as
+`reason=unresolved` and the model's (possibly wrong) text is shown unchanged.
+
+> **Pure-function tests that feed canonical text directly will hide integration
+> bugs in the parse → resolve → ground path.** Always add an integration test
+> through `chat()` / `chat_stream()` (mock `search_service.get_verse`) for any
+> grounding or parser change, and assert the cited verse is both *resolved* and
+> *corrected* — across languages, per the rule above.
+
 ## Common Pitfalls
 
 1. **DATABASE_URL required for DB tests** - Most unit tests mock the DB,
    but integration tests need a real PostgreSQL with pgvector extension
-2. **CJK verse regex** - Chinese/Korean patterns need special handling
-   (no space between book name and chapter). Always test with CJK inputs
-   when modifying verse parsing
+2. **Verse regex is multilingual — test ALL 11 languages, not just English.**
+   Chinese/Korean need no-space handling; references are commonly wrapped in
+   `( )` `[ ]` or fullwidth `（ ）`. The backend `_VERSE_PATTERN` uses a
+   *positive-whitelist* lookbehind: a wrapped reference was once silently dropped
+   (so it never resolved from the DB and grounding became a no-op), while the
+   frontend/Android use a *letter-negative* boundary and didn't share the bug.
+   Keep the three parsers in sync **by boundary behaviour**, not just book lists;
+   always test parenthesized + CJK/fullwidth-punctuation citations
 3. **Three verse parsers must stay in sync** - Changes to verse detection
    must be mirrored across backend, frontend, and Android
 4. **Translation registry is the source of truth** - Never hardcode book

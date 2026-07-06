@@ -39,20 +39,55 @@ from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
 from routes import (  # noqa: E402
+    admin_router,
     chat_router,
     church_router,
     feedback_router,
     health_router,
     scripture_router,
 )
-from scripture import close_db, init_db  # noqa: E402
+from scripture import check_translation_coverage, close_db, init_db  # noqa: E402
 from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
+from utils.metrics import translation_data_missing_counter  # noqa: E402
 
 # Configure logging before anything else
 setup_logging()
 logger = get_logger(__name__)
+
+
+async def _check_translation_coverage_at_startup() -> None:
+    """Warn loudly when a supported language's translation has no usable data (BITB-054).
+
+    Best-effort: a failure here (e.g. DB not ready yet) must never block startup,
+    so any exception is caught and logged rather than propagated.
+    """
+    try:
+        from scripture.database import async_session_factory
+
+        async with async_session_factory() as session:
+            _coverage, unusable = await check_translation_coverage(session)
+
+        for u in unusable:
+            logger.warning(
+                "Translation data missing: language=%s translation=%s problem=%s "
+                "— this language will silently fail search/grounding until loaded",
+                u.language,
+                u.translation,
+                u.problem,
+                extra={
+                    "language": u.language,
+                    "translation": u.translation,
+                    "problem": u.problem,
+                },
+            )
+            translation_data_missing_counter.add(
+                1,
+                {"language": u.language, "translation": u.translation, "problem": u.problem},
+            )
+    except Exception as e:
+        logger.warning("Translation coverage check failed at startup: %s", e)
 
 
 async def _purge_blocked_samples_at_startup() -> None:
@@ -129,6 +164,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Database initialization failed", extra={"error": str(e)})
 
+    await _check_translation_coverage_at_startup()
     await _purge_blocked_samples_at_startup()
 
     yield
@@ -261,6 +297,7 @@ app.include_router(church_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
 app.include_router(health_router)  # Health endpoints at root level
 app.include_router(scripture_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")  # internal probe-gated endpoints
 
 
 # ==================== Health & Info ====================

@@ -36,6 +36,26 @@ data class StreamChunkDto(
     @SerialName("verses_cited") val versesCited: List<String> = emptyList(),
     /** Backend-resolved cited verses (with text) from the completion event. */
     @SerialName("resolved_verses") val resolvedVerses: List<VerseDto> = emptyList(),
+    /**
+     * Authoritative message body, set only when post-generation grounding rewrote a
+     * fabricated/mismatched inline verse quote to the canonical scripture text.
+     * When present it replaces the streamed content. Null when nothing was corrected.
+     */
+    @SerialName("corrected_message") val correctedMessage: String? = null,
+    /** References that were corrected, with the reason (completion event). */
+    @SerialName("corrections") val corrections: List<CorrectionDto> = emptyList(),
+    /**
+     * Suggested language switch when the user typed in a language different from their
+     * selected UI language. Populated in the metadata event. Null when no mismatch.
+     */
+    @SerialName("language_suggestion") val languageSuggestion: String? = null,
+)
+
+/** A single scripture-fidelity correction reported in the completion event. */
+@Serializable
+data class CorrectionDto(
+    @SerialName("reference") val reference: String = "",
+    @SerialName("reason") val reason: String = "",
 )
 
 /**

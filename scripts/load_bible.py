@@ -11,6 +11,7 @@ Usage:
     python load_bible.py --list             # List available translations
     python load_bible.py --all              # Load all translations
     python load_bible.py --ci               # Load only 1 Corinthians (for CI testing)
+    python load_bible.py --status           # Show verse count and embedding coverage per translation
 
 Environment Variables:
     DATABASE_URL          - PostgreSQL connection string
@@ -621,6 +622,95 @@ async def check_translation_loaded(session, translation_code: str) -> tuple[bool
         return False, 0
 
 
+async def print_status_report(database_url: str) -> None:
+    """Query the DB and print a status table showing verse/embedding coverage per translation."""
+    try:
+        db_url = convert_db_url_for_asyncpg(database_url)
+        engine = create_async_engine(db_url)
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+        async with async_session() as session:
+            result = await session.execute(
+                text("""
+                    SELECT
+                        t.code,
+                        t.name,
+                        t.language,
+                        t.language_code,
+                        COALESCE(v.verse_count, 0)    AS verse_count,
+                        COALESCE(v.embedded_count, 0) AS embedded_count
+                    FROM translations t
+                    LEFT JOIN (
+                        SELECT
+                            translation,
+                            COUNT(*)         AS verse_count,
+                            COUNT(embedding) AS embedded_count
+                        FROM verses
+                        GROUP BY translation
+                    ) v ON t.code = v.translation
+                    ORDER BY t.language_code, t.code
+                """)
+            )
+            rows = result.fetchall()
+
+        await engine.dispose()
+
+        log("=" * 72)
+        log("TRANSLATION STATUS REPORT")
+        log("=" * 72)
+        log(f"{'Code':<14} {'Name':<28} {'Lang':<5} {'Verses':>8} {'Embedded':>9}  Status")
+        log("-" * 72)
+
+        not_loaded: list[str] = []
+        no_embeds: list[str] = []
+        partial: list[str] = []
+        ready: list[str] = []
+
+        for code, name, _language, lang_code, verse_count, embedded_count in rows:
+            if verse_count == 0:
+                status = "❌ NOT LOADED"
+                not_loaded.append(code)
+            elif verse_count < 30_000:
+                status = f"⚠️  PARTIAL ({verse_count:,})"
+                partial.append(code)
+            elif embedded_count == 0:
+                status = "⚠️  NO EMBEDDINGS"
+                no_embeds.append(code)
+            elif embedded_count < verse_count * 0.95:
+                pct = embedded_count / verse_count * 100
+                status = f"⚠️  {pct:.0f}% embedded"
+                no_embeds.append(code)
+            else:
+                status = "✅ READY"
+                ready.append(code)
+            log(
+                f"{code:<14} {name:<28} {lang_code:<5}"
+                f" {verse_count:>8,} {embedded_count:>9,}  {status}"
+            )
+
+        log("=" * 72)
+        log(
+            f"Summary: {len(ready)} ready  |  {len(not_loaded)} not loaded  |"
+            f"  {len(no_embeds)} missing embeddings  |  {len(partial)} partial"
+        )
+        if not_loaded:
+            log("\nTo load missing verse data:")
+            for code in not_loaded:
+                log(f"  python load_bible.py --translation {code}")
+        if no_embeds:
+            log("\nTo generate missing embeddings:")
+            for code in no_embeds:
+                log(f"  python create_embeddings.py --translation {code}")
+        if partial:
+            log("\nPartial loads (re-run to complete or use --force):")
+            for code in partial:
+                log(f"  python load_bible.py --translation {code} --force")
+
+    except Exception:
+        log("❌ Could not connect to database — check DATABASE_URL")
+        log(traceback.format_exc())
+
+
 async def load_translation_to_db(
     database_url: str,
     translation_code: str,
@@ -737,15 +827,14 @@ async def main():
         action="store_true",
         help="Force reload translations even if already loaded",
     )
+    parser.add_argument(
+        "--status",
+        "-s",
+        action="store_true",
+        help="Show translation load status (verse counts and embedding coverage) then exit",
+    )
 
     args = parser.parse_args()
-
-    # List translations and exit
-    if args.list:
-        log("📚 Available translations:")
-        for trans in list_available_translations():
-            log(f"  - {trans['code']:<12} {trans['name']:<30} ({trans['language']})")
-        return
 
     # Get database URL
     database_url = os.getenv(
@@ -755,6 +844,17 @@ async def main():
 
     # Get embedding dimensions (CLI arg > env var > default)
     embedding_dimensions = args.dimensions or int(os.getenv("EMBEDDING_DIMENSIONS", "1024"))
+
+    # List translations and exit
+    if args.list:
+        log("📚 Available translations:")
+        for trans in list_available_translations():
+            log(f"  - {trans['code']:<12} {trans['name']:<30} ({trans['language']})")
+        return
+
+    if args.status:
+        await print_status_report(database_url)
+        return
 
     # Determine which translations to load
     if args.all:
@@ -782,6 +882,11 @@ async def main():
 
     if args.force:
         log("⚠️  Force mode: will reload all translations even if they exist")
+
+    if args.all:
+        log("\n📊 Current state before loading:")
+        await print_status_report(database_url)
+        log("")
 
     overall_start = time.time()
     for idx, trans_code in enumerate(translations_to_load, 1):

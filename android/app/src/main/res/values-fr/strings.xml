@@ -116,7 +116,10 @@
     <string name="error_network">Erreur réseau. Vérifiez votre connexion.</string>
     <string name="error_timeout">Délai expiré. Veuillez réessayer.</string>
     <string name="error_server">Erreur serveur. Veuillez réessayer plus tard.</string>
+    <string name="error_verification">Impossible de vérifier votre appareil. Veuillez patienter un instant et réessayer.</string>
     <string name="error_generic">Une erreur s\'est produite. Veuillez réessayer.</string>
+    <string name="error_message_too_long">Votre message est un peu long (maximum %1$d caractères). Raccourcissez-le et réessayez.</string>
+    <string name="error_contact_email_invalid">Veuillez saisir un e-mail valide afin que nous puissions répondre.</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">Conversations</string>
@@ -199,6 +202,12 @@
     <string name="feedback_send">Envoyer</string>
     <string name="feedback_sending">Envoi du retour…</string>
     <string name="feedback_maintainer_notice">Votre message sera transmis au responsable de l\'application.</string>
+    <string name="feedback_reason_prompt">Qu\'est-ce qui s\'est mal passé ?</string>
+    <string name="feedback_reason_inaccurate">Inexact</string>
+    <string name="feedback_reason_unhelpful">Peu utile</string>
+    <string name="feedback_reason_wrong_verse">Mauvais verset</string>
+    <string name="feedback_reason_tone">Ton</string>
+    <string name="feedback_reason_other">Autre</string>
     <string name="backend_warming_up">Connexion au serveur… (la première requête peut prendre jusqu\'à 30 s)</string>
     <string name="action_scroll_to_bottom">Faire défiler vers le bas</string>
 
@@ -226,6 +235,11 @@
     <string name="church_finder_website">Site web</string>
     <string name="church_finder_email">E-mail</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">Il semble que vous écrivez en %s. Changer la langue de l\'appli ?</string>
+    <string name="language_switch_banner_switch">Changer</string>
+    <string name="language_switch_banner_dismiss">Ignorer la suggestion de langue</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">Contact</string>
     <string name="contact_open_button">Nous contacter</string>
@@ -237,7 +251,9 @@
     <string name="contact_subject_bug">Rapport de bogue</string>
     <string name="contact_subject_feature">Demande de fonctionnalité</string>
     <string name="contact_subject_other">Autre</string>
-    <string name="contact_email_label">Votre e-mail (facultatif, pour réponse)</string>
+    <string name="contact_email_label">Votre e-mail (pour notre réponse)</string>
+    <string name="contact_email_required">Veuillez saisir votre e-mail afin que nous puissions répondre</string>
+    <string name="contact_email_invalid">Veuillez saisir une adresse e-mail valide</string>
     <string name="contact_email_placeholder">vous@exemple.fr</string>
     <string name="contact_message_label">Message</string>
     <string name="contact_message_placeholder">Partagez vos pensées, signalez un problème ou suggérez une amélioration…</string>

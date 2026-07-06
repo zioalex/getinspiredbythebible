@@ -14,6 +14,7 @@ from config import Settings, settings
 from .azure_openai import AzureOpenAIEmbeddingProvider
 from .base import EmbeddingProvider, LLMProvider
 from .claude import ClaudeProvider
+from .embedding_resilience import ResilientEmbeddingProvider
 from .ollama import OllamaEmbeddingProvider, OllamaProvider
 from .openrouter import OpenRouterProvider
 
@@ -75,6 +76,23 @@ def create_llm_provider(config: Settings) -> LLMProvider:
 def create_embedding_provider(config: Settings) -> EmbeddingProvider:
     """
     Create an embedding provider based on configuration.
+
+    Wraps the raw provider in ResilientEmbeddingProvider (BITB-057 Phase 2) so
+    every embedding call path gets the same circuit-breaker/timeout/retry
+    treatment already applied to OpenRouter and Llama Guard.
+
+    Args:
+        config: Application settings
+
+    Returns:
+        Configured embedding provider instance, wrapped for resilience
+    """
+    return ResilientEmbeddingProvider(_build_raw_embedding_provider(config), config)
+
+
+def _build_raw_embedding_provider(config: Settings) -> EmbeddingProvider:
+    """
+    Create the underlying (non-resilient) embedding provider based on configuration.
 
     Args:
         config: Application settings

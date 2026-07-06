@@ -39,6 +39,70 @@ describe("ChatMessage inline verse marking — real references", () => {
   });
 });
 
+describe("ChatMessage inline verse marking — connector-word regression", () => {
+  // A connector word ("of", "de", …) before a real book name used to let a
+  // greedy alternative swallow the preceding prose ("you of Psalm"), which
+  // failed the known-book check and left the real reference unlinked.
+  it("marks a reference preceded by the English connector 'of'", () => {
+    renderAssistant("I also want to remind you of Psalm 56:9, which says.");
+    const span = screen.getByText("Psalm 56:9");
+    expect(span.tagName).toBe("SPAN");
+    expect(span.className).toContain("text-amber-800");
+  });
+
+  it("calls onVerseClick for a connector-preceded reference", () => {
+    const { onVerseClick } = renderAssistant(
+      "the promise of Isaiah 41:10 is sure.",
+    );
+    fireEvent.click(screen.getByText("Isaiah 41:10"));
+    expect(onVerseClick).toHaveBeenCalledWith("Isaiah", 41, 10);
+  });
+
+  it("marks a reference preceded by the Spanish connector 'de'", () => {
+    renderAssistant("Recuerda la palabra de Isaías 41:10 hoy.");
+    expect(screen.getByText("Isaías 41:10").className).toContain(
+      "text-amber-800",
+    );
+  });
+
+  it("still marks a legitimate multi-word book (Song of Solomon)", () => {
+    renderAssistant("Read Song of Solomon 2:1 for beauty.");
+    expect(screen.getByText("Song of Solomon 2:1").className).toContain(
+      "text-amber-800",
+    );
+  });
+});
+
+describe("ChatMessage inline verse marking — comma citation style", () => {
+  // German/French/Italian cite chapter,verse with a comma ("Römer 13,1").
+  it("marks a plain comma reference as an amber clickable span", () => {
+    renderAssistant("Das steht in Römer 13,1 geschrieben.");
+    const span = screen.getByText("Römer 13,1");
+    expect(span.tagName).toBe("SPAN");
+    expect(span.className).toContain("text-amber-800");
+  });
+
+  it("calls onVerseClick with the parsed book/chapter/verse for a comma ref", () => {
+    const { onVerseClick } = renderAssistant("Lies Römer 13,1 heute.");
+    fireEvent.click(screen.getByText("Römer 13,1"));
+    expect(onVerseClick).toHaveBeenCalledWith("Römer", 13, 1);
+  });
+
+  it("marks a comma reference with a range (Galater 5,22-23)", () => {
+    renderAssistant("Siehe Galater 5,22-23 für die Frucht.");
+    expect(screen.getByText("Galater 5,22-23").className).toContain(
+      "text-amber-800",
+    );
+  });
+
+  it("does not mark a decimal amount as a verse", () => {
+    const text = "Ich habe 3,50 Euro gespart.";
+    const { container } = renderAssistant(text);
+    expect(container.textContent).toContain(text);
+    expect(container.querySelectorAll("span.text-amber-800").length).toBe(0);
+  });
+});
+
 describe("ChatMessage inline verse marking — no longer cuts text", () => {
   it("does not mark German prose that merely contains numbers", () => {
     const text = "Gott schenkt uns Trost der Hoffnung 5:5 jeden Tag.";
@@ -97,5 +161,50 @@ describe("ChatMessage inline verse marking — markdown links", () => {
     expect(anchor).not.toBeNull();
     expect(anchor!.getAttribute("href")).toBe("https://www.biblegateway.com");
     expect(anchor!.textContent).toBe("Bible Gateway");
+  });
+});
+
+describe("ChatMessage inline verse marking — references inside list items", () => {
+  // Regression: verse refs in a (tight) markdown bullet list used to render as
+  // plain text because only the `p` renderer processed them. linkifyVerses now
+  // pre-links refs anywhere in the markdown string, so list items link too.
+  const listMessage = [
+    "Hier sind einige Bibelstellen:",
+    "",
+    '- Römer 12,14: "Segnet, die euch verfolgen; segnet und flucht nicht!"',
+    '- Matthäus 5,44: "Liebet eure Feinde, segnet, die euch fluchen"',
+    '- Lukas 6,28: "segnet, die euch fluchen"',
+    "",
+    "In **1. Timotheus 2,1-2** heißt es mehr dazu.",
+  ].join("\n");
+
+  it("marks every reference in the bullet list (not just the bold one)", () => {
+    renderAssistant(listMessage);
+    for (const ref of ["Römer 12,14", "Matthäus 5,44", "Lukas 6,28"]) {
+      const span = screen.getByText(ref);
+      expect(span.className).toContain("text-amber-800");
+    }
+  });
+
+  it("makes a list-item reference clickable", () => {
+    const { onVerseClick } = renderAssistant(listMessage);
+    fireEvent.click(screen.getByText("Römer 12,14"));
+    expect(onVerseClick).toHaveBeenCalledWith("Römer", 12, 14);
+  });
+
+  it("highlights a quote inside a list item", () => {
+    const { container } = renderAssistant(listMessage);
+    // The bullet quotes ("Segnet…", "Liebet…", "segnet…") now get the amber
+    // quote styling, which previously only worked inside paragraphs.
+    expect(
+      container.querySelectorAll("span.bg-amber-50").length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("still marks the bold paragraph reference", () => {
+    renderAssistant(listMessage);
+    expect(screen.getByText("1. Timotheus 2,1-2").className).toContain(
+      "text-amber-800",
+    );
   });
 });

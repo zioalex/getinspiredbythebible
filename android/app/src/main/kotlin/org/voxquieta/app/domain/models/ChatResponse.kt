@@ -19,6 +19,9 @@ data class ChatResponse(
  * @param type Event type: "metadata", "content", "completion", or "" for legacy chunks.
  * @param versesCited Server-extracted verse citations from the completion event.
  * @param resolvedVerses Backend-resolved cited verses (with text) from the completion event.
+ * @param correctedMessage Authoritative message body when grounding rewrote a fabricated/
+ *   mismatched inline verse quote; null when nothing was corrected.
+ * @param languageSuggestion ISO 639-1 code suggested for UI locale switch (null when no mismatch).
  */
 data class StreamChunk(
     val content: String = "",
@@ -30,4 +33,6 @@ data class StreamChunk(
     val type: String = "",
     val versesCited: List<String> = emptyList(),
     val resolvedVerses: List<Verse> = emptyList(),
+    val correctedMessage: String? = null,
+    val languageSuggestion: String? = null,
 )

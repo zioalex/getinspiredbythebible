@@ -116,7 +116,10 @@
     <string name="error_network">नेटवर्क त्रुटि। अपना कनेक्शन जांचें।</string>
     <string name="error_timeout">अनुरोध का समय समाप्त हो गया। पुनः प्रयास करें।</string>
     <string name="error_server">सर्वर त्रुटि। बाद में पुनः प्रयास करें।</string>
+    <string name="error_verification">हम आपके डिवाइस को सत्यापित नहीं कर सके। कृपया कुछ क्षण रुककर पुनः प्रयास करें।</string>
     <string name="error_generic">कुछ गलत हो गया। पुनः प्रयास करें।</string>
+    <string name="error_message_too_long">आपका संदेश थोड़ा लंबा है (अधिकतम %1$d वर्ण)। कृपया इसे छोटा करके फिर से प्रयास करें।</string>
+    <string name="error_contact_email_invalid">कृपया एक मान्य ईमेल दर्ज करें ताकि हम उत्तर दे सकें।</string>
 
     <!-- Conversations screen -->
     <string name="conversations_title">बातचीत</string>
@@ -199,6 +202,12 @@
     <string name="feedback_send">भेजें</string>
     <string name="feedback_sending">प्रतिक्रिया भेजी जा रही है…</string>
     <string name="feedback_maintainer_notice">आपका संदेश ऐप के अनुरक्षक के साथ साझा किया जाएगा।</string>
+    <string name="feedback_reason_prompt">क्या गलत हुआ?</string>
+    <string name="feedback_reason_inaccurate">अशुद्ध</string>
+    <string name="feedback_reason_unhelpful">अनुपयोगी</string>
+    <string name="feedback_reason_wrong_verse">गलत पद</string>
+    <string name="feedback_reason_tone">लहजा</string>
+    <string name="feedback_reason_other">अन्य</string>
     <string name="backend_warming_up">सर्वर से जुड़ रहे हैं… (पहले अनुरोध में 30 सेकंड तक लग सकते हैं)</string>
     <string name="action_scroll_to_bottom">नीचे स्क्रॉल करें</string>
 
@@ -225,6 +234,11 @@
     <string name="church_finder_website">वेबसाइट</string>
     <string name="church_finder_email">ईमेल</string>
 
+    <!-- Language Switch Banner -->
+    <string name="language_switch_banner_text">लगता है आप %s में टाइप कर रहे हैं। ऐप की भाषा बदलें?</string>
+    <string name="language_switch_banner_switch">बदलें</string>
+    <string name="language_switch_banner_dismiss">भाषा सुझाव खारिज करें</string>
+
     <!-- Contact Form -->
     <string name="contact_section_title">संपर्क</string>
     <string name="contact_open_button">हमसे संपर्क करें</string>
@@ -236,7 +250,9 @@
     <string name="contact_subject_bug">बग रिपोर्ट</string>
     <string name="contact_subject_feature">फीचर अनुरोध</string>
     <string name="contact_subject_other">अन्य</string>
-    <string name="contact_email_label">आपका ईमेल (वैकल्पिक, उत्तर के लिए)</string>
+    <string name="contact_email_label">आपका ईमेल (हमारे उत्तर के लिए)</string>
+    <string name="contact_email_required">कृपया अपना ईमेल दर्ज करें ताकि हम उत्तर दे सकें</string>
+    <string name="contact_email_invalid">कृपया एक मान्य ईमेल पता दर्ज करें</string>
     <string name="contact_email_placeholder">aap@udaharan.com</string>
     <string name="contact_message_label">संदेश</string>
     <string name="contact_message_placeholder">अपने विचार साझा करें, कोई समस्या रिपोर्ट करें या सुधार सुझाएं…</string>

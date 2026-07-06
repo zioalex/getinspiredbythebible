@@ -3,6 +3,7 @@ package org.voxquieta.app.viewmodels
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.voxquieta.app.utils.isValidEmail
 
 /**
  * Documents and verifies the "submit-only touched" validation logic used in
@@ -99,6 +100,42 @@ class FormValidationTest {
     @Test
     fun `contact form - no error when message has content after submit attempt`() {
         assertFalse(fieldError(touched = true, value = "Hello pastor"))
+    }
+
+    // ── ContactForm / DiagnosticReport: required email field ──────────────────
+
+    @Test
+    fun `email - blank is invalid`() {
+        assertFalse(isValidEmail(""))
+        assertFalse(isValidEmail("   "))
+    }
+
+    @Test
+    fun `email - malformed addresses are invalid`() {
+        assertFalse(isValidEmail("x"))
+        assertFalse(isValidEmail("a@"))
+        assertFalse(isValidEmail("a@b"))
+        assertFalse(isValidEmail("@b.co"))
+        assertFalse(isValidEmail("a b@c.com"))
+    }
+
+    @Test
+    fun `email - well-formed address is valid (trimmed)`() {
+        assertTrue(isValidEmail("a@b.co"))
+        assertTrue(isValidEmail("user.name@example.com"))
+        assertTrue(isValidEmail("  user@example.com  "))
+    }
+
+    @Test
+    fun `contact form - submit gate requires both message and a valid email`() {
+        // Mirrors the composable's `formValid = messageValid && emailValid` gate:
+        // a present message with a missing/invalid email must NOT be submittable.
+        fun gate(message: String, email: String) = message.isNotBlank() && isValidEmail(email)
+
+        assertFalse(gate(message = "Hello", email = ""))
+        assertFalse(gate(message = "Hello", email = "not-an-email"))
+        assertFalse(gate(message = "", email = "a@b.co"))
+        assertTrue(gate(message = "Hello", email = "a@b.co"))
     }
 
     // ── Regression guard: remember (not rememberSaveable) resets on each open ──
