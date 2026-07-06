@@ -25,13 +25,13 @@ The `_IncludedRouter` 500 broke **only the browser CORS preflight** (`OPTIONS` w
 `Access-Control-Request-Method`). The actual `GET`/`POST` requests returned 200. Reproduced locally
 under the exact production pins:
 
-| Request                                              | Broken pin (0.61b0) | Fixed pin (0.64b0) |
-| ---------------------------------------------------- | ------------------- | ------------------ |
-| `OPTIONS /api/v1/chat/stream` (browser preflight)    | **500**             | 200                |
-| `POST /api/v1/chat/stream` (native app / curl)       | 200                 | 200                |
-| `GET /health/ready`                                  | 200                 | 200                |
+| Request                                           | Broken pin (0.61b0) | Fixed pin (0.64b0) |
+| ------------------------------------------------- | ------------------- | ------------------ |
+| `OPTIONS /api/v1/chat/stream` (browser preflight) | **500**             | 200                |
+| `POST /api/v1/chat/stream` (native app / curl)    | 200                 | 200                |
+| `GET /health/ready`                               | 200                 | 200                |
 
-Every existing safety net sends requests the *non-browser* way, so all of them stayed green:
+Every existing safety net sends requests the _non-browser_ way, so all of them stayed green:
 
 1. **Azure availability test** pings `GET /health/ready` (`deployment/main.tf:267-286`) → 200 → green.
 2. **`synthetic-chat` probe** (`scripts/monitor/synthetic_chat.py`, run by
@@ -40,7 +40,7 @@ Every existing safety net sends requests the *non-browser* way, so all of them s
    browser-only behavior.
 3. **`verse-search` probe** — same, a direct `GET`/`POST`.
 
-Net: the browser is the *only* client that broke, and **no probe ever behaves like a browser**, so
+Net: the browser is the _only_ client that broke, and **no probe ever behaves like a browser**, so
 `prod-monitor.yml` never failed, the `notify-telegram` action never fired, and Azure Monitor never
 alerted. The `android works good` observation during triage was the tell — native Android sends no
 preflight, so it was unaffected, exactly like every monitor.
@@ -49,7 +49,7 @@ A second, deeper gap: the crashing layer (`FastAPIInstrumentor.instrument_app`) 
 production**, gated on `APPLICATIONINSIGHTS_CONNECTION_STRING` (`api/main.py:266-273`). No unit or
 integration test sets that var, so the instrumented request path — the exact thing that failed —
 had zero automated coverage before this incident. (Closing the unit/CI half is tracked in the code
-fix; this story covers the *production* smoke + alert half.)
+fix; this story covers the _production_ smoke + alert half.)
 
 ## Acceptance Criteria
 
@@ -66,7 +66,7 @@ fix; this story covers the *production* smoke + alert half.)
       new `data-testid="assistant-message"`) — the full real journey: rendered frontend → real CORS
       preflight → instrumented API → streamed answer. Runs hourly via `.github/workflows/prod-browser-smoke.yml`,
       wired to `notify-telegram`. **Turnstile decision resolved — smoke-scoped bypass header:** a
-      *separate*, rotatable `smoke_probe_secret` (distinct from `monitor_probe_secret`) is injected into
+      _separate_, rotatable `smoke_probe_secret` (distinct from `monitor_probe_secret`) is injected into
       the CI browser at test time via `addInitScript` (never shipped in the bundle — verified); the
       deployed bundle only reads `window.__VOXQUIETA_SMOKE_SECRET__` (inert for real users) via
       `frontend/src/lib/smoke.ts`, and `getHeaders()` attaches `X-Monitor-Probe-Secret` +
@@ -84,9 +84,40 @@ availability web test + alert, the troubleshooting runbook note, and the full pr
 smoke test (`frontend/e2e/prod-chat-smoke.spec.ts` + `.github/workflows/prod-browser-smoke.yml`, with
 the `smoke_probe_secret` bypass wired through the backend + deploy).
 
-**Operational note:** set the `SMOKE_PROBE_SECRET` repo secret (and `TF_VAR_smoke_probe_secret` flows
-to the backend via `azure-deploy.yml`) to arm the browser smoke test; until then the scheduled job's
-test skips.
+## Setup — arming the browser smoke test (one-time)
+
+The browser smoke test is inert until `SMOKE_PROBE_SECRET` exists as a repo secret. Until then,
+`prod-chat-smoke.spec.ts` skips itself (`test.skip(!SMOKE_SECRET, ...)`) — the scheduled job still
+runs and reports "passed" (0 tests skipped, not a failure), it just doesn't exercise anything yet.
+
+1. **Generate a value** (any high-entropy random string works; this is a bearer-style shared secret,
+   not a signing key, so a plain random hex string is fine):
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. **Set it as a GitHub repo secret** (Settings → Secrets and variables → Actions → New repository
+   secret, or via the CLI):
+
+   ```bash
+   openssl rand -hex 32 | gh secret set SMOKE_PROBE_SECRET
+   ```
+
+3. **Redeploy** (or re-run `azure-deploy.yml`) so `TF_VAR_smoke_probe_secret` (already wired in
+   `azure-deploy.yml` from this same repo secret) reaches the backend container as
+   `SMOKE_PROBE_SECRET` and `settings.smoke_probe_secret` picks it up
+   (`api/config.py` / `api/utils/monitor_probe.py`). No Azure Key Vault step is needed — unlike the
+   Telegram bot token, this flows straight through a Container App secret (`deployment/main.tf`),
+   the same way `MONITOR_PROBE_SECRET` already does.
+4. **Verify:** trigger `.github/workflows/prod-browser-smoke.yml` manually (Actions → Prod Browser
+   Smoke → Run workflow). The job should now actually run the Chromium test (not skip) and report a
+   streamed assistant reply.
+
+Deliberately kept **separate** from `MONITOR_PROBE_SECRET` (used by the server-to-server probes in
+`prod-monitor.yml`) — this secret transits an ephemeral CI browser (injected via Playwright
+`addInitScript`, never present in the deployed bundle — verified), so it should be independently
+rotatable if it ever needs to be revoked without touching the other probes.
 
 ## Notes / Reuse
 
@@ -99,7 +130,7 @@ test skips.
   alert wiring in `deployment/monitoring.tf`. The Telegram bridge (`ops_email` action group +
   `logic_app_workflow.telegram_alert`, BITB-056) already reposts Azure alerts to Telegram.
 - Related: **BITB-055 / BITB-056 / BITB-057** — this is the same "make it loud" observability thread; the
-  new signal here is *browser-shaped* traffic, which none of those covered.
+  new signal here is _browser-shaped_ traffic, which none of those covered.
 
 ## Out of Scope
 

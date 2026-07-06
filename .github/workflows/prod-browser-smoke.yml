@@ -14,7 +14,15 @@ name: Prod Browser Smoke
 #
 # Required repo secrets:
 #   SMOKE_PROBE_SECRET   - matches settings.smoke_probe_secret in the backend
-#                          (wired via TF_VAR_smoke_probe_secret in azure-deploy.yml)
+#                          (wired via TF_VAR_smoke_probe_secret in azure-deploy.yml).
+#                          One-time setup (generate + set, then redeploy so the
+#                          backend picks it up):
+#                            openssl rand -hex 32 | gh secret set SMOKE_PROBE_SECRET
+#                          Deliberately a SEPARATE secret from MONITOR_PROBE_SECRET —
+#                          this one transits an ephemeral CI browser (injected via
+#                          Playwright addInitScript, never shipped in the bundle),
+#                          so keep it independently rotatable. Until it's set, the
+#                          test in prod-chat-smoke.spec.ts skips (no failure).
 #   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID - alert delivery (shared with prod-monitor)
 #
 # Manual run: Actions → Prod Browser Smoke → Run workflow (+ force_alert to test Telegram).
