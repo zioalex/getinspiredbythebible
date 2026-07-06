@@ -1062,3 +1062,46 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_asgi_exceptio
 
   tags = local.tags
 }
+
+# Frontend client-error spike (BITB-066). The web frontend reports JS/render/API
+# errors to /api/v1/client-errors, which emits the client.errors_total metric.
+# A spike means many real browsers are failing at once (e.g. a browser-only
+# outage the backend request path can't see) — the client-side complement to the
+# backend catch-all alerts. Threshold is deliberately a spike, not per-error, so
+# individual users' transient network blips don't page; tune once a baseline
+# exists.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_errors" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-frontend-client-errors"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "More than 20 client-side error reports (client.errors_total) received in the last 10 minutes — a spike of browser-side JS/render/API failures, e.g. a browser-only outage. Emitted by the frontend error reporter (BITB-066)."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "client.errors_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 20
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}

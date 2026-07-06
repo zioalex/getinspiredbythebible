@@ -2,6 +2,8 @@
  * API client for Bible Chat backend
  */
 
+import { reportClientError } from "./clientErrorReporter";
+
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -494,6 +496,9 @@ export async function sendMessage(
       if (response.status === 503 || response.status === 502) {
         throw new ColdStartError("Backend is starting up");
       }
+      // Unexpected non-2xx (not one of the handled/expected statuses above):
+      // report so a systemic backend failure is observable client-side.
+      reportClientError("api_failure", `sendMessage HTTP ${response.status}`);
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -507,6 +512,10 @@ export async function sendMessage(
       error instanceof TypeError ||
       (error instanceof DOMException && error.name === "AbortError")
     ) {
+      // A network TypeError ("Failed to fetch") is also how a CORS-blocked
+      // preflight surfaces to JS — the exact browser-only signature we now
+      // want visibility into.
+      reportClientError("api_failure", `sendMessage network: ${String(error)}`);
       throw new ColdStartError("Backend is warming up, please wait...");
     }
     throw error;
@@ -658,6 +667,7 @@ export async function* streamMessage(
         throw new MessageTooLongError();
       }
     }
+    reportClientError("api_failure", `streamMessage HTTP ${response.status}`);
     throw new Error(`API error: ${response.status}`);
   }
 

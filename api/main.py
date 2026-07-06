@@ -33,6 +33,7 @@ if _appinsights_conn:
 from fastapi import Depends, FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
 
 from config import settings  # noqa: E402
 from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
@@ -49,8 +50,10 @@ from routes import (  # noqa: E402
 from scripture import check_translation_coverage, close_db, init_db  # noqa: E402
 from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
+from utils.metrics import client_errors_counter  # noqa: E402
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
 from utils.metrics import translation_data_missing_counter  # noqa: E402
+from utils.security import require_rate_limit  # noqa: E402
 
 # Configure logging before anything else
 setup_logging()
@@ -356,10 +359,53 @@ async def get_config():
     }
 
 
-@app.post("/api/v1/client-errors", include_in_schema=False)
-async def report_client_error(request: Request):
-    """Receive client-side error reports (Turnstile failures, etc.)."""
-    body = await request.json()
+# Client-error report types the frontend may send. Keeping this a bounded set
+# controls the cardinality of the client.errors_total metric's `type` label;
+# anything else collapses to "other".
+_CLIENT_ERROR_TYPES = {
+    "window_onerror",
+    "unhandledrejection",
+    "api_failure",
+    "react_render",
+}
+
+
+class ClientErrorReport(BaseModel):
+    """Body for POST /api/v1/client-errors. `detail` is truncated server-side."""
+
+    type: str = Field(default="unknown", max_length=64)
+    detail: str = Field(default="", max_length=4096)
+
+
+def _normalize_client_error_type(raw: str) -> str:
+    """Collapse the reported type to a bounded metric label (Turnstile reports
+    prefix their type with `turnstile_`)."""
+    if raw in _CLIENT_ERROR_TYPES:
+        return raw
+    if raw.startswith("turnstile"):
+        return "turnstile"
+    return "other"
+
+
+@app.post(
+    "/api/v1/client-errors",
+    include_in_schema=False,
+    dependencies=[Depends(require_rate_limit)],
+)
+async def report_client_error(report: ClientErrorReport, request: Request):
+    """Receive client-side error reports (JS/render/API failures, Turnstile).
+
+    Records the client.errors_total metric so a spike (e.g. a browser-only
+    outage) alerts, and logs a bounded warning. Gated by
+    client_error_reporting_enabled; rate-limited via the shared dependency.
+    """
+    if not settings.client_error_reporting_enabled:
+        return {"status": "disabled"}
+
+    metric_type = _normalize_client_error_type(report.type)
+    client_errors_counter.add(1, {"type": metric_type})
+
+    detail = report.detail[: settings.client_error_max_detail_chars]
     client_ip = request.headers.get(
         "CF-Connecting-IP",
         request.headers.get(
@@ -368,11 +414,12 @@ async def report_client_error(request: Request):
     )
     logger.warning(
         "Client error report: %s — %s",
-        body.get("type", "unknown"),
-        body.get("detail", ""),
+        report.type,
+        detail,
         extra={
-            "error_type": body.get("type"),
-            "error_detail": body.get("detail"),
+            "error_type": report.type,
+            "error_metric_type": metric_type,
+            "error_detail": detail,
             "user_agent": request.headers.get("user-agent"),
             "ip": client_ip,
         },

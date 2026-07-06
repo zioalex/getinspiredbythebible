@@ -8,6 +8,7 @@ import {
   setTurnstileAwaiter,
 } from "@/lib/api";
 import { useTurnstile } from "@/lib/turnstile";
+import { reportClientError } from "@/lib/clientErrorReporter";
 import { SplashScreen } from "@/components/SplashScreen";
 
 function hasSplashCookie(): boolean {
@@ -42,6 +43,29 @@ function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
     setTurnstileAwaiter(awaitToken);
     return () => setTurnstileAwaiter(null);
   }, [awaitToken]);
+
+  // Global client-error reporting (BITB-066): surface uncaught JS errors and
+  // unhandled promise rejections to the backend so a browser-side outage is
+  // observable. Registered once for the app lifetime.
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => {
+      const detail = e.error?.stack || e.message || String(e.error ?? "unknown");
+      reportClientError("window_onerror", detail);
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const reason = e.reason;
+      const detail =
+        (reason instanceof Error ? reason.stack || reason.message : String(reason)) ||
+        "unknown";
+      reportClientError("unhandledrejection", detail);
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
 
   return <>{children}</>;
 }

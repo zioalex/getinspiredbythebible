@@ -1,6 +1,6 @@
 # BITB-066: Frontend Error Observability
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (delivered on the PR #824 branch, reuse-endpoint approach)
 **Priority:** P1 (High) — the web frontend has **no** general client-side error telemetry, so
 user-facing failures (including the 2026-07-05 outage) are invisible to the operator.
 **Size:** M (frontend reporter + backend metric/alert + middleware tweak)
@@ -32,25 +32,30 @@ An audit found the web frontend has **essentially zero** client-side error obser
 
 Contrast: Android has Firebase Crashlytics fully wired. The web asymmetry is the gap.
 
-## Acceptance Criteria
+## Acceptance Criteria (all delivered)
 
-- [ ] **Generalize the existing reporter.** Extend the `reportTurnstileError` → `/api/v1/client-errors`
-      pattern into a small global client-error reporter: a `window.onerror` +
-      `window.addEventListener("unhandledrejection", …)` handler and an `api.ts` failure hook, each
-      POSTing a structured `{type, detail}` to `/api/v1/client-errors`. Must be **sampled / rate-limited**
-      and fire-and-forget (never block the UI, never loop on its own failure), and must scrub PII from
-      `detail`.
-- [ ] **Make the endpoint alertable.** Have `/api/v1/client-errors` emit a custom metric (e.g.
-      `client.errors_total` with a `type` attribute) in addition to the current `logger.warning`, and
-      add a scheduled-query alert on a spike (mirror the `scripture_pipeline_errors` rule in
-      `deployment/monitoring.tf`). A storm of `Failed to fetch` from real browsers then pages us even
-      when backend telemetry is blind (as it was for the preflight crash).
-- [ ] **Stop dropping preflight failures server-side.** Make `AccessAuditMiddleware` count (or at least
-      not silently skip) `OPTIONS` 5xx, so a preflight failure is observable server-side too.
-- [ ] **Wire the App Router error routes.** Add `error.tsx` / `global-error.tsx` that report to the
-      same sink (not just render), so render-time crashes are captured.
+- [x] **Generalized reporter.** `frontend/src/lib/clientErrorReporter.ts` — global `window.onerror` +
+      `unhandledrejection` handlers (registered in `providers.tsx`), an `api.ts` failure hook (at the
+      generic non-2xx fallbacks + the network-`TypeError` catch in `sendMessage`/`streamMessage`), all
+      POSTing `{type, detail}` to `/api/v1/client-errors`. **Fire-and-forget** (never throws),
+      **PII-scrubbed** (`scrubPII`), and **capped/deduped** (≤10/session). Unit-tested (10 tests).
+- [x] **Alertable endpoint.** `/api/v1/client-errors` now validates a Pydantic model, caps `detail`,
+      is rate-limited, gated on `client_error_reporting_enabled`, and emits `client.errors_total`
+      (bounded `type` label). New `frontend_client_errors` spike alert (>20/10m, Sev 2) in
+      `deployment/monitoring.tf`.
+- [x] **Preflight failures observed server-side.** `AccessAuditMiddleware` now captures the `OPTIONS`
+      response and emits `api.preflight_errors_total` + a warning on a 5xx (still passes the response
+      through untouched).
+- [x] **App Router error route.** Added `frontend/src/app/global-error.tsx` (reports + renders) and
+      report from `ErrorBoundary.componentDidCatch`.
 
-## Open Decision — mechanism
+## Decision (resolved) — mechanism
+
+**Reuse the existing `/api/v1/client-errors` endpoint** (no new dependency, no third-party data
+sharing). A RUM SDK (App Insights JS / Sentry) remains a future option if richer client telemetry
+(source-mapped stack traces, sessions) is later needed.
+
+## Original open-decision note (superseded)
 
 Reuse the existing `/api/v1/client-errors` endpoint (no new dependency, no third-party data sharing,
 privacy-friendly) **vs.** adopt a full RUM SDK (Application Insights JS or Sentry) for richer client

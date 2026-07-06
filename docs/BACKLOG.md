@@ -241,9 +241,9 @@ records no `requests` row either (it dies before the span starts), so the reliab
 
 ---
 
-### 🎯 BITB-066: Frontend Error Observability
+### ✅ BITB-066: Frontend Error Observability
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (delivered on the PR #824 branch, reuse-endpoint approach)
 **Size:** M (frontend reporter + backend metric/alert + middleware tweak)
 **Created:** 2026-07-05
 
@@ -251,17 +251,17 @@ records no `requests` row either (it dies before the span starts), so the reliab
 rejections, API/network failures) and alert on spikes, **so that** browser-only failures are visible
 from the client — the way Android already reports via Firebase Crashlytics.
 
-**Why P1:** The web frontend has **no** general client-side error telemetry — the `ErrorBoundary` only
-`console.error`s, API failures are swallowed, and the only sink (`/api/v1/client-errors`) is used
-solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and is reported nowhere.
+**Why P1:** The web frontend had **no** general client-side error telemetry — the `ErrorBoundary` only
+`console.error`d, API failures were swallowed, and the only sink (`/api/v1/client-errors`) was used
+solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and was reported nowhere.
 
-**Acceptance Criteria (summary — full story has detail):**
+**Acceptance Criteria (all delivered):**
 
-- [ ] Generalize the `reportTurnstileError` → `/api/v1/client-errors` pattern into a global
-      `window.onerror`/`unhandledrejection` + `api.ts` failure hook (sampled, PII-scrubbed)
-- [ ] `/api/v1/client-errors` emits a metric + a spike alert; `error.tsx`/`global-error.tsx` report too
-- [ ] `AccessAuditMiddleware` stops silently skipping `OPTIONS` 5xx
-- [ ] Open decision: reuse endpoint vs. adopt a RUM SDK (App Insights JS / Sentry)
+- [x] `clientErrorReporter.ts` (fire-and-forget, PII-scrubbed, capped/deduped) + global
+      `window.onerror`/`unhandledrejection` handlers + `api.ts` failure hook + `ErrorBoundary` + `global-error.tsx`
+- [x] `/api/v1/client-errors` hardened (model, cap, rate-limit, flag) + `client.errors_total` metric + spike alert
+- [x] `AccessAuditMiddleware` emits `api.preflight_errors_total` on `OPTIONS` 5xx
+- [x] Mechanism decision resolved: reuse the existing endpoint (RUM SDK deferred)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-066-frontend-error-observability.md`
 

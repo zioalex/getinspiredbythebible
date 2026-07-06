@@ -237,6 +237,13 @@ class Settings(BaseSettings):
     # X-Monitor-Probe-Secret header. Leave None/empty to disable bypass.
     monitor_probe_secret: str | None = None
 
+    # Client-side error reporting (BITB-066). The frontend POSTs JS/render/API
+    # errors to /api/v1/client-errors; the endpoint records a metric so a spike
+    # (e.g. a browser-only outage) alerts. Cap the free-text detail to bound
+    # log/metric size and abuse.
+    client_error_reporting_enabled: bool = True
+    client_error_max_detail_chars: int = 500
+
     # Azure Content Safety Settings
     azure_content_safety_enabled: bool = False  # Enable Azure Content Safety API
     azure_content_safety_endpoint: str | None = None  # Azure endpoint URL
