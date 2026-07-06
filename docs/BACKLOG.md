@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-05
+**Last Updated:** 2026-07-06
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -182,9 +182,9 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
+### 🚧 BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 
-**Status:** 🎯 Todo — follow-up from the 2026-07-05 `_IncludedRouter` 500 incident
+**Status:** 🚧 In progress — scripted cross-origin smoke probe **delivered**; full browser smoke test open
 **Size:** M (one new synthetic probe + Telegram wiring; optional Azure availability test)
 **Created:** 2026-07-05
 
@@ -202,13 +202,68 @@ same reason native Android kept working.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] New CORS-preflight synthetic probe (`OPTIONS /api/v1/chat/stream` with `Origin` +
-      `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers
-- [ ] Wired into `prod-monitor.yml` on the 5-min schedule via the shared `notify-telegram` action
+- [x] New CORS-preflight synthetic probe (`OPTIONS /api/v1/chat/stream` with `Origin` +
+      `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers,
+      plus a cross-origin POST asserting a streamed answer (`scripts/monitor/synthetic_preflight.py`)
+- [x] Wired into `prod-monitor.yml` as the `cross-origin-smoke` job on the 5-min schedule via `notify-telegram`
+- [ ] Full production **browser** smoke test (Playwright vs voxquieta.org, submits a chat + asserts a
+      streamed reply); open Turnstile-in-automation decision
 - [ ] (Recommended) Azure availability test parity so the always-on path also alerts
 - [ ] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
+
+---
+
+### ✅ BITB-065: Backend Catch-All Error Alerting — HTTP 5xx, Unhandled & ASGI-Layer Exceptions
+
+**Status:** ✅ Done (delivered on the PR #824 branch)
+**Size:** S (three Terraform scheduled-query alerts)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** an alert whenever the backend returns HTTP 5xx or throws an unhandled /
+ASGI-layer exception, **so that** a server-side outage pages me regardless of which subsystem broke.
+
+**Why P1:** Of 17 pre-existing alerts, **none** watched backend 5xx or the App Insights
+`requests`/`exceptions` tables — the generic 5xx KQL lived only in a passive workbook. The
+`_IncludedRouter` 500 fell through because it is not a DB metric, not a custom counter, and (being a
+crash *above* the app in the OTel middleware) produced no `| ERROR |` log line. Nuance: that crash
+records no `requests` row either (it dies before the span starts), so the reliable signal is the
+`uvicorn` "Exception in ASGI application" console line — hence a log-based rule alongside the table ones.
+
+**Acceptance Criteria:**
+
+- [x] `backend_5xx_rate` (App Insights `requests`, Sev 1), `backend_unhandled_exceptions` (App Insights
+      `exceptions`, Sev 2), `backend_asgi_exceptions` (console logs "Exception in ASGI application", Sev 1)
+- [x] All reuse the `ops_email` action group + `local.alerts_enabled` gating (email + Telegram)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-065-backend-catchall-error-alerting.md`
+
+---
+
+### 🎯 BITB-066: Frontend Error Observability
+
+**Status:** 🎯 Todo
+**Size:** M (frontend reporter + backend metric/alert + middleware tweak)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** the web frontend to report client-side errors (JS exceptions, unhandled
+rejections, API/network failures) and alert on spikes, **so that** browser-only failures are visible
+from the client — the way Android already reports via Firebase Crashlytics.
+
+**Why P1:** The web frontend has **no** general client-side error telemetry — the `ErrorBoundary` only
+`console.error`s, API failures are swallowed, and the only sink (`/api/v1/client-errors`) is used
+solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and is reported nowhere.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Generalize the `reportTurnstileError` → `/api/v1/client-errors` pattern into a global
+      `window.onerror`/`unhandledrejection` + `api.ts` failure hook (sampled, PII-scrubbed)
+- [ ] `/api/v1/client-errors` emits a metric + a spike alert; `error.tsx`/`global-error.tsx` report too
+- [ ] `AccessAuditMiddleware` stops silently skipping `OPTIONS` 5xx
+- [ ] Open decision: reuse endpoint vs. adopt a RUM SDK (App Insights JS / Sentry)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-066-frontend-error-observability.md`
 
 ---
 

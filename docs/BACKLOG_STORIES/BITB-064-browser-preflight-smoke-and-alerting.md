@@ -1,6 +1,7 @@
 # BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 
-**Status:** 🎯 Todo (follow-up carved out of the 2026-07-05 `_IncludedRouter` 500 incident)
+**Status:** 🚧 In progress — scripted cross-origin smoke probe **delivered**; full production
+**browser** smoke test (real Chromium journey) remains open.
 **Priority:** P1 (High) — a total browser-facing chat outage shipped to production and **no monitor,
 alert, or Telegram notification fired**; only a user report surfaced it.
 **Size:** M (1-2 days — one new synthetic probe + wiring; optional Azure availability test)
@@ -52,22 +53,33 @@ fix; this story covers the *production* smoke + alert half.)
 
 ## Acceptance Criteria
 
-- [ ] **Browser-preflight synthetic probe.** New probe (e.g. `scripts/monitor/synthetic_preflight.py`)
-      sends a real cross-origin CORS preflight to a representative included-router route — at minimum
-      `OPTIONS /api/v1/chat/stream` with `Origin: https://voxquieta.org`,
+- [x] **Browser-preflight synthetic probe.** `scripts/monitor/synthetic_preflight.py` sends a real
+      cross-origin CORS preflight to `OPTIONS /api/v1/chat/stream` with `Origin: https://voxquieta.org`,
       `Access-Control-Request-Method: POST`, `Access-Control-Request-Headers: content-type,x-turnstile-token`
-      (mirror the failing request from the incident) — and **asserts 2xx/204 AND the presence of the
-      expected `Access-Control-Allow-Origin` / `Access-Control-Allow-Methods` headers**. It fails on
-      the 500 this incident produced.
-- [ ] **Wired into `prod-monitor.yml`** as its own job on the existing `*/5 * * * *` schedule, using
-      the shared `./.github/actions/notify-telegram` action so a failure pages the same Telegram chat
-      as the other probes. Reuse the existing state-branch / de-dup mechanism the other jobs use.
+      and **asserts 2xx/204 AND the `Access-Control-Allow-Origin` / `Access-Control-Allow-Methods`
+      headers**, then a cross-origin POST (Origin + probe secret) asserting a streamed answer. It fails
+      on the 500 this incident produced (verified against the broken vs fixed OTel pins).
+- [x] **Wired into `prod-monitor.yml`** as the `cross-origin-smoke` job on the `*/5 * * * *` schedule,
+      using the shared `./.github/actions/notify-telegram` action.
+- [ ] **Full production browser smoke test (open).** Complete the incomplete Playwright spec so it
+      actually **submits a chat and asserts a streamed assistant reply** (today `turnstile-ready.spec.ts`
+      stops at asserting the user's own text), then run it on a schedule against
+      `PLAYWRIGHT_BASE_URL=https://voxquieta.org` via the pre-installed Chromium. This is the only test
+      that exercises the *full* real journey: rendered frontend → real CORS preflight → instrumented
+      API → streamed answer. **Open decision — Turnstile in automation:** (a) a smoke-scoped bypass
+      header (frontend attaches the monitor-probe-secret when a smoke secret is present, so only
+      Turnstile *verification* is bypassed) vs. (b) a staging deploy with Cloudflare Turnstile **test
+      keys** (always-pass). Resolve when scheduled.
 - [ ] **(Recommended) Azure availability test parity.** Add a second `azurerm_application_insights_web_test`
       (or upgrade the existing one) that issues the CORS preflight, so the always-on Azure-native path
       also alerts — not just the 5-min GitHub cron. *If cost/complexity is a concern, the GitHub probe
       alone satisfies the story; note the decision.*
 - [ ] **Runbook note** in `docs/TROUBLESHOOTING.md`: "browser 500 but native app / curl fine" ⇒ suspect
       the CORS-preflight / OTel-instrumentation path and a FastAPI-vs-instrumentation version skew.
+
+**Delivered in PR #824 branch:** the scripted `cross-origin-smoke` probe (`scripts/monitor/synthetic_preflight.py`
++ `prod-monitor.yml` job). Remaining: the full browser smoke test, the Azure web-test parity, and the
+runbook note.
 
 ## Notes / Reuse
 
