@@ -203,6 +203,7 @@ export default function ChatMessage({
 
   return (
     <div
+      data-testid={isUser ? "user-message" : "assistant-message"}
       className={`flex gap-2 sm:gap-4 message-enter ${isUser ? "justify-end" : "justify-start"}`}
     >
       {!isUser && (
