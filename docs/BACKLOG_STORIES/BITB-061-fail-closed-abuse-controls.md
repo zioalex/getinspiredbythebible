@@ -65,6 +65,7 @@ the cooldown elapses.
       config/.env.example divergence from audit D6 resolved for these keys).
 
 **Implemented 2026-07-07:**
+
 - `_check_stage2_llama_guard` no longer returns `None` (→ allow-all) when the Llama Guard
   provider isn't configured; it now degrades to `_full_keyword_fallback` like every other
   branch (`api/utils/content_safety.py`).
