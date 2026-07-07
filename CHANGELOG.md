@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.40.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.1...v1.40.0) (2026-07-07)
 
-
 ### Features
 
 * **observability:** browser smoke test + backend/frontend error alerting (BITB-064/065/066) ([#839](https://github.com/zioalex/getinspiredbythebible/issues/839)) ([039c741](https://github.com/zioalex/getinspiredbythebible/commit/039c741c1d6de81886c7a3c9bcc17b005d42647c))
-
 
 ### Bug Fixes
 
