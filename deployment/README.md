@@ -1066,8 +1066,14 @@ terraform output domain_verification_id
 
 ## Rollback: Emergency Cert Rebind
 
-If a deployment breaks custom domain HTTPS (e.g. Error 526), use
-these commands to manually fix without waiting for a full CI/CD cycle:
+If a deployment breaks custom domain HTTPS (Cloudflare **525** SSL Handshake Failed or **526**
+Invalid SSL certificate), use these commands to manually fix without waiting for a full CI/CD cycle.
+
+**Most common cause:** a Terraform apply **replaced** a Container App (e.g. `backend_secret_trigger`
+fires when a probe/API secret is rotated). The recreated app loses its imperatively-bound custom
+domain + certificate. Since the 2026-07-07 incident the rebind provisioners also key on
+`terraform_data.backend_secret_trigger.id`, so the *same apply* re-binds automatically — this manual
+runbook remains for older states and any other path that drops the binding.
 
 ```bash
 # Variables — adjust for your environment
@@ -1075,6 +1081,11 @@ ENV_NAME="bible-app-env"
 RG="bible-app-rg"
 FRONTEND_APP="bible-app-frontend"
 BACKEND_APP="bible-app-backend"
+
+# 0. If the app was REPLACED, the hostname itself is gone too — re-add it first
+#    (idempotent; errors harmlessly if already attached)
+az containerapp hostname add --name $BACKEND_APP --resource-group $RG \
+  --hostname api.voxquieta.org || true
 
 # 1. Upload the certificate (if not already present)
 az containerapp env certificate upload \
