@@ -55,6 +55,14 @@ Provide your safety assessment for the above conversation:
 """
 
 
+class LlamaGuardResponseError(Exception):
+    """Raised when the Llama Guard API returns an empty or malformed response body."""
+
+    def __init__(self, message: str, reason: str = "malformed_response"):
+        super().__init__(message)
+        self.reason = reason
+
+
 class LlamaGuardProvider:
     """
     Llama Guard 3 content safety provider via OpenRouter.
@@ -106,12 +114,15 @@ class LlamaGuardProvider:
 
         Returns:
             Tuple of (is_safe, violated_categories)
-        """
-        lines = response_text.strip().split("\n")
-        if not lines:
-            logger.warning("Empty Llama Guard response, treating as safe")
-            return True, []
 
+        Raises:
+            LlamaGuardResponseError: If the response body is empty/blank.
+        """
+        stripped = response_text.strip()
+        if not stripped:
+            raise LlamaGuardResponseError("Empty Llama Guard response", reason="empty_response")
+
+        lines = stripped.split("\n")
         first_line = lines[0].strip().lower()
         is_safe = first_line == "safe"
 
@@ -204,6 +215,7 @@ class LlamaGuardProvider:
             CircuitOpenError: If breaker is open (caller should use fallback immediately)
             httpx.HTTPError: If API call fails
             httpx.TimeoutException: If API call times out
+            LlamaGuardResponseError: If the response body is empty or malformed
         """
         text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
 
@@ -234,7 +246,18 @@ class LlamaGuardProvider:
                 data = response.json()
 
                 # Extract response text
-                response_text = data["choices"][0]["message"]["content"]
+                try:
+                    response_text = data["choices"][0]["message"]["content"]
+                except (KeyError, IndexError, TypeError) as e:
+                    self._breaker.record_failure()
+                    logger.warning(
+                        "Llama Guard API returned malformed response shape",
+                        extra={"text_hash": text_hash, "error": str(e)},
+                    )
+                    raise LlamaGuardResponseError(
+                        f"Malformed Llama Guard response shape: {e}",
+                        reason="malformed_response",
+                    ) from e
 
                 # Log API call
                 logger.debug(
@@ -248,7 +271,15 @@ class LlamaGuardProvider:
                 )
 
                 # Parse response
-                is_safe, violated_categories = self._parse_llama_guard_response(response_text)
+                try:
+                    is_safe, violated_categories = self._parse_llama_guard_response(response_text)
+                except LlamaGuardResponseError:
+                    self._breaker.record_failure()
+                    logger.warning(
+                        "Llama Guard returned an empty response",
+                        extra={"text_hash": text_hash},
+                    )
+                    raise
 
                 self._breaker.record_success()
                 # Map to result

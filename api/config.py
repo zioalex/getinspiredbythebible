@@ -264,7 +264,7 @@ class Settings(BaseSettings):
     #                  Best balance of accuracy and cost (free tier available).
     #   hybrid       — Stage 1 + Stage 2 (OpenAI Moderation) + Stage 3 (Azure Content Safety).
     #                  Maximum accuracy, requires Azure Content Safety resource.
-    content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
+    content_safety_enabled: bool = True  # Master switch (matches Terraform prod default)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
 
     # Llama Guard Settings

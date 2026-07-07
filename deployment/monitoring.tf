@@ -55,6 +55,12 @@
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
 #       degrades to verse-less responses silently while this persists.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_rate (BITB-061)
+#       Fires when any content-safety provider (Llama Guard, OpenAI Moderation, Azure)
+#       degrades to the local keyword-only filter (utils/content_safety.py). The
+#       keyword filter still blocks/allows correctly, but this is the only signal
+#       that the ML-backed safety net is temporarily degraded for a crisis-sensitive
+#       product.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -1088,6 +1094,49 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
       | where name == "client.errors_total"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 20
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Content safety fallback alert (BITB-061).
+# Fires when the content_safety.fallback_total custom metric records any
+# provider-unavailable or provider-failure event (utils/content_safety.py).
+# Every fallback branch already degrades safely to the local keyword-only
+# filter (never to allow-all), but for a pastoral-care product screening
+# self-harm/violence content, a degraded ML safety net is itself an
+# operator-actionable signal, not just a resilience detail.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-content-safety-fallback-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Content safety provider (Llama Guard / OpenAI Moderation / Azure) degraded to keyword-only fallback (content_safety.fallback_total metric) in the last 10 minutes — see utils/content_safety.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "content_safety.fallback_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

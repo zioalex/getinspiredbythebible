@@ -265,3 +265,12 @@ preflight_errors_counter = meter.create_counter(
     description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",
     unit="1",
 )  # attributes: status, path
+
+content_safety_fallback_counter = meter.create_counter(
+    name="content_safety.fallback_total",
+    description=(
+        "Count of content-safety provider unavailability/failure events that degraded to the "
+        "local keyword-only filter instead of allowing the message through unchecked"
+    ),
+    unit="1",
+)  # attributes: stage (llama_guard|openai_moderation|azure), reason

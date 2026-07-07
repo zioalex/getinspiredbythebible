@@ -299,6 +299,51 @@ async def test_http_error_raised():
 
 
 @pytest.mark.asyncio
+async def test_empty_response_raises_not_safe():
+    """An empty response body must raise, NOT be treated as 'safe' (BITB-061 O2)."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+    mock_response = make_llama_guard_response("   ")
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError) as exc_info:
+            await provider.analyze_text("test message", "en")
+
+        assert exc_info.value.reason == "empty_response"
+        # An empty/malformed response must count as a breaker failure so a
+        # persistently misbehaving provider eventually trips to fail-closed.
+        assert provider._breaker._consecutive_failures == 1
+
+
+@pytest.mark.asyncio
+async def test_malformed_response_shape_raises():
+    """A response missing the expected choices/message/content shape must raise,
+    not crash with an uncaught KeyError/IndexError."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = {"choices": []}  # missing [0]
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError) as exc_info:
+            await provider.analyze_text("test message", "en")
+
+        assert exc_info.value.reason == "malformed_response"
+
+
+@pytest.mark.asyncio
 async def test_uses_openrouter_key():
     """Should accept OpenRouter API key."""
     provider = LlamaGuardProvider(api_key="sk-or-v1-test123", threshold=0.5)
