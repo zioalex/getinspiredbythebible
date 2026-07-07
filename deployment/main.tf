@@ -840,6 +840,13 @@ resource "null_resource" "backend_custom_domain" {
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     cert_hash      = var.cloudflare_origin_cert_hash
+    # When backend_secret_trigger forces a REPLACEMENT of the backend app
+    # (secret rotation), the recreated app loses its imperatively-bound custom
+    # domain + certificate — the app *name* above doesn't change, so nothing
+    # re-ran and prod served Cloudflare 525 (2026-07-07 incident). terraform_data
+    # gets a fresh id on each replacement, so keying on it re-runs this
+    # provisioner in the same apply.
+    secret_trigger = terraform_data.backend_secret_trigger.id
   }
 
   provisioner "local-exec" {
@@ -999,6 +1006,9 @@ resource "null_resource" "backend_ssl_cert_bind" {
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
+    # Re-run the cert bind whenever the backend app is replaced by a secret
+    # rotation (see backend_custom_domain trigger comment — 525 incident).
+    secret_trigger = terraform_data.backend_secret_trigger.id
   }
 
   provisioner "local-exec" {
