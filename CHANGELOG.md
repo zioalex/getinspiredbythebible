@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.40.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.1...v1.40.0) (2026-07-07)
+
+### Features
+
+* **observability:** browser smoke test + backend/frontend error alerting (BITB-064/065/066) ([#839](https://github.com/zioalex/getinspiredbythebible/issues/839)) ([039c741](https://github.com/zioalex/getinspiredbythebible/commit/039c741c1d6de81886c7a3c9bcc17b005d42647c))
+
+### Bug Fixes
+
+* **deploy:** rebind custom domain + origin cert when the backend app is replaced ([#842](https://github.com/zioalex/getinspiredbythebible/issues/842)) ([25faa10](https://github.com/zioalex/getinspiredbythebible/commit/25faa10a1a90242b558c0b2e2b644f9e3f4bb29d))
+
 ## [1.39.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.0...v1.39.1) (2026-07-05)
 
 ### Bug Fixes
