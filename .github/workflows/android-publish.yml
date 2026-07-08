@@ -225,6 +225,58 @@ jobs:
             -PversionName="${{ steps.version.outputs.version_name }}" \
             -PbaseUrl="https://api.voxquieta.org/"
 
+      - name: Verify 16 KB native library alignment
+        # Fail BEFORE uploading (which burns a versionCode) if any 64-bit native
+        # library isn't 16 KB page-size compliant. Google Play rejects such AABs
+        # with "Your app does not support 16 KB memory page sizes". Every LOAD
+        # segment of each 64-bit .so must have ELF alignment >= 16384 (0x4000).
+        # 32-bit ABIs are exempt. On FAIL, the printed library name identifies the
+        # owning dependency to bump to a 16 KB-built release.
+        working-directory: android
+        run: |
+          set -euo pipefail
+          AAB="app/build/outputs/bundle/release/app-release.aab"
+          WORK="$(mktemp -d)"
+          unzip -q "$AAB" -d "$WORK"
+          fail=0
+          checked=0
+          while IFS= read -r so; do
+            abi="$(basename "$(dirname "$so")")"
+            case "$abi" in
+              arm64-v8a|x86_64|riscv64) : ;;                 # 64-bit: must be 16 KB aligned
+              *) echo "skip  $abi/$(basename "$so") (32-bit ABI, exempt)"; continue ;;
+            esac
+            checked=1
+            # Minimum ELF Align (last column) across all LOAD program headers.
+            # bash arithmetic parses the 0x-prefixed hex values readelf prints.
+            min=0
+            while read -r a; do
+              dec=$(( a ))
+              if [ "$min" -eq 0 ] || [ "$dec" -lt "$min" ]; then min=$dec; fi
+            done < <(readelf -lW "$so" | awk '$1=="LOAD"{print $NF}')
+            if [ "$min" -eq 0 ]; then
+              echo "WARN  $abi/$(basename "$so"): no LOAD segments found"
+              continue
+            fi
+            if [ "$min" -ge 16384 ]; then
+              echo "ok    $abi/$(basename "$so") (align=$min)"
+            else
+              echo "FAIL  $abi/$(basename "$so") (align=$min < 16384)"
+              fail=1
+            fi
+          done < <(find "$WORK/base/lib" -name '*.so' 2>/dev/null | sort)
+          rm -rf "$WORK"
+          if [ "$checked" -eq 0 ]; then
+            echo "No 64-bit native libraries in the bundle — 16 KB check trivially passes."
+            exit 0
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::A 64-bit native library is not 16 KB aligned (see FAIL lines)." \
+                 "Bump the owning dependency to a 16 KB-built release before publishing."
+            exit 1
+          fi
+          echo "All 64-bit native libraries are 16 KB aligned."
+
       - name: Set up Ruby for Fastlane
         uses: ruby/setup-ruby@v1
         with:
