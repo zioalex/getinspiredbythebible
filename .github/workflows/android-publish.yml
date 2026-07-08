@@ -271,7 +271,8 @@ jobs:
             exit 0
           fi
           if [ "$fail" -ne 0 ]; then
-            echo "::error::A 64-bit native library is not 16 KB aligned (see FAIL lines). Bump the owning dependency to a 16 KB-built release before publishing."
+            echo "::error::A 64-bit native library is not 16 KB aligned (see FAIL lines)." \
+                 "Bump the owning dependency to a 16 KB-built release before publishing."
             exit 1
           fi
           echo "All 64-bit native libraries are 16 KB aligned."
