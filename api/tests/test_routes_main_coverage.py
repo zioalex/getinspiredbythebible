@@ -728,6 +728,7 @@ class TestChatRoutes:
         from fastapi import HTTPException
 
         from chat.service import ChatRequest
+        from providers import AllModelsExhaustedError
         from routes.chat import chat
 
         mock_db = AsyncMock()
@@ -740,7 +741,11 @@ class TestChatRoutes:
         with patch("routes.chat.ChatService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.chat = AsyncMock(
-                side_effect=RuntimeError("All models rate limited or failed")
+                side_effect=AllModelsExhaustedError(
+                    "All models unavailable or rate limited",
+                    reason="rate_limited",
+                    models_tried=["primary", "fallback"],
+                )
             )
             mock_service_cls.return_value = mock_service
 
@@ -748,6 +753,8 @@ class TestChatRoutes:
                 await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             assert exc_info.value.status_code == 503
+            assert exc_info.value.detail["code"] == "upstream_unavailable"
+            assert exc_info.value.headers["Retry-After"] == "30"
 
     @pytest.mark.asyncio
     async def test_chat_runtime_error(self):
