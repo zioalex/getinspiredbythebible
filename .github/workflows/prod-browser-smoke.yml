@@ -79,6 +79,27 @@ jobs:
           SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
         run: npx playwright test prod-chat-smoke.spec.ts
 
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-${{ github.run_id }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Write failure detail
+        if: failure()
+        run: |
+          cat >> "$RUNNER_TEMP/detail.txt" <<'EOF'
+          Browser smoke test failed. Playwright traces/report were uploaded as a run
+          artifact (see the run's Artifacts section). If the site looks healthy in a
+          manual check, verify whether the latest azure-deploy run actually completed
+          -- a merged-but-undeployed frontend bundle lacks the smoke test selectors.
+          EOF
+
       - name: Notify Telegram
         if: always()
         uses: ./.github/actions/notify-telegram

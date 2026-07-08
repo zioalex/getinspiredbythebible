@@ -267,6 +267,35 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ---
 
+### 🎯 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+
+**Status:** 🎯 Todo
+**Size:** M (several small, independent hardening items)
+**Created:** 2026-07-07
+
+**As** the operator, **I want** deploys and the production smoke monitor to fail **only when the service
+is actually broken**, self-diagnose common failure modes, and not create outages as a side effect of
+routine changes, **so that** green means healthy and red means real user impact.
+
+**Why P1:** After BITB-064/065/066 shipped, the hourly browser smoke test alerted "production down" for
+hours while chat worked fine (it waited on a selector missing from the **undeployed** frontend bundle —
+the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin TLS
+(`525 SSL Handshake Failed`) — the same replace→cert-unbind class that BITB-064's new
+`smoke_probe_secret` (hashed into the backend replace-trigger) can now provoke.
+
+**Gaps (each independently shippable):**
+
+- [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
+- [ ] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
+- [ ] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
+- [ ] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
+- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
+- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+
+---
+
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
 **Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
