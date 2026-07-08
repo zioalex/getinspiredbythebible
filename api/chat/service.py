@@ -35,6 +35,7 @@ from utils.metrics import (
     scripture_pipeline_errors_counter,
     verse_grounding_corrections_counter,
     verse_grounding_duration_histogram,
+    verse_grounding_paraphrase_detections_counter,
     verse_grounding_quotes_checked_counter,
 )
 from utils.timing import format_timings, record_stage, timed_stage
@@ -1023,6 +1024,7 @@ Keep it under 120 words."""
                 context_refs,
                 unresolved_behavior=settings.grounding_unresolved_behavior,
                 language=language,
+                paraphrase_mode=settings.grounding_paraphrases_mode,
             )
         except Exception as e:
             scripture_pipeline_errors_counter.add(
@@ -1032,11 +1034,38 @@ Keep it under 120 words."""
             return text, []
 
         duration_ms = (time.perf_counter() - start) * 1000
-        attrs: dict[str, str | bool] = {"language": language, "corrected": bool(corrections)}
+        # Detect-only paraphrase corrections carry applied=False and leave the
+        # text untouched, so they must not flip this histogram's corrected bit.
+        attrs: dict[str, str | bool] = {
+            "language": language,
+            "corrected": any(c.applied for c in corrections),
+        }
         verse_grounding_duration_histogram.record(duration_ms, attrs)
         if quotes_checked:
             verse_grounding_quotes_checked_counter.add(quotes_checked, {"language": language})
         for c in corrections:
+            if c.reason == "paraphrased":
+                # Measures BITB-053 Pass-2 detections: applied=False means
+                # detect-only mode (text untouched — the measurement rollout,
+                # see docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md); bracketed
+                # tracks the nested-parens artifact — see monitoring.tf.
+                verse_grounding_paraphrase_detections_counter.add(
+                    1, {"language": language, "bracketed": c.bracketed, "applied": c.applied}
+                )
+            if not c.applied:
+                # Detect-only: nothing was corrected, so keep it out of the
+                # corrections counter and log at info, not warning.
+                logger.info(
+                    "Scripture paraphrase detected (not corrected)",
+                    extra={
+                        "reference": c.reference,
+                        "reason": c.reason,
+                        "original_quote": c.original_quote[:160],
+                        "canonical_quote": (c.corrected_quote or "")[:160],
+                        "language": language,
+                    },
+                )
+                continue
             correction_attrs: dict[str, str | bool] = {
                 "language": language,
                 "reason": c.reason,

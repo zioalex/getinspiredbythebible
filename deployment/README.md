@@ -816,6 +816,64 @@ max_message_length             = 200
    - Check logs for rate limit and content filter violations
    - Review Azure Log Analytics for suspicious patterns
 
+## 🔍 Synthetic Monitor Probe Secrets
+
+Two independent shared secrets let an automated probe send the `X-Monitor-Probe-Secret` header to
+bypass Turnstile and rate limits (`api/utils/monitor_probe.py`), so probes exercise the real request
+path without needing to solve a CAPTCHA. Everything else (content filter, validation, application
+logic) still applies. Bypass is fail-closed: if a secret is unset, the matching header is ignored.
+
+| Secret | Used by | Why it's separate |
+|--------|---------|--------------------|
+| `MONITOR_PROBE_SECRET` | Server-to-server GitHub Actions probes: `prod-monitor.yml` (health/chat/search/cross-origin-smoke jobs) and `weekly-report.yml` | Never leaves GitHub-hosted runners |
+| `SMOKE_PROBE_SECRET` | The production **browser** smoke test: `prod-browser-smoke.yml` → `frontend/e2e/prod-chat-smoke.spec.ts` | Transits an ephemeral CI Chromium session (injected via Playwright `addInitScript`, never shipped in the deployed frontend bundle — verify with `grep` on a build if in doubt), so it's kept independently rotatable from the server-to-server secret |
+
+### Setup Steps
+
+1. **Generate a value** for each secret you want to enable (either can be set independently; skip
+   the ones you don't need). Any high-entropy random string works — this is a bearer-style shared
+   secret, not a signing key:
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. **Set as GitHub repo secrets** (Settings → Secrets and variables → Actions → New repository
+   secret, or via the CLI):
+
+   ```bash
+   openssl rand -hex 32 | gh secret set MONITOR_PROBE_SECRET
+   openssl rand -hex 32 | gh secret set SMOKE_PROBE_SECRET
+   ```
+
+3. **Redeploy** (or re-run `azure-deploy.yml`). Both secrets are already wired end-to-end — repo
+   secret → `TF_VAR_monitor_probe_secret` / `TF_VAR_smoke_probe_secret` (`azure-deploy.yml`) →
+   Terraform variable (`deployment/variables.tf`) → Container App secret (`deployment/main.tf`) →
+   `settings.monitor_probe_secret` / `settings.smoke_probe_secret` (`api/config.py`). No manual Azure
+   Key Vault step is needed (unlike the Telegram bot token).
+
+### Verifying Setup
+
+```bash
+# Server-to-server bypass (MONITOR_PROBE_SECRET)
+curl -X POST "https://<backend>/api/v1/chat/stream" \
+  -H "Content-Type: application/json" \
+  -H "X-Monitor-Probe-Secret: $MONITOR_PROBE_SECRET" \
+  -d '{"message":"What does John 3:16 say?","conversation_history":[],"include_search":true}'
+```
+
+For `SMOKE_PROBE_SECRET`, trigger **Actions → Prod Browser Smoke → Run workflow** — once the secret
+is set, the Chromium test actually runs (rather than skipping) and should report a streamed assistant
+reply.
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `prod-chat-smoke.spec.ts` reports 0 tests run (skipped) | `SMOKE_PROBE_SECRET` repo secret not set | Set it (Setup Steps above); the job itself still reports success while skipped |
+| 403 from Turnstile even with the header set | Secret mismatch, or the repo secret was set but the backend hasn't been redeployed yet | Confirm the value matches `settings.monitor_probe_secret` / `settings.smoke_probe_secret` in the deployed environment; redeploy |
+| `prod-monitor.yml` probes suddenly start failing with 403 | `MONITOR_PROBE_SECRET` rotated in GitHub but not redeployed (or vice versa) | Keep the repo secret and the deployed backend in sync; redeploy after rotating |
+
 ## 📧 Email Notifications (SMTP2GO)
 
 The application can send email notifications for contact form submissions and negative feedback.
@@ -1008,8 +1066,14 @@ terraform output domain_verification_id
 
 ## Rollback: Emergency Cert Rebind
 
-If a deployment breaks custom domain HTTPS (e.g. Error 526), use
-these commands to manually fix without waiting for a full CI/CD cycle:
+If a deployment breaks custom domain HTTPS (Cloudflare **525** SSL Handshake Failed or **526**
+Invalid SSL certificate), use these commands to manually fix without waiting for a full CI/CD cycle.
+
+**Most common cause:** a Terraform apply **replaced** a Container App (e.g. `backend_secret_trigger`
+fires when a probe/API secret is rotated). The recreated app loses its imperatively-bound custom
+domain + certificate. Since the 2026-07-07 incident the rebind provisioners also key on
+`terraform_data.backend_secret_trigger.id`, so the *same apply* re-binds automatically — this manual
+runbook remains for older states and any other path that drops the binding.
 
 ```bash
 # Variables — adjust for your environment
@@ -1017,6 +1081,11 @@ ENV_NAME="bible-app-env"
 RG="bible-app-rg"
 FRONTEND_APP="bible-app-frontend"
 BACKEND_APP="bible-app-backend"
+
+# 0. If the app was REPLACED, the hostname itself is gone too — re-add it first
+#    (idempotent; errors harmlessly if already attached)
+az containerapp hostname add --name $BACKEND_APP --resource-group $RG \
+  --hostname api.voxquieta.org || true
 
 # 1. Upload the certificate (if not already present)
 az containerapp env certificate upload \

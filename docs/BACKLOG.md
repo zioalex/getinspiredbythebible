@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-05
+**Last Updated:** 2026-07-06
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -181,6 +181,120 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### ✅ BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
+
+**Status:** ✅ Done — scripted cross-origin probe, Azure preflight web test, runbook, and full browser smoke test all delivered
+**Size:** M (one new synthetic probe + Telegram wiring; optional Azure availability test)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** a synthetic monitor that hits the API the way a browser does (a
+cross-origin CORS preflight) and the production request path exercised with OpenTelemetry
+instrumentation on, **so that** a browser-only outage pages me on Telegram in minutes instead of
+waiting for a user report.
+
+**Why P1:** A total browser-facing chat outage shipped to production (FastAPI 0.137's `_IncludedRouter`
+crashed the pinned OpenTelemetry instrumentation, returning HTTP 500 on every `OPTIONS /api/v1/*`
+preflight) and **no monitor, Azure alert, or Telegram notification fired**. The break was browser-only:
+`OPTIONS` preflight → 500, but direct `GET`/`POST` → 200. Every safety net (Azure `/health/ready` test,
+the `synthetic-chat` and `verse-search` probes) sends non-browser requests, so all stayed green — the
+same reason native Android kept working.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] New CORS-preflight synthetic probe (`OPTIONS /api/v1/chat/stream` with `Origin` +
+      `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers,
+      plus a cross-origin POST asserting a streamed answer (`scripts/monitor/synthetic_preflight.py`)
+- [x] Wired into `prod-monitor.yml` as the `cross-origin-smoke` job on the 5-min schedule via `notify-telegram`
+- [x] Azure `backend_preflight` availability web test (OPTIONS + CORS headers) + alert → always-on channel
+- [x] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
+- [x] Full production **browser** smoke test (`prod-chat-smoke.spec.ts` + hourly `prod-browser-smoke.yml`),
+      Turnstile passed via a separate injected-at-test-time `smoke_probe_secret` (never in the bundle)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
+
+---
+
+### ✅ BITB-065: Backend Catch-All Error Alerting — HTTP 5xx, Unhandled & ASGI-Layer Exceptions
+
+**Status:** ✅ Done (delivered on the PR #824 branch)
+**Size:** S (three Terraform scheduled-query alerts)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** an alert whenever the backend returns HTTP 5xx or throws an unhandled /
+ASGI-layer exception, **so that** a server-side outage pages me regardless of which subsystem broke.
+
+**Why P1:** Of 17 pre-existing alerts, **none** watched backend 5xx or the App Insights
+`requests`/`exceptions` tables — the generic 5xx KQL lived only in a passive workbook. The
+`_IncludedRouter` 500 fell through because it is not a DB metric, not a custom counter, and (being a
+crash *above* the app in the OTel middleware) produced no `| ERROR |` log line. Nuance: that crash
+records no `requests` row either (it dies before the span starts), so the reliable signal is the
+`uvicorn` "Exception in ASGI application" console line — hence a log-based rule alongside the table ones.
+
+**Acceptance Criteria:**
+
+- [x] `backend_5xx_rate` (App Insights `requests`, Sev 1), `backend_unhandled_exceptions` (App Insights
+      `exceptions`, Sev 2), `backend_asgi_exceptions` (console logs "Exception in ASGI application", Sev 1)
+- [x] All reuse the `ops_email` action group + `local.alerts_enabled` gating (email + Telegram)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-065-backend-catchall-error-alerting.md`
+
+---
+
+### ✅ BITB-066: Frontend Error Observability
+
+**Status:** ✅ Done (delivered on the PR #824 branch, reuse-endpoint approach)
+**Size:** M (frontend reporter + backend metric/alert + middleware tweak)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** the web frontend to report client-side errors (JS exceptions, unhandled
+rejections, API/network failures) and alert on spikes, **so that** browser-only failures are visible
+from the client — the way Android already reports via Firebase Crashlytics.
+
+**Why P1:** The web frontend had **no** general client-side error telemetry — the `ErrorBoundary` only
+`console.error`d, API failures were swallowed, and the only sink (`/api/v1/client-errors`) was used
+solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and was reported nowhere.
+
+**Acceptance Criteria (all delivered):**
+
+- [x] `clientErrorReporter.ts` (fire-and-forget, PII-scrubbed, capped/deduped) + global
+      `window.onerror`/`unhandledrejection` handlers + `api.ts` failure hook + `ErrorBoundary` + `global-error.tsx`
+- [x] `/api/v1/client-errors` hardened (model, cap, rate-limit, flag) + `client.errors_total` metric + spike alert
+- [x] `AccessAuditMiddleware` emits `api.preflight_errors_total` on `OPTIONS` 5xx
+- [x] Mechanism decision resolved: reuse the existing endpoint (RUM SDK deferred)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-066-frontend-error-observability.md`
+
+---
+
+### 🎯 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+
+**Status:** 🎯 Todo
+**Size:** M (several small, independent hardening items)
+**Created:** 2026-07-07
+
+**As** the operator, **I want** deploys and the production smoke monitor to fail **only when the service
+is actually broken**, self-diagnose common failure modes, and not create outages as a side effect of
+routine changes, **so that** green means healthy and red means real user impact.
+
+**Why P1:** After BITB-064/065/066 shipped, the hourly browser smoke test alerted "production down" for
+hours while chat worked fine (it waited on a selector missing from the **undeployed** frontend bundle —
+the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin TLS
+(`525 SSL Handshake Failed`) — the same replace→cert-unbind class that BITB-064's new
+`smoke_probe_secret` (hashed into the backend replace-trigger) can now provoke.
+
+**Gaps (each independently shippable):**
+
+- [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
+- [ ] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
+- [ ] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
+- [ ] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
+- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
+- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+
+---
 
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
@@ -1231,10 +1345,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🎯 Todo (production verified 2026-05-31 — favicon and robots.txt addressed; server-render-homepage remains)
+**Status:** 🚧 In Progress (server-render homepage confirmed done in code; JSON-LD + OG image landing 2026-07-03; only Search-Console submission remains, a manual operator action)
 **Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
 **Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
-**Created:** 2026-05-29 · **Updated:** 2026-05-31
+**Created:** 2026-05-29 · **Updated:** 2026-07-03
 
 **As a** person searching for Bible inspiration on Google (or asking an AI assistant),
 **I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews,
@@ -1244,12 +1358,12 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [x] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
 - [x] `/favicon.ico` returns 200 with the brand icon
 - [x] Production `/robots.txt` contains `Sitemap: https://voxquieta.org/sitemap.xml` (verified)
-- [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
-- [ ] `og:image` resolves and Twitter card is `summary_large_image`
-- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console
+- [x] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
+- [x] `og:image` resolves and Twitter card is `summary_large_image`
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console *(manual operator action remaining)*
 
 **Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
 

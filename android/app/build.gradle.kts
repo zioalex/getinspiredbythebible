@@ -143,6 +143,16 @@ android {
         buildConfig = true
     }
 
+    packaging {
+        jniLibs {
+            // Store native (.so) libraries uncompressed so bundletool can page-align
+            // them on 16 KB boundaries in the AAB. This is the default for minSdk 26,
+            // but is set explicitly here because it is a precondition for Google Play's
+            // 16 KB memory-page-size compliance (paired with AGP 8.7+ zipalign).
+            useLegacyPackaging = false
+        }
+    }
+
     testOptions {
         // Disable system animations during instrumented tests.
         // CircularProgressIndicator uses InfiniteTransition which permanently keeps
@@ -202,6 +212,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    // Force the transitive graphics-path native lib to a 16 KB-aligned build so
+    // the AAB passes Google Play's 16 KB memory-page-size check (BITB / prod-release).
+    implementation(libs.androidx.graphics.path)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

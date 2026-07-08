@@ -1,4 +1,6 @@
 # Python
+uv.lock
+**/uv.lock
 **/.venv
 **/venv/
 **/__pycache__/

@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.40.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.0...v1.40.1) (2026-07-08)
+
+### Bug Fixes
+
+* **android:** 16 KB page-size support — AGP 8.7 + graphics-path pin + CI gate ([#844](https://github.com/zioalex/getinspiredbythebible/issues/844)) ([0da8b1b](https://github.com/zioalex/getinspiredbythebible/commit/0da8b1b19cda909e09ed110a226daa834a0ef51f))
+* **monitor:** deploy & smoke-monitor reliability — cert re-bind + smoke-test hardening (BITB-067) ([#845](https://github.com/zioalex/getinspiredbythebible/issues/845)) ([f1d3e6b](https://github.com/zioalex/getinspiredbythebible/commit/f1d3e6b0b0e865fa8384ebfacba0693f0859709b))
+
+## [1.40.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.1...v1.40.0) (2026-07-07)
+
+### Features
+
+* **observability:** browser smoke test + backend/frontend error alerting (BITB-064/065/066) ([#839](https://github.com/zioalex/getinspiredbythebible/issues/839)) ([039c741](https://github.com/zioalex/getinspiredbythebible/commit/039c741c1d6de81886c7a3c9bcc17b005d42647c))
+
+### Bug Fixes
+
+* **deploy:** rebind custom domain + origin cert when the backend app is replaced ([#842](https://github.com/zioalex/getinspiredbythebible/issues/842)) ([25faa10](https://github.com/zioalex/getinspiredbythebible/commit/25faa10a1a90242b558c0b2e2b644f9e3f4bb29d))
+
+## [1.39.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.0...v1.39.1) (2026-07-05)
+
+### Bug Fixes
+
+* **api:** resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel) ([#824](https://github.com/zioalex/getinspiredbythebible/issues/824)) ([033ed6b](https://github.com/zioalex/getinspiredbythebible/commit/033ed6b815c7e727cd8f878399614947eb193b4f))
+
+## [1.39.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.38.0...v1.39.0) (2026-07-05)
+
+### Features
+
+* **BITB-053:** ground unquoted/paraphrased verse citations (ships in detect-only mode) ([#785](https://github.com/zioalex/getinspiredbythebible/issues/785)) ([b0d71df](https://github.com/zioalex/getinspiredbythebible/commit/b0d71df5dff41246e662196ce1edc9b18a419402))
+* **search-eval:** bitb-051 p2 — golden set + loader + --validate + non-blocking ci ([#795](https://github.com/zioalex/getinspiredbythebible/issues/795)) ([51332f3](https://github.com/zioalex/getinspiredbythebible/commit/51332f384d8bba25aee9fae5f7aa3a9fba349281))
+* **seo:** add WebSite/Organization JSON-LD and branded OG image (BITB-037) ([#808](https://github.com/zioalex/getinspiredbythebible/issues/808)) ([c89e9b6](https://github.com/zioalex/getinspiredbythebible/commit/c89e9b69f6adc63b922c2c0affb8cc87cfcbb768))
+
+### Bug Fixes
+
+* **audit-metrics:** harden parser, slim snapshots, detect moved hotspots ([#822](https://github.com/zioalex/getinspiredbythebible/issues/822)) ([2864fbb](https://github.com/zioalex/getinspiredbythebible/commit/2864fbb077cb432b9be8fc4b4ce08b95ea7f2b95))
+* **BITB-052:** english abbreviation aliases + case-insensitive book-name normalization ([#791](https://github.com/zioalex/getinspiredbythebible/issues/791)) ([c98ec45](https://github.com/zioalex/getinspiredbythebible/commit/c98ec455061b79aa33f7d8b256bdf6957fc83fb1))
+* **security:** make Turnstile fail closed on persistent errors (BITB-061) ([#821](https://github.com/zioalex/getinspiredbythebible/issues/821)) ([26b664b](https://github.com/zioalex/getinspiredbythebible/commit/26b664b1edafe3f7ef7686b5a8531ce01d157959))
+
 ## [1.38.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.37.0...v1.38.0) (2026-07-04)
 
 ### Features

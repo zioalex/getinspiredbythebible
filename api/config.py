@@ -199,6 +199,20 @@ class Settings(BaseSettings):
     # historical default (grounding_strip_unresolved=False) — stripping the
     # unverifiable text while keeping the reference is the safer default.
     grounding_unresolved_behavior: Literal["keep", "strip", "notice"] = "strip"
+    # BITB-053: ground unquoted/paraphrased verse citations — the LLM presenting a
+    # verse as plain prose without quotation marks, which pass 1 (quoted-span
+    # grounding) can never see.
+    #   off    — pass 2 does not run.
+    #   detect — classify every response and count detections
+    #            (chat.verse_grounding.paraphrase_detections, applied=false) but
+    #            never edit the text. Zero user-visible effect.
+    #   append — additionally append the canonical verse text in quotes right
+    #            after the reference, so the user sees the real wording.
+    # Default "detect": the append is additive (injects verse text into the
+    # user-facing reply), so it must earn its way in with data. Run detect on all
+    # traffic first, then follow docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md to
+    # decide whether the detection rate and sampled precision justify "append".
+    grounding_paraphrases_mode: Literal["off", "detect", "append"] = "detect"
 
     # Performance Monitoring
     slow_query_threshold_ms: int = 100  # Log queries slower than this (milliseconds)
@@ -222,6 +236,18 @@ class Settings(BaseSettings):
     # server-to-server probe bypass Turnstile and rate limits via the
     # X-Monitor-Probe-Secret header. Leave None/empty to disable bypass.
     monitor_probe_secret: str | None = None
+    # Separate, rotatable secret for the browser smoke test (BITB-064). Kept
+    # distinct from monitor_probe_secret so a leak (it transits a real, if
+    # ephemeral, CI browser) is revocable without disturbing the server-to-server
+    # probes. Same X-Monitor-Probe-Secret header; leave None/empty to disable.
+    smoke_probe_secret: str | None = None
+
+    # Client-side error reporting (BITB-066). The frontend POSTs JS/render/API
+    # errors to /api/v1/client-errors; the endpoint records a metric so a spike
+    # (e.g. a browser-only outage) alerts. Cap the free-text detail to bound
+    # log/metric size and abuse.
+    client_error_reporting_enabled: bool = True
+    client_error_max_detail_chars: int = 500
 
     # Azure Content Safety Settings
     azure_content_safety_enabled: bool = False  # Enable Azure Content Safety API

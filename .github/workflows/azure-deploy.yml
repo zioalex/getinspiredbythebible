@@ -481,6 +481,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
       # bot token is written to Key Vault out-of-band (see the deploy job's
@@ -755,6 +756,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
       # bot token is written to Key Vault out-of-band (see the deploy job's
@@ -1230,6 +1232,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
       # bot token is written to Key Vault out-of-band (see the deploy job's

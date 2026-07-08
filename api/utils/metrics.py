@@ -67,6 +67,21 @@ verse_grounding_duration_histogram = meter.create_histogram(
     unit="ms",
 )  # attributes: language, corrected (bool)
 
+# Unquoted-paraphrase grounding (BITB-053, Pass 2). One count per detected
+# paraphrase. `applied` is False in detect-only mode (grounding_paraphrases_mode
+# = "detect": classified and counted but the text is untouched) and True when
+# the canonical text was actually appended ("append" mode). `bracketed` is True
+# when the (would-be) append lands before a closing bracket — i.e. the reference
+# was parenthesised and the canonical text nests inside, e.g.
+# (Isaia 41:10 ("Non temere…")). This metric drives the measurement rollout in
+# docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md and the nested-parens alert in
+# monitoring.tf.
+verse_grounding_paraphrase_detections_counter = meter.create_counter(
+    name="chat.verse_grounding.paraphrase_detections",
+    description="Unquoted-paraphrase detections (BITB-053); applied=True means canonical text was appended, bracketed=True means the append point sits before a closing bracket (nested-parens artifact)",
+    unit="1",
+)  # attributes: language, bracketed (bool), applied (bool)
+
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never
 # loaded) or zero embeddings (loaded but unsearchable) degrades silently —
@@ -238,3 +253,15 @@ turnstile_fail_open_counter = meter.create_counter(
     description="Count of Turnstile siteverify transient failures that were allowed through (failed open)",
     unit="1",
 )  # attributes: reason (timeout|http_<status>|http_error|<exc_name>)
+
+client_errors_counter = meter.create_counter(
+    name="client.errors_total",
+    description="Client-side error reports received at /api/v1/client-errors (BITB-066)",
+    unit="1",
+)  # attributes: type (window_onerror|unhandledrejection|api_failure|react_render|turnstile|other)
+
+preflight_errors_counter = meter.create_counter(
+    name="api.preflight_errors_total",
+    description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",
+    unit="1",
+)  # attributes: status, path

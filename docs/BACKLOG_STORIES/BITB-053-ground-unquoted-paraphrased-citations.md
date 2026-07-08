@@ -1,6 +1,9 @@
 # BITB-053: Ground Unquoted / Paraphrased Verse Citations
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (code) — shipped in **detect-only** mode; the text-editing
+"append" behaviour is enabled separately, data permitting
+**Rollout:** [`docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md`](../HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md)
+— measure the detection rate + sampled precision for ~2 weeks, then decide
 **Priority:** P2 (Medium) — scripture fidelity; closes the largest remaining grounding gap
 **Size:** M (1-2 days)
 **Created:** 2026-06-19

@@ -266,6 +266,19 @@ variable "monitor_probe_secret" {
   sensitive   = true
 }
 
+variable "smoke_probe_secret" {
+  description = <<-EOT
+    Separate, rotatable secret for the browser smoke test (BITB-064). Same
+    X-Monitor-Probe-Secret header, but kept distinct from monitor_probe_secret
+    so a leak (it transits an ephemeral CI browser) is revocable independently.
+    Must match the repo secret SMOKE_PROBE_SECRET sent by
+    .github/workflows/prod-browser-smoke.yml. Leave empty to disable.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "telegram_chat_id" {
   description = <<-EOT
     Telegram chat/group ID for the Azure Monitor -> Telegram bridge (BITB-056),

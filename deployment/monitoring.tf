@@ -44,6 +44,13 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053)
+#       Observation alert: bracketed unquoted-paraphrase appends
+#       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
+#       clustering inside parenthetical references. Buffered (>5 per 15-min bin)
+#       and clustered (2 of 3 evaluations) so a single stray event never pages.
+#       Cosmetic; dormant until grounding_paraphrases_mode is set to "append" per
+#       docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
@@ -251,6 +258,36 @@ resource "azurerm_monitor_metric_alert" "backend_availability" {
 
   application_insights_web_test_location_availability_criteria {
     web_test_id           = azurerm_application_insights_standard_web_test.backend_availability[0].id
+    component_id          = azurerm_application_insights.main[0].id
+    failed_location_count = 2
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Wire the CORS-preflight web test (BITB-064) to the action group so a
+# browser-only preflight failure (like the 2026-07-05 _IncludedRouter 500)
+# pages via the always-on Azure-native path, independent of the GitHub cron
+# cross-origin-smoke probe.
+resource "azurerm_monitor_metric_alert" "backend_preflight_availability" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-preflight-failed"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes = [
+    azurerm_application_insights_standard_web_test.backend_preflight[0].id,
+    azurerm_application_insights.main[0].id,
+  ]
+  description = "Backend CORS-preflight (OPTIONS /api/v1/chat/stream) availability test failing from one or more regions — the browser-only failure signature of the _IncludedRouter/OTel incident."
+  severity    = 1
+  frequency   = "PT1M"
+  window_size = "PT5M"
+
+  application_insights_web_test_location_availability_criteria {
+    web_test_id           = azurerm_application_insights_standard_web_test.backend_preflight[0].id
     component_id          = azurerm_application_insights.main[0].id
     failed_location_count = 2
   }
@@ -783,6 +820,64 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
   tags = local.tags
 }
 
+# Unquoted-paraphrase nested-parens observation alert (BITB-053).
+# In "append" mode, pass 2 of verse grounding appends canonical verse text right
+# after a reference. When the reference is parenthesised — e.g. "(Isaia 41:10)" —
+# the append lands before the closing bracket and nests:
+# (Isaia 41:10 ("Non temere…")). This is cosmetic (offsets are safe), so rather
+# than re-engineer the insertion point blindly we measure it via the
+# chat.verse_grounding.paraphrase_detections counter (bracketed + applied
+# dimensions). NOTE: grounding_paraphrases_mode ships as "detect" (count only,
+# no text edits — applied=false), so this alert stays dormant until the mode is
+# switched to "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md — at
+# which point this rule is the guardrail that tells us if the edge is real.
+#
+# Buffer + clustering (deliberately not a hair-trigger on a single event):
+#   - buffer: a 15-minute bin must accrue > 5 bracketed appends to count as a
+#     breach, so one-off coincidences are ignored.
+#   - clustering: the breach must recur in at least 2 of the last 3 fifteen-minute
+#     evaluations before paging, so a lone noisy bin does not alert.
+# Severity 3. Retune the bin threshold / failing-period ratio once a baseline
+# exists, or remove the rule if the edge proves negligible.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_paraphrase_brackets" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-verse-grounding-paraphrase-brackets"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT1H"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >5 bracketed applied appends per 15-min bin, sustained across 2 of the last 3 evaluations. Cosmetic; observation alert active only while grounding_paraphrases_mode is 'append'."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(1h)
+      | where name == "chat.verse_grounding.paraphrase_detections"
+      | extend bracketed = tostring(customDimensions["bracketed"])
+      | extend applied = tostring(customDimensions["applied"])
+      | where bracketed == "true" and applied == "true"
+      | summarize total = sum(valueSum) by bin(timestamp, 15m)
+      | where total > 5
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 3
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
 # Embedding provider resilience alert (BITB-057 Phase 2).
 # Fires when the embedding.fallback_total custom metric records any retry,
 # timeout, or circuit-open event (providers/embedding_resilience.py) in the
@@ -808,6 +903,191 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_ra
       | where name == "embedding.fallback_total"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# ---------------------------------------------------------------------------
+# Backend catch-all error alerts (BITB-065).
+#
+# Before this, no alert keyed on backend HTTP 5xx or unhandled exceptions —
+# the existing rules watch DB metrics, custom counters, and specific app ERROR
+# log strings, but never the App Insights requests/exceptions tables or a
+# generic 500. The 2026-07-05 _IncludedRouter incident (HTTP 500 on every CORS
+# preflight) fell straight through that net. These three rules are the
+# catch-all layer.
+#
+# IMPORTANT nuance from that incident: the crash was inside the OpenTelemetry
+# ASGI middleware, in default_span_details(), BEFORE the request span is
+# started — so App Insights recorded NO requests row for it. A requests-table
+# 5xx alert therefore cannot see that specific class; the reliable signal is
+# the uvicorn "Exception in ASGI application" console line (backend_asgi_exceptions
+# below). All three are kept as defence-in-depth for the broader 5xx surface.
+# ---------------------------------------------------------------------------
+
+# HTTP 5xx rate (App Insights requests table). Catches any endpoint/method the
+# app layer answers with a 5xx (or success == false). KQL mirrors the workbook
+# "Failed Requests" tile. Threshold is conservative (a handful in 10m) to avoid
+# single-blip noise; tune once a baseline is observed. Severity 1: a 5xx spike
+# is a user-facing outage.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-5xx-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 1
+  description          = "Backend returned HTTP 5xx (or success == false) on 3+ requests in the last 10 minutes. Broad catch-all for server-side failures not covered by the specific metric/log alerts. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
+
+  criteria {
+    query                   = <<-KQL
+      requests
+      | where timestamp > ago(10m)
+      | where success == false or toint(resultCode) >= 500
+      | summarize total = count() by bin(timestamp, 5m)
+      | where total >= 3
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Unhandled exceptions (App Insights exceptions table). Catches unhandled server
+# exceptions OTel records (e.g. a regression in a route handler surfaced by
+# ServerErrorMiddleware). KQL source: workbook "Exception Summary" tile.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_unhandled_exceptions" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-unhandled-exceptions"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "3+ unhandled server exceptions recorded in App Insights in the last 10 minutes (exceptions table). Surfaces regressions that raise past route handlers. Threshold is conservative; tune once a baseline is observed."
+
+  criteria {
+    query                   = <<-KQL
+      exceptions
+      | where timestamp > ago(10m)
+      | summarize total = count() by bin(timestamp, 5m)
+      | where total >= 3
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# ASGI-layer exceptions (backend console logs). The in-telemetry catch for the
+# _IncludedRouter class: a crash above the app (OTel/CORS middleware) never
+# reaches a bible_app logger, so it produces no "| ERROR |"-formatted line (the
+# backend_errors filter misses it) and no requests row (backend_5xx_rate misses
+# it). It DOES produce a uvicorn.error "Exception in ASGI application" console
+# line — which is what this rule keys on. Severity 1: any ASGI exception is a
+# request the server could not handle.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_asgi_exceptions" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-asgi-exceptions"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_log_analytics_workspace.main.id]
+  severity             = 1
+  description          = "An ASGI-layer exception ('Exception in ASGI application' from uvicorn, or a bare Traceback) appeared in backend logs in the last 10 minutes. This is the signature of a crash ABOVE the app — OTel/CORS middleware — that the | ERROR | log filter and the requests-table alert both miss. The 2026-07-05 _IncludedRouter 500 on CORS preflight emitted exactly this line."
+
+  criteria {
+    query                   = <<-KQL
+      ContainerAppConsoleLogs_CL
+      | where TimeGenerated > ago(10m)
+      | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
+      | where Log_s has "Exception in ASGI application"
+          or Log_s contains "Traceback (most recent call last)"
+      | summarize cnt = count(), Sample = any(Log_s) by bin(TimeGenerated, 5m)
+      | where cnt > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Frontend client-error spike (BITB-066). The web frontend reports JS/render/API
+# errors to /api/v1/client-errors, which emits the client.errors_total metric.
+# A spike means many real browsers are failing at once (e.g. a browser-only
+# outage the backend request path can't see) — the client-side complement to the
+# backend catch-all alerts. Threshold is deliberately a spike, not per-error, so
+# individual users' transient network blips don't page; tune once a baseline
+# exists.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_errors" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-frontend-client-errors"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "More than 20 client-side error reports (client.errors_total) received in the last 10 minutes — a spike of browser-side JS/render/API failures, e.g. a browser-only outage. Emitted by the frontend error reporter (BITB-066)."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "client.errors_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 20
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

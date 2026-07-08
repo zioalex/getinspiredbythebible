@@ -116,6 +116,18 @@ def get_localized_book_name(english_name: str, translation_code: str | None) -> 
     return book_names.get(english_name, english_name)
 
 
+# Case-insensitive fallback map built once at import time.
+# Seeded first with all 66 canonical English names so that "genesis" → "Genesis"
+# even though English translations have no forward dict in TRANSLATION_REGISTRY.
+# Localized forms and aliases are then layered in; first writer wins to avoid
+# one language's abbreviation colliding with another's canonical form.
+_LOCALIZED_TO_ENGLISH_LOWER: dict[str, str] = {k.lower(): k for k in ENGLISH_TO_ITALIAN}
+for _key, _val in LOCALIZED_TO_ENGLISH.items():
+    _lower = _key.lower()
+    if _lower not in _LOCALIZED_TO_ENGLISH_LOWER:
+        _LOCALIZED_TO_ENGLISH_LOWER[_lower] = _val
+
+
 def normalize_book_name(book_name: str) -> str:
     """
     Convert a localized book name to standard English.
@@ -134,5 +146,10 @@ def normalize_book_name(book_name: str) -> str:
     if book_name in ENGLISH_TO_ITALIAN:
         return book_name
 
-    # Try to find in reverse mappings
-    return LOCALIZED_TO_ENGLISH.get(book_name, book_name)
+    # Exact-case lookup (preferred — avoids false collisions across languages)
+    exact = LOCALIZED_TO_ENGLISH.get(book_name)
+    if exact is not None:
+        return exact
+
+    # Case-insensitive fallback (handles "salmi", "GENESIS", "psalm", etc.)
+    return _LOCALIZED_TO_ENGLISH_LOWER.get(book_name.lower(), book_name)
