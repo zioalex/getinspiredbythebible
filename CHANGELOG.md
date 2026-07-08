@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.40.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.0...v1.40.1) (2026-07-08)
 
-
 ### Bug Fixes
 
 * **android:** 16 KB page-size support — AGP 8.7 + graphics-path pin + CI gate ([#844](https://github.com/zioalex/getinspiredbythebible/issues/844)) ([0da8b1b](https://github.com/zioalex/getinspiredbythebible/commit/0da8b1b19cda909e09ed110a226daa834a0ef51f))
