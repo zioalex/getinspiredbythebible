@@ -96,6 +96,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 John | 3 Jn |
 | Jude | Jude | — (gap) |
 | Revelation | Revelation | Revelations |
+
 ### Italian
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -166,6 +167,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 Giovanni | — (gap) |
 | Jude | Giuda | — (gap) |
 | Revelation | Apocalisse | — (gap) |
+
 ### German
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -236,6 +238,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3. Johannes | — (gap) |
 | Jude | Judas | — (gap) |
 | Revelation | Offenbarung | — (gap) |
+
 ### Spanish
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -306,6 +309,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 Juan | — (gap) |
 | Jude | Judas | — (gap) |
 | Revelation | Apocalipsis | — (gap) |
+
 ### French
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -376,6 +380,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 Jean | — (gap) |
 | Jude | Jude | — (gap) |
 | Revelation | Apocalypse | — (gap) |
+
 ### Portuguese
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -446,6 +451,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 João | — (gap) |
 | Jude | Judas | — (gap) |
 | Revelation | Apocalipse | — (gap) |
+
 ### Arabic
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -516,6 +522,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3 يوحنا | — (gap) |
 | Jude | يهوذا | — (gap) |
 | Revelation | الرؤيا | رؤيا |
+
 ### Russian
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -586,6 +593,7 @@ in that language for that book will fail to resolve.
 | 3 John | 3-е Иоанну | 3 Иоанна |
 | Jude | Иуде | Иуда |
 | Revelation | Откровение | Откр, Откровения |
+
 ### Chinese
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -656,6 +664,7 @@ in that language for that book will fail to resolve.
 | 3 John | 约翰三书 | 若望三书 |
 | Jude | 犹大书 | 犹达书 |
 | Revelation | 啟示錄 | 启示录, 默示录 |
+
 ### Korean
 
 | Book | Canonical form | Recognized aliases/abbreviations |
@@ -726,6 +735,7 @@ in that language for that book will fail to resolve.
 | 3 John | 요한삼서 | — (gap) |
 | Jude | 유다서 | — (gap) |
 | Revelation | 요한계시록 | 계시록 |
+
 ### Hindi
 
 | Book | Canonical form | Recognized aliases/abbreviations |

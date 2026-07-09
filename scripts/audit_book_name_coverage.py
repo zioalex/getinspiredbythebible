@@ -139,7 +139,7 @@ def generate_report(reg) -> str:
     out.append("")
     out.append("## Per-language detail")
     out.append("")
-    out.extend(per_language_sections)
+    out.append("\n\n".join(per_language_sections))
     out.append("")
     return "\n".join(out)
 
