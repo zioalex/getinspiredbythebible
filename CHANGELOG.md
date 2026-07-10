@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.41.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.1...v1.41.0) (2026-07-10)
+
+### Features
+
+* **api:** add Luther 1912 and Elberfelder 1871 German Bible translations (BITB-046) ([#787](https://github.com/zioalex/getinspiredbythebible/issues/787)) ([d4325f8](https://github.com/zioalex/getinspiredbythebible/commit/d4325f825f3b47043f4ace8d18496ca7d6bf2a52))
+* **api:** diacritic-insensitive book-name matching + coverage audit (BITB-052) ([#847](https://github.com/zioalex/getinspiredbythebible/issues/847)) ([b279ed2](https://github.com/zioalex/getinspiredbythebible/commit/b279ed24544277fab5a080d6aff7db83d7bb1f10))
+
+### Bug Fixes
+
+* **api:** raise typed error for exhausted LLM providers (BITB-063) ([#843](https://github.com/zioalex/getinspiredbythebible/issues/843)) ([ae4f85d](https://github.com/zioalex/getinspiredbythebible/commit/ae4f85d34a53cb12a77263c59f02a51f5849acee))
+
 ## [1.40.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.0...v1.40.1) (2026-07-08)
 
 ### Bug Fixes
