@@ -18,9 +18,15 @@ LANGUAGE_TRANSLATIONS = {
     "en": ["web", "kjv"],  # English: WEB (default), KJV
     "it": ["ita1927"],  # Italian: Riveduta 1927
     "de": [
-        "luther1912",
         "schlachter",
-    ],  # German: Luther 1912 (default), Schlachter 1951
+        "luther1912",
+    ],  # German: Schlachter 1951 (default), Luther 1912
+    # NOTE: Schlachter is first (the default) because a default translation MUST
+    # already be fully loaded + embedded in the vector DB. Luther 1912 is seeded
+    # from a committed data file (BITB-046) and only becomes selectable once that
+    # completes; promote it to first here ONLY after verifying its verses and
+    # embeddings are present, otherwise German defaults to an empty translation
+    # and search errors.
     "es": ["valera"],  # Spanish: Reina Valera 1909
     "fr": ["ls1910"],  # French: Louis Segond 1910
     "pt": ["almeida"],  # Portuguese: Almeida Atualizada
