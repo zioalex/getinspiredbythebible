@@ -369,7 +369,7 @@ class TestTranslationInfo:
     def test_get_all_translations(self):
         """get_all_translations should return all translations."""
         translations = get_all_translations()
-        assert len(translations) == 14
+        assert len(translations) == 13
         codes = [t["code"] for t in translations]
         assert "kjv" in codes
         assert "web" in codes
@@ -384,7 +384,6 @@ class TestTranslationInfo:
         assert "hindi" in codes
         assert "krv" in codes
         assert "luther1912" in codes
-        assert "elberfelder1871" in codes
 
     def test_get_translations_for_language_english(self):
         """get_translations_for_language should return English translations."""

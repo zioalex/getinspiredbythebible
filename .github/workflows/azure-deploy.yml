@@ -170,6 +170,8 @@ jobs:
               - 'scripts/load_bible.py'
               - 'scripts/create_embeddings.py'
               - 'scripts/create_azure_embeddings.py'
+              - 'scripts/translations.py'
+              - 'scripts/init.sql'
             deployment:
               - 'deployment/**'
 
@@ -1392,6 +1394,46 @@ jobs:
           python run_migrations.py
 
   # ---------------------------------------------------------------------------
+  # Seed Matrix (derives the translation list from scripts/translations.py)
+  # ---------------------------------------------------------------------------
+  # The seed matrix used to be a hardcoded list of translation codes, which
+  # silently drifted out of sync whenever a new translation was added to
+  # scripts/translations.py (e.g. luther1912 in BITB-046 never
+  # got seeded or embedded). Generating the matrix from the single source of
+  # truth keeps them in lockstep — any translation added to TRANSLATIONS is
+  # seeded automatically. translations.py is pure Python (no third-party
+  # imports), so no dependency install is needed here.
+  seed-matrix:
+    needs: [changes, deploy]
+    # Mirror the seed-database trigger conditions so the matrix is only built
+    # when seeding will actually run.
+    if: >-
+      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
+      'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
+    runs-on: ubuntu-latest
+    outputs:
+      translations: ${{ steps.gen.outputs.translations }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Generate translation matrix
+        id: gen
+        run: |
+          cd scripts
+          MATRIX=$(python -c 'import json, translations as t; print(json.dumps(sorted(t.TRANSLATIONS)))')
+          echo "translations=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Seed matrix: $MATRIX"
+
+  # ---------------------------------------------------------------------------
   # Seed Database (runs when scripts change or manually triggered with seed enabled)
   # ---------------------------------------------------------------------------
   # Each translation is loaded in parallel using a matrix strategy.
@@ -1410,7 +1452,7 @@ jobs:
   # should complete in well under 15 minutes; 90 min gives ample headroom without
   # risking the 6-hour default GitHub Actions timeout on a stuck job.
   seed-database:
-    needs: [changes, deploy]
+    needs: [changes, deploy, seed-matrix]
     # Run if:
     # - Seeding-relevant scripts changed (load_bible.py, create_embeddings.py, create_azure_embeddings.py), OR
     # - Manual trigger with skip_database_seed=false
@@ -1424,8 +1466,8 @@ jobs:
     # inside the "Load Bible Data" step via a shell early-exit, because matrix context
     # is not reliably available in job-level if conditions on workflow_run events.
     if: >-
-      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
-      'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
+      always() && github.event_name != 'pull_request' && needs.seed-matrix.result == 'success' && (needs.deploy.result
+      == 'success' || needs.deploy.result == 'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
@@ -1433,19 +1475,9 @@ jobs:
     strategy:
       fail-fast: false # one slow translation should not cancel the others
       matrix:
-        translation:
-          - kjv
-          - web
-          - ita1927
-          - schlachter
-          - valera
-          - ls1910
-          - almeida
-          - arabicsv
-          - synodal
-          - cuv
-          - hindi
-          - krv
+        # Derived from scripts/translations.py via the seed-matrix job so the
+        # list can never drift out of sync with the translation registry.
+        translation: ${{ fromJson(needs.seed-matrix.outputs.translations) }}
 
     steps:
       - name: Checkout code
