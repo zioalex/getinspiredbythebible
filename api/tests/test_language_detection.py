@@ -480,13 +480,12 @@ class TestGetTranslationsForLanguage:
         assert len(result) == 1
         assert result[0]["code"] == "ita1927"
 
-    def test_german_returns_three(self):
-        """Test German has three translations with Luther 1912 as default."""
+    def test_german_returns_two(self):
+        """Test German has two translations with Luther 1912 as default."""
         result = get_translations_for_language("de")
-        assert len(result) == 3
+        assert len(result) == 2
         assert result[0]["code"] == "luther1912"
         assert result[1]["code"] == "schlachter"
-        assert result[2]["code"] == "elberfelder1871"
 
     def test_unknown_language_returns_empty(self):
         """Test unknown language returns empty list."""

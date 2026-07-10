@@ -1216,7 +1216,7 @@ instead of a generic "I don't understand".
 
 ---
 
-### 🎯 BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
+### 🎯 BITB-046: Add German Bible Translation (Luther 1912)
 
 **Status:** 🎯 Todo
 **Size:** M (1-2 days, mostly data loading)
@@ -1224,12 +1224,14 @@ instead of a generic "I don't understand".
 
 **As a** German-speaking user, **I want** a familiar Bible translation (Luther), **so that** I'm not
 limited to Schlachter 1951. Luther 1984/2017, Einheitsübersetzung, NGÜ, and Schlachter 2000 are
-copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBible).
+copyrighted; **Luther 1912** is public domain (shipped as a committed data file — getBible does not
+host it). Elberfelder was dropped: getBible only offers the archaic 1905 edition, and Luther 1912
+covers the need while saving a full Bible's worth of verses/embeddings in the DB.
 
 **Acceptance Criteria (summary):**
 
-- [ ] German picker shows Luther 1912 (default), Schlachter 1951, Elberfelder 1871
-- [ ] Text + embeddings loaded and searchable for both new translations
+- [ ] German picker shows Luther 1912 (default), Schlachter 1951
+- [ ] Text + embeddings loaded and searchable for Luther 1912
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`

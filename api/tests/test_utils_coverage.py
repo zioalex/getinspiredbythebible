@@ -427,7 +427,6 @@ class TestBookNames:
         assert TRANSLATION_BOOK_NAMES["ita1927"] is ENGLISH_TO_ITALIAN
         assert TRANSLATION_BOOK_NAMES["schlachter"] is ENGLISH_TO_GERMAN
         assert TRANSLATION_BOOK_NAMES["luther1912"] is ENGLISH_TO_GERMAN
-        assert TRANSLATION_BOOK_NAMES["elberfelder1871"] is ENGLISH_TO_GERMAN
         assert TRANSLATION_BOOK_NAMES["valera"] is ENGLISH_TO_SPANISH
         assert TRANSLATION_BOOK_NAMES["ls1910"] is ENGLISH_TO_FRENCH
         assert TRANSLATION_BOOK_NAMES["synodal"] is ENGLISH_TO_RUSSIAN
