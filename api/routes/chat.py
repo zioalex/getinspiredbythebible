@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from chat import ChatRequest, ChatResponse, ChatService
-from providers import EmbeddingProviderDep, LLMProviderDep
+from providers import AllModelsExhaustedError, EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
 from utils.logging_config import get_logger
 from utils.metrics import (
@@ -26,6 +26,10 @@ from utils.turnstile import require_turnstile
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+# Default hint for clients when the provider didn't supply one (e.g. no
+# Retry-After header on the upstream rate-limit response).
+UPSTREAM_RETRY_AFTER_SECONDS = 30
 
 
 @router.post(
@@ -70,15 +74,19 @@ async def chat(
         await track_session(db, request.session_id, user_agent=user_agent, language=language)
 
         return response
+    except AllModelsExhaustedError as e:
+        logger.warning("All LLM models exhausted (%s): %s", e.reason, e)
+        retry_after = e.retry_after or UPSTREAM_RETRY_AFTER_SECONDS
+        raise HTTPException(
+            status_code=HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "upstream_unavailable",
+                "code": "upstream_unavailable",
+                "message": "Our AI service is temporarily busy. Please try again in a moment.",
+            },
+            headers={"Retry-After": str(retry_after)},
+        ) from e
     except RuntimeError as e:
-        # Handle "all models rate limited" from OpenRouter fallback
-        if "All models rate limited" in str(e):
-            logger.warning("All LLM models rate limited: %s", str(e))
-            raise HTTPException(
-                status_code=HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Our AI service is temporarily busy. Please try again in a moment.",
-            ) from e
-        # Other runtime errors
         logger.exception("Chat runtime error: %s", str(e))
         raise HTTPException(status_code=500, detail="An unexpected error occurred") from e
     except Exception as e:
@@ -119,14 +127,12 @@ async def chat_stream(
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"
             yield "data: [DONE]\n\n"
+        except AllModelsExhaustedError as e:
+            logger.warning("Streaming: all LLM models exhausted (%s): %s", e.reason, e)
+            yield f"data: {json.dumps({'type': 'error', 'error': 'Our AI service is temporarily busy. Please try again in a moment.', 'error_code': 'upstream_unavailable', 'retry_after': e.retry_after or UPSTREAM_RETRY_AFTER_SECONDS})}\n\n"
         except RuntimeError as e:
-            # Handle "all models rate limited" from OpenRouter fallback
-            if "All models rate limited" in str(e):
-                logger.warning("Streaming: All LLM models rate limited: %s", str(e))
-                yield f"data: {json.dumps({'type': 'error', 'error': 'Our AI service is temporarily busy. Please try again in a moment.'})}\n\n"
-            else:
-                logger.exception("Chat stream runtime error: %s", str(e))
-                yield f"data: {json.dumps({'type': 'error', 'error': 'An unexpected error occurred'})}\n\n"
+            logger.exception("Chat stream runtime error: %s", str(e))
+            yield f"data: {json.dumps({'type': 'error', 'error': 'An unexpected error occurred'})}\n\n"
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
             yield f"data: {json.dumps({'type': 'error', 'error': 'An error occurred processing your request'})}\n\n"

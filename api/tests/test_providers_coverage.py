@@ -1279,8 +1279,10 @@ class TestOpenRouterProviderAdditional:
 
     @pytest.mark.asyncio
     async def test_chat_all_fallbacks_exhausted(self):
-        """Chat should raise RuntimeError when all fallbacks fail."""
+        """Chat should raise AllModelsExhaustedError when all fallbacks fail."""
         from openai import APIStatusError
+
+        from providers import AllModelsExhaustedError
 
         provider = self._make_provider(
             fallback_models=["fb1"],
@@ -1298,8 +1300,12 @@ class TestOpenRouterProviderAdditional:
             new_callable=AsyncMock,
             side_effect=error,
         ):
-            with pytest.raises(RuntimeError, match="All models unavailable"):
+            with pytest.raises(AllModelsExhaustedError, match="All models unavailable") as exc:
                 await provider.chat([ChatMessage(role="user", content="Hi")])
+
+        assert exc.value.reason == "rate_limited"
+        assert provider.model in exc.value.models_tried
+        assert "fb1" in exc.value.models_tried
 
     @pytest.mark.asyncio
     async def test_chat_non_recoverable_error(self):
