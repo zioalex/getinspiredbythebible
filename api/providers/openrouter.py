@@ -22,6 +22,7 @@ from utils.metrics import (
 )
 
 from .base import ChatMessage, LLMProvider, LLMResponse
+from .errors import AllModelsExhaustedError
 
 logger = get_logger(__name__)
 
@@ -304,17 +305,27 @@ class OpenRouterProvider(LLMProvider):
                     self.model,
                     self.fallback_models,
                 )
-                raise RuntimeError(
+                is_rate_limited = isinstance(e, RateLimitError) or (
+                    isinstance(e, APIStatusError) and e.status_code == 429
+                )
+                raise AllModelsExhaustedError(
                     "All models unavailable or rate limited. "
                     f"Primary: {self.model}, "
                     f"Fallbacks: {self.fallback_models}. "
-                    "Check model names at https://openrouter.ai/models"
+                    "Check model names at https://openrouter.ai/models",
+                    reason="rate_limited" if is_rate_limited else "unavailable",
+                    models_tried=[self.model, *self.fallback_models],
                 ) from (e if not isinstance(e, _BreakerOpenError) else None)
             else:
                 if isinstance(e, _BreakerOpenError):
-                    # Breaker open but no fallbacks available — surface as a clear error
-                    raise RuntimeError(
-                        "OpenRouter circuit breaker open and no fallback models configured"
+                    # Breaker open but no fallbacks available — surface as a clear error.
+                    # Unreachable in practice: breaker_skip_primary already requires
+                    # fallback_models/allow_fallbacks, which is mutually exclusive with
+                    # this branch. Kept typed for consistency, not test coverage.
+                    raise AllModelsExhaustedError(
+                        "OpenRouter circuit breaker open and no fallback models configured",
+                        reason="unavailable",
+                        models_tried=[self.model],
                     )
                 # No fallbacks configured or not a recoverable error
                 raise
@@ -487,10 +498,15 @@ class OpenRouterProvider(LLMProvider):
                         model_to_use,
                         self.fallback_models[:fallback_index],
                     )
-                    raise RuntimeError(
+                    is_rate_limited = isinstance(e, RateLimitError) or (
+                        isinstance(e, APIStatusError) and e.status_code == 429
+                    )
+                    raise AllModelsExhaustedError(
                         "All models unavailable in streaming. "
                         f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
-                        "Check model names at https://openrouter.ai/models"
+                        "Check model names at https://openrouter.ai/models",
+                        reason="rate_limited" if is_rate_limited else "unavailable",
+                        models_tried=[model_to_use, *self.fallback_models[:fallback_index]],
                     ) from e
 
     async def verify_model_available(self, model: str) -> tuple[bool, str]:

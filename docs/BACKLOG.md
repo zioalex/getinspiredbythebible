@@ -296,6 +296,48 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 
 ---
 
+### ✅ BITB-063: Typed Provider Error Contract — Make the Unreachable 503 Reachable
+
+**Status:** ✅ Done
+**Size:** S (typed exception + two route handlers + the contract test that was always missing)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E1 (context: A8, D4)
+
+**As** the operator, **I want** a total LLM-provider outage to surface as a 503 with a clear
+"upstream unavailable" signal — to monitoring, to clients, and to users — **so that** incident
+response starts with "OpenRouter is down" instead of a misleading generic-500 hunt, and clients
+back off instead of retry-hammering a dead upstream.
+
+**Why P1:** When all OpenRouter fallback models were exhausted, the provider raised a bare
+`RuntimeError`, and the routes special-cased it by matching the substring `"All models rate
+limited"` — a string that appeared in **neither** exhaustion message. The intended 503 branch
+(non-stream) and the friendly stream-error chunk were unreachable dead code; every real outage
+misreported as a generic 500.
+
+**Acceptance Criteria:**
+
+- [x] New `AllModelsExhaustedError` (`api/providers/errors.py`), carrying `reason`
+      (`rate_limited`/`unavailable`), `models_tried`, and an optional `retry_after`, raised by both
+      `chat()` and `chat_stream()` exhaustion paths in `api/providers/openrouter.py`
+- [x] Routes catch the **type** (`api/routes/chat.py`): non-stream → HTTP 503 with `Retry-After`
+      and a `code: "upstream_unavailable"` detail body; stream → an SSE error chunk with
+      `error_code: "upstream_unavailable"`
+- [x] Contract tests added (`api/tests/test_provider_error_contract.py`): provider exhaustion
+      raises the typed error in both paths, and each route maps it to 503 / an error chunk — a
+      change to either side alone now fails CI
+- [x] Error responses carry the machine-readable `code`/`error_code` fields (groundwork for a
+      later Android follow-up on the `ChatViewModel.kt` substring matching, audit A8 — the Android
+      change itself is out of scope here)
+- [x] `prod-monitor`'s `synthetic_chat.py` already extracts `error_code` from stream error chunks
+      (pre-existing), so the Telegram alert detail automatically distinguishes an upstream outage
+      the moment the backend emits the code — no probe change needed. Branching the alert
+      *subject/text* on the code, or adding a non-stream probe asserting the 503 directly, is
+      follow-up work, not part of this story.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-063-typed-provider-error-contract.md`
+
+---
+
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
 **Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
