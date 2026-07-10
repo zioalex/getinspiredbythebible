@@ -1429,7 +1429,7 @@ jobs:
         id: gen
         run: |
           cd scripts
-          MATRIX=$(python -c "import json; from translations import TRANSLATIONS; print(json.dumps(sorted(TRANSLATIONS.keys())))")
+          MATRIX=$(python -c 'import json, translations as t; print(json.dumps(sorted(t.TRANSLATIONS)))')
           echo "translations=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "Seed matrix: $MATRIX"
 
@@ -1466,9 +1466,8 @@ jobs:
     # inside the "Load Bible Data" step via a shell early-exit, because matrix context
     # is not reliably available in job-level if conditions on workflow_run events.
     if: >-
-      always() && github.event_name != 'pull_request' && needs.seed-matrix.result == 'success' &&
-      (needs.deploy.result == 'success' || needs.deploy.result ==
-      'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
+      always() && github.event_name != 'pull_request' && needs.seed-matrix.result == 'success' && (needs.deploy.result
+      == 'success' || needs.deploy.result == 'skipped') && ((needs.changes.outputs.bible_scripts == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production

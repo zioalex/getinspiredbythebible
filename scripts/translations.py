@@ -258,8 +258,12 @@ TRANSLATIONS = {
         "language": "German",
         "language_code": "de",
         "description": "German Luther Bible translation from 1912",
-        "source": "getbible",
-        "url": "https://api.getbible.net/v2/luther1912.json",
+        # getBible does NOT host Luther 1912 (only luther1545, the archaic 1545
+        # edition). Keep source="manual"/url=None so the network URL tests skip
+        # it; Luther 1912 must be supplied as a committed data file until a
+        # reachable public-domain source is confirmed. See BITB-046.
+        "source": "manual",
+        "url": None,
         "book_names": GERMAN_BOOK_NAMES,
         "license": "Public Domain",
         "is_default": False,
