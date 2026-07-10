@@ -1255,11 +1255,11 @@ class TestScriptureRoutes:
     @pytest.mark.asyncio
     async def test_get_chapter_default_prefers_lang_over_accept_language(self):
         """The explicit UI language (`lang`) wins over the browser's
-        Accept-Language: a German UI on an English browser gets schlachter."""
+        Accept-Language: a German UI on an English browser gets luther1912."""
         from routes.scripture import get_chapter
 
         mock_db = AsyncMock()
-        translations = ["web", "kjv", "ita1927", "schlachter"]
+        translations = ["web", "kjv", "ita1927", "luther1912"]
 
         mock_http = MagicMock()
         mock_http.headers = {"accept-language": "en-US,en;q=0.9"}
@@ -1275,7 +1275,7 @@ class TestScriptureRoutes:
             mock_repo_cls.return_value = mock_repo
             result = await get_chapter("John", 3, mock_db, None, lang="de", http_request=mock_http)
 
-        assert result.translation == "schlachter"
+        assert result.translation == "luther1912"
 
     @pytest.mark.asyncio
     async def test_get_verse_range_found(self):
