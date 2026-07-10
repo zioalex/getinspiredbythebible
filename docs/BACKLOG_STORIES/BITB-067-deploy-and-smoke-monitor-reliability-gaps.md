@@ -1,6 +1,6 @@
 # BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open — Terraform/Azure infra work)
 **Priority:** P1 (High) — the monitoring we just added (BITB-064/065/066) produced a false "production
 down" alert while the site was healthy, and a routine deploy silently broke origin TLS. These gaps
 erode trust in the alerts and can turn a no-op deploy into an outage.
@@ -77,9 +77,9 @@ update (`az containerapp secret set`) or Key Vault reference that doesn't force 
 
 - [ ] A merged prod-affecting change either deploys automatically or alerts if it hasn't reached
       production within a bounded time (deployed-SHA vs `main`-SHA drift signal).
-- [ ] `prod-chat-smoke.spec.ts` fails fast with a descriptive message on a stale/mismatched bundle
+- [x] `prod-chat-smoke.spec.ts` fails fast with a descriptive message on a stale/mismatched bundle
       (asserts the user bubble first), and its test-level timeout exceeds its assertion budgets.
-- [ ] `prod-browser-smoke.yml` uploads a trace/report artifact and a `detail.txt` on failure.
+- [x] `prod-browser-smoke.yml` uploads a trace/report artifact and a `detail.txt` on failure.
 - [ ] A backend app replacement (incl. secret rotation) reliably re-binds the origin cert with no
       manual runbook step; a deploy that would leave origin TLS broken fails loudly *before* flipping
       traffic, or auto-remediates.
