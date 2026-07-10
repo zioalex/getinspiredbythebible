@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.42.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.0...v1.42.1) (2026-07-10)
+
+
+### Documentation
+
+* **backlog:** add BITB-068 to refresh & expand Bible translations ([#852](https://github.com/zioalex/getinspiredbythebible/issues/852)) ([b96f27a](https://github.com/zioalex/getinspiredbythebible/commit/b96f27a1c708a8aa84422831f4a7d4919f1b7ab1))
+
 ## [1.42.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.41.0...v1.42.0) (2026-07-10)
 
 ### Features
