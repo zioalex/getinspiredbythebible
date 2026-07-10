@@ -259,12 +259,15 @@ TRANSLATIONS = {
         "language_code": "de",
         "description": "German Luther Bible translation from 1912",
         # getBible does NOT host Luther 1912 (only luther1545, the archaic 1545
-        # edition). Keep source="manual"/url=None so the network URL tests skip
-        # it; Luther 1912 must be supplied as a committed data file until a
-        # reachable public-domain source is confirmed. See BITB-046.
+        # edition), so this translation ships as a committed public-domain data
+        # file (data/bible/translations/luther1912.json, from the Unbound Bible
+        # via biblesuper). source="manual"/url=None makes the loader read that
+        # cached file and the network URL tests skip it. The committed file is
+        # pre-normalized with canonical English book names, so book_names is None
+        # (no localized-name remapping needed at load time). See BITB-046.
         "source": "manual",
         "url": None,
-        "book_names": GERMAN_BOOK_NAMES,
+        "book_names": None,
         "license": "Public Domain",
         "is_default": False,
     },
