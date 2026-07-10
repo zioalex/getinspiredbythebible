@@ -612,8 +612,8 @@ def test_list_available_translations():
     translations = list_available_translations()
     # Phase 1 (8): kjv, web, ita1927, schlachter, valera, ls1910, almeida, arabicsv
     # Phase 2 (4): synodal, cuv, hindi, krv
-    # German additions (2): luther1912, elberfelder1905
-    assert len(translations) == 14
+    # German addition (1): luther1912
+    assert len(translations) == 13
 
     # Check structure
     assert all("code" in t for t in translations)

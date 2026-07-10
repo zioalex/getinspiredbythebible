@@ -271,18 +271,6 @@ TRANSLATIONS = {
         "license": "Public Domain",
         "is_default": False,
     },
-    "elberfelder1905": {
-        "code": "elberfelder1905",
-        "name": "Elberfelder 1905",
-        "language": "German",
-        "language_code": "de",
-        "description": "German Darby Unrevidierte Elberfelder translation from 1905",
-        "source": "getbible",
-        "url": "https://api.getbible.net/v2/elberfelder1905.json",
-        "book_names": GERMAN_BOOK_NAMES,
-        "license": "Public Domain",
-        "is_default": False,
-    },
     "valera": {
         "code": "valera",
         "name": "Reina Valera 1909",

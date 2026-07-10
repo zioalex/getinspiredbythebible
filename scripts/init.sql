@@ -31,7 +31,6 @@ INSERT INTO translations (code, name, language, language_code, is_default, descr
     ('ita1927', 'Riveduta 1927', 'Italian', 'it', FALSE, 'Italian Luzzi translation from 1927'),
     ('schlachter', 'Schlachter 1951', 'German', 'de', FALSE, 'German Schlachter translation from 1951'),
     ('luther1912', 'Luther 1912', 'German', 'de', FALSE, 'German Luther Bible translation from 1912'),
-    ('elberfelder1905', 'Elberfelder 1905', 'German', 'de', FALSE, 'German Darby Unrevidierte Elberfelder translation from 1905'),
     ('valera', 'Reina Valera 1909', 'Spanish', 'es', FALSE, 'Spanish Reina Valera translation from 1909'),
     ('ls1910', 'Louis Segond 1910', 'French', 'fr', FALSE, 'French Louis Segond translation from 1910'),
     ('almeida', 'Almeida Atualizada', 'Portuguese', 'pt', FALSE, 'Portuguese Almeida Atualizada translation'),

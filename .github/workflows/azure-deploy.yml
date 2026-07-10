@@ -1398,7 +1398,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # The seed matrix used to be a hardcoded list of translation codes, which
   # silently drifted out of sync whenever a new translation was added to
-  # scripts/translations.py (e.g. luther1912 / elberfelder1905 in BITB-046 never
+  # scripts/translations.py (e.g. luther1912 in BITB-046 never
   # got seeded or embedded). Generating the matrix from the single source of
   # truth keeps them in lockstep — any translation added to TRANSLATIONS is
   # seeded automatically. translations.py is pure Python (no third-party

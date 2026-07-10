@@ -6,6 +6,12 @@
 **Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-12)
 
+> **Update (descoped):** Only **Luther 1912** ships. getBible has no Luther 1912, so it is added as a
+> committed public-domain data file (`data/bible/translations/luther1912.json`). Elberfelder was
+> dropped — getBible only hosts the archaic 1905 Darby edition, and Luther 1912 covers the German
+> audience's need while saving a full Bible's worth of verses/embeddings in the DB. References to
+> "Elberfelder 1871/1905" below are historical.
+
 ## User Story
 
 **As a** German-speaking user,
