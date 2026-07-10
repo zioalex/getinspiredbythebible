@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.42.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.41.0...v1.42.0) (2026-07-10)
+
+
+### Features
+
+* **translations:** auto-derive seed matrix and add Luther 1912 (German) ([#851](https://github.com/zioalex/getinspiredbythebible/issues/851)) ([7c4c124](https://github.com/zioalex/getinspiredbythebible/commit/7c4c124339394c60d99452700ebf94ec167c742b))
+
 ## [1.41.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.1...v1.41.0) (2026-07-10)
 
 ### Features
