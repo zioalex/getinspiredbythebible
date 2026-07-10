@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-06
+**Last Updated:** 2026-07-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1200,6 +1200,29 @@ copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBibl
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+
+**Status:** 📋 Backlog
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
+
+**As a** reader, **I want** additional and more current Bible translations — starting with Italian —
+**so that** I can read Scripture in more contemporary wording and compare versions, instead of a single
+century-old translation per language. Source: Bible SuperSearch JSON collection. Bounded by licensing —
+only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Italian gets a second option (e.g. Diodati) alongside Riveduta 1927
+- [ ] Add newer free options where clearly licensed: Reina Valera 2010 (es), Ostervald 1996 / l'Épée
+      2005 (fr), NET Bible (en); each license-verified before import
+- [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
+      `/scripture/translations`; provenance/license note recorded
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
 
 ---
 
