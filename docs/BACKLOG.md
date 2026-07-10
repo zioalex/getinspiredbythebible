@@ -267,9 +267,9 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ---
 
-### 🎯 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open)
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -286,9 +286,9 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 **Gaps (each independently shippable):**
 
 - [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
-- [ ] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
-- [ ] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
-- [ ] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
+- [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
+- [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
+- [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
 - [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
 - [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
 
@@ -451,9 +451,9 @@ Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-sm
 
 ---
 
-### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+### 🚧 BITB-052: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
 
@@ -470,11 +470,12 @@ English-canonical) but affects localized input and the app-wide normalizer.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Per-language coverage matrix identifying every gap
-- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
-- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [x] Per-language coverage matrix identifying every gap (`docs/audits/book-name-coverage.md`,
+      regenerate via `scripts/audit_book_name_coverage.py`)
+- [x] Missing localized singular/abbreviation aliases added (Psalms + common books) — PR #791
+- [x] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
 - [ ] Versification offsets quantified + documented handling decision (with tests)
-- [ ] Table-driven tests across all 11 languages green
+- [x] Table-driven tests across all 11 languages green
 
 **Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
 numbered-book references fail to parse *with and without* parentheses —
@@ -595,9 +596,9 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 ---
 
-### 🎯 BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
+### ✅ BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #689 — 2026-06-06)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -613,19 +614,19 @@ common interaction; one-line manifest fix plus a defensive guard.
 
 **Acceptance Criteria:**
 
-- [ ] New chat + send message + rotate → same messages and conversation remain visible
-- [ ] Existing saved conversation survives rotation
-- [ ] Rotating during an in-flight response does not start a new chat
-- [ ] Locale switching from Settings still works (still recreates Activity, applies new language)
-- [ ] Existing Android unit tests pass; guard logic is covered by a test
+- [x] New chat + send message + rotate → same messages and conversation remain visible
+- [x] Existing saved conversation survives rotation
+- [x] Rotating during an in-flight response does not start a new chat
+- [x] Locale switching from Settings still works (still recreates Activity, applies new language)
+- [x] Existing Android unit tests pass; guard logic is covered by a test
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-039-android-preserve-chat-on-rotation.md`
 
 ---
 
-### 🎯 BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
+### ✅ BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** M (1-2 days)
 **Created:** 2026-06-04
 
@@ -642,12 +643,12 @@ fetch that returns a bad 200/500 is invisible. Shares an Italian root cause with
 
 **Acceptance Criteria:**
 
-- [ ] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
-- [ ] Verse text area never shows `////`/empty quotes (loading → verse or error)
-- [ ] Backend verse/chapter reads time out to 504 instead of hanging
-- [ ] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
-- [ ] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
-- [ ] New Android + backend tests cover timeout, error, retry, and empty-text paths
+- [x] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
+- [x] Verse text area never shows `////`/empty quotes (loading → verse or error)
+- [x] Backend verse/chapter reads time out to 504 instead of hanging
+- [x] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
+- [x] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
+- [x] New Android + backend tests cover timeout, error, retry, and empty-text paths
 
 **Test note:** existing tests over-mock and skip integration — `loadChapter` is tested
 only for `IOException`, `VerseDetailBottomSheet` has no UI test, and the chapter route
