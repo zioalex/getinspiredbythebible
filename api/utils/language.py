@@ -20,8 +20,8 @@ LANGUAGE_TRANSLATIONS = {
     "de": [
         "luther1912",
         "schlachter",
-        "elberfelder1871",
-    ],  # German: Luther 1912 (default), Schlachter 1951, Elberfelder 1871
+        "elberfelder1905",
+    ],  # German: Luther 1912 (default), Schlachter 1951, Elberfelder 1905
     "es": ["valera"],  # Spanish: Reina Valera 1909
     "fr": ["ls1910"],  # French: Louis Segond 1910
     "pt": ["almeida"],  # Portuguese: Almeida Atualizada
@@ -74,9 +74,9 @@ TRANSLATION_INFO = {
         "language": "German",
         "language_code": "de",
     },
-    "elberfelder1871": {
-        "code": "elberfelder1871",
-        "name": "Elberfelder 1871",
+    "elberfelder1905": {
+        "code": "elberfelder1905",
+        "name": "Elberfelder 1905",
         "short_name": "Elberfelder",
         "language": "German",
         "language_code": "de",
@@ -1242,7 +1242,7 @@ def get_localized_book_name(english_name: str, translation_code: str) -> str:
         "ita1927": ENGLISH_TO_ITALIAN_BOOKS,
         "schlachter": ENGLISH_TO_GERMAN_BOOKS,
         "luther1912": ENGLISH_TO_GERMAN_BOOKS,
-        "elberfelder1871": ENGLISH_TO_GERMAN_BOOKS,
+        "elberfelder1905": ENGLISH_TO_GERMAN_BOOKS,
         "valera": ENGLISH_TO_SPANISH_BOOKS,
         "ls1910": ENGLISH_TO_FRENCH_BOOKS,
         "almeida": ENGLISH_TO_PORTUGUESE_BOOKS,

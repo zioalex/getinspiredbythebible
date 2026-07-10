@@ -29,7 +29,7 @@ integrated without a licence.
 | Neue Genfer Übersetzung | ❌ Copyright | — |
 | Schlachter 2000 | ❌ Copyright | — |
 | **Luther 1912** | ✅ Public domain | `https://api.getbible.net/v2/luther1912.json` |
-| **Elberfelder 1871** | ✅ Public domain | `https://api.getbible.net/v2/elberfelder1871.json` |
+| **Elberfelder 1905** | ✅ Public domain | `https://api.getbible.net/v2/elberfelder1905.json` (getBible has no 1871 edition; the 1905 Darby Unrevidierte Elberfelder is the available public-domain edition) |
 | Schlachter 1951 | ✅ Public domain | already integrated |
 
 ## Approach

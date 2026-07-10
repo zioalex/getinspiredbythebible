@@ -384,7 +384,7 @@ class TestTranslationInfo:
         assert "hindi" in codes
         assert "krv" in codes
         assert "luther1912" in codes
-        assert "elberfelder1871" in codes
+        assert "elberfelder1905" in codes
 
     def test_get_translations_for_language_english(self):
         """get_translations_for_language should return English translations."""

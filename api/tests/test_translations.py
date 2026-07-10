@@ -599,7 +599,7 @@ def test_list_available_translations():
     translations = list_available_translations()
     # Phase 1 (8): kjv, web, ita1927, schlachter, valera, ls1910, almeida, arabicsv
     # Phase 2 (4): synodal, cuv, hindi, krv
-    # German additions (2): luther1912, elberfelder1871
+    # German additions (2): luther1912, elberfelder1905
     assert len(translations) == 14
 
     # Check structure
