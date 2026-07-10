@@ -82,7 +82,7 @@ jobs:
     steps:
       # Required so `uses: ./.github/actions/notify-telegram` can resolve the
       # local composite action — without checkout, the runner has no repo files.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check /health/live
         id: live
@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -164,7 +164,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -242,7 +242,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -277,7 +277,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check frontend is serving HTML
         id: check
@@ -311,7 +311,7 @@ jobs:
     steps:
       # Required so `uses: ./.github/actions/notify-telegram` can resolve the
       # local composite action — without checkout, the runner has no repo files.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Login to Azure
         uses: azure/login@v3
