@@ -30,6 +30,17 @@ by a stronger model and the bulk implementation by a faster one:
    criteria. It reports pass/fail with evidence; the main session fixes any gaps
    it finds before commit/PR.
 
+   > **Why the strongest model verifies (not a cheaper one).** Verification is
+   > the hardest reasoning step — catching a subtle bug the builder missed is
+   > harder than writing the code — so it runs on the strongest reasoner, not a
+   > weaker model that would rubber-stamp the very bugs it should catch. The
+   > lever that makes it independent is a *fresh subagent with no build context*
+   > that actually **runs the tests**, not model diversity. If you want a second,
+   > uncorrelated pass, add a **Sonnet 5** verifier alongside (different lineage,
+   > fails differently) — but keep Opus in the primary critic seat. **Haiku 4.5**
+   > is only for cheap pre-gating (lint / typecheck / a quick smoke run), never
+   > the final correctness verifier.
+
 This composes with — it does not replace — the **Testing** rule (every change
 ships with tests) and **Backlog Hygiene** (every change has a story). Trivial
 one-liners may skip the relay, but still need tests where behaviour changes.
