@@ -371,6 +371,39 @@ error — unacceptable for a pastoral-care product serving people in crisis.
 
 ---
 
+### ✅ BITB-068: Content-Safety Smoke Tests — CI Gate + Functional + Deployed Probe
+
+**Status:** ✅ Done (PR #850)
+**Size:** S–M (three test tiers + one prod-monitor job + a docs note)
+**Created:** 2026-07-10
+**Parent ref:** BITB-061 (verification safety net for the content-safety phase, PR #840)
+
+**As** the operator, **I want** an end-to-end smoke test of the content-safety pipeline that runs at
+every deployment stage and verifies **both** directions — harmful blocked **and** legitimate content
+answered — **so that** neither a silently-degraded safety net nor over-blocking of genuine
+help-seekers can ship undetected.
+
+**Why P1:** The safety net had no working end-to-end smoke test. The existing `TestContentSafetySmoke`
+still asserted the old HTTP-400 contract, so — since blocks now return a warm HTTP 200 with
+`provider == "content_safety"` — its detector fixture saw a 200 and **skipped the entire class**. The
+discriminator between "blocked" and "answered" is the `provider` field, not the status code.
+
+**Acceptance Criteria:**
+
+- [x] CI gate: `api/tests/test_content_safety_smoke.py` drives the real ASGI app in deterministic
+      `keyword_only` mode (no external keys); asserts harmful blocked, benign allowed, help-seeking
+      allowed, and the stream path — both directions. Runs in the `backend-tests` job.
+- [x] Functional: rewrote `TestContentSafetySmoke` (`api/tests/functional/test_production_api.py`) to
+      the 200/`provider==content_safety` contract; fixed the skip-bug fixture; added a help-seeking
+      case; fixed the stream assertion. Revives a test that had been silently inert.
+- [x] Deployed probe: `scripts/monitor/synthetic_content_safety.py` + `content-safety` job in
+      `.github/workflows/prod-monitor.yml`; fails loudly on a degraded safety net or over-blocking.
+- [x] Docs: `AGENTS.md` clarifies why Plan → Build → Verify keeps verification on the strongest model.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-content-safety-smoke-tests.md`
+
+---
+
 ### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
 
 **Status:** 🟡 Code Complete — Pending Validation & Rollout (flags OFF in prod)
