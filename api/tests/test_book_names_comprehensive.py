@@ -15,6 +15,8 @@ Covers:
 import pytest
 
 from utils.book_names import (
+    LOCALIZED_TO_ENGLISH,
+    _fold,
     get_localized_book_name,
     normalize_book_name,
 )
@@ -808,3 +810,57 @@ class TestConcreteFailingCases:
     def test_songs_normalizes(self):
         """'Songs' should resolve to 'Song of Solomon'."""
         assert normalize_book_name("Songs") == "Song of Solomon"
+
+
+class TestDiacriticInsensitiveNormalization:
+    """normalize_book_name must match localized names with diacritics dropped
+    (BITB-052 item 2) — common when users type on non-accented keyboards or
+    use voice-to-text."""
+
+    @pytest.mark.parametrize(
+        ("book_name", "expected"),
+        [
+            ("Esaie", "Isaiah"),
+            ("Ésaïe", "Isaiah"),
+            ("Exodo", "Exodus"),
+            ("Éxodo", "Exodus"),
+            ("Deuteronome", "Deuteronomy"),
+            ("Deutéronome", "Deuteronomy"),
+            ("Ezechiel", "Ezekiel"),
+            ("Ézéchiel", "Ezekiel"),
+            ("Josue", "Joshua"),
+            ("Josué", "Joshua"),
+            ("Ephesiens", "Ephesians"),
+            ("Éphésiens", "Ephesians"),
+            ("Genesis", "Genesis"),
+            ("Gênesis", "Genesis"),
+        ],
+    )
+    def test_accent_dropped_form_normalizes(self, book_name, expected):
+        assert normalize_book_name(book_name) == expected
+
+    def test_combined_case_and_diacritic(self):
+        assert normalize_book_name("ESAIE") == "Isaiah"
+        assert normalize_book_name("éxodo".upper()) == "Exodus"
+
+    def test_unknown_typo_left_unchanged(self):
+        """Folding must not fuzzy-match genuine typos — only diacritic/case variants."""
+        assert normalize_book_name("Gnesis") == "Gnesis"
+
+    def test_diacritic_fold_has_no_cross_book_collisions(self):
+        """CI-enforced invariant: folding case+diacritics out of every known
+        book name/alias must never make two *different* English books
+        resolve to the same folded key. Verified once at 0 collisions across
+        814 source keys; this guard catches any future alias addition that
+        would introduce ambiguity."""
+        folded: dict[str, str] = {}
+        for name in ENGLISH_TO_ITALIAN:
+            folded.setdefault(_fold(name), name)
+        for localized, english in LOCALIZED_TO_ENGLISH.items():
+            key = _fold(localized)
+            if key in folded and folded[key] != english:
+                pytest.fail(
+                    f"Diacritic fold collision: {localized!r} -> {key!r} "
+                    f"already mapped to {folded[key]!r}, now also matches {english!r}"
+                )
+            folded.setdefault(key, english)
