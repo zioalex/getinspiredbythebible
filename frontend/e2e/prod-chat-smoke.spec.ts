@@ -30,6 +30,12 @@ test.describe("production chat smoke", () => {
   );
 
   test("submitting a message streams an assistant reply", async ({ page }) => {
+    // Must exceed the sum of the step timeouts below (goto 30s + input 30s +
+    // enabled 30s + user bubble 10s + assistant visible 60s + poll 60s ≈ 220s),
+    // otherwise the test-level timeout fires first and the per-step cold-start
+    // budgets are unreachable (the gap this fixes).
+    test.setTimeout(240_000);
+
     // Inject the smoke secret before any app code runs.
     await page.addInitScript((secret) => {
       (
@@ -46,6 +52,14 @@ test.describe("production chat smoke", () => {
     const submit = page.locator('form button[type="submit"]');
     await expect(submit).toBeEnabled({ timeout: 30_000 });
     await submit.click();
+
+    // The user's own bubble renders synchronously. If it's missing, the deployed
+    // bundle predates the smoke instrumentation (data-testid) rather than the
+    // service being down — surface that instead of a 60s mystery timeout.
+    await expect(
+      page.getByTestId("user-message").last(),
+      "user-message bubble not visible within 10s — the deployed frontend bundle likely predates the smoke test instrumentation (missing data-testid). Check whether the latest azure-deploy actually completed.",
+    ).toBeVisible({ timeout: 10_000 });
 
     // The streamed assistant reply must render with non-empty text. Generous
     // timeout to tolerate backend cold start.

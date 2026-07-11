@@ -252,6 +252,25 @@ TRANSLATIONS = {
         "license": "Public Domain",
         "is_default": False,
     },
+    "luther1912": {
+        "code": "luther1912",
+        "name": "Luther 1912",
+        "language": "German",
+        "language_code": "de",
+        "description": "German Luther Bible translation from 1912",
+        # getBible does NOT host Luther 1912 (only luther1545, the archaic 1545
+        # edition), so this translation ships as a committed public-domain data
+        # file (data/bible/translations/luther1912.json, from the Unbound Bible
+        # via biblesuper). source="manual"/url=None makes the loader read that
+        # cached file and the network URL tests skip it. The committed file is
+        # pre-normalized with canonical English book names, so book_names is None
+        # (no localized-name remapping needed at load time). See BITB-046.
+        "source": "manual",
+        "url": None,
+        "book_names": None,
+        "license": "Public Domain",
+        "is_default": False,
+    },
     "valera": {
         "code": "valera",
         "name": "Reina Valera 1909",

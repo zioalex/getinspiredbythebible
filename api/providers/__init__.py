@@ -13,6 +13,7 @@ from .base import (
     LLMResponse,
 )
 from .claude import ClaudeProvider
+from .errors import AllModelsExhaustedError
 from .factory import (
     EmbeddingProviderDep,
     LLMProviderDep,
@@ -43,4 +44,6 @@ __all__ = [
     "EmbeddingProviderDep",
     "check_providers_health",
     "ProviderError",
+    # Runtime errors
+    "AllModelsExhaustedError",
 ]

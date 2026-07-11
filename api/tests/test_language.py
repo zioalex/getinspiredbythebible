@@ -304,9 +304,9 @@ class TestTranslationMapping:
         """Italian should map to Riveduta 1927."""
         assert get_translation_for_language("it") == "ita1927"
 
-    def test_german_maps_to_schlachter(self):
-        """German should map to Schlachter."""
-        assert get_translation_for_language("de") == "schlachter"
+    def test_german_maps_to_luther1912(self):
+        """German should map to Luther 1912 (new default)."""
+        assert get_translation_for_language("de") == "luther1912"
 
     def test_spanish_maps_to_valera(self):
         """Spanish should map to Reina Valera."""
@@ -342,7 +342,7 @@ class TestTranslationMapping:
     def test_detect_translation_german(self):
         """detect_translation should return correct translation for German."""
         result = detect_translation("Was sagt die Bibel über die Liebe?")
-        assert result == "schlachter"
+        assert result == "luther1912"
 
 
 class TestTranslationInfo:
@@ -369,7 +369,7 @@ class TestTranslationInfo:
     def test_get_all_translations(self):
         """get_all_translations should return all translations."""
         translations = get_all_translations()
-        assert len(translations) == 12
+        assert len(translations) == 13
         codes = [t["code"] for t in translations]
         assert "kjv" in codes
         assert "web" in codes
@@ -383,6 +383,7 @@ class TestTranslationInfo:
         assert "cuv" in codes
         assert "hindi" in codes
         assert "krv" in codes
+        assert "luther1912" in codes
 
     def test_get_translations_for_language_english(self):
         """get_translations_for_language should return English translations."""
@@ -429,7 +430,7 @@ class TestResolveTranslation:
     def test_no_preference_uses_language(self):
         """No preferred translation should use language default."""
         result = resolve_translation(None, "de")
-        assert result == "schlachter"
+        assert result == "luther1912"
 
     def test_no_preference_no_language_uses_default(self):
         """No preference and no language should use global default."""
@@ -542,7 +543,7 @@ class TestMockDetector:
         set_detector(mock)
 
         # Translation detection uses the mock
-        assert detect_translation("Any text") == "schlachter"
+        assert detect_translation("Any text") == "luther1912"
 
         # Restore original
         set_detector(original)

@@ -17,6 +17,9 @@ repos:
         exclude: ^frontend/
       - id: check-added-large-files
         args: ["--maxkb=1000"]
+        # luther1912.json is a committed public-domain Bible (~4 MB) with no
+        # downloadable source; exempt it from the 1 MB cap. See BITB-046.
+        exclude: ^data/bible/translations/luther1912\.json$
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: mixed-line-ending

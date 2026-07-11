@@ -11,6 +11,8 @@ Supported translations: ita1927, schlachter, valera, ls1910, almeida,
                         arabicsv, synodal, cuv, krv, kjv, web.
 """
 
+import unicodedata
+
 from utils.translation_registry import (
     ENGLISH_TO_ARABIC,
     ENGLISH_TO_CHINESE,
@@ -116,16 +118,32 @@ def get_localized_book_name(english_name: str, translation_code: str | None) -> 
     return book_names.get(english_name, english_name)
 
 
-# Case-insensitive fallback map built once at import time.
+def _fold(text: str) -> str:
+    """Case- and diacritic-insensitive fold.
+
+    NFKD-decomposes and drops combining marks before lower-casing, so
+    "Ésaïe" and "Esaie" both fold to "esaie". Uses ``.lower()`` (not
+    ``.casefold()``) to keep this a strict widening of the pre-existing
+    case-insensitive fallback — no book name in any supported language
+    contains a character where the two diverge.
+    """
+    decomposed = unicodedata.normalize("NFKD", text)
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return stripped.lower()
+
+
+# Case- and diacritic-insensitive fallback map built once at import time.
 # Seeded first with all 66 canonical English names so that "genesis" → "Genesis"
 # even though English translations have no forward dict in TRANSLATION_REGISTRY.
 # Localized forms and aliases are then layered in; first writer wins to avoid
 # one language's abbreviation colliding with another's canonical form.
-_LOCALIZED_TO_ENGLISH_LOWER: dict[str, str] = {k.lower(): k for k in ENGLISH_TO_ITALIAN}
+# Verified against all 814 source keys: 0 cross-book collisions from folding
+# (guarded by test_diacritic_fold_has_no_cross_book_collisions).
+_LOCALIZED_TO_ENGLISH_FOLDED: dict[str, str] = {_fold(k): k for k in ENGLISH_TO_ITALIAN}
 for _key, _val in LOCALIZED_TO_ENGLISH.items():
-    _lower = _key.lower()
-    if _lower not in _LOCALIZED_TO_ENGLISH_LOWER:
-        _LOCALIZED_TO_ENGLISH_LOWER[_lower] = _val
+    _folded = _fold(_key)
+    if _folded not in _LOCALIZED_TO_ENGLISH_FOLDED:
+        _LOCALIZED_TO_ENGLISH_FOLDED[_folded] = _val
 
 
 def normalize_book_name(book_name: str) -> str:
@@ -151,5 +169,6 @@ def normalize_book_name(book_name: str) -> str:
     if exact is not None:
         return exact
 
-    # Case-insensitive fallback (handles "salmi", "GENESIS", "psalm", etc.)
-    return _LOCALIZED_TO_ENGLISH_LOWER.get(book_name.lower(), book_name)
+    # Case- and diacritic-insensitive fallback (handles "salmi", "GENESIS",
+    # "psalm", and accent-dropped forms like "Esaie" for "Ésaïe", etc.)
+    return _LOCALIZED_TO_ENGLISH_FOLDED.get(_fold(book_name), book_name)

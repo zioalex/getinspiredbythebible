@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-06
+**Last Updated:** 2026-07-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -267,6 +267,77 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ---
 
+### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
+**Size:** M (several small, independent hardening items)
+**Created:** 2026-07-07
+
+**As** the operator, **I want** deploys and the production smoke monitor to fail **only when the service
+is actually broken**, self-diagnose common failure modes, and not create outages as a side effect of
+routine changes, **so that** green means healthy and red means real user impact.
+
+**Why P1:** After BITB-064/065/066 shipped, the hourly browser smoke test alerted "production down" for
+hours while chat worked fine (it waited on a selector missing from the **undeployed** frontend bundle —
+the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin TLS
+(`525 SSL Handshake Failed`) — the same replace→cert-unbind class that BITB-064's new
+`smoke_probe_secret` (hashed into the backend replace-trigger) can now provoke.
+
+**Gaps (each independently shippable):**
+
+- [x] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy — `prod-deploy-drift.yml`, PR #848
+- [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
+- [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
+- [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
+- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
+- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+
+---
+
+### ✅ BITB-063: Typed Provider Error Contract — Make the Unreachable 503 Reachable
+
+**Status:** ✅ Done
+**Size:** S (typed exception + two route handlers + the contract test that was always missing)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E1 (context: A8, D4)
+
+**As** the operator, **I want** a total LLM-provider outage to surface as a 503 with a clear
+"upstream unavailable" signal — to monitoring, to clients, and to users — **so that** incident
+response starts with "OpenRouter is down" instead of a misleading generic-500 hunt, and clients
+back off instead of retry-hammering a dead upstream.
+
+**Why P1:** When all OpenRouter fallback models were exhausted, the provider raised a bare
+`RuntimeError`, and the routes special-cased it by matching the substring `"All models rate
+limited"` — a string that appeared in **neither** exhaustion message. The intended 503 branch
+(non-stream) and the friendly stream-error chunk were unreachable dead code; every real outage
+misreported as a generic 500.
+
+**Acceptance Criteria:**
+
+- [x] New `AllModelsExhaustedError` (`api/providers/errors.py`), carrying `reason`
+      (`rate_limited`/`unavailable`), `models_tried`, and an optional `retry_after`, raised by both
+      `chat()` and `chat_stream()` exhaustion paths in `api/providers/openrouter.py`
+- [x] Routes catch the **type** (`api/routes/chat.py`): non-stream → HTTP 503 with `Retry-After`
+      and a `code: "upstream_unavailable"` detail body; stream → an SSE error chunk with
+      `error_code: "upstream_unavailable"`
+- [x] Contract tests added (`api/tests/test_provider_error_contract.py`): provider exhaustion
+      raises the typed error in both paths, and each route maps it to 503 / an error chunk — a
+      change to either side alone now fails CI
+- [x] Error responses carry the machine-readable `code`/`error_code` fields (groundwork for a
+      later Android follow-up on the `ChatViewModel.kt` substring matching, audit A8 — the Android
+      change itself is out of scope here)
+- [x] `prod-monitor`'s `synthetic_chat.py` already extracts `error_code` from stream error chunks
+      (pre-existing), so the Telegram alert detail automatically distinguishes an upstream outage
+      the moment the backend emits the code — no probe change needed. Branching the alert
+      *subject/text* on the code, or adding a non-stream probe asserting the 503 directly, is
+      follow-up work, not part of this story.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-063-typed-provider-error-contract.md`
+
+---
+
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
 **Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
@@ -297,6 +368,39 @@ error — unacceptable for a pastoral-care product serving people in crisis.
       default flipped on
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
+
+---
+
+### ✅ BITB-068: Content-Safety Smoke Tests — CI Gate + Functional + Deployed Probe
+
+**Status:** ✅ Done (PR #850)
+**Size:** S–M (three test tiers + one prod-monitor job + a docs note)
+**Created:** 2026-07-10
+**Parent ref:** BITB-061 (verification safety net for the content-safety phase, PR #840)
+
+**As** the operator, **I want** an end-to-end smoke test of the content-safety pipeline that runs at
+every deployment stage and verifies **both** directions — harmful blocked **and** legitimate content
+answered — **so that** neither a silently-degraded safety net nor over-blocking of genuine
+help-seekers can ship undetected.
+
+**Why P1:** The safety net had no working end-to-end smoke test. The existing `TestContentSafetySmoke`
+still asserted the old HTTP-400 contract, so — since blocks now return a warm HTTP 200 with
+`provider == "content_safety"` — its detector fixture saw a 200 and **skipped the entire class**. The
+discriminator between "blocked" and "answered" is the `provider` field, not the status code.
+
+**Acceptance Criteria:**
+
+- [x] CI gate: `api/tests/test_content_safety_smoke.py` drives the real ASGI app in deterministic
+      `keyword_only` mode (no external keys); asserts harmful blocked, benign allowed, help-seeking
+      allowed, and the stream path — both directions. Runs in the `backend-tests` job.
+- [x] Functional: rewrote `TestContentSafetySmoke` (`api/tests/functional/test_production_api.py`) to
+      the 200/`provider==content_safety` contract; fixed the skip-bug fixture; added a help-seeking
+      case; fixed the stream assertion. Revives a test that had been silently inert.
+- [x] Deployed probe: `scripts/monitor/synthetic_content_safety.py` + `content-safety` job in
+      `.github/workflows/prod-monitor.yml`; fails loudly on a degraded safety net or over-blocking.
+- [x] Docs: `AGENTS.md` clarifies why Plan → Build → Verify keeps verification on the strongest model.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-content-safety-smoke-tests.md`
 
 ---
 
@@ -380,9 +484,9 @@ Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-sm
 
 ---
 
-### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+### 🚧 BITB-052: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
 
@@ -399,11 +503,12 @@ English-canonical) but affects localized input and the app-wide normalizer.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Per-language coverage matrix identifying every gap
-- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
-- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [x] Per-language coverage matrix identifying every gap (`docs/audits/book-name-coverage.md`,
+      regenerate via `scripts/audit_book_name_coverage.py`)
+- [x] Missing localized singular/abbreviation aliases added (Psalms + common books) — PR #791
+- [x] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
 - [ ] Versification offsets quantified + documented handling decision (with tests)
-- [ ] Table-driven tests across all 11 languages green
+- [x] Table-driven tests across all 11 languages green
 
 **Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
 numbered-book references fail to parse *with and without* parentheses —
@@ -524,9 +629,9 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 ---
 
-### 🎯 BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
+### ✅ BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #689 — 2026-06-06)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -542,19 +647,19 @@ common interaction; one-line manifest fix plus a defensive guard.
 
 **Acceptance Criteria:**
 
-- [ ] New chat + send message + rotate → same messages and conversation remain visible
-- [ ] Existing saved conversation survives rotation
-- [ ] Rotating during an in-flight response does not start a new chat
-- [ ] Locale switching from Settings still works (still recreates Activity, applies new language)
-- [ ] Existing Android unit tests pass; guard logic is covered by a test
+- [x] New chat + send message + rotate → same messages and conversation remain visible
+- [x] Existing saved conversation survives rotation
+- [x] Rotating during an in-flight response does not start a new chat
+- [x] Locale switching from Settings still works (still recreates Activity, applies new language)
+- [x] Existing Android unit tests pass; guard logic is covered by a test
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-039-android-preserve-chat-on-rotation.md`
 
 ---
 
-### 🎯 BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
+### ✅ BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** M (1-2 days)
 **Created:** 2026-06-04
 
@@ -571,12 +676,12 @@ fetch that returns a bad 200/500 is invisible. Shares an Italian root cause with
 
 **Acceptance Criteria:**
 
-- [ ] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
-- [ ] Verse text area never shows `////`/empty quotes (loading → verse or error)
-- [ ] Backend verse/chapter reads time out to 504 instead of hanging
-- [ ] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
-- [ ] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
-- [ ] New Android + backend tests cover timeout, error, retry, and empty-text paths
+- [x] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
+- [x] Verse text area never shows `////`/empty quotes (loading → verse or error)
+- [x] Backend verse/chapter reads time out to 504 instead of hanging
+- [x] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
+- [x] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
+- [x] New Android + backend tests cover timeout, error, retry, and empty-text paths
 
 **Test note:** existing tests over-mock and skip integration — `loadChapter` is tested
 only for `IOException`, `VerseDetailBottomSheet` has no UI test, and the chapter route
@@ -1111,7 +1216,7 @@ instead of a generic "I don't understand".
 
 ---
 
-### 🎯 BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
+### 🎯 BITB-046: Add German Bible Translation (Luther 1912)
 
 **Status:** 🎯 Todo
 **Size:** M (1-2 days, mostly data loading)
@@ -1119,15 +1224,40 @@ instead of a generic "I don't understand".
 
 **As a** German-speaking user, **I want** a familiar Bible translation (Luther), **so that** I'm not
 limited to Schlachter 1951. Luther 1984/2017, Einheitsübersetzung, NGÜ, and Schlachter 2000 are
-copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBible).
+copyrighted; **Luther 1912** is public domain (shipped as a committed data file — getBible does not
+host it). Elberfelder was dropped: getBible only offers the archaic 1905 edition, and Luther 1912
+covers the need while saving a full Bible's worth of verses/embeddings in the DB.
 
 **Acceptance Criteria (summary):**
 
-- [ ] German picker shows Luther 1912 (default), Schlachter 1951, Elberfelder 1871
-- [ ] Text + embeddings loaded and searchable for both new translations
+- [ ] German picker shows Luther 1912 (default), Schlachter 1951
+- [ ] Text + embeddings loaded and searchable for Luther 1912
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+
+**Status:** 📋 Backlog
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
+
+**As a** reader, **I want** additional and more current Bible translations — starting with Italian —
+**so that** I can read Scripture in more contemporary wording and compare versions, instead of a single
+century-old translation per language. Source: Bible SuperSearch JSON collection. Bounded by licensing —
+only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Italian gets a second option (e.g. Diodati) alongside Riveduta 1927
+- [ ] Add newer free options where clearly licensed: Reina Valera 2010 (es), Ostervald 1996 / l'Épée
+      2005 (fr), NET Bible (en); each license-verified before import
+- [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
+      `/scripture/translations`; provenance/license note recorded
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
 
 ---
 
