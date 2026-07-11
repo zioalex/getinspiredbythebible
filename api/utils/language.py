@@ -8,6 +8,8 @@ multiple backends (lingua-py, langdetect, etc.) through a common interface.
 from abc import ABC, abstractmethod
 from typing import Literal
 
+from utils.translation_readiness import get_ready_translations
+
 # Supported languages for this application
 SUPPORTED_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 DEFAULT_LANGUAGE = "en"
@@ -386,7 +388,15 @@ def detect_language_confident(text: str) -> str | None:
 
 def get_translation_for_language(language_code: str) -> str:
     """
-    Get the translation code for a given language.
+    Get the default translation code for a given language.
+
+    Readiness-aware: if the runtime readiness cache is populated, return the
+    first configured translation for the language that is actually loaded +
+    embedded in the DB, so a not-yet-seeded default is never served (it would
+    silently return empty search results / 404 lookups). Falls back to the
+    static configured default when readiness is unknown (cache never populated,
+    e.g. in tests) or when no configured translation is ready — so a healthy
+    default is never changed and behaviour degrades no worse than before.
 
     Args:
         language_code: ISO 639-1 language code
@@ -394,6 +404,11 @@ def get_translation_for_language(language_code: str) -> str:
     Returns:
         Translation code (e.g., 'kjv', 'ita1927', 'schlachter')
     """
+    ready = get_ready_translations()
+    if ready:
+        for code in LANGUAGE_TRANSLATIONS.get(language_code, []):
+            if code in ready:
+                return code
     return LANGUAGE_TO_TRANSLATION.get(language_code, DEFAULT_TRANSLATION)
 
 
