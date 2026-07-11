@@ -108,6 +108,17 @@ Postgres — fast startup, real data.
 > ⚠️ **You are touching production data.** Anything the app writes (feedback,
 > usage tracking, blocked-sample capture) lands in the prod DB.
 
+**Production hardening is relaxed in this mode:**
+
+- **Turnstile (bot protection) is pinned off** in both local-prod compose
+  files (`TURNSTILE_ENABLED=false`), so you can chat without the CAPTCHA
+  widget or `403 TURNSTILE_REQUIRED` errors. This cannot leak to production —
+  the deployed containers get their env from Terraform, not from these files.
+- **Rate limiting stays on by default** (same limits as prod: 20 req/min/IP,
+  10 messages per session). For load or iterative testing, set
+  `RATE_LIMIT_ENABLED=false` in `.env.production` and restart
+  (`make docker-restart-local-prod-api`).
+
 Setup (once):
 
 ```bash
