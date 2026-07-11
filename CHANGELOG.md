@@ -4,16 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [1.43.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.1...v1.43.0) (2026-07-11)
 
-
 ### Features
 
 * **language:** readiness guard so a default Bible is never served before it's loaded ([#858](https://github.com/zioalex/getinspiredbythebible/issues/858)) ([c242ee2](https://github.com/zioalex/getinspiredbythebible/commit/c242ee2d6df8a04f0c9d29f2ec49e03230632d0c))
 
-
 ### Bug Fixes
 
 * **openrouter:** give language-override route the same fallback resilience ([#859](https://github.com/zioalex/getinspiredbythebible/issues/859)) ([8537716](https://github.com/zioalex/getinspiredbythebible/commit/8537716a56aa18246e69bc51ee59fa3000d603c0))
-
 
 ### Documentation
 
