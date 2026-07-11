@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout release-please PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: release-please--branches--main
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}

@@ -63,7 +63,7 @@ jobs:
     steps:
       # Full history so `git log`/`git show` can resolve the newest commit
       # touching each component's build context, however far back it sits.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

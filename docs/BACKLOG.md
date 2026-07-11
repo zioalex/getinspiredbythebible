@@ -269,7 +269,7 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open)
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -285,7 +285,7 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 
 **Gaps (each independently shippable):**
 
-- [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
+- [x] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy — `prod-deploy-drift.yml`, PR #848
 - [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
 - [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
 - [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
@@ -1235,6 +1235,29 @@ covers the need while saving a full Bible's worth of verses/embeddings in the DB
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+
+**Status:** 📋 Backlog
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
+
+**As a** reader, **I want** additional and more current Bible translations — starting with Italian —
+**so that** I can read Scripture in more contemporary wording and compare versions, instead of a single
+century-old translation per language. Source: Bible SuperSearch JSON collection. Bounded by licensing —
+only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Italian gets a second option (e.g. Diodati) alongside Riveduta 1927
+- [ ] Add newer free options where clearly licensed: Reina Valera 2010 (es), Ostervald 1996 / l'Épée
+      2005 (fr), NET Bible (en); each license-verified before import
+- [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
+      `/scripture/translations`; provenance/license note recorded
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
 
 ---
 
