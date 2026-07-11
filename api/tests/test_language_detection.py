@@ -126,8 +126,8 @@ class TestTranslationMapping:
         assert get_translation_for_language("it") == "ita1927"
 
     def test_get_translation_for_german(self):
-        """Test German maps to Schlachter."""
-        assert get_translation_for_language("de") == "schlachter"
+        """Test German maps to Luther 1912 (new default)."""
+        assert get_translation_for_language("de") == "luther1912"
 
     def test_get_translation_for_spanish(self):
         """Test Spanish maps to Reina Valera."""
@@ -175,7 +175,7 @@ class TestTranslationMapping:
 
     def test_detect_translation_german(self):
         """Test full detection pipeline for German."""
-        assert detect_translation("Ich brauche heute Ermutigung") == "schlachter"
+        assert detect_translation("Ich brauche heute Ermutigung") == "luther1912"
 
     def test_detect_translation_russian(self):
         """Test full detection pipeline for Russian."""
@@ -480,11 +480,12 @@ class TestGetTranslationsForLanguage:
         assert len(result) == 1
         assert result[0]["code"] == "ita1927"
 
-    def test_german_returns_one(self):
-        """Test German has one translation."""
+    def test_german_returns_two(self):
+        """Test German has two translations with Luther 1912 as default."""
         result = get_translations_for_language("de")
-        assert len(result) == 1
-        assert result[0]["code"] == "schlachter"
+        assert len(result) == 2
+        assert result[0]["code"] == "luther1912"
+        assert result[1]["code"] == "schlachter"
 
     def test_unknown_language_returns_empty(self):
         """Test unknown language returns empty list."""
@@ -544,13 +545,13 @@ class TestResolveTranslation:
     def test_invalid_preference_falls_back_to_language(self):
         """Test invalid preference falls back to language default."""
         assert resolve_translation("invalid", "it") == "ita1927"
-        assert resolve_translation("invalid", "de") == "schlachter"
+        assert resolve_translation("invalid", "de") == "luther1912"
 
     def test_no_preference_uses_language(self):
         """Test no preference uses language-based default."""
         assert resolve_translation(None, "en") == "web"
         assert resolve_translation(None, "it") == "ita1927"
-        assert resolve_translation(None, "de") == "schlachter"
+        assert resolve_translation(None, "de") == "luther1912"
 
     def test_no_preference_no_language_uses_default(self):
         """Test no preference and no language uses global default."""

@@ -2,6 +2,9 @@
  * API client for Bible Chat backend
  */
 
+import { reportClientError } from "./clientErrorReporter";
+import { getSmokeSecret } from "./smoke";
+
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -73,6 +76,23 @@ export class MessageTooLongError extends Error {
   constructor(message: string = "Message exceeds the maximum length") {
     super(message);
     this.name = "MessageTooLongError";
+  }
+}
+
+/**
+ * Error thrown when Cloudflare Turnstile rejects a request (HTTP 403:
+ * TURNSTILE_REQUIRED — no token reached the server — or TURNSTILE_FAILED —
+ * token stale/duplicate). The gated POST already retries once with a fresh
+ * token before this is thrown, so reaching here means recovery didn't land in
+ * time. UI should surface a "couldn't verify your device, please retry"
+ * message rather than a generic connection error.
+ */
+export class VerificationError extends Error {
+  constructor(
+    message: string = "We couldn't verify your device. Please wait a moment and try again.",
+  ) {
+    super(message);
+    this.name = "VerificationError";
   }
 }
 
@@ -181,7 +201,68 @@ function getHeaders(): HeadersInit {
   if (turnstileToken) {
     headers["X-Turnstile-Token"] = turnstileToken;
   }
+  // BITB-064: the production browser smoke test injects a smoke secret at
+  // runtime (never shipped in the bundle); when present, attach it so the
+  // backend bypasses Turnstile + rate limits deterministically. Inert (null)
+  // for real users.
+  const smokeSecret = getSmokeSecret();
+  if (smokeSecret) {
+    headers["X-Monitor-Probe-Secret"] = smokeSecret;
+  }
   return headers;
+}
+
+// Longer wait used only on the 403 retry: a 403 means the token was missing or
+// stale, so we give the widget's refresh (kicked by consumeToken below) time to
+// produce a fresh token — mirrors the Android TurnstileInterceptor retry path.
+const TURNSTILE_RETRY_WAIT_MS = 8000;
+
+/**
+ * Perform a Turnstile-gated POST: wait briefly for a token, attach it, consume
+ * it (single-use), then fire the request. On a 403 (Turnstile required/failed)
+ * the consumed token has already triggered a widget refresh, so we wait for the
+ * fresh token and retry exactly once before giving up. This keeps a single
+ * stale token or a transient widget hiccup from surfacing as a hard failure,
+ * and — together with the self-healing widget — prevents the wedge where every
+ * gated POST 403s for the rest of the session.
+ *
+ * Returns the raw Response (including a final 403) so each caller can map
+ * status codes to its own typed errors.
+ */
+async function turnstilePost(
+  url: string,
+  body: unknown,
+  init?: { signal?: AbortSignal },
+): Promise<Response> {
+  await ensureTurnstileToken();
+  const headers = getHeaders();
+  consumeToken();
+
+  let response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal: init?.signal,
+  });
+
+  if (response.status === 403) {
+    // Wait for the refreshed token (consumeToken kicked the widget) and retry
+    // once. If no fresh token arrives in time, fall through with the 403 so the
+    // caller surfaces a clear verification error.
+    await ensureTurnstileToken(TURNSTILE_RETRY_WAIT_MS);
+    if (turnstileToken) {
+      const retryHeaders = getHeaders();
+      consumeToken();
+      response = await fetch(url, {
+        method: "POST",
+        headers: retryHeaders,
+        body: JSON.stringify(body),
+        signal: init?.signal,
+      });
+    }
+  }
+
+  return response;
 }
 
 /**
@@ -383,22 +464,17 @@ export async function sendMessage(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    await ensureTurnstileToken();
-    const headers = getHeaders();
-    consumeToken();
-
-    const response = await fetch(`${API_URL}/api/v1/chat`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
+    const response = await turnstilePost(
+      `${API_URL}/api/v1/chat`,
+      {
         message,
         conversation_history: history,
         include_search: true,
         preferred_translation: preferredTranslation,
         session_id: sessionId,
-      }),
-      signal: controller.signal,
-    });
+      },
+      { signal: controller.signal },
+    );
 
     clearTimeout(timeoutId);
 
@@ -420,10 +496,18 @@ export async function sendMessage(
           throw new ContentBlockedError(data.detail?.message);
         }
       }
+      // 403: Turnstile rejected the request even after one retry with a fresh
+      // token — surface a clear verification message, not a connection error.
+      if (response.status === 403) {
+        throw new VerificationError();
+      }
       // 503 Service Unavailable often indicates cold start
       if (response.status === 503 || response.status === 502) {
         throw new ColdStartError("Backend is starting up");
       }
+      // Unexpected non-2xx (not one of the handled/expected statuses above):
+      // report so a systemic backend failure is observable client-side.
+      reportClientError("api_failure", `sendMessage HTTP ${response.status}`);
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -437,6 +521,10 @@ export async function sendMessage(
       error instanceof TypeError ||
       (error instanceof DOMException && error.name === "AbortError")
     ) {
+      // A network TypeError ("Failed to fetch") is also how a CORS-blocked
+      // preflight surfaces to JS — the exact browser-only signature we now
+      // want visibility into.
+      reportClientError("api_failure", `sendMessage network: ${String(error)}`);
       throw new ColdStartError("Backend is warming up, please wait...");
     }
     throw error;
@@ -476,6 +564,11 @@ export interface StreamChunk {
   // merged into the verse pool so the filter has cards to match for verses
   // outside the semantic search results.
   resolved_verses?: Verse[];
+  // Set only when post-generation grounding rewrote a fabricated/mismatched
+  // inline verse quote to the canonical scripture text. When present, it is the
+  // authoritative full message body and should replace the streamed content.
+  corrected_message?: string;
+  corrections?: { reference: string; reason: string }[];
 }
 
 /**
@@ -506,7 +599,7 @@ export async function* streamMessage(
   const headers = getHeaders();
   consumeToken();
 
-  const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
+  let response = await fetch(`${API_URL}/api/v1/chat/stream`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -519,6 +612,29 @@ export async function* streamMessage(
     }),
     signal,
   });
+
+  // 403: token missing/stale. consumeToken() kicked a widget refresh; wait for
+  // the fresh token and retry once before surfacing a verification error.
+  if (response.status === 403) {
+    await ensureTurnstileToken(TURNSTILE_RETRY_WAIT_MS);
+    if (turnstileToken) {
+      const retryHeaders = getHeaders();
+      consumeToken();
+      response = await fetch(`${API_URL}/api/v1/chat/stream`, {
+        method: "POST",
+        headers: retryHeaders,
+        body: JSON.stringify({
+          message,
+          conversation_history: history,
+          include_search: true,
+          preferred_translation: preferredTranslation,
+          session_id: sessionId,
+          language,
+        }),
+        signal,
+      });
+    }
+  }
 
   if (!response.ok) {
     // Handle 429 rate limit errors
@@ -538,6 +654,11 @@ export async function* streamMessage(
         throw new ContentBlockedError(data.detail?.message);
       }
     }
+    // 403: Turnstile rejected the request even after one retry with a fresh
+    // token — surface a clear verification message, not a connection error.
+    if (response.status === 403) {
+      throw new VerificationError();
+    }
     // 422 request validation: the realistic client-controllable cause is an
     // over-long message. Detect the message-length error and surface a clear
     // "too long" notice rather than a generic connection failure.
@@ -555,6 +676,7 @@ export async function* streamMessage(
         throw new MessageTooLongError();
       }
     }
+    reportClientError("api_failure", `streamMessage HTTP ${response.status}`);
     throw new Error(`API error: ${response.status}`);
   }
 
@@ -790,17 +912,14 @@ export async function getTranslations(): Promise<TranslationInfo[]> {
 export async function searchChurches(
   location: string,
 ): Promise<ChurchSearchResponse> {
-  await ensureTurnstileToken();
-  const headers = getHeaders();
-  consumeToken();
-
-  const response = await fetch(`${API_URL}/api/v1/church/search`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ location }),
+  const response = await turnstilePost(`${API_URL}/api/v1/church/search`, {
+    location,
   });
 
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new VerificationError();
+    }
     throw new Error(`API error: ${response.status}`);
   }
 
@@ -813,17 +932,12 @@ export async function searchChurches(
 export async function submitFeedback(
   feedback: FeedbackRequest,
 ): Promise<FeedbackResponse> {
-  await ensureTurnstileToken();
-  const headers = getHeaders();
-  consumeToken();
-
-  const response = await fetch(`${API_URL}/api/v1/feedback`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(feedback),
-  });
+  const response = await turnstilePost(`${API_URL}/api/v1/feedback`, feedback);
 
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new VerificationError();
+    }
     throw new Error(`API error: ${response.status}`);
   }
 
@@ -836,17 +950,15 @@ export async function submitFeedback(
 export async function submitContactForm(
   contact: ContactRequest,
 ): Promise<ContactResponse> {
-  await ensureTurnstileToken();
-  const headers = getHeaders();
-  consumeToken();
-
-  const response = await fetch(`${API_URL}/api/v1/feedback/contact`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(contact),
-  });
+  const response = await turnstilePost(
+    `${API_URL}/api/v1/feedback/contact`,
+    contact,
+  );
 
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new VerificationError();
+    }
     throw new Error(`API error: ${response.status}`);
   }
 

@@ -11,6 +11,8 @@ Supported translations: ita1927, schlachter, valera, ls1910, almeida,
                         arabicsv, synodal, cuv, krv, kjv, web.
 """
 
+import unicodedata
+
 from utils.translation_registry import (
     ENGLISH_TO_ARABIC,
     ENGLISH_TO_CHINESE,
@@ -116,6 +118,34 @@ def get_localized_book_name(english_name: str, translation_code: str | None) -> 
     return book_names.get(english_name, english_name)
 
 
+def _fold(text: str) -> str:
+    """Case- and diacritic-insensitive fold.
+
+    NFKD-decomposes and drops combining marks before lower-casing, so
+    "Ésaïe" and "Esaie" both fold to "esaie". Uses ``.lower()`` (not
+    ``.casefold()``) to keep this a strict widening of the pre-existing
+    case-insensitive fallback — no book name in any supported language
+    contains a character where the two diverge.
+    """
+    decomposed = unicodedata.normalize("NFKD", text)
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return stripped.lower()
+
+
+# Case- and diacritic-insensitive fallback map built once at import time.
+# Seeded first with all 66 canonical English names so that "genesis" → "Genesis"
+# even though English translations have no forward dict in TRANSLATION_REGISTRY.
+# Localized forms and aliases are then layered in; first writer wins to avoid
+# one language's abbreviation colliding with another's canonical form.
+# Verified against all 814 source keys: 0 cross-book collisions from folding
+# (guarded by test_diacritic_fold_has_no_cross_book_collisions).
+_LOCALIZED_TO_ENGLISH_FOLDED: dict[str, str] = {_fold(k): k for k in ENGLISH_TO_ITALIAN}
+for _key, _val in LOCALIZED_TO_ENGLISH.items():
+    _folded = _fold(_key)
+    if _folded not in _LOCALIZED_TO_ENGLISH_FOLDED:
+        _LOCALIZED_TO_ENGLISH_FOLDED[_folded] = _val
+
+
 def normalize_book_name(book_name: str) -> str:
     """
     Convert a localized book name to standard English.
@@ -134,5 +164,11 @@ def normalize_book_name(book_name: str) -> str:
     if book_name in ENGLISH_TO_ITALIAN:
         return book_name
 
-    # Try to find in reverse mappings
-    return LOCALIZED_TO_ENGLISH.get(book_name, book_name)
+    # Exact-case lookup (preferred — avoids false collisions across languages)
+    exact = LOCALIZED_TO_ENGLISH.get(book_name)
+    if exact is not None:
+        return exact
+
+    # Case- and diacritic-insensitive fallback (handles "salmi", "GENESIS",
+    # "psalm", and accent-dropped forms like "Esaie" for "Ésaïe", etc.)
+    return _LOCALIZED_TO_ENGLISH_FOLDED.get(_fold(book_name), book_name)

@@ -183,8 +183,10 @@
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_timeout">Request timed out. Please try again.</string>
     <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_verification">We couldn\'t verify your device. Please wait a moment and try again.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
     <string name="error_message_too_long">Your message is a little long (max %1$d characters). Please shorten it and try again.</string>
+    <string name="error_contact_email_invalid">Please enter a valid email so we can reply.</string>
     <string name="error_session_limit">You\'ve had 10 messages in this session! Why not take a break and enjoy God\'s creation outside? 🌳</string>
     <string name="error_content_blocked">I wasn\'t able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We\'re glad you\'re here.</string>
 
@@ -205,6 +207,12 @@
     <string name="feedback_send">Send</string>
     <string name="feedback_sending">Sending feedback…</string>
     <string name="feedback_maintainer_notice">Your message will be shared with the app\'s maintainer.</string>
+    <string name="feedback_reason_prompt">What went wrong?</string>
+    <string name="feedback_reason_inaccurate">Inaccurate</string>
+    <string name="feedback_reason_unhelpful">Unhelpful</string>
+    <string name="feedback_reason_wrong_verse">Wrong verse</string>
+    <string name="feedback_reason_tone">Tone</string>
+    <string name="feedback_reason_other">Other</string>
 
     <!-- Backend warm-up -->
     <string name="backend_warming_up">Connecting to server… (first request may take up to 30 s)</string>
@@ -251,8 +259,10 @@
     <string name="contact_subject_bug">Bug Report</string>
     <string name="contact_subject_feature">Feature Request</string>
     <string name="contact_subject_other">Other</string>
-    <string name="contact_email_label">Your email (optional, for reply)</string>
+    <string name="contact_email_label">Your email (for our reply)</string>
     <string name="contact_email_placeholder">you@example.com</string>
+    <string name="contact_email_required">Please enter your email so we can reply</string>
+    <string name="contact_email_invalid">Please enter a valid email address</string>
     <string name="contact_message_label">Message</string>
     <string name="contact_message_placeholder">Share your thoughts, report an issue, or suggest an improvement…</string>
     <string name="contact_bug_steps_label">Steps to reproduce</string>

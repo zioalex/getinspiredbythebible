@@ -778,8 +778,10 @@ class TestProviderFactory:
             create_llm_provider(config)
 
     def test_create_embedding_ollama(self):
-        """Factory should create Ollama embedding provider."""
+        """Factory should create an Ollama embedding provider, wrapped for
+        resilience (BITB-057 Phase 2: ResilientEmbeddingProvider)."""
         from config import Settings
+        from providers.embedding_resilience import ResilientEmbeddingProvider
         from providers.factory import create_embedding_provider
         from providers.ollama import OllamaEmbeddingProvider
 
@@ -792,7 +794,9 @@ class TestProviderFactory:
             _env_file=None,
         )
         provider = create_embedding_provider(config)
-        assert isinstance(provider, OllamaEmbeddingProvider)
+        assert isinstance(provider, ResilientEmbeddingProvider)
+        assert isinstance(provider._wrapped, OllamaEmbeddingProvider)
+        assert provider.provider_name == "ollama"
 
     def test_create_embedding_azure_openai(self):
         """Factory should create Azure OpenAI embedding provider."""
@@ -1275,8 +1279,10 @@ class TestOpenRouterProviderAdditional:
 
     @pytest.mark.asyncio
     async def test_chat_all_fallbacks_exhausted(self):
-        """Chat should raise RuntimeError when all fallbacks fail."""
+        """Chat should raise AllModelsExhaustedError when all fallbacks fail."""
         from openai import APIStatusError
+
+        from providers import AllModelsExhaustedError
 
         provider = self._make_provider(
             fallback_models=["fb1"],
@@ -1294,8 +1300,12 @@ class TestOpenRouterProviderAdditional:
             new_callable=AsyncMock,
             side_effect=error,
         ):
-            with pytest.raises(RuntimeError, match="All models unavailable"):
+            with pytest.raises(AllModelsExhaustedError, match="All models unavailable") as exc:
                 await provider.chat([ChatMessage(role="user", content="Hi")])
+
+        assert exc.value.reason == "rate_limited"
+        assert provider.model in exc.value.models_tried
+        assert "fb1" in exc.value.models_tried
 
     @pytest.mark.asyncio
     async def test_chat_non_recoverable_error(self):

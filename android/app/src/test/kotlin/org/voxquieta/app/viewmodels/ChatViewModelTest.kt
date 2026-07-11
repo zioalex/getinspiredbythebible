@@ -116,6 +116,8 @@ class ChatViewModelTest {
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
+            every { getString(R.string.error_contact_email_invalid) } returns "Please enter a valid email so we can reply."
+            every { getString(R.string.error_content_blocked) } returns "I wasn't able to respond to that one — please try rephrasing."
         }
         networkMonitor = mockk {
             every { isOffline } returns MutableStateFlow(false)
@@ -190,6 +192,25 @@ class ChatViewModelTest {
             .last { it.role == Message.Role.ASSISTANT }
         assertEquals("Hello world", assistant.content)
         assertFalse(assistant.isStreaming)
+    }
+
+    @Test
+    fun `completion correctedMessage replaces streamed content`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "A fabricated verse quote (Isaiah 41:10)."),
+            StreamChunk(
+                type = "completion",
+                correctedMessage = "Do not fear, for I am with you (Isaiah 41:10).",
+            ),
+            StreamChunk(content = "", done = true),
+        )
+
+        viewModel.sendMessage("comfort me")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages
+            .last { it.role == Message.Role.ASSISTANT }
+        assertEquals("Do not fear, for I am with you (Isaiah 41:10).", assistant.content)
     }
 
     @Test
@@ -299,7 +320,10 @@ class ChatViewModelTest {
         assertEquals(Message.Role.ASSISTANT, lastMessage.role)
         assertTrue(lastMessage.isError)
         assertFalse(lastMessage.isStreaming)
-        assertEquals("", lastMessage.content)
+        // The error message now carries the explanatory text on the bubble (so it renders
+        // above the Retry button) instead of being left blank.
+        assertTrue(lastMessage.content.isNotBlank())
+        assertEquals("Network error. Please check your connection.", lastMessage.content)
     }
 
     @Test
@@ -1013,6 +1037,42 @@ class ChatViewModelTest {
         return HttpException(response)
     }
 
+    private fun make422Exception(body: String): HttpException {
+        val errorBody = body.toResponseBody("application/json".toMediaType())
+        val response = Response.error<Any>(422, errorBody)
+        return HttpException(response)
+    }
+
+    private fun make400Exception(body: String): HttpException {
+        val errorBody = body.toResponseBody("application/json".toMediaType())
+        val response = Response.error<Any>(400, errorBody)
+        return HttpException(response)
+    }
+
+    @Test
+    fun `HTTP 400 content_blocked surfaces empathetic message on the assistant bubble`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make400Exception(
+                """{"detail": {"error": "content_blocked", "message": "blocked"}}""",
+            )
+        }
+
+        viewModel.sendMessage("mi manca tanto la....... Anna la mia Amica")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The blocked message must be shown to the user (not lost to a suppressed snackbar):
+        // it is carried on the error-flagged assistant bubble, where the Retry button renders
+        // beneath it.
+        val lastMsg = viewModel.uiState.value.messages.last()
+        assertEquals(Message.Role.ASSISTANT, lastMsg.role)
+        assertTrue(lastMsg.isError)
+        assertFalse(lastMsg.isStreaming)
+        assertEquals(
+            "I wasn't able to respond to that one — please try rephrasing.",
+            lastMsg.content,
+        )
+    }
+
     @Test
     fun `HTTP 429 with session_lifetime_limit sets isSessionLimitReached true`() = runTest {
         every { repository.chatStream(any()) } returns flow {
@@ -1633,6 +1693,28 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `submitContact on 422 shows email-specific error not message-too-long`() = runTest {
+        // The backend rejects a missing/invalid email with a 422. The contact path
+        // must surface an email-specific message rather than the chat "message too
+        // long" string (the bug this fixes).
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws make422Exception(
+            """{"detail":[{"type":"value_error","loc":["body","email"],"msg":"value is not a valid email address"}]}""",
+        )
+
+        viewModel.submitContact("feedback", "Great app!", "not-an-email")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.contactFormState.value
+        assertTrue(state is ContactFormState.Error)
+        assertEquals(
+            "Please enter a valid email so we can reply.",
+            (state as ContactFormState.Error).message,
+        )
+    }
+
+    @Test
     fun `resetContactForm returns state to Idle`() = runTest {
         coEvery { contactRepository.submitContact(any(), any(), any(), any()) } returns 1
         viewModel.submitContact("other", "Hello", null)
@@ -1697,6 +1779,25 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.diagnosticReportState.value is ContactFormState.Error)
+    }
+
+    @Test
+    fun `sendDiagnosticEmail on 422 shows email-specific error not message-too-long`() = runTest {
+        coEvery {
+            contactRepository.submitContact(any(), any(), any(), any())
+        } throws make422Exception(
+            """{"detail":[{"type":"value_error","loc":["body","email"],"msg":"value is not a valid email address"}]}""",
+        )
+
+        viewModel.sendDiagnosticEmail("Doing something", "Expected something else", "bad-email")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.diagnosticReportState.value
+        assertTrue(state is ContactFormState.Error)
+        assertEquals(
+            "Please enter a valid email so we can reply.",
+            (state as ContactFormState.Error).message,
+        )
     }
 
     @Test

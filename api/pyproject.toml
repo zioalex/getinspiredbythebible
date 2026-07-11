@@ -3,7 +3,7 @@ name = "getinspiredbythebible-api"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "email-validator>=2.2.0",
+    "email-validator>=2.3.0",
 ]
 
 [tool.black]

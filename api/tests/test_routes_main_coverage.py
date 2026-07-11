@@ -82,6 +82,33 @@ class TestCheckDatabaseHealth:
         assert result.error is not None
         assert result.latency_ms is not None
 
+    @pytest.mark.asyncio
+    @patch("routes.health.logger")
+    @patch("routes.health.async_session_factory")
+    async def test_timeout_logs_warning(self, mock_factory, mock_logger):
+        """A stalled DB check must log a warning so a dependency stall is visible to
+        the log-scan even though the platform probe gives up silently."""
+        import asyncio
+
+        from routes.health import check_database_health
+
+        mock_session = AsyncMock()
+
+        async def slow_execute(*args, **kwargs):
+            await asyncio.sleep(100)
+
+        mock_session.execute = slow_execute
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_factory.return_value = mock_session
+
+        with patch("routes.health.settings") as mock_settings:
+            mock_settings.health_check_timeout = 0.001
+            result = await check_database_health()
+
+        assert result.status == "unhealthy"
+        mock_logger.warning.assert_called_once()
+
 
 class TestCheckLlmHealth:
     """Tests for check_llm_health()."""
@@ -323,15 +350,20 @@ class TestReadinessProbe:
     @patch("routes.health.check_llm_health")
     @patch("routes.health.check_database_health")
     async def test_ready(self, mock_db_health, mock_llm_health, mock_embedding_health):
+        from config import settings
         from routes.health import ComponentHealth, readiness_probe
 
         mock_db_health.return_value = ComponentHealth(status="healthy", latency_ms=5.0)
-        mock_llm_health.return_value = ComponentHealth(status="healthy", latency_ms=10.0)
-        mock_embedding_health.return_value = ComponentHealth(status="healthy", latency_ms=8.0)
         result = await readiness_probe()
         assert result["status"] == "ready"
         assert result["database_latency_ms"] == 5.0
-        assert result["dependencies"]["database"] == "healthy"
+        assert result["dependencies"] == {"database": "healthy"}
+        # Readiness must be cheap and bounded: only the DB is probed, with the short
+        # readiness timeout. The LLM/embedding providers are deliberately NOT called
+        # here (probing them every scrape flapped the pod for weeks).
+        mock_db_health.assert_awaited_once_with(timeout=settings.readiness_check_timeout)
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
     @pytest.mark.asyncio
     @patch("routes.health.check_embedding_health")
@@ -343,12 +375,13 @@ class TestReadinessProbe:
         mock_db_health.return_value = ComponentHealth(
             status="unhealthy", error="Connection refused"
         )
-        mock_llm_health.return_value = ComponentHealth(status="healthy")
-        mock_embedding_health.return_value = ComponentHealth(status="healthy")
         result = await readiness_probe()
         assert result.status_code == 503
         body = result.body
         assert b"not_ready" in body
+        assert b"database_unavailable" in body
+        mock_llm_health.assert_not_called()
+        mock_embedding_health.assert_not_called()
 
 
 # ==================== Main App Tests ====================
@@ -524,7 +557,7 @@ class TestFeedbackRoutes:
             assistant_response="response",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             result = await submit_feedback(request, mock_repo)
             mock_email.send_feedback_notification.assert_called_once()
 
@@ -592,7 +625,7 @@ class TestFeedbackRoutes:
             email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = True
             result = await submit_contact(request, mock_repo)
 
@@ -619,7 +652,7 @@ class TestFeedbackRoutes:
             email="user@example.com",
         )
 
-        with patch("routes.feedback.email_service") as mock_email:
+        with patch("routes.feedback.email_service", autospec=True) as mock_email:
             mock_email.send_contact_notification.return_value = False
             result = await submit_contact(request, mock_repo)
 
@@ -695,6 +728,7 @@ class TestChatRoutes:
         from fastapi import HTTPException
 
         from chat.service import ChatRequest
+        from providers import AllModelsExhaustedError
         from routes.chat import chat
 
         mock_db = AsyncMock()
@@ -707,7 +741,11 @@ class TestChatRoutes:
         with patch("routes.chat.ChatService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.chat = AsyncMock(
-                side_effect=RuntimeError("All models rate limited or failed")
+                side_effect=AllModelsExhaustedError(
+                    "All models unavailable or rate limited",
+                    reason="rate_limited",
+                    models_tried=["primary", "fallback"],
+                )
             )
             mock_service_cls.return_value = mock_service
 
@@ -715,6 +753,8 @@ class TestChatRoutes:
                 await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             assert exc_info.value.status_code == 503
+            assert exc_info.value.detail["code"] == "upstream_unavailable"
+            assert exc_info.value.headers["Retry-After"] == "30"
 
     @pytest.mark.asyncio
     async def test_chat_runtime_error(self):
@@ -1215,11 +1255,11 @@ class TestScriptureRoutes:
     @pytest.mark.asyncio
     async def test_get_chapter_default_prefers_lang_over_accept_language(self):
         """The explicit UI language (`lang`) wins over the browser's
-        Accept-Language: a German UI on an English browser gets schlachter."""
+        Accept-Language: a German UI on an English browser gets luther1912."""
         from routes.scripture import get_chapter
 
         mock_db = AsyncMock()
-        translations = ["web", "kjv", "ita1927", "schlachter"]
+        translations = ["web", "kjv", "ita1927", "luther1912"]
 
         mock_http = MagicMock()
         mock_http.headers = {"accept-language": "en-US,en;q=0.9"}
@@ -1235,7 +1275,7 @@ class TestScriptureRoutes:
             mock_repo_cls.return_value = mock_repo
             result = await get_chapter("John", 3, mock_db, None, lang="de", http_request=mock_http)
 
-        assert result.translation == "schlachter"
+        assert result.translation == "luther1912"
 
     @pytest.mark.asyncio
     async def test_get_verse_range_found(self):

@@ -266,6 +266,38 @@ variable "monitor_probe_secret" {
   sensitive   = true
 }
 
+variable "smoke_probe_secret" {
+  description = <<-EOT
+    Separate, rotatable secret for the browser smoke test (BITB-064). Same
+    X-Monitor-Probe-Secret header, but kept distinct from monitor_probe_secret
+    so a leak (it transits an ephemeral CI browser) is revocable independently.
+    Must match the repo secret SMOKE_PROBE_SECRET sent by
+    .github/workflows/prod-browser-smoke.yml. Leave empty to disable.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "telegram_chat_id" {
+  description = <<-EOT
+    Telegram chat/group ID for the Azure Monitor -> Telegram bridge (BITB-056),
+    negative for groups. Reuse the existing TELEGRAM_CHAT_ID value via
+    TF_VAR_TELEGRAM_CHAT_ID. Setting this enables the bridge (Key Vault + Logic
+    App + logic_app_receiver); leave empty to keep Azure alert delivery
+    email-only.
+
+    The bot TOKEN is deliberately NOT a Terraform variable: it is written to
+    Key Vault out-of-band by the deploy workflow (from the TELEGRAM_BOT_TOKEN
+    repo secret) and fetched by the Logic App at run time via managed identity,
+    so it never lands in terraform state. A chat id is only a routing
+    identifier (useless without the bot token), so it is fine as a variable.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "openrouter_model" {
   description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct:free)"
   type        = string

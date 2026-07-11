@@ -1,6 +1,6 @@
 # BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 📋 Backlog (production verified 2026-05-31 — see Live verification)
+**Status:** 🚧 In Progress — homepage server-renders hero text (PR #657); `/en` word count no longer thin; favicon.ico shipped. JSON-LD + OG image landing now; sitemap→Search Console submission remains a manual operator action.
 
 ## User Story
 
@@ -106,6 +106,12 @@ the sitemap to Google Search Console.
   directive present? Content-Signal present?).
 - **Cloudflare robots.txt** — verified working as-is; no operator
   action needed. See the non-finding note in Live verification above.
+- **JSON-LD + OG image (2026-07-03)** — `WebSite` + `Organization`
+  JSON-LD added via `frontend/src/lib/seo.ts`, injected per-locale in
+  `[locale]/layout.tsx`. Branded `og:image` added via
+  `frontend/src/app/[locale]/opengraph-image.tsx` (Next's `next/og`
+  `ImageResponse`, no external image-conversion tooling needed); Twitter
+  card upgraded to `summary_large_image`.
 
 ## Acceptance Criteria
 
@@ -117,11 +123,13 @@ the sitemap to Google Search Console.
 - [x] `/favicon.ico` returns 200 with the brand icon.
 - [x] Production `/robots.txt` contains the `Sitemap:` directive (live
       check confirms — Cloudflare appends the origin body).
-- [ ] **(P3)** `WebSite` + `Organization` JSON-LD present on all
+- [x] **(P3)** `WebSite` + `Organization` JSON-LD present on all
       locales; `seo-static-check.sh` JSON-LD WARN clears.
-- [ ] **(P3)** `og:image` resolves and Twitter card is
+- [x] **(P3)** `og:image` resolves and Twitter card is
       `summary_large_image`.
-- [ ] **(P3)** Sitemap submitted to Google Search Console.
+- [ ] **(P3)** Sitemap submitted to Google Search Console. *(manual
+      operator action — not code; tracked here as the one remaining
+      item)*
 
 ## Files to Modify
 

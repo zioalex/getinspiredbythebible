@@ -1,5 +1,9 @@
 [versions]
-agp = "8.4.2"
+# AGP 8.7.x is the first line that makes bundletool 16 KB-align (zipalign -P 16)
+# uncompressed native libraries in the AAB — required for Google Play's 16 KB
+# memory-page-size compliance. 8.7.3 keeps Gradle 8.9 (no wrapper bump) and
+# supports compileSdk 35 natively.
+agp = "8.7.3"
 kotlin = "2.0.21"
 firebase-bom = "33.7.0"
 googleServices = "4.4.2"
@@ -8,6 +12,12 @@ ksp = "2.0.21-1.0.28"
 hilt = "2.51.1"
 hiltNavigationCompose = "1.2.0"
 compose-bom = "2024.12.01"
+# Explicit override of the graphics-path native lib (transitive of Compose
+# ui-graphics). Older releases shipped libandroidx.graphics.path.so with 4 KB
+# ELF segment alignment; 1.1.0 is built with 16 KB alignment. Pinned directly
+# (rather than bumping the whole Compose BOM) to keep the tested Compose/UI
+# surface on compileSdk 35 while fixing the only Compose-side native library.
+graphicsPath = "1.1.0"
 activityCompose = "1.9.3"
 navigationCompose = "2.8.5"
 lifecycleRuntimeKtx = "2.8.7"
@@ -49,6 +59,9 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+# 16 KB-aligned native lib (see graphicsPath version note); forces the
+# transitive libandroidx.graphics.path.so up to a 16 KB-compliant build.
+androidx-graphics-path = { group = "androidx.graphics", name = "graphics-path", version.ref = "graphicsPath" }
 
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }

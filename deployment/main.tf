@@ -207,6 +207,13 @@ locals {
       "MONITOR_PROBE_SECRET" = {
         secret_name = "monitor-probe-secret" # pragma: allowlist secret
       }
+    } : {},
+
+    # Browser smoke-test bypass (only when secret is provided) — BITB-064
+    var.smoke_probe_secret != "" ? {
+      "SMOKE_PROBE_SECRET" = {
+        secret_name = "smoke-probe-secret" # pragma: allowlist secret
+      }
     } : {}
   )
 
@@ -293,6 +300,56 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
   tags = local.tags
 }
 
+# Browser CORS-preflight availability test (BITB-064). The /health/ready GET
+# test above stayed green through the 2026-07-05 _IncludedRouter outage because
+# that crash only hit the browser's cross-origin OPTIONS preflight — GET/POST
+# returned 200. This test issues that exact preflight (OPTIONS + Origin +
+# Access-Control-Request-*) against the instrumented backend and expects a 200,
+# so an always-on Azure-native alert fires on a preflight-only failure — not
+# just the 5-minute GitHub cross-origin-smoke probe. Complements it as the
+# second, independent channel.
+resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
+  count                   = var.enable_application_insights ? 1 : 0
+  name                    = "${local.name_prefix}-preflight"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  application_insights_id = azurerm_application_insights.main[0].id
+
+  geo_locations = [
+    "emea-nl-ams-azr", # West Europe
+    "emea-gb-db3-azr", # UK South
+    "us-va-ash-azr",   # East US
+  ]
+
+  frequency = 300 # every 5 minutes
+
+  request {
+    url       = "https://${azurerm_container_app.backend.ingress[0].fqdn}/api/v1/chat/stream"
+    http_verb = "OPTIONS"
+
+    header {
+      name  = "Origin"
+      value = "https://voxquieta.org"
+    }
+    header {
+      name  = "Access-Control-Request-Method"
+      value = "POST"
+    }
+    header {
+      name  = "Access-Control-Request-Headers"
+      value = "content-type,x-turnstile-token"
+    }
+  }
+
+  validation_rules {
+    # A healthy CORS layer answers the preflight with 200; the _IncludedRouter
+    # crash returned 500 here.
+    expected_status_code = 200
+  }
+
+  tags = local.tags
+}
+
 # -----------------------------------------------------------------------------
 # Container Apps Environment
 # -----------------------------------------------------------------------------
@@ -332,13 +389,18 @@ resource "azurerm_postgresql_flexible_server" "main" {
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
 
-  # Burstable B1ms - cheapest option (~$13-16/month)
-  sku_name = "B_Standard_B1ms"
+  # Burstable B2s - 2 vCores / 4 GB RAM (~$33/month all-in). Upgraded from B1ms
+  # (1 vCore / 2 GB) so the per-translation partial HNSW indexes (migration 007)
+  # stay cached and the second vCore absorbs concurrent multilingual search load.
+  sku_name = "B_Standard_B2s"
 
   storage_mb                   = 32768 # 32GB minimum
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
-  auto_grow_enabled            = false
+  # BITB-056: auto-grow removes the disk-full write-failure cliff (storage was a fixed
+  # 32GB with no growth). Storage only ever grows, so this is a safe, one-way change;
+  # the db-storage-high alert (monitoring.tf) backstops a fill faster than growth.
+  auto_grow_enabled = true
 
   # Allow Azure services to connect
   public_network_access_enabled = true
@@ -374,7 +436,8 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_client" {
 resource "azurerm_postgresql_flexible_server_configuration" "extensions" {
   name      = "azure.extensions"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "vector,uuid-ossp,pg_cron"
+  # pg_prewarm lets migration 007 warm the partial HNSW indexes into shared_buffers.
+  value = "vector,uuid-ossp,pg_cron,pg_prewarm"
 }
 
 # Run pg_cron jobs against the application database (default is `postgres`).
@@ -400,19 +463,19 @@ resource "azurerm_postgresql_flexible_server_configuration" "maintenance_work_me
 }
 
 # Increase shared_buffers for better query caching
-# PostgreSQL best practice: 25% of RAM for dedicated DB servers
+# PostgreSQL best practice: 25% of RAM. B2s = 4 GB RAM -> 1 GB.
 resource "azurerm_postgresql_flexible_server_configuration" "shared_buffers" {
   name      = "shared_buffers"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "65536" # 512MB (in 8KB pages)
+  value     = "131072" # 1GB (in 8KB pages) = 25% of 4GB
 }
 
 # Set effective_cache_size to help query planner estimate available OS cache
-# PostgreSQL best practice: 50-75% of total RAM
+# PostgreSQL best practice: 50-75% of total RAM. B2s = 4 GB RAM -> 3 GB.
 resource "azurerm_postgresql_flexible_server_configuration" "effective_cache_size" {
   name      = "effective_cache_size"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "196608" # 1.5GB (in 8KB pages)
+  value     = "393216" # 3GB (in 8KB pages) = 75% of 4GB
 }
 
 # Increase work_mem for complex sorts and joins (especially pgvector searches)
@@ -475,6 +538,7 @@ resource "terraform_data" "backend_secret_trigger" {
   triggers_replace = sha256(join("|", [
     var.openrouter_api_key,
     var.monitor_probe_secret,
+    var.smoke_probe_secret,
   ]))
 }
 
@@ -601,6 +665,15 @@ resource "azurerm_container_app" "backend" {
     content {
       name  = "monitor-probe-secret"
       value = var.monitor_probe_secret
+    }
+  }
+
+  # Browser smoke-test secret (only when set) — BITB-064
+  dynamic "secret" {
+    for_each = var.smoke_probe_secret != "" ? [1] : []
+    content {
+      name  = "smoke-probe-secret"
+      value = var.smoke_probe_secret
     }
   }
 
@@ -739,7 +812,7 @@ resource "null_resource" "frontend_custom_domain" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
       APP="${azurerm_container_app.frontend.name}"
@@ -767,11 +840,18 @@ resource "null_resource" "backend_custom_domain" {
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     cert_hash      = var.cloudflare_origin_cert_hash
+    # When backend_secret_trigger forces a REPLACEMENT of the backend app
+    # (secret rotation), the recreated app loses its imperatively-bound custom
+    # domain + certificate — the app *name* above doesn't change, so nothing
+    # re-ran and prod served Cloudflare 525 (2026-07-07 incident). terraform_data
+    # gets a fresh id on each replacement, so keying on it re-runs this
+    # provisioner in the same apply.
+    secret_trigger = terraform_data.backend_secret_trigger.id
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
       APP="${azurerm_container_app.backend.name}"
@@ -817,7 +897,7 @@ resource "null_resource" "frontend_ssl_cert_upload" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for frontend..."
       az containerapp env certificate upload \
@@ -846,7 +926,7 @@ resource "null_resource" "frontend_ssl_cert_bind" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_frontend}"
       # Wildcard SAN one level up, e.g. api.voxquieta.org -> *.voxquieta.org.
@@ -901,7 +981,7 @@ resource "null_resource" "backend_ssl_cert_upload" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       echo "Uploading Cloudflare Origin Certificate for backend..."
       az containerapp env certificate upload \
@@ -926,11 +1006,14 @@ resource "null_resource" "backend_ssl_cert_bind" {
     container_app  = azurerm_container_app.backend.name
     resource_group = azurerm_resource_group.main.name
     environment    = azurerm_container_app_environment.main.name
+    # Re-run the cert bind whenever the backend app is replaced by a secret
+    # rotation (see backend_custom_domain trigger comment — 525 incident).
+    secret_trigger = terraform_data.backend_secret_trigger.id
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
       DOMAIN="${var.custom_domain_backend}"
       PARENT_WILDCARD="*.$(echo "$DOMAIN" | cut -d. -f2-)"

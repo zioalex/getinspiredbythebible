@@ -43,6 +43,7 @@ import {
   SessionLimitError,
   StreamTimeoutError,
   MessageTooLongError,
+  VerificationError,
   MAX_MESSAGE_LENGTH,
   checkBackendReady,
   warmupBackend,
@@ -58,6 +59,7 @@ import {
 import { updateMultiWordNames } from "@/lib/versePatterns";
 import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
+import { isSmokeMode } from "@/lib/smoke";
 import { useRouter, usePathname } from "@/i18n/navigation";
 
 // Extended message type with message_id for feedback tracking
@@ -91,8 +93,12 @@ export default function ChatIsland({
   // Block submissions until /config has resolved: until then we don't yet
   // know whether Turnstile is enabled, and a fast click could fire a POST
   // without an X-Turnstile-Token header and get bounced as 403.
+  // BITB-064: under the browser smoke test the backend bypasses Turnstile via
+  // the injected smoke secret, so don't leave the send button disabled waiting
+  // for a token a headless bot can't earn.
   const turnstileBlocked =
-    !turnstileConfigLoaded || (turnstileEnabled && !turnstileReady);
+    !isSmokeMode() &&
+    (!turnstileConfigLoaded || (turnstileEnabled && !turnstileReady));
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -178,6 +184,18 @@ export default function ChatIsland({
   // Translation preference
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
   const [selectedTranslation, setSelectedTranslation] = useState<string>("");
+
+  // Active translation code (manual selection wins over auto-detected)
+  const activeTranslationCode =
+    selectedTranslation ||
+    (translations.some((t) => t.code === detectedTranslation)
+      ? (detectedTranslation as string)
+      : "");
+
+  const activeTranslation = useMemo(
+    () => translations.find((t) => t.code === activeTranslationCode),
+    [translations, activeTranslationCode],
+  );
 
   // Load translations and saved preference on mount
   useEffect(() => {
@@ -496,6 +514,22 @@ export default function ChatIsland({
         } else if (chunk.type === "completion") {
           // Server-provided verse citations (dual-source: LLM structured + regex)
           receivedCompletion = true;
+          // If grounding rewrote a fabricated/mismatched verse quote, swap the
+          // streamed text for the authoritative corrected body.
+          if (chunk.corrected_message) {
+            streamedContent = chunk.corrected_message;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  content: streamedContent,
+                };
+              }
+              return updated;
+            });
+          }
           if (chunk.verses_cited) {
             const serverCited = (chunk.verses_cited as string[]).map(
               (v: string) => v.toLowerCase(),
@@ -641,6 +675,15 @@ export default function ChatIsland({
       // it instead of showing a misleading connection error.
       if (error instanceof MessageTooLongError) {
         showError(tChat("messageTooLong", { max: MAX_MESSAGE_LENGTH }));
+        setIsLoading(false);
+        return;
+      }
+
+      // Turnstile couldn't verify the request (403) even after a retry — tell
+      // the user it's a verification hiccup that a quick retry usually fixes,
+      // rather than a generic connection failure.
+      if (error instanceof VerificationError) {
+        showError(tChat("errorVerification"));
         setIsLoading(false);
         return;
       }
@@ -838,23 +881,35 @@ export default function ChatIsland({
               {/* Language Switcher */}
               <LanguageSwitcher />
 
-              {/* Translation Selector - always visible, disabled when loading */}
-              <div className="flex items-center gap-2">
+              {/* Bible Version Chip — prominent amber badge; click opens native translation dropdown */}
+              <div
+                className={`relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-amber-400 ${
+                  translations.length === 0
+                    ? "border-gray-200 bg-gray-100 cursor-not-allowed"
+                    : "border-amber-300 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                }`}
+                title={tHeader("bibleVersion")}
+              >
+                <Book
+                  className={`w-3.5 h-3.5 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-700"}`}
+                />
+                <span
+                  className={`text-xs font-medium max-w-[5rem] sm:max-w-[8rem] truncate ${translations.length === 0 ? "text-gray-400" : "text-amber-800"}`}
+                >
+                  {activeTranslation
+                    ? activeTranslation.short_name
+                    : tHeader("bibleVersion")}
+                </span>
+                <ChevronDown
+                  className={`w-3 h-3 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-600"}`}
+                />
+                {/* Native select is invisible but handles click-to-open and keyboard navigation */}
                 <select
-                  value={
-                    selectedTranslation ||
-                    (translations.some((t) => t.code === detectedTranslation)
-                      ? (detectedTranslation as string)
-                      : "")
-                  }
+                  value={activeTranslationCode}
                   onChange={(e) => handleTranslationChange(e.target.value)}
                   disabled={translations.length === 0}
                   aria-label={tHeader("bibleVersion")}
-                  className={`text-sm border border-gray-200 rounded-lg px-2 py-1.5 max-w-[8rem] sm:max-w-none truncate focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    translations.length === 0
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white text-gray-600"
-                  }`}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 >
                   <option value="">{tHeader("bibleVersion")}</option>
                   {translations.map((t) => (

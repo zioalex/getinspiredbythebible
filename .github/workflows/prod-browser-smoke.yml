@@ -1,0 +1,112 @@
+name: Prod Browser Smoke
+
+# Real-browser production smoke test (BITB-064).
+#
+# A scheduled Playwright/Chromium run against the deployed site
+# (https://voxquieta.org) that loads the page, submits a chat message, and
+# asserts a streamed assistant reply — exercising the full real journey
+# (rendered frontend → cross-origin CORS preflight → instrumented backend →
+# SSE streaming) that the httpx/curl probes in prod-monitor.yml cannot.
+#
+# Runs hourly rather than every 5 min because a Chromium install is heavy.
+# Passes Cloudflare Turnstile via a smoke-scoped secret injected into the
+# browser at runtime (never shipped in the bundle) — see spec + lib/smoke.ts.
+#
+# Required repo secrets:
+#   SMOKE_PROBE_SECRET   - matches settings.smoke_probe_secret in the backend
+#                          (wired via TF_VAR_smoke_probe_secret in azure-deploy.yml).
+#                          One-time setup (generate + set, then redeploy so the
+#                          backend picks it up):
+#                            openssl rand -hex 32 | gh secret set SMOKE_PROBE_SECRET
+#                          Deliberately a SEPARATE secret from MONITOR_PROBE_SECRET —
+#                          this one transits an ephemeral CI browser (injected via
+#                          Playwright addInitScript, never shipped in the bundle),
+#                          so keep it independently rotatable. Until it's set, the
+#                          test in prod-chat-smoke.spec.ts skips (no failure).
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID - alert delivery (shared with prod-monitor)
+#
+# Manual run: Actions → Prod Browser Smoke → Run workflow (+ force_alert to test Telegram).
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    - cron: "17 * * * *" # hourly, offset to avoid the top-of-hour rush
+  workflow_dispatch:
+    inputs:
+      force_alert:
+        description: "Send a test alert to Telegram regardless of outcome"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-browser-smoke-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  PLAYWRIGHT_BASE_URL: ${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
+  STATE_BRANCH: gh-monitor-state
+
+jobs:
+  browser-smoke:
+    name: Browser chat smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke test
+        id: smoke
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
+          SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
+        run: npx playwright test prod-chat-smoke.spec.ts
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-${{ github.run_id }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Write failure detail
+        if: failure()
+        run: |
+          cat >> "$RUNNER_TEMP/detail.txt" <<'EOF'
+          Browser smoke test failed. Playwright traces/report were uploaded as a run
+          artifact (see the run's Artifacts section). If the site looks healthy in a
+          manual check, verify whether the latest azure-deploy run actually completed
+          -- a merged-but-undeployed frontend bundle lacks the smoke test selectors.
+          EOF
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: browser-smoke
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}

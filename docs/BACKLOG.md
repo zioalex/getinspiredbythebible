@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-06-16
+**Last Updated:** 2026-07-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -182,6 +182,228 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### ✅ BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
+
+**Status:** ✅ Done — scripted cross-origin probe, Azure preflight web test, runbook, and full browser smoke test all delivered
+**Size:** M (one new synthetic probe + Telegram wiring; optional Azure availability test)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** a synthetic monitor that hits the API the way a browser does (a
+cross-origin CORS preflight) and the production request path exercised with OpenTelemetry
+instrumentation on, **so that** a browser-only outage pages me on Telegram in minutes instead of
+waiting for a user report.
+
+**Why P1:** A total browser-facing chat outage shipped to production (FastAPI 0.137's `_IncludedRouter`
+crashed the pinned OpenTelemetry instrumentation, returning HTTP 500 on every `OPTIONS /api/v1/*`
+preflight) and **no monitor, Azure alert, or Telegram notification fired**. The break was browser-only:
+`OPTIONS` preflight → 500, but direct `GET`/`POST` → 200. Every safety net (Azure `/health/ready` test,
+the `synthetic-chat` and `verse-search` probes) sends non-browser requests, so all stayed green — the
+same reason native Android kept working.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] New CORS-preflight synthetic probe (`OPTIONS /api/v1/chat/stream` with `Origin` +
+      `Access-Control-Request-*` headers) asserts 2xx/204 and the `Access-Control-Allow-*` response headers,
+      plus a cross-origin POST asserting a streamed answer (`scripts/monitor/synthetic_preflight.py`)
+- [x] Wired into `prod-monitor.yml` as the `cross-origin-smoke` job on the 5-min schedule via `notify-telegram`
+- [x] Azure `backend_preflight` availability web test (OPTIONS + CORS headers) + alert → always-on channel
+- [x] Troubleshooting runbook note: "browser 500 but curl/app fine" ⇒ CORS-preflight / OTel path
+- [x] Full production **browser** smoke test (`prod-chat-smoke.spec.ts` + hourly `prod-browser-smoke.yml`),
+      Turnstile passed via a separate injected-at-test-time `smoke_probe_secret` (never in the bundle)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-064-browser-preflight-smoke-and-alerting.md`
+
+---
+
+### ✅ BITB-065: Backend Catch-All Error Alerting — HTTP 5xx, Unhandled & ASGI-Layer Exceptions
+
+**Status:** ✅ Done (delivered on the PR #824 branch)
+**Size:** S (three Terraform scheduled-query alerts)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** an alert whenever the backend returns HTTP 5xx or throws an unhandled /
+ASGI-layer exception, **so that** a server-side outage pages me regardless of which subsystem broke.
+
+**Why P1:** Of 17 pre-existing alerts, **none** watched backend 5xx or the App Insights
+`requests`/`exceptions` tables — the generic 5xx KQL lived only in a passive workbook. The
+`_IncludedRouter` 500 fell through because it is not a DB metric, not a custom counter, and (being a
+crash *above* the app in the OTel middleware) produced no `| ERROR |` log line. Nuance: that crash
+records no `requests` row either (it dies before the span starts), so the reliable signal is the
+`uvicorn` "Exception in ASGI application" console line — hence a log-based rule alongside the table ones.
+
+**Acceptance Criteria:**
+
+- [x] `backend_5xx_rate` (App Insights `requests`, Sev 1), `backend_unhandled_exceptions` (App Insights
+      `exceptions`, Sev 2), `backend_asgi_exceptions` (console logs "Exception in ASGI application", Sev 1)
+- [x] All reuse the `ops_email` action group + `local.alerts_enabled` gating (email + Telegram)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-065-backend-catchall-error-alerting.md`
+
+---
+
+### ✅ BITB-066: Frontend Error Observability
+
+**Status:** ✅ Done (delivered on the PR #824 branch, reuse-endpoint approach)
+**Size:** M (frontend reporter + backend metric/alert + middleware tweak)
+**Created:** 2026-07-05
+
+**As** the operator, **I want** the web frontend to report client-side errors (JS exceptions, unhandled
+rejections, API/network failures) and alert on spikes, **so that** browser-only failures are visible
+from the client — the way Android already reports via Firebase Crashlytics.
+
+**Why P1:** The web frontend had **no** general client-side error telemetry — the `ErrorBoundary` only
+`console.error`d, API failures were swallowed, and the only sink (`/api/v1/client-errors`) was used
+solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and was reported nowhere.
+
+**Acceptance Criteria (all delivered):**
+
+- [x] `clientErrorReporter.ts` (fire-and-forget, PII-scrubbed, capped/deduped) + global
+      `window.onerror`/`unhandledrejection` handlers + `api.ts` failure hook + `ErrorBoundary` + `global-error.tsx`
+- [x] `/api/v1/client-errors` hardened (model, cap, rate-limit, flag) + `client.errors_total` metric + spike alert
+- [x] `AccessAuditMiddleware` emits `api.preflight_errors_total` on `OPTIONS` 5xx
+- [x] Mechanism decision resolved: reuse the existing endpoint (RUM SDK deferred)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-066-frontend-error-observability.md`
+
+---
+
+### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
+**Size:** M (several small, independent hardening items)
+**Created:** 2026-07-07
+
+**As** the operator, **I want** deploys and the production smoke monitor to fail **only when the service
+is actually broken**, self-diagnose common failure modes, and not create outages as a side effect of
+routine changes, **so that** green means healthy and red means real user impact.
+
+**Why P1:** After BITB-064/065/066 shipped, the hourly browser smoke test alerted "production down" for
+hours while chat worked fine (it waited on a selector missing from the **undeployed** frontend bundle —
+the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin TLS
+(`525 SSL Handshake Failed`) — the same replace→cert-unbind class that BITB-064's new
+`smoke_probe_secret` (hashed into the backend replace-trigger) can now provoke.
+
+**Gaps (each independently shippable):**
+
+- [x] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy — `prod-deploy-drift.yml`, PR #848
+- [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
+- [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
+- [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
+- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
+- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+
+---
+
+### ✅ BITB-063: Typed Provider Error Contract — Make the Unreachable 503 Reachable
+
+**Status:** ✅ Done
+**Size:** S (typed exception + two route handlers + the contract test that was always missing)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E1 (context: A8, D4)
+
+**As** the operator, **I want** a total LLM-provider outage to surface as a 503 with a clear
+"upstream unavailable" signal — to monitoring, to clients, and to users — **so that** incident
+response starts with "OpenRouter is down" instead of a misleading generic-500 hunt, and clients
+back off instead of retry-hammering a dead upstream.
+
+**Why P1:** When all OpenRouter fallback models were exhausted, the provider raised a bare
+`RuntimeError`, and the routes special-cased it by matching the substring `"All models rate
+limited"` — a string that appeared in **neither** exhaustion message. The intended 503 branch
+(non-stream) and the friendly stream-error chunk were unreachable dead code; every real outage
+misreported as a generic 500.
+
+**Acceptance Criteria:**
+
+- [x] New `AllModelsExhaustedError` (`api/providers/errors.py`), carrying `reason`
+      (`rate_limited`/`unavailable`), `models_tried`, and an optional `retry_after`, raised by both
+      `chat()` and `chat_stream()` exhaustion paths in `api/providers/openrouter.py`
+- [x] Routes catch the **type** (`api/routes/chat.py`): non-stream → HTTP 503 with `Retry-After`
+      and a `code: "upstream_unavailable"` detail body; stream → an SSE error chunk with
+      `error_code: "upstream_unavailable"`
+- [x] Contract tests added (`api/tests/test_provider_error_contract.py`): provider exhaustion
+      raises the typed error in both paths, and each route maps it to 503 / an error chunk — a
+      change to either side alone now fails CI
+- [x] Error responses carry the machine-readable `code`/`error_code` fields (groundwork for a
+      later Android follow-up on the `ChatViewModel.kt` substring matching, audit A8 — the Android
+      change itself is out of scope here)
+- [x] `prod-monitor`'s `synthetic_chat.py` already extracts `error_code` from stream error chunks
+      (pre-existing), so the Telegram alert detail automatically distinguishes an upstream outage
+      the moment the backend emits the code — no probe change needed. Branching the alert
+      *subject/text* on the code, or adding a non-stream probe asserting the 503 directly, is
+      follow-up work, not part of this story.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-063-typed-provider-error-contract.md`
+
+---
+
+### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
+**Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
+
+**As** the operator, **I want** bot verification, rate limiting, and content safety to hold their
+line when their dependencies fail — and to alert me when they can't — **so that** an attacker's
+cheapest path to free LLM usage (or a user in crisis's path past safety screening) is not "wait for
+an upstream hiccup".
+
+**Why P1:** Three independent controls share the same silent-fail-open philosophy, all flagged HIGH
+in the 2026-07 adversarial audit. **E2:** Turnstile allowed every request through on any siteverify
+timeout/error, with no metric marking the bypass. **S3:** the rate limiter is in-memory and
+per-process, so limits are 2x too loose across replicas and reset on every deploy. **O2:** content
+safety defaults off, and every stage (OpenAI moderation, Llama Guard, Azure) falls back to allow on
+error — unacceptable for a pastoral-care product serving people in crisis.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
+      breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
+- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+      session lifetime cap survives deploys; dedicated unit tests added
+- [ ] Content safety: keyword stage always runs regardless of ML-stage availability; empty Llama Guard
+      response treated as an error, not "safe"; every fallback branch emits a metric; `content_safety_enabled`
+      default flipped on
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
+
+---
+
+### ✅ BITB-068: Content-Safety Smoke Tests — CI Gate + Functional + Deployed Probe
+
+**Status:** ✅ Done (PR #850)
+**Size:** S–M (three test tiers + one prod-monitor job + a docs note)
+**Created:** 2026-07-10
+**Parent ref:** BITB-061 (verification safety net for the content-safety phase, PR #840)
+
+**As** the operator, **I want** an end-to-end smoke test of the content-safety pipeline that runs at
+every deployment stage and verifies **both** directions — harmful blocked **and** legitimate content
+answered — **so that** neither a silently-degraded safety net nor over-blocking of genuine
+help-seekers can ship undetected.
+
+**Why P1:** The safety net had no working end-to-end smoke test. The existing `TestContentSafetySmoke`
+still asserted the old HTTP-400 contract, so — since blocks now return a warm HTTP 200 with
+`provider == "content_safety"` — its detector fixture saw a 200 and **skipped the entire class**. The
+discriminator between "blocked" and "answered" is the `provider` field, not the status code.
+
+**Acceptance Criteria:**
+
+- [x] CI gate: `api/tests/test_content_safety_smoke.py` drives the real ASGI app in deterministic
+      `keyword_only` mode (no external keys); asserts harmful blocked, benign allowed, help-seeking
+      allowed, and the stream path — both directions. Runs in the `backend-tests` job.
+- [x] Functional: rewrote `TestContentSafetySmoke` (`api/tests/functional/test_production_api.py`) to
+      the 200/`provider==content_safety` contract; fixed the skip-bug fixture; added a help-seeking
+      case; fixed the stream assertion. Revives a test that had been silently inert.
+- [x] Deployed probe: `scripts/monitor/synthetic_content_safety.py` + `content-safety` job in
+      `.github/workflows/prod-monitor.yml`; fails loudly on a degraded safety net or over-blocking.
+- [x] Docs: `AGENTS.md` clarifies why Plan → Build → Verify keeps verification on the strongest model.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-content-safety-smoke-tests.md`
+
+---
+
 ### 🟡 BITB-018: Query Understanding & Context Quality (Phase 1) — Code Complete, Pending Rollout
 
 **Status:** 🟡 Code Complete — Pending Validation & Rollout (flags OFF in prod)
@@ -262,9 +484,9 @@ Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-sm
 
 ---
 
-### 🎯 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+### 🚧 BITB-052: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
 
@@ -281,13 +503,71 @@ English-canonical) but affects localized input and the app-wide normalizer.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Per-language coverage matrix identifying every gap
-- [ ] Missing localized singular/abbreviation aliases added (Psalms + common books)
-- [ ] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
+- [x] Per-language coverage matrix identifying every gap (`docs/audits/book-name-coverage.md`,
+      regenerate via `scripts/audit_book_name_coverage.py`)
+- [x] Missing localized singular/abbreviation aliases added (Psalms + common books) — PR #791
+- [x] Case/diacritic-insensitive + numbered-book-variant matching, no regressions
 - [ ] Versification offsets quantified + documented handling decision (with tests)
-- [ ] Table-driven tests across all 11 languages green
+- [x] Table-driven tests across all 11 languages green
+
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
+numbered-book references fail to parse *with and without* parentheses —
+`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
+`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
+**versification/divergence** note: the frontend verse parser does not support German comma
+separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
+scope here.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+
+---
+
+### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As a** user reading a Bible answer in any language, **I want** the scripture presented to match
+the real verse **even when it is not in quotation marks**, **so that** paraphrased "citations"
+can't drift from the canonical text.
+
+**Why P2:** Grounding (`verse_grounding.py`) only rewrites *quoted* spans adjacent to a reference.
+An unquoted paraphrase (`In Isaia 41:10 Dio ci dice di non temere…`) is never corrected — the
+largest remaining "citation doesn't match the DB" class once parenthesized-reference parsing is
+fixed.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Unquoted reference-adjacent paraphrase corrected/surfaced to canonical text
+- [ ] Ordinary discussion *about* a verse never altered (negative tests)
+- [ ] Parametrized cross-language tests (all 11) + version-faithfulness + chat/chat_stream integration
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-053-ground-unquoted-paraphrased-citations.md`
+
+---
+
+### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-19
+
+**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
+can't be resolved in the user's translation, **so that** a missing/incomplete translation never
+shows up as silently hallucinated scripture.
+
+**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
+grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
+manual SQL snippet, and the unresolved path is invisible.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
+- [ ] Startup/CI warning + metric when a supported language has no usable verse data
+- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
 
 ---
 
@@ -349,9 +629,9 @@ verse. A Bible app that misquotes the Bible undermines its core promise. Small, 
 
 ---
 
-### 🎯 BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
+### ✅ BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #689 — 2026-06-06)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -367,19 +647,19 @@ common interaction; one-line manifest fix plus a defensive guard.
 
 **Acceptance Criteria:**
 
-- [ ] New chat + send message + rotate → same messages and conversation remain visible
-- [ ] Existing saved conversation survives rotation
-- [ ] Rotating during an in-flight response does not start a new chat
-- [ ] Locale switching from Settings still works (still recreates Activity, applies new language)
-- [ ] Existing Android unit tests pass; guard logic is covered by a test
+- [x] New chat + send message + rotate → same messages and conversation remain visible
+- [x] Existing saved conversation survives rotation
+- [x] Rotating during an in-flight response does not start a new chat
+- [x] Locale switching from Settings still works (still recreates Activity, applies new language)
+- [x] Existing Android unit tests pass; guard logic is covered by a test
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-039-android-preserve-chat-on-rotation.md`
 
 ---
 
-### 🎯 BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
+### ✅ BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** M (1-2 days)
 **Created:** 2026-06-04
 
@@ -396,12 +676,12 @@ fetch that returns a bad 200/500 is invisible. Shares an Italian root cause with
 
 **Acceptance Criteria:**
 
-- [ ] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
-- [ ] Verse text area never shows `////`/empty quotes (loading → verse or error)
-- [ ] Backend verse/chapter reads time out to 504 instead of hanging
-- [ ] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
-- [ ] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
-- [ ] New Android + backend tests cover timeout, error, retry, and empty-text paths
+- [x] Slow/unreachable chapter fetch shows a clear error + working Retry within a bounded time — never an infinite spinner
+- [x] Verse text area never shows `////`/empty quotes (loading → verse or error)
+- [x] Backend verse/chapter reads time out to 504 instead of hanging
+- [x] Italian (ITA1927) detail loads for the reported references; corrupt data repaired + empty-text integrity check added
+- [x] Monitoring alert fires on elevated verse/chapter fetch error-rate or p95 latency/timeouts (existing action group)
+- [x] New Android + backend tests cover timeout, error, retry, and empty-text paths
 
 **Test note:** existing tests over-mock and skip integration — `loadChapter` is tested
 only for `IOException`, `VerseDetailBottomSheet` has no UI test, and the chapter route
@@ -827,12 +1107,94 @@ Testing & Documentation:
 
 ---
 
+### 🎯 BITB-057: Android — In-App Update API (Flexible Flow)
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** the app to tell me when a new version is available, **so that**
+I can update and get the latest features and fixes without checking the Play Store manually.
+
+**Why P1:** The app has no mechanism to detect or prompt for Play Store updates. Users on outdated
+builds receive no signal that improvements exist. Implements the flexible (background-download,
+non-disruptive) flow via `com.google.android.play:app-update-ktx`; guarded by `BuildConfig.DEBUG`
+so debug and sideloaded builds are unaffected.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `app-update-ktx` v2.1.0 added to `libs.versions.toml` + `build.gradle.kts`
+- [ ] `InAppUpdateManager.kt` wraps `AppUpdateManager` with constructor injection for testability
+- [ ] Flexible flow triggered on cold start when update available and staleness ≥ 3 days
+- [ ] Snackbar with "Install update" action shown when download completes; calls `completeUpdate()`
+- [ ] `onResume` re-checks for a pending install (app backgrounded during download)
+- [ ] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
+
+---
+
+### 🎯 BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
+
+**Status:** 🎯 Todo
+**Size:** S (< 1 day)
+**Created:** 2026-07-01
+
+**As an** Android user, **I want** to see a brief "What's New" summary the first time I open the
+app after an update, **so that** I notice new features without digging into Settings manually.
+
+**Why P1:** The app updates silently; users have no post-update signal. BITB-031 added a changelog
+screen in Settings > About but requires active navigation. This story surfaces the top changelog
+entry automatically — once per update, never on fresh install — using the existing `changelog.json`
+asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] `last_seen_version_code` persisted in `app_prefs`; helpers added alongside `hasSplashBeenSeen()` pattern
+- [ ] Modal skipped on fresh install (stored == -1); shown exactly once per update
+- [ ] `WhatsNewBottomSheet.kt` renders top `ChangelogEntry` via `MarkdownText`; graceful empty state
+- [ ] "Dismiss" closes sheet and marks version seen; "See All" navigates to `changelog` route and marks seen
+- [ ] String keys `whats_new_title`, `whats_new_dismiss`, `whats_new_see_all` added in all 11 locales
+- [ ] Unit tests: stored==-1 → false; stored==current → false; stored==current-1 → true
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-058-android-whats-new-on-launch.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+
+### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days)
+**Created:** 2026-06-20
+
+**As the** operator, **I want** the scripture/chat pipeline to emit explicit failure and
+degradation signals (metrics, alerts, synthetic checks) instead of swallowing errors and serving a
+verse-less answer, **so that** a broken search/grounding path is detected in minutes, not weeks.
+
+**Why P2:** A misplaced `# nosec` broke all DB-backed verse retrieval for ~2 weeks with zero alerts
+(fixed in PR #764). The pipeline fails open through three `except` blocks, monitoring is reactive
+log-scraping the bug slipped through twice, no metric distinguished "served with verses" from
+"served empty," and CI never executes the real SQL. This hardens the whole class of failure.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [ ] Explicit error counters in the three `except` paths; alert on the metric, not log text
+- [ ] Business SLI: rate of responses served with zero DB verses / zero resolved citations
+- [ ] End-to-end synthetic check that the chat path returns cited/grounded verses
+- [ ] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
+- [ ] Fail loud (guard/CI check) when prod alerting is disabled
+- [ ] Integration test running the real search/grounding SQL against the Postgres service container
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-055-scripture-pipeline-observability.md`
+
+---
 
 ### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
@@ -854,7 +1216,7 @@ instead of a generic "I don't understand".
 
 ---
 
-### 🎯 BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
+### 🎯 BITB-046: Add German Bible Translation (Luther 1912)
 
 **Status:** 🎯 Todo
 **Size:** M (1-2 days, mostly data loading)
@@ -862,15 +1224,40 @@ instead of a generic "I don't understand".
 
 **As a** German-speaking user, **I want** a familiar Bible translation (Luther), **so that** I'm not
 limited to Schlachter 1951. Luther 1984/2017, Einheitsübersetzung, NGÜ, and Schlachter 2000 are
-copyrighted; **Luther 1912** and **Elberfelder 1871** are public domain (getBible).
+copyrighted; **Luther 1912** is public domain (shipped as a committed data file — getBible does not
+host it). Elberfelder was dropped: getBible only offers the archaic 1905 edition, and Luther 1912
+covers the need while saving a full Bible's worth of verses/embeddings in the DB.
 
 **Acceptance Criteria (summary):**
 
-- [ ] German picker shows Luther 1912 (default), Schlachter 1951, Elberfelder 1871
-- [ ] Text + embeddings loaded and searchable for both new translations
+- [ ] German picker shows Luther 1912 (default), Schlachter 1951
+- [ ] Text + embeddings loaded and searchable for Luther 1912
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+
+**Status:** 📋 Backlog
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
+
+**As a** reader, **I want** additional and more current Bible translations — starting with Italian —
+**so that** I can read Scripture in more contemporary wording and compare versions, instead of a single
+century-old translation per language. Source: Bible SuperSearch JSON collection. Bounded by licensing —
+only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Italian gets a second option (e.g. Diodati) alongside Riveduta 1927
+- [ ] Add newer free options where clearly licensed: Reina Valera 2010 (es), Ostervald 1996 / l'Épée
+      2005 (fr), NET Bible (en); each license-verified before import
+- [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
+      `/scripture/translations`; provenance/license note recorded
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
 
 ---
 
@@ -927,6 +1314,27 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 - [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+
+---
+
+### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+
+**Status:** 🚧 In Progress
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-15
+
+**As an** Android user submitting the contact form, **I want** an accurate error that names the
+email field when my submission is rejected, **so that** I'm not misled into thinking my message was
+too long.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android: a missing/invalid-email 422 shows an email-specific error, never the "max 300 characters" message
+- [ ] Android: the chat message-length 422 still maps to `error_message_too_long`
+- [ ] Android: email validated as required (no blank→null); `contact_email_label` updated from "optional" in all locales
+- [ ] Tests: `ChatViewModelTest` pins the 422 split; web has no equivalent bug (verified — optional follow-up only)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-051-android-contact-form-misleading-validation-error.md`
 
 ---
 
@@ -1038,10 +1446,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🎯 Todo (production verified 2026-05-31 — favicon and robots.txt addressed; server-render-homepage remains)
+**Status:** 🚧 In Progress (server-render homepage confirmed done in code; JSON-LD + OG image landing 2026-07-03; only Search-Console submission remains, a manual operator action)
 **Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
 **Size:** M (server-render homepage needs care at the client/server boundary; rest are small)
-**Created:** 2026-05-29 · **Updated:** 2026-05-31
+**Created:** 2026-05-29 · **Updated:** 2026-07-03
 
 **As a** person searching for Bible inspiration on Google (or asking an AI assistant),
 **I want** Vox Quieta's pages to be fully indexable — real server-rendered text, structured data, rich link previews,
@@ -1051,12 +1459,12 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
+- [x] **(P1)** Homepage hero text is server-rendered (live check shows `/en` is no longer thin); chat UI still hydrates (Turnstile, streaming, modals)
 - [x] `/favicon.ico` returns 200 with the brand icon
 - [x] Production `/robots.txt` contains `Sitemap: https://voxquieta.org/sitemap.xml` (verified)
-- [ ] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
-- [ ] `og:image` resolves and Twitter card is `summary_large_image`
-- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console
+- [x] `WebSite` + `Organization` JSON-LD present on all locales; `seo-static-check.sh` JSON-LD WARN clears
+- [x] `og:image` resolves and Twitter card is `summary_large_image`
+- [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console *(manual operator action remaining)*
 
 **Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
 
@@ -1241,6 +1649,26 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+
+**Status:** 🎯 Todo
+**Size:** S (< 2 hrs)
+**Created:** 2026-06-16
+
+**As a** web user submitting the contact form, **I want** an email-specific error when my
+submission is rejected for an invalid email, **so that** I can fix it instead of seeing a generic
+"failed to send". Web follow-up to BITB-051 (web has no 300-char misreport, just a generic error).
+
+**Acceptance Criteria (summary):**
+
+- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
+
+---
 
 ### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
