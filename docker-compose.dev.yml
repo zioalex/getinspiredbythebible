@@ -115,7 +115,10 @@ services:
       - api
 
 volumes:
-  # Shared with prod (safe)
+  # Shared Ollama model cache (same fixed name as in docker-compose.yml).
+  # Declared external so `docker compose down -v` on the dev project can never
+  # delete it. `make docker-up-dev` creates it when missing; if you bypass make:
+  #   docker volume create ollama_data
   ollama_data:
     external: true
     name: ollama_data

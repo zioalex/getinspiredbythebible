@@ -120,5 +120,14 @@ services:
     command: npm run dev # Override for development mode
 
 volumes:
+  # Fixed (non-project-prefixed) name so the dev stack (docker-compose.dev.yml,
+  # which references it as an external volume) shares the same Ollama model
+  # cache instead of re-downloading ~5GB of models.
+  # Existing installs: models previously lived in getinspiredbythebible_ollama_data;
+  # either let Ollama re-pull on next start, or copy them over once:
+  #   docker volume create ollama_data
+  #   docker run --rm -v getinspiredbythebible_ollama_data:/from -v ollama_data:/to \
+  #     alpine sh -c "cp -a /from/. /to/"
   ollama_data:
+    name: ollama_data
   postgres_data:

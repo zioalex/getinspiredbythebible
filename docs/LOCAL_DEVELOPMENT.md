@@ -44,6 +44,37 @@ Endpoints: frontend <http://localhost:3000>, API <http://localhost:8000>
 To use OpenRouter for chat while keeping local embeddings, uncomment the
 OpenRouter block in `.env.local` and set your key.
 
+### Ollama requirements
+
+Ollama runs as a container inside the stack — no host install needed. What it
+does need:
+
+- **Disk**: ~5GB for the default models — `mistral:7b` (~4.4GB, chat) and
+  `mxbai-embed-large` (~670MB, embeddings). `scripts/init-ollama.sh` pulls
+  them automatically on container start; nothing to do manually. When
+  `LLM_PROVIDER=openrouter`, the chat model is deliberately *not* pulled —
+  only the embedding model.
+- **RAM/GPU**: `mistral:7b` on CPU wants ~8GB free RAM; with an NVIDIA GPU
+  (8GB+ VRAM) use `make docker-up-gpu` / `make docker-up-dev-gpu` (requires
+  the NVIDIA Container Toolkit on the host).
+- **Model cache volume**: models live in a Docker volume with the fixed name
+  `ollama_data`, shared between the main stack and the dev stack so they are
+  downloaded once. The dev stack declares it `external` (so `docker compose
+  down -v` can never delete it); `make docker-up-dev` creates it when
+  missing. If you bypass make: `docker volume create ollama_data`.
+
+**Upgrading from an older checkout:** the main stack previously stored models
+in a project-prefixed volume (`getinspiredbythebible_ollama_data`). After
+pulling this change, either let Ollama re-download the models once, or copy
+the old cache into the shared volume:
+
+```bash
+docker volume create ollama_data
+docker run --rm \
+  -v getinspiredbythebible_ollama_data:/from -v ollama_data:/to \
+  alpine sh -c "cp -a /from/. /to/"
+```
+
 ## 2. Side-by-side dev stack (`make docker-up-dev`)
 
 A second, fully isolated stack (`-p getinspired-dev`) for machines that
@@ -60,8 +91,9 @@ make docker-down-dev
 Notes:
 
 - The Ollama **model** volume (`ollama_data`) is shared with the main stack to
-  avoid re-downloading models; `make docker-up-dev` creates the volume if it
-  doesn't exist yet, so this also works on a fresh machine.
+  avoid re-downloading models (see "Ollama requirements" above);
+  `make docker-up-dev` creates the volume if it doesn't exist yet, so this
+  also works on a fresh machine (first start then downloads models into it).
 - The Postgres volume (`postgres_data_dev`) is separate — embeddings and data
   never mix with the main stack.
 - Database init: `make docker-reinit-dev-db`, logs via `make docker-logs-dev-init`.
@@ -133,6 +165,9 @@ cd frontend && npm run dev
 - **Dev stack: `could not select device driver "nvidia"`** — you used the GPU
   target on a machine without the NVIDIA container toolkit; use
   `make docker-up-dev` (CPU) instead.
+- **`external volume "ollama_data" not found`** — you ran docker compose
+  directly instead of via make; run `docker volume create ollama_data` once
+  (or `make docker-up-dev`, which does it for you).
 - **Health checks** — liveness `GET /health/live`, readiness
   `GET /health/ready`, full diagnostics `GET /health` (localhost only).
 - **Sanity checks** — `make functional-test` (main stack) or
