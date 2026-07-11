@@ -1376,11 +1376,15 @@ class TestOpenRouterModelOverride:
                 model_override="qwen/qwen-2.5-72b-instruct",
             )
 
-        # The API was called with the override model, not the default
+        # The API was called with the override model as the primary
         call_kwargs = mock_create.call_args
         assert call_kwargs.kwargs["model"] == "qwen/qwen-2.5-72b-instruct"
-        # No extra_body (auto-router disabled for override)
-        assert call_kwargs.kwargs.get("extra_body") is None
+        # Override still gets server-side fallback routing (models array + provider prefs)
+        # so a flaky/incompatible upstream provider degrades gracefully instead of 400ing.
+        extra_body = call_kwargs.kwargs.get("extra_body")
+        assert extra_body is not None
+        assert extra_body["models"] == ["qwen/qwen-2.5-72b-instruct", "fallback1"]
+        assert "provider" in extra_body
         assert result.content == "Marhaba!"
 
     @pytest.mark.asyncio
@@ -1441,7 +1445,63 @@ class TestOpenRouterModelOverride:
 
         call_kwargs = mock_create_fn.call_args
         assert call_kwargs.kwargs["model"] == "qwen/qwen-2.5-72b-instruct"
-        assert call_kwargs.kwargs.get("extra_body") is None
+        # Override keeps the server-side fallback array + provider routing.
+        extra_body = call_kwargs.kwargs.get("extra_body")
+        assert extra_body is not None
+        assert extra_body["models"] == ["qwen/qwen-2.5-72b-instruct", "fallback1"]
+        assert "provider" in extra_body
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_override_falls_back_client_side_on_error(self):
+        """An override that 400s on its primary should fall back client-side.
+
+        Regression test for the Novita "does not support endpoint: completions" 400:
+        the override path must degrade to a fallback model instead of hard-failing.
+        """
+        from openai import APIStatusError
+
+        provider = self._make_provider()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 400
+        override_error = APIStatusError(
+            message="model: qwen/qwen-2.5-72b-instruct does not support endpoint: completions",
+            response=mock_resp,
+            body={},
+        )
+
+        calls: list[str] = []
+
+        async def mock_create(**kwargs):
+            calls.append(kwargs["model"])
+            if kwargs["model"] == "qwen/qwen-2.5-72b-instruct":
+                raise override_error
+
+            async def _iter():
+                chunk = MagicMock()
+                chunk.choices = [MagicMock()]
+                chunk.choices[0].delta.content = "fallback-answer"
+                yield chunk
+
+            return _iter()
+
+        with patch.object(
+            provider._client.chat.completions,
+            "create",
+            side_effect=mock_create,
+        ):
+            chunks = []
+            async for chunk in provider.chat_stream(
+                [ChatMessage(role="user", content="مرحبا")],
+                model_override="qwen/qwen-2.5-72b-instruct",
+            ):
+                chunks.append(chunk)
+
+        # Primary override was tried first, then the client-side fallback model.
+        assert calls == ["qwen/qwen-2.5-72b-instruct", "fallback1"]
+        assert "".join(chunks) == "fallback-answer"
+        # An override failure must NOT trip the default-primary circuit breaker.
+        assert not provider._breaker.is_open()
 
 
 # =============================================================================
