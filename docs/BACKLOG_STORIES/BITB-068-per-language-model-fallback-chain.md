@@ -95,5 +95,5 @@ is a fallback that stays in-language.
 - Research reference for in-language fallback candidates:
   `docs/language-expansion-research.md` (§ model coverage/pricing table).
 - The urgent resilience fix this builds on: `_get_model_and_extra_body(primary_override=...)`
-  + breaker-scoping-to-true-primary + treating `"does not support endpoint"` as
+  plus breaker-scoping-to-true-primary plus treating `"does not support endpoint"` as
   model-unavailable, in `api/providers/openrouter.py`.
