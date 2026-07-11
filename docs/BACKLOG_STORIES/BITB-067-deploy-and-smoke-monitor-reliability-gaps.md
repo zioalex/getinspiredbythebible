@@ -1,6 +1,6 @@
 # BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open — Terraform/Azure infra work)
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
 **Priority:** P1 (High) — the monitoring we just added (BITB-064/065/066) produced a false "production
 down" alert while the site was healthy, and a routine deploy silently broke origin TLS. These gaps
 erode trust in the alerts and can turn a no-op deploy into an outage.
@@ -20,7 +20,7 @@ alert means real user impact.
 
 ## Gaps found (each is an independently shippable fix)
 
-### 1. Monitoring merges but never deploys → false "down" alerts
+### 1. Monitoring merges but never deploys → false "down" alerts — ✅ Shipped (PR #848)
 
 `azure-deploy` runs sit in a `waiting` approval gate indefinitely (several July 3–7 runs never
 completed). PR #839 merged but its deploy stayed pending, so production kept serving the **pre-#839
@@ -30,6 +30,20 @@ test then failed for hours on a missing selector while chat was perfectly health
 merge, or alert when a merged commit hasn't reached production within N minutes (a "deployed SHA vs
 `main` SHA" drift check; the backend already exposes build info via `/config`/health — expose the
 frontend build SHA similarly and let the smoke test assert it).
+
+**Shipped as:** `.github/workflows/prod-deploy-drift.yml` (PR #848) — a `*/15 * * * *` cron that
+compares the running Container App image tag for `api/` and `frontend/` against
+`git log -1 --format=%H -- <path>` on `main`, and alerts via the existing `notify-telegram` action if
+the expected commit is older than `DRIFT_THRESHOLD_MINUTES` (45) and still undeployed. This took the
+image-tag-comparison route rather than the `NEXT_PUBLIC_BUILD_SHA`/smoke-assert route — valid because
+`azure-deploy.yml` already tags every built image with the full commit SHA, so no new build-info
+endpoint was needed. Verified the "normal build" path in `azure-deploy.yml`'s `Determine Image Tags`
+step correctly retains the *current* deployed image for a component that wasn't rebuilt (`Using
+current backend (not built in this run)`), so this does not false-positive on a batched multi-commit
+deploy where only one component's path changed. It **will** alert (arguably correctly, if a bit
+misleadingly worded) during an intentional partial/rollback deploy via
+`workflow_dispatch` + `skip_build`/`deploy_component` that leaves a component >45m behind `main` —
+this is a known, accepted trade-off, not a bug to fix here.
 
 ### 2. Smoke test can't distinguish "service down" from "stale/mismatched bundle"
 
@@ -73,10 +87,43 @@ Because probe secrets are hashed into `terraform_data.backend_secret_trigger`, r
 the cert-rebind dependency in gap #5). **Fix direction:** evaluate moving these to a plain secret
 update (`az containerapp secret set`) or Key Vault reference that doesn't force replacement.
 
+**Investigation (2026-07-11):** the repo already has a working out-of-band pattern to copy —
+BITB-056's Telegram bot token (`azure-deploy.yml`, "Populate Telegram bot token in Key Vault" step,
+~line 997) is deliberately kept out of Terraform state and pushed via `az keyvault secret set` in a
+post-`terraform apply` deploy step, specifically so rotating it never triggers a resource replacement.
+`monitor_probe_secret`/`smoke_probe_secret` differ in one important way: the Telegram token is
+consumed by a Logic App that reads Key Vault directly, whereas the probe secrets are consumed by the
+**backend Container App itself** as plain env vars (`local.backend_env_vars` → `secret_name =
+"monitor-probe-secret"` / `"smoke-probe-secret"`, `main.tf` ~line 662-678). Two viable approaches,
+in order of preference:
+
+1. **Out-of-band `az containerapp secret set` (recommended, lowest risk):** drop
+   `monitor_probe_secret`/`smoke_probe_secret` from the `backend_secret_trigger` hash (leave
+   `openrouter_api_key` as the only replacement trigger) and remove their values from the Terraform
+   `secret` blocks (keep the blocks declared so the secret *names* exist and the `env` references
+   resolve, but source the value out-of-band). Add a deploy step mirroring the Telegram one — `az
+   containerapp secret set --name bible-app-backend --secrets monitor-probe-secret=$VALUE
+   smoke-probe-secret=$VALUE` — run *after* `terraform apply`, gated the same way. `ignore_changes =
+   [secret]` already means Terraform won't fight the CLI-set value on the next plan. Needs a real
+   `terraform plan`/`apply` dry run against a non-prod environment to confirm Terraform doesn't try to
+   null out a secret block it no longer manages the value of on first apply (bootstrapping order:
+   secret must exist with *some* value before the container app's first successful revision, same
+   constraint the Telegram step already handles for the Logic App).
+2. **Key Vault reference (`key_vault_secret_id` on the `secret` block) — more correct long-term, more
+   infra:** requires the backend Container App to have a system-assigned managed identity with `Key
+   Vault Secrets User` (or an access policy) on the vault, which is not yet wired for the backend app
+   specifically (only the Telegram-bridge Key Vault/Logic-App identity exists today). Larger surface
+   area to get wrong without a live Azure test; do this only if approach 1 proves insufficient.
+
+**Not implemented in this pass** — both routes touch the production backend's secret-provisioning
+path and the app can't be validated against real Azure Container Apps from this environment. Approach
+1 is scoped and low-risk enough to implement directly in a follow-up PR by extending the existing
+Telegram-token deploy step rather than inventing a new mechanism.
+
 ## Acceptance Criteria
 
-- [ ] A merged prod-affecting change either deploys automatically or alerts if it hasn't reached
-      production within a bounded time (deployed-SHA vs `main`-SHA drift signal).
+- [x] A merged prod-affecting change either deploys automatically or alerts if it hasn't reached
+      production within a bounded time (deployed-SHA vs `main`-SHA drift signal). (`prod-deploy-drift.yml`, PR #848)
 - [x] `prod-chat-smoke.spec.ts` fails fast with a descriptive message on a stale/mismatched bundle
       (asserts the user bubble first), and its test-level timeout exceeds its assertion budgets.
 - [x] `prod-browser-smoke.yml` uploads a trace/report artifact and a `detail.txt` on failure.
