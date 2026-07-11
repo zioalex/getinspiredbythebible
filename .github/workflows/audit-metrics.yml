@@ -97,7 +97,7 @@ jobs:
           cp -r docs/audits/metrics/. _site/audit/
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
