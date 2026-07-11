@@ -4,6 +4,7 @@ Vox Quieta API
 Main FastAPI application entry point.
 """
 
+import asyncio
 import os
 import traceback as _traceback
 from contextlib import asynccontextmanager
@@ -95,6 +96,39 @@ async def _check_translation_coverage_at_startup() -> None:
         logger.warning("Translation coverage check failed at startup: %s", e)
 
 
+async def _warm_ready_translations() -> None:
+    """Populate the translation readiness cache from live DB coverage (best-effort).
+
+    Lets default resolution skip a language default that has no verses/embeddings
+    yet and fall back to the next ready translation. Any failure (e.g. DB not
+    ready) is swallowed — resolution then uses the static default, no worse than
+    before.
+    """
+    try:
+        from scripture.coverage import refresh_ready_translations
+        from scripture.database import async_session_factory
+
+        async with async_session_factory() as session:
+            await refresh_ready_translations(session)
+    except Exception as e:
+        logger.warning("Translation readiness warm-up failed: %s", e)
+
+
+async def _readiness_refresh_loop() -> None:
+    """Refresh the readiness cache periodically so a newly-seeded translation
+    becomes usable without a redeploy."""
+    from utils.translation_readiness import READY_TTL_SECONDS
+
+    while True:
+        try:
+            await asyncio.sleep(READY_TTL_SECONDS)
+            await _warm_ready_translations()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # never let the loop die on a transient error
+            logger.warning("Translation readiness refresh loop error: %s", e)
+
+
 async def _purge_blocked_samples_at_startup() -> None:
     """Best-effort TTL sweep for blocked-message samples on app start."""
     try:
@@ -170,12 +204,24 @@ async def lifespan(app: FastAPI):
         logger.error("Database initialization failed", extra={"error": str(e)})
 
     await _check_translation_coverage_at_startup()
+    await _warm_ready_translations()
     await _purge_blocked_samples_at_startup()
+
+    # Keep the readiness cache fresh so a translation seeded after boot becomes
+    # usable without a redeploy.
+    readiness_task = asyncio.create_task(_readiness_refresh_loop())
 
     yield
 
     # Shutdown
     logger.info("Shutting down application")
+
+    readiness_task.cancel()
+    try:
+        await readiness_task
+    except asyncio.CancelledError:
+        pass
+
     await close_db()
 
     # Close provider HTTP clients
