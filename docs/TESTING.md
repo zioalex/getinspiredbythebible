@@ -121,12 +121,12 @@ npm run build
 
 ```bash
 # From project root
-docker-compose build
-docker-compose up -d postgres
+docker compose build
+docker compose up -d postgres
 sleep 10
 
 # Start API
-docker-compose up -d api
+docker compose up -d api
 sleep 15
 
 # Test API
@@ -134,14 +134,14 @@ curl http://localhost:8000/health
 curl http://localhost:8000/config
 
 # Start frontend
-docker-compose up -d frontend
+docker compose up -d frontend
 sleep 20
 
 # Test frontend
 curl http://localhost:3000
 
 # Cleanup
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Test Files
@@ -206,7 +206,7 @@ The workflow runs automatically on:
 
 - Increase sleep timers in workflow
 - Check Docker resources (CPU/memory)
-- Review service logs: `docker-compose logs <service>`
+- Review service logs: `docker compose logs <service>`
 
 ### Security vulnerabilities reported
 

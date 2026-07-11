@@ -1,5 +1,9 @@
 # Common Issues & Solutions
 
+> Environment startup issues (missing `.env.*` files, prod-DB firewall, ACR
+> login, GPU errors) are covered in
+> [LOCAL_DEVELOPMENT.md → Troubleshooting](LOCAL_DEVELOPMENT.md#troubleshooting).
+
 ## Permission Errors
 
 ### Problem: `EACCES: permission denied` when running `make setup-dev`
@@ -129,7 +133,7 @@ id -g  # Your GID
 
 ```bash
 # Clean Docker volumes
-docker-compose down -v
+docker compose down -v
 
 # Remove specific volumes
 docker volume ls
@@ -267,16 +271,16 @@ sqlalchemy.exc.OperationalError: could not connect to server
 
 ```bash
 # Check PostgreSQL is running
-docker-compose ps postgres
+docker compose ps postgres
 
 # Start if needed
-docker-compose up -d postgres
+docker compose up -d postgres
 
 # Check connection
-docker-compose exec postgres pg_isready -U bible -d bibledb
+docker compose exec postgres pg_isready -U bible -d bibledb
 
 # View logs
-docker-compose logs postgres
+docker compose logs postgres
 ```
 
 ### Problem: `ruff: command not found`
@@ -381,10 +385,10 @@ git commit --no-verify -m "..."
 
 ```bash
 # Test Docker build locally first
-docker-compose build api frontend
+docker compose build api frontend
 
 # Check Docker logs
-docker-compose logs api
+docker compose logs api
 
 # Verify Dockerfiles
 docker build -f api/Dockerfile .
@@ -413,9 +417,9 @@ npm install
 ### Nuclear Option 3: Fresh Docker Environment
 
 ```bash
-docker-compose down -v          # Stop and remove volumes
+docker compose down -v          # Stop and remove volumes
 docker system prune -a --volumes  # Remove all Docker data
-docker-compose up --build       # Rebuild everything
+docker compose up --build       # Rebuild everything
 ```
 
 ### Nuclear Option 4: Complete Reset
@@ -424,12 +428,12 @@ docker-compose up --build       # Rebuild everything
 # Clean everything
 make clean-all
 sudo rm -rf frontend/node_modules frontend/.next
-docker-compose down -v
+docker compose down -v
 docker system prune -a --volumes
 
 # Start fresh
 make setup-dev
-docker-compose up --build
+docker compose up --build
 ```
 
 ---
@@ -451,7 +455,7 @@ npm --version
 echo $VIRTUAL_ENV
 
 # Docker containers
-docker-compose ps
+docker compose ps
 
 # Processes
 ps aux | grep -E "python|node|postgres|ollama"
@@ -461,9 +465,9 @@ ps aux | grep -E "python|node|postgres|ollama"
 
 ```bash
 # Docker logs
-docker-compose logs -f api
-docker-compose logs -f frontend
-docker-compose logs -f postgres
+docker compose logs -f api
+docker compose logs -f frontend
+docker compose logs -f postgres
 
 # Pre-commit logs
 pre-commit run --all-files --verbose
@@ -493,11 +497,11 @@ whoami  # Your username
 cd frontend && npm run build
 
 # Test Docker
-docker-compose up api
+docker compose up api
 curl http://localhost:8000/health
 
 # Test Database
-docker-compose exec postgres psql -U bible -d bibledb -c "SELECT 1;"
+docker compose exec postgres psql -U bible -d bibledb -c "SELECT 1;"
 ```
 
 ---
@@ -545,7 +549,7 @@ BITB-065). If none fired, verify `TF_VAR_ALERT_EMAIL` / `TELEGRAM_CHAT_ID` are s
 
 If issues persist:
 
-1. **Check logs**: `docker-compose logs <service>`
+1. **Check logs**: `docker compose logs <service>`
 2. **Verify setup**: `make help` to see all commands
 3. **Clean slate**: `make clean-all && make setup-dev`
 4. **Check docs**:
