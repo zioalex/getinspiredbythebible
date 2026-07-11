@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-06
+**Last Updated:** 2026-07-10
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -269,7 +269,7 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open)
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -285,7 +285,7 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 
 **Gaps (each independently shippable):**
 
-- [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
+- [x] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy — `prod-deploy-drift.yml`, PR #848
 - [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
 - [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
 - [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
@@ -368,6 +368,39 @@ error — unacceptable for a pastoral-care product serving people in crisis.
       default flipped on
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
+
+---
+
+### ✅ BITB-068: Content-Safety Smoke Tests — CI Gate + Functional + Deployed Probe
+
+**Status:** ✅ Done (PR #850)
+**Size:** S–M (three test tiers + one prod-monitor job + a docs note)
+**Created:** 2026-07-10
+**Parent ref:** BITB-061 (verification safety net for the content-safety phase, PR #840)
+
+**As** the operator, **I want** an end-to-end smoke test of the content-safety pipeline that runs at
+every deployment stage and verifies **both** directions — harmful blocked **and** legitimate content
+answered — **so that** neither a silently-degraded safety net nor over-blocking of genuine
+help-seekers can ship undetected.
+
+**Why P1:** The safety net had no working end-to-end smoke test. The existing `TestContentSafetySmoke`
+still asserted the old HTTP-400 contract, so — since blocks now return a warm HTTP 200 with
+`provider == "content_safety"` — its detector fixture saw a 200 and **skipped the entire class**. The
+discriminator between "blocked" and "answered" is the `provider` field, not the status code.
+
+**Acceptance Criteria:**
+
+- [x] CI gate: `api/tests/test_content_safety_smoke.py` drives the real ASGI app in deterministic
+      `keyword_only` mode (no external keys); asserts harmful blocked, benign allowed, help-seeking
+      allowed, and the stream path — both directions. Runs in the `backend-tests` job.
+- [x] Functional: rewrote `TestContentSafetySmoke` (`api/tests/functional/test_production_api.py`) to
+      the 200/`provider==content_safety` contract; fixed the skip-bug fixture; added a help-seeking
+      case; fixed the stream assertion. Revives a test that had been silently inert.
+- [x] Deployed probe: `scripts/monitor/synthetic_content_safety.py` + `content-safety` job in
+      `.github/workflows/prod-monitor.yml`; fails loudly on a degraded safety net or over-blocking.
+- [x] Docs: `AGENTS.md` clarifies why Plan → Build → Verify keeps verification on the strongest model.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-content-safety-smoke-tests.md`
 
 ---
 
@@ -1202,6 +1235,29 @@ covers the need while saving a full Bible's worth of verses/embeddings in the DB
 - [ ] German-default assertions updated `schlachter` → `luther1912`; all tests pass
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-046-german-translations-luther-elberfelder.md`
+
+---
+
+### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+
+**Status:** 📋 Backlog
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
+
+**As a** reader, **I want** additional and more current Bible translations — starting with Italian —
+**so that** I can read Scripture in more contemporary wording and compare versions, instead of a single
+century-old translation per language. Source: Bible SuperSearch JSON collection. Bounded by licensing —
+only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Italian gets a second option (e.g. Diodati) alongside Riveduta 1927
+- [ ] Add newer free options where clearly licensed: Reina Valera 2010 (es), Ostervald 1996 / l'Épée
+      2005 (fr), NET Bible (en); each license-verified before import
+- [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
+      `/scripture/translations`; provenance/license note recorded
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
 
 ---
 

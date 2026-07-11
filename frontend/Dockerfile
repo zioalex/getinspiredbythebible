@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
-FROM node:25-alpine AS deps
+FROM node:26-alpine AS deps
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN npm ci
 # -----------------------------------------------------------------------------
 # Stage 2: Build
 # -----------------------------------------------------------------------------
-FROM node:25-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 # Stage 3: Production image
 # -----------------------------------------------------------------------------
-FROM node:25-alpine AS production
+FROM node:26-alpine AS production
 
 WORKDIR /app
 
