@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.43.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.1...v1.43.0) (2026-07-11)
+
+### Features
+
+* **language:** readiness guard so a default Bible is never served before it's loaded ([#858](https://github.com/zioalex/getinspiredbythebible/issues/858)) ([c242ee2](https://github.com/zioalex/getinspiredbythebible/commit/c242ee2d6df8a04f0c9d29f2ec49e03230632d0c))
+
+### Bug Fixes
+
+* **openrouter:** give language-override route the same fallback resilience ([#859](https://github.com/zioalex/getinspiredbythebible/issues/859)) ([8537716](https://github.com/zioalex/getinspiredbythebible/commit/8537716a56aa18246e69bc51ee59fa3000d603c0))
+
+### Documentation
+
+* **backlog:** add BITB-068 per-language model fallback chain ([#860](https://github.com/zioalex/getinspiredbythebible/issues/860)) ([4137583](https://github.com/zioalex/getinspiredbythebible/commit/41375830c56bbaf5ba7c0fd271af9bd2871fae56))
+* **backlog:** close BITB-067 gap [#1](https://github.com/zioalex/getinspiredbythebible/issues/1), scope gap [#6](https://github.com/zioalex/getinspiredbythebible/issues/6) secret-rotation fix ([#856](https://github.com/zioalex/getinspiredbythebible/issues/856)) ([8d6af63](https://github.com/zioalex/getinspiredbythebible/commit/8d6af63c043f8e2afba53a98ca079bbd1941895a))
+
 ## [1.42.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.0...v1.42.1) (2026-07-10)
 
 ### Documentation
