@@ -1,6 +1,6 @@
 # BITB-063: Typed Provider Error Contract — Make the Unreachable 503 Reachable
 
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** P1 (High) — 2026-07 adversarial audit E1 (HIGH); total-LLM-outage handling is dead code, outages misreport as generic 500s
 **Size:** S (typed exception + two route handlers + the contract test that was always missing)
 **Created:** 2026-07-03
@@ -32,13 +32,27 @@ expressed as prose to be grepped (Android does the same against backend error bo
 
 ## Acceptance Criteria
 
-- [ ] A typed exception (e.g. `AllModelsExhaustedError`, carrying rate-limited-vs-unavailable
-      detail) is raised by both `chat()` and `chat_stream()` exhaustion paths.
-- [ ] Routes catch the **type**: non-stream → HTTP 503 with `Retry-After`; stream → the structured
-      error chunk with a machine-readable `code` field.
-- [ ] Contract tests: (a) provider exhaustion raises the typed error in both paths; (b) route maps
-      it to 503/error-chunk. A change to either side alone fails CI.
-- [ ] Error responses carry machine-readable `code` fields (groundwork for BITB follow-up on the
-      Android substring matching — audit A8; Android change itself out of scope here).
-- [ ] `prod-monitor` synthetic-chat treats the 503 as "upstream outage" (distinct alert text), not
-      generic backend failure.
+- [x] A typed exception (`AllModelsExhaustedError`, `api/providers/errors.py`), carrying
+      rate-limited-vs-unavailable detail (`reason`), `models_tried`, and an optional `retry_after`,
+      is raised by both `chat()` and `chat_stream()` exhaustion paths in `openrouter.py`. The
+      third, unreachable breaker-open-with-no-fallbacks branch was converted too, for consistency
+      (no test covers it — it cannot be reached given the guard conditions above it).
+- [x] Routes catch the **type** (`api/routes/chat.py`): non-stream → HTTP 503 with `Retry-After`;
+      stream → the structured error chunk with a machine-readable `error_code` field. The old
+      `if "All models rate limited" in str(e)` substring branches (which never matched) are
+      removed.
+- [x] Contract tests added: (a) `test_provider_error_contract.py` asserts provider exhaustion
+      raises the typed error in both `chat()`/`chat_stream()`; (b) the same file asserts each route
+      maps it to a 503 / an error chunk. A change to either side alone now fails CI.
+- [x] Error responses carry machine-readable `code` (JSON 503 detail) / `error_code` (SSE chunk)
+      fields — matching the two conventions already established elsewhere in the codebase
+      (`utils/security.py`'s `code` field, `synthetic_chat.py`'s `error_code` extraction) —
+      groundwork for a later Android follow-up on the `ChatViewModel.kt` substring matching (audit
+      A8); the Android change itself is out of scope here.
+- [x] `prod-monitor`'s `synthetic_chat.py` already extracts `error_code` from SSE error chunks and
+      appends it to the alert detail — so the Telegram alert now distinguishes an upstream outage
+      the moment the backend emits `error_code: "upstream_unavailable"`, with **no probe change
+      required**. Making the alert *subject/text* branch on the code, or adding a dedicated
+      non-stream probe that asserts the 503 + `Retry-After` directly, is follow-up work: it touches
+      `.github/actions/notify-telegram`'s pass/fail model and is orthogonal to the typed-error
+      contract itself.

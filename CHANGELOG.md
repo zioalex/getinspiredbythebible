@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.42.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.0...v1.42.1) (2026-07-10)
+
+### Documentation
+
+* **backlog:** add BITB-068 to refresh & expand Bible translations ([#852](https://github.com/zioalex/getinspiredbythebible/issues/852)) ([b96f27a](https://github.com/zioalex/getinspiredbythebible/commit/b96f27a1c708a8aa84422831f4a7d4919f1b7ab1))
+
+## [1.42.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.41.0...v1.42.0) (2026-07-10)
+
+### Features
+
+* **translations:** auto-derive seed matrix and add Luther 1912 (German) ([#851](https://github.com/zioalex/getinspiredbythebible/issues/851)) ([7c4c124](https://github.com/zioalex/getinspiredbythebible/commit/7c4c124339394c60d99452700ebf94ec167c742b))
+
+## [1.41.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.1...v1.41.0) (2026-07-10)
+
+### Features
+
+* **api:** add Luther 1912 and Elberfelder 1871 German Bible translations (BITB-046) ([#787](https://github.com/zioalex/getinspiredbythebible/issues/787)) ([d4325f8](https://github.com/zioalex/getinspiredbythebible/commit/d4325f825f3b47043f4ace8d18496ca7d6bf2a52))
+* **api:** diacritic-insensitive book-name matching + coverage audit (BITB-052) ([#847](https://github.com/zioalex/getinspiredbythebible/issues/847)) ([b279ed2](https://github.com/zioalex/getinspiredbythebible/commit/b279ed24544277fab5a080d6aff7db83d7bb1f10))
+
+### Bug Fixes
+
+* **api:** raise typed error for exhausted LLM providers (BITB-063) ([#843](https://github.com/zioalex/getinspiredbythebible/issues/843)) ([ae4f85d](https://github.com/zioalex/getinspiredbythebible/commit/ae4f85d34a53cb12a77263c59f02a51f5849acee))
+
+## [1.40.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.40.0...v1.40.1) (2026-07-08)
+
+### Bug Fixes
+
+* **android:** 16 KB page-size support — AGP 8.7 + graphics-path pin + CI gate ([#844](https://github.com/zioalex/getinspiredbythebible/issues/844)) ([0da8b1b](https://github.com/zioalex/getinspiredbythebible/commit/0da8b1b19cda909e09ed110a226daa834a0ef51f))
+* **monitor:** deploy & smoke-monitor reliability — cert re-bind + smoke-test hardening (BITB-067) ([#845](https://github.com/zioalex/getinspiredbythebible/issues/845)) ([f1d3e6b](https://github.com/zioalex/getinspiredbythebible/commit/f1d3e6b0b0e865fa8384ebfacba0693f0859709b))
+
+## [1.40.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.1...v1.40.0) (2026-07-07)
+
+### Features
+
+* **observability:** browser smoke test + backend/frontend error alerting (BITB-064/065/066) ([#839](https://github.com/zioalex/getinspiredbythebible/issues/839)) ([039c741](https://github.com/zioalex/getinspiredbythebible/commit/039c741c1d6de81886c7a3c9bcc17b005d42647c))
+
+### Bug Fixes
+
+* **deploy:** rebind custom domain + origin cert when the backend app is replaced ([#842](https://github.com/zioalex/getinspiredbythebible/issues/842)) ([25faa10](https://github.com/zioalex/getinspiredbythebible/commit/25faa10a1a90242b558c0b2e2b644f9e3f4bb29d))
+
 ## [1.39.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.39.0...v1.39.1) (2026-07-05)
 
 ### Bug Fixes

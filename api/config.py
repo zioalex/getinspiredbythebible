@@ -236,6 +236,18 @@ class Settings(BaseSettings):
     # server-to-server probe bypass Turnstile and rate limits via the
     # X-Monitor-Probe-Secret header. Leave None/empty to disable bypass.
     monitor_probe_secret: str | None = None
+    # Separate, rotatable secret for the browser smoke test (BITB-064). Kept
+    # distinct from monitor_probe_secret so a leak (it transits a real, if
+    # ephemeral, CI browser) is revocable without disturbing the server-to-server
+    # probes. Same X-Monitor-Probe-Secret header; leave None/empty to disable.
+    smoke_probe_secret: str | None = None
+
+    # Client-side error reporting (BITB-066). The frontend POSTs JS/render/API
+    # errors to /api/v1/client-errors; the endpoint records a metric so a spike
+    # (e.g. a browser-only outage) alerts. Cap the free-text detail to bound
+    # log/metric size and abuse.
+    client_error_reporting_enabled: bool = True
+    client_error_max_detail_chars: int = 500
 
     # Azure Content Safety Settings
     azure_content_safety_enabled: bool = False  # Enable Azure Content Safety API

@@ -253,3 +253,15 @@ turnstile_fail_open_counter = meter.create_counter(
     description="Count of Turnstile siteverify transient failures that were allowed through (failed open)",
     unit="1",
 )  # attributes: reason (timeout|http_<status>|http_error|<exc_name>)
+
+client_errors_counter = meter.create_counter(
+    name="client.errors_total",
+    description="Client-side error reports received at /api/v1/client-errors (BITB-066)",
+    unit="1",
+)  # attributes: type (window_onerror|unhandledrejection|api_failure|react_render|turnstile|other)
+
+preflight_errors_counter = meter.create_counter(
+    name="api.preflight_errors_total",
+    description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",
+    unit="1",
+)  # attributes: status, path

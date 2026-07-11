@@ -17,7 +17,7 @@ from starlette.responses import Response
 
 from config import settings
 from utils.logging_config import get_logger
-from utils.metrics import api_access_counter
+from utils.metrics import api_access_counter, preflight_errors_counter
 from utils.turnstile import _get_client_ip
 
 logger = get_logger(__name__)
@@ -140,9 +140,28 @@ class AccessAuditMiddleware(BaseHTTPMiddleware):
         if not path.startswith("/api/"):
             return await call_next(request)
 
-        # Skip preflight and HEAD
+        # Skip preflight and HEAD from the official/unofficial classification,
+        # but still observe OPTIONS 5xx: a browser CORS preflight that returns
+        # 5xx is a browser-only outage (the _IncludedRouter incident) that no
+        # other signal here catches. Count it, then pass the real response
+        # through untouched so CORS handling is unaffected.
         if request.method in ("OPTIONS", "HEAD"):
-            return await call_next(request)
+            response = await call_next(request)
+            if request.method == "OPTIONS" and response.status_code >= 500:
+                normalized = _normalize_path(path)
+                preflight_errors_counter.add(
+                    1, {"status": str(response.status_code), "path": normalized}
+                )
+                logger.warning(
+                    "CORS preflight returned %s — browser-only failure signature",
+                    response.status_code,
+                    extra={
+                        "path": path,
+                        "normalized_path": normalized,
+                        "status_code": response.status_code,
+                    },
+                )
+            return response
 
         # ── Classify ─────────────────────────────────────────────────
         origin = request.headers.get("origin", "")

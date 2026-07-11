@@ -2,6 +2,7 @@
 
 import React, { Component, ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { reportClientError } from "@/lib/clientErrorReporter";
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    reportClientError("react_render", error.stack || error.message);
   }
 
   render() {

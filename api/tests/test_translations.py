@@ -33,8 +33,14 @@ RETRY_DELAY = 2  # seconds between retries
 
 
 def _fetch_with_retry(url: str, method: str = "head", timeout: float = 30.0) -> httpx.Response:
-    """Fetch a URL with retries to handle transient network failures in CI."""
+    """Fetch a URL with retries to handle transient network failures in CI.
+
+    Retries on connection errors *and* on transient upstream 5xx responses
+    (getBible sits behind Cloudflare and intermittently returns 502/503/520),
+    so these live-URL checks don't flake when the origin has a momentary blip.
+    """
     last_error = None
+    last_response = None
     for attempt in range(MAX_RETRIES):
         try:
             with httpx.Client(timeout=timeout, follow_redirects=True) as client:
@@ -44,11 +50,18 @@ def _fetch_with_retry(url: str, method: str = "head", timeout: float = 30.0) -> 
                         response = client.get(url)
                 else:
                     response = client.get(url)
-                return response
+            last_response = response
+            # Retry transient upstream 5xx (e.g. Cloudflare 502/503/520).
+            if response.status_code >= 500 and attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY * (attempt + 1))
+                continue
+            return response
         except httpx.RequestError as e:
             last_error = e
             if attempt < MAX_RETRIES - 1:
                 time.sleep(RETRY_DELAY * (attempt + 1))
+    if last_response is not None:
+        return last_response
     raise last_error  # type: ignore[misc]
 
 
@@ -599,7 +612,8 @@ def test_list_available_translations():
     translations = list_available_translations()
     # Phase 1 (8): kjv, web, ita1927, schlachter, valera, ls1910, almeida, arabicsv
     # Phase 2 (4): synodal, cuv, hindi, krv
-    assert len(translations) == 12
+    # German addition (1): luther1912
+    assert len(translations) == 13
 
     # Check structure
     assert all("code" in t for t in translations)
