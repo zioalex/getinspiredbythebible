@@ -76,7 +76,7 @@ jobs:
       target_sha: ${{ steps.target.outputs.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2 # need parent commit for release-please detection
 
@@ -159,7 +159,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
