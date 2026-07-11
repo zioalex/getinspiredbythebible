@@ -60,15 +60,18 @@ class TestFindUnusableLanguages:
         assert it.problem == "no_verses"
 
     def test_zero_embeddings_flagged_no_embeddings(self):
+        from utils.language import LANGUAGE_TO_TRANSLATION
+
+        german_translation = LANGUAGE_TO_TRANSLATION["de"]
         coverage = _full_coverage()
         # Zero out embeddings for German only.
         for row in coverage:
-            if row["translation"] == "schlachter":
+            if row["translation"] == german_translation:
                 row["verses_with_embeddings"] = 0
         unusable = find_unusable_languages(coverage)
         de = next(u for u in unusable if u.language == "de")
         assert de.problem == "no_embeddings"
-        assert de.translation == "schlachter"
+        assert de.translation == german_translation
 
     def test_all_languages_usable_returns_empty(self):
         unusable = find_unusable_languages(_full_coverage())

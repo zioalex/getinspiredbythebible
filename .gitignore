@@ -100,6 +100,9 @@ ollama_data/
 rules.md
 task.md
 data/bible/translations/*
+# Exception: luther1912 has no downloadable source (getBible lacks it), so its
+# public-domain data is committed rather than fetched at seed time. See BITB-046.
+!data/bible/translations/luther1912.json
 deployment/tfplan.*
 
 # Playwright

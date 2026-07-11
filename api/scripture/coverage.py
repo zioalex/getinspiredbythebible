@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from utils import translation_readiness
 from utils.language import LANGUAGE_TO_TRANSLATION, SUPPORTED_LANGUAGES
 
 from .repository import ScriptureRepository
@@ -73,3 +74,17 @@ async def check_translation_coverage(
     coverage = await repo.get_translation_coverage()
     unusable = find_unusable_languages(coverage)
     return coverage, unusable
+
+
+async def refresh_ready_translations(session: AsyncSession) -> None:
+    """Refresh the cached "ready translations" set from live DB coverage.
+
+    Feeds ``utils.translation_readiness`` so default resolution
+    (``utils.language.get_translation_for_language``) can skip a language default
+    whose verses/embeddings are not loaded yet and fall back to the next ready
+    translation. Best-effort: callers should swallow exceptions so a
+    cold/unreachable DB never blocks startup or a request.
+    """
+    repo = ScriptureRepository(session)
+    coverage = await repo.get_translation_coverage()
+    translation_readiness.set_ready_translations(translation_readiness.compute_ready(coverage))

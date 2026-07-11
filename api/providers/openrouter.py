@@ -22,6 +22,7 @@ from utils.metrics import (
 )
 
 from .base import ChatMessage, LLMProvider, LLMResponse
+from .errors import AllModelsExhaustedError
 
 logger = get_logger(__name__)
 
@@ -121,7 +122,9 @@ class OpenRouterProvider(LLMProvider):
         """
         return [{"role": msg.role, "content": msg.content} for msg in messages]
 
-    def _get_model_and_extra_body(self) -> tuple[str, dict | None]:
+    def _get_model_and_extra_body(
+        self, primary_override: str | None = None
+    ) -> tuple[str, dict | None]:
         """
         Get model name and extra_body for OpenRouter request.
 
@@ -135,19 +138,28 @@ class OpenRouterProvider(LLMProvider):
         causes proactive routing to the paid model — without any client-side timeout
         or error-handling logic.
 
+        When ``primary_override`` is set (e.g. a language-based model override such as
+        Arabic → qwen), the override becomes the primary model but STILL gets the same
+        server-side fallback array + throughput routing. Otherwise a single flaky or
+        endpoint-incompatible upstream provider would hard-fail the request with no safety
+        net (e.g. Novita returning "does not support endpoint: completions" for qwen).
+
         Reference: https://openrouter.ai/docs/guides/routing/provider-selection
         Reference: https://openrouter.ai/docs/guides/routing/model-fallbacks
 
         Returns:
             Tuple of (model_name, extra_body) where extra_body may be None
         """
+        primary = primary_override or self.model
+
         if not self.fallback_models or not self.allow_fallbacks:
             # No fallback configured, use direct model
-            return self.model, None
+            return primary, None
 
         # Use native models array with provider preferences for performance-aware routing
-        # Primary model listed first, then fallbacks (OpenRouter tries in order)
-        models_array = [self.model] + self.fallback_models
+        # Primary model listed first, then fallbacks (OpenRouter tries in order).
+        # De-dupe so an override that also appears in fallback_models isn't listed twice.
+        models_array = [primary] + [m for m in self.fallback_models if m != primary]
         logger.info(f"Using native models array with throughput routing: {models_array}")
 
         extra_body: dict = {
@@ -165,7 +177,7 @@ class OpenRouterProvider(LLMProvider):
                 f"preferred_min_throughput.p50={self.preferred_min_throughput_p50}"
             )
 
-        return self.model, extra_body
+        return primary, extra_body
 
     def _is_rate_limit_error(self, e: Exception) -> bool:
         """Check if an exception is a rate limit error and log it."""
@@ -187,9 +199,16 @@ class OpenRouterProvider(LLMProvider):
             if e.status_code in (404, 503):
                 logger.warning(f"Model unavailable (status {e.status_code}): {e}")
                 return True
-            # Check error message for model-related issues
+            # Check error message for model-related issues. "does not support
+            # endpoint" is what an upstream provider (e.g. Novita) returns as a 400
+            # when it can't serve a routed model on the chat-completions endpoint —
+            # treat it as model-unavailable so we fall back instead of hard-failing.
             error_msg = str(e).lower()
-            if "no model" in error_msg or "model not found" in error_msg:
+            if (
+                "no model" in error_msg
+                or "model not found" in error_msg
+                or "does not support endpoint" in error_msg
+            ):
                 logger.warning(f"Model unavailable error: {e}")
                 return True
         if isinstance(e, (APITimeoutError, httpx.TimeoutException)):
@@ -218,15 +237,16 @@ class OpenRouterProvider(LLMProvider):
         converted_messages = self._convert_messages(messages)
         model_override = kwargs.pop("model_override", None)
         if model_override:
-            model_to_use = model_override
-            extra_body = None  # No routing config for overrides
             logger.info(f"Using language-based model override: {model_override}")
-        else:
-            model_to_use, extra_body = self._get_model_and_extra_body()
+        # Overrides flow through the same routing builder so they keep the
+        # server-side fallback array + throughput routing (see method docstring).
+        model_to_use, extra_body = self._get_model_and_extra_body(primary_override=model_override)
 
         # If the breaker is open, skip the primary call entirely and jump
         # straight to the fallback list. This trades fidelity for not paying
         # the primary timeout on every request during a sustained outage.
+        # The breaker models the *default* primary; don't let it divert an
+        # override request (a different model with its own fallback array).
         breaker_skip_primary = (
             self._breaker.is_open()
             and self.fallback_models
@@ -244,19 +264,17 @@ class OpenRouterProvider(LLMProvider):
                 max_tokens=max_tokens,
                 extra_body=extra_body,
             )
-            self._breaker.record_success()
+            # The breaker tracks the *default* primary's health; an override is a
+            # different model, so don't fold its success/failure into that signal.
+            if not model_override:
+                self._breaker.record_success()
         except (RateLimitError, APIStatusError, APITimeoutError, _BreakerOpenError) as e:
             # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
             should_fallback = isinstance(e, _BreakerOpenError) or self._should_try_fallback(e)
-            if not isinstance(e, _BreakerOpenError):
+            if not isinstance(e, _BreakerOpenError) and not model_override:
                 self._breaker.record_failure()
 
-            if (
-                should_fallback
-                and self.fallback_models
-                and self.allow_fallbacks
-                and not model_override
-            ):
+            if should_fallback and self.fallback_models and self.allow_fallbacks:
                 if not isinstance(e, _BreakerOpenError):
                     logger.warning(
                         f"Server-side routing failed, trying client-side fallback. "
@@ -301,20 +319,30 @@ class OpenRouterProvider(LLMProvider):
                 # All fallbacks exhausted — this *is* an error condition
                 logger.error(
                     "All OpenRouter models unavailable. primary=%s fallbacks=%s",
-                    self.model,
+                    model_to_use,
                     self.fallback_models,
                 )
-                raise RuntimeError(
+                is_rate_limited = isinstance(e, RateLimitError) or (
+                    isinstance(e, APIStatusError) and e.status_code == 429
+                )
+                raise AllModelsExhaustedError(
                     "All models unavailable or rate limited. "
-                    f"Primary: {self.model}, "
+                    f"Primary: {model_to_use}, "
                     f"Fallbacks: {self.fallback_models}. "
-                    "Check model names at https://openrouter.ai/models"
+                    "Check model names at https://openrouter.ai/models",
+                    reason="rate_limited" if is_rate_limited else "unavailable",
+                    models_tried=[model_to_use, *self.fallback_models],
                 ) from (e if not isinstance(e, _BreakerOpenError) else None)
             else:
                 if isinstance(e, _BreakerOpenError):
-                    # Breaker open but no fallbacks available — surface as a clear error
-                    raise RuntimeError(
-                        "OpenRouter circuit breaker open and no fallback models configured"
+                    # Breaker open but no fallbacks available — surface as a clear error.
+                    # Unreachable in practice: breaker_skip_primary already requires
+                    # fallback_models/allow_fallbacks, which is mutually exclusive with
+                    # this branch. Kept typed for consistency, not test coverage.
+                    raise AllModelsExhaustedError(
+                        "OpenRouter circuit breaker open and no fallback models configured",
+                        reason="unavailable",
+                        models_tried=[self.model],
                     )
                 # No fallbacks configured or not a recoverable error
                 raise
@@ -380,11 +408,10 @@ class OpenRouterProvider(LLMProvider):
         converted_messages = self._convert_messages(messages)
         model_override = kwargs.pop("model_override", None)
         if model_override:
-            model_to_use = model_override
-            extra_body = None  # No routing config for overrides
             logger.info(f"Using language-based model override: {model_override}")
-        else:
-            model_to_use, extra_body = self._get_model_and_extra_body()
+        # Overrides flow through the same routing builder so they keep the
+        # server-side fallback array + throughput routing (see method docstring).
+        model_to_use, extra_body = self._get_model_and_extra_body(primary_override=model_override)
 
         logger.info(f"OpenRouter streaming request - model: {model_to_use}")
 
@@ -447,8 +474,10 @@ class OpenRouterProvider(LLMProvider):
                     )
                 if used_fallback:
                     llm_fallback_counter.add(1, {"provider": "openrouter", "model": current_model})
-                # Successful stream — primary succeeded (or we recovered) → reset breaker.
-                if current_model == model_to_use:
+                # Successful stream — the *default* primary succeeded (or we recovered)
+                # → reset breaker. An override is a different model, so its success is
+                # not a signal about the default primary's health.
+                if current_model == self.model:
                     self._breaker.record_success()
 
                 return  # Success, exit the generator
@@ -456,7 +485,8 @@ class OpenRouterProvider(LLMProvider):
             except (RateLimitError, APIStatusError, APITimeoutError) as e:
                 # Client-side fallback as safety net (most cases handled by OpenRouter server-side)
                 should_fallback = self._should_try_fallback(e)
-                if current_model == model_to_use:
+                # Only the default primary's failures feed the breaker (see above).
+                if current_model == self.model:
                     self._breaker.record_failure()
 
                 if not should_fallback:
@@ -468,11 +498,11 @@ class OpenRouterProvider(LLMProvider):
                     1, {"reason": _classify_failure(e), "stream": "true"}
                 )
 
-                # Try next fallback model
+                # Try next fallback model. Overrides get the safety net too: if the
+                # override model 400s/429s on every upstream, fall back client-side.
                 if (
                     self.fallback_models
                     and self.allow_fallbacks
-                    and not model_override
                     and fallback_index < len(self.fallback_models)
                 ):
                     current_model = self.fallback_models[fallback_index]
@@ -487,10 +517,15 @@ class OpenRouterProvider(LLMProvider):
                         model_to_use,
                         self.fallback_models[:fallback_index],
                     )
-                    raise RuntimeError(
+                    is_rate_limited = isinstance(e, RateLimitError) or (
+                        isinstance(e, APIStatusError) and e.status_code == 429
+                    )
+                    raise AllModelsExhaustedError(
                         "All models unavailable in streaming. "
                         f"Tried: {model_to_use}, {self.fallback_models[:fallback_index]}. "
-                        "Check model names at https://openrouter.ai/models"
+                        "Check model names at https://openrouter.ai/models",
+                        reason="rate_limited" if is_rate_limited else "unavailable",
+                        models_tried=[model_to_use, *self.fallback_models[:fallback_index]],
                     ) from e
 
     async def verify_model_available(self, model: str) -> tuple[bool, str]:

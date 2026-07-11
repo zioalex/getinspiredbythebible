@@ -934,6 +934,7 @@ ENGLISH_TO_HINDI: dict[str, str] = {
 TRANSLATION_REGISTRY: dict[str, dict[str, str] | None] = {
     "ita1927": ENGLISH_TO_ITALIAN,
     "schlachter": ENGLISH_TO_GERMAN,
+    "luther1912": ENGLISH_TO_GERMAN,
     "valera": ENGLISH_TO_SPANISH,
     "ls1910": ENGLISH_TO_FRENCH,
     "almeida": ENGLISH_TO_PORTUGUESE,

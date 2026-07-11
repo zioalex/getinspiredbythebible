@@ -19,10 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 /** Bounded set of report types — matches the backend metric `type` whitelist. */
 export type ClientErrorType =
-  | "window_onerror"
-  | "unhandledrejection"
-  | "api_failure"
-  | "react_render";
+  "window_onerror" | "unhandledrejection" | "api_failure" | "react_render";
 
 /** Max reports per page load — a repeating error can't flood the endpoint. */
 export const MAX_REPORTS_PER_SESSION = 10;

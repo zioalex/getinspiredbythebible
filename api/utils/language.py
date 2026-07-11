@@ -8,6 +8,8 @@ multiple backends (lingua-py, langdetect, etc.) through a common interface.
 from abc import ABC, abstractmethod
 from typing import Literal
 
+from utils.translation_readiness import get_ready_translations
+
 # Supported languages for this application
 SUPPORTED_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 DEFAULT_LANGUAGE = "en"
@@ -17,7 +19,10 @@ DEFAULT_LANGUAGE = "en"
 LANGUAGE_TRANSLATIONS = {
     "en": ["web", "kjv"],  # English: WEB (default), KJV
     "it": ["ita1927"],  # Italian: Riveduta 1927
-    "de": ["schlachter"],  # German: Schlachter 1951
+    "de": [
+        "luther1912",
+        "schlachter",
+    ],  # German: Luther 1912 (default), Schlachter 1951
     "es": ["valera"],  # Spanish: Reina Valera 1909
     "fr": ["ls1910"],  # French: Louis Segond 1910
     "pt": ["almeida"],  # Portuguese: Almeida Atualizada
@@ -60,6 +65,13 @@ TRANSLATION_INFO = {
         "code": "schlachter",
         "name": "Schlachter 1951",
         "short_name": "Schlachter",
+        "language": "German",
+        "language_code": "de",
+    },
+    "luther1912": {
+        "code": "luther1912",
+        "name": "Luther 1912",
+        "short_name": "Luther",
         "language": "German",
         "language_code": "de",
     },
@@ -376,7 +388,15 @@ def detect_language_confident(text: str) -> str | None:
 
 def get_translation_for_language(language_code: str) -> str:
     """
-    Get the translation code for a given language.
+    Get the default translation code for a given language.
+
+    Readiness-aware: if the runtime readiness cache is populated, return the
+    first configured translation for the language that is actually loaded +
+    embedded in the DB, so a not-yet-seeded default is never served (it would
+    silently return empty search results / 404 lookups). Falls back to the
+    static configured default when readiness is unknown (cache never populated,
+    e.g. in tests) or when no configured translation is ready — so a healthy
+    default is never changed and behaviour degrades no worse than before.
 
     Args:
         language_code: ISO 639-1 language code
@@ -384,6 +404,11 @@ def get_translation_for_language(language_code: str) -> str:
     Returns:
         Translation code (e.g., 'kjv', 'ita1927', 'schlachter')
     """
+    ready = get_ready_translations()
+    if ready:
+        for code in LANGUAGE_TRANSLATIONS.get(language_code, []):
+            if code in ready:
+                return code
     return LANGUAGE_TO_TRANSLATION.get(language_code, DEFAULT_TRANSLATION)
 
 
@@ -1223,6 +1248,7 @@ def get_localized_book_name(english_name: str, translation_code: str) -> str:
     book_map = {
         "ita1927": ENGLISH_TO_ITALIAN_BOOKS,
         "schlachter": ENGLISH_TO_GERMAN_BOOKS,
+        "luther1912": ENGLISH_TO_GERMAN_BOOKS,
         "valera": ENGLISH_TO_SPANISH_BOOKS,
         "ls1910": ENGLISH_TO_FRENCH_BOOKS,
         "almeida": ENGLISH_TO_PORTUGUESE_BOOKS,

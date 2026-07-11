@@ -6,6 +6,12 @@
 **Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-12)
 
+> **Update (descoped):** Only **Luther 1912** ships. getBible has no Luther 1912, so it is added as a
+> committed public-domain data file (`data/bible/translations/luther1912.json`). Elberfelder was
+> dropped — getBible only hosts the archaic 1905 Darby edition, and Luther 1912 covers the German
+> audience's need while saving a full Bible's worth of verses/embeddings in the DB. References to
+> "Elberfelder 1871/1905" below are historical.
+
 ## User Story
 
 **As a** German-speaking user,
@@ -29,7 +35,7 @@ integrated without a licence.
 | Neue Genfer Übersetzung | ❌ Copyright | — |
 | Schlachter 2000 | ❌ Copyright | — |
 | **Luther 1912** | ✅ Public domain | `https://api.getbible.net/v2/luther1912.json` |
-| **Elberfelder 1871** | ✅ Public domain | `https://api.getbible.net/v2/elberfelder1871.json` |
+| **Elberfelder 1905** | ✅ Public domain | `https://api.getbible.net/v2/elberfelder1905.json` (getBible has no 1871 edition; the 1905 Darby Unrevidierte Elberfelder is the available public-domain edition) |
 | Schlachter 1951 | ✅ Public domain | already integrated |
 
 ## Approach

@@ -1,0 +1,150 @@
+name: Prod Deploy Drift
+
+# BITB-067 (gap #1): after PR #839 merged, azure-deploy.yml's `production`
+# environment approval gate sat unapproved for hours. Production kept serving
+# the pre-#839 image the whole time, so the hourly browser smoke test alerted
+# "production down" on a missing test selector while chat itself was healthy —
+# the real problem (a merged, prod-affecting change stuck behind the gate) had
+# no alert of its own.
+#
+# This job closes that gap without touching the approval gate itself (removing
+# it is the higher-risk option the story explicitly weighs against — gap #5
+# exists because an unattended deploy broke origin TLS). It just watches for
+# the symptom: the image tag actually running in each Container App (backend,
+# frontend) vs. the commit that *should* be running — the newest commit on
+# `main` that touched that component's build context. A mismatch older than
+# DRIFT_THRESHOLD_MINUTES means a merged change hasn't reached production,
+# which is exactly the "deployed SHA vs main SHA" drift signal the story asks
+# for; azure-deploy.yml already tags every image with the full commit SHA
+# (env.DEPLOY_SHA), so no new build-info endpoint or bundle change is needed.
+#
+# Required repo secrets (shared with prod-monitor.yml's log-scan job):
+#   ARM_CLIENT_ID / ARM_CLIENT_SECRET / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
+#
+# Manual run:
+#   Actions → Prod Deploy Drift → Run workflow
+#   (force_alert=true exercises the Telegram path without needing real drift)
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_alert:
+        description: "Send a test alert to Telegram regardless of drift outcome"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-deploy-drift-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+  RESOURCE_GROUP: bible-app-rg
+  STATE_BRANCH: gh-monitor-state
+  # A component is only reported as drifted once its expected commit has been
+  # sitting undeployed longer than this — a deploy already in flight (build +
+  # terraform apply routinely take several minutes) must not trip a false
+  # alarm of the exact kind this job exists to prevent.
+  DRIFT_THRESHOLD_MINUTES: "45"
+
+jobs:
+  deploy-drift:
+    name: Deployed-vs-main drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Full history so `git log`/`git show` can resolve the newest commit
+      # touching each component's build context, however far back it sits.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Check deployed-vs-main drift
+        id: drift
+        run: |
+          set -o pipefail
+          : > "$RUNNER_TEMP/detail.txt"
+          drifted=0
+
+          check_component() {
+            local label="$1" app="$2" path="$3"
+
+            local image
+            image=$(az containerapp show \
+              --name "$app" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query "properties.template.containers[0].image" -o tsv 2>/dev/null || echo "")
+            if [ -z "$image" ]; then
+              echo "::warning::could not resolve deployed image for $app; skipping $label"
+              return
+            fi
+            local deployed="${image##*:}"
+
+            local expected
+            expected=$(git log -1 --format=%H -- "$path")
+            if [ -z "$expected" ]; then
+              echo "::warning::no commit history for $path; skipping $label"
+              return
+            fi
+
+            # Prefix-compare: tags are always the full SHA today, but this
+            # tolerates a short SHA on either side without extra logic.
+            case "$deployed" in
+              "$expected"*) return ;;
+            esac
+
+            local expected_ct age_min
+            expected_ct=$(git show -s --format=%ct "$expected")
+            age_min=$(( ( $(date +%s) - expected_ct) / 60 ))
+            if [ "$age_min" -lt "$DRIFT_THRESHOLD_MINUTES" ]; then
+              echo "$label: expected ${expected:0:12} is only ${age_min}m old — deploy likely in flight, not drift"
+              return
+            fi
+
+            drifted=1
+            {
+              echo "$label drift: main expects ${expected:0:12} (${age_min}m old)," \
+                "production is running ${deployed:0:12}"
+            } >> "$RUNNER_TEMP/detail.txt"
+          }
+
+          check_component backend "$BACKEND_APP_NAME" api/
+          check_component frontend "$FRONTEND_APP_NAME" frontend/
+
+          if [ "$drifted" -ne 0 ]; then
+            echo "" >> "$RUNNER_TEMP/detail.txt"
+            echo "A merged prod-affecting change has not reached production." >> "$RUNNER_TEMP/detail.txt"
+            echo "Check for an azure-deploy run parked in the 'production' approval gate." >> "$RUNNER_TEMP/detail.txt"
+            cat "$RUNNER_TEMP/detail.txt"
+            exit 1
+          fi
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: deploy-drift
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
