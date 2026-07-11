@@ -274,11 +274,7 @@ class OpenRouterProvider(LLMProvider):
             if not isinstance(e, _BreakerOpenError) and not model_override:
                 self._breaker.record_failure()
 
-            if (
-                should_fallback
-                and self.fallback_models
-                and self.allow_fallbacks
-            ):
+            if should_fallback and self.fallback_models and self.allow_fallbacks:
                 if not isinstance(e, _BreakerOpenError):
                     logger.warning(
                         f"Server-side routing failed, trying client-side fallback. "
