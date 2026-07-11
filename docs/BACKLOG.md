@@ -269,7 +269,7 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #2/#3/#4 shipped in PR #845; #1/#5/#6 open)
+**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -285,7 +285,7 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 
 **Gaps (each independently shippable):**
 
-- [ ] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy
+- [x] Merged monitoring never deploys (stuck approval gate) → false "down"; add deployed-SHA vs `main` drift alert / auto-deploy — `prod-deploy-drift.yml`, PR #848
 - [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
 - [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
 - [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
