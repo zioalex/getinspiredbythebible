@@ -40,55 +40,48 @@ LLM backends.
 
 ## 🚀 Quick Start
 
+> Full guide with every run mode (local, side-by-side dev, local against the
+> production DB + LLMs): **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)**
+
 ### Prerequisites
 
-- Docker & Docker Compose
+- Docker & Docker Compose (v2, `docker compose`)
 - 8GB+ GPU (recommended) or CPU with 16GB+ RAM for Ollama
 
-### 1. Clone and Setup
+### 1. Start the fully local stack
 
 ```bash
-cd vox-quieta
-cp api/.env.example api/.env  # Create env file (optional)
+make docker-up        # CPU  (make docker-up-gpu for NVIDIA GPU)
 ```
 
-### 2. Start Services
+On first run this automatically:
 
-> **Note**: On first startup, Ollama will automatically pull the required models
-> (`llama3:8b` and `mxbai-embed-large`). This may take 5-10 minutes depending on your
-> internet connection.
+- creates `.env.local` from the committed `.env.local.example` template,
+- pulls the Ollama models (`mistral:7b`, `mxbai-embed-large`, 5–10 min),
+- loads the Bible and generates embeddings via the one-shot `db-init`
+  container (`docker compose logs -f db-init` to follow progress).
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# Watch logs
-docker-compose logs -f
+docker compose logs -f   # watch all services
+make docker-down         # stop
 ```
 
-### 3. Load Bible Data
-
-```bash
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install Python dependencies
-cd scripts
-pip install httpx asyncpg sqlalchemy
-
-# Load Bible into database
-python load_bible.py
-
-# Generate embeddings (takes ~30-60 minutes)
-python create_embeddings.py
-```
-
-### 4. Access the App
+### 2. Access the App
 
 - **Web App**: <http://localhost:3000>
 - **API Docs**: <http://localhost:8000/docs>
-- **Health Check**: <http://localhost:8000/health>
+- **Health Check**: <http://localhost:8000/health/live>
+
+### Run locally against the production DB and LLMs
+
+```bash
+cp .env.production.example .env.production   # fill in secrets
+make az-pg-add-ip                            # allow your IP on the Azure PG firewall
+make docker-up-local-prod                    # local containers -> prod DB + OpenRouter/Azure OpenAI
+```
+
+See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for details, the
+ACR-backend variant, and troubleshooting.
 
 ## 📁 Project Structure
 
@@ -131,7 +124,7 @@ vox-quieta/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LLM_PROVIDER` | `ollama` | LLM backend: `ollama`, `claude`, `openrouter`, `openai` |
-| `LLM_MODEL` | `llama3:8b` | Model name |
+| `LLM_MODEL` | `llama3:8b` (compose default: `mistral:7b`) | Model name |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `EMBEDDING_MODEL` | `mxbai-embed-large` | Embedding model (multilingual, 1024 dims) |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |
@@ -423,6 +416,7 @@ pytest
 
 Additional documentation is available in the `docs/` directory:
 
+- **[Local Development](docs/LOCAL_DEVELOPMENT.md)** - Every local run mode (local stack, dev stack, local → prod DB/LLMs)
 - **[Architecture](docs/ARCHITECTURE.md)** - System architecture and design patterns
 - **[Testing](docs/TESTING.md)** - Testing strategy and guidelines
 - **[Deployment](DEPLOYMENT.md)** - Deployment options and infrastructure

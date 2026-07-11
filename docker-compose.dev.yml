@@ -6,10 +6,12 @@
 #   accidentally change prod container env.
 #
 # Usage (safe alongside prod):
-#   docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d
+#   make docker-up-dev          # CPU
+#   make docker-up-dev-gpu      # with NVIDIA GPU (adds docker-compose.gpu.yml overlay)
+#   make docker-down-dev        # teardown
 #
-# Teardown:
-#   docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml down
+# Raw compose equivalent:
+#   docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d
 
 services:
   api:
@@ -55,14 +57,9 @@ services:
       - ollama_data:/root/.ollama
       - ./scripts/init-ollama.sh:/init-ollama.sh
     entrypoint: ["/bin/bash", "/init-ollama.sh"]
-    # GPU support (requires NVIDIA Container Toolkit + compatible Docker setup)
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU support is opt-in: add the docker-compose.gpu.yml overlay
+    # (make docker-up-dev-gpu). A hard-coded NVIDIA reservation here would
+    # break `docker compose up` on machines without the NVIDIA toolkit.
 
   postgres:
     image: pgvector/pgvector:pg16
