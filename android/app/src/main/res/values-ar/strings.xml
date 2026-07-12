@@ -283,6 +283,10 @@
     <string name="translation_picker_title">إصدار الكتاب المقدس</string>
     <string name="translation_picker_subtitle">اختر ترجمة الكتاب المقدس المفضلة لديك</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">تم تنزيل التحديث — اضغط للتثبيت</string>
+    <string name="update_install_action">تثبيت التحديث</string>
+
     <!-- Share -->
     <string name="share_prefix">وجدت هذه الرؤية الكتابية الملهمة:</string>
 </resources>

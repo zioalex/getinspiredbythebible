@@ -1107,9 +1107,9 @@ Testing & Documentation:
 
 ---
 
-### 🎯 BITB-057: Android — In-App Update API (Flexible Flow)
+### 🚧 BITB-057: Android — In-App Update API (Flexible Flow)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) open, pending CI + review
 **Size:** M (1–2 days)
 **Created:** 2026-07-01
 
@@ -1119,16 +1119,16 @@ I can update and get the latest features and fixes without checking the Play Sto
 **Why P1:** The app has no mechanism to detect or prompt for Play Store updates. Users on outdated
 builds receive no signal that improvements exist. Implements the flexible (background-download,
 non-disruptive) flow via `com.google.android.play:app-update-ktx`; guarded by `BuildConfig.DEBUG`
-so debug and sideloaded builds are unaffected.
+at the `MainActivity` call sites so debug and sideloaded builds are unaffected.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] `app-update-ktx` v2.1.0 added to `libs.versions.toml` + `build.gradle.kts`
-- [ ] `InAppUpdateManager.kt` wraps `AppUpdateManager` with constructor injection for testability
-- [ ] Flexible flow triggered on cold start when update available and staleness ≥ 3 days
-- [ ] Snackbar with "Install update" action shown when download completes; calls `completeUpdate()`
-- [ ] `onResume` re-checks for a pending install (app backgrounded during download)
-- [ ] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
+- [x] `app-update-ktx` v2.1.0 added to `libs.versions.toml` + `build.gradle.kts`
+- [x] `InAppUpdateManager.kt` wraps `AppUpdateManager` with constructor injection for testability
+- [x] Flexible flow triggered on cold start when update available and staleness ≥ 3 days
+- [x] Snackbar with "Install update" action shown when download completes; calls `completeUpdate()`
+- [x] `onResume` re-checks for a pending install (app backgrounded during download)
+- [x] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
 

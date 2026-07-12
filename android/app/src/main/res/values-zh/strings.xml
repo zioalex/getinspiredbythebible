@@ -278,6 +278,10 @@
     <string name="translation_picker_title">圣经版本</string>
     <string name="translation_picker_subtitle">选择您喜欢的圣经译本</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">更新已下载 — 点按以安装</string>
+    <string name="update_install_action">安装更新</string>
+
     <!-- Share -->
     <string name="share_prefix">我找到了这个令人振奋的圣经启示：</string>
 </resources>

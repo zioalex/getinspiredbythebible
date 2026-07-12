@@ -279,6 +279,10 @@
     <string name="translation_picker_title">बाइबिल संस्करण</string>
     <string name="translation_picker_subtitle">अपना पसंदीदा बाइबिल अनुवाद चुनें</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">अपडेट डाउनलोड हो गया — इंस्टॉल करने के लिए टैप करें</string>
+    <string name="update_install_action">अपडेट इंस्टॉल करें</string>
+
     <!-- Share -->
     <string name="share_prefix">मुझे यह प्रेरणादायक बाइबिल अंतर्दृष्टि मिली:</string>
 </resources>
