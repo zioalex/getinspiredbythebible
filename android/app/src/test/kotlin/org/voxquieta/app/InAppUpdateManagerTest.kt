@@ -4,11 +4,11 @@ import android.app.Activity
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.play.core.appupdate.testing.FakeAppUpdateManager
-import com.google.android.play.core.install.model.AppUpdateType
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,7 +49,10 @@ class InAppUpdateManagerTest {
         manager.checkForUpdate(activity)
         idleMainLooper()
 
-        assertEquals(AppUpdateType.FLEXIBLE, fakeAppUpdateManager.requestedUpdateType)
+        // isConfirmationDialogVisible flips true once startUpdateFlowForResult has been
+        // invoked on the fake — the documented signal (developer.android.com/guide/
+        // playcore/in-app-updates/test) that an update flow was actually requested.
+        assertTrue(fakeAppUpdateManager.isConfirmationDialogVisible)
     }
 
     @Test
@@ -62,7 +65,7 @@ class InAppUpdateManagerTest {
         idleMainLooper()
         testScheduler.advanceUntilIdle()
 
-        assertNotEquals(AppUpdateType.FLEXIBLE, fakeAppUpdateManager.requestedUpdateType)
+        assertFalse(fakeAppUpdateManager.isConfirmationDialogVisible)
         assertEquals(0, emissionCount)
         job.cancel()
     }
