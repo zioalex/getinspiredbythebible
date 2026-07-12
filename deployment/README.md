@@ -190,6 +190,7 @@ terraform apply -var-file="terraform.tfvars" -var-file="terraform.tfvars.secrets
 #### Option A: Using Docker Compose with .env.production (Recommended)
 
 The `.env.production` file contains all required variables including `ACR_NAME` and `NEXT_PUBLIC_API_URL`.
+Create it from the committed template if you don't have it yet: `cp .env.production.example .env.production` (repo root).
 
 ```bash
 # From the project root (not deployment/)
@@ -443,7 +444,7 @@ Add to your `terraform.tfvars`:
 
 ```hcl
 # Custom domain configuration
-custom_domain_frontend = "getinspiredbythebible.ai4you.sh"
+custom_domain_frontend = "voxquieta.org"
 
 # Cloudflare Origin Certificate (path to PFX file)
 cloudflare_origin_cert_frontend = "./cloudflare-origin.pfx"
@@ -486,18 +487,18 @@ az containerapp env certificate list \
 az containerapp hostname add \
   --name bible-app-frontend \
   --resource-group bible-app-rg \
-  --hostname getinspiredbythebible.ai4you.sh
+  --hostname voxquieta.org
 
 # 4. Bind certificate to hostname
 az containerapp hostname bind \
   --name bible-app-frontend \
   --resource-group bible-app-rg \
-  --hostname getinspiredbythebible.ai4you.sh \
+  --hostname voxquieta.org \
   --certificate <certificate-name-or-id> \
   --environment bible-app-env
 
 # 5. Verify
-curl -I https://getinspiredbythebible.ai4you.sh
+curl -I https://voxquieta.org
 ```
 
 ### Troubleshooting SSL Issues

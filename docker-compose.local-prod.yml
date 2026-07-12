@@ -34,6 +34,13 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       # Contact form
       - SMTP2GO_API_KEY=${SMTP2GO_API_KEY:-}
+      # Local testing runs WITHOUT the production hardening: Turnstile is
+      # pinned off (deterministic even if .env.production sets it for image
+      # builds — prod gets its env from Terraform, not this file). Rate
+      # limiting stays on by default but can be switched off for load/dev
+      # testing via RATE_LIMIT_ENABLED=false in .env.production.
+      - TURNSTILE_ENABLED=false
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
     volumes:
       - ./api:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

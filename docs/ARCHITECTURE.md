@@ -977,11 +977,14 @@ tests/
 
 ### 13.4 Running Locally
 
+> Full guide with every run mode (local, side-by-side dev, local against the
+> production DB + LLMs): [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+
 **With Docker:**
 
 ```bash
-docker-compose up -d
-docker-compose logs -f
+make docker-up            # auto-creates .env.local from the template
+docker compose logs -f
 ```
 
 **Without Docker:**
@@ -1005,18 +1008,14 @@ cd frontend && npm run dev
 ```bash
 # Clone repository
 git clone <repo-url>
-cd vox-quieta
+cd getinspiredbythebible
 
-# Start services
-docker-compose up -d
+# Start services (first run: Ollama pulls models, then the db-init
+# one-shot container loads Bible data and generates embeddings)
+make docker-up
 
-# Load Bible data
-cd scripts
-python -m venv .venv
-source .venv/bin/activate
-pip install httpx asyncpg sqlalchemy
-python load_bible.py
-python create_embeddings.py  # ~30-60 min
+# Follow data loading progress
+docker compose logs -f db-init
 ```
 
 ---
@@ -1075,11 +1074,11 @@ CREATE INDEX idx_verse_text_trgm ON verses USING gin (text gin_trgm_ops);
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| "Cannot connect to Ollama" | Ollama not running | `docker-compose up ollama` or `ollama serve` |
-| "Model not found" | Model not pulled | `docker-compose exec ollama ollama pull llama3:8b` |
+| "Cannot connect to Ollama" | Ollama not running | `docker compose up ollama` or `ollama serve` |
+| "Model not found" | Model not pulled | `docker compose exec ollama ollama pull llama3:8b` |
 | Slow responses | CPU inference | Use GPU or smaller model |
 | Empty search results | Embeddings not generated | Run `create_embeddings.py` |
-| Database connection error | PostgreSQL not ready | Check `docker-compose logs postgres` |
+| Database connection error | PostgreSQL not ready | Check `docker compose logs postgres` |
 
 ---
 

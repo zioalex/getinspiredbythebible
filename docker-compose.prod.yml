@@ -39,7 +39,7 @@
 
 services:
   api:
-    image: ${ACR_NAME:-bibleappacr}.azurecr.io/voxquieta-backend:${TAG:-latest}
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-backend:${TAG:-latest}
     build:
       context: ./api
       dockerfile: Dockerfile
@@ -48,7 +48,7 @@ services:
     platform: linux/amd64
 
   frontend:
-    image: ${ACR_NAME:-bibleappacr}.azurecr.io/voxquieta-frontend:${TAG:-latest}
+    image: ${ACR_NAME:-bibleappacr}.azurecr.io/bible-frontend:${TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
