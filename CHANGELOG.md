@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.44.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.43.0...v1.44.0) (2026-07-12)
+
+### Features
+
+* **android:** add in-app update flow (flexible) (BITB-057) ([#863](https://github.com/zioalex/getinspiredbythebible/issues/863)) ([a98e4e2](https://github.com/zioalex/getinspiredbythebible/commit/a98e4e2eae52793d1f2ac711d2c6146f00dce1b0))
+
+### Bug Fixes
+
+* **dev-env:** make local dev and local-prod environments actually startable ([#861](https://github.com/zioalex/getinspiredbythebible/issues/861)) ([c7072b0](https://github.com/zioalex/getinspiredbythebible/commit/c7072b011bc0def857678b4043dce441f7efc3ed))
+
 ## [1.43.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.1...v1.43.0) (2026-07-11)
 
 ### Features
