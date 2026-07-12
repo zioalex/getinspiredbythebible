@@ -288,6 +288,10 @@
     <string name="translation_picker_title">Bible Version</string>
     <string name="translation_picker_subtitle">Choose your preferred Bible translation</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">Update downloaded — tap to install</string>
+    <string name="update_install_action">Install update</string>
+
     <!-- Share -->
     <string name="share_prefix">I found this inspiring biblical insight:</string>
 </resources>

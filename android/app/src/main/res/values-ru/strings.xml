@@ -281,6 +281,10 @@
     <string name="translation_picker_title">Версия Библии</string>
     <string name="translation_picker_subtitle">Выберите предпочитаемый перевод Библии</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">Обновление загружено — нажмите, чтобы установить</string>
+    <string name="update_install_action">Установить обновление</string>
+
     <!-- Share -->
     <string name="share_prefix">Я нашёл это вдохновляющее библейское откровение:</string>
 </resources>
