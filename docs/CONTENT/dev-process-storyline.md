@@ -12,6 +12,13 @@ Every number below comes from the repo's own published analysis:
 - Audit trend dashboard: <https://zioalex.github.io/getinspiredbythebible/audit>
   (source: `tools/audit-metrics/`, full audit `docs/audits/2026-07-adversarial-audit.md`)
 
+Companion documents in this folder:
+
+- `dev-process-video-script.md` — word-for-word narration + visual directions
+- `dev-process-linkedin-post.md` — paste-ready LinkedIn post text
+- `dev-process-models-toolchain.md` — which AI models/harnesses did the work
+  (Claude Code, opencode, GitHub Copilot), mined from commit trailers
+
 ---
 
 ## The one-line pitch
@@ -73,6 +80,18 @@ Title card.
 
 Narration beat: "Five PRs a day, sustained for months, by one person. That's
 not typing speed. That's orchestration."
+
+### The roster: three harnesses, many models
+
+Not just Claude — the git trailers name the whole team (full analysis in
+`dev-process-models-toolchain.md`): ~65% of non-bot commits carry an AI
+co-author. **Claude Opus 4.5** (168 commits) plus ~294 unversioned Claude
+Code commits; **opencode** ran an orchestrator (Opus 4.6 via GitHub
+Copilot) delegating to MiniMax M2.5 / Qwen3-Coder / local Ollama Qwen3
+subagents — 77 commits as "Android Dev"; the **GitHub Copilot coding
+agent** co-authored ~50; and one lone **Kimi K2.5** commit. Three visible
+eras: Opus 4.5 bootstrap (Jan–Feb) → opencode Android experiment (Mar) →
+Claude Code relay (Apr→).
 
 ### How: the Plan → Build → Verify relay
 
