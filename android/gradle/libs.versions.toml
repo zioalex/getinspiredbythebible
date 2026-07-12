@@ -38,9 +38,11 @@ splashscreen = "1.0.1"
 owaspDepCheck = "12.1.0"
 hiltTesting = "2.51.1"          # same as hilt version
 androidxTestRunner = "1.6.2"
+androidxTestCore = "1.6.1"
 composeMarkdown = "0.7.2"
 appcompat = "1.7.0"
 robolectric = "4.14.1"
+playAppUpdate = "2.1.0"
 
 [libraries]
 # AndroidX Core
@@ -105,6 +107,9 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 # Splash Screen
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
+# Play In-App Update
+play-app-update = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
+
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
@@ -116,6 +121,7 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hiltTesting" }
 hilt-android-compiler-test = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hiltTesting" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]

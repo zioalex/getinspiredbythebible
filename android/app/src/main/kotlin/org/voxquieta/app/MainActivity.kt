@@ -11,14 +11,20 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -62,6 +68,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var turnstileManager: TurnstileManager
 
+    // Play In-App Update (BITB-057): flexible flow, checked on cold start and on resume.
+    @Inject
+    lateinit var inAppUpdateManager: InAppUpdateManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
         val splashScreen = installSplashScreen()
@@ -87,6 +97,9 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
         }
+
+        // Play Store isn't available in debug builds, so the check is a silent no-op there.
+        if (!BuildConfig.DEBUG) inAppUpdateManager.checkForUpdate(this)
 
         setContent {
             val viewModel: ChatViewModel = hiltViewModel()
@@ -219,9 +232,44 @@ class MainActivity : ComponentActivity() {
                     // of which screen the user navigates to first) finds a fresh
                     // token already cached. The widget itself is 1.dp / invisible.
                     TurnstileWebView(turnstileManager = turnstileManager)
+
+                    // Activity-scoped snackbar for the in-app update flow (BITB-057).
+                    // There's no single reusable SnackbarHost in this Compose tree
+                    // (ChatScreen owns its own, scoped to its Scaffold), so the update
+                    // prompt gets its own top-level host here.
+                    val updateSnackbarHostState = remember { SnackbarHostState() }
+                    val installMessage = stringResource(id = R.string.update_downloaded_message)
+                    val installAction = stringResource(id = R.string.update_install_action)
+                    LaunchedEffect(inAppUpdateManager, installMessage, installAction) {
+                        inAppUpdateManager.installReady.collect {
+                            val result = updateSnackbarHostState.showSnackbar(
+                                message = installMessage,
+                                actionLabel = installAction,
+                                duration = SnackbarDuration.Indefinite,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                inAppUpdateManager.completeUpdate()
+                            }
+                        }
+                    }
+                    SnackbarHost(
+                        hostState = updateSnackbarHostState,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                 }
                 } // Surface
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Catch an update that finished downloading while the app was backgrounded.
+        if (!BuildConfig.DEBUG) inAppUpdateManager.checkForPendingInstall()
+    }
+
+    override fun onDestroy() {
+        inAppUpdateManager.unregisterListener()
+        super.onDestroy()
     }
 }

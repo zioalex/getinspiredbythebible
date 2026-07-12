@@ -280,6 +280,10 @@
     <string name="translation_picker_title">Versão da Bíblia</string>
     <string name="translation_picker_subtitle">Escolha sua tradução preferida da Bíblia</string>
 
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">Atualização baixada — toque para instalar</string>
+    <string name="update_install_action">Instalar atualização</string>
+
     <!-- Share -->
     <string name="share_prefix">Encontrei esta reflexão bíblica inspiradora:</string>
 </resources>

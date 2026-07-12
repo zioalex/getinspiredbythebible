@@ -250,6 +250,9 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Play In-App Update
+    implementation(libs.play.app.update)
+
     // Markdown rendering
     implementation(libs.compose.markdown)
 
@@ -266,6 +269,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
+    // ApplicationProvider for Robolectric-backed non-Compose tests (BITB-057)
+    testImplementation(libs.androidx.test.core)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
