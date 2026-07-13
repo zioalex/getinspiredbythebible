@@ -45,6 +45,19 @@ async def rate_limit_tables():
     Skips when Postgres is unreachable. Yields nothing usable by callers other
     than a live `scripture.database.async_session_factory` (imported fresh by
     `PostgresStore` inside `check_and_record`)."""
+    # scripture.database's engine/pool is a module-level singleton that can
+    # outlive the event loop it was created on -- pytest-asyncio gives each
+    # test function its own loop, and asyncpg connections are bound to the
+    # loop that opened them. Disposing here forces PostgresStore (which reuses
+    # that same engine) to open fresh connections on *this* test's loop,
+    # instead of occasionally handing back a stale connection from a prior
+    # test's now-closed loop (observed as a spurious "Event loop is closed"
+    # -> fallback -> one extra allowed request when run as part of the full
+    # suite).
+    from scripture import database as scripture_database
+
+    await scripture_database.engine.dispose()
+
     url, connect_args = get_async_database_url()
 
     engine = create_async_engine(url, poolclass=NullPool, connect_args=connect_args)

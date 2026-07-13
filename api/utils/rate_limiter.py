@@ -308,16 +308,16 @@ class RateLimiter:
             session_ttl_seconds=session_ttl_seconds,
         )
         self._use_postgres = backend == "postgres"
-        self._store: RateLimitStore = (
-            PostgresStore(
+        self._store: RateLimitStore
+        if self._use_postgres:
+            self._store = PostgresStore(
                 requests_per_minute=requests_per_minute,
                 session_requests_per_minute=session_requests_per_minute,
                 session_max_requests=session_max_requests,
                 window_seconds=window_seconds,
             )
-            if self._use_postgres
-            else self._fallback
-        )
+        else:
+            self._store = self._fallback
 
         # Trip after 5 consecutive Postgres errors; cooldown 30s — mirrors
         # TurnstileVerifier's breaker (utils/turnstile.py). While closed, an
