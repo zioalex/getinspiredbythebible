@@ -18,7 +18,7 @@ compose-bom = "2024.12.01"
 # (rather than bumping the whole Compose BOM) to keep the tested Compose/UI
 # surface on compileSdk 35 while fixing the only Compose-side native library.
 graphicsPath = "1.1.0"
-activityCompose = "1.9.3"
+activityCompose = "1.11.0"
 navigationCompose = "2.8.5"
 lifecycleRuntimeKtx = "2.8.7"
 room = "2.6.1"
