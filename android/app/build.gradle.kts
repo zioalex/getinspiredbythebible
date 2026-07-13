@@ -134,10 +134,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -189,6 +185,14 @@ android {
             "ObsoleteLintCustomCheck",
             "InvalidPackage",
         )
+    }
+}
+
+// AGP 9.0 removed the android.kotlinOptions {} DSL; Kotlin compiler options now
+// live on the Kotlin Gradle plugin's top-level `kotlin {}` extension.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

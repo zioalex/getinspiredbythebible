@@ -1,17 +1,18 @@
 [versions]
-# AGP 8.7.x is the first line that makes bundletool 16 KB-align (zipalign -P 16)
-# uncompressed native libraries in the AAB — required for Google Play's 16 KB
-# memory-page-size compliance. 8.7.3 keeps Gradle 8.9 (no wrapper bump) and
-# supports compileSdk 35 natively.
-agp = "8.7.3"
-kotlin = "2.0.21"
+# AGP 9.0 (Play Console "R8 optimization" recommendation). Requires Gradle 9.1+,
+# JDK 17+ and KGP 2.2.10+. 16 KB memory-page-size alignment is handled natively
+# by AGP 9.0 (the reason for the previous 8.7.x pin), so the graphics-path pin
+# and useLegacyPackaging=false below are retained purely as defence in depth.
+# Kotlin 2.2.10 is AGP 9.0's KGP floor; KSP is the matching 2.2.10-2.0.2 build.
+agp = "9.0.1"
+kotlin = "2.2.10"
 firebase-bom = "33.7.0"
 googleServices = "4.4.2"
 firebaseCrashlytics = "3.0.2"
-ksp = "2.0.21-1.0.28"
-hilt = "2.51.1"
+ksp = "2.2.10-2.0.2"
+hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
-compose-bom = "2024.12.01"
+compose-bom = "2025.08.01"
 # Explicit override of the graphics-path native lib (transitive of Compose
 # ui-graphics). Older releases shipped libandroidx.graphics.path.so with 4 KB
 # ELF segment alignment; 1.1.0 is built with 16 KB alignment. Pinned directly
@@ -21,7 +22,7 @@ graphicsPath = "1.1.0"
 activityCompose = "1.11.0"
 navigationCompose = "2.8.5"
 lifecycleRuntimeKtx = "2.8.7"
-room = "2.6.1"
+room = "2.8.4"
 datastore = "1.1.1"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -36,7 +37,7 @@ mockk = "1.13.13"
 coroutinesTest = "1.9.0"
 splashscreen = "1.0.1"
 owaspDepCheck = "12.1.0"
-hiltTesting = "2.51.1"          # same as hilt version
+hiltTesting = "2.60.1"          # same as hilt version
 androidxTestRunner = "1.6.2"
 androidxTestCore = "1.6.1"
 composeMarkdown = "0.7.2"
