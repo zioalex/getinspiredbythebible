@@ -280,6 +280,46 @@ def collect_attribution(repo: Path, branch: str) -> dict:
     }
 
 
+# Process-change milestones, dated from the first (or last) commit on the
+# analyzed branch that touched a marker file. The renderer aligns each event
+# with the monthly fix:feat series so "did this process change help?" stays
+# answerable from a fresh run instead of a one-off git dig. Add a row here
+# whenever a new practice gets a marker file.
+MILESTONES = [
+    (("CLAUDE.md", "AGENTS.md"), "first",
+     "Structured agent context file introduced (CLAUDE.md → AGENTS.md)"),
+    (("opencode.json",), "first", "opencode multi-agent harness introduced"),
+    (("opencode.json",), "last", "opencode config last touched (harness parked)"),
+    (("release-please-config.json",), "first",
+     "Conventional commits enforced + release-please automation"),
+    ((".claude/commands/plan-build-verify.md",), "first",
+     "Plan→Build→Verify relay codified as the default workflow"),
+    ((".claude/commands/risk-audit.md", "docs/AUDIT_PLAYBOOK.md"), "first",
+     "Adversarial risk audit: playbook, /risk-audit command, baseline report"),
+    (("tools/repo-metrics/analyze.py",), "first",
+     "Self-measuring productivity metrics tooling added"),
+]
+
+
+def collect_milestones(repo: Path, branch: str) -> list[dict]:
+    """Dated process-change events mined from marker-file history."""
+    events = []
+    for paths, mode, label in MILESTONES:
+        out = run_git(repo, "log", branch, "--format=%ad", "--date=short",
+                      "--", *paths)
+        dates = out.split()
+        if not dates:
+            continue  # marker not present on this branch (yet)
+        events.append({
+            "date": dates[-1] if mode == "first" else dates[0],
+            "mode": mode,
+            "event": label,
+            "markers": list(paths),
+        })
+    events.sort(key=lambda e: e["date"])
+    return events
+
+
 def detect_harnesses(repo: Path, attribution: dict) -> list[dict]:
     """Evidence-based inventory of the AI coding harnesses used."""
     harnesses = []
@@ -414,7 +454,8 @@ def iso_week_start(d: dt.date) -> str:
 
 def build_metrics(units: list[dict], releases: list[dict],
                   tags: dict[str, str], snapshot: dict, as_of: str,
-                  attribution: dict, harnesses: list[dict]) -> dict:
+                  attribution: dict, harnesses: list[dict],
+                  milestones: list[dict]) -> dict:
     def date_of(u: dict) -> dt.date:
         return dt.datetime.fromisoformat(u["date"]).date()
 
@@ -621,6 +662,7 @@ def build_metrics(units: list[dict], releases: list[dict],
         "phases": {"pre_launch": phase_stats(pre), "post_launch": phase_stats(post)},
         "attribution": attribution,
         "harnesses": harnesses,
+        "milestones": milestones,
         "snapshot": snapshot,
     }
 
@@ -646,8 +688,9 @@ def main() -> None:
     snapshot = snapshot_worktree(repo)
     attribution = collect_attribution(repo, args.branch)
     harnesses = detect_harnesses(repo, attribution)
+    milestones = collect_milestones(repo, args.branch)
     metrics = build_metrics(units, releases, tags, snapshot, args.as_of,
-                            attribution, harnesses)
+                            attribution, harnesses, milestones)
 
     out_dir = Path(args.out_dir) if args.out_dir else repo / "docs" / "metrics" / "history"
     out_dir.mkdir(parents=True, exist_ok=True)

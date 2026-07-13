@@ -2797,11 +2797,7 @@
    "changes": 45
   },
   {
-   "path": "android/app/src/main/res/values-es/strings.xml",
-   "changes": 41
-  },
-  {
-   "path": "android/app/src/main/res/values-fr/strings.xml",
+   "path": "android/app/src/main/res/values-it/strings.xml",
    "changes": 41
   },
   {
@@ -2809,15 +2805,19 @@
    "changes": 41
   },
   {
-   "path": "android/app/src/main/res/values-ar/strings.xml",
+   "path": "android/app/src/main/res/values-fr/strings.xml",
    "changes": 41
   },
   {
-   "path": "android/app/src/main/res/values-it/strings.xml",
+   "path": "android/app/src/main/res/values-es/strings.xml",
    "changes": 41
   },
   {
    "path": "android/app/src/main/res/values-pt/strings.xml",
+   "changes": 41
+  },
+  {
+   "path": "android/app/src/main/res/values-ar/strings.xml",
    "changes": 41
   },
   {
@@ -2841,11 +2841,7 @@
    "changes": 34
   },
   {
-   "path": "android/app/src/main/res/values-zh/strings.xml",
-   "changes": 32
-  },
-  {
-   "path": "android/app/src/main/res/values-hi/strings.xml",
+   "path": "android/app/src/main/res/values-ko/strings.xml",
    "changes": 32
   },
   {
@@ -2853,7 +2849,11 @@
    "changes": 32
   },
   {
-   "path": "android/app/src/main/res/values-ko/strings.xml",
+   "path": "android/app/src/main/res/values-zh/strings.xml",
+   "changes": 32
+  },
+  {
+   "path": "android/app/src/main/res/values-hi/strings.xml",
    "changes": 32
   },
   {
@@ -2873,7 +2873,7 @@
    "changes": 28
   },
   {
-   "path": "frontend/messages/en.json",
+   "path": "frontend/messages/de.json",
    "changes": 27
   },
   {
@@ -4052,6 +4052,66 @@
    "models": []
   }
  ],
+ "milestones": [
+  {
+   "date": "2026-01-20",
+   "mode": "first",
+   "event": "Structured agent context file introduced (CLAUDE.md \u2192 AGENTS.md)",
+   "markers": [
+    "CLAUDE.md",
+    "AGENTS.md"
+   ]
+  },
+  {
+   "date": "2026-03-03",
+   "mode": "first",
+   "event": "opencode multi-agent harness introduced",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-05-02",
+   "mode": "first",
+   "event": "Conventional commits enforced + release-please automation",
+   "markers": [
+    "release-please-config.json"
+   ]
+  },
+  {
+   "date": "2026-05-24",
+   "mode": "last",
+   "event": "opencode config last touched (harness parked)",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-06-08",
+   "mode": "first",
+   "event": "Plan\u2192Build\u2192Verify relay codified as the default workflow",
+   "markers": [
+    ".claude/commands/plan-build-verify.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Adversarial risk audit: playbook, /risk-audit command, baseline report",
+   "markers": [
+    ".claude/commands/risk-audit.md",
+    "docs/AUDIT_PLAYBOOK.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Self-measuring productivity metrics tooling added",
+   "markers": [
+    "tools/repo-metrics/analyze.py"
+   ]
+  }
+ ],
  "snapshot": {
   "components": {
    "android": {
@@ -4067,8 +4127,8 @@
     "test_loc": 27071
    },
    "ci": {
-    "files": 22,
-    "loc": 5481,
+    "files": 23,
+    "loc": 5507,
     "test_files": 1,
     "test_loc": 521
    },
@@ -4079,8 +4139,8 @@
     "test_loc": 0
    },
    "docs": {
-    "files": 178,
-    "loc": 44431,
+    "files": 179,
+    "loc": 48626,
     "test_files": 0,
     "test_loc": 0
    },
@@ -4098,7 +4158,7 @@
    },
    "root": {
     "files": 29,
-    "loc": 3793,
+    "loc": 3807,
     "test_files": 0,
     "test_loc": 0
    },
@@ -4110,7 +4170,7 @@
    },
    "tools": {
     "files": 8,
-    "loc": 2668,
+    "loc": 2774,
     "test_files": 1,
     "test_loc": 96
    }
@@ -4121,7 +4181,7 @@
    "frontend/src/components/ChapterModal.test.tsx.backup",
    "scripts/load_bible.py.backup"
   ],
-  "docs_loc": 43087,
-  "tracked_files": 818
+  "docs_loc": 43195,
+  "tracked_files": 820
  }
 }

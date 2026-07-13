@@ -172,17 +172,19 @@ table; the hotspot bar chart.
 Every process change is dated in git, so we can line them up against the
 monthly fix:feat curve (Jan 8.5 → Feb 2.17 → Mar 1.26 → Apr 7.4 → May 1.37 →
 Jun 1.72). Correlation, not proof — n=1 project, and April is confounded by
-the pre-launch hardening freeze (only 5 feats that month). With that caveat,
-the verdicts:
+the pre-launch hardening freeze (only 5 feats that month). This alignment is
+now generated on every run as the **"Process timeline"** section of
+`docs/metrics/report.md` and the dashboard (`make repo-metrics`), so these
+numbers stay reproducible instead of rotting. With that caveat, the verdicts:
 
 | Date | Process change | Verdict from the data |
 |---|---|---|
 | Jan 18 (day 1) | Tests + type-checking scripts in the first commits | Foundation — made every later era measurable and safe to refactor |
 | **Jan 20 (day 3)** | **First structured context file (`CLAUDE.md`, later `AGENTS.md`)** | **Biggest single win.** January without established rules: 17 fixes vs 2 feats (8.5). February, first full month with it: 2.17 — a ~4× improvement, sustained after |
-| Mar 3–6 | **opencode multi-agent harness** (orchestrator + cheap subagents) | **Fastest era, highest deferred bill.** March is the feature peak (46 feats, best ratio 1.26) — but the Android app those cheap subagents built became the most bug-prone scope in the repo (59 fixes), the 34-fix wall of Apr 27–May 20, and April's 7.4 ratio. The config was frozen after Mar 6 and the harness quietly abandoned |
+| Mar 3–6 | **opencode multi-agent harness** (orchestrator + cheap subagents) | **Fastest era, highest deferred bill.** March is the feature peak (46 feats, best ratio 1.26) — but the Android app those cheap subagents built became the most bug-prone scope in the repo (59 fixes), the 34-fix wall of Apr 27–May 20, and April's 7.4 ratio. Usage collapsed after March (the "Android Dev" trailers vanish), though the config was still extended as late as May 24 (android-gemini on Qwen3-Coder, #609) |
 | **May 2 (launch day)** | **Conventional commits + release-please enforced** | Second-biggest win, but indirect: post-launch fix:feat dropped 2.16 → 1.5, releases became one-click (67 shipped) — and the disciplined history is what makes this whole analysis possible |
 | May 19 | Android Robolectric/Compose UI test tier (BITB-034) | The 34-fix Android chain **ends May 20 — the day after** this landed. The May 30–Jun 22 chain (10 fixes) shows it helped rather than solved |
-| Jun 8 | Plan→Build→Verify relay codified in `AGENTS.md` + `/plan-build-verify` | **Honest null result:** June's ratio (1.72) is *worse* than May's (1.37). The relay's value — a verifier catching bugs before merge — is invisible to merged-history metrics by construction. Don't claim a win the data doesn't show |
+| Jun 8 | Plan→Build→Verify relay codified in `AGENTS.md` + `/plan-build-verify` | **Honest null result:** June's ratio (1.72) is *worse* than May's (1.37); July-to-date (0.94) is the best month yet, but partial. The relay's value — a verifier catching bugs before merge — is invisible to merged-history metrics by construction. Don't claim a win the data doesn't show |
 | Jul 3 | Adversarial audit + metrics tooling | Found what velocity metrics can't: 2 critical architecture/security findings, several already fixed within days (fail-closed Turnstile #821, content-safety #840, async email #814, typed LLM-outage error #843) |
 
 Model-level attribution adds one more insight: **GitHub Copilot's commits are
@@ -362,6 +364,7 @@ Talk-title alternatives:
 | Android chain of 34 fixes; scope bug table; hotspot files | same |
 | 47 findings / 2C·15H·24M·6L / risk score 149 | `docs/audits/2026-07-adversarial-audit.md` + `docs/audits/metrics/report.md` (2026-07-05) |
 | Top-5 risks, load-bearing strengths, persona & method | `docs/audits/2026-07-adversarial-audit.md` |
+| Process-change dates & fix:feat alignment ("what moved the needle") | "Process timeline" section of `docs/metrics/report.md` / dashboard — regenerated on every `make repo-metrics` run |
 | Relay workflow & rationale | `AGENTS.md`, `.claude/commands/plan-build-verify.md` |
 | Audit cadence & "never overwrite reports" | `docs/AUDIT_PLAYBOOK.md` |
 | 36→47 correction, machine-verified tally | audit exec summary + `tools/audit-metrics/README.md` |

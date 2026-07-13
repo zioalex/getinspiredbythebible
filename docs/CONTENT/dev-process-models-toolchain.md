@@ -53,7 +53,7 @@ architecture principle, not just a dev-tool choice.
 | Phase | Period | Signature |
 |---|---|---|
 | Opus 4.5 era | Jan–Feb 2026 | Bootstrap: backend, frontend, first deploy |
-| opencode experiment | March 2026 | "Android Dev" alias spike — the Android app built by an opencode orchestrator + cheap subagents |
+| opencode experiment | March 2026 | "Android Dev" alias spike — the Android app built by an opencode orchestrator + cheap subagents. Usage collapsed after March, though the config gained an android-gemini/Qwen3-Coder agent as late as May 24 (#609) |
 | Claude Code relay era | April 2026 → | Squash-merge discipline, Opus 4.6 + Sonnet, `/plan-build-verify`, audits |
 
 ## A perfect story beat: the attribution PR that never landed

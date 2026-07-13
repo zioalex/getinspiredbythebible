@@ -204,7 +204,8 @@ history — no model upgrade, no harness switch — moved the number that much.
 
 The most expensive decision is also visible: **March's opencode experiment**
 was the fastest month on record *and* generated the Android bug wall that
-dominated April and May. Its config was never touched again after March 6th.
+dominated April and May. The "Android Dev" commits vanish after March —
+though, credit where due, the config was still being extended in late May.
 The bill for cheap velocity arrived about four weeks later — which is
 exactly why one good month proves nothing.
 

@@ -66,12 +66,12 @@ Hotspot files (code files touched by the most units of work):
 | `api/config.py` | 49 |
 | `frontend/package.json` | 46 |
 | `android/app/src/main/res/values/strings.xml` | 45 |
-| `android/app/src/main/res/values-es/strings.xml` | 41 |
-| `android/app/src/main/res/values-fr/strings.xml` | 41 |
-| `android/app/src/main/res/values-de/strings.xml` | 41 |
-| `android/app/src/main/res/values-ar/strings.xml` | 41 |
 | `android/app/src/main/res/values-it/strings.xml` | 41 |
+| `android/app/src/main/res/values-de/strings.xml` | 41 |
+| `android/app/src/main/res/values-fr/strings.xml` | 41 |
+| `android/app/src/main/res/values-es/strings.xml` | 41 |
 | `android/app/src/main/res/values-pt/strings.xml` | 41 |
+| `android/app/src/main/res/values-ar/strings.xml` | 41 |
 | `frontend/src/lib/api.ts` | 38 |
 | `.github/workflows/android-ci.yml` | 38 |
 | `api/chat/service.py` | 37 |
@@ -112,6 +112,20 @@ Most bug-prone scopes (by fix count):
 | migrations | 4 | 1 | 3 |
 | deploy | 3 | 0 | 3 |
 
+## Process timeline
+
+Dated process changes, mined from the first/last commit touching each marker file, aligned with the monthly fix:feat series. Correlation, not causation: months are confounded (launch freezes, platform pushes), a partial month distorts the ratio, and a change's effect may land pre-merge where these numbers can't see it. — means the month had no feats to divide by.
+
+| Date | Process change | fix:feat month before | month of | month after |
+|---|---|---|---|---|
+| 2026-01-20 | Structured agent context file introduced (CLAUDE.md → AGENTS.md) | — | 8.5 | 2.17 |
+| 2026-03-03 | opencode multi-agent harness introduced | 2.17 | 1.26 | 7.4 |
+| 2026-05-02 | Conventional commits enforced + release-please automation | 7.4 | 1.37 | 1.72 |
+| 2026-05-24 | opencode config last touched (harness parked) | 7.4 | 1.37 | 1.72 |
+| 2026-06-08 | Plan→Build→Verify relay codified as the default workflow | 1.37 | 1.72 | 0.94 |
+| 2026-07-03 | Adversarial risk audit: playbook, /risk-audit command, baseline report | 1.72 | 0.94 | — |
+| 2026-07-03 | Self-measuring productivity metrics tooling added | 1.72 | 0.94 | — |
+
 ## Models & harness
 
 Of 1,115 commits in the full graph, 129 are automation bots; of the rest, **617 (63%) carry an AI co-author trailer**. Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved — early history under-reports.
@@ -138,14 +152,14 @@ Of 1,115 commits in the full graph, 129 are automation bots; of the rest, **617 
 |---|---|---|---|---|
 | android | 222 | 26,491 | 46 | 9,328 |
 | api | 156 | 47,146 | 68 | 27,071 |
-| ci | 22 | 5,481 | 1 | 521 |
+| ci | 23 | 5,507 | 1 | 521 |
 | data | 5 | 0 | 0 | 0 |
-| docs | 178 | 44,431 | 0 | 0 |
+| docs | 179 | 48,626 | 0 | 0 |
 | frontend | 133 | 32,281 | 35 | 8,691 |
 | infra | 26 | 6,945 | 0 | 0 |
-| root | 29 | 3,793 | 0 | 0 |
+| root | 29 | 3,807 | 0 | 0 |
 | scripts | 39 | 6,988 | 3 | 773 |
-| tools | 8 | 2,668 | 1 | 96 |
+| tools | 8 | 2,774 | 1 | 96 |
 
 Leftover cruft (candidates for deletion):
 

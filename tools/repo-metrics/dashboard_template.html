@@ -183,6 +183,12 @@
       </div>
     </div>
 
+    <div class="card" id="card-milestones" style="display:none">
+      <h3>Process timeline</h3>
+      <p class="desc">Dated process changes (mined from marker-file history) against the monthly fix:feat ratio. Correlation, not causation — months are confounded and pre-merge effects are invisible here.</p>
+      <div class="scrollx" id="c-milestones"></div>
+    </div>
+
     <h2>Models &amp; harness</h2>
     <div class="card">
       <h3>Commits by AI model per month</h3>
@@ -688,6 +694,17 @@ function mkTable(container, header, rows, opts) {
     mkTable(inc, ["PR", "Date", "What"], d.reverts.map(r =>
       [r.pr ? { href: d.repoUrl + "/pull/" + r.pr, text: "#" + r.pr } : "—",
        r.date, r.desc]));
+  }
+
+  /* process milestones */
+  if (d.milestones && d.milestones.length) {
+    document.getElementById("card-milestones").style.display = "";
+    const fmtR = v => v == null ? "—" : v;
+    mkTable(document.getElementById("c-milestones"),
+      ["Date", "Process change", "fix:feat before", "month of", "after"],
+      d.milestones.map(e => [e.date, e.event, fmtR(e.ratio_before),
+        fmtR(e.ratio_of), fmtR(e.ratio_after)]),
+      { numFrom: 2 });
   }
 
   /* attribution */

@@ -42,6 +42,33 @@ def group_type(t: str) -> str:
     return GROUP_OF.get(t, "other")
 
 
+def _month_shift(month: str, delta: int) -> str:
+    y, m = int(month[:4]), int(month[5:7])
+    m += delta
+    y, m = y + (m - 1) // 12, (m - 1) % 12 + 1
+    return f"{y:04d}-{m:02d}"
+
+
+def milestone_ratios(m: dict) -> list[dict]:
+    """Each process milestone with the fix:feat ratio of the month before,
+    the month of, and the month after the event — the reproducible core of
+    any 'did this process change help?' analysis."""
+    monthly = {r["month"]: r for r in m["monthly_fix_feat"]}
+
+    def ratio(month: str):
+        r = monthly.get(month)
+        if not r or not r["feat"]:
+            return None
+        return round(r["fix"] / r["feat"], 2)
+
+    return [{
+        **e,
+        "ratio_before": ratio(_month_shift(e["date"][:7], -1)),
+        "ratio_of": ratio(e["date"][:7]),
+        "ratio_after": ratio(_month_shift(e["date"][:7], 1)),
+    } for e in m.get("milestones", [])]
+
+
 def load_history(history_dir: Path) -> list[dict]:
     snaps = []
     for p in sorted(history_dir.glob("*.json")):
@@ -162,6 +189,24 @@ def render_report(m: dict, snaps: list[dict], repo_url: str) -> str:
         add(f"| {s['scope']} | {s['total']} | {s.get('feat', 0)} | {s.get('fix', 0)} |")
     add("")
 
+    ms = milestone_ratios(m)
+    if ms:
+        add("## Process timeline")
+        add("")
+        add("Dated process changes, mined from the first/last commit touching "
+            "each marker file, aligned with the monthly fix:feat series. "
+            "Correlation, not causation: months are confounded (launch "
+            "freezes, platform pushes), a partial month distorts the ratio, "
+            "and a change's effect may land pre-merge where these numbers "
+            "can't see it. — means the month had no feats to divide by.")
+        add("")
+        add("| Date | Process change | fix:feat month before | month of | month after |")
+        add("|---|---|---|---|---|")
+        for e in ms:
+            add(f"| {e['date']} | {e['event']} | {fmt(e['ratio_before'])} "
+                f"| {fmt(e['ratio_of'])} | {fmt(e['ratio_after'])} |")
+        add("")
+
     add("## Models & harness")
     add("")
     a = m.get("attribution")
@@ -277,6 +322,7 @@ def dashboard_payload(m: dict, snaps: list[dict], repo_url: str) -> dict:
         "reverts": m["reverts"],
         "attribution": m.get("attribution"),
         "harnesses": m.get("harnesses", []),
+        "milestones": milestone_ratios(m),
         "modelInfo": MODEL_INFO,
         "runs": [{"generated": s["generated"], **{k: s["totals"].get(k) for k in
                   ("units", "fix_per_feat", "net_code", "releases",
