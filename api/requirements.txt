@@ -9,7 +9,7 @@ email-validator==2.3.0
 sqlalchemy==2.0.51
 asyncpg==0.31.0
 psycopg2-binary==2.9.12
-pgvector==0.4.2
+pgvector==0.5.0
 
 # HTTP Client (for LLM providers)
 httpx==0.28.1
