@@ -13,7 +13,11 @@ plugins {
 
 android {
     namespace = "org.voxquieta.app"
-    compileSdk = 35
+    // compileSdk 36 is required by androidx.activity 1.11.0 (its AAR metadata
+    // mandates compiling against API 36+) and is natively supported by AGP 9.0.
+    // targetSdk stays at 35 — the edge-to-edge work targets Android 15 and
+    // compileSdk only controls which APIs compile, not runtime behaviour.
+    compileSdk = 36
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
     // This prevents CI from injecting an empty string when a GitHub variable is unset.
