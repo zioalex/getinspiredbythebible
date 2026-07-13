@@ -90,7 +90,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_allows_requests_under_limit(self):
         """Requests under the limit should be allowed."""
-        limiter = RateLimiter(requests_per_minute=5)
+        limiter = RateLimiter(backend="memory", requests_per_minute=5)
         for _ in range(5):
             allowed, reason = await limiter.check_rate_limit("192.168.1.1")
             assert allowed is True
@@ -99,7 +99,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_blocks_requests_over_ip_limit(self):
         """Requests over the IP limit should be blocked."""
-        limiter = RateLimiter(requests_per_minute=3)
+        limiter = RateLimiter(backend="memory", requests_per_minute=3)
 
         # First 3 should pass
         for _ in range(3):
@@ -114,7 +114,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_different_ips_have_separate_limits(self):
         """Different IPs should have separate rate limits."""
-        limiter = RateLimiter(requests_per_minute=2)
+        limiter = RateLimiter(backend="memory", requests_per_minute=2)
 
         # Max out first IP
         await limiter.check_rate_limit("192.168.1.1")
@@ -130,6 +130,7 @@ class TestRateLimiter:
     async def test_session_rate_limit(self):
         """Per-session rate limit should be enforced."""
         limiter = RateLimiter(
+            backend="memory",
             requests_per_minute=10,  # High IP limit
             session_requests_per_minute=2,  # Low session limit
         )
@@ -145,6 +146,7 @@ class TestRateLimiter:
     async def test_session_lifetime_limit(self):
         """Session lifetime limit should be enforced."""
         limiter = RateLimiter(
+            backend="memory",
             requests_per_minute=100,
             session_requests_per_minute=100,
             session_max_requests=5,  # Low lifetime limit
@@ -163,7 +165,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_get_stats(self):
         """Stats should reflect tracked IPs and sessions."""
-        limiter = RateLimiter()
+        limiter = RateLimiter(backend="memory")
         await limiter.check_rate_limit("192.168.1.1")
         await limiter.check_rate_limit("192.168.1.2", "session-1")
 
