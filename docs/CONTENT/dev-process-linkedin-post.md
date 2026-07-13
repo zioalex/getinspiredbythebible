@@ -51,6 +51,7 @@ So now the counting is code too — a parser validates every audit report
 in CI and publishes the risk-score trend. Even the auditor gets audited.
 
 What I'd tell you to steal:
+
 1. Strongest model verifies; fresh context; real test runs.
 2. Instrument honesty — an afternoon of Python ends self-deception.
 3. Schedule an adversary. Keep every old report; the trend is the product.
@@ -60,13 +61,13 @@ What I'd tell you to steal:
 
 Both dashboards and the full audit are public — links in the comments.
 
-#AIEngineering #DevEx #BuildInPublic #SoftwareArchitecture #ClaudeCode
+\#AIEngineering #DevEx #BuildInPublic #SoftwareArchitecture #ClaudeCode
 
 ---
 
 **First comment (post immediately after publishing):**
 
-📊 Productivity dashboard: https://zioalex.github.io/getinspiredbythebible/
-🔍 Audit trends: https://zioalex.github.io/getinspiredbythebible/audit
-📁 Repo & tools: https://github.com/zioalex/getinspiredbythebible
+📊 Productivity dashboard: <https://zioalex.github.io/getinspiredbythebible/>
+🔍 Audit trends: <https://zioalex.github.io/getinspiredbythebible/audit>
+📁 Repo & tools: <https://github.com/zioalex/getinspiredbythebible>
 🎥 Full video: [add YouTube link]

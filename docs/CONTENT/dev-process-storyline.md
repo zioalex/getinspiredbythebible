@@ -184,7 +184,7 @@ quietly rotting. For that I gave the AI a different job description."
 - Runs quarterly per a written playbook (`docs/AUDIT_PLAYBOOK.md`); reports
   are never overwritten, because *the diff between audits is the point*.
 
-### The verdict: 47 findings — 2 CRITICAL, 15 HIGH, 24 MEDIUM, 6 LOW. Risk score 149.
+### The verdict: 47 findings — 2 CRITICAL, 15 HIGH, 24 MEDIUM, 6 LOW. Risk score 149
 
 Walk the top findings (each is a mini-story a dev audience will feel):
 
@@ -289,6 +289,7 @@ CTA: links to the two dashboards, the audit report, and the repo tools.
 14. Links / Q&A
 
 Talk-title alternatives:
+
 - *"The AI Wrote It. The AI Audited It. I Published Both."*
 - *"Velocity Has a Price List: Metrics From 6 Months of Agent-Driven Development"*
 

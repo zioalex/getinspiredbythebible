@@ -1,5 +1,7 @@
 # Video Script — "The AI Wrote It. The AI Audited It. I Published Both."
 
+<!-- markdownlint-disable MD036 -- **[VISUAL: ...]** lines are intentional edit-direction callouts, not headings -->
+
 Word-for-word narration for the YouTube long-form video (~13–14 min at a
 natural pace). **[VISUAL: …]** lines are edit directions, not narration.
 Adapt freely — contractions and small ad-libs make it sound human.
@@ -312,10 +314,10 @@ One developer + a relay of AI agents (Claude Code, opencode, GitHub
 Copilot) built a three-platform AI app in six months — then an AI
 adversarial audit tore it apart, and every number was published.
 
-📊 Productivity dashboard: https://zioalex.github.io/getinspiredbythebible/
-🔍 Audit trend dashboard: https://zioalex.github.io/getinspiredbythebible/audit
+📊 Productivity dashboard: <https://zioalex.github.io/getinspiredbythebible/>
+🔍 Audit trend dashboard: <https://zioalex.github.io/getinspiredbythebible/audit>
 📁 Repo (tools in tools/repo-metrics & tools/audit-metrics):
-https://github.com/zioalex/getinspiredbythebible
+<https://github.com/zioalex/getinspiredbythebible>
 
 Chapters:
 0:00 The AI's verdict on its own app

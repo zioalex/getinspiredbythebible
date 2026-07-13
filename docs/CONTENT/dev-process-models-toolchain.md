@@ -61,7 +61,7 @@ architecture principle, not just a dev-tool choice.
 PR **#816** ("add AI model and harness attribution to productivity
 analysis") built exactly this analysis into the dashboard — and its
 description contains the first-run findings. But it was **stacked on PR
-#813's branch, which had already been merged**; GitHub merged #816 into the
+\#813's branch, which had already been merged**; GitHub merged #816 into the
 now-dead base branch, so the feature never reached `main` and never shipped
 to the live dashboard. Even the meta-analysis had a process bug. Use it in
 the video: *"the dashboard that measures the AI's work was itself lost to an
