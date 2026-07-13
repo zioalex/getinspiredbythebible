@@ -124,7 +124,7 @@ architecture diagram from the README; the release timeline on the dashboard.
 
 ---
 
-## Act 2 — The Reality: what the honest numbers say (4:30–8:00)
+## Act 2 — The Reality: what the honest numbers say (4:30–9:00)
 
 Transition: "Every AI-coding demo shows the velocity. Almost nobody shows the
 other column. So I built a dashboard that computes it from git history —
@@ -167,9 +167,39 @@ line deleted for every six written."
 **B-roll**: the interactive charts on the Pages site; zoom on the fix-chain
 table; the hotspot bar chart.
 
+### What moved the needle: process changes vs. the metrics
+
+Every process change is dated in git, so we can line them up against the
+monthly fix:feat curve (Jan 8.5 → Feb 2.17 → Mar 1.26 → Apr 7.4 → May 1.37 →
+Jun 1.72). Correlation, not proof — n=1 project, and April is confounded by
+the pre-launch hardening freeze (only 5 feats that month). With that caveat,
+the verdicts:
+
+| Date | Process change | Verdict from the data |
+|---|---|---|
+| Jan 18 (day 1) | Tests + type-checking scripts in the first commits | Foundation — made every later era measurable and safe to refactor |
+| **Jan 20 (day 3)** | **First structured context file (`CLAUDE.md`, later `AGENTS.md`)** | **Biggest single win.** January without established rules: 17 fixes vs 2 feats (8.5). February, first full month with it: 2.17 — a ~4× improvement, sustained after |
+| Mar 3–6 | **opencode multi-agent harness** (orchestrator + cheap subagents) | **Fastest era, highest deferred bill.** March is the feature peak (46 feats, best ratio 1.26) — but the Android app those cheap subagents built became the most bug-prone scope in the repo (59 fixes), the 34-fix wall of Apr 27–May 20, and April's 7.4 ratio. The config was frozen after Mar 6 and the harness quietly abandoned |
+| **May 2 (launch day)** | **Conventional commits + release-please enforced** | Second-biggest win, but indirect: post-launch fix:feat dropped 2.16 → 1.5, releases became one-click (67 shipped) — and the disciplined history is what makes this whole analysis possible |
+| May 19 | Android Robolectric/Compose UI test tier (BITB-034) | The 34-fix Android chain **ends May 20 — the day after** this landed. The May 30–Jun 22 chain (10 fixes) shows it helped rather than solved |
+| Jun 8 | Plan→Build→Verify relay codified in `AGENTS.md` + `/plan-build-verify` | **Honest null result:** June's ratio (1.72) is *worse* than May's (1.37). The relay's value — a verifier catching bugs before merge — is invisible to merged-history metrics by construction. Don't claim a win the data doesn't show |
+| Jul 3 | Adversarial audit + metrics tooling | Found what velocity metrics can't: 2 critical architecture/security findings, several already fixed within days (fail-closed Turnstile #821, content-safety #840, async email #814, typed LLM-outage error #843) |
+
+Model-level attribution adds one more insight: **GitHub Copilot's commits are
+1 feat vs 15 fixes** — it was effectively used as a repair agent, while the
+opencode "Android Dev" subagents ran near 1:1 (21 feat / 26 fix) and Claude
+Code carried the balanced bulk.
+
+Narration beat: "The cheapest, highest-leverage thing in six months wasn't a
+better model or a fancier harness — it was a markdown file with rules,
+written on day three. The most expensive was the one month I let cheap
+models build a mobile platform fast. And the fancy relay everyone asks
+about? The honest answer is: the merged history can't prove it helped —
+its wins happen before merge, where this instrument can't see."
+
 ---
 
-## Act 3 — The Audit: turning the AI on itself (8:00–12:00)
+## Act 3 — The Audit: turning the AI on itself (9:00–13:00)
 
 Setup: "Metrics tell you *how much* got rebuilt. They don't tell you what's
 quietly rotting. For that I gave the AI a different job description."
@@ -223,7 +253,7 @@ the risk-score number card.
 
 ---
 
-## Close — What I'd tell you to steal (12:00–14:00)
+## Close — What I'd tell you to steal (13:00–15:00)
 
 Five takeaways, one screen each:
 
@@ -251,7 +281,7 @@ CTA: links to the two dashboards, the audit report, and the repo tools.
 
 ---
 
-## YouTube chapter plan (≈13–14 min)
+## YouTube chapter plan (≈14–15 min)
 
 | Time | Chapter |
 |---|---|
@@ -262,12 +292,13 @@ CTA: links to the two dashboards, the audit report, and the repo tools.
 | 4:30 | The dashboard that can't lie: fix:feat 1.88, 17% churn |
 | 6:00 | The Android wall: 34 fixes in three weeks |
 | 7:15 | Hotspots: the CI file touched 74 times |
-| 8:00 | /risk-audit: hiring a cynical AI architect |
-| 9:00 | The top 5 findings (with receipts) |
-| 10:45 | What the audit praised |
-| 11:20 | The count was wrong: auditing the auditor |
-| 12:00 | Five things to steal |
-| 13:30 | Where to find everything |
+| 8:00 | What moved the needle: day-3 rules file vs harness switch |
+| 9:00 | /risk-audit: hiring a cynical AI architect |
+| 10:00 | The top 5 findings (with receipts) |
+| 11:45 | What the audit praised |
+| 12:20 | The count was wrong: auditing the auditor |
+| 13:00 | Five things to steal |
+| 14:30 | Where to find everything |
 
 ## Conference-talk adaptation (~20 min, slide skeleton)
 
@@ -281,12 +312,15 @@ CTA: links to the two dashboards, the audit report, and the repo tools.
 6. The other column: fix:feat, regressions, hotfix releases, churn
 7. Case study: the Android fix chain
 8. Case study: hotspot files (`azure-deploy.yml` ×74, seven `strings.xml`)
-9. Enter the adversary: the /risk-audit persona + playbook
-10. Top 5 findings (one slide each, file:line receipts) — 5 slides
-11. Load-bearing strengths — what an adversarial audit still respects
-12. Auditing the auditor: 36 → 47, machine-verified tallies, trend dashboard
-13. The five takeaways
-14. Links / Q&A
+9. What moved the needle: process changes plotted on the fix:feat curve —
+   the day-3 rules file (biggest win), the opencode month (highest deferred
+   bill), the relay (honest null result)
+10. Enter the adversary: the /risk-audit persona + playbook
+11. Top 5 findings (one slide each, file:line receipts) — 5 slides
+12. Load-bearing strengths — what an adversarial audit still respects
+13. Auditing the auditor: 36 → 47, machine-verified tallies, trend dashboard
+14. The five takeaways
+15. Links / Q&A
 
 Talk-title alternatives:
 

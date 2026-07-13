@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable MD036 -- **[VISUAL: ...]** lines are intentional edit-direction callouts, not headings -->
 
-Word-for-word narration for the YouTube long-form video (~13–14 min at a
+Word-for-word narration for the YouTube long-form video (~14–15 min at a
 natural pace). **[VISUAL: …]** lines are edit directions, not narration.
 Adapt freely — contractions and small ad-libs make it sound human.
 
@@ -136,7 +136,7 @@ demos, right? Okay. Now the part the demos don't show.
 
 ---
 
-## ACT 2 — THE REALITY (5:00–8:30)
+## ACT 2 — THE REALITY (5:00–9:30)
 
 ### The dashboard that can't lie (5:00–5:45)
 
@@ -187,11 +187,39 @@ place cluster: seven translation files, hand-synchronized across seven
 locales, about 39 touches each. Every hand-synchronized copy showed up
 later as a bug factory — remember that phrase for Act 3.
 
+### What actually moved the needle (8:30–9:30)
+
+**[VISUAL: timeline — process-change markers dropped onto the monthly
+fix-to-feature curve: Jan 8.5 → Feb 2.17 → Mar 1.26 → Apr 7.4 → May 1.37.]**
+
+Now, because every process change has a date in git, we can ask the real
+question: which change actually helped, and which one hurt? Correlation,
+not proof — but the curve is blunt.
+
+The biggest single improvement in six months came from the cheapest thing
+in the repo: **a markdown rules file, written on day three**. January,
+before it settled in: eight and a half fixes per feature. February, first
+full month with structured agent rules: 2.2. Nothing else in the entire
+history — no model upgrade, no harness switch — moved the number that much.
+
+The most expensive decision is also visible: **March's opencode experiment**
+was the fastest month on record *and* generated the Android bug wall that
+dominated April and May. Its config was never touched again after March 6th.
+The bill for cheap velocity arrived about four weeks later — which is
+exactly why one good month proves nothing.
+
+And here's a confession that I think matters: the Plan→Build→Verify relay —
+the thing everyone asks me about — **shows no improvement in these charts**.
+June was slightly worse than May. I still believe in it, because its wins
+happen *before* merge, where a merged-history dashboard is blind by
+construction. But I won't claim a win my own data doesn't show. That's the
+whole point of building the dashboard.
+
 ---
 
-## ACT 3 — THE AUDIT (8:30–12:15)
+## ACT 3 — THE AUDIT (9:30–13:15)
 
-### Hiring a cynic (8:30–9:15)
+### Hiring a cynic (9:30–10:15)
 
 **[VISUAL: the /risk-audit command file; the persona line highlighted.]**
 
@@ -207,7 +235,7 @@ and every critical finding must cite a file and line number that was
 actually read. Old reports are never overwritten, because the diff between
 audits is the point.
 
-### The verdict (9:15–11:00)
+### The verdict (10:15–12:00)
 
 **[VISUAL: "47 findings — 2 CRITICAL · 15 HIGH · 24 MEDIUM · 6 LOW — risk score 149" stamped across the screen.]**
 
@@ -245,7 +273,7 @@ serious test corpus — there's a single test file for verse extraction
 that's 2,370 lines long. An adversarial audit that still finds five things
 to respect is more credible on both ends.
 
-### Auditing the auditor (11:00–12:15)
+### Auditing the auditor (12:00–13:15)
 
 **[VISUAL: audit exec summary: "Corrected from an initial hand-count of 36".]**
 
@@ -270,7 +298,7 @@ you're in good company. The machines are too.
 
 ---
 
-## CLOSE — WHAT TO STEAL (12:15–13:45)
+## CLOSE — WHAT TO STEAL (13:15–14:45)
 
 **[VISUAL: five cards, one per point.]**
 
@@ -328,7 +356,8 @@ Chapters:
 5:00 The dashboard that can't lie
 5:45 fix:feat 1.88, 17% churn, 24 same-day hotfixes
 7:00 The Android wall & the CI file touched 74 times
-8:30 Hiring a cynical AI auditor
-9:15 47 findings, 2 critical: the top three
-11:00 The auditor miscounted — auditing the auditor
-12:15 Five things to steal
+8:30 What moved the needle: the day-3 rules file vs the harness switch
+9:30 Hiring a cynical AI auditor
+10:15 47 findings, 2 critical: the top three
+12:00 The auditor miscounted — auditing the auditor
+13:15 Five things to steal
