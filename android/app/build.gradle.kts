@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // Kotlin compilation is provided by AGP 9.0's built-in Kotlin (the standalone
+    // org.jetbrains.kotlin.android plugin is incompatible with AGP 9.0). The
+    // Compose and serialization compiler plugins below still apply on top of it.
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
