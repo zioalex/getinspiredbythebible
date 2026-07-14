@@ -134,7 +134,8 @@
     "stopGenerating": "Arrêter la génération",
     "languageSwitchSuggestion": "Il semble que vous écriviez en {language}. Changer ?",
     "languageSwitchAction": "Changer",
-    "languageSwitchDismiss": "Ignorer"
+    "languageSwitchDismiss": "Ignorer",
+    "historyTitle": "Conversation history"
   },
   "Verses": {
     "scriptureReferences": "Références Bibliques",
@@ -290,5 +291,34 @@
     "step3Button": "Ouvrir sur Google Play",
     "note": "Le test est entièrement gratuit et vous pouvez le quitter à tout moment. Des questions ou des suggestions ? Contactez-nous depuis la page d'accueil.",
     "backHome": "Retour à l'accueil"
+  },
+  "History": {
+    "title": "Conversation history",
+    "close": "Close",
+    "newConversation": "New conversation",
+    "empty": "No saved conversations yet.",
+    "untitled": "Untitled conversation",
+    "storageUnavailable": "History can't be saved in this browser (private mode or storage disabled).",
+    "rename": "Rename",
+    "saveTitle": "Save title",
+    "delete": "Delete",
+    "clearAll": "Clear all",
+    "export": "Export",
+    "import": "Import",
+    "cancel": "Cancel",
+    "privacyNote": "Your history is stored only on this device and is never sent to our servers.",
+    "exportHint": "Choose a passphrase to encrypt your history file. You'll need it to import.",
+    "importHint": "Select an exported history file and enter its passphrase.",
+    "passphrasePlaceholder": "Passphrase",
+    "confirmDelete": "Delete this conversation? This can't be undone.",
+    "confirmClearAll": "Delete ALL saved conversations on this device? This can't be undone.",
+    "passphraseTooShort": "Use a passphrase of at least 6 characters.",
+    "passphraseRequired": "Enter the passphrase for this file.",
+    "chooseFile": "Choose a file to import.",
+    "exportDone": "History exported.",
+    "exportFailed": "Export failed. Please try again.",
+    "importDone": "Imported {count} conversation(s).",
+    "importFailed": "Import failed. Is this a valid history file?",
+    "wrongPassphrase": "Wrong passphrase or corrupt file."
   }
 }

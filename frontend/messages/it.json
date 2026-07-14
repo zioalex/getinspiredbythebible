@@ -134,7 +134,8 @@
     "stopGenerating": "Interrompi generazione",
     "languageSwitchSuggestion": "Sembra che tu stia scrivendo in {language}. Vuoi cambiare?",
     "languageSwitchAction": "Cambia",
-    "languageSwitchDismiss": "Ignora"
+    "languageSwitchDismiss": "Ignora",
+    "historyTitle": "Cronologia conversazioni"
   },
   "Verses": {
     "scriptureReferences": "Riferimenti Scritturali",
@@ -290,5 +291,34 @@
     "step3Button": "Apri su Google Play",
     "note": "Il test è completamente gratuito e puoi uscire in qualsiasi momento. Hai domande o suggerimenti? Contattaci dalla home page.",
     "backHome": "Torna alla home"
+  },
+  "History": {
+    "title": "Cronologia conversazioni",
+    "close": "Chiudi",
+    "newConversation": "Nuova conversazione",
+    "empty": "Nessuna conversazione salvata.",
+    "untitled": "Conversazione senza titolo",
+    "storageUnavailable": "La cronologia non può essere salvata in questo browser (modalità privata o archiviazione disattivata).",
+    "rename": "Rinomina",
+    "saveTitle": "Salva titolo",
+    "delete": "Elimina",
+    "clearAll": "Cancella tutto",
+    "export": "Esporta",
+    "import": "Importa",
+    "cancel": "Annulla",
+    "privacyNote": "La tua cronologia è salvata solo su questo dispositivo e non viene mai inviata ai nostri server.",
+    "exportHint": "Scegli una passphrase per cifrare il file della cronologia. Ti servirà per importarlo.",
+    "importHint": "Seleziona un file di cronologia esportato e inserisci la sua passphrase.",
+    "passphrasePlaceholder": "Passphrase",
+    "confirmDelete": "Eliminare questa conversazione? L'azione non è reversibile.",
+    "confirmClearAll": "Eliminare TUTTE le conversazioni salvate su questo dispositivo? L'azione non è reversibile.",
+    "passphraseTooShort": "Usa una passphrase di almeno 6 caratteri.",
+    "passphraseRequired": "Inserisci la passphrase per questo file.",
+    "chooseFile": "Scegli un file da importare.",
+    "exportDone": "Cronologia esportata.",
+    "exportFailed": "Esportazione non riuscita. Riprova.",
+    "importDone": "Importate {count} conversazioni.",
+    "importFailed": "Importazione non riuscita. È un file di cronologia valido?",
+    "wrongPassphrase": "Passphrase errata o file danneggiato."
   }
 }

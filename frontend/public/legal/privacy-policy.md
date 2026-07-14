@@ -36,8 +36,15 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 
 ## Conversation History
 
-Conversation history is stored **locally on your device only** using an encrypted on-device
-database (Room/SQLite). It is never uploaded to our servers.
+Conversation history is stored **locally on your device only** and is never uploaded to our
+servers:
+
+- **Mobile app:** an encrypted on-device database (Room/SQLite).
+- **Web app:** your browser's local storage (IndexedDB), on the device you use.
+
+You can view, rename, delete, or clear this history at any time. You may also export it as a
+**passphrase-encrypted file** to move it to another of your own devices — the file is encrypted
+with a passphrase only you know, so it stays in your hands even in transit.
 
 ## Third-Party Services
 
