@@ -164,6 +164,17 @@ resource "azurerm_key_vault_access_policy" "telegram_logic_app" {
   secret_permissions = ["Get"]
 }
 
+# Let the Logic App's managed identity read query results from the workspace, so the
+# Get_results action below can fetch the rows the alert matched (via the alert's
+# linkToFilteredSearchResultsAPI, token audience https://api.loganalytics.io) and
+# inline the sample + RequestIds into the Telegram message. Read-only, workspace-scoped.
+resource "azurerm_role_assignment" "telegram_logic_app_logs_reader" {
+  count                = local.telegram_enabled ? 1 : 0
+  scope                = azurerm_log_analytics_workspace.main.id
+  role_definition_name = "Log Analytics Reader"
+  principal_id         = azurerm_logic_app_workflow.telegram_alert[0].identity[0].principal_id
+}
+
 resource "azurerm_logic_app_trigger_http_request" "telegram_alert" {
   count        = local.telegram_enabled ? 1 : 0
   name         = "When_an_Azure_alert_fires"
@@ -207,6 +218,45 @@ resource "azurerm_logic_app_action_custom" "telegram_get_token" {
   })
 }
 
+# Step 1b (parallel with Get_token): fetch the rows the alert matched so the
+# message can inline the sample + RequestIds. Log-search alerts carry the result
+# set as a re-runnable REST URL in the common alert schema
+# (alertContext.condition.allOf[0].linkToFilteredSearchResultsAPI, an
+# api.loganalytics.io query URL); we GET it with the Logic App's managed identity.
+# Each log rule projects a single AlertSummary column, so the result is rows[0][0].
+#
+# Tolerant by design: metric alerts (and anything without that link) have no such
+# URL, so this action fails/short-circuits — Send_to_Telegram's runAfter accepts
+# Failed/Skipped and the message simply omits the sample line. Outputs are NOT
+# marked secureData (unlike Get_token): the message reader needs body('Get_results').
+#
+# NOTE: if a future common-schema revision renames linkToFilteredSearchResultsAPI,
+# switch this to POST https://api.loganalytics.io/v1/workspaces/{customerId}/query
+# with the payload's searchQuery + window (both are in the schema).
+resource "azurerm_logic_app_action_custom" "telegram_get_results" {
+  count        = local.telegram_enabled ? 1 : 0
+  name         = "Get_results"
+  logic_app_id = azurerm_logic_app_workflow.telegram_alert[0].id
+
+  # Serialize creation after Get_token (the trigger and each action read-modify-write
+  # the same workflow definition); runtime order is independent and set by runAfter.
+  depends_on = [azurerm_logic_app_action_custom.telegram_get_token]
+
+  body = jsonencode({
+    type = "Http"
+    inputs = {
+      method = "GET"
+      uri    = "@{triggerBody()?['data']?['alertContext']?['condition']?['allOf'][0]?['linkToFilteredSearchResultsAPI']}"
+      authentication = {
+        type     = "ManagedServiceIdentity"
+        audience = "https://api.loganalytics.io"
+      }
+    }
+    # Runs at workflow start, in parallel with Get_token.
+    runAfter = {}
+  })
+}
+
 # Step 2: post to Telegram. The token is injected from the Get_token output at run
 # time (@{body('Get_token')?['value']}) — it is never stored in the definition.
 # Plain text (no parse_mode) so a stray '<' or '&' in a dynamic field can't make
@@ -216,8 +266,9 @@ resource "azurerm_logic_app_action_custom" "telegram_send" {
   name         = "Send_to_Telegram"
   logic_app_id = azurerm_logic_app_workflow.telegram_alert[0].id
 
-  # Serialize after Get_token (see note there) to avoid parallel workflow writes.
-  depends_on = [azurerm_logic_app_action_custom.telegram_get_token]
+  # Serialize creation after Get_results (which chains off Get_token) to avoid
+  # parallel workflow-definition writes.
+  depends_on = [azurerm_logic_app_action_custom.telegram_get_results]
 
   body = jsonencode({
     type = "Http"
@@ -227,7 +278,14 @@ resource "azurerm_logic_app_action_custom" "telegram_send" {
       headers = { "Content-Type" = "application/json" }
       body = {
         chat_id = var.telegram_chat_id
-        text    = "@{concat('🚨 ', coalesce(triggerBody()?['data']?['essentials']?['monitorCondition'], 'Alert'), ' — ', coalesce(triggerBody()?['data']?['essentials']?['severity'], ''), ' ', coalesce(triggerBody()?['data']?['essentials']?['alertRule'], 'Azure Monitor alert'), decodeUriComponent('%0A'), coalesce(triggerBody()?['data']?['essentials']?['description'], ''), decodeUriComponent('%0A'), 'Fired: ', coalesce(triggerBody()?['data']?['essentials']?['firedDateTime'], ''))}"
+        # Plain text (no parse_mode). Two lines are appended to the base alert:
+        #   1. the inline sample — but ONLY when the fetched result's first column is
+        #      named "AlertSummary". Every log rule ends with `| project AlertSummary`
+        #      (single column), so this is exact for them and empty for metric rules
+        #      (whose first column is a count/measure), avoiding a stray bare number.
+        #   2. a one-click "Details:" deep link (linkToFilteredSearchResultsUI).
+        # Both degrade to '' when Get_results failed/was skipped or the field is absent.
+        text = "@{concat('🚨 ', coalesce(triggerBody()?['data']?['essentials']?['monitorCondition'], 'Alert'), ' — ', coalesce(triggerBody()?['data']?['essentials']?['severity'], ''), ' ', coalesce(triggerBody()?['data']?['essentials']?['alertRule'], 'Azure Monitor alert'), decodeUriComponent('%0A'), coalesce(triggerBody()?['data']?['essentials']?['description'], ''), decodeUriComponent('%0A'), 'Fired: ', coalesce(triggerBody()?['data']?['essentials']?['firedDateTime'], ''), if(equals(coalesce(body('Get_results')?['tables']?[0]?['columns']?[0]?['name'], ''), 'AlertSummary'), concat(decodeUriComponent('%0A'), coalesce(body('Get_results')?['tables']?[0]?['rows']?[0]?[0], '')), ''), decodeUriComponent('%0A'), 'Details: ', coalesce(triggerBody()?['data']?['alertContext']?['condition']?['allOf'][0]?['linkToFilteredSearchResultsUI'], ''))}"
       }
     }
     runtimeConfiguration = {
@@ -235,8 +293,11 @@ resource "azurerm_logic_app_action_custom" "telegram_send" {
         properties = ["inputs"]
       }
     }
+    # Wait for the token; tolerate any Get_results outcome so a missing/failed
+    # results fetch never blocks the alert from reaching Telegram.
     runAfter = {
-      Get_token = ["Succeeded"]
+      Get_token   = ["Succeeded"]
+      Get_results = ["Succeeded", "Failed", "Skipped"]
     }
   })
 }
@@ -355,6 +416,9 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failure
       | where Log_s has "probe failed"
       | summarize cnt = count(), Sample = any(Log_s)
       | where cnt > 10
+      // Single AlertSummary column so the Telegram Logic App can read rows[0][0]
+      // generically (see azurerm_logic_app_action_custom.telegram_get_results).
+      | project AlertSummary = strcat('x', tostring(cnt), ' | ', substring(Sample, 0, 400))
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
@@ -394,7 +458,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   window_duration      = "PT10M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 2
-  description          = "Backend logged an actionable ERROR in the last 10 minutes. Category is one of: db_pool_timeout (DB connection-pool/server saturation), llm_all_models_down, chat_unhandled / chat_stream_unhandled (unhandled 5xx), verse_context_failed, scripture_search_failed, llm_provider_error. The alert payload carries the count, ErrorCategory, a Sample log line and up to 5 RequestIds per category — triage from those before opening the portal."
+  description          = "Backend logged an actionable ERROR in the last 10 minutes. Category is one of: db_pool_timeout (DB connection-pool/server saturation), llm_all_models_down, chat_unhandled / chat_stream_unhandled (unhandled 5xx), verse_context_failed, scripture_search_failed, llm_provider_error. Per-category count, a sample log line and up to 5 RequestIds are inlined below, with a Details link to the full results."
 
   criteria {
     # Shared filter (ERROR-level + category extraction) + this rule's aggregation tail.
@@ -402,6 +466,12 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
       ${file("${path.module}/azure-monitor/queries/backend-error-filter.kql")}
       | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5) by ErrorCategory
       | where ErrorCategory != "other_error"
+      // Roll every matched category into one AlertSummary string (read as rows[0][0]
+      // by the Telegram Logic App). Total>0 guards the empty-input case: a no-`by`
+      // summarize over zero rows still emits one row, which would otherwise fire.
+      | summarize AlertSummary = strcat_array(make_list(strcat('[', ErrorCategory, '] x', tostring(cnt), ' reqs=', strcat_array(RequestIds, ','), ' | ', substring(Sample, 0, 400))), '\n'), Total = sum(cnt)
+      | where Total > 0
+      | project AlertSummary
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
@@ -433,7 +503,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_error_rate_ot
   window_duration      = "PT10M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 3
-  description          = "5+ uncategorised backend ERROR lines (ErrorCategory=other_error) in the last 10 minutes. Informational: investigate the Sample to decide whether it warrants a new explicit category in backend-error-filter.kql."
+  description          = "5+ uncategorised backend ERROR lines (ErrorCategory=other_error) in the last 10 minutes. Informational: the sample and RequestIds are inlined below (Details link for the full results) — use them to decide whether this warrants a new explicit category in backend-error-filter.kql."
 
   criteria {
     query                   = <<-KQL
@@ -441,6 +511,9 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_error_rate_ot
       | where ErrorCategory == "other_error"
       | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5)
       | where cnt >= 5
+      // Single AlertSummary column for the Telegram Logic App (rows[0][0]). The
+      // cnt>=5 guard above already drops the empty-input row, so no extra guard.
+      | project AlertSummary = strcat('x', tostring(cnt), ' reqs=', strcat_array(RequestIds, ','), ' | ', substring(Sample, 0, 400))
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
@@ -521,8 +594,12 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_grounding_e
       | where TimeGenerated > ago(10m)
       | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
       | where Log_s matches regex "(?i)(scripture search failed|failed to resolve cited verse|verse grounding skipped|PostgresSyntaxError|InFailedSQLTransactionError|current transaction is aborted)"
-      | summarize cnt = count() by bin(TimeGenerated, 5m)
+      | extend RequestId = extract(@"\|\s*\[([^\]]*)\]\s*\|", 1, Log_s)
+      | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5)
       | where cnt > 0
+      // Single AlertSummary column for the Telegram Logic App (rows[0][0]); cnt>0
+      // guards the empty-input row that a no-`by` summarize always emits.
+      | project AlertSummary = strcat('x', tostring(cnt), ' reqs=', strcat_array(RequestIds, ','), ' | ', substring(Sample, 0, 400))
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
@@ -1043,8 +1120,12 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_asgi_exceptio
       | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
       | where Log_s has "Exception in ASGI application"
           or Log_s contains "Traceback (most recent call last)"
-      | summarize cnt = count(), Sample = any(Log_s) by bin(TimeGenerated, 5m)
+      | summarize cnt = count(), Sample = any(Log_s)
       | where cnt > 0
+      // Single AlertSummary column for the Telegram Logic App (rows[0][0]); cnt>0
+      // guards the empty-input row. 600 chars of the traceback inline; the full
+      // text is one click away via the "Details:" link the Logic App appends.
+      | project AlertSummary = strcat('x', tostring(cnt), ' | ', substring(Sample, 0, 600))
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
