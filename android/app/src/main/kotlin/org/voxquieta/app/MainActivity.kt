@@ -20,7 +20,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +35,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
 import org.voxquieta.app.presentation.components.TurnstileWebView
+import org.voxquieta.app.presentation.components.WhatsNewBottomSheet
+import org.voxquieta.app.presentation.components.shouldShowWhatsNew
 import org.voxquieta.app.presentation.screens.ChangelogScreen
 import org.voxquieta.app.presentation.screens.ChatScreen
 import org.voxquieta.app.presentation.screens.ConversationsScreen
@@ -51,6 +55,14 @@ private fun Context.hasSplashBeenSeen(): Boolean =
 private fun Context.markSplashSeen() =
     getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         .edit().putBoolean("splash_seen", true).apply()
+
+private fun Context.lastSeenVersionCode(): Int =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .getInt("last_seen_version_code", -1)
+
+private fun Context.markVersionSeen(code: Int) =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putInt("last_seen_version_code", code).apply()
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -71,6 +83,10 @@ class MainActivity : ComponentActivity() {
     // Play In-App Update (BITB-057): flexible flow, checked on cold start and on resume.
     @Inject
     lateinit var inAppUpdateManager: InAppUpdateManager
+
+    // Computed once on cold start (BITB-058); read inside setContent{} to seed the
+    // "What's New" sheet's Compose state.
+    private var showWhatsNewOnLaunch = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
@@ -96,6 +112,13 @@ class MainActivity : ComponentActivity() {
         // the Activity on SDK < 33), rotation, or other config changes.
         if (savedInstanceState == null) {
             analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
+
+            // "What's New" bottom sheet (BITB-058): shown once per update, never on
+            // fresh install. The version is marked seen here (not on dismiss/see-all)
+            // so a process death before the user acts still counts as "seen".
+            val storedVersion = lastSeenVersionCode()
+            showWhatsNewOnLaunch = shouldShowWhatsNew(storedVersion, BuildConfig.VERSION_CODE)
+            if (storedVersion != BuildConfig.VERSION_CODE) markVersionSeen(BuildConfig.VERSION_CODE)
         }
 
         // Play Store isn't available in debug builds, so the check is a silent no-op there.
@@ -119,6 +142,7 @@ class MainActivity : ComponentActivity() {
             VoxQuietaTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
                 val context = LocalContext.current
+                var showWhatsNew by remember { mutableStateOf(showWhatsNewOnLaunch) }
 
                 // Track screen views every time the user navigates to a new destination.
                 DisposableEffect(navController) {
@@ -232,6 +256,18 @@ class MainActivity : ComponentActivity() {
                     // of which screen the user navigates to first) finds a fresh
                     // token already cached. The widget itself is 1.dp / invisible.
                     TurnstileWebView(turnstileManager = turnstileManager)
+
+                    // "What's New" bottom sheet (BITB-058). Version is already marked
+                    // seen in onCreate, so both actions just dismiss the overlay.
+                    if (showWhatsNew) {
+                        WhatsNewBottomSheet(
+                            onDismiss = { showWhatsNew = false },
+                            onSeeAll = {
+                                showWhatsNew = false
+                                navController.navigate("changelog")
+                            },
+                        )
+                    }
 
                     // Activity-scoped snackbar for the in-app update flow (BITB-057).
                     // There's no single reusable SnackbarHost in this Compose tree

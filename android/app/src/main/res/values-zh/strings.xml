@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">更新内容</string>
     <string name="settings_changelog_link">更新内容</string>
     <string name="changelog_empty">暂无版本说明。</string>
+    <string name="whats_new_title">更新内容</string>
+    <string name="whats_new_dismiss">知道了</string>
+    <string name="whats_new_see_all">查看全部</string>
 
     <!-- Errors -->
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>

@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">Novità</string>
     <string name="settings_changelog_link">Novità</string>
     <string name="changelog_empty">Nessuna nota di rilascio è ancora disponibile.</string>
+    <string name="whats_new_title">Novità</string>
+    <string name="whats_new_dismiss">Ho capito</string>
+    <string name="whats_new_see_all">Vedi tutto</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Hai avuto 10 messaggi in questa sessione! Perché non fare una pausa e goderti il creato di Dio all\'aria aperta? 🌳</string>

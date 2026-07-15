@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">ما الجديد</string>
     <string name="settings_changelog_link">ما الجديد</string>
     <string name="changelog_empty">لا تتوفر ملاحظات إصدار حتى الآن.</string>
+    <string name="whats_new_title">ما الجديد</string>
+    <string name="whats_new_dismiss">حسناً</string>
+    <string name="whats_new_see_all">عرض الكل</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
