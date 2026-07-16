@@ -227,6 +227,15 @@ llama_guard_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+llama_guard_secondary_model_counter = meter.create_counter(
+    name="llama_guard.secondary_model_total",
+    description=(
+        "Count of Llama Guard primary-model failures that were retried against the "
+        "secondary model (openai/gpt-oss-safeguard-20b), by outcome"
+    ),
+    unit="1",
+)  # attributes: outcome (recovered|also_failed)
+
 openrouter_fallback_counter = meter.create_counter(
     name="openrouter.fallback_total",
     description="Count of OpenRouter primary-model failures that triggered client-side fallback",
