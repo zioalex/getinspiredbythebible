@@ -43,9 +43,7 @@ def aggregate(results: list[QueryResult]) -> list[ConfigAggregate]:
     aggregates = []
     for name in order:
         rows = by_config[name]
-        latencies = [
-            r.expansion_latency_ms for r in rows if r.expansion_latency_ms is not None
-        ]
+        latencies = [r.expansion_latency_ms for r in rows if r.expansion_latency_ms is not None]
         aggregates.append(
             ConfigAggregate(
                 config=name,
@@ -116,28 +114,19 @@ def format_report(run: RunResult) -> str:
 
     sections = [format_table(aggregates), "", format_language_breakdown(by_lang)]
 
-    latency_aggs = [
-        agg for agg in aggregates if agg.mean_expansion_latency_ms is not None
-    ]
+    latency_aggs = [agg for agg in aggregates if agg.mean_expansion_latency_ms is not None]
     if latency_aggs:
         expansion_line = ", ".join(
-            f"{agg.config}: {agg.mean_expansion_latency_ms:.0f} ms/query"
-            for agg in latency_aggs
+            f"{agg.config}: {agg.mean_expansion_latency_ms:.0f} ms/query" for agg in latency_aggs
         )
         sections.append(f"\nExpansion latency (mean): {expansion_line}")
 
-    guard_status = (
-        "healthy (0)"
-        if total_fp == 0
-        else f"{total_fp} false positive(s) — investigate"
-    )
+    guard_status = "healthy (0)" if total_fp == 0 else f"{total_fp} false positive(s) — investigate"
     sections.append(f"False-positive guard: {guard_status}")
 
     if total_errors:
         noun = "query" if total_errors == 1 else "queries"
-        sections.append(
-            f"{total_errors} {noun} failed (fail-open, scored 0) — check logs"
-        )
+        sections.append(f"{total_errors} {noun} failed (fail-open, scored 0) — check logs")
 
     return "\n".join(sections)
 

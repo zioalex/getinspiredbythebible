@@ -116,16 +116,12 @@ class TestFormatLanguageBreakdown:
 
 class TestFormatReport:
     def test_healthy_guard_line(self):
-        run = RunResult(
-            configs=["a"], query_results=[_qr(config="a", false_positives_at_5=0)]
-        )
+        run = RunResult(configs=["a"], query_results=[_qr(config="a", false_positives_at_5=0)])
         report = format_report(run)
         assert "healthy (0)" in report
 
     def test_unhealthy_guard_line_flags_count(self):
-        run = RunResult(
-            configs=["a"], query_results=[_qr(config="a", false_positives_at_5=2)]
-        )
+        run = RunResult(configs=["a"], query_results=[_qr(config="a", false_positives_at_5=2)])
         report = format_report(run)
         assert "2 false positive" in report
 

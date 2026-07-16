@@ -61,9 +61,7 @@ class _FakeExpander:
 
 
 def _case(**overrides) -> GoldenCase:
-    defaults = dict(
-        id="c1", query="I'm anxious", language="en", relevant_refs=["John 3:16"]
-    )
+    defaults = dict(id="c1", query="I'm anxious", language="en", relevant_refs=["John 3:16"])
     defaults.update(overrides)
     return GoldenCase(**defaults)
 

@@ -54,16 +54,10 @@ class EvalConfig:
 # BITB-044 populates verse_topics — kept here so the CLI can name it and the
 # report can explain why its numbers equal ``hybrid``'s.
 EVAL_CONFIGS: dict[str, EvalConfig] = {
-    "baseline_semantic": EvalConfig(
-        "baseline_semantic", use_hybrid=False, use_expansion=False
-    ),
-    "expansion_semantic": EvalConfig(
-        "expansion_semantic", use_hybrid=False, use_expansion=True
-    ),
+    "baseline_semantic": EvalConfig("baseline_semantic", use_hybrid=False, use_expansion=False),
+    "expansion_semantic": EvalConfig("expansion_semantic", use_hybrid=False, use_expansion=True),
     "hybrid": EvalConfig("hybrid", use_hybrid=True, use_expansion=False),
-    "hybrid_expansion": EvalConfig(
-        "hybrid_expansion", use_hybrid=True, use_expansion=True
-    ),
+    "hybrid_expansion": EvalConfig("hybrid_expansion", use_hybrid=True, use_expansion=True),
     "topic_boosted": EvalConfig(
         "topic_boosted", use_hybrid=True, use_expansion=False, use_topic_boost=True
     ),
@@ -175,9 +169,7 @@ async def run_query(
             )
 
         retrieved_keys = [
-            key
-            for v in results.verses
-            if (key := parse_verse_key(v.reference)) is not None
+            key for v in results.verses if (key := parse_verse_key(v.reference)) is not None
         ]
         relevant = case.relevant_matchers()
         irrelevant = case.irrelevant_matchers()
@@ -222,9 +214,7 @@ async def run_config(
 ) -> list[QueryResult]:
     """Run every case in ``cases`` through one config, in order."""
     return [
-        await run_query(
-            case, config, search_service=search_service, embed=embed, expander=expander
-        )
+        await run_query(case, config, search_service=search_service, embed=embed, expander=expander)
         for case in cases
     ]
 
