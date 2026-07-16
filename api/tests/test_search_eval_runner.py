@@ -9,6 +9,7 @@ docs/SEARCH_EVAL_HOWTO.md) or lands via P4 CI, not this test file.
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -60,8 +61,10 @@ class _FakeExpander:
         return self._expanded
 
 
-def _case(**overrides) -> GoldenCase:
-    defaults = dict(id="c1", query="I'm anxious", language="en", relevant_refs=["John 3:16"])
+def _case(**overrides: Any) -> GoldenCase:
+    defaults: dict[str, Any] = dict(
+        id="c1", query="I'm anxious", language="en", relevant_refs=["John 3:16"]
+    )
     defaults.update(overrides)
     return GoldenCase(**defaults)
 

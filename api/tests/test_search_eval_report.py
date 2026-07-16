@@ -7,6 +7,7 @@ network — runs in the standard (blocking) backend-tests CI job.
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from search_eval.report import (
     aggregate,
@@ -19,8 +20,8 @@ from search_eval.report import (
 from search_eval.runner import QueryResult, RunResult
 
 
-def _qr(**overrides) -> QueryResult:
-    defaults = dict(
+def _qr(**overrides: Any) -> QueryResult:
+    defaults: dict[str, Any] = dict(
         case_id="c1",
         language="en",
         config="baseline_semantic",
