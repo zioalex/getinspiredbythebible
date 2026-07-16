@@ -175,6 +175,9 @@
     <string name="settings_changelog_title">What\'s New</string>
     <string name="settings_changelog_link">What\'s New</string>
     <string name="changelog_empty">No release notes are available yet.</string>
+    <string name="whats_new_title">What\'s New</string>
+    <string name="whats_new_dismiss">Got it</string>
+    <string name="whats_new_see_all">See all</string>
 
     <!-- Offline notice -->
     <string name="offline_notice">You\'re offline. You can read past messages, but sending new ones requires an internet connection.</string>

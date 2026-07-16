@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">새로운 기능</string>
     <string name="settings_changelog_link">새로운 기능</string>
     <string name="changelog_empty">아직 릴리스 노트가 없습니다.</string>
+    <string name="whats_new_title">새로운 기능</string>
+    <string name="whats_new_dismiss">확인</string>
+    <string name="whats_new_see_all">모두 보기</string>
 
     <!-- Errors -->
     <string name="error_session_limit">이 세션에서 10개의 메시지를 보내셨습니다! 잠시 쉬면서 하나님의 창조물을 즐겨보시는 건 어떨까요? 🌳</string>

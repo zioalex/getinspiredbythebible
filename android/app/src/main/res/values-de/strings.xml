@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">Was ist neu</string>
     <string name="settings_changelog_link">Was ist neu</string>
     <string name="changelog_empty">Es sind noch keine Versionshinweise verfügbar.</string>
+    <string name="whats_new_title">Was ist neu</string>
+    <string name="whats_new_dismiss">Verstanden</string>
+    <string name="whats_new_see_all">Alle anzeigen</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>

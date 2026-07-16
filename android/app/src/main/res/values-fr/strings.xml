@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">Nouveautés</string>
     <string name="settings_changelog_link">Nouveautés</string>
     <string name="changelog_empty">Aucune note de version n\'est disponible pour le moment.</string>
+    <string name="whats_new_title">Nouveautés</string>
+    <string name="whats_new_dismiss">J\'ai compris</string>
+    <string name="whats_new_see_all">Tout voir</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Vous avez eu 10 messages dans cette session ! Pourquoi ne pas faire une pause et profiter de la création de Dieu en plein air ? 🌳</string>

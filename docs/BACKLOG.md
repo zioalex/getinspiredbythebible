@@ -691,9 +691,11 @@ covers only 200/404. These gaps let the bug ship.
 
 ---
 
-### 🎯 BITB-040: Verse-Detail Header Shows English Book Name Instead of Localized
+### ✅ BITB-040: Verse-Detail Header Shows English Book Name Instead of Localized
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (verified against current main 2026-07-15 — `buildSyntheticVerse()` carries
+`localizedBook` through the verse link, `Verse.reference` prefers it, and
+`VerseDetailBottomSheetComposeTest.kt` covers the localized/fallback/non-Latin-script cases)
 **Size:** S (< 4 hours)
 **Created:** 2026-06-04
 
@@ -1134,9 +1136,9 @@ at the `MainActivity` call sites so debug and sideloaded builds are unaffected.
 
 ---
 
-### 🎯 BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
+### ✅ BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-07-15)
 **Size:** S (< 1 day)
 **Created:** 2026-07-01
 
@@ -1150,12 +1152,12 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] `last_seen_version_code` persisted in `app_prefs`; helpers added alongside `hasSplashBeenSeen()` pattern
-- [ ] Modal skipped on fresh install (stored == -1); shown exactly once per update
-- [ ] `WhatsNewBottomSheet.kt` renders top `ChangelogEntry` via `MarkdownText`; graceful empty state
-- [ ] "Dismiss" closes sheet and marks version seen; "See All" navigates to `changelog` route and marks seen
-- [ ] String keys `whats_new_title`, `whats_new_dismiss`, `whats_new_see_all` added in all 11 locales
-- [ ] Unit tests: stored==-1 → false; stored==current → false; stored==current-1 → true
+- [x] `last_seen_version_code` persisted in `app_prefs`; helpers added alongside `hasSplashBeenSeen()` pattern
+- [x] Modal skipped on fresh install (stored == -1); shown exactly once per update
+- [x] `WhatsNewBottomSheet.kt` renders top `ChangelogEntry` via `MarkdownText`; graceful empty state
+- [x] "Dismiss" closes sheet and marks version seen; "See All" navigates to `changelog` route and marks seen
+- [x] String keys `whats_new_title`, `whats_new_dismiss`, `whats_new_see_all` added in all 11 locales
+- [x] Unit tests: stored==-1 → false; stored==current → false; stored==current-1 → true
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-058-android-whats-new-on-launch.md`
 
