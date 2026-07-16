@@ -336,7 +336,19 @@ docker-up-gpu: .env.local ## Start services (local development, GPU mode)
 
 LOCAL_PROD_PROJECT := getinspired-local-prod
 
-docker-up-local-prod: check-env-production ## Start local stack against prod DB + cloud LLMs (cached images)
+# These stacks run the frontend and API locally — .env.production should point
+# NEXT_PUBLIC_API_URL at http://localhost:8000. If it's left pointing at a real
+# deployed backend, the frontend silently bypasses the local API entirely
+# (including the TURNSTILE_ENABLED=false pin below), and things like a stale
+# production Turnstile site key start rejecting requests from localhost.
+check-local-api-url: check-env-production
+	@API_URL=$$(grep -E '^NEXT_PUBLIC_API_URL=' .env.production | tail -1 | cut -d= -f2-); \
+	if [ -n "$$API_URL" ] && ! echo "$$API_URL" | grep -qE '^https?://localhost(:[0-9]+)?/?$$'; then \
+		echo "$(YELLOW)⚠ .env.production NEXT_PUBLIC_API_URL=$$API_URL$(NC)"; \
+		echo "$(YELLOW)  This stack expects http://localhost:8000 — the frontend will bypass your local API and talk to that host instead.$(NC)"; \
+	fi
+
+docker-up-local-prod: check-local-api-url ## Start local stack against prod DB + cloud LLMs (cached images)
 	@echo "$(BLUE)Starting local stack against PROD DB + cloud LLMs...$(NC)"
 	@docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod.yml up -d
 	@echo "$(GREEN)✓ Services started$(NC)"
@@ -344,13 +356,13 @@ docker-up-local-prod: check-env-production ## Start local stack against prod DB 
 	@echo "$(YELLOW)API: http://localhost:8000 (docs: /docs)$(NC)"
 	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
 
-docker-up-local-prod-build: check-env-production ## Same as docker-up-local-prod but rebuild images from source
+docker-up-local-prod-build: check-local-api-url ## Same as docker-up-local-prod but rebuild images from source
 	@echo "$(BLUE)Rebuilding and starting local stack against PROD DB + cloud LLMs...$(NC)"
 	@docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod.yml up -d --build
 	@echo "$(GREEN)✓ Services rebuilt and started$(NC)"
 	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
 
-docker-up-local-prod-acr-be: check-env-production ## Prod backend image from ACR + local frontend (usage: TAG=abc1234, default latest)
+docker-up-local-prod-acr-be: check-local-api-url ## Prod backend image from ACR + local frontend (usage: TAG=abc1234, default latest)
 	@echo "$(BLUE)Starting ACR backend ($(if $(TAG),$(TAG),latest)) + local frontend...$(NC)"
 	@echo "$(YELLOW)Note: requires 'az acr login --name <ACR_NAME>' beforehand$(NC)"
 	@TAG=$(TAG) docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod-acr-be.yml up -d
