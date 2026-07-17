@@ -10,7 +10,7 @@ import {
   createVersePattern,
   createVersePatternGlobal,
 } from "@/lib/versePatterns";
-import { isKnownBook } from "@/lib/verseExtraction";
+import { isKnownBook, normalizeDigits } from "@/lib/verseExtraction";
 import {
   linkifyVerses,
   parseVerseHref,
@@ -92,8 +92,10 @@ export default function ChatMessage({
         return;
       }
 
-      const chapter = parseInt(match[2]);
-      const verse = parseInt(match[3]);
+      // Normalize Devanagari (५→5) and Eastern Arabic (٣→3) digits before
+      // parsing, otherwise non-ASCII chapter/verse digits parse to NaN.
+      const chapter = parseInt(normalizeDigits(match[2]), 10);
+      const verse = parseInt(normalizeDigits(match[3]), 10);
       onVerseClick(book, chapter, verse);
     }
   };

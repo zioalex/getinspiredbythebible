@@ -53,6 +53,9 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
     // isKnownBook() at render time (previously only reached through the
     // react-markdown renderers, which this suite stubs out).
     isKnownBook: actual.isKnownBook,
+    // linkifyVerses()/handleTextClick() normalize non-ASCII (Devanagari,
+    // Eastern Arabic) digits before parsing chapter/verse numbers.
+    normalizeDigits: actual.normalizeDigits,
   };
 });
 

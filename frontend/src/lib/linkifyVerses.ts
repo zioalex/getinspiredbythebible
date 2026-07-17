@@ -15,7 +15,7 @@
  */
 
 import { createVersePatternGlobal } from "./versePatterns";
-import { isKnownBook } from "./verseExtraction";
+import { isKnownBook, normalizeDigits } from "./verseExtraction";
 
 /** URL scheme used for in-app verse links (mirrors Android's `verse://`). */
 export const VERSE_SCHEME = "verse://";
@@ -47,8 +47,8 @@ export function parseVerseHref(
   } catch {
     return null;
   }
-  const chapter = parseInt(parts[1], 10);
-  const verse = parseInt(parts[2], 10);
+  const chapter = parseInt(normalizeDigits(parts[1]), 10);
+  const verse = parseInt(normalizeDigits(parts[2]), 10);
   if (!book.trim() || Number.isNaN(chapter) || Number.isNaN(verse)) return null;
   return { book: book.trim(), chapter, verse };
 }
@@ -75,8 +75,11 @@ function linkifyPlainSegment(text: string): string {
       continue;
     }
 
-    const chapter = match[2];
-    const verse = match[3];
+    // Normalize Devanagari (५→5) and Eastern Arabic (٣→3) digits so the
+    // href always carries ASCII digits, even though the display text below
+    // keeps the reference exactly as written.
+    const chapter = normalizeDigits(match[2]);
+    const verse = normalizeDigits(match[3]);
     // Keep the reference exactly as written for the display text (e.g. the
     // German "13,1-2"), but encode a canonical target in the href.
     const href = `${VERSE_SCHEME}${encodeURIComponent(book)}/${chapter}/${verse}`;

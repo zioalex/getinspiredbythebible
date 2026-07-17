@@ -68,6 +68,20 @@ describe("linkifyVerses", () => {
     const md = "```\nJohn 3:16\n```";
     expect(linkifyVerses(md)).toBe(md);
   });
+
+  it("normalizes Devanagari digits in the href (regression: NaN chapter bug)", () => {
+    const out = linkifyVerses("यूहन्ना ५:२४ के अनुसार।");
+    expect(out).toContain(
+      "[यूहन्ना ५:२४](verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/5/24)",
+    );
+  });
+
+  it("normalizes Eastern Arabic digits in the href", () => {
+    const out = linkifyVerses("يوحنا ٣:١٦");
+    expect(out).toContain(
+      "[يوحنا ٣:١٦](verse://%D9%8A%D9%88%D8%AD%D9%86%D8%A7/3/16)",
+    );
+  });
 });
 
 describe("parseVerseHref", () => {
@@ -82,5 +96,19 @@ describe("parseVerseHref", () => {
   it("returns null for external links", () => {
     expect(parseVerseHref("https://example.com")).toBeNull();
     expect(parseVerseHref(undefined)).toBeNull();
+  });
+
+  it("normalizes Devanagari digits (regression: NaN chapter bug)", () => {
+    expect(
+      parseVerseHref("verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/५/२४"),
+    ).toEqual({ book: "यूहन्ना", chapter: 5, verse: 24 });
+  });
+
+  it("normalizes Eastern Arabic digits", () => {
+    expect(parseVerseHref("verse://John/٣/١٦")).toEqual({
+      book: "John",
+      chapter: 3,
+      verse: 16,
+    });
   });
 });
