@@ -184,7 +184,7 @@ positives on Bible queries. This unblocks it.
 
 ### 🚧 BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
-**Status:** 🚧 In Progress (PR pending)
+**Status:** 🚧 In Progress (PR #893 open)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-17
 

@@ -1,6 +1,6 @@
 # BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
-**Status:** 🚧 In Progress (PR pending)
+**Status:** 🚧 In Progress (PR #893 open)
 **Priority:** P1 (High) — breaks the core "click a cited verse" flow for every Hindi
 response and any Arabic response that uses native Eastern Arabic numerals.
 **Size:** S (< 4 hrs)
@@ -59,7 +59,7 @@ was already exercised against the exact bug scenario before this fix.
   approach. Confirmed via `jshell` that `Character.digit`/`Integer.parseInt` already
   handle pure Devanagari/Eastern-Arabic digit strings correctly once the regex captures
   them — only the capture was missing, not the numeric conversion.
-- Backend: no code change; added a regression test proving the existing behaviour.
+- Backend: no code change needed — already correct, and already tested.
 
 ## Why this regressed despite existing test coverage
 
