@@ -264,13 +264,19 @@ class Settings(BaseSettings):
     #                  Best balance of accuracy and cost (free tier available).
     #   hybrid       — Stage 1 + Stage 2 (OpenAI Moderation) + Stage 3 (Azure Content Safety).
     #                  Maximum accuracy, requires Azure Content Safety resource.
-    content_safety_enabled: bool = False  # Master switch (default False for gradual rollout)
+    content_safety_enabled: bool = True  # Master switch (matches Terraform prod default)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
 
     # Llama Guard Settings
     # Note: These settings only apply when content_safety_mode is ml_only.
     llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency
-    llama_guard_timeout: int = 10  # LLM inference timeout (seconds)
+    # Primary-model timeout (seconds). A 2026-07 100-sample production benchmark measured
+    # primary p50/p95/p99 ~338/1450/2341ms, so 3s comfortably covers normal latency while
+    # capping how long a hung/slow primary call blocks the chat request before the secondary
+    # model (providers/llama_guard.py, LlamaGuardProvider.SECONDARY_TIMEOUT_SECONDS) is tried.
+    # Previously 10s — combined with the secondary's own timeout, worst case could reach ~20s
+    # on a single chat message, which is too slow for a synchronous pre-generation safety check.
+    llama_guard_timeout: int = 3  # LLM inference timeout (seconds)
 
     # OpenAI Moderation Settings
     # Used as Stage 2 in keyword_only and hybrid modes (ml_only uses Llama Guard instead).

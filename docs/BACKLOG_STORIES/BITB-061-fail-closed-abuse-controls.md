@@ -1,6 +1,6 @@
 # BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
+**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
 **Priority:** P1 (High) — 2026-07 adversarial audit E2 + S3 + O2 (all HIGH); every layer of bot/abuse/safety protection currently fails open, silently
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
@@ -57,9 +57,32 @@ the cooldown elapses.
 
 ### Content safety
 
-- [ ] Keyword stage (local, free) **always** runs for self-harm/violence categories regardless of
+- [x] Keyword stage (local, free) **always** runs for self-harm/violence categories regardless of
       ML-stage availability; ML-stage failure degrades to keyword-only, not to allow-all.
-- [ ] Empty Llama Guard response is treated as an error, not as "safe".
-- [ ] Every fail-open/fallback branch emits a metric; alert on sustained fallback rate.
-- [ ] `content_safety_enabled` default flipped on (or prod env explicitly sets it, with the
+- [x] Empty Llama Guard response is treated as an error, not as "safe".
+- [x] Every fail-open/fallback branch emits a metric; alert on sustained fallback rate.
+- [x] `content_safety_enabled` default flipped on (or prod env explicitly sets it, with the
       config/.env.example divergence from audit D6 resolved for these keys).
+
+**Implemented 2026-07-07:**
+
+- `_check_stage2_llama_guard` no longer returns `None` (→ allow-all) when the Llama Guard
+  provider isn't configured; it now degrades to `_full_keyword_fallback` like every other
+  branch (`api/utils/content_safety.py`).
+- `LlamaGuardProvider._parse_llama_guard_response` raises `LlamaGuardResponseError` on an
+  empty/blank body instead of returning `(True, [])`; a malformed `choices[0].message.content`
+  shape (`KeyError`/`IndexError`/`TypeError`) is also caught and raised as the same error type,
+  recording a circuit-breaker failure in both cases (`api/providers/llama_guard.py`).
+- New `content_safety.fallback_total` counter (`api/utils/metrics.py`), labelled
+  `stage` (`llama_guard`/`openai_moderation`/`azure`) × `reason`, emitted from every fallback
+  branch including the two that previously had none (OpenAI Moderation
+  provider-unavailable/exception, Azure exception in hybrid mode — the latter now falls back to
+  the keyword filter instead of silently reaching the terminal default-allow).
+- New `content_safety_fallback_rate` scheduled-query alert in `deployment/monitoring.tf`
+  (Sev2, `customMetrics` on `content_safety.fallback_total`, mirrors `embedding_fallback_rate`).
+- `content_safety_enabled` now defaults to `True` in `api/config.py` (already `True` in
+  Terraform/prod — the code default only affected local dev); `api/.env.example` updated to
+  `CONTENT_SAFETY_ENABLED=true` / `CONTENT_SAFETY_MODE=ml_only` to match, resolving audit D6.
+- Rate-limiter phase intentionally deferred to a follow-up story: it puts a DB round-trip on
+  every chat request's hot path (new migration + pg_cron cleanup + concurrency tests) and
+  shouldn't ride along with a safety-critical change in the same PR.
