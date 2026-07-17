@@ -686,8 +686,34 @@ The script will:
 
 - Create a service principal named `github-actions-bible-app-{env}`
 - Assign the Contributor role to your subscription
+- Grant `User Access Administrator` on the Log Analytics workspace (see below)
 - Output the secrets you need to add to GitHub
 - Optionally set GitHub secrets directly (requires `gh` CLI)
+
+**Why the deploy SP needs more than Contributor:**
+
+Azure's built-in `Contributor` role deliberately excludes
+`Microsoft.Authorization/roleAssignments/write` (it's excluded from every built-in
+role except Owner and User Access Administrator, to prevent privilege escalation).
+Terraform's `azurerm_role_assignment` resources — e.g.
+`telegram_logic_app_logs_reader` in `monitoring.tf`, which lets the Telegram
+Logic App's managed identity read Log Analytics query results — need that
+permission to apply. `Contributor` alone is not enough and `terraform apply` will
+fail with `AuthorizationFailed` on any such resource.
+
+To keep the deploy SP's extra privilege narrow, `setup-github-spn.sh` grants it
+`User Access Administrator` scoped to just the Log Analytics workspace resource,
+not the subscription or resource group. It does this every time it runs against
+an SPN that already exists — whether or not you choose to reset that SPN's
+credentials — so re-running the script against an SP that predates this grant
+picks it up without rotating secrets. On a **brand-new** environment the
+workspace won't exist yet on first run (it's created by the first
+`terraform apply`), so the script prints a one-time follow-up `az role assignment
+create` command to run after that first apply completes.
+
+If you add a new `azurerm_role_assignment` resource on a *different* Azure
+resource, it needs its own such grant on that resource's scope, or the deploy
+will fail the same way.
 
 **Environment Protection:**
 
