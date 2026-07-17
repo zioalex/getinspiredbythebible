@@ -409,11 +409,12 @@ async def test_secondary_model_used_when_primary_fails():
     assert secondary_call.kwargs["json"]["model"] == "openai/gpt-oss-safeguard-20b"
     assert secondary_call.kwargs["json"]["max_tokens"] == 800
     assert secondary_call.kwargs["json"]["reasoning"] == {"effort": "low"}
-    # Primary uses the client-level default timeout (no per-call override); the
-    # secondary gets its own longer, explicit per-call timeout override so a
-    # slow-but-working reasoning-model call isn't cut off at the primary's
-    # tighter budget, while still capping the worst case well below the old 10s.
-    assert "timeout" not in primary_call.kwargs
+    # Primary uses the client-level default timeout (explicit USE_CLIENT_DEFAULT
+    # sentinel, not a per-call override); the secondary gets its own longer,
+    # explicit per-call timeout override so a slow-but-working reasoning-model
+    # call isn't cut off at the primary's tighter budget, while still capping
+    # the worst case well below the old 10s.
+    assert primary_call.kwargs["timeout"] is httpx.USE_CLIENT_DEFAULT
     assert secondary_call.kwargs["timeout"] == LlamaGuardProvider.SECONDARY_TIMEOUT_SECONDS
 
     # The two metrics together are the only way to see a degraded primary route

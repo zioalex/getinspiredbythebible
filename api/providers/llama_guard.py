@@ -264,23 +264,21 @@ class LlamaGuardProvider:
         if reasoning_effort:
             body["reasoning"] = {"effort": reasoning_effort}
 
-        request_kwargs = {
-            "headers": {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": self.REFERER,
-                "X-Title": self.APP_TITLE,
-            },
-            "json": body,
-        }
-        if timeout is not None:
-            request_kwargs["timeout"] = timeout
-
         call_start = time.monotonic()
         outcome = "failed"
         try:
             try:
-                response = await client.post(self.OPENROUTER_ENDPOINT, **request_kwargs)
+                response = await client.post(
+                    self.OPENROUTER_ENDPOINT,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": self.REFERER,
+                        "X-Title": self.APP_TITLE,
+                    },
+                    json=body,
+                    timeout=timeout if timeout is not None else httpx.USE_CLIENT_DEFAULT,
+                )
                 response.raise_for_status()
                 data = response.json()
             except httpx.TimeoutException:
