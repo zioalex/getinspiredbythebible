@@ -127,13 +127,19 @@ private val BOOK_NAME =
 // "「요한복음」3:16" while still requiring "John 3:16".
 private const val COND_WS = "(?:(?<=[\\p{IsHan}\\p{IsHangul}\\u300B\\u300D\\u300F])\\s*|\\s+)"
 
+// Chapter/verse digit class: plain \d only matches ASCII 0-9 in Java regex (no
+// UNICODE_CHARACTER_CLASS flag is set), so Devanagari (०-९, U+0966-U+096F) and Eastern
+// Arabic (٠-٩, U+0660-U+0669) numerals must be listed explicitly — mirrors the frontend's
+// versePatterns.ts, which has the same explicit ranges for the same reason.
+private const val CV_DIGIT = "[0-9\\u0966-\\u096F\\u0660-\\u0669]"
+
 /** Fallback regex used before book-name data loads from the API. */
 internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ", "3. "), colon REQUIRED.
     // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
     // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
     // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
-    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
@@ -147,7 +153,7 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // Uses COND_WS so CJK/Hangul book names can abut the chapter number without a space.
         // [\u300B\u300D\u300F]? optionally consumes a closing bracket (》」』) after the
         // book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not block the match.
-        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+        "($BOOK_NAME)[\\u300B\\u300D\\u300F]?$COND_WS($CV_DIGIT+)(?:[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
 /**
@@ -214,11 +220,11 @@ internal fun buildVerseRefRegex(
 
     return Regex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
-        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+(\\d+)[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)" +
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
             // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
-            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS(\\d+)(?:[:,](\\d+(?:[-\\u2013]\\d+)?)(?!\\d)|(?!\\d)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS($CV_DIGIT+)(?:[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 

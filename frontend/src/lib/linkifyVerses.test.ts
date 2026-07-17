@@ -84,6 +84,40 @@ describe("linkifyVerses", () => {
   });
 });
 
+describe("linkifyVerses / parseVerseHref — cross-language chapter/verse parity", () => {
+  // Per AGENTS.md's multilingual-correctness rule: verify every supported UI
+  // language's digit system round-trips to a real number end to end (build the
+  // href, then parse it back), not just the two non-ASCII-digit languages this
+  // bug was reported in. en/it/de/es/fr/pt/ru/zh/ko all use plain ASCII digits,
+  // so they were never at risk — asserting it here makes that explicit instead
+  // of assumed.
+  const cases: Array<{ lang: string; text: string; book: string; chapter: number; verse: number }> = [
+    { lang: "en", text: "John 3:16", book: "John", chapter: 3, verse: 16 },
+    { lang: "it", text: "Giovanni 3:16", book: "Giovanni", chapter: 3, verse: 16 },
+    { lang: "de", text: "Johannes 3:16", book: "Johannes", chapter: 3, verse: 16 },
+    { lang: "es", text: "Juan 3:16", book: "Juan", chapter: 3, verse: 16 },
+    { lang: "fr", text: "Jean 3:16", book: "Jean", chapter: 3, verse: 16 },
+    { lang: "pt", text: "João 3:16", book: "João", chapter: 3, verse: 16 },
+    { lang: "ru", text: "Иоанна 3:16", book: "Иоанна", chapter: 3, verse: 16 },
+    { lang: "zh", text: "约翰福音3:16", book: "约翰福音", chapter: 3, verse: 16 },
+    { lang: "ko", text: "요한복음 3:16", book: "요한복음", chapter: 3, verse: 16 },
+    { lang: "hi", text: "यूहन्ना ३:१६", book: "यूहन्ना", chapter: 3, verse: 16 },
+    { lang: "ar", text: "يوحنا ٣:١٦", book: "يوحنا", chapter: 3, verse: 16 },
+  ];
+
+  it.each(cases)(
+    "$lang: linkifyVerses → parseVerseHref round-trips to numeric chapter/verse",
+    ({ text, book, chapter, verse }) => {
+      const linked = linkifyVerses(text);
+      const hrefMatch = linked.match(/\(verse:\/\/[^)]+\)/);
+      expect(hrefMatch).not.toBeNull();
+      const href = hrefMatch![0].slice(1, -1);
+      const parsed = parseVerseHref(href);
+      expect(parsed).toEqual({ book, chapter, verse });
+    },
+  );
+});
+
 describe("parseVerseHref", () => {
   it("parses a verse:// href (with an encoded book)", () => {
     expect(parseVerseHref("verse://R%C3%B6mer/12/14")).toEqual({
