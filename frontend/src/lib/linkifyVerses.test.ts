@@ -91,17 +91,53 @@ describe("linkifyVerses / parseVerseHref — cross-language chapter/verse parity
   // bug was reported in. en/it/de/es/fr/pt/ru/zh/ko all use plain ASCII digits,
   // so they were never at risk — asserting it here makes that explicit instead
   // of assumed.
-  const cases: Array<{ lang: string; text: string; book: string; chapter: number; verse: number }> = [
+  const cases: Array<{
+    lang: string;
+    text: string;
+    book: string;
+    chapter: number;
+    verse: number;
+  }> = [
     { lang: "en", text: "John 3:16", book: "John", chapter: 3, verse: 16 },
-    { lang: "it", text: "Giovanni 3:16", book: "Giovanni", chapter: 3, verse: 16 },
-    { lang: "de", text: "Johannes 3:16", book: "Johannes", chapter: 3, verse: 16 },
+    {
+      lang: "it",
+      text: "Giovanni 3:16",
+      book: "Giovanni",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "de",
+      text: "Johannes 3:16",
+      book: "Johannes",
+      chapter: 3,
+      verse: 16,
+    },
     { lang: "es", text: "Juan 3:16", book: "Juan", chapter: 3, verse: 16 },
     { lang: "fr", text: "Jean 3:16", book: "Jean", chapter: 3, verse: 16 },
     { lang: "pt", text: "João 3:16", book: "João", chapter: 3, verse: 16 },
     { lang: "ru", text: "Иоанна 3:16", book: "Иоанна", chapter: 3, verse: 16 },
-    { lang: "zh", text: "约翰福音3:16", book: "约翰福音", chapter: 3, verse: 16 },
-    { lang: "ko", text: "요한복음 3:16", book: "요한복음", chapter: 3, verse: 16 },
-    { lang: "hi", text: "यूहन्ना ३:१६", book: "यूहन्ना", chapter: 3, verse: 16 },
+    {
+      lang: "zh",
+      text: "约翰福音3:16",
+      book: "约翰福音",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "ko",
+      text: "요한복음 3:16",
+      book: "요한복음",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "hi",
+      text: "यूहन्ना ३:१६",
+      book: "यूहन्ना",
+      chapter: 3,
+      verse: 16,
+    },
     { lang: "ar", text: "يوحنا ٣:١٦", book: "يوحنا", chapter: 3, verse: 16 },
   ];
 
@@ -134,7 +170,9 @@ describe("parseVerseHref", () => {
 
   it("normalizes Devanagari digits (regression: NaN chapter bug)", () => {
     expect(
-      parseVerseHref("verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/५/२४"),
+      parseVerseHref(
+        "verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/५/२४",
+      ),
     ).toEqual({ book: "यूहन्ना", chapter: 5, verse: 24 });
   });
 
