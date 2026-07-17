@@ -30,9 +30,10 @@ from dataclasses import dataclass, field
 import httpx
 
 from config import settings
+from providers.llama_guard import LlamaGuardResponseError
 from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
-from utils.metrics import llama_guard_fallback_counter
+from utils.metrics import content_safety_fallback_counter, llama_guard_fallback_counter
 from utils.security import MultiLanguageContentFilter
 
 logger = get_logger(__name__)
@@ -42,6 +43,8 @@ def _classify_llama_guard_failure(e: Exception) -> str:
     """Categorize a Llama Guard failure for fallback-metric labelling."""
     if isinstance(e, CircuitOpenError):
         return "breaker_open"
+    if isinstance(e, LlamaGuardResponseError):
+        return e.reason
     if isinstance(e, httpx.TimeoutException):
         return "timeout"
     if isinstance(e, httpx.HTTPStatusError):
@@ -294,7 +297,13 @@ class ContentSafetyService:
         """
         llama_guard_provider = self._get_llama_guard_provider()
         if not llama_guard_provider:
-            return None
+            content_safety_fallback_counter.add(
+                1, {"stage": "llama_guard", "reason": "provider_unavailable"}
+            )
+            logger.warning(
+                "Llama Guard not configured (no API key); falling back to keyword filter"
+            )
+            return self._full_keyword_fallback(text, language, start)
 
         try:
             llama_guard_result = await llama_guard_provider.analyze_text(text, language)
@@ -348,11 +357,17 @@ class ContentSafetyService:
             # For hybrid mode, continue to Azure (Stage 3)
             return None
 
-        except (httpx.TimeoutException, httpx.HTTPError, CircuitOpenError) as e:
-            # Narrow: only fall back on known transient/network/breaker failures.
+        except (
+            httpx.TimeoutException,
+            httpx.HTTPError,
+            CircuitOpenError,
+            LlamaGuardResponseError,
+        ) as e:
+            # Narrow: only fall back on known transient/network/breaker/response failures.
             # Anything else (programmer error, ValueError, etc.) propagates.
             reason = _classify_llama_guard_failure(e)
             llama_guard_fallback_counter.add(1, {"reason": reason})
+            content_safety_fallback_counter.add(1, {"stage": "llama_guard", "reason": reason})
             logger.warning(
                 "Llama Guard unavailable (%s), falling back to keyword filter: %s",
                 reason,
@@ -371,6 +386,9 @@ class ContentSafetyService:
         """
         provider = self._get_openai_moderation_provider()
         if not provider:
+            content_safety_fallback_counter.add(
+                1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
+            )
             return self._full_keyword_fallback(text, language, start)
 
         try:
@@ -424,6 +442,8 @@ class ContentSafetyService:
             return None
 
         except Exception as e:
+            reason = type(e).__name__.lower()
+            content_safety_fallback_counter.add(1, {"stage": "openai_moderation", "reason": reason})
             logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
             return self._full_keyword_fallback(text, language, start)
 
@@ -480,10 +500,13 @@ class ContentSafetyService:
                         check_duration_ms=total_ms,
                     )
                 except Exception as e:
+                    reason = type(e).__name__.lower()
+                    content_safety_fallback_counter.add(1, {"stage": "azure", "reason": reason})
                     logger.warning(
-                        "Azure Content Safety API unavailable, using Llama Guard result: %s", e
+                        "Azure Content Safety API unavailable, falling back to keyword filter: %s",
+                        e,
                     )
-                    # Fall through to use Llama Guard result (already computed above)
+                    return self._full_keyword_fallback(text, language, start)
 
         # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000

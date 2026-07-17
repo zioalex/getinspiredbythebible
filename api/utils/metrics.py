@@ -227,6 +227,43 @@ llama_guard_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+llama_guard_secondary_model_counter = meter.create_counter(
+    name="llama_guard.secondary_model_total",
+    description=(
+        "Count of Llama Guard primary-model failures that were retried against the "
+        "secondary model (openai/gpt-oss-safeguard-20b), by outcome"
+    ),
+    unit="1",
+)  # attributes: outcome (recovered|also_failed)
+
+# Emitted on every primary-model attempt (success or failure), independent of
+# whether a secondary-model retry follows. Needed because
+# llama_guard.secondary_model_total only counts retries — without this counter
+# there is no denominator to compute "what fraction of primary calls fail?",
+# so a primary route that's degraded most of the time (recovered silently by
+# the secondary on nearly every request) is invisible on every dashboard.
+llama_guard_primary_result_counter = meter.create_counter(
+    name="llama_guard.primary_result_total",
+    description=(
+        "Count of primary Llama Guard model attempts by outcome — the denominator for "
+        "primary-model failure rate (pair with llama_guard.secondary_model_total)"
+    ),
+    unit="1",
+)  # attributes: outcome (success|failed)
+
+# Per-model-call latency, so the primary-vs-secondary latency split (and the
+# tail/p99 behavior of each) is queryable in Application Insights over time —
+# not just from an ad-hoc benchmark. A 2026-07 manual 100-sample benchmark
+# found primary p50/p95/p99 ~338/1450/2341ms and secondary (only invoked on
+# primary failure) ~494/1796ms typical with an outlier up to 16.6s — this
+# histogram is what lets that trend be tracked in production instead of
+# re-measured by hand.
+llama_guard_model_call_duration_histogram = meter.create_histogram(
+    name="llama_guard.model_call_duration_ms",
+    description="Per-model-call latency for Llama Guard classification requests",
+    unit="ms",
+)  # attributes: model_tier (primary|secondary), outcome (success|failed)
+
 openrouter_fallback_counter = meter.create_counter(
     name="openrouter.fallback_total",
     description="Count of OpenRouter primary-model failures that triggered client-side fallback",
@@ -265,3 +302,12 @@ preflight_errors_counter = meter.create_counter(
     description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",
     unit="1",
 )  # attributes: status, path
+
+content_safety_fallback_counter = meter.create_counter(
+    name="content_safety.fallback_total",
+    description=(
+        "Count of content-safety provider unavailability/failure events that degraded to the "
+        "local keyword-only filter instead of allowing the message through unchecked"
+    ),
+    unit="1",
+)  # attributes: stage (llama_guard|openai_moderation|azure), reason
