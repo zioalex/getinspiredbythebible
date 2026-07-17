@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.45.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.44.0...v1.45.0) (2026-07-16)
+
+### Features
+
+* **android:** show "What's New" bottom sheet on first launch after update (BITB-058) ([#879](https://github.com/zioalex/getinspiredbythebible/issues/879)) ([e64210f](https://github.com/zioalex/getinspiredbythebible/commit/e64210fbe37412e1f421a3f074f7831009b177ef))
+* **monitoring:** inline the failing sample + RequestIds in Telegram alerts ([#880](https://github.com/zioalex/getinspiredbythebible/issues/880)) ([dc4d131](https://github.com/zioalex/getinspiredbythebible/commit/dc4d131ce2d96a0885759938b31d658f2bbc28c6))
+
+## [1.44.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.43.0...v1.44.0) (2026-07-12)
+
+### Features
+
+* **android:** add in-app update flow (flexible) (BITB-057) ([#863](https://github.com/zioalex/getinspiredbythebible/issues/863)) ([a98e4e2](https://github.com/zioalex/getinspiredbythebible/commit/a98e4e2eae52793d1f2ac711d2c6146f00dce1b0))
+
+### Bug Fixes
+
+* **dev-env:** make local dev and local-prod environments actually startable ([#861](https://github.com/zioalex/getinspiredbythebible/issues/861)) ([c7072b0](https://github.com/zioalex/getinspiredbythebible/commit/c7072b011bc0def857678b4043dce441f7efc3ed))
+
 ## [1.43.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.42.1...v1.43.0) (2026-07-11)
 
 ### Features

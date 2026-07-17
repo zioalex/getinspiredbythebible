@@ -4,8 +4,12 @@
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
-	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	repo-metrics audit-metrics
+	repo-metrics audit-metrics \
+	check-env-production \
+	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
+	docker-up-prod docker-up-prod-gpu \
+	docker-up-local-prod docker-up-local-prod-build docker-up-local-prod-acr-be \
+	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -283,16 +287,41 @@ update-baseline: install-deps ## Update secrets baseline
 	@echo "$(GREEN)✓ Baseline updated$(NC)"
 
 # ==================== Docker Commands ====================
+#
+# Run modes (see docs/LOCAL_DEVELOPMENT.md for the full matrix):
+#   docker-up                fully local: Ollama + local Postgres      (.env.local)
+#   docker-up-dev            second local stack on shifted ports       (.env.dev)
+#   docker-up-local-prod     local containers -> PROD DB + cloud LLMs  (.env.production)
+#   docker-up-local-prod-acr-be  prod backend image from ACR + local frontend
 
-docker-up: ## Start services (local development, CPU mode)
+# Auto-create env files from their committed templates on first run.
+.env.local:
+	@echo "$(YELLOW).env.local not found — creating from .env.local.example$(NC)"
+	@cp .env.local.example .env.local
+
+.env.dev:
+	@echo "$(YELLOW).env.dev not found — creating from .env.dev.example$(NC)"
+	@cp .env.dev.example .env.dev
+
+# .env.production holds real secrets, so it is never auto-created.
+check-env-production:
+	@if [ ! -f .env.production ]; then \
+		echo "$(YELLOW)Error: .env.production not found$(NC)"; \
+		echo "$(YELLOW)Create it from the template and fill in the secrets:$(NC)"; \
+		echo "  cp .env.production.example .env.production"; \
+		exit 1; \
+	fi
+
+docker-up: .env.local ## Start services (local development, CPU mode)
 	@echo "$(BLUE)Starting services in local development mode (CPU)...$(NC)"
 	@docker compose --env-file .env.local up -d
 	@echo "$(GREEN)✓ Services started$(NC)"
 	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
 	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
 	@echo "$(YELLOW)API Docs: http://localhost:8000/docs$(NC)"
+	@echo "$(YELLOW)First run: db-init loads Bible data + embeddings (follow with 'docker compose logs -f db-init')$(NC)"
 
-docker-up-gpu: ## Start services (local development, GPU mode)
+docker-up-gpu: .env.local ## Start services (local development, GPU mode)
 	@echo "$(BLUE)Starting services in local development mode (GPU)...$(NC)"
 	@docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.gpu.yml up -d
 	@echo "$(GREEN)✓ Services started$(NC)"
@@ -300,7 +329,58 @@ docker-up-gpu: ## Start services (local development, GPU mode)
 	@echo "$(YELLOW)API: http://localhost:8000$(NC)"
 	@echo "$(YELLOW)API Docs: http://localhost:8000/docs$(NC)"
 
-docker-up-prod: ## Start services (production mode, CPU)
+# ==================== Local against PROD DB + cloud LLMs ====================
+# Local containers wired to the production database and cloud LLM providers
+# (OpenRouter chat + Azure OpenAI embeddings). Requires .env.production and
+# your IP on the Azure PG firewall (make az-pg-add-ip).
+
+LOCAL_PROD_PROJECT := getinspired-local-prod
+
+# These stacks run the frontend and API locally — .env.production should point
+# NEXT_PUBLIC_API_URL at http://localhost:8000. If it's left pointing at a real
+# deployed backend, the frontend silently bypasses the local API entirely
+# (including the TURNSTILE_ENABLED=false pin below), and things like a stale
+# production Turnstile site key start rejecting requests from localhost.
+check-local-api-url: check-env-production
+	@API_URL=$$(grep -E '^NEXT_PUBLIC_API_URL=' .env.production | tail -1 | cut -d= -f2-); \
+	if [ -n "$$API_URL" ] && ! echo "$$API_URL" | grep -qE '^https?://localhost(:[0-9]+)?/?$$'; then \
+		echo "$(YELLOW)⚠ .env.production NEXT_PUBLIC_API_URL=$$API_URL$(NC)"; \
+		echo "$(YELLOW)  This stack expects http://localhost:8000 — the frontend will bypass your local API and talk to that host instead.$(NC)"; \
+	fi
+
+docker-up-local-prod: check-local-api-url ## Start local stack against prod DB + cloud LLMs (cached images)
+	@echo "$(BLUE)Starting local stack against PROD DB + cloud LLMs...$(NC)"
+	@docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod.yml up -d
+	@echo "$(GREEN)✓ Services started$(NC)"
+	@echo "$(YELLOW)Frontend: http://localhost:3000$(NC)"
+	@echo "$(YELLOW)API: http://localhost:8000 (docs: /docs)$(NC)"
+	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
+
+docker-up-local-prod-build: check-local-api-url ## Same as docker-up-local-prod but rebuild images from source
+	@echo "$(BLUE)Rebuilding and starting local stack against PROD DB + cloud LLMs...$(NC)"
+	@docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod.yml up -d --build
+	@echo "$(GREEN)✓ Services rebuilt and started$(NC)"
+	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
+
+docker-up-local-prod-acr-be: check-local-api-url ## Prod backend image from ACR + local frontend (usage: TAG=abc1234, default latest)
+	@echo "$(BLUE)Starting ACR backend ($(if $(TAG),$(TAG),latest)) + local frontend...$(NC)"
+	@echo "$(YELLOW)Note: requires 'az acr login --name <ACR_NAME>' beforehand$(NC)"
+	@TAG=$(TAG) docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod-acr-be.yml up -d
+	@echo "$(GREEN)✓ Services started$(NC)"
+	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
+
+docker-down-local-prod: ## Stop the local-prod stack (both variants)
+	@echo "$(BLUE)Stopping local-prod services...$(NC)"
+	@docker compose -p $(LOCAL_PROD_PROJECT) -f docker-compose.local-prod.yml down --remove-orphans
+	@echo "$(GREEN)✓ Local-prod services stopped$(NC)"
+
+docker-logs-local-prod: ## Tail local-prod stack logs
+	@docker compose -p $(LOCAL_PROD_PROJECT) -f docker-compose.local-prod.yml logs -f
+
+docker-restart-local-prod-api: ## Restart the local-prod API only
+	@docker compose -p $(LOCAL_PROD_PROJECT) -f docker-compose.local-prod.yml restart api
+
+docker-up-prod: check-env-production ## Start full stack with prod env (legacy self-hosted mode, CPU)
 	@echo "$(BLUE)Starting services in production mode (CPU)...$(NC)"
 	@docker compose --env-file .env.production up -d --build
 	@echo "$(GREEN)✓ Services started in production mode$(NC)"
@@ -308,7 +388,7 @@ docker-up-prod: ## Start services (production mode, CPU)
 	@echo "$(YELLOW)API: https://voxquieta.org/api$(NC)"
 	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
 
-docker-up-prod-gpu: ## Start services (production mode, GPU)
+docker-up-prod-gpu: check-env-production ## Start full stack with prod env (legacy self-hosted mode, GPU)
 	@echo "$(BLUE)Starting services in production mode (GPU)...$(NC)"
 	@docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 	@echo "$(GREEN)✓ Services started in production mode$(NC)"
@@ -316,8 +396,11 @@ docker-up-prod-gpu: ## Start services (production mode, GPU)
 	@echo "$(YELLOW)API: https://voxquieta.org/api$(NC)"
 	@echo "$(YELLOW)Note: Ensure Cloudflare Tunnel is running$(NC)"
 
-docker-up-dev: ## Start services (dev mode, safe alongside prod)
+docker-up-dev: .env.dev ## Start services (dev mode, safe alongside prod)
 	@echo "$(BLUE)Starting services in dev mode...$(NC)"
+	@# The dev stack shares the ollama_data volume with prod (external volume);
+	@# create it if no prod stack ever did, so a fresh machine also works.
+	@docker volume inspect ollama_data >/dev/null 2>&1 || docker volume create ollama_data >/dev/null
 	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml up -d
 	@echo "$(GREEN)✓ Dev services started$(NC)"
 	@echo "$(YELLOW)Frontend: http://localhost:3001$(NC)"
@@ -325,6 +408,12 @@ docker-up-dev: ## Start services (dev mode, safe alongside prod)
 	@echo "$(YELLOW)API Docs: http://localhost:8001/docs$(NC)"
 	@echo "$(YELLOW)Postgres: localhost:5433$(NC)"
 	@echo "$(YELLOW)Ollama: localhost:11435$(NC)"
+
+docker-up-dev-gpu: .env.dev ## Start dev services with NVIDIA GPU for Ollama
+	@echo "$(BLUE)Starting services in dev mode (GPU)...$(NC)"
+	@docker volume inspect ollama_data >/dev/null 2>&1 || docker volume create ollama_data >/dev/null
+	@docker compose -p getinspired-dev --env-file .env.dev -f docker-compose.dev.yml -f docker-compose.gpu.yml up -d
+	@echo "$(GREEN)✓ Dev services started (GPU)$(NC)"
 
 docker-down-dev: ## Stop dev services
 	@echo "$(BLUE)Stopping dev services...$(NC)"
@@ -411,7 +500,7 @@ docker-reset-db-dev: ## Reset dev database (removes volume and reinitializes)
 functional-test: ## Run functional tests (requires running services)
 	@echo "$(BLUE)Running functional tests...$(NC)"
 	@echo "$(YELLOW)Testing API health...$(NC)"
-	@curl -sf http://localhost:8000/api/v1/health > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running, skipping$(NC)" && exit 0)
+	@curl -sf http://localhost:8000/health/live > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running, skipping$(NC)" && exit 0)
 	@echo "$(YELLOW)Testing embedding dimension consistency...$(NC)"
 	@docker compose exec -T postgres psql -U bible -d bibledb -t -c \
 		"SELECT CASE WHEN COUNT(*) = 0 THEN 'No embeddings yet' \
@@ -431,7 +520,7 @@ functional-test: ## Run functional tests (requires running services)
 functional-test-dev: ## Run functional tests on dev environment
 	@echo "$(BLUE)Running functional tests on dev...$(NC)"
 	@echo "$(YELLOW)Testing API health...$(NC)"
-	@curl -sf http://localhost:8001/api/v1/health > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running$(NC)" && exit 0)
+	@curl -sf http://localhost:8001/health/live > /dev/null && echo "$(GREEN)✓ API health check passed$(NC)" || (echo "$(YELLOW)API not running$(NC)" && exit 0)
 	@echo "$(YELLOW)Testing embedding dimensions...$(NC)"
 	@docker compose -p getinspired-dev exec -T postgres psql -U bible -d bibledb -t -c \
 		"SELECT CASE WHEN COUNT(*) = 0 THEN 'No embeddings yet' \

@@ -181,9 +181,9 @@ Cross-Origin Resource Sharing is configured to only allow trusted origins.
 
 ### Allowed Origins
 
-- `http://localhost:3000` (development)
-- `http://localhost:3001` (development)
-- `https://getinspiredbythebible.ai4you.sh` (production)
+- `http://localhost:3000` / `http://127.0.0.1:3000` (development)
+- `http://localhost:3001` / `http://127.0.0.1:3001` (development)
+- `https://voxquieta.org` (production, configurable via `PRODUCTION_FRONTEND_URL`)
 - Additional origins via `CORS_ORIGINS` environment variable
 
 ## Cloudflare Additional Protection

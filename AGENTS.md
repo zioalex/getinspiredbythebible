@@ -81,6 +81,14 @@ docs/                 Project documentation
 
 ## Development Setup
 
+Docker run modes (full matrix in `docs/LOCAL_DEVELOPMENT.md`):
+
+```bash
+make docker-up               # fully local stack (Ollama + local Postgres), auto-creates .env.local
+make docker-up-dev           # second stack on shifted ports (3001/8001), auto-creates .env.dev
+make docker-up-local-prod    # local containers -> PROD DB + cloud LLMs (needs .env.production)
+```
+
 ### Backend
 
 ```bash

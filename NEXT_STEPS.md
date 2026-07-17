@@ -1,5 +1,9 @@
 # 🚀 Next Steps - Multilingual Bible Support
 
+> **Historical document** (2026-01-25, `multiple_bible` branch). Commands and
+> setup steps below may be outdated — current environment setup lives in
+> [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
+
 **Date**: 2026-01-25
 **Status**: Phase 1-6 Complete (40% done) ✅
 **Branch**: `multiple_bible`

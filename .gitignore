@@ -43,6 +43,9 @@ sshcert/
 .env.*
 **/.env
 **/.env.local
+# ...but keep the committed templates
+!.env.*.example
+!**/.env.example
 
 # IDE and editors
 .DS_Store

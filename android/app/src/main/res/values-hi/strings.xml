@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">नया क्या है</string>
     <string name="settings_changelog_link">नया क्या है</string>
     <string name="changelog_empty">अभी कोई रिलीज़ नोट्स उपलब्ध नहीं हैं।</string>
+    <string name="whats_new_title">नया क्या है</string>
+    <string name="whats_new_dismiss">समझ गया</string>
+    <string name="whats_new_see_all">सभी देखें</string>
 
     <!-- Errors -->
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>
@@ -278,6 +281,10 @@
     <string name="translation_auto_description">बैकएंड आपकी भाषा के लिए सर्वश्रेष्ठ अनुवाद चुनता है</string>
     <string name="translation_picker_title">बाइबिल संस्करण</string>
     <string name="translation_picker_subtitle">अपना पसंदीदा बाइबिल अनुवाद चुनें</string>
+
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">अपडेट डाउनलोड हो गया — इंस्टॉल करने के लिए टैप करें</string>
+    <string name="update_install_action">अपडेट इंस्टॉल करें</string>
 
     <!-- Share -->
     <string name="share_prefix">मुझे यह प्रेरणादायक बाइबिल अंतर्दृष्टि मिली:</string>

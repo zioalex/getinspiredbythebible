@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">Novidades</string>
     <string name="settings_changelog_link">Novidades</string>
     <string name="changelog_empty">Ainda não há notas de versão disponíveis.</string>
+    <string name="whats_new_title">Novidades</string>
+    <string name="whats_new_dismiss">Entendi</string>
+    <string name="whats_new_see_all">Ver tudo</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Você teve 10 mensagens nesta sessão! Que tal fazer uma pausa e apreciar a criação de Deus ao ar livre? 🌳</string>
@@ -279,6 +282,10 @@
     <string name="translation_auto_description">O backend escolhe a melhor tradução para o seu idioma</string>
     <string name="translation_picker_title">Versão da Bíblia</string>
     <string name="translation_picker_subtitle">Escolha sua tradução preferida da Bíblia</string>
+
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">Atualização baixada — toque para instalar</string>
+    <string name="update_install_action">Instalar atualização</string>
 
     <!-- Share -->
     <string name="share_prefix">Encontrei esta reflexão bíblica inspiradora:</string>

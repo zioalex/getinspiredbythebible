@@ -13,7 +13,9 @@
 
 services:
   api:
-    image: ${ACR_NAME:-bibleappacrmb0172}.azurecr.io/voxquieta-backend:${IMAGE_TAG:-latest}
+    # Repo name must match what CI pushes (see .github/workflows/azure-deploy.yml):
+    # bible-backend, NOT voxquieta-backend.
+    image: ${ACR_NAME:-bibleappacrmb0172}.azurecr.io/bible-backend:${TAG:-latest}
     ports:
       - "0.0.0.0:8000:8000"
     environment:
@@ -36,6 +38,12 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       # Contact form
       - SMTP2GO_API_KEY=${SMTP2GO_API_KEY:-}
+      # Local testing runs WITHOUT the production hardening: Turnstile is
+      # pinned off (the prod image's runtime env comes from Terraform, so
+      # this cannot leak to production). Rate limiting stays on by default;
+      # set RATE_LIMIT_ENABLED=false in .env.production to switch it off.
+      - TURNSTILE_ENABLED=false
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
 
   frontend:
     build:

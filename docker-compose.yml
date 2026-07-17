@@ -13,7 +13,8 @@ services:
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
       - OLLAMA_HOST=http://ollama:11434
-      - DATABASE_URL=${DATABASE_URL:-}
+      # Defaults to the in-stack Postgres so `make docker-up` works out of the box.
+      - DATABASE_URL=${DATABASE_URL:-postgresql://bible:bible123@postgres:5432/bibledb}
       # OpenRouter settings
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
@@ -57,6 +58,30 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
+  # One-shot job: loads Bible data and generates embeddings on first start
+  # (skips itself when the verses table is already populated).
+  db-init:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://bible:bible123@postgres:5432/bibledb}
+      - OLLAMA_HOST=http://ollama:11434
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./scripts:/scripts
+      - ./data:/data
+    working_dir: /scripts
+    entrypoint: ["/bin/bash", "/scripts/init-db.sh"]
+    restart: "no"
+
   # PostgreSQL with pgvector for semantic search
   postgres:
     image: pgvector/pgvector:pg16
@@ -95,5 +120,14 @@ services:
     command: npm run dev # Override for development mode
 
 volumes:
+  # Fixed (non-project-prefixed) name so the dev stack (docker-compose.dev.yml,
+  # which references it as an external volume) shares the same Ollama model
+  # cache instead of re-downloading ~5GB of models.
+  # Existing installs: models previously lived in getinspiredbythebible_ollama_data;
+  # either let Ollama re-pull on next start, or copy them over once:
+  #   docker volume create ollama_data
+  #   docker run --rm -v getinspiredbythebible_ollama_data:/from -v ollama_data:/to \
+  #     alpine sh -c "cp -a /from/. /to/"
   ollama_data:
+    name: ollama_data
   postgres_data:

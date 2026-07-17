@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">Что нового</string>
     <string name="settings_changelog_link">Что нового</string>
     <string name="changelog_empty">Заметки о выпуске пока недоступны.</string>
+    <string name="whats_new_title">Что нового</string>
+    <string name="whats_new_dismiss">Понятно</string>
+    <string name="whats_new_see_all">Показать все</string>
 
     <!-- Errors -->
     <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
@@ -280,6 +283,10 @@
     <string name="translation_auto_description">Бэкенд выбирает лучший перевод для вашего языка</string>
     <string name="translation_picker_title">Версия Библии</string>
     <string name="translation_picker_subtitle">Выберите предпочитаемый перевод Библии</string>
+
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">Обновление загружено — нажмите, чтобы установить</string>
+    <string name="update_install_action">Установить обновление</string>
 
     <!-- Share -->
     <string name="share_prefix">Я нашёл это вдохновляющее библейское откровение:</string>

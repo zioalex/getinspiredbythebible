@@ -15,7 +15,11 @@ from sqlalchemy import text
 import os
 
 async def check():
-    engine = create_async_engine(os.environ['DATABASE_URL'])
+    url = os.environ['DATABASE_URL']
+    # create_async_engine needs the asyncpg dialect; accept plain postgresql:// too
+    if url.startswith('postgresql://'):
+        url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    engine = create_async_engine(url)
     async with engine.begin() as conn:
         result = await conn.execute(text('SELECT COUNT(*) FROM verses'))
         count = result.scalar()

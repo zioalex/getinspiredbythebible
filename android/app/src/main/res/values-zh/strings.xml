@@ -182,6 +182,9 @@
     <string name="settings_changelog_title">更新内容</string>
     <string name="settings_changelog_link">更新内容</string>
     <string name="changelog_empty">暂无版本说明。</string>
+    <string name="whats_new_title">更新内容</string>
+    <string name="whats_new_dismiss">知道了</string>
+    <string name="whats_new_see_all">查看全部</string>
 
     <!-- Errors -->
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>
@@ -277,6 +280,10 @@
     <string name="translation_auto_description">后端为您的语言选择最佳译本</string>
     <string name="translation_picker_title">圣经版本</string>
     <string name="translation_picker_subtitle">选择您喜欢的圣经译本</string>
+
+    <!-- In-app update (BITB-057) -->
+    <string name="update_downloaded_message">更新已下载 — 点按以安装</string>
+    <string name="update_install_action">安装更新</string>
 
     <!-- Share -->
     <string name="share_prefix">我找到了这个令人振奋的圣经启示：</string>

@@ -1,6 +1,6 @@
 # BITB-057: Android — In-App Update API (Flexible Flow)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) open, pending CI + review
 **Priority:** P1 (High) — users stuck on outdated builds get no new features or fixes
 **Size:** M (1–2 days)
 **Created:** 2026-07-01
