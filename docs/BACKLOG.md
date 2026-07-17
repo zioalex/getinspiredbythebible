@@ -340,7 +340,7 @@ misreported as a generic 500.
 
 ### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** 🚧 In Progress — Turnstile phase complete; rate-limiter and content-safety phases remain
+**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
@@ -363,9 +363,10 @@ error — unacceptable for a pastoral-care product serving people in crisis.
       breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
 - [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
       session lifetime cap survives deploys; dedicated unit tests added
-- [ ] Content safety: keyword stage always runs regardless of ML-stage availability; empty Llama Guard
-      response treated as an error, not "safe"; every fallback branch emits a metric; `content_safety_enabled`
-      default flipped on
+- [x] Content safety: keyword stage always runs regardless of ML-stage availability; empty/malformed
+      Llama Guard response treated as an error, not "safe"; every fallback branch emits
+      `content_safety.fallback_total` with a scheduled-query alert; `content_safety_enabled` default
+      flipped on (matches Terraform prod default)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`
 
@@ -1681,6 +1682,32 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-070: Re-evaluate `hybrid` Content-Safety Mode (Two-Vendor Defense-in-Depth)
+
+**Status:** 🎯 Todo
+**Size:** M (1-2 days, mostly infra + a small code change)
+**Created:** 2026-07-17
+
+**As a** maintainer, **I want** a documented, ready-to-execute plan for switching content
+safety to `hybrid` mode, **so that** when the team decides two-vendor defense-in-depth is
+worth the added infra/cost, it's a scoped task instead of a fresh investigation.
+
+**Why deferred:** `ml_only` (current default) is reliable today — after the BITB-061 follow-up
+work, a 100-sample live benchmark measured 0 total failures (the secondary Llama Guard model
+recovers every primary failure). `hybrid` would add a genuinely independent second vendor
+(Azure Content Safety, chained after OpenAI Moderation) rather than just retry resilience
+within one vendor — a real but not urgent upgrade. Blocked today by: no `OPENAI_API_KEY`
+infrastructure anywhere (Terraform variable, `main.tf` env wiring, GitHub secret all missing —
+the only OpenAI-related key that exists, `AZURE_OPENAI_API_KEY`, is for embeddings, not
+moderation), no Azure Content Safety credentials wired either, and a code-level constraint:
+Azure Content Safety can currently only run as `hybrid`'s Stage 3, gated by
+`content_safety_mode == "hybrid"` — there's no path to "Llama Guard + Azure" without also
+adding an OpenAI key, unless a new mode is added.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-070-reevaluate-hybrid-content-safety-mode.md`
+
+---
 
 ### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
 

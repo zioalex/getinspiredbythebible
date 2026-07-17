@@ -11,7 +11,7 @@ Covers:
 import sys
 import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -789,3 +789,122 @@ async def test_ml_only_mode_does_not_call_openai_moderation(safety_service_ml_on
 
     assert openai_called is False
     assert result.allowed is False  # Llama Guard mock blocks it
+
+
+# ===========================================================================
+# BITB-061: fail-closed regression tests — no branch may degrade to allow-all
+# ===========================================================================
+
+
+async def test_ml_only_mode_falls_back_when_provider_unavailable(monkeypatch):
+    """ml_only with no API key configured must fall back to the keyword filter,
+    NOT silently allow everything through (the BITB-061 allow-all gap)."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="ml_only",
+            azure_content_safety_enabled=False,
+            openai_api_key=None,
+            openrouter_api_key=None,
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
+        ),
+    )
+    service = ContentSafetyService()
+
+    result = await service.check("I want to build a bomb", "en")
+    assert result.allowed is False
+    assert "fallback" in result.reason
+
+    clean_result = await service.check("I need guidance on my faith journey", "en")
+    assert clean_result.allowed is True
+
+
+async def test_ml_only_mode_provider_unavailable_emits_fallback_metric(monkeypatch):
+    """The provider-unavailable path must emit the fallback metric, not just log."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="ml_only",
+            azure_content_safety_enabled=False,
+            openai_api_key=None,
+            openrouter_api_key=None,
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
+        ),
+    )
+    service = ContentSafetyService()
+
+    with patch("utils.content_safety.content_safety_fallback_counter") as mock_counter:
+        await service.check("clean message", "en")
+        mock_counter.add.assert_called_once_with(
+            1, {"stage": "llama_guard", "reason": "provider_unavailable"}
+        )
+
+
+async def test_ml_only_mode_falls_back_on_empty_llama_guard_response(monkeypatch):
+    """An empty Llama Guard response must be treated as an error and fall back
+    to the keyword filter, NOT treated as 'safe' (the BITB-061 O2 gap)."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="ml_only",
+            azure_content_safety_enabled=False,
+            openai_api_key=None,
+            openrouter_api_key="test-key",  # pragma: allowlist secret
+            llama_guard_threshold=0.5,
+            llama_guard_timeout=10,
+        ),
+    )
+    service = ContentSafetyService()
+
+    mock_provider = MagicMock()
+    mock_provider.analyze_text = AsyncMock(
+        side_effect=LlamaGuardResponseError("Empty Llama Guard response", reason="empty_response")
+    )
+    monkeypatch.setattr(service, "_get_llama_guard_provider", lambda: mock_provider)
+
+    result = await service.check("I want to build a bomb", "en")
+    assert result.allowed is False
+    assert "fallback" in result.reason
+
+
+async def test_azure_exception_falls_back_to_keyword_not_default_allow(
+    safety_service_hybrid, monkeypatch
+):
+    """Azure failure (after OpenAI Moderation already said clean) must fall back
+    to the keyword filter, NOT silently allow via the terminal default-allow
+    branch (the BITB-061 O2 gap for hybrid mode)."""
+    from providers.azure_content_safety import ContentSafetyResult
+
+    mock_openai_provider = MagicMock()
+    mock_openai_provider.analyze_text = AsyncMock(
+        return_value=ContentSafetyResult(allowed=True, reason="clean", categories={})
+    )
+    monkeypatch.setattr(
+        safety_service_hybrid, "_get_openai_moderation_provider", lambda: mock_openai_provider
+    )
+
+    mock_azure_provider = MagicMock()
+    mock_azure_provider.analyze_text = AsyncMock(side_effect=RuntimeError("Azure down"))
+    monkeypatch.setattr(safety_service_hybrid, "_get_azure_provider", lambda: mock_azure_provider)
+
+    result = await safety_service_hybrid.check("I want to build a bomb", "en")
+    assert result.allowed is False
+    assert "fallback" in result.reason
+
+
+async def test_openai_moderation_provider_unavailable_emits_fallback_metric(
+    safety_service_keyword_only,
+):
+    """The OpenAI Moderation provider-unavailable path must emit the fallback metric."""
+    with patch("utils.content_safety.content_safety_fallback_counter") as mock_counter:
+        await safety_service_keyword_only.check("clean message", "en")
+        mock_counter.add.assert_called_once_with(
+            1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
+        )

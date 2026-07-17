@@ -55,6 +55,18 @@
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
 #       degrades to verse-less responses silently while this persists.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_rate (BITB-061)
+#       Fires when any content-safety provider (Llama Guard, OpenAI Moderation, Azure)
+#       degrades to the local keyword-only filter (utils/content_safety.py). The
+#       keyword filter still blocks/allows correctly, but this is the only signal
+#       that the ML-backed safety net is temporarily degraded for a crisis-sensitive
+#       product.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.llama_guard_primary_failure_rate
+#       Sev3 companion to content_safety_fallback_rate: fires when the PRIMARY Llama
+#       Guard model fails but the secondary model recovers it, so the ML classification
+#       itself is still correct — content_safety_fallback_rate stays silent in this case
+#       since it only fires when BOTH models fail. Without this, a primary route stuck
+#       failing on most/all requests is invisible on every existing dashboard.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -168,6 +180,14 @@ resource "azurerm_key_vault_access_policy" "telegram_logic_app" {
 # Get_results action below can fetch the rows the alert matched (via the alert's
 # linkToFilteredSearchResultsAPI, token audience https://api.loganalytics.io) and
 # inline the sample + RequestIds into the Telegram message. Read-only, workspace-scoped.
+#
+# NOTE: creating a role assignment requires Microsoft.Authorization/roleAssignments/write
+# at this scope, which the deploy SP's Contributor role does NOT include (Azure excludes
+# it from Contributor by design). setup-github-spn.sh grants the deploy SP an extra
+# narrow "User Access Administrator" role on this workspace for exactly this reason -
+# see the "Service Principal" section in deployment/README.md. If you add another
+# azurerm_role_assignment on a different resource, it needs the same extra grant on its
+# scope or terraform apply will fail with AuthorizationFailed.
 resource "azurerm_role_assignment" "telegram_logic_app_logs_reader" {
   count                = local.telegram_enabled ? 1 : 0
   scope                = azurerm_log_analytics_workspace.main.id
@@ -1169,6 +1189,95 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
       | where name == "client.errors_total"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 20
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Content safety fallback alert (BITB-061).
+# Fires when the content_safety.fallback_total custom metric records any
+# provider-unavailable or provider-failure event (utils/content_safety.py).
+# Every fallback branch already degrades safely to the local keyword-only
+# filter (never to allow-all), but for a pastoral-care product screening
+# self-harm/violence content, a degraded ML safety net is itself an
+# operator-actionable signal, not just a resilience detail.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-content-safety-fallback-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 2
+  description          = "Content safety provider (Llama Guard / OpenAI Moderation / Azure) degraded to keyword-only fallback (content_safety.fallback_total metric) in the last 10 minutes — see utils/content_safety.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "content_safety.fallback_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Lower severity than content_safety_fallback_rate above: this fires when the
+# PRIMARY Llama Guard model (meta-llama/llama-guard-4-12b) fails and the
+# secondary model recovers it — the request is still ML-classified correctly,
+# just at higher latency/cost, so it's not user-impacting on its own. But
+# without this alert, a primary route stuck failing on most/all requests is
+# completely invisible: content_safety_fallback_rate only fires when BOTH
+# models fail (the request degrades to keyword-only), so a chronically
+# degraded primary silently recovered by the secondary produces zero signal
+# on any existing dashboard. See providers/llama_guard.py.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "llama_guard_primary_failure_rate" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-llama-guard-primary-failure-rate"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "Primary Llama Guard model (llama_guard.primary_result_total, outcome=failed) failed in the last 10 minutes — the secondary model is recovering these, but every occurrence pays extra latency/cost and the pipeline is running on a single remaining ML classifier. See providers/llama_guard.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "llama_guard.primary_result_total"
+      | where tostring(customDimensions["outcome"]) == "failed"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
     KQL
     time_aggregation_method = "Count"
     threshold               = 0

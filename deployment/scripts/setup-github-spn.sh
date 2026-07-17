@@ -214,6 +214,60 @@ log_step "Creating Service Principal: $SPN_NAME"
 log_info "  Role: $ROLE"
 log_info "  Scope: $SCOPE"
 
+# =============================================================================
+# Grant roleAssignments/write on the Log Analytics workspace (narrow scope)
+# =============================================================================
+#
+# Contributor (assigned above) deliberately excludes
+# Microsoft.Authorization/roleAssignments/write, so Terraform can't create
+# azurerm_role_assignment resources (e.g. telegram_logic_app_logs_reader in
+# monitoring.tf) with just that role. Grant "User Access Administrator" scoped
+# to only the Log Analytics workspace - not the subscription or resource group -
+# so this SPN can manage RBAC on that one resource and nothing else.
+#
+# Called for every SPN we touch (newly created, credentials reset, OR left
+# alone) - an existing SPN that predates this grant needs it just as much as a
+# brand-new one, and doesn't require rotating its credentials to get it.
+PROJECT_NAME="bible-app"
+WORKSPACE_RESOURCE_GROUP="${PROJECT_NAME}-rg"
+
+grant_log_analytics_workspace_role() {
+    local app_id="$1"
+    local sp_object_id
+    sp_object_id=$(az ad sp show --id "$app_id" --query id -o tsv)
+
+    log_step "Checking for an existing Log Analytics workspace in $WORKSPACE_RESOURCE_GROUP..."
+    local workspace_id
+    workspace_id=$(az resource list \
+        --resource-group "$WORKSPACE_RESOURCE_GROUP" \
+        --resource-type "Microsoft.OperationalInsights/workspaces" \
+        --query "[?starts_with(name, '${PROJECT_NAME}-logs-')].id | [0]" \
+        -o tsv 2>/dev/null || true)
+
+    if [ -n "$workspace_id" ]; then
+        log_step "Granting User Access Administrator on workspace: $workspace_id"
+        if az role assignment create \
+            --assignee-object-id "$sp_object_id" \
+            --assignee-principal-type ServicePrincipal \
+            --role "User Access Administrator" \
+            --scope "$workspace_id" \
+            --output none 2>/dev/null; then
+            log_info "Granted. Terraform can now manage role assignments scoped to this workspace."
+        else
+            log_info "Already granted (or grant failed - check with: az role assignment list --assignee $sp_object_id --scope $workspace_id)."
+        fi
+    else
+        log_warn "No '${PROJECT_NAME}-logs-*' workspace found in $WORKSPACE_RESOURCE_GROUP yet"
+        log_warn "(expected on a brand-new environment before the first 'terraform apply')."
+        log_warn "After that first apply creates the workspace, run this once to unblock"
+        log_warn "azurerm_role_assignment resources in monitoring.tf:"
+        echo ""
+        echo "  WORKSPACE_ID=\$(az resource list -g $WORKSPACE_RESOURCE_GROUP --resource-type Microsoft.OperationalInsights/workspaces --query \"[?starts_with(name, '${PROJECT_NAME}-logs-')].id | [0]\" -o tsv)"
+        echo "  az role assignment create --assignee-object-id $sp_object_id --assignee-principal-type ServicePrincipal --role \"User Access Administrator\" --scope \"\$WORKSPACE_ID\""
+        echo ""
+    fi
+}
+
 # Check if SPN already exists
 EXISTING_APP=$(az ad app list --display-name "$SPN_NAME" --query '[0].appId' -o tsv 2>/dev/null || true)
 if [ -n "$EXISTING_APP" ]; then
@@ -221,7 +275,9 @@ if [ -n "$EXISTING_APP" ]; then
     read -p "Do you want to reset the credentials? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Keeping existing credentials. Exiting."
+        log_info "Keeping existing credentials."
+        grant_log_analytics_workspace_role "$EXISTING_APP"
+        log_info "Done. Exiting (credentials unchanged, no new secrets to output)."
         exit 0
     fi
     log_step "Resetting credentials for existing SPN..."
@@ -249,6 +305,8 @@ if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ]; then
 fi
 
 log_info "Service Principal created successfully!"
+
+grant_log_analytics_workspace_role "$CLIENT_ID"
 
 # =============================================================================
 # Output Credentials

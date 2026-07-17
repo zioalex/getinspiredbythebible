@@ -25,7 +25,7 @@ def make_llama_guard_response(response_text: str) -> dict:
     """
     return {
         "id": "gen-test123",
-        "model": "meta-llama/llama-guard-3-8b",
+        "model": "meta-llama/llama-guard-4-12b",
         "choices": [
             {
                 "message": {
@@ -299,6 +299,194 @@ async def test_http_error_raised():
 
 
 @pytest.mark.asyncio
+async def test_empty_response_raises_not_safe():
+    """An empty response body must raise, NOT be treated as 'safe' (BITB-061 O2)."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+    mock_response = make_llama_guard_response("   ")
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError) as exc_info:
+            await provider.analyze_text("test message", "en")
+
+        assert exc_info.value.reason == "empty_response"
+        # An empty/malformed response must count as a breaker failure so a
+        # persistently misbehaving provider eventually trips to fail-closed.
+        assert provider._breaker._consecutive_failures == 1
+
+
+@pytest.mark.asyncio
+async def test_malformed_response_shape_raises():
+    """A response missing the expected choices/message/content shape must raise,
+    not crash with an uncaught KeyError/IndexError."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = {"choices": []}  # missing [0]
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError) as exc_info:
+            await provider.analyze_text("test message", "en")
+
+        assert exc_info.value.reason == "malformed_response"
+
+
+@pytest.mark.asyncio
+async def test_null_content_raises_not_crashes():
+    """Upstream can return finish_reason=stop with content: null (observed live
+    against OpenRouter/Together for meta-llama/llama-guard-4-12b) — the key is
+    present so it doesn't raise on lookup, but must still be treated as a
+    malformed response, not crash with an uncaught AttributeError on .strip()."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = {
+            "choices": [{"message": {"role": "assistant", "content": None}}]
+        }
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError) as exc_info:
+            await provider.analyze_text("test message", "en")
+
+        assert exc_info.value.reason == "malformed_response"
+
+
+@pytest.mark.asyncio
+async def test_secondary_model_used_when_primary_fails():
+    """If the primary model returns a malformed response, a secondary model
+    (openai/gpt-oss-safeguard-20b) must be tried before giving up — and if it
+    succeeds, its classification is used and the breaker does NOT record a
+    failure (a primary hiccup recovered by the secondary is a success)."""
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    primary_response = MagicMock()
+    primary_response.status_code = 200
+    primary_response.json.return_value = {
+        "choices": [{"message": {"role": "assistant", "content": None}}]
+    }
+    primary_response.raise_for_status = lambda: None
+
+    secondary_response = MagicMock()
+    secondary_response.status_code = 200
+    secondary_response.json.return_value = make_llama_guard_response("unsafe\nS9")
+    secondary_response.raise_for_status = lambda: None
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_post.side_effect = [primary_response, secondary_response]
+
+        result = await provider.analyze_text("I want to build a bomb", "en")
+
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected"
+    assert provider._breaker._consecutive_failures == 0
+
+    assert mock_post.call_count == 2
+    primary_call, secondary_call = mock_post.call_args_list
+    assert primary_call.kwargs["json"]["model"] == "meta-llama/llama-guard-4-12b"
+    assert secondary_call.kwargs["json"]["model"] == "openai/gpt-oss-safeguard-20b"
+    assert secondary_call.kwargs["json"]["max_tokens"] == 800
+    assert secondary_call.kwargs["json"]["reasoning"] == {"effort": "low"}
+    # Primary uses the client-level default timeout (explicit USE_CLIENT_DEFAULT
+    # sentinel, not a per-call override); the secondary gets its own longer,
+    # explicit per-call timeout override so a slow-but-working reasoning-model
+    # call isn't cut off at the primary's tighter budget, while still capping
+    # the worst case well below the old 10s.
+    assert primary_call.kwargs["timeout"] is httpx.USE_CLIENT_DEFAULT
+    assert secondary_call.kwargs["timeout"] == LlamaGuardProvider.SECONDARY_TIMEOUT_SECONDS
+
+    # The two metrics together are the only way to see a degraded primary route
+    # that the secondary is silently compensating for: primary_result_total is
+    # the denominator, secondary_model_total{outcome=recovered} confirms the
+    # secondary rescued it (see BITB-061 follow-up: "how often does the first
+    # model fail?" wasn't answerable from metrics before this).
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "failed"})
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "recovered"})
+
+
+@pytest.mark.asyncio
+async def test_primary_model_success_emits_metric():
+    """The primary-result metric must fire on the fast/happy path too — it's
+    the denominator for primary-model failure rate, not just a failure counter."""
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    mock_response = make_llama_guard_response("safe")
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        result = await provider.analyze_text("How did David kill Goliath?", "en")
+
+    assert result.allowed is True
+    assert mock_post.call_count == 1
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "success"})
+    mock_secondary_counter.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_secondary_model_also_fails_falls_back():
+    """If both the primary and secondary models fail, the breaker must record
+    a single failure and the original error type must still propagate so the
+    caller (content_safety.py) falls back to the keyword filter."""
+    from providers.llama_guard import LlamaGuardResponseError
+
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = {"choices": []}
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        with pytest.raises(LlamaGuardResponseError):
+            await provider.analyze_text("test message", "en")
+
+    assert mock_post.call_count == 2
+    assert provider._breaker._consecutive_failures == 1
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "failed"})
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "also_failed"})
+
+
+@pytest.mark.asyncio
 async def test_uses_openrouter_key():
     """Should accept OpenRouter API key."""
     provider = LlamaGuardProvider(api_key="sk-or-v1-test123", threshold=0.5)
@@ -346,7 +534,7 @@ async def test_api_call_format():
         assert call_kwargs["headers"]["Content-Type"] == "application/json"
         assert call_kwargs["headers"]["HTTP-Referer"] == settings.production_frontend_url
         assert call_kwargs["headers"]["X-Title"] == "VoxQuieta"
-        assert call_kwargs["json"]["model"] == "meta-llama/llama-guard-3-8b"
+        assert call_kwargs["json"]["model"] == "meta-llama/llama-guard-4-12b"
         assert call_kwargs["json"]["temperature"] == 0
         assert call_kwargs["json"]["max_tokens"] == 20
         assert len(call_kwargs["json"]["messages"]) == 1
