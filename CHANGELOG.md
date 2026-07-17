@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.46.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.0...v1.46.1) (2026-07-17)
 
-
 ### Bug Fixes
 
 * **verses:** normalize non-ASCII digits in verse-link chapter/verse parsing ([#893](https://github.com/zioalex/getinspiredbythebible/issues/893)) ([5f55b2a](https://github.com/zioalex/getinspiredbythebible/commit/5f55b2a40d85fa57f5859260de1688f5d569a5d4))
-
 
 ### Documentation
 
