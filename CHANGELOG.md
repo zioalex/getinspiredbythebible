@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.46.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.45.1...v1.46.0) (2026-07-17)
+
+### Features
+
+* **translations:** commit Hindi IRV Bible data, fix loader/license config ([#890](https://github.com/zioalex/getinspiredbythebible/issues/890)) ([b05e432](https://github.com/zioalex/getinspiredbythebible/commit/b05e4321994785db47712ed96e78b415a0f4d831))
+
+### Bug Fixes
+
+* **deploy:** grant deploy SP roleAssignments/write on the Log Analytics workspace ([#891](https://github.com/zioalex/getinspiredbythebible/issues/891)) ([38b27c4](https://github.com/zioalex/getinspiredbythebible/commit/38b27c47ea337631a20d742d4795d2941f2a0492))
+
+### Documentation
+
+* **backlog:** add BITB-070 to re-evaluate hybrid content-safety mode ([#888](https://github.com/zioalex/getinspiredbythebible/issues/888)) ([32d52ab](https://github.com/zioalex/getinspiredbythebible/commit/32d52ab7c995179764b94817ef888a0ca266014a))
+
 ## [1.45.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.45.0...v1.45.1) (2026-07-17)
 
 ### Bug Fixes
