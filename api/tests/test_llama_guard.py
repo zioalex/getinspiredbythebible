@@ -388,7 +388,13 @@ async def test_secondary_model_used_when_primary_fails():
     secondary_response.json.return_value = make_llama_guard_response("unsafe\nS9")
     secondary_response.raise_for_status = lambda: None
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
         mock_post.side_effect = [primary_response, secondary_response]
 
         result = await provider.analyze_text("I want to build a bomb", "en")
@@ -404,6 +410,43 @@ async def test_secondary_model_used_when_primary_fails():
     assert secondary_call.kwargs["json"]["max_tokens"] == 800
     assert secondary_call.kwargs["json"]["reasoning"] == {"effort": "low"}
 
+    # The two metrics together are the only way to see a degraded primary route
+    # that the secondary is silently compensating for: primary_result_total is
+    # the denominator, secondary_model_total{outcome=recovered} confirms the
+    # secondary rescued it (see BITB-061 follow-up: "how often does the first
+    # model fail?" wasn't answerable from metrics before this).
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "failed"})
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "recovered"})
+
+
+@pytest.mark.asyncio
+async def test_primary_model_success_emits_metric():
+    """The primary-result metric must fire on the fast/happy path too — it's
+    the denominator for primary-model failure rate, not just a failure counter."""
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+
+    mock_response = make_llama_guard_response("safe")
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_response_obj = MagicMock()
+        mock_response_obj.status_code = 200
+        mock_response_obj.json.return_value = mock_response
+        mock_response_obj.raise_for_status = lambda: None
+        mock_post.return_value = mock_response_obj
+
+        result = await provider.analyze_text("How did David kill Goliath?", "en")
+
+    assert result.allowed is True
+    assert mock_post.call_count == 1
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "success"})
+    mock_secondary_counter.add.assert_not_called()
+
 
 @pytest.mark.asyncio
 async def test_secondary_model_also_fails_falls_back():
@@ -414,7 +457,13 @@ async def test_secondary_model_also_fails_falls_back():
 
     provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.llama_guard_primary_result_counter") as mock_primary_counter,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
         mock_response_obj = MagicMock()
         mock_response_obj.status_code = 200
         mock_response_obj.json.return_value = {"choices": []}
@@ -426,6 +475,8 @@ async def test_secondary_model_also_fails_falls_back():
 
     assert mock_post.call_count == 2
     assert provider._breaker._consecutive_failures == 1
+    mock_primary_counter.add.assert_called_once_with(1, {"outcome": "failed"})
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "also_failed"})
 
 
 @pytest.mark.asyncio

@@ -29,7 +29,7 @@ import httpx
 from config import settings
 from providers.azure_content_safety import ContentSafetyResult
 from utils.circuit_breaker import CircuitBreaker, CircuitOpenError
-from utils.metrics import llama_guard_secondary_model_counter
+from utils.metrics import llama_guard_primary_result_counter, llama_guard_secondary_model_counter
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +346,9 @@ class LlamaGuardProvider:
                 is_safe, violated_categories = await self._call_model(
                     client, self.MODEL, prompt, text_hash, max_tokens=self.PRIMARY_MAX_TOKENS
                 )
+                llama_guard_primary_result_counter.add(1, {"outcome": "success"})
             except (httpx.HTTPError, LlamaGuardResponseError) as primary_error:
+                llama_guard_primary_result_counter.add(1, {"outcome": "failed"})
                 logger.warning(
                     "Primary Llama Guard model failed, retrying with secondary model",
                     extra={"text_hash": text_hash, "error": str(primary_error)},

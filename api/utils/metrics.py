@@ -236,6 +236,21 @@ llama_guard_secondary_model_counter = meter.create_counter(
     unit="1",
 )  # attributes: outcome (recovered|also_failed)
 
+# Emitted on every primary-model attempt (success or failure), independent of
+# whether a secondary-model retry follows. Needed because
+# llama_guard.secondary_model_total only counts retries — without this counter
+# there is no denominator to compute "what fraction of primary calls fail?",
+# so a primary route that's degraded most of the time (recovered silently by
+# the secondary on nearly every request) is invisible on every dashboard.
+llama_guard_primary_result_counter = meter.create_counter(
+    name="llama_guard.primary_result_total",
+    description=(
+        "Count of primary Llama Guard model attempts by outcome — the denominator for "
+        "primary-model failure rate (pair with llama_guard.secondary_model_total)"
+    ),
+    unit="1",
+)  # attributes: outcome (success|failed)
+
 openrouter_fallback_counter = meter.create_counter(
     name="openrouter.fallback_total",
     description="Count of OpenRouter primary-model failures that triggered client-side fallback",
