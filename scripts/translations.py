@@ -349,10 +349,17 @@ TRANSLATIONS = {
         "language": "Hindi",
         "language_code": "hi",
         "description": "Hindi IRV Bible (Indian Revised Version)",
+        # No getBible/free-API source exists for Hindi (confirmed: none of
+        # getBible's 117 translations are Hindi), so this ships as a committed
+        # data file, same as luther1912. Sourced from eBible.org's hin2017
+        # (CC BY-SA 4.0 Bridge Connectivity Solutions — see
+        # data/bible/LICENSES.md), pre-normalized to canonical English book
+        # names, so book_names is None (no localized-name remapping needed at
+        # load time).
         "source": "manual",
         "url": None,
-        "book_names": HINDI_BOOK_NAMES,
-        "license": "Copyright IRV",
+        "book_names": None,
+        "license": "CC BY-SA 4.0 (eBible.org / Bridge Connectivity Solutions)",
         "is_default": False,
     },
     "krv": {
