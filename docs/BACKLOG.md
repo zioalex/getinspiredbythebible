@@ -1171,6 +1171,36 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
+### 🎯 BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-16
+
+**As a** returning visitor, **I want** the page to render consistently between the server-sent
+HTML and the client's first paint, **so that** the browser console stays clean and the app doesn't
+silently discard and re-render the entire tree on every load.
+
+**Why P2:** Found while manually testing PR #840 locally (unrelated — that PR touches zero
+frontend files). `frontend/src/app/[locale]/providers.tsx:76` seeds `splashDone` from a lazy
+`useState(() => hasSplashCookie())`. The server always renders `splashDone = false` (no
+`document` during SSR), but for a **returning visitor** the client's real hydration-pass read of
+`document.cookie` can see `splash_seen=1` from a prior visit and render `splashDone = true` instead
+— server and client trees disagree, and React logs a hydration-mismatch error and re-renders the
+whole tree client-side. First-time visitors don't trigger it (both sides agree on `false`), which
+is likely why it wasn't caught earlier. Not user-blocking today, but it's a real SSR/CSR divergence
+worth fixing, not just console noise.
+
+**Acceptance Criteria:**
+
+- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [ ] First-time visitor still sees the full splash screen unchanged
+- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-069-splash-screen-hydration-mismatch.md`
+
+---
+
 ### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
 
 **Status:** 🎯 Todo
