@@ -779,8 +779,10 @@ class TestProviderFactory:
 
     def test_create_embedding_ollama(self):
         """Factory should create an Ollama embedding provider, wrapped for
-        resilience (BITB-057 Phase 2: ResilientEmbeddingProvider)."""
+        caching and resilience (BITB-057 Phase 2: CachingEmbeddingProvider
+        outermost, then ResilientEmbeddingProvider)."""
         from config import Settings
+        from providers.embedding_cache import CachingEmbeddingProvider
         from providers.embedding_resilience import ResilientEmbeddingProvider
         from providers.factory import create_embedding_provider
         from providers.ollama import OllamaEmbeddingProvider
@@ -794,8 +796,9 @@ class TestProviderFactory:
             _env_file=None,
         )
         provider = create_embedding_provider(config)
-        assert isinstance(provider, ResilientEmbeddingProvider)
-        assert isinstance(provider._wrapped, OllamaEmbeddingProvider)
+        assert isinstance(provider, CachingEmbeddingProvider)
+        assert isinstance(provider._wrapped, ResilientEmbeddingProvider)
+        assert isinstance(provider._wrapped._wrapped, OllamaEmbeddingProvider)
         assert provider.provider_name == "ollama"
 
     def test_create_embedding_azure_openai(self):

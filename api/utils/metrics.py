@@ -279,6 +279,15 @@ embedding_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+embedding_cache_counter = meter.create_counter(
+    name="embedding.cache_total",
+    description=(
+        "Count of embed() calls served from the in-process cache (hit) vs "
+        "requiring an upstream call (miss), by CachingEmbeddingProvider"
+    ),
+    unit="1",
+)
+
 circuit_breaker_state_counter = meter.create_counter(
     name="circuit_breaker.state_transitions",
     description="Circuit breaker state transitions (open/half_open/closed)",
