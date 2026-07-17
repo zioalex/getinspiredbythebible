@@ -2,6 +2,7 @@
 Tests for translation configurations and book name mappings
 """
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -721,6 +722,46 @@ def test_translation_sources():
         assert config["source"] in valid_sources, (
             f"Translation {code} has unknown source: {config['source']}. "
             f"Valid sources: {valid_sources}"
+        )
+
+
+def test_manual_source_translations_have_committed_data_file():
+    """Every source='manual' translation must have a real, non-empty data file.
+
+    Regression test: 'hindi' shipped with source='manual'/url=None but no
+    data/bible/translations/hindi.json ever committed, so load_bible.py's
+    download_translation() silently returned {} and loaded zero verses —
+    the translation looked "gone" with no CI signal (only a best-effort
+    runtime warning/metric in main.py, easy to miss). luther1912 hit the
+    same class of bug before being fixed (see BITB-046 / PR #851). This
+    check catches a manual entry with no backing file at PR time, before
+    it ever reaches production silently broken.
+    """
+    data_dir = Path(__file__).parent.parent.parent / "data" / "bible" / "translations"
+
+    for code, config in TRANSLATIONS.items():
+        if config.get("source") != "manual":
+            continue
+
+        data_file = data_dir / f"{code}.json"
+        assert data_file.exists(), (
+            f"Translation '{code}' has source='manual' but no committed data file "
+            f"at {data_file.relative_to(data_dir.parent.parent.parent)} — it will "
+            f"silently load zero verses (see BITB-046/hindi incident)."
+        )
+
+        with open(data_file, encoding="utf-8") as f:
+            books = json.load(f)
+
+        assert isinstance(books, list) and len(books) == 66, (
+            f"Translation '{code}' data file must contain 66 books, got "
+            f"{len(books) if isinstance(books, list) else type(books)}"
+        )
+
+        total_verses = sum(len(chapter) for book in books for chapter in book.get("chapters", []))
+        assert total_verses > 25000, (
+            f"Translation '{code}' data file has suspiciously few verses "
+            f"({total_verses}) — expected a full Bible (~31k verses)."
         )
 
 

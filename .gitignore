@@ -106,6 +106,10 @@ data/bible/translations/*
 # Exception: luther1912 has no downloadable source (getBible lacks it), so its
 # public-domain data is committed rather than fetched at seed time. See BITB-046.
 !data/bible/translations/luther1912.json
+# Exception: hindi (IRV) has no getBible/free-API source either. Sourced from
+# eBible.org's hin2017 (CC BY-SA 4.0, Bridge Connectivity Solutions), committed
+# rather than fetched at seed time. See data/bible/LICENSES.md.
+!data/bible/translations/hindi.json
 deployment/tfplan.*
 
 # Playwright
