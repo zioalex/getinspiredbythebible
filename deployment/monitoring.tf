@@ -180,6 +180,14 @@ resource "azurerm_key_vault_access_policy" "telegram_logic_app" {
 # Get_results action below can fetch the rows the alert matched (via the alert's
 # linkToFilteredSearchResultsAPI, token audience https://api.loganalytics.io) and
 # inline the sample + RequestIds into the Telegram message. Read-only, workspace-scoped.
+#
+# NOTE: creating a role assignment requires Microsoft.Authorization/roleAssignments/write
+# at this scope, which the deploy SP's Contributor role does NOT include (Azure excludes
+# it from Contributor by design). setup-github-spn.sh grants the deploy SP an extra
+# narrow "User Access Administrator" role on this workspace for exactly this reason -
+# see the "Service Principal" section in deployment/README.md. If you add another
+# azurerm_role_assignment on a different resource, it needs the same extra grant on its
+# scope or terraform apply will fail with AuthorizationFailed.
 resource "azurerm_role_assignment" "telegram_logic_app_logs_reader" {
   count                = local.telegram_enabled ? 1 : 0
   scope                = azurerm_log_analytics_workspace.main.id
