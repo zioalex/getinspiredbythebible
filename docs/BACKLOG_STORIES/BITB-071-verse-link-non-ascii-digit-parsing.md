@@ -1,6 +1,6 @@
 # BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
-**Status:** 🚧 In Progress (PR #893 open)
+**Status:** 🚧 In Progress (PR #893 — all CI checks green, awaiting review/merge)
 **Priority:** P1 (High) — breaks the core "click a cited verse" flow for every Hindi
 response and any Arabic response that uses native Eastern Arabic numerals.
 **Size:** S (< 4 hrs)
@@ -81,10 +81,11 @@ of three parse sites created false confidence that the feature worked end to end
       (parser parity, per `AGENTS.md`).
 - [x] Backend parity confirmed: no code change needed, pre-existing tests already
       cover Devanagari/Eastern-Arabic numerals end to end.
-- [ ] Android tests (`VerseRefLinkTest.kt`) verified green in CI — could not run
-      `./gradlew testDebugUnitTest` locally in this session because the sandbox's
-      network policy blocks `dl.google.com` (Android Gradle Plugin resolution
-      fails with 403). Confirm on the PR's `android-ci.yml` run.
+- [x] Android tests (`VerseRefLinkTest.kt`) verified green in CI — could not run
+      `./gradlew testDebugUnitTest` locally (sandbox network policy blocks
+      `dl.google.com`), but PR #893's `android-ci.yml` run confirmed all jobs green:
+      `Unit Tests`, `Kotlin Compile Check`, `Android Lint`, `Instrumented UI Tests`,
+      `Compose UI Tests (Robolectric)`, `Build Prod APK`.
 
 ## Files Changed
 
