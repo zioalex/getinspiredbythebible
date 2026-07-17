@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.45.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.45.0...v1.45.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **security:** close content-safety fail-open gaps in the abuse-control stack (BITB-061) ([#840](https://github.com/zioalex/getinspiredbythebible/issues/840)) ([d65e0ac](https://github.com/zioalex/getinspiredbythebible/commit/d65e0ac30e2fe239f73151c1fd218623d8b45b68))
+
 ## [1.45.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.44.0...v1.45.0) (2026-07-16)
 
 ### Features
