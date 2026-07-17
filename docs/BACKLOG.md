@@ -182,11 +182,12 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🚧 BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
+### ✅ BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
-**Status:** 🚧 In Progress (PR #893 — all CI checks green, awaiting review/merge)
+**Status:** ✅ Done (PR #893 merged 2026-07-17)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-17
+**Completed:** 2026-07-17
 
 **As** a Hindi (or Arabic) user, **I want** clicking a cited verse reference to open the
 correct chapter, **so that** I can read the scripture the assistant quoted instead of
@@ -201,7 +202,7 @@ mode (no link at all) from the same root cause — the "three parsers diverge su
 trap `AGENTS.md` calls out. Backend unaffected (Python's `re`/`int()` are Unicode-digit
 aware natively) and already had test coverage for this exact scenario.
 
-Full story: `docs/BACKLOG_STORIES/BITB-071-verse-link-non-ascii-digit-parsing.md`
+Full story: `docs/DONE/BITB-071-verse-link-non-ascii-digit-parsing.md`
 
 ---
 
