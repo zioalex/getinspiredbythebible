@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-10
+**Last Updated:** 2026-07-17
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -181,6 +181,29 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
+
+**Status:** 🚧 In Progress (PR #893 — all CI checks green, awaiting review/merge)
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-17
+
+**As** a Hindi (or Arabic) user, **I want** clicking a cited verse reference to open the
+correct chapter, **so that** I can read the scripture the assistant quoted instead of
+hitting a 422 (`GET /scripture/chapter/यूहन्ना/NaN`).
+
+**Root cause:** frontend `linkifyVerses.ts` / `ChatMessage.tsx` parsed non-ASCII
+(Devanagari, Eastern Arabic) chapter/verse digits with plain `parseInt` instead of
+normalizing them first, unlike `verseExtraction.ts` which already had this handled.
+Investigation also found the same missing-non-ASCII-digit-support gap in Android's
+verse regex (`ChatMessageItem.kt`, plain `\d` = ASCII-only in Java), a distinct failure
+mode (no link at all) from the same root cause — the "three parsers diverge subtly"
+trap `AGENTS.md` calls out. Backend unaffected (Python's `re`/`int()` are Unicode-digit
+aware natively) and already had test coverage for this exact scenario.
+
+Full story: `docs/BACKLOG_STORIES/BITB-071-verse-link-non-ascii-digit-parsing.md`
+
+---
 
 ### ✅ BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 

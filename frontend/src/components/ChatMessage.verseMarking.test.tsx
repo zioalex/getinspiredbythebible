@@ -39,6 +39,18 @@ describe("ChatMessage inline verse marking — real references", () => {
   });
 });
 
+describe("ChatMessage inline verse marking — Devanagari digits regression", () => {
+  // Regression for the bug where clicking a Hindi reference sent chapter=NaN
+  // to the API (GET /scripture/chapter/यूहन्ना/NaN), because the click handler
+  // parsed Devanagari digits with a plain parseInt instead of normalizing them
+  // to ASCII first.
+  it("calls onVerseClick with numeric chapter/verse for a Devanagari reference", () => {
+    const { onVerseClick } = renderAssistant("यूहन्ना ५:२४ के अनुसार।");
+    fireEvent.click(screen.getByText("यूहन्ना ५:२४"));
+    expect(onVerseClick).toHaveBeenCalledWith("यूहन्ना", 5, 24);
+  });
+});
+
 describe("ChatMessage inline verse marking — connector-word regression", () => {
   // A connector word ("of", "de", …) before a real book name used to let a
   // greedy alternative swallow the preceding prose ("you of Psalm"), which

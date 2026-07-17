@@ -6,6 +6,7 @@ import org.voxquieta.app.presentation.components.citedVerses
 import org.voxquieta.app.presentation.components.handleVerseLink
 import org.voxquieta.app.presentation.components.injectVerseLinks
 import org.voxquieta.app.presentation.components.injectVerseQuoteHighlights
+import org.voxquieta.app.presentation.components.parseVerseLink
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.junit.Assert.assertEquals
@@ -616,6 +617,43 @@ class VerseRefLinkTest {
         val input = "लेवियतियुस 1:3 में बलिदान का उल्लेख है"
         val result = injectVerseLinks(input)
         assertTrue(result.contains("[लेवियतियुस 1:3]"))
+    }
+
+    // ── Devanagari / Eastern Arabic numerals (regression: web NaN chapter bug) ──
+    // Plain \d in Java regex (no UNICODE_CHARACTER_CLASS) only matches ASCII 0-9, so
+    // a reference written with native-script numerals used to be silently dropped —
+    // not even recognised as a verse reference, let alone linked. This mirrors the
+    // web bug where linkifyVerses.ts/ChatMessage.tsx sent chapter=NaN to the API for
+    // "यूहन्ना ५:२४"; on Android the failure mode was "no link at all" instead of NaN,
+    // caught by extending CV_DIGIT in ChatMessageItem.kt.
+
+    @Test
+    fun `injectVerseLinks wraps Hindi reference with Devanagari digits`() {
+        val input = "यूहन्ना ५:२४ के अनुसार।"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[यूहन्ना ५:२४]"))
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Arabic reference with Eastern Arabic digits`() {
+        val input = "كما ورد في يوحنا ٣:١٦"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[يوحنا ٣:١٦]"))
+    }
+
+    @Test
+    fun `parseVerseLink normalizes Devanagari digits to numeric chapter and verse`() {
+        val link = parseVerseLink("verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/५/२४", "hindi")
+        assertEquals("यूहन्ना", link?.book)
+        assertEquals(5, link?.chapter)
+        assertEquals(24, link?.verseNumber)
+    }
+
+    @Test
+    fun `parseVerseLink normalizes Eastern Arabic digits to numeric chapter and verse`() {
+        val link = parseVerseLink("verse://John/٣/١٦", null)
+        assertEquals(3, link?.chapter)
+        assertEquals(16, link?.verseNumber)
     }
 
     // ── Non-English book names: Arabic/Hindi multi-word with dynamic regex ──

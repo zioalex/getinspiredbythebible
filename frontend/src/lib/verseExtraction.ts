@@ -940,7 +940,7 @@ function normalizeEasternArabicDigits(s: string): string {
  * Normalize non-ASCII digit systems to ASCII.
  * Handles Devanagari (०-९) and Eastern Arabic (٠-٩) numerals.
  */
-function normalizeDigits(s: string): string {
+export function normalizeDigits(s: string): string {
   return normalizeEasternArabicDigits(normalizeDevanagariDigits(s));
 }
 

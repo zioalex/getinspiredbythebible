@@ -68,6 +68,90 @@ describe("linkifyVerses", () => {
     const md = "```\nJohn 3:16\n```";
     expect(linkifyVerses(md)).toBe(md);
   });
+
+  it("normalizes Devanagari digits in the href (regression: NaN chapter bug)", () => {
+    const out = linkifyVerses("यूहन्ना ५:२४ के अनुसार।");
+    expect(out).toContain(
+      "[यूहन्ना ५:२४](verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/5/24)",
+    );
+  });
+
+  it("normalizes Eastern Arabic digits in the href", () => {
+    const out = linkifyVerses("يوحنا ٣:١٦");
+    expect(out).toContain(
+      "[يوحنا ٣:١٦](verse://%D9%8A%D9%88%D8%AD%D9%86%D8%A7/3/16)",
+    );
+  });
+});
+
+describe("linkifyVerses / parseVerseHref — cross-language chapter/verse parity", () => {
+  // Per AGENTS.md's multilingual-correctness rule: verify every supported UI
+  // language's digit system round-trips to a real number end to end (build the
+  // href, then parse it back), not just the two non-ASCII-digit languages this
+  // bug was reported in. en/it/de/es/fr/pt/ru/zh/ko all use plain ASCII digits,
+  // so they were never at risk — asserting it here makes that explicit instead
+  // of assumed.
+  const cases: Array<{
+    lang: string;
+    text: string;
+    book: string;
+    chapter: number;
+    verse: number;
+  }> = [
+    { lang: "en", text: "John 3:16", book: "John", chapter: 3, verse: 16 },
+    {
+      lang: "it",
+      text: "Giovanni 3:16",
+      book: "Giovanni",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "de",
+      text: "Johannes 3:16",
+      book: "Johannes",
+      chapter: 3,
+      verse: 16,
+    },
+    { lang: "es", text: "Juan 3:16", book: "Juan", chapter: 3, verse: 16 },
+    { lang: "fr", text: "Jean 3:16", book: "Jean", chapter: 3, verse: 16 },
+    { lang: "pt", text: "João 3:16", book: "João", chapter: 3, verse: 16 },
+    { lang: "ru", text: "Иоанна 3:16", book: "Иоанна", chapter: 3, verse: 16 },
+    {
+      lang: "zh",
+      text: "约翰福音3:16",
+      book: "约翰福音",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "ko",
+      text: "요한복음 3:16",
+      book: "요한복음",
+      chapter: 3,
+      verse: 16,
+    },
+    {
+      lang: "hi",
+      text: "यूहन्ना ३:१६",
+      book: "यूहन्ना",
+      chapter: 3,
+      verse: 16,
+    },
+    { lang: "ar", text: "يوحنا ٣:١٦", book: "يوحنا", chapter: 3, verse: 16 },
+  ];
+
+  it.each(cases)(
+    "$lang: linkifyVerses → parseVerseHref round-trips to numeric chapter/verse",
+    ({ text, book, chapter, verse }) => {
+      const linked = linkifyVerses(text);
+      const hrefMatch = linked.match(/\(verse:\/\/[^)]+\)/);
+      expect(hrefMatch).not.toBeNull();
+      const href = hrefMatch![0].slice(1, -1);
+      const parsed = parseVerseHref(href);
+      expect(parsed).toEqual({ book, chapter, verse });
+    },
+  );
 });
 
 describe("parseVerseHref", () => {
@@ -82,5 +166,21 @@ describe("parseVerseHref", () => {
   it("returns null for external links", () => {
     expect(parseVerseHref("https://example.com")).toBeNull();
     expect(parseVerseHref(undefined)).toBeNull();
+  });
+
+  it("normalizes Devanagari digits (regression: NaN chapter bug)", () => {
+    expect(
+      parseVerseHref(
+        "verse://%E0%A4%AF%E0%A5%82%E0%A4%B9%E0%A4%A8%E0%A5%8D%E0%A4%A8%E0%A4%BE/५/२४",
+      ),
+    ).toEqual({ book: "यूहन्ना", chapter: 5, verse: 24 });
+  });
+
+  it("normalizes Eastern Arabic digits", () => {
+    expect(parseVerseHref("verse://John/٣/١٦")).toEqual({
+      book: "John",
+      chapter: 3,
+      verse: 16,
+    });
   });
 });
