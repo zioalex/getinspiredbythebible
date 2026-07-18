@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.46.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.1...v1.46.2) (2026-07-18)
 
-
 ### Bug Fixes
 
 * **monitoring:** stop paging llama-guard-primary-failure-rate on baseline noise ([#898](https://github.com/zioalex/getinspiredbythebible/issues/898)) ([47a485f](https://github.com/zioalex/getinspiredbythebible/commit/47a485f0c18c2db9343611d7fd753375e0713ddd))
