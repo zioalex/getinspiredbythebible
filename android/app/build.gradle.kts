@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "org.voxquieta.app"
-    compileSdk = 35
+    compileSdk = 36
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
     // This prevents CI from injecting an empty string when a GitHub variable is unset.
@@ -60,7 +60,7 @@ android {
     defaultConfig {
         applicationId = "org.voxquieta"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?)?.takeIf { it.isNotBlank() }
             ?: manifestVersionName

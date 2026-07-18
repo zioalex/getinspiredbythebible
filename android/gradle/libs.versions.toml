@@ -1,9 +1,12 @@
 [versions]
-# AGP 8.7.x is the first line that makes bundletool 16 KB-align (zipalign -P 16)
-# uncompressed native libraries in the AAB — required for Google Play's 16 KB
-# memory-page-size compliance. 8.7.3 keeps Gradle 8.9 (no wrapper bump) and
-# supports compileSdk 35 natively.
-agp = "8.7.3"
+# AGP 8.10 is the lowest line that supports compileSdk 36, required to meet
+# Google Play's target API level 36 deadline (2026-08-31). Needs Gradle 8.11.1+
+# (wrapper bumped accordingly); JDK 17 still suffices.
+# History: 8.7.x was the first line that makes bundletool 16 KB-align
+# (zipalign -P 16) uncompressed native libraries in the AAB — required for
+# Google Play's 16 KB memory-page-size compliance. That behavior carries
+# forward; re-verify AAB alignment (android-publish.yml gate) after any bump.
+agp = "8.10.1"
 kotlin = "2.0.21"
 firebase-bom = "33.7.0"
 googleServices = "4.4.2"
@@ -16,7 +19,7 @@ compose-bom = "2024.12.01"
 # ui-graphics). Older releases shipped libandroidx.graphics.path.so with 4 KB
 # ELF segment alignment; 1.1.0 is built with 16 KB alignment. Pinned directly
 # (rather than bumping the whole Compose BOM) to keep the tested Compose/UI
-# surface on compileSdk 35 while fixing the only Compose-side native library.
+# surface unchanged while fixing the only Compose-side native library.
 graphicsPath = "1.1.0"
 activityCompose = "1.9.3"
 navigationCompose = "2.8.5"
