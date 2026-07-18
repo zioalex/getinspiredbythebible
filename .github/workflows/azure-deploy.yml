@@ -1025,6 +1025,65 @@ jobs:
           echo "::error::Failed to set telegram-bot-token in Key Vault $kv after retries."
           exit 1
 
+      # BITB-067 gap #6: set the probe secrets on the backend Container App
+      # out-of-band, so rotating them never forces a full app replacement (main.tf's
+      # `secret` blocks now hold only a bootstrap placeholder — see backend_secret_trigger).
+      # No-op for a given secret if its repo secret is empty (probe disabled).
+      - name: Populate probe secrets in backend Container App (BITB-067)
+        env:
+          MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
+          SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
+        run: |
+          set -o pipefail
+          pairs=()
+          if [ -n "${MONITOR_PROBE_SECRET:-}" ]; then
+            pairs+=("monitor-probe-secret=$MONITOR_PROBE_SECRET")
+          fi
+          if [ -n "${SMOKE_PROBE_SECRET:-}" ]; then
+            pairs+=("smoke-probe-secret=$SMOKE_PROBE_SECRET")
+          fi
+          if [ "${#pairs[@]}" -eq 0 ]; then
+            echo "No probe secrets configured — skipping."
+            exit 0
+          fi
+          # Retry: transient RBAC/propagation failures, same pattern as the
+          # Telegram token step above.
+          for i in 1 2 3 4; do
+            if az containerapp secret set \
+                 --name "${{ env.BACKEND_APP_NAME }}" \
+                 --resource-group "${{ env.RESOURCE_GROUP }}" \
+                 --secrets "${pairs[@]}" \
+                 --output none; then
+              echo "Probe secret(s) set on ${{ env.BACKEND_APP_NAME }}: ${pairs[*]%%=*}."
+              break
+            fi
+            if [ "$i" -eq 4 ]; then
+              echo "::error::Failed to set probe secret(s) on ${{ env.BACKEND_APP_NAME }} after retries."
+              exit 1
+            fi
+            echo "secret set attempt $i failed; retrying..."
+            sleep $((i * 5))
+          done
+          # Container Apps do not propagate an updated secret value to an
+          # already-running revision automatically. Restart the latest active
+          # revision to pick it up — this is NOT a replacement, so it does not
+          # unbind the custom-domain cert (BITB-067 gap #5 is unaffected).
+          revision=$(az containerapp revision list \
+            --name "${{ env.BACKEND_APP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "[?properties.active] | sort_by(@, &properties.createdTime) [-1].name" \
+            --output tsv)
+          if [ -n "$revision" ]; then
+            az containerapp revision restart \
+              --name "${{ env.BACKEND_APP_NAME }}" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --revision "$revision" \
+              --output none
+            echo "Restarted revision $revision to pick up the new probe secret value(s)."
+          else
+            echo "::warning::Could not determine active revision to restart; probe secret rotation may not take effect until the next deploy."
+          fi
+
       - name: Verify Deployment
         id: verify
         run: |

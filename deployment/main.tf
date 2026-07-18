@@ -529,16 +529,24 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 # watches a SHA256 hash of the OpenRouter API key so that when it actually
 # changes, terraform_data is replaced, which in turn triggers a replacement of
 # the backend container app via replace_triggered_by.
+#
+# monitor_probe_secret / smoke_probe_secret are deliberately EXCLUDED (BITB-067
+# gap #6): they are provisioned out-of-band by the "Populate probe secrets in
+# backend Container App" step in azure-deploy.yml (az containerapp secret set),
+# mirroring the BITB-056 Telegram-token pattern, so rotating them no longer
+# forces a full app replacement (which previously re-triggered the origin-TLS
+# cert-unbind bug, BITB-067 gap #5). The `secret` blocks below still declare
+# these as ACA secrets (so the env var `secretRef`s resolve) but their `value`
+# is a bootstrap placeholder only ever consumed on a genuine create/replace —
+# ignore_changes = [secret] (below) means Terraform never reverts the
+# CLI-set live value back to the placeholder.
 
 resource "terraform_data" "backend_secret_trigger" {
-  # Hash all GH-sourced sensitive values that flow into ACA `secret` blocks.
-  # When any of them changes, terraform_data is replaced, which forces a
-  # replacement of azurerm_container_app.backend (via replace_triggered_by),
-  # bypassing the lifecycle { ignore_changes = [secret] } rotation trap.
+  # Hash GH-sourced sensitive values that must force a backend replacement when
+  # they change. Do NOT add monitor_probe_secret / smoke_probe_secret here —
+  # see the comment above.
   triggers_replace = sha256(join("|", [
     var.openrouter_api_key,
-    var.monitor_probe_secret,
-    var.smoke_probe_secret,
   ]))
 }
 
@@ -659,21 +667,27 @@ resource "azurerm_container_app" "backend" {
     }
   }
 
-  # Synthetic monitor probe shared secret (only when set)
+  # Synthetic monitor probe shared secret (only when set). The `value` here is
+  # a bootstrap placeholder, not the real secret (BITB-067 gap #6) — the real
+  # value is set post-apply by azure-deploy.yml via `az containerapp secret
+  # set` and preserved thereafter by lifecycle.ignore_changes = [secret]
+  # below. var.monitor_probe_secret only gates whether this secret exists.
   dynamic "secret" {
     for_each = var.monitor_probe_secret != "" ? [1] : []
     content {
       name  = "monitor-probe-secret"
-      value = var.monitor_probe_secret
+      value = "set-out-of-band-see-azure-deploy-yml" # pragma: allowlist secret
     }
   }
 
-  # Browser smoke-test secret (only when set) — BITB-064
+  # Browser smoke-test secret (only when set) — BITB-064. See the
+  # monitor-probe-secret comment above: value is a bootstrap placeholder,
+  # real value provisioned out-of-band (BITB-067 gap #6).
   dynamic "secret" {
     for_each = var.smoke_probe_secret != "" ? [1] : []
     content {
       name  = "smoke-probe-secret"
-      value = var.smoke_probe_secret
+      value = "set-out-of-band-see-azure-deploy-yml" # pragma: allowlist secret
     }
   }
 
@@ -841,11 +855,13 @@ resource "null_resource" "backend_custom_domain" {
     resource_group = azurerm_resource_group.main.name
     cert_hash      = var.cloudflare_origin_cert_hash
     # When backend_secret_trigger forces a REPLACEMENT of the backend app
-    # (secret rotation), the recreated app loses its imperatively-bound custom
-    # domain + certificate — the app *name* above doesn't change, so nothing
-    # re-ran and prod served Cloudflare 525 (2026-07-07 incident). terraform_data
-    # gets a fresh id on each replacement, so keying on it re-runs this
-    # provisioner in the same apply.
+    # (currently: only an OpenRouter API key rotation — BITB-067 gap #6
+    # removed probe-secret rotation as a replacement cause), the recreated app
+    # loses its imperatively-bound custom domain + certificate — the app
+    # *name* above doesn't change, so nothing re-ran and prod served
+    # Cloudflare 525 (2026-07-07 incident). terraform_data gets a fresh id on
+    # each replacement, so keying on it re-runs this provisioner in the same
+    # apply.
     secret_trigger = terraform_data.backend_secret_trigger.id
   }
 
