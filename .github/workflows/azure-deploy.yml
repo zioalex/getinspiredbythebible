@@ -1081,7 +1081,8 @@ jobs:
               --output none
             echo "Restarted revision $revision to pick up the new probe secret value(s)."
           else
-            echo "::warning::Could not determine active revision to restart; probe secret rotation may not take effect until the next deploy."
+            echo "::warning::Could not determine active revision to restart; probe" \
+              "secret rotation may not take effect until the next deploy."
           fi
 
       - name: Verify Deployment
