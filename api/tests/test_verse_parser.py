@@ -1340,6 +1340,25 @@ class TestParseVerseReferenceNonEnglish:
         assert result.chapter == 1
         assert result.verse_start == 1
 
+    def test_hindi_romans_anusvara_dropped_alias(self):
+        """Hindi Romans without trailing anusvara 'रोमियो 5:3-4' → Romans 5:3-4.
+
+        LLMs commonly drop the oblique-case ं ending IRV uses (रोमियों);
+        HINDI_ALIASES maps this casual spelling to the same canonical book.
+        """
+        result = parse_verse_reference("रोमियो 5:3-4")
+        assert result is not None
+        assert result.book == "Romans"
+        assert result.chapter == 5
+        assert result.verse_start == 3
+        assert result.verse_end == 4
+
+    def test_hindi_galatians_anusvara_dropped_alias(self):
+        """Hindi Galatians without trailing anusvara 'गलातियो 5:22' → Galatians."""
+        result = parse_verse_reference("गलातियो 5:22")
+        assert result is not None
+        assert result.book == "Galatians"
+
 
 class TestExtractAllReferences:
     """Tests for extract_all_references function (multi-verse extraction)."""
@@ -1447,6 +1466,29 @@ class TestParseStructuredCitations:
         results = parse_structured_citations(text)
         assert len(results) == 1
         assert results[0].book == "1 Corinthians"
+
+    def test_comma_separated_citation(self):
+        """Comma-separated citations (LLM doesn't always follow the semicolon
+        instruction in the prompt) are still fully parsed, not just the first."""
+        text = "<!-- VERSES: John 3:16, Romans 8:28, Psalm 23:1 -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 3
+        books = [r.book for r in results]
+        assert books == ["John", "Romans", "Psalms"]
+
+    def test_hindi_comma_separated_citation_with_range_and_alias(self):
+        """Reported bug: comma-separated Hindi VERSES comment with a verse
+        range, where the middle book uses the anusvara-dropped alias spelling
+        (रोमियो instead of रोमियों) — all three references, and the full
+        range, must be recovered."""
+        text = "<!-- VERSES: याकूब 1:3, रोमियो 5:3-4, गलातियों 5:22 -->"
+        results = parse_structured_citations(text)
+        assert len(results) == 3
+        assert [r.book for r in results] == ["James", "Romans", "Galatians"]
+        romans = results[1]
+        assert romans.chapter == 5
+        assert romans.verse_start == 3
+        assert romans.verse_end == 4
 
 
 class TestWrappedReferencesAllLanguages:
