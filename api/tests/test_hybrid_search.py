@@ -327,6 +327,118 @@ class TestSearchPassagesHybrid:
         assert results == []
 
 
+class TestSearchVersesSemanticIndexFriendly:
+    """BITB-062: search_verses_semantic must use the candidate-pool CTE, not a
+    ``WHERE (1 - dist) >= threshold`` full-scan predicate."""
+
+    @pytest.mark.asyncio
+    async def test_sql_is_clean(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_semantic(query_embedding=[0.1, 0.2], translation="schlachter")
+
+        text_clause = mock_session.execute.call_args_list[0][0][0]
+        sql = text_clause.text
+        assert "#" not in sql
+        assert sql.lstrip().upper().startswith("WITH")
+        assert "dedup" in sql
+
+    @pytest.mark.asyncio
+    async def test_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_semantic(query_embedding=[0.1, 0.2], translation="schlachter")
+
+        text_clause = mock_session.execute.call_args_list[0][0][0]
+        compiled = text_clause.compile(dialect=_ASYNCPG_DIALECT)
+        sql, positiontup = str(compiled), compiled.positiontup
+        assert ":" not in sql, f"unbound named parameter leaked into SQL: {sql}"
+        assert "emb0" in positiontup
+
+    @pytest.mark.asyncio
+    async def test_uses_candidate_pool_before_threshold(self):
+        """The ANN pool is pulled with LIMIT :candidate_pool before the threshold
+        filter, not filtered by threshold inside the index-eligible ORDER BY step —
+        this is the shape that lets Postgres use the HNSW index."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_semantic(query_embedding=[0.1, 0.2])
+
+        sql = mock_session.execute.call_args_list[0][0][0].text
+        candidates_idx = sql.index("candidates AS")
+        threshold_idx = sql.index(":threshold")
+        assert candidates_idx < threshold_idx
+
+
+class TestSearchPassagesSemanticIndexFriendly:
+    """BITB-062: search_passages_semantic must use the candidate-pool CTE."""
+
+    @pytest.mark.asyncio
+    async def test_sql_is_clean(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_passages_semantic(query_embedding=[0.1, 0.2])
+
+        text_clause = mock_session.execute.call_args_list[0][0][0]
+        sql = text_clause.text
+        assert "#" not in sql
+        assert sql.lstrip().upper().startswith("WITH")
+        assert "dedup" in sql
+
+    @pytest.mark.asyncio
+    async def test_binds_embedding(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_passages_semantic(query_embedding=[0.1, 0.2])
+
+        text_clause = mock_session.execute.call_args_list[0][0][0]
+        compiled = text_clause.compile(dialect=_ASYNCPG_DIALECT)
+        sql, positiontup = str(compiled), compiled.positiontup
+        assert ":" not in sql, f"unbound named parameter leaked into SQL: {sql}"
+        assert "emb0" in positiontup
+
+
+class TestSearchVersesTextUsesFts:
+    """BITB-062: search_verses_text must use FTS (index-backed), not a
+    leading-wildcard ILIKE (unindexable full scan)."""
+
+    @pytest.mark.asyncio
+    async def test_uses_tsvector_match_not_ilike(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_text("peace")
+
+        compiled_stmt = mock_session.execute.call_args_list[0][0][0]
+        sql = str(compiled_stmt.compile(compile_kwargs={"literal_binds": False}))
+        assert "ilike" not in sql.lower()
+        assert "to_tsvector" in sql
+        assert "plainto_tsquery" in sql
+
+
 # ==================== SearchService Tests ====================
 
 

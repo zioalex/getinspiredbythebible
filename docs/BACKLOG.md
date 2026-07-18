@@ -362,6 +362,34 @@ misreported as a generic 500.
 
 ---
 
+### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
+
+**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
+`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
+
+**Note:** this story existed only as a loose story file (never indexed here) since PR #809 created
+it alongside BITB-059/060/061/063 — the gap that let it sit unstarted without showing up in a
+backlog scan. Added here for visibility.
+
+**As** the operator of a 2-vCPU/4GB production Postgres serving 12 translations, **I want** every
+vector-search path to use the HNSW index, **so that** a handful of unauthenticated search calls
+cannot saturate the database and starve chat — the actual product — of connections and CPU.
+
+**Why P1:** `search_verses_semantic` / `search_passages_semantic` backed the **public**
+`GET /api/v1/scripture/search` endpoint with a `WHERE (1 - cosine_distance) >= threshold` predicate
+— the exact full-scan shape the hybrid search path was already rewritten to avoid — and
+`topics.embedding` had no vector index at all.
+
+**Acceptance Criteria:** see `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+for the full checklist and what's shipped vs. deferred.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+
+---
+
 ### ✅ BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
 **Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete

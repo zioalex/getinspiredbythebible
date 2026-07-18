@@ -172,6 +172,38 @@ async def test_search_passages_hybrid_executes_against_real_db(seeded_repo):
     assert rows[0][0].text == _VERSE_TEXT
 
 
+# ── BITB-062: index-friendly candidate-pool CTE + FTS rewrites ────────────
+# search_verses_semantic / search_passages_semantic were rewritten from a
+# `WHERE (1 - dist) >= threshold` full-scan predicate onto the same
+# candidate-pool CTE the hybrid builders use; search_verses_text moved from
+# ILIKE to an indexed tsvector match. These run the real SQL end-to-end.
+
+
+async def test_search_verses_semantic_executes_against_real_db(seeded_repo):
+    """Fails on any regression in the candidate-pool CTE rewrite (BITB-062)."""
+    rows = await seeded_repo.search_verses_semantic(
+        query_embedding=_seed_vector(),
+        translation=_TRANSLATION,
+    )
+    assert rows, "semantic search returned no rows from the real DB"
+    verse, similarity = rows[0]
+    assert verse.text == _VERSE_TEXT
+    assert similarity == pytest.approx(1.0, abs=1e-6)  # query vector == seeded vector
+
+
+async def test_search_passages_semantic_executes_against_real_db(seeded_repo):
+    rows = await seeded_repo.search_passages_semantic(query_embedding=_seed_vector())
+    assert rows, "passage semantic search returned no rows from the real DB"
+    assert rows[0][0].text == _VERSE_TEXT
+
+
+async def test_search_verses_text_executes_against_real_db(seeded_repo):
+    """Fails on a regression in the ILIKE-to-tsvector rewrite (BITB-062)."""
+    verses = await seeded_repo.search_verses_text("loved the world")
+    assert verses, "text search returned no rows from the real DB"
+    assert any(v.text == _VERSE_TEXT for v in verses)
+
+
 # ── BITB-055: guard the _resolve_cited_verses SQL paths ───────────────────
 # _resolve_cited_verses calls get_verse (single lookup) and get_verses_in_range
 # (range lookup). These tests run the real SQL against the seeded DB so a
