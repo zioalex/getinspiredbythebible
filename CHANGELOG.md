@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.46.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.1...v1.46.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **monitoring:** stop paging llama-guard-primary-failure-rate on baseline noise ([#898](https://github.com/zioalex/getinspiredbythebible/issues/898)) ([47a485f](https://github.com/zioalex/getinspiredbythebible/commit/47a485f0c18c2db9343611d7fd753375e0713ddd))
+* **monitoring:** stop paging Sev1 backend-5xx-rate on expected 4xx ([#897](https://github.com/zioalex/getinspiredbythebible/issues/897)) ([d1abaf8](https://github.com/zioalex/getinspiredbythebible/commit/d1abaf8f0f992129db02084316342e31a49f34eb))
+
 ## [1.46.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.0...v1.46.1) (2026-07-17)
 
 ### Bug Fixes
