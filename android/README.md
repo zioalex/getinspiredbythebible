@@ -243,6 +243,11 @@ Publishing is fully automated via GitHub Actions
 > **Before the automated workflow can run**, you must complete the one-time
 > Play Console setup described below. Fastlane can only upload builds to an
 > _existing_ app — it cannot create one.
+>
+> For recurring Console-only updates required by new Google Play policy
+> announcements (Data safety form, content rating, app registration — as
+> opposed to code changes), see
+> [`docs/android/play-console-compliance.md`](../docs/android/play-console-compliance.md).
 
 ### One-time Play Console setup
 
