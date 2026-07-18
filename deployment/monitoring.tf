@@ -63,10 +63,11 @@
 #       product.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.llama_guard_primary_failure_rate
 #       Sev3 companion to content_safety_fallback_rate: fires when the PRIMARY Llama
-#       Guard model fails but the secondary model recovers it, so the ML classification
-#       itself is still correct — content_safety_fallback_rate stays silent in this case
-#       since it only fires when BOTH models fail. Without this, a primary route stuck
-#       failing on most/all requests is invisible on every existing dashboard.
+#       Guard model's failure rate stays >=90% (min 5 calls/bin, sustained across 2 of
+#       3 evaluations) — i.e. stuck failing on most/all requests, not the ~49% baseline
+#       it fails at under normal load (secondary recovers those; see BITB-061/070).
+#       content_safety_fallback_rate stays silent in this case since it only fires when
+#       BOTH models fail.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -1251,41 +1252,52 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
 }
 
 # Lower severity than content_safety_fallback_rate above: this fires when the
-# PRIMARY Llama Guard model (meta-llama/llama-guard-4-12b) fails and the
-# secondary model recovers it — the request is still ML-classified correctly,
-# just at higher latency/cost, so it's not user-impacting on its own. But
-# without this alert, a primary route stuck failing on most/all requests is
+# PRIMARY Llama Guard model (meta-llama/llama-guard-4-12b) is stuck failing on
+# most/all requests while the secondary model keeps recovering them — the
+# request is still ML-classified correctly, just at higher latency/cost, so
+# it's not user-impacting on its own. Without this alert, that state is
 # completely invisible: content_safety_fallback_rate only fires when BOTH
-# models fail (the request degrades to keyword-only), so a chronically
-# degraded primary silently recovered by the secondary produces zero signal
-# on any existing dashboard. See providers/llama_guard.py.
+# models fail (the request degrades to keyword-only).
+#
+# IMPORTANT: the primary model fails on ~49% of calls under normal production
+# load — a known OpenRouter routing quirk (finish_reason=stop, content: null
+# on some routes; see the docstring in providers/llama_guard.py), always
+# recovered by the secondary (0 total end-to-end failures in the BITB-061
+# 100-sample benchmark; see docs/BACKLOG_STORIES/BITB-070-reevaluate-hybrid-
+# content-safety-mode.md). That ~49% is accepted, steady-state noise, not an
+# incident — so this rule alerts on a sustained high FAILURE RATE (computed
+# from the same metric's success/failed outcomes, both emitted by
+# llama_guard_primary_result_counter) well above that baseline, clustered
+# across evaluations, rather than on any single failure.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "llama_guard_primary_failure_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-llama-guard-primary-failure-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "Primary Llama Guard model (llama_guard.primary_result_total, outcome=failed) failed in the last 10 minutes — the secondary model is recovering these, but every occurrence pays extra latency/cost and the pipeline is running on a single remaining ML classifier. See providers/llama_guard.py."
+  description          = "Primary Llama Guard model (llama_guard.primary_result_total) failure rate stayed >=90% over a 15-min bin (min 5 calls), sustained across 2 of the last 3 evaluations — i.e. the primary is stuck failing on most/all requests, not the expected ~49% baseline (see BITB-061/070). The secondary model is still recovering these end-to-end, but the pipeline is running on a single remaining ML classifier for a sustained period. See providers/llama_guard.py."
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(10m)
+      | where timestamp > ago(1h)
       | where name == "llama_guard.primary_result_total"
-      | where tostring(customDimensions["outcome"]) == "failed"
-      | summarize total = sum(valueSum) by bin(timestamp, 5m)
-      | where total > 0
+      | extend outcome = tostring(customDimensions["outcome"])
+      | summarize failed = sumif(valueSum, outcome == "failed"), total = sum(valueSum) by bin(timestamp, 15m)
+      | where total >= 5
+      | extend failure_rate = todouble(failed) / todouble(total)
+      | where failure_rate >= 0.9
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 3
     }
   }
 
