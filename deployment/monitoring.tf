@@ -68,6 +68,11 @@
 #       it fails at under normal load (secondary recovers those; see BITB-061/070).
 #       content_safety_fallback_rate stays silent in this case since it only fires when
 #       BOTH models fail.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_client_rejection_spike
+#       Sev3 companion to backend_5xx_rate: 401/403/429 responses are excluded from
+#       that Sev1 rule (they're expected — Turnstile bot-rejection, auth, rate-limit),
+#       but a large spike in them can still mean a bot attack or a broken client-side
+#       Turnstile flow, so this rule watches them separately at a much higher threshold.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -1038,10 +1043,16 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_ra
 # ---------------------------------------------------------------------------
 
 # HTTP 5xx rate (App Insights requests table). Catches any endpoint/method the
-# app layer answers with a 5xx (or success == false). KQL mirrors the workbook
-# "Failed Requests" tile. Threshold is conservative (a handful in 10m) to avoid
-# single-blip noise; tune once a baseline is observed. Severity 1: a 5xx spike
-# is a user-facing outage.
+# app layer answers with a true 5xx, plus any other success==false event that
+# ISN'T one of the expected client-rejection codes (401 auth, 403 Turnstile
+# bot-verification — see require_turnstile() in api/utils/turnstile.py — and
+# 429 rate-limit). Those three are excluded here because they fire routinely
+# under normal operation (stale/late Turnstile tokens, bot/scanner traffic,
+# BITB-061's fail-closed Turnstile change) and are not backend failures; see
+# backend_client_rejection_spike below for a higher-threshold view of them.
+# KQL otherwise mirrors the workbook "Failed Requests" tile. Threshold is
+# conservative (a handful in 10m) to avoid single-blip noise; tune once a
+# baseline is observed. Severity 1: a 5xx spike is a user-facing outage.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-5xx-rate"
@@ -1051,13 +1062,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   window_duration      = "PT10M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 1
-  description          = "Backend returned HTTP 5xx (or success == false) on 3+ requests in the last 10 minutes. Broad catch-all for server-side failures not covered by the specific metric/log alerts. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
+  description          = "Backend returned HTTP 5xx, or another success==false response that isn't an expected client rejection (401/403/429), on 3+ requests in the last 10 minutes. Broad catch-all for server-side failures not covered by the specific metric/log alerts. Turnstile/bot 403s, auth 401s, and rate-limit 429s are excluded — see backend_client_rejection_spike for those. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
 
   criteria {
     query                   = <<-KQL
       requests
       | where timestamp > ago(10m)
-      | where success == false or toint(resultCode) >= 500
+      | where toint(resultCode) >= 500
+          or (success == false and toint(resultCode) !in (401, 403, 429))
       | summarize total = count() by bin(timestamp, 5m)
       | where total >= 3
     KQL
@@ -1147,6 +1159,55 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_asgi_exceptio
       // guards the empty-input row. 600 chars of the traceback inline; the full
       // text is one click away via the "Details:" link the Logic App appends.
       | project AlertSummary = strcat('x', tostring(cnt), ' | ', substring(Sample, 0, 600))
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# Client-rejection spike (401/403/429). These are excluded from backend_5xx_rate
+# above because they're expected under normal operation — Turnstile bot-verification
+# (require_turnstile() in api/utils/turnstile.py, especially first-attempt 403s from
+# Android clients whose Turnstile WebView hasn't produced a token yet), auth
+# rejections, and rate-limiting. BITB-061 also made Turnstile fail CLOSED on
+# transient siteverify errors, which increases 403 volume further. A high enough
+# spike can still mean something real (a bot attack, or a client-side Turnstile
+# flow that's broken rather than just occasionally racy), so this rule watches
+# them separately at a much higher, non-paging-on-normal-noise threshold.
+# Severity 3 (informational): still routes through the same action group as
+# every other alert in this file (no severity-based routing exists here), so
+# noise control comes entirely from the threshold, not the severity label.
+# Threshold is a starting guess; tune once a baseline is observed.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_client_rejection_spike" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-backend-client-rejection-spike"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "30+ requests in the last 10 minutes rejected with 401/403/429 (auth, Turnstile bot-verification, or rate-limit). These are expected in small numbers and are excluded from backend_5xx_rate; a spike this large may indicate a bot attack or a broken client-side Turnstile flow rather than routine noise. Threshold is a starting guess — tune once a baseline is observed."
+
+  criteria {
+    query                   = <<-KQL
+      requests
+      | where timestamp > ago(10m)
+      | where toint(resultCode) in (401, 403, 429)
+      | summarize total = count() by bin(timestamp, 5m)
+      | where total >= 30
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
