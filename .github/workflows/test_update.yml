@@ -98,6 +98,13 @@ jobs:
           DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
           LLM_PROVIDER: ollama
           OLLAMA_HOST: http://localhost:11434
+          # BITB-061: this job's Postgres service has no migrations applied, so
+          # the shared rate-limit tables don't exist. Route-level tests that
+          # exercise require_rate_limit() would otherwise hit real DB errors
+          # until the circuit breaker trips and fails closed for the rest of
+          # the session. test_rate_limiter*.py exercise the postgres backend
+          # explicitly (backend="postgres") regardless of this default.
+          RATE_LIMIT_BACKEND: memory
         run: |
           cd api
           pytest -v --tb=short

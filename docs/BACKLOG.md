@@ -362,9 +362,9 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+### ✅ BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
+**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
@@ -385,7 +385,7 @@ error — unacceptable for a pastoral-care product serving people in crisis.
 
 - [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
       breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
-- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+- [x] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
       session lifetime cap survives deploys; dedicated unit tests added
 - [x] Content safety: keyword stage always runs regardless of ML-stage availability; empty/malformed
       Llama Guard response treated as an error, not "safe"; every fallback branch emits
