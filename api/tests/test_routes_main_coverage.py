@@ -1035,18 +1035,16 @@ class TestChatRoutes:
 class TestChatStreamRoute:
     """Tests for chat_stream route function."""
 
-    @pytest.mark.asyncio
-    async def test_chat_stream_returns_streaming_response(self):
-        from chat.service import ChatRequest
-        from routes.chat import chat_stream
+    @staticmethod
+    def _mock_http_request():
+        """Create a mock HTTP request with headers for chat_stream route tests."""
+        mock_req = MagicMock()
+        mock_req.headers = {"user-agent": "test-agent", "accept-language": "en-US"}
+        return mock_req
 
-        mock_db = AsyncMock()
-        mock_llm = AsyncMock()
-        mock_embedding = AsyncMock()
-
-        request = ChatRequest(message="Hello")
-
-        async def mock_gen(req):
+    @staticmethod
+    def _mock_gen(req):
+        async def gen(_req):
             yield {
                 "type": "metadata",
                 "message_id": "test-id",
@@ -1057,15 +1055,65 @@ class TestChatStreamRoute:
             yield {"type": "content", "content": "Hello "}
             yield {"type": "content", "content": "world!"}
 
-        with patch("routes.chat.ChatService") as mock_service_cls:
+        return gen(req)
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_returns_streaming_response(self):
+        from chat.service import ChatRequest
+        from routes.chat import chat_stream
+
+        mock_db = AsyncMock()
+        mock_llm = AsyncMock()
+        mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
+
+        request = ChatRequest(message="Hello")
+
+        with (
+            patch("routes.chat.ChatService") as mock_service_cls,
+            patch("routes.chat.track_session", new_callable=AsyncMock),
+        ):
             mock_service = MagicMock()
-            mock_service.chat_stream = mock_gen
+            mock_service.chat_stream = self._mock_gen
             mock_service_cls.return_value = mock_service
 
-            response = await chat_stream(request, mock_db, mock_llm, mock_embedding)
+            response = await chat_stream(request, mock_http, mock_db, mock_llm, mock_embedding)
 
         # Should be a StreamingResponse
         assert response.media_type == "text/event-stream"
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_tracks_session_after_stream(self):
+        """Draining the streamed body should upsert the session exactly once."""
+        from chat.service import ChatRequest
+        from routes.chat import chat_stream
+
+        mock_db = AsyncMock()
+        mock_llm = AsyncMock()
+        mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
+
+        request = ChatRequest(message="Hello", session_id="sess-123")
+
+        with (
+            patch("routes.chat.ChatService") as mock_service_cls,
+            patch("routes.chat.track_session", new_callable=AsyncMock) as mock_track,
+        ):
+            mock_service = MagicMock()
+            mock_service.chat_stream = self._mock_gen
+            mock_service_cls.return_value = mock_service
+
+            response = await chat_stream(request, mock_http, mock_db, mock_llm, mock_embedding)
+
+            # Tracking happens inside the generator, so it only fires once the body
+            # is consumed — not merely by constructing the StreamingResponse.
+            mock_track.assert_not_awaited()
+            chunks = [chunk async for chunk in response.body_iterator]
+
+        assert any("[DONE]" in chunk for chunk in chunks)
+        mock_track.assert_awaited_once_with(
+            mock_db, "sess-123", user_agent="test-agent", language="en"
+        )
 
 
 # ==================== Scripture Route Tests ====================
