@@ -134,7 +134,8 @@
     "stopGenerating": "Arrêter la génération",
     "languageSwitchSuggestion": "Il semble que vous écriviez en {language}. Changer ?",
     "languageSwitchAction": "Changer",
-    "languageSwitchDismiss": "Ignorer"
+    "languageSwitchDismiss": "Ignorer",
+    "historyTitle": "Historique des conversations"
   },
   "Verses": {
     "scriptureReferences": "Références Bibliques",
@@ -290,5 +291,34 @@
     "step3Button": "Ouvrir sur Google Play",
     "note": "Le test est entièrement gratuit et vous pouvez le quitter à tout moment. Des questions ou des suggestions ? Contactez-nous depuis la page d'accueil.",
     "backHome": "Retour à l'accueil"
+  },
+  "History": {
+    "title": "Historique des conversations",
+    "close": "Fermer",
+    "newConversation": "Nouvelle conversation",
+    "empty": "Aucune conversation enregistrée pour le moment.",
+    "untitled": "Conversation sans titre",
+    "storageUnavailable": "L'historique ne peut pas être enregistré dans ce navigateur (mode privé ou stockage désactivé).",
+    "rename": "Renommer",
+    "saveTitle": "Enregistrer le titre",
+    "delete": "Supprimer",
+    "clearAll": "Tout effacer",
+    "export": "Exporter",
+    "import": "Importer",
+    "cancel": "Annuler",
+    "privacyNote": "Votre historique est stocké uniquement sur cet appareil et n'est jamais envoyé à nos serveurs.",
+    "exportHint": "Choisissez une phrase secrète pour chiffrer votre fichier d'historique. Elle sera nécessaire pour l'importer.",
+    "importHint": "Sélectionnez un fichier d'historique exporté et saisissez sa phrase secrète.",
+    "passphrasePlaceholder": "Phrase secrète",
+    "confirmDelete": "Supprimer cette conversation ? Cette action est irréversible.",
+    "confirmClearAll": "Supprimer TOUTES les conversations enregistrées sur cet appareil ? Cette action est irréversible.",
+    "passphraseTooShort": "Utilisez une phrase secrète d'au moins 6 caractères.",
+    "passphraseRequired": "Saisissez la phrase secrète de ce fichier.",
+    "chooseFile": "Choisissez un fichier à importer.",
+    "exportDone": "Historique exporté.",
+    "exportFailed": "L'exportation a échoué. Veuillez réessayer.",
+    "importDone": "{count} conversation(s) importée(s).",
+    "importFailed": "L'importation a échoué. S'agit-il d'un fichier d'historique valide ?",
+    "wrongPassphrase": "Phrase secrète incorrecte ou fichier corrompu."
   }
 }

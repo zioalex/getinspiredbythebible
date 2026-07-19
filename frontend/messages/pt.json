@@ -134,7 +134,8 @@
     "stopGenerating": "Parar geração",
     "languageSwitchSuggestion": "Parece que você está escrevendo em {language}. Mudar?",
     "languageSwitchAction": "Mudar",
-    "languageSwitchDismiss": "Dispensar"
+    "languageSwitchDismiss": "Dispensar",
+    "historyTitle": "Histórico de conversas"
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",
@@ -290,5 +291,34 @@
     "step3Button": "Abrir na Google Play",
     "note": "O teste é totalmente gratuito e você pode sair a qualquer momento. Tem dúvidas ou sugestões? Fale conosco pela página inicial.",
     "backHome": "Voltar ao início"
+  },
+  "History": {
+    "title": "Histórico de conversas",
+    "close": "Fechar",
+    "newConversation": "Nova conversa",
+    "empty": "Ainda não há conversas salvas.",
+    "untitled": "Conversa sem título",
+    "storageUnavailable": "O histórico não pode ser salvo neste navegador (modo privado ou armazenamento desativado).",
+    "rename": "Renomear",
+    "saveTitle": "Salvar título",
+    "delete": "Excluir",
+    "clearAll": "Limpar tudo",
+    "export": "Exportar",
+    "import": "Importar",
+    "cancel": "Cancelar",
+    "privacyNote": "Seu histórico é armazenado apenas neste dispositivo e nunca é enviado aos nossos servidores.",
+    "exportHint": "Escolha uma frase secreta para criptografar o arquivo do histórico. Você precisará dela para importar.",
+    "importHint": "Selecione um arquivo de histórico exportado e digite a frase secreta dele.",
+    "passphrasePlaceholder": "Frase secreta",
+    "confirmDelete": "Excluir esta conversa? Isso não pode ser desfeito.",
+    "confirmClearAll": "Excluir TODAS as conversas salvas neste dispositivo? Isso não pode ser desfeito.",
+    "passphraseTooShort": "Use uma frase secreta de pelo menos 6 caracteres.",
+    "passphraseRequired": "Digite a frase secreta deste arquivo.",
+    "chooseFile": "Escolha um arquivo para importar.",
+    "exportDone": "Histórico exportado.",
+    "exportFailed": "A exportação falhou. Tente novamente.",
+    "importDone": "{count} conversa(s) importada(s).",
+    "importFailed": "A importação falhou. Este é um arquivo de histórico válido?",
+    "wrongPassphrase": "Frase secreta incorreta ou arquivo corrompido."
   }
 }

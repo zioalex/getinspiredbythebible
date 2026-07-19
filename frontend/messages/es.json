@@ -134,7 +134,8 @@
     "stopGenerating": "Detener generación",
     "languageSwitchSuggestion": "Parece que estás escribiendo en {language}. ¿Cambiar?",
     "languageSwitchAction": "Cambiar",
-    "languageSwitchDismiss": "Descartar"
+    "languageSwitchDismiss": "Descartar",
+    "historyTitle": "Historial de conversaciones"
   },
   "Verses": {
     "scriptureReferences": "Referencias Bíblicas",
@@ -290,5 +291,34 @@
     "step3Button": "Abrir en Google Play",
     "note": "Las pruebas son totalmente gratuitas y puedes salir cuando quieras. ¿Tienes preguntas o comentarios? Contáctanos desde la página de inicio.",
     "backHome": "Volver al inicio"
+  },
+  "History": {
+    "title": "Historial de conversaciones",
+    "close": "Cerrar",
+    "newConversation": "Nueva conversación",
+    "empty": "Aún no hay conversaciones guardadas.",
+    "untitled": "Conversación sin título",
+    "storageUnavailable": "El historial no se puede guardar en este navegador (modo privado o almacenamiento desactivado).",
+    "rename": "Cambiar nombre",
+    "saveTitle": "Guardar título",
+    "delete": "Eliminar",
+    "clearAll": "Borrar todo",
+    "export": "Exportar",
+    "import": "Importar",
+    "cancel": "Cancelar",
+    "privacyNote": "Tu historial se guarda solo en este dispositivo y nunca se envía a nuestros servidores.",
+    "exportHint": "Elige una frase de contraseña para cifrar el archivo del historial. La necesitarás para importarlo.",
+    "importHint": "Selecciona un archivo de historial exportado e introduce su frase de contraseña.",
+    "passphrasePlaceholder": "Frase de contraseña",
+    "confirmDelete": "¿Eliminar esta conversación? Esta acción no se puede deshacer.",
+    "confirmClearAll": "¿Eliminar TODAS las conversaciones guardadas en este dispositivo? Esta acción no se puede deshacer.",
+    "passphraseTooShort": "Usa una frase de contraseña de al menos 6 caracteres.",
+    "passphraseRequired": "Introduce la frase de contraseña de este archivo.",
+    "chooseFile": "Elige un archivo para importar.",
+    "exportDone": "Historial exportado.",
+    "exportFailed": "La exportación falló. Inténtalo de nuevo.",
+    "importDone": "Se importaron {count} conversaciones.",
+    "importFailed": "La importación falló. ¿Es un archivo de historial válido?",
+    "wrongPassphrase": "Frase de contraseña incorrecta o archivo dañado."
   }
 }

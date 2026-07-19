@@ -158,7 +158,7 @@ class TestRepositorySpans:
         """search_verses_semantic() creates a span named db.search_verses_semantic."""
         mock_session = AsyncMock()
         mock_result = MagicMock()
-        mock_result.all.return_value = []
+        mock_result.fetchall.return_value = []
         mock_session.execute.return_value = mock_result
 
         repo = ScriptureRepository(mock_session)
@@ -179,7 +179,7 @@ class TestRepositorySpans:
         """search_passages_semantic() creates a span named db.search_passages_semantic."""
         mock_session = AsyncMock()
         mock_result = MagicMock()
-        mock_result.all.return_value = []
+        mock_result.fetchall.return_value = []
         mock_session.execute.return_value = mock_result
 
         repo = ScriptureRepository(mock_session)
@@ -242,7 +242,7 @@ class TestRepositorySpans:
         """Semantic search spans include similarity_threshold attribute."""
         mock_session = AsyncMock()
         mock_result = MagicMock()
-        mock_result.all.return_value = []
+        mock_result.fetchall.return_value = []
         mock_session.execute.return_value = mock_result
 
         repo = ScriptureRepository(mock_session)
@@ -269,7 +269,7 @@ class TestDBMetricsRecording:
         """search_verses_semantic() records db.search.duration_ms metric."""
         mock_session = AsyncMock()
         mock_result = MagicMock()
-        mock_result.all.return_value = []
+        mock_result.fetchall.return_value = []
         mock_session.execute.return_value = mock_result
 
         repo = ScriptureRepository(mock_session)
