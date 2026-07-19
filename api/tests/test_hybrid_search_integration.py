@@ -33,13 +33,14 @@ from sqlalchemy.pool import NullPool
 
 from config import settings
 from scripture.database import get_async_database_url
-from scripture.models import Base, Book, Chapter, Passage, Translation, Verse
+from scripture.models import Base, Book, Chapter, Passage, Topic, Translation, Verse
 from scripture.repository import ScriptureRepository
 
 # Sentinel identifiers so the rolled-back seed never collides with real data.
 _TRANSLATION = "zzint"
 _BOOK_NAME = "ZZ Integration Book"
 _VERSE_TEXT = "For God so loved the world that he gave his only Son."
+_TOPIC_NAME = "ZZ Integration Topic"
 
 
 def _seed_vector() -> list[float]:
@@ -119,6 +120,8 @@ async def seeded_repo():
                 embedding=vec,
             )
         )
+        await session.flush()
+        session.add(Topic(name=_TOPIC_NAME, embedding=vec))
         await session.flush()
         yield ScriptureRepository(session)
     finally:
@@ -232,4 +235,44 @@ async def test_get_verses_in_range_executes_against_real_db(seeded_repo):
         _BOOK_NAME, 3, start_verse=16, end_verse=18, translation=_TRANSLATION
     )
     assert verses, "get_verses_in_range returned empty for the seeded range"
+    assert any(v.text == _VERSE_TEXT for v in verses)
+
+
+# ── Plain (non-boosted/non-hybrid) semantic-search builders ───────────────
+# These use pgvector's cosine_distance operator directly via the ORM but,
+# unlike the raw-SQL builders above, were previously only ever asserted
+# against a mock's canned return value -- never executed against real
+# Postgres+pgvector.
+
+
+async def test_search_verses_semantic_executes_against_real_db(seeded_repo):
+    rows = await seeded_repo.search_verses_semantic(
+        query_embedding=_seed_vector(), translation=_TRANSLATION
+    )
+    assert rows, "semantic search returned no rows from the real DB"
+    verse, similarity = rows[0]
+    assert verse.text == _VERSE_TEXT
+    # Identical vector -> cosine distance 0 -> similarity 1.0.
+    assert similarity == pytest.approx(1.0)
+
+
+async def test_search_passages_semantic_executes_against_real_db(seeded_repo):
+    rows = await seeded_repo.search_passages_semantic(query_embedding=_seed_vector())
+    assert rows, "passage semantic search returned no rows from the real DB"
+    passage, similarity = rows[0]
+    assert passage.text == _VERSE_TEXT
+    assert similarity == pytest.approx(1.0)
+
+
+async def test_search_topics_semantic_executes_against_real_db(seeded_repo):
+    rows = await seeded_repo.search_topics_semantic(query_embedding=_seed_vector())
+    assert rows, "topic semantic search returned no rows from the real DB"
+    topic, similarity = rows[0]
+    assert topic.name == _TOPIC_NAME
+    assert similarity == pytest.approx(1.0)
+
+
+async def test_search_verses_text_executes_against_real_db(seeded_repo):
+    verses = await seeded_repo.search_verses_text(query="loved the world")
+    assert verses, "text search returned no rows from the real DB"
     assert any(v.text == _VERSE_TEXT for v in verses)

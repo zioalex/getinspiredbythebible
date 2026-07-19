@@ -1024,6 +1024,57 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_ra
   tags = local.tags
 }
 
+# Rate limiter fail-closed alert (BITB-061 phase 3).
+# api/utils/rate_limiter.py's PostgresStore is wrapped in a circuit breaker
+# (5 consecutive failures / 30s cooldown, same shape as TurnstileVerifier's).
+# A single isolated DB error just falls back to the in-memory store
+# (rate_limiter.fallback_total, not alerted -- degraded but still enforcing
+# something). Once the breaker opens, every rate-limit check fails CLOSED
+# instead: real users get HTTP 429 "Rate limiter temporarily unavailable" on
+# /chat and /chat/stream, with no other user-facing signal (it's not a 5xx,
+# so the backend-5xx-rate alert never sees it). Before this, the three
+# rate_limiter.* counters this migration added (db_error_total,
+# fallback_total, fail_closed_total) had no alert or dashboard panel at all --
+# unlike the near-identical embedding_fallback_rate alert above for the
+# embedding circuit breaker. Severity 1 (not 2, like the embedding alert)
+# because fail-closed means active rejection of chat traffic, not degraded
+# service.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "rate_limiter_fail_closed" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-rate-limiter-fail-closed"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT10M"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 1
+  description          = "Postgres-backed rate limiter's circuit breaker is open and failing closed (rate_limiter.fail_closed_total metric) in the last 10 minutes -- chat requests are being rejected with HTTP 429 regardless of actual rate-limit state. Check Postgres connectivity/load; see api/utils/rate_limiter.py."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(10m)
+      | where name == "rate_limiter.fail_closed_total"
+      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | where total > 0
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
 # ---------------------------------------------------------------------------
 # Backend catch-all error alerts (BITB-065).
 #

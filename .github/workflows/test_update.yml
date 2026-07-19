@@ -14,6 +14,7 @@ run-name: >-
     paths:
       - "api/**"
       - "frontend/**"
+      - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
       - ".github/workflows/test_update.yml"
@@ -24,6 +25,7 @@ run-name: >-
     paths:
       - "api/**"
       - "frontend/**"
+      - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
       - ".github/workflows/test_update.yml"
@@ -184,10 +186,17 @@ jobs:
           # Primary: free model, Fallback: paid model (minimal cost)
           cat > .env << EOF
           LLM_PROVIDER=openrouter
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY=${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
           OPENROUTER_FALLBACK_MODELS=meta-llama/llama-3.3-70b-instruct
           OPENROUTER_ALLOW_FALLBACKS=true
+          # docker-compose.yml already defaults to this, but pin it explicitly so this
+          # job keeps working even if that default changes. This ephemeral, single-
+          # instance Postgres has no pg_cron purge job (migration 010, BITB-061) for
+          # the Postgres-backed rate limiter's tables, and (the original incident)
+          # once had neither table at all -- which tripped the limiter's circuit
+          # breaker to fail closed (real 429s) after 5 chat/stream requests.
+          RATE_LIMIT_BACKEND=memory
           OLLAMA_HOST=http://ollama:11434
           EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large

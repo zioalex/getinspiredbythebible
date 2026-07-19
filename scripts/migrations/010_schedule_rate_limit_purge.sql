@@ -28,34 +28,45 @@
 --   - `CREATE EXTENSION IF NOT EXISTS` is safe to re-run.
 --   - `cron.unschedule` is wrapped in a DO block so re-running this
 --     migration just replaces the schedule without errors.
-
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+--
+-- Local/CI Postgres (pgvector/pgvector image, docker-compose.yml) doesn't have
+-- pg_cron installed and can't get it without a custom image. Unlike a missing
+-- table, `CREATE EXTENSION pg_cron` fails outright when the extension isn't
+-- installed, and any statement referencing the `cron` schema then fails to
+-- even parse -- so the whole body below is gated on pg_available_extensions
+-- and skips with a NOTICE when pg_cron isn't there, instead of taking the
+-- migration runner down on every non-prod environment. The tables themselves
+-- (migration 009) are unaffected either way -- only the purge schedule is
+-- skipped, so rows just accumulate until this runs somewhere with pg_cron.
 
 DO $$
 BEGIN
-    PERFORM cron.unschedule('purge-rate-limit-hits')
-    FROM cron.job
-    WHERE jobname = 'purge-rate-limit-hits';
+    IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+        EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_cron';
 
-    PERFORM cron.unschedule('purge-rate-limit-sessions')
-    FROM cron.job
-    WHERE jobname = 'purge-rate-limit-sessions';
+        PERFORM cron.unschedule('purge-rate-limit-hits')
+        FROM cron.job
+        WHERE jobname = 'purge-rate-limit-hits';
+
+        PERFORM cron.unschedule('purge-rate-limit-sessions')
+        FROM cron.job
+        WHERE jobname = 'purge-rate-limit-sessions';
+
+        PERFORM cron.schedule(
+            'purge-rate-limit-hits',
+            '*/10 * * * *',
+            $cron$DELETE FROM rate_limit_hits WHERE created_at < now() - interval '1 hour'$cron$
+        );
+
+        PERFORM cron.schedule(
+            'purge-rate-limit-sessions',
+            '15 * * * *',
+            $cron$DELETE FROM rate_limit_sessions WHERE last_seen < now() - interval '1 hour'$cron$
+        );
+
+        RAISE NOTICE 'Scheduled pg_cron jobs purge-rate-limit-hits (*/10 * * * *) and purge-rate-limit-sessions (15 * * * *)';
+    ELSE
+        RAISE NOTICE 'pg_cron extension not available -- skipping rate-limit purge schedules (expected on local/CI Postgres; rate_limit_hits/rate_limit_sessions rows will just accumulate until this runs somewhere with pg_cron)';
+    END IF;
 END
 $$;
-
-SELECT cron.schedule(
-    'purge-rate-limit-hits',
-    '*/10 * * * *',
-    $cmd$DELETE FROM rate_limit_hits WHERE created_at < now() - interval '1 hour'$cmd$
-);
-
-SELECT cron.schedule(
-    'purge-rate-limit-sessions',
-    '15 * * * *',
-    $cmd$DELETE FROM rate_limit_sessions WHERE last_seen < now() - interval '1 hour'$cmd$
-);
-
--- Verify
-SELECT jobid, jobname, schedule, command
-FROM cron.job
-WHERE jobname IN ('purge-rate-limit-hits', 'purge-rate-limit-sessions');
