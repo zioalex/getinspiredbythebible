@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+echo "=== Applying database migrations ==="
+python3 -u migrations/run_migrations.py
+echo ""
+
 echo "=== Translation status before load ==="
 python3 -u load_bible.py --status
 echo ""

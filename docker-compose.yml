@@ -15,6 +15,16 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       # Defaults to the in-stack Postgres so `make docker-up` works out of the box.
       - DATABASE_URL=${DATABASE_URL:-postgresql://bible:bible123@postgres:5432/bibledb}
+      # BITB-061's Postgres-backed rate limiter exists to keep counters correct
+      # across multiple prod replicas -- meaningless for this single-instance local
+      # stack. Default to the in-memory backend here: (1) local/CI Postgres has no
+      # pg_cron (migration 010), so rate_limit_hits/rate_limit_sessions would grow
+      # unbounded over a long dev session; (2) before this default existed, a fresh
+      # local/CI volume had neither table, so every /chat request errored, tripping
+      # the circuit breaker to fail closed (real 429s) after 5 requests. Prod is
+      # unaffected -- it doesn't set this var, so it keeps Settings' own default of
+      # "postgres" (api/config.py).
+      - RATE_LIMIT_BACKEND=${RATE_LIMIT_BACKEND:-memory}
       # OpenRouter settings
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
@@ -78,6 +88,10 @@ services:
     volumes:
       - ./scripts:/scripts
       - ./data:/data
+      # Read-only: run_migrations.py resolves ../../api relative to its own
+      # path (matching the layout azure-deploy.yml's run-migrations job sees
+      # from a full checkout), so it needs api/ visible at /api here.
+      - ./api:/api:ro
     working_dir: /scripts
     entrypoint: ["/bin/bash", "/scripts/init-db.sh"]
     restart: "no"

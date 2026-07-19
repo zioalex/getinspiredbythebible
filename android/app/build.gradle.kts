@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // Kotlin compilation is provided by AGP 9.0's built-in Kotlin (the standalone
+    // org.jetbrains.kotlin.android plugin is incompatible with AGP 9.0). The
+    // Compose and serialization compiler plugins below still apply on top of it.
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
@@ -11,7 +13,11 @@ plugins {
 
 android {
     namespace = "org.voxquieta.app"
-    compileSdk = 35
+    // compileSdk 36 is required by androidx.activity 1.11.0 (its AAR metadata
+    // mandates compiling against API 36+) and is natively supported by AGP 9.0.
+    // targetSdk stays at 35 — the edge-to-edge work targets Android 15 and
+    // compileSdk only controls which APIs compile, not runtime behaviour.
+    compileSdk = 36
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
     // This prevents CI from injecting an empty string when a GitHub variable is unset.
@@ -134,10 +140,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -199,6 +201,14 @@ android {
             "ObsoleteLintCustomCheck",
             "InvalidPackage",
         )
+    }
+}
+
+// AGP 9.0 removed the android.kotlinOptions {} DSL; Kotlin compiler options now
+// live on the Kotlin Gradle plugin's top-level `kotlin {}` extension.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
