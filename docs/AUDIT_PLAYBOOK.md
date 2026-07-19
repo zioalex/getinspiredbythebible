@@ -67,7 +67,7 @@ This project maintains hand-synchronized logic across platforms. Every audit mus
 
 | Logic | Copies |
 |---|---|
-| Verse-reference regex | `frontend/src/lib/versePatterns.ts` · `android/.../ChatMessageItem.kt` · `api/utils/verse_parser.py` |
+| Verse-reference regex | `frontend/src/lib/versePatterns.ts` · `android/.../ChatMessageItem.kt` · `api/utils/verse_parser.py` — cross-checked by the shared regression corpus `tests/fixtures/verse_reference_corpus.json` (BITB-059 AC#4) |
 | Localized book-name map | `frontend/src/lib/verseExtraction.ts` · `android/.../utils/LocalizedBookToEnglish.kt` · `api/utils/translation_registry.py` |
 | Session/message limits | `api/config.py` · `android/.../ChatViewModel.kt` (`MAX_INTERACTIONS`, `MAX_MESSAGE_LENGTH`) |
 | Error contracts | provider error strings ↔ route/client substring matches (backend routes, Android `mapExceptionToMessage`) |

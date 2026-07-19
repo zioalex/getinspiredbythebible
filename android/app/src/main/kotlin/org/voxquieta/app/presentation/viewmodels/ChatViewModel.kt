@@ -858,8 +858,11 @@ class ChatViewModel @Inject constructor(
 
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
+        // Stop any in-flight stream first: its onCompletion would otherwise try to persist
+        // the assistant message against the conversation we are about to delete.
+        cancelStream()
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
                 lastConversationPreferences.setLastConversationId(null)
@@ -870,7 +873,10 @@ class ChatViewModel @Inject constructor(
 
     /** Deletes ALL conversations from DB and resets in-memory state. */
     fun clearAllConversations() {
-        _uiState.update { it.copy(messages = emptyList(), error = null, currentConversationId = null, allVerses = emptyList()) }
+        // Stop any in-flight stream first: its onCompletion would otherwise try to persist
+        // the assistant message against a conversation we are about to delete.
+        cancelStream()
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(null)
             repository.clearAllConversations()
