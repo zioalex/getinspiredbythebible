@@ -295,3 +295,40 @@ END $$;
   32 GB volume. On a 4 GB box (`B2s`) only the *active* languages' partials need to
   stay hot; see `scripts/perf/search_concurrency_test.py` to measure whether 4 GB
   suffices under concurrent multilingual load.
+
+## Migration 011: HNSW index on `topics.embedding` (BITB-062)
+
+Numbered 011, not 009 — PR #866 (rate limiter, open at the time this migration was
+written) already claims 009/010.
+
+### Why
+
+`search_topics_semantic` already queries with the index-friendly
+`ORDER BY embedding <=> q LIMIT n` shape, but `topics.embedding` had no vector index —
+every call was a full sequential scan. Unlike `verses`/`passages`, `topics` is small
+(tens to low hundreds of rows), so one plain HNSW index (no per-translation
+partitioning) is sufficient.
+
+### Why a `.py` migration
+
+Same reason as migration 007: `CREATE INDEX CONCURRENTLY` cannot run inside the
+implicit transaction the `.sql` runner uses.
+
+### Run
+
+```bash
+python scripts/migrations/011_add_topic_hnsw_index.py
+```
+
+### Verify
+
+```sql
+SELECT indexname, indexdef FROM pg_indexes
+WHERE tablename = 'topics' AND indexname = 'idx_topic_embedding_hnsw';
+```
+
+### Rollback
+
+```sql
+DROP INDEX IF EXISTS idx_topic_embedding_hnsw;
+```
