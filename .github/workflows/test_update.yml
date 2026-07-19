@@ -184,7 +184,7 @@ jobs:
           # Primary: free model, Fallback: paid model (minimal cost)
           cat > .env << EOF
           LLM_PROVIDER=openrouter
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY=${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
           OPENROUTER_FALLBACK_MODELS=meta-llama/llama-3.3-70b-instruct
           OPENROUTER_ALLOW_FALLBACKS=true
