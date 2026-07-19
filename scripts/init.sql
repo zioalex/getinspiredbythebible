@@ -174,3 +174,33 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
 CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity);
+
+-- ============================================================================
+-- Create rate_limit_hits / rate_limit_sessions tables (BITB-061, migration 009)
+-- ============================================================================
+-- Mirrors migration 009 so a fresh local/CI Postgres volume has these tables
+-- even before scripts/migrations/run_migrations.py runs. Two tables because
+-- the semantics differ: rate_limit_hits is a short-lived sliding-window event
+-- log (per-minute IP/session limits); rate_limit_sessions is a durable
+-- per-session lifetime counter. See migration 009 for the full rationale and
+-- migration 010 for the pg_cron purge job (prod-only -- see that file).
+
+CREATE TABLE IF NOT EXISTS rate_limit_hits (
+    id         BIGSERIAL PRIMARY KEY,
+    limit_key  TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_key_time
+    ON rate_limit_hits (limit_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_created_at
+    ON rate_limit_hits (created_at);
+
+CREATE TABLE IF NOT EXISTS rate_limit_sessions (
+    session_id     TEXT PRIMARY KEY,
+    total_requests INTEGER NOT NULL DEFAULT 0,
+    last_seen      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_sessions_last_seen
+    ON rate_limit_sessions (last_seen);
