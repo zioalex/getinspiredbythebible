@@ -172,6 +172,16 @@ android {
         }
     }
 
+    // BITB-059 AC#4: make the shared cross-platform verse-reference regression corpus
+    // (repo-root tests/fixtures/verse_reference_corpus.json — also consumed by the Python and
+    // web test suites) available on the JVM unit-test classpath as a plain resource, so
+    // VerseCorpusParityTest can load it without duplicating the file into the Android module.
+    sourceSets {
+        getByName("test") {
+            resources.srcDir("../../tests/fixtures")
+        }
+    }
+
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
