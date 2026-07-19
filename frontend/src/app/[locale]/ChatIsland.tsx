@@ -13,7 +13,7 @@ import {
   Square,
   FlaskConical,
   ArrowRight,
-  History,
+  Menu,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -936,11 +936,21 @@ export default function ChatIsland({
   return (
     <main className="flex h-dvh">
       {/* Main Chat Area */}
-      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-hidden">
+      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto [overflow-x:clip]">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Menu — opens the local (device-only) conversation history sidebar;
+                  a generic burger icon leaves room to hang more entries off it later. */}
+              <button
+                onClick={() => setHistoryOpen(true)}
+                title={tChat("historyTitle")}
+                aria-label={tChat("historyTitle")}
+                className="flex items-center justify-center rounded-full border border-primary-200 p-2 text-primary-600 hover:bg-primary-50 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
               <Book className="w-8 h-8 text-primary-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">
@@ -952,16 +962,6 @@ export default function ChatIsland({
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Conversation history — opens the local (device-only) sidebar */}
-              <button
-                onClick={() => setHistoryOpen(true)}
-                title={tChat("historyTitle")}
-                aria-label={tChat("historyTitle")}
-                className="flex items-center justify-center rounded-full border border-primary-200 p-2 text-primary-600 hover:bg-primary-50 transition-colors"
-              >
-                <History className="w-5 h-5" />
-              </button>
-
               {/* Android beta tester recruitment — prominent call to participate */}
               <Link
                 href="/tester"

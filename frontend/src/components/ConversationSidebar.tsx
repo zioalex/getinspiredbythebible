@@ -338,7 +338,7 @@ export default function ConversationSidebar({
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
                 placeholder={t("passphrasePlaceholder")}
-                className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800"
+                className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
               />
               {error && <p className="text-xs text-red-600">{error}</p>}
               <div className="flex gap-2">
