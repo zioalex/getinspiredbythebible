@@ -1,6 +1,6 @@
 # BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
+**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
 **Priority:** P1 (High) — 2026-07 adversarial audit E2 + S3 + O2 (all HIGH); every layer of bot/abuse/safety protection currently fails open, silently
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
@@ -49,11 +49,49 @@ the cooldown elapses.
 
 ### Rate limiting
 
-- [ ] Counters live in a shared store surviving restarts and consistent across replicas — Postgres
+- [x] Counters live in a shared store surviving restarts and consistent across replicas — Postgres
       UPSERT sliding window (pg_cron cleanup already available) or managed Redis; decision recorded
       in the story on implementation.
-- [ ] Session lifetime cap survives deploys; limits hold at N replicas.
-- [ ] `utils/rate_limiter.py` gains dedicated unit tests (window expiry, session cap, concurrency).
+- [x] Session lifetime cap survives deploys; limits hold at N replicas.
+- [x] `utils/rate_limiter.py` gains dedicated unit tests (window expiry, session cap, concurrency).
+
+**Implemented 2026-07-13:** chose **Postgres over Redis** — the stack has zero Redis
+infrastructure today (grep-verified across `api/`, `deployment/`, `frontend/`), Postgres is
+already the one datastore every replica shares, and migration 005's pg_cron cleanup job is a
+working precedent. Adding managed Redis for three small counter tables would be a new
+dependency, new Terraform, new secret, and a new failure mode for no real benefit.
+
+Two new tables (migration `009_add_rate_limit_tables.sql`): `rate_limit_hits` (sliding-window
+event log — one row per allowed request, keyed `ip:<addr>` / `session:<id>`) and
+`rate_limit_sessions` (durable per-session lifetime counter, the piece that must survive
+deploys). `rate_limit_hits` rows are purged by pg_cron (migration `010_schedule_rate_limit_purge.sql`,
+same pattern as migration 005); `rate_limit_sessions` rows expire on idle past
+`rate_limit_session_ttl_seconds`.
+
+`api/utils/rate_limiter.py` now has a `RateLimitStore` protocol with two implementations:
+`InMemoryStore` (the pre-existing per-process algorithm, now also the fallback) and
+`PostgresStore` (transaction-scoped `pg_advisory_xact_lock` per IP/session key, so concurrent
+requests for the *same* key serialize across replicas; the lifetime counter increments via
+`INSERT ... ON CONFLICT (session_id) DO UPDATE`, which is atomic under concurrent writers — no
+double-counting or lost increments). `RateLimiter.check_rate_limit()` keeps its exact signature
+and reason strings, so `api/utils/security.py`'s call site is unchanged.
+
+**Fail-mode policy** (the important design decision, since this story is about *not* failing
+open): reuses `utils/circuit_breaker.py`, same as the Turnstile phase.
+An isolated Postgres error (breaker still closed) falls back to the in-memory store for that
+check — degraded but still enforcing a limit — and emits `rate_limiter.fallback_total`.
+Persistent failures (5 consecutive) trip the breaker and the check **fails closed**
+(`rate_limiter.fail_closed_total`) rather than allowing every request through. Pure fail-open was
+rejected (defeats the story); pure fail-closed on every DB blip was rejected too (turns an
+isolated Postgres hiccup into a full chat outage). New `rate_limit_backend` config
+(`postgres`/`memory`) keeps the old in-process-only behavior reachable for tests/local dev
+without a database.
+
+Tests: `api/tests/test_rate_limiter.py` (mocked `AsyncSession` — SQL/params per decision branch,
+fallback-on-error, fail-closed-after-breaker-trips, in-process concurrency) and
+`api/tests/test_rate_limiter_integration.py` (self-skipping when Postgres is unreachable; the
+real proof — 50 concurrent connections against a live Postgres racing the same session, exactly
+`session_max_requests` allowed).
 
 ### Content safety
 

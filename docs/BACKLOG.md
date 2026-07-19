@@ -362,9 +362,37 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
+**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
+`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
+
+**Note:** this story existed only as a loose story file (never indexed here) since PR #809 created
+it alongside BITB-059/060/061/063 — the gap that let it sit unstarted without showing up in a
+backlog scan. Added here for visibility.
+
+**As** the operator of a 2-vCPU/4GB production Postgres serving 12 translations, **I want** every
+vector-search path to use the HNSW index, **so that** a handful of unauthenticated search calls
+cannot saturate the database and starve chat — the actual product — of connections and CPU.
+
+**Why P1:** `search_verses_semantic` / `search_passages_semantic` backed the **public**
+`GET /api/v1/scripture/search` endpoint with a `WHERE (1 - cosine_distance) >= threshold` predicate
+— the exact full-scan shape the hybrid search path was already rewritten to avoid — and
+`topics.embedding` had no vector index at all.
+
+**Acceptance Criteria:** see `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+for the full checklist and what's shipped vs. deferred.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+
+---
+
+### ✅ BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
@@ -385,7 +413,7 @@ error — unacceptable for a pastoral-care product serving people in crisis.
 
 - [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
       breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
-- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+- [x] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
       session lifetime cap survives deploys; dedicated unit tests added
 - [x] Content safety: keyword stage always runs regardless of ML-stage availability; empty/malformed
       Llama Guard response treated as an error, not "safe"; every fallback branch emits

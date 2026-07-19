@@ -245,10 +245,19 @@ class ScriptureRepository:
             return verses
 
     async def search_verses_text(self, query: str, limit: int = 20) -> Sequence[Verse]:
-        """Full-text search on verse content."""
+        """Full-text search on verse content.
+
+        Uses ``@@`` against ``to_tsvector('simple', text)`` so the planner can use the
+        expression GIN index (``idx_verses_fts_simple``, migration 003) instead of the
+        leading-wildcard ``ILIKE`` full scan.
+        """
         result = await self.session.execute(
             select(Verse)
-            .where(Verse.text.ilike(f"%{query}%"))
+            .where(
+                text("to_tsvector('simple', text) @@ plainto_tsquery('simple', :query)").bindparams(
+                    query=query
+                )
+            )
             .limit(limit)
             .options(selectinload(Verse.book))
         )
@@ -260,9 +269,15 @@ class ScriptureRepository:
         limit: int = 5,
         similarity_threshold: float = 0.5,
         translation: str | None = None,
+        candidate_pool: int | None = None,
     ) -> list[tuple[Verse, float]]:
         """
         Semantic search using vector similarity.
+
+        Index-friendly: pulls an HNSW-backed ANN candidate pool via
+        ``_candidate_pool_cte`` (``ORDER BY embedding <=> q LIMIT :candidate_pool``),
+        then applies the similarity threshold on the small deduped pool — mirrors
+        ``search_verses_hybrid`` minus the keyword-ranking stage.
 
         Args:
             query_embedding: The embedding vector of the search query
@@ -273,31 +288,52 @@ class ScriptureRepository:
         Returns:
             List of (verse, similarity_score) tuples
         """
-        # Using pgvector's cosine distance (1 - cosine_similarity)
-        # So we convert to similarity: 1 - distance
-        query = (
-            select(
-                Verse, (1 - Verse.embedding.cosine_distance(query_embedding)).label("similarity")
-            )
-            .where(Verse.embedding.isnot(None))
-            .where((1 - Verse.embedding.cosine_distance(query_embedding)) >= similarity_threshold)
-        )
+        translation_filter = ""
+        params: dict = {
+            "threshold": similarity_threshold,
+            "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
+        }
 
         if translation:
-            query = query.where(Verse.translation == translation)
+            translation_filter = "AND translation = :translation"
+            params["translation"] = translation
 
-        query = (
-            query.order_by(Verse.embedding.cosine_distance(query_embedding))
-            .limit(limit)
-            .options(selectinload(Verse.book))
+        candidate_cte = _candidate_pool_cte(
+            [query_embedding], params, table="verses", translation_filter=translation_filter
         )
+
+        sql = f"""
+            WITH {candidate_cte}
+            SELECT id, (1 - dist) AS similarity
+            FROM dedup
+            WHERE (1 - dist) >= :threshold
+            ORDER BY dist
+            LIMIT :limit
+        """
 
         with tracer.start_as_current_span("db.search_verses_semantic") as span:
             _set_common_span_attrs(span, "semantic_search_verses", translation)
             span.set_attribute("db.similarity_threshold", similarity_threshold)
             start = time.perf_counter()
-            result = await self.session.execute(query)
-            rows = [(row.Verse, row.similarity) for row in result.all()]
+            result = await self.session.execute(text(sql), params)
+            id_rows = result.fetchall()
+
+            if not id_rows:
+                _record_duration(span, start, "semantic_search_verses", 0, translation)
+                return []
+
+            verse_ids = [row[0] for row in id_rows]
+            scores = {row[0]: row[1] for row in id_rows}
+
+            verses_result = await self.session.execute(
+                select(Verse).where(Verse.id.in_(verse_ids)).options(selectinload(Verse.book))
+            )
+            verses_by_id = {v.id: v for v in verses_result.scalars().all()}
+
+            rows = [
+                (verses_by_id[vid], float(scores[vid])) for vid in verse_ids if vid in verses_by_id
+            ]
             _record_duration(span, start, "semantic_search_verses", len(rows), translation)
             return rows
 
@@ -666,27 +702,62 @@ class ScriptureRepository:
         return cast(Passage | None, result.scalar_one_or_none())
 
     async def search_passages_semantic(
-        self, query_embedding: list[float], limit: int = 3, similarity_threshold: float = 0.5
+        self,
+        query_embedding: list[float],
+        limit: int = 3,
+        similarity_threshold: float = 0.5,
+        candidate_pool: int | None = None,
     ) -> list[tuple[Passage, float]]:
-        """Semantic search on passages."""
+        """Semantic search on passages.
+
+        Index-friendly: mirrors ``search_passages_hybrid`` minus the keyword-ranking
+        stage — HNSW candidate pool via ``_candidate_pool_cte``, then threshold filter
+        on the small deduped pool.
+        """
+        params: dict = {
+            "threshold": similarity_threshold,
+            "limit": limit,
+            "candidate_pool": max(candidate_pool or settings.vector_candidate_pool, limit),
+        }
+        candidate_cte = _candidate_pool_cte(
+            [query_embedding], params, table="passages", translation_filter=""
+        )
+
+        sql = f"""
+            WITH {candidate_cte}
+            SELECT id, (1 - dist) AS similarity
+            FROM dedup
+            WHERE (1 - dist) >= :threshold
+            ORDER BY dist
+            LIMIT :limit
+        """
+
         with tracer.start_as_current_span("db.search_passages_semantic") as span:
             _set_common_span_attrs(span, "semantic_search_passages", None)
             span.set_attribute("db.similarity_threshold", similarity_threshold)
             start = time.perf_counter()
-            result = await self.session.execute(
-                select(
-                    Passage,
-                    (1 - Passage.embedding.cosine_distance(query_embedding)).label("similarity"),
-                )
-                .where(Passage.embedding.isnot(None))
-                .where(
-                    (1 - Passage.embedding.cosine_distance(query_embedding)) >= similarity_threshold
-                )
-                .order_by(Passage.embedding.cosine_distance(query_embedding))
-                .limit(limit)
+            result = await self.session.execute(text(sql), params)
+            id_rows = result.fetchall()
+
+            if not id_rows:
+                _record_duration(span, start, "semantic_search_passages", 0, None)
+                return []
+
+            passage_ids = [row[0] for row in id_rows]
+            scores = {row[0]: row[1] for row in id_rows}
+
+            passages_result = await self.session.execute(
+                select(Passage)
+                .where(Passage.id.in_(passage_ids))
                 .options(selectinload(Passage.book))
             )
-            rows = [(row.Passage, row.similarity) for row in result.all()]
+            passages_by_id = {p.id: p for p in passages_result.scalars().all()}
+
+            rows = [
+                (passages_by_id[pid], float(scores[pid]))
+                for pid in passage_ids
+                if pid in passages_by_id
+            ]
             _record_duration(span, start, "semantic_search_passages", len(rows), None)
             return rows
 
