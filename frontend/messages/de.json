@@ -134,7 +134,8 @@
     "stopGenerating": "Generierung stoppen",
     "languageSwitchSuggestion": "Es sieht aus, als würdest du auf {language} schreiben. Wechseln?",
     "languageSwitchAction": "Wechseln",
-    "languageSwitchDismiss": "Verwerfen"
+    "languageSwitchDismiss": "Verwerfen",
+    "historyTitle": "Gesprächsverlauf"
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",
@@ -290,5 +291,34 @@
     "step3Button": "Bei Google Play öffnen",
     "note": "Das Testen ist völlig kostenlos und du kannst jederzeit aussteigen. Fragen oder Feedback? Erreiche uns über die Startseite.",
     "backHome": "Zurück zur Startseite"
+  },
+  "History": {
+    "title": "Gesprächsverlauf",
+    "close": "Schließen",
+    "newConversation": "Neues Gespräch",
+    "empty": "Noch keine gespeicherten Gespräche.",
+    "untitled": "Gespräch ohne Titel",
+    "storageUnavailable": "Der Verlauf kann in diesem Browser nicht gespeichert werden (privater Modus oder Speicher deaktiviert).",
+    "rename": "Umbenennen",
+    "saveTitle": "Titel speichern",
+    "delete": "Löschen",
+    "clearAll": "Alle löschen",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "cancel": "Abbrechen",
+    "privacyNote": "Dein Verlauf wird nur auf diesem Gerät gespeichert und niemals an unsere Server gesendet.",
+    "exportHint": "Wähle eine Passphrase, um deine Verlaufsdatei zu verschlüsseln. Du brauchst sie zum Importieren.",
+    "importHint": "Wähle eine exportierte Verlaufsdatei und gib ihre Passphrase ein.",
+    "passphrasePlaceholder": "Passphrase",
+    "confirmDelete": "Dieses Gespräch löschen? Das kann nicht rückgängig gemacht werden.",
+    "confirmClearAll": "ALLE gespeicherten Gespräche auf diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.",
+    "passphraseTooShort": "Verwende eine Passphrase mit mindestens 6 Zeichen.",
+    "passphraseRequired": "Gib die Passphrase für diese Datei ein.",
+    "chooseFile": "Wähle eine Datei zum Importieren.",
+    "exportDone": "Verlauf exportiert.",
+    "exportFailed": "Export fehlgeschlagen. Bitte versuche es erneut.",
+    "importDone": "{count} Gespräch(e) importiert.",
+    "importFailed": "Import fehlgeschlagen. Ist das eine gültige Verlaufsdatei?",
+    "wrongPassphrase": "Falsche Passphrase oder beschädigte Datei."
   }
 }

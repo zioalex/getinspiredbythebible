@@ -134,7 +134,8 @@
     "stopGenerating": "停止生成",
     "languageSwitchSuggestion": "您似乎在用{language}书写。要切换吗？",
     "languageSwitchAction": "切换",
-    "languageSwitchDismiss": "忽略"
+    "languageSwitchDismiss": "忽略",
+    "historyTitle": "对话历史"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",
@@ -290,5 +291,34 @@
     "step3Button": "在 Google Play 打开",
     "note": "测试完全免费，你可以随时退出。有疑问或建议？请通过主页与我们联系。",
     "backHome": "返回主页"
+  },
+  "History": {
+    "title": "对话历史",
+    "close": "关闭",
+    "newConversation": "新对话",
+    "empty": "尚无已保存的对话。",
+    "untitled": "未命名对话",
+    "storageUnavailable": "此浏览器无法保存历史记录（隐私模式或存储已禁用）。",
+    "rename": "重命名",
+    "saveTitle": "保存标题",
+    "delete": "删除",
+    "clearAll": "全部清除",
+    "export": "导出",
+    "import": "导入",
+    "cancel": "取消",
+    "privacyNote": "您的历史记录仅保存在本设备上，绝不会发送到我们的服务器。",
+    "exportHint": "选择一个口令来加密您的历史记录文件。导入时将需要它。",
+    "importHint": "选择已导出的历史记录文件并输入其口令。",
+    "passphrasePlaceholder": "口令",
+    "confirmDelete": "删除此对话？此操作无法撤销。",
+    "confirmClearAll": "删除本设备上所有已保存的对话？此操作无法撤销。",
+    "passphraseTooShort": "请使用至少 6 个字符的口令。",
+    "passphraseRequired": "请输入此文件的口令。",
+    "chooseFile": "请选择要导入的文件。",
+    "exportDone": "历史记录已导出。",
+    "exportFailed": "导出失败，请重试。",
+    "importDone": "已导入 {count} 个对话。",
+    "importFailed": "导入失败。这是有效的历史记录文件吗？",
+    "wrongPassphrase": "口令错误或文件已损坏。"
   }
 }
