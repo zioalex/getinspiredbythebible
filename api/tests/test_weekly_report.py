@@ -167,6 +167,46 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
     db.rollback.assert_awaited_once()
 
 
+@pytest.mark.asyncio
+async def test_build_report_reraises_unrelated_programming_error():
+    """A ProgrammingError that isn't the missing-sessions-schema case (e.g. a
+    genuine SQL syntax error) must propagate, not be swallowed into the
+    zero-engagement fallback."""
+
+    class DummyOrigError(Exception):
+        def __init__(self, message: str, *, pgcode: str | None):
+            super().__init__(message)
+            self.pgcode = pgcode
+
+    db = MagicMock()
+    actions = iter(
+        [
+            _result(all_=[("positive", 2)]),
+            _result(all_=[]),
+            _result(all_=[("bug", 1)]),
+            ProgrammingError(
+                "SELECT active_sessions FROM sessions",
+                {},
+                DummyOrigError('syntax error at or near "SELECT"', pgcode="42601"),
+            ),
+        ]
+    )
+
+    async def execute(*_args, **_kwargs):
+        action = next(actions)
+        if isinstance(action, Exception):
+            raise action
+        return action
+
+    db.execute = AsyncMock(side_effect=execute)
+    db.rollback = AsyncMock()
+
+    with pytest.raises(ProgrammingError):
+        await build_weekly_report(db, now=NOW)
+
+    db.rollback.assert_not_awaited()
+
+
 def _report_with_comment(comment: str) -> WeeklyReport:
     return WeeklyReport(
         window_start=NOW,
