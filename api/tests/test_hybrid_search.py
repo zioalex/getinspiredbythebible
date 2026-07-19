@@ -121,6 +121,58 @@ class TestSearchVersesHybrid:
         assert "translation" in params
         assert params["translation"] == "kjv"
 
+    @pytest.mark.asyncio
+    async def test_hybrid_search_zero_weights_skips_normalization(self):
+        """When semantic_weight and keyword_weight are both 0, the
+        `if total_weight > 0` guard skips division, avoiding a
+        ZeroDivisionError, and the raw (zero) weights flow through."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        results = await repo.search_verses_hybrid(
+            query_text="test",
+            query_embedding=embedding,
+            semantic_weight=0,
+            keyword_weight=0,
+        )
+
+        assert results == []
+        params = mock_session.execute.call_args[0][1]
+        assert params["semantic_weight"] == 0
+        assert params["keyword_weight"] == 0
+
+
+class TestSearchVersesHybridBoosted:
+    """Tests for ScriptureRepository.search_verses_hybrid_boosted()."""
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_boosted_zero_weights_skips_normalization(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        results = await repo.search_verses_hybrid_boosted(
+            query_text="test",
+            query_embedding=embedding,
+            boost_topics=[],
+            semantic_weight=0,
+            keyword_weight=0,
+        )
+
+        assert results == []
+        params = mock_session.execute.call_args[0][1]
+        assert params["semantic_weight"] == 0
+        assert params["keyword_weight"] == 0
+
 
 class TestRawSqlHasNoPythonComment:
     """Regression: the raw-SQL search builders must not leak a Python ``#`` comment
@@ -325,6 +377,28 @@ class TestSearchPassagesHybrid:
         )
 
         assert results == []
+
+    @pytest.mark.asyncio
+    async def test_passages_hybrid_zero_weights_skips_normalization(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_sql_result
+
+        embedding = [0.1] * 1024
+        results = await repo.search_passages_hybrid(
+            query_text="xyz",
+            query_embedding=embedding,
+            semantic_weight=0,
+            keyword_weight=0,
+        )
+
+        assert results == []
+        params = mock_session.execute.call_args[0][1]
+        assert params["semantic_weight"] == 0
+        assert params["keyword_weight"] == 0
 
 
 # ==================== SearchService Tests ====================

@@ -502,6 +502,194 @@ class TestMainLifespan:
             mock_close.assert_awaited_once()
 
 
+def _session_factory_mock(session=None):
+    """Build a MagicMock mimicking ``async_session_factory()`` — an async
+    context manager whose __aenter__ yields ``session`` (or a fresh mock)."""
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=session if session is not None else MagicMock())
+    cm.__aexit__ = AsyncMock(return_value=False)
+    return MagicMock(return_value=cm)
+
+
+class TestCheckTranslationCoverageAtStartup:
+    """Tests for main.py's _check_translation_coverage_at_startup()."""
+
+    @pytest.mark.asyncio
+    async def test_logs_and_counts_unusable_languages(self):
+        from main import _check_translation_coverage_at_startup
+        from scripture.coverage import UnusableLanguage
+
+        unusable = [UnusableLanguage(language="fr", translation="fr1910", problem="no_embeddings")]
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "main.check_translation_coverage",
+                new_callable=AsyncMock,
+                return_value=([], unusable),
+            ),
+            patch("main.translation_data_missing_counter") as mock_counter,
+        ):
+            await _check_translation_coverage_at_startup()
+
+        mock_counter.add.assert_called_once_with(
+            1, {"language": "fr", "translation": "fr1910", "problem": "no_embeddings"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _check_translation_coverage_at_startup
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "main.check_translation_coverage",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            # Must not raise -- a cold/unreachable DB must never block startup.
+            await _check_translation_coverage_at_startup()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestWarmReadyTranslations:
+    """Tests for main.py's _warm_ready_translations()."""
+
+    @pytest.mark.asyncio
+    async def test_calls_refresh_ready_translations(self):
+        from main import _warm_ready_translations
+
+        mock_session = MagicMock()
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock(mock_session)),
+            patch(
+                "scripture.coverage.refresh_ready_translations", new_callable=AsyncMock
+            ) as mock_refresh,
+        ):
+            await _warm_ready_translations()
+
+        mock_refresh.assert_awaited_once_with(mock_session)
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _warm_ready_translations
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "scripture.coverage.refresh_ready_translations",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _warm_ready_translations()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestPurgeBlockedSamplesAtStartup:
+    """Tests for main.py's _purge_blocked_samples_at_startup()."""
+
+    @pytest.mark.asyncio
+    async def test_logs_when_deleted(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.info.assert_called_once_with(
+            "Purged expired blocked-message samples", extra={"deleted": 3}
+        )
+
+    @pytest.mark.asyncio
+    async def test_silent_when_zero_deleted(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.info.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestReadinessRefreshLoop:
+    """Tests for main.py's _readiness_refresh_loop() (infinite loop)."""
+
+    @pytest.mark.asyncio
+    async def test_runs_then_cancels(self):
+        from main import _readiness_refresh_loop
+
+        with (
+            patch(
+                "main.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=[None, asyncio.CancelledError()],
+            ),
+            patch("main._warm_ready_translations", new_callable=AsyncMock) as mock_warm,
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await _readiness_refresh_loop()
+
+        mock_warm.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_swallows_warm_up_exception_and_loops(self):
+        from main import _readiness_refresh_loop
+
+        with (
+            patch(
+                "main.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=[None, None, asyncio.CancelledError()],
+            ),
+            patch(
+                "main._warm_ready_translations",
+                new_callable=AsyncMock,
+                side_effect=[Exception("transient"), None],
+            ) as mock_warm,
+            patch("main.logger") as mock_logger,
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await _readiness_refresh_loop()
+
+        assert mock_warm.await_count == 2
+        mock_logger.warning.assert_called_once()
+
+
 # ==================== Feedback Route Tests ====================
 
 
