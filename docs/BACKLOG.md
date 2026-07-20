@@ -1737,7 +1737,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
-**Status:** ✅ Done (2026-07-20, branch `claude/project-review-optimize-tokxtq`)
+**Status:** ✅ Done (PR #916, 2026-07-20)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
 

@@ -1,6 +1,6 @@
 # BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
-**Status:** ✅ Done (branch `claude/project-review-optimize-tokxtq`, 2026-07-20)
+**Status:** ✅ Done (PR #916, 2026-07-20)
 **Priority:** P3
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
