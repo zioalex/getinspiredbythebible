@@ -8,7 +8,8 @@
     "subtitle": "Lass dich täglich von Gottes Wort inspirieren",
     "bibleVersion": "Bibelversion",
     "newChat": "Neuer Chat",
-    "testerCta": "App testen"
+    "testerCta": "App testen",
+    "appCta": "App holen"
   },
   "Welcome": {
     "heading": "Willkommen",
@@ -114,7 +115,9 @@
     "prompt99": "Was sagt die Bibel über Großzügigkeit?",
     "prompt100": "Ich brauche die Erinnerung, dass Gott bei mir ist",
     "testerTitle": "Hilf mit, Vox Quieta zu gestalten",
-    "testerBody": "Werde Android-Beta-Tester — in einer Minute dabei."
+    "testerBody": "Werde Android-Beta-Tester — in einer Minute dabei.",
+    "appTitle": "Hol dir Vox Quieta aufs Handy",
+    "appBody": "Jetzt bei Google Play — tägliche Inspiration und schriftgestützte Gespräche, kostenlos."
   },
   "Chat": {
     "inputPlaceholder": "Teile mit, was dich bewegt...",
@@ -272,7 +275,32 @@
     "viewFullChangelog": "Vollständiges Changelog ansehen"
   },
   "Footer": {
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "getApp": "App holen"
+  },
+  "App": {
+    "metaTitle": "Die Vox-Quieta-App holen",
+    "metaDescription": "Vox Quieta ist jetzt bei Google Play. Trage tägliche biblische Inspiration, Trost in schweren Momenten und schriftgestützte Gespräche überallhin bei dir — kostenlos, privat und werbefrei.",
+    "heroAlt": "Vox Quieta — Lass dich täglich vom Wort Gottes inspirieren",
+    "iconAlt": "Vox-Quieta-App-Symbol",
+    "title": "Vox Quieta ist jetzt bei Google Play",
+    "storyLead": "Was als stille Idee begann — ein Begleiter, der dir in der Schrift begegnet, wann immer du ihn brauchst — ist jetzt eine App, die du in der Hand halten kannst.",
+    "storyBody1": "An manchen Tagen brauchst du Ermutigung. An anderen trägst du Trauer, eine Frage, die dich nicht loslässt, oder einfach die Sehnsucht, Gott näherzukommen. Vox Quieta hört zu und antwortet mit den lebendigen Worten der Schrift — sanft und immer zurück zum Wort weisend.",
+    "storyBody2": "Jetzt lebt sie auf deinem Handy. Öffne sie im Zug, im Wartezimmer oder spät in der Nacht, wenn der Schlaf nicht kommt, und finde einen Vers, ein Gebet und ein Gespräch, das auf dich wartet.",
+    "ctaButton": "Bei Google Play herunterladen",
+    "ctaSub": "Kostenlos für Android",
+    "featuresTitle": "Warum du sie lieben wirst",
+    "feature1Title": "Tägliche Inspiration",
+    "feature1Body": "Jeden Tag ein neues, in der Bibel verwurzeltes Wort der Ermutigung.",
+    "feature2Title": "Schriftgestützte Gespräche",
+    "feature2Body": "Frag, was dich bewegt, und erhalte Antworten, die im Wort Gottes gründen.",
+    "feature3Title": "Deine Sprache",
+    "feature3Body": "In 11 Sprachen verfügbar, damit die Schrift dich dort erreicht, wo du bist.",
+    "feature4Title": "Kostenlos, privat, werbefrei",
+    "feature4Body": "Keine Werbung und kein Konto nötig — nur du und das Wort.",
+    "betaLead": "Neugierig auf neue Funktionen vor allen anderen?",
+    "betaLink": "Am Beta-Programm teilnehmen",
+    "backHome": "Zurück zur Startseite"
   },
   "Tester": {
     "metaTitle": "Beta-Tester werden",
