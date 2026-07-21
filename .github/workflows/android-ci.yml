@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "android/**"
+      - "tests/**"
       - ".github/workflows/android-ci.yml"
   push:
     # No paths filter on main: every commit landing on main must produce an

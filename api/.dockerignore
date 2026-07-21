@@ -1,0 +1,30 @@
+# Keep the image and build context lean — and keep local secrets out of it.
+# The production stage does `COPY . .`, so anything not listed here ships.
+
+# Local env files (a real .env here would be baked into the image)
+.env
+.env.*
+!.env.example
+
+# Tests and tooling config not needed at runtime
+tests/
+reports/
+pytest.ini
+.flake8
+.safety-policy.yml
+uv.lock
+
+# Python cruft
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS noise
+.DS_Store
+*.swp
