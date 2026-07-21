@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.47.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.2...v1.47.0) (2026-07-21)
+
+
+### Features
+
+* **frontend:** add official app story page and demote beta CTA ([#915](https://github.com/zioalex/getinspiredbythebible/issues/915)) ([4c06bf4](https://github.com/zioalex/getinspiredbythebible/commit/4c06bf47161a4ad4e6f7699bde821cbcf578147a))
+* **frontend:** privacy-first local conversation history ([#882](https://github.com/zioalex/getinspiredbythebible/issues/882)) ([4681957](https://github.com/zioalex/getinspiredbythebible/commit/4681957917cc58ab9a411c50d140e8722cfe9cdc))
+* **monitoring:** alert on backend/frontend Container App saturation + chat TTFT p95 ([#918](https://github.com/zioalex/getinspiredbythebible/issues/918)) ([0b54645](https://github.com/zioalex/getinspiredbythebible/commit/0b546450e4eccb962a3b05717f3c8d4452b16e3e))
+
+
+### Bug Fixes
+
+* **android:** prevent FOREIGN KEY crash when saving a message for a deleted conversation ([#878](https://github.com/zioalex/getinspiredbythebible/issues/878)) ([53ad1fb](https://github.com/zioalex/getinspiredbythebible/commit/53ad1fb99dee7d1fe8e7184f2b9f6cb0da00c561))
+* **api:** stop .dockerignore from excluding the reports/ package ([#920](https://github.com/zioalex/getinspiredbythebible/issues/920)) ([7294122](https://github.com/zioalex/getinspiredbythebible/commit/729412210ad1bb9d2de03acce5eccad7dc5883f3))
+* **rate-limiter:** apply BITB-061 migrations to local/CI Postgres, add fail-closed alert ([#907](https://github.com/zioalex/getinspiredbythebible/issues/907)) ([b694665](https://github.com/zioalex/getinspiredbythebible/commit/b69466553825d9a6dcf8da7457f5ba323fb37125))
+* **security:** route public semantic search through the index-friendly candidate-pool pattern (BITB-062) ([#877](https://github.com/zioalex/getinspiredbythebible/issues/877)) ([83ecf2d](https://github.com/zioalex/getinspiredbythebible/commit/83ecf2d3a7abaa89eb034e0bfc989111de8c44b8))
+* **security:** shared Postgres rate limiter across replicas (BITB-061) ([#866](https://github.com/zioalex/getinspiredbythebible/issues/866)) ([6822694](https://github.com/zioalex/getinspiredbythebible/commit/68226944666ffb1c67edb1827e2e6effea29d702))
+* **weekly-report:** track sessions on the streaming chat endpoint ([#875](https://github.com/zioalex/getinspiredbythebible/issues/875)) ([3690671](https://github.com/zioalex/getinspiredbythebible/commit/36906713703aa0f06b6e365494ef52e85e732463))
+
+
+### Documentation
+
+* **backlog:** add BITB-069 story for Menge-Bibel German default ([#910](https://github.com/zioalex/getinspiredbythebible/issues/910)) ([bfd48ed](https://github.com/zioalex/getinspiredbythebible/commit/bfd48edf95b40f3f339a748dbd9844d9d857a386))
+
 ## [1.46.2](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.1...v1.46.2) (2026-07-18)
 
 ### Bug Fixes
