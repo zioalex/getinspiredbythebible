@@ -8,7 +8,8 @@
     "subtitle": "매일 하나님의 말씀에서 영감을 받으세요",
     "bibleVersion": "성경 버전",
     "newChat": "새 대화",
-    "testerCta": "앱 테스트하기"
+    "testerCta": "앱 테스트하기",
+    "appCta": "앱 다운로드"
   },
   "Welcome": {
     "heading": "환영합니다",
@@ -114,7 +115,9 @@
     "prompt99": "너그러움에 대해 성경은 무엇을 말하나요?",
     "prompt100": "하나님이 나와 함께하신다는 것을 다시 기억하고 싶어요",
     "testerTitle": "Vox Quieta를 함께 만들어요",
-    "testerBody": "안드로이드 베타 테스터가 되어 주세요 — 1분이면 됩니다."
+    "testerBody": "안드로이드 베타 테스터가 되어 주세요 — 1분이면 됩니다.",
+    "appTitle": "휴대폰에서 Vox Quieta 만나기",
+    "appBody": "이제 Google Play에서 — 매일의 영감과 성경 기반 대화를 비공개로, 오직 당신만을 위해."
   },
   "Chat": {
     "inputPlaceholder": "마음속에 있는 것을 나누세요...",
@@ -272,7 +275,32 @@
     "viewFullChangelog": "전체 변경 로그 보기"
   },
   "Footer": {
-    "changelog": "변경 로그"
+    "changelog": "변경 로그",
+    "getApp": "앱 다운로드"
+  },
+  "App": {
+    "metaTitle": "Vox Quieta 앱 받기",
+    "metaDescription": "이제 Vox Quieta를 Google Play에서 만나세요. 매일의 성경 영감, 힘든 순간의 위로, 성경에 기반한 대화를 어디서나 함께하세요 — 비공개, 맞춤형, 광고 없음.",
+    "heroAlt": "Vox Quieta — 매일 하나님의 말씀에서 영감을 얻으세요",
+    "iconAlt": "Vox Quieta 앱 아이콘",
+    "title": "이제 Vox Quieta를 Google Play에서 만나요",
+    "storyLead": "잔잔한 생각에서 시작된 것 — 필요할 때마다 성경 안에서 당신을 만나는 동반자 — 이제 손에 쥘 수 있는 앱이 되었습니다.",
+    "storyBody1": "어떤 날은 격려가 필요합니다. 어떤 날은 슬픔이나, 놓아지지 않는 질문, 또는 그저 하나님께 더 가까이 가고픈 갈망을 안고 있습니다. Vox Quieta는 귀 기울이고 성경의 살아 있는 말씀으로 답합니다 — 부드럽게, 언제나 말씀으로 다시 이끌면서.",
+    "storyBody2": "이제 그것은 당신의 휴대폰에 있습니다. 기차 안에서, 대기실에서, 혹은 잠 못 드는 늦은 밤에 열어 보세요. 한 구절, 한 기도, 그리고 당신을 기다리는 대화를 만나게 됩니다.",
+    "ctaButton": "Google Play에서 다운로드",
+    "ctaSub": "Android에서 무료",
+    "featuresTitle": "당신이 좋아할 이유",
+    "feature1Title": "매일의 영감",
+    "feature1Body": "매일 성경에 뿌리내린 새로운 격려의 말씀.",
+    "feature2Title": "성경에 기반한 대화",
+    "feature2Body": "마음에 있는 것을 묻고 하나님의 말씀에 근거한 답을 받으세요.",
+    "feature3Title": "당신의 언어",
+    "feature3Body": "11개 언어로 제공되어, 말씀이 당신이 있는 곳에서 당신을 만납니다.",
+    "feature4Title": "비공개, 맞춤형, 광고 없음",
+    "feature4Body": "광고도 계정도 필요 없이 — 오직 당신과 말씀뿐.",
+    "betaLead": "새로운 기능을 누구보다 먼저 만나 보고 싶으세요?",
+    "betaLink": "베타 프로그램 참여하기",
+    "backHome": "홈으로 돌아가기"
   },
   "Tester": {
     "metaTitle": "베타 테스터 되기",

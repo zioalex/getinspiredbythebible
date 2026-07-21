@@ -8,7 +8,8 @@
     "subtitle": "Lasciati ispirare ogni giorno dalla Parola di Dio",
     "bibleVersion": "Versione biblica",
     "newChat": "Nuova Chat",
-    "testerCta": "Prova l'app"
+    "testerCta": "Prova l'app",
+    "appCta": "Scarica l'app"
   },
   "Welcome": {
     "heading": "Benvenuto",
@@ -114,7 +115,9 @@
     "prompt99": "Cosa dice la Bibbia sulla generosità?",
     "prompt100": "Ho bisogno di essere ricordato che Dio è con me",
     "testerTitle": "Aiutaci a migliorare Vox Quieta",
-    "testerBody": "Diventa beta tester Android — bastano pochi istanti."
+    "testerBody": "Diventa beta tester Android — bastano pochi istanti.",
+    "appTitle": "Porta Vox Quieta sul tuo telefono",
+    "appBody": "Ora su Google Play — ispirazione quotidiana e conversazioni guidate dalle Scritture, riservate e pensate solo per te."
   },
   "Chat": {
     "inputPlaceholder": "Condividi ciò che hai nel cuore...",
@@ -272,7 +275,32 @@
     "viewFullChangelog": "Vedi il changelog completo"
   },
   "Footer": {
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "getApp": "Scarica l'app"
+  },
+  "App": {
+    "metaTitle": "Scarica l'app Vox Quieta",
+    "metaDescription": "Vox Quieta è ora su Google Play. Porta con te ispirazione biblica quotidiana, conforto nei momenti difficili e conversazioni guidate dalle Scritture ovunque tu vada — privata, personale e senza pubblicità.",
+    "heroAlt": "Vox Quieta — Lasciati ispirare ogni giorno dalla Parola di Dio",
+    "iconAlt": "Icona dell'app Vox Quieta",
+    "title": "Vox Quieta è ora su Google Play",
+    "storyLead": "Quella che era nata come un'idea silenziosa — un compagno che ti viene incontro nelle Scritture ogni volta che ne hai bisogno — è ora un'app che puoi tenere in mano.",
+    "storyBody1": "Certi giorni hai bisogno di incoraggiamento. Altri porti dolore, una domanda che non ti lascia in pace o semplicemente il desiderio di avvicinarti a Dio. Vox Quieta ascolta e risponde con le parole vive delle Scritture — con dolcezza, riportandoti sempre alla Parola.",
+    "storyBody2": "Ora vive sul tuo telefono. Aprilo in treno, in sala d'attesa o a tarda notte quando il sonno non arriva, e troverai un versetto, una preghiera e una conversazione ad aspettarti.",
+    "ctaButton": "Scarica su Google Play",
+    "ctaSub": "Gratis su Android",
+    "featuresTitle": "Perché ti piacerà",
+    "feature1Title": "Ispirazione quotidiana",
+    "feature1Body": "Ogni giorno una nuova parola di incoraggiamento radicata nella Bibbia.",
+    "feature2Title": "Conversazioni guidate dalle Scritture",
+    "feature2Body": "Chiedi ciò che hai nel cuore e ricevi risposte fondate sulla Parola di Dio.",
+    "feature3Title": "La tua lingua",
+    "feature3Body": "Disponibile in 11 lingue, così le Scritture ti raggiungono dove sei.",
+    "feature4Title": "Privata, personale, senza pubblicità",
+    "feature4Body": "Nessuna pubblicità e nessun account richiesto — solo tu e la Parola.",
+    "betaLead": "Curioso di provare le novità prima di tutti?",
+    "betaLink": "Partecipa al programma beta",
+    "backHome": "Torna alla home"
   },
   "Tester": {
     "metaTitle": "Diventa beta tester",
