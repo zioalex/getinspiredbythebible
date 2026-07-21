@@ -100,4 +100,4 @@ redistributable texts only.
   story (same infrastructure and checklist).
 - Existing translation infrastructure: `scripts/translations.py`, `scripts/load_bible.py`,
   `api/utils/translation_registry.py`, `api/utils/language.py`.
-- `MULTILINGUAL_PROGRESS.md` — multilingual rollout context.
+- `docs/archive/MULTILINGUAL_PROGRESS.md` — multilingual rollout context.

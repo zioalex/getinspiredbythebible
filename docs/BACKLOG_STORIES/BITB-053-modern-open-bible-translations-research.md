@@ -111,7 +111,7 @@ license claim resolves, and each shortlisted candidate's license permits embeddi
 
 - **BITB-046** (German public-domain translations) — same copyright reasoning + loading pattern.
 - **BITB-029** (surface Bible version info) — needed to satisfy CC BY-SA attribution.
-- `MULTILINGUAL_PROGRESS.md`, `multiple_embeddings/BIBLE_EMBEDDING_PLAN.md` — embedding rollout.
+- `docs/archive/MULTILINGUAL_PROGRESS.md`, `multiple_embeddings/BIBLE_EMBEDDING_PLAN.md` — embedding rollout.
 - The 11-point checklist at the top of `scripts/translations.py`.
 - Multi-Language / Translation System section in `AGENTS.md`.
 
