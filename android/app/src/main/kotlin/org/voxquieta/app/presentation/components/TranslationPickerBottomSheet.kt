@@ -83,9 +83,14 @@ fun TranslationPickerBottomSheet(
                 }
 
                 items(availableTranslations, key = { it.id }) { translation ->
+                    val sublabel = if (translation.year != null) {
+                        "${translation.language.uppercase()} · ${translation.year}"
+                    } else {
+                        translation.language.uppercase()
+                    }
                     TranslationPickerRow(
                         label = translation.name,
-                        sublabel = translation.language.uppercase(),
+                        sublabel = sublabel,
                         selected = translation.id == selectedTranslationId,
                         onClick = { onSelectTranslation(translation.id) },
                     )

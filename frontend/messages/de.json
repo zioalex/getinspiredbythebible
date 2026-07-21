@@ -135,7 +135,11 @@
     "languageSwitchSuggestion": "Es sieht aus, als würdest du auf {language} schreiben. Wechseln?",
     "languageSwitchAction": "Wechseln",
     "languageSwitchDismiss": "Verwerfen",
-    "historyTitle": "Gesprächsverlauf"
+    "historyTitle": "Gesprächsverlauf",
+    "mainMenuLabel": "Menü",
+    "changeLanguage": "Sprache ändern",
+    "changeBibleVersion": "Bibelversion ändern",
+    "searchCommunity": "Gemeinschaft suchen"
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",

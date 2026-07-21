@@ -349,6 +349,7 @@ export interface TranslationInfo {
   short_name: string;
   language: string;
   language_code: string;
+  year?: number;
 }
 
 export interface ChatResponse {

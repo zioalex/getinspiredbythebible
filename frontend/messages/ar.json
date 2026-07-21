@@ -135,7 +135,11 @@
     "languageSwitchSuggestion": "يبدو أنك تكتب بـ {language}. هل تريد التبديل؟",
     "languageSwitchAction": "تبديل",
     "languageSwitchDismiss": "تجاهل",
-    "historyTitle": "سجل المحادثات"
+    "historyTitle": "سجل المحادثات",
+    "mainMenuLabel": "القائمة",
+    "changeLanguage": "تغيير اللغة",
+    "changeBibleVersion": "تغيير إصدار الكتاب المقدس",
+    "searchCommunity": "البحث عن مجتمع إيماني"
   },
   "Verses": {
     "scriptureReferences": "المراجع الكتابية",
