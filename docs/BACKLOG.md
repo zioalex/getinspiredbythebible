@@ -1735,6 +1735,48 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ## P3 - Low Priority (Future)
 
+### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
+
+**Status:** ✅ Done (PR #916, 2026-07-20)
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+
+**As a** maintainer, **I want** the low-risk items from the 2026-07-20 360° review
+shipped as independent commits, **so that** build hygiene and the doc surface improve
+with zero behavioural risk.
+
+**Acceptance Criteria (summary):**
+
+- [x] Dead `AGENTS.md.old`/`AGENTS.old.md` deleted; stale 2026-01 root planning docs archived to `docs/archive/`
+- [x] `.dockerignore` added for `api/` and `frontend/` build contexts (keeps local `.env` and `tests/` out of images)
+- [x] `eslint-config-next` aligned with `next` 16 (lint + tsc verified)
+- [x] Review report at `docs/audits/2026-07-20-360-review.md`; follow-up story BITB-073 filed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-072-repo-hygiene-build-quick-wins.md`
+
+---
+
+### 🎯 BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+
+**As a** maintainer, **I want** test-only deps out of `api/requirements.txt`
+(into a new `requirements-dev.txt`), **so that** the production image doesn't carry the
+test framework. Finding F3 of the 2026-07-20 360° review; deferred from BITB-072
+because it touches 2 workflows + Makefile + docs.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
+- [ ] Backend CI (unit + integration) green with updated install lines and cache keys
+- [ ] Docker image builds unchanged; dependabot still covers both files
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-073-split-dev-prod-python-requirements.md`
+
+---
+
 ### 🎯 BITB-070: Re-evaluate `hybrid` Content-Safety Mode (Two-Vendor Defense-in-Depth)
 
 **Status:** 🎯 Todo
