@@ -1,7 +1,7 @@
 # Vox Quieta - Architecture Design Document
 
-**Version:** 1.0.0
-**Last Updated:** January 2026
+**Version:** 1.1.0
+**Last Updated:** July 2026
 **Status:** Active Development
 
 ---
@@ -750,7 +750,27 @@ Ranked Verses by Similarity
 
 ## 9. Deployment Architecture
 
-### 9.1 Docker Compose Services
+### 9.0 Production (Azure)
+
+Production runs on **Azure Container Apps** behind <https://voxquieta.org>,
+provisioned by Terraform (`deployment/`) and deployed by the
+`azure-deploy.yml` workflow on merge to `main` (build → push to ACR →
+Terraform apply). Key Azure resources (see `deployment/main.tf`):
+
+- **Container Apps** — `bible-backend` / `bible-frontend` images from ACR
+- **PostgreSQL Flexible Server** — with pgvector; firewall-scoped access
+- **Azure Container Registry**, **Key Vault** (secrets), **Log Analytics +
+  Application Insights** (telemetry, workbooks, availability tests)
+- **Azure OpenAI** (`azurerm_cognitive_*`) for embeddings
+
+Operational commands and the manual-deploy fallback are in
+[`DEPLOYMENT.md`](../DEPLOYMENT.md).
+
+The sections below describe the **local development topology** (Docker
+Compose), which mirrors production shape with local substitutes (Ollama for
+LLM/embeddings, containerized Postgres).
+
+### 9.1 Docker Compose Services (local development)
 
 ```yaml
 services:
@@ -812,9 +832,11 @@ services:
 
 | Measure | Status | Notes |
 |---------|--------|-------|
-| CORS | ✓ | Configured for localhost |
-| Rate Limiting | Planned | Add with `slowapi` |
-| Authentication | Planned | JWT or API keys |
+| CORS | ✓ | Localhost + production domain (`PRODUCTION_FRONTEND_URL`), extendable via `CORS_ORIGINS` |
+| Rate Limiting | ✓ | Shared Postgres-backed limiter (per-IP + per-session + session lifetime), fail-closed — BITB-061 |
+| Bot Protection | ✓ | Cloudflare Turnstile (opt-in via `TURNSTILE_ENABLED`), fail-closed verification |
+| Content Safety | ✓ | Multi-layer moderation (OpenAI Moderation / Llama Guard, optional Azure Content Safety) |
+| Authentication | By design: none | No user accounts; sessions are anonymous with lifetime limits |
 | Input Validation | ✓ | Pydantic models |
 | SQL Injection | ✓ | SQLAlchemy parameterized queries |
 
