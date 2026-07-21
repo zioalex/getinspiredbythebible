@@ -227,17 +227,52 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push backend
+      - name: Build backend image
         uses: docker/build-push-action@v7
         with:
           context: ./api
           file: ./api/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Catches images that build fine but can't actually start — e.g. a
+      # .dockerignore pattern that (intentionally or not) excludes a runtime
+      # package. `docker build` succeeding says nothing about `COPY . .`
+      # having shipped every module main.py's import chain needs; only
+      # actually importing it inside the built image proves that. This
+      # exact class of bug reached production once (api/reports/ excluded
+      # by a `reports/` .dockerignore line meant for coverage-report
+      # output, breaking routes/admin.py's import at container startup)
+      # before this step existed — see incident notes in api/.dockerignore.
+      - name: Smoke test — verify backend image imports cleanly
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          LLM_PROVIDER: ollama
+        run: |
+          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          echo "Smoke-testing $IMAGE"
+          docker run --rm \
+            -e DATABASE_URL \
+            -e LLM_PROVIDER \
+            "$IMAGE" python -c "
+          import main
+          from routes import admin, chat, scripture
+          from reports.weekly_report import build_weekly_report
+          print('backend image imports cleanly')
+          "
+
+      - name: Push backend image
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            echo "Pushing $tag"
+            docker push "$tag"
+          done
 
   # ---------------------------------------------------------------------------
   # Build and Push Frontend
