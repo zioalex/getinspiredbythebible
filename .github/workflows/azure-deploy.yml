@@ -251,10 +251,14 @@ jobs:
       # before this step existed — see incident notes in api/.dockerignore.
       - name: Smoke test — verify backend image imports cleanly
         env:
+          # Routed through env: (not inlined via ${{ }}) because
+          # steps.meta.outputs.tags is a newline-separated multi-line string —
+          # splicing it straight into the script text breaks bash parsing.
+          TAGS: ${{ steps.meta.outputs.tags }}
           DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
           LLM_PROVIDER: ollama
         run: |
-          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          IMAGE=$(head -n1 <<< "$TAGS")
           echo "Smoke-testing $IMAGE"
           docker run --rm \
             -e DATABASE_URL \
@@ -268,11 +272,18 @@ jobs:
 
       - name: Push backend image
         if: ${{ github.event_name != 'pull_request' }}
+        env:
+          # Same reasoning as the smoke-test step above: route the multi-line
+          # tags list through env:, and iterate with `read` (not unquoted `for
+          # tag in $TAGS`) so a raw ${{ }} splice can't reintroduce a syntax
+          # error and word-splitting quirks can't drop/mangle a tag.
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          for tag in ${{ steps.meta.outputs.tags }}; do
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
             echo "Pushing $tag"
             docker push "$tag"
-          done
+          done <<< "$TAGS"
 
   # ---------------------------------------------------------------------------
   # Build and Push Frontend
