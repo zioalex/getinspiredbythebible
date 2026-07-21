@@ -1225,7 +1225,7 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 
 ### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** ✅ Done (PR #TBD merged 2026-07-21)
+**Status:** ✅ Done (PR #917, pending merge)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-16
 
