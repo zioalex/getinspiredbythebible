@@ -8,7 +8,8 @@
     "subtitle": "每天从上帝的话语中获得灵感",
     "bibleVersion": "圣经版本",
     "newChat": "新对话",
-    "testerCta": "测试应用"
+    "testerCta": "测试应用",
+    "appCta": "获取应用"
   },
   "Welcome": {
     "heading": "欢迎",
@@ -114,7 +115,9 @@
     "prompt99": "圣经对慷慨有何说法？",
     "prompt100": "我需要被提醒上帝与我同在",
     "testerTitle": "帮助打造 Vox Quieta",
-    "testerBody": "成为安卓测试员 — 只需一分钟。"
+    "testerBody": "成为安卓测试员 — 只需一分钟。",
+    "appTitle": "在手机上使用 Vox Quieta",
+    "appBody": "现已上线 Google Play — 每日灵感与以经文为引导的对话，私密且专属于你。"
   },
   "Chat": {
     "inputPlaceholder": "分享您心中所想...",
@@ -276,7 +279,32 @@
     "viewFullChangelog": "查看完整更新日志"
   },
   "Footer": {
-    "changelog": "更新日志"
+    "changelog": "更新日志",
+    "getApp": "获取应用"
+  },
+  "App": {
+    "metaTitle": "获取 Vox Quieta 应用",
+    "metaDescription": "Vox Quieta 现已上线 Google Play。随时随地获得每日圣经灵感、艰难时刻的安慰以及以经文为引导的对话 — 私密、专属、无广告。",
+    "heroAlt": "Vox Quieta — 每日从神的话语中获得灵感",
+    "iconAlt": "Vox Quieta 应用图标",
+    "title": "Vox Quieta 现已上线 Google Play",
+    "storyLead": "曾经只是一个安静的想法 — 一位在你需要时于经文中与你相遇的伙伴 — 如今已成为你可以握在手中的应用。",
+    "storyBody1": "有些日子你需要鼓励。有些日子你背负着悲伤、一个挥之不去的疑问，或只是渴望更亲近神。Vox Quieta 倾听，并以圣经中鲜活的话语回应 — 温柔地，始终把你带回到神的话语。",
+    "storyBody2": "如今它就在你的手机里。在火车上、在候诊室里，或在夜深难眠时打开它，你会发现一节经文、一段祷告，以及一场等待着你的对话。",
+    "ctaButton": "在 Google Play 下载",
+    "ctaSub": "Android 免费",
+    "featuresTitle": "你会爱上它的理由",
+    "feature1Title": "每日灵感",
+    "feature1Body": "每天一句植根于圣经的新鲜鼓励话语。",
+    "feature2Title": "以经文为引导的对话",
+    "feature2Body": "倾诉你心中所想，获得以神的话语为根基的回应。",
+    "feature3Title": "你的语言",
+    "feature3Body": "支持 11 种语言，让经文在你所在之处与你相遇。",
+    "feature4Title": "私密、专属、无广告",
+    "feature4Body": "没有广告，无需账户 — 只有你和神的话语。",
+    "betaLead": "想抢先体验新功能吗？",
+    "betaLink": "加入 Beta 计划",
+    "backHome": "返回首页"
   },
   "Tester": {
     "metaTitle": "成为测试员",

@@ -8,7 +8,8 @@
     "subtitle": "Laisse-toi inspirer chaque jour par la Parole de Dieu",
     "bibleVersion": "Version de la Bible",
     "newChat": "Nouvelle conversation",
-    "testerCta": "Tester l'app"
+    "testerCta": "Tester l'app",
+    "appCta": "Obtenir l'app"
   },
   "Welcome": {
     "heading": "Bienvenue",
@@ -114,7 +115,9 @@
     "prompt99": "Que dit la Bible sur la générosité ?",
     "prompt100": "J'ai besoin qu'on me rappelle que Dieu est avec moi",
     "testerTitle": "Aidez-nous à améliorer Vox Quieta",
-    "testerBody": "Devenez bêta-testeur Android — en une minute."
+    "testerBody": "Devenez bêta-testeur Android — en une minute.",
+    "appTitle": "Emportez Vox Quieta sur votre téléphone",
+    "appBody": "Désormais sur Google Play — inspiration quotidienne et conversations guidées par les Écritures, privées et pensées pour vous."
   },
   "Chat": {
     "inputPlaceholder": "Partagez ce qui est sur votre cœur...",
@@ -276,7 +279,32 @@
     "viewFullChangelog": "Voir le changelog complet"
   },
   "Footer": {
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "getApp": "Obtenir l'app"
+  },
+  "App": {
+    "metaTitle": "Obtenez l'application Vox Quieta",
+    "metaDescription": "Vox Quieta est désormais sur Google Play. Emportez partout l'inspiration biblique quotidienne, le réconfort dans les moments difficiles et des conversations guidées par les Écritures — privé, personnel et sans publicité.",
+    "heroAlt": "Vox Quieta — Inspirez-vous chaque jour de la Parole de Dieu",
+    "iconAlt": "Icône de l'application Vox Quieta",
+    "title": "Vox Quieta est désormais sur Google Play",
+    "storyLead": "Ce qui a commencé comme une idée discrète — un compagnon qui vient à vous dans les Écritures chaque fois que vous en avez besoin — est désormais une application que vous pouvez tenir dans la main.",
+    "storyBody1": "Certains jours, vous avez besoin d'encouragement. D'autres, vous portez un chagrin, une question qui ne vous lâche pas, ou simplement le désir de vous rapprocher de Dieu. Vox Quieta écoute et répond par les paroles vivantes des Écritures — avec douceur, vous ramenant toujours à la Parole.",
+    "storyBody2": "Maintenant, elle vit dans votre téléphone. Ouvrez-la dans le train, dans une salle d'attente ou tard le soir quand le sommeil ne vient pas, et trouvez un verset, une prière et une conversation qui vous attendent.",
+    "ctaButton": "Disponible sur Google Play",
+    "ctaSub": "Gratuit sur Android",
+    "featuresTitle": "Pourquoi vous l'aimerez",
+    "feature1Title": "Inspiration quotidienne",
+    "feature1Body": "Chaque jour, une nouvelle parole d'encouragement enracinée dans la Bible.",
+    "feature2Title": "Conversations guidées par les Écritures",
+    "feature2Body": "Posez la question qui vous tient à cœur et recevez des réponses ancrées dans la Parole de Dieu.",
+    "feature3Title": "Votre langue",
+    "feature3Body": "Disponible en 11 langues, pour que les Écritures vous rejoignent là où vous êtes.",
+    "feature4Title": "Privé, personnel, sans publicité",
+    "feature4Body": "Aucune publicité ni compte requis — juste vous et la Parole.",
+    "betaLead": "Curieux de découvrir les nouveautés avant tout le monde ?",
+    "betaLink": "Rejoindre le programme bêta",
+    "backHome": "Retour à l'accueil"
   },
   "Tester": {
     "metaTitle": "Devenez bêta-testeur",

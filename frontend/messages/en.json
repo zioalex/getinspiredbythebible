@@ -8,7 +8,8 @@
     "subtitle": "Get inspired daily by God's Word",
     "bibleVersion": "Bible version",
     "newChat": "New Chat",
-    "testerCta": "Test the app"
+    "testerCta": "Test the app",
+    "appCta": "Get the app"
   },
   "Welcome": {
     "heading": "Welcome",
@@ -114,7 +115,9 @@
     "prompt99": "What does the Bible say about generosity?",
     "prompt100": "I need to be reminded that God is with me",
     "testerTitle": "Help shape Vox Quieta",
-    "testerBody": "Become an Android beta tester — join in a minute."
+    "testerBody": "Become an Android beta tester — join in a minute.",
+    "appTitle": "Get Vox Quieta on your phone",
+    "appBody": "Now on Google Play — daily inspiration and Scripture-guided conversations, privacy-first and just for you."
   },
   "Chat": {
     "inputPlaceholder": "Share what's on your heart...",
@@ -276,7 +279,32 @@
     "viewFullChangelog": "View full changelog"
   },
   "Footer": {
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "getApp": "Get the app"
+  },
+  "App": {
+    "metaTitle": "Get the Vox Quieta App",
+    "metaDescription": "Vox Quieta is now on Google Play. Carry daily Bible inspiration, comfort in hard moments, and Scripture-guided conversations wherever you go — private, personal, and ad-free.",
+    "heroAlt": "Vox Quieta — Get inspired daily by God's Word",
+    "iconAlt": "Vox Quieta app icon",
+    "title": "Vox Quieta is now on Google Play",
+    "storyLead": "What began as a quiet idea — a companion that meets you in Scripture whenever you need it — is now an app you can hold in your hand.",
+    "storyBody1": "Some days you need encouragement. Some days you carry grief, a question that won't let go, or simply a longing to draw closer to God. Vox Quieta listens, and answers with the living words of Scripture — gently, always pointing you back to the Word.",
+    "storyBody2": "Now it lives on your phone. Open it on the train, in a waiting room, or late at night when sleep won't come, and find a verse, a prayer, and a conversation waiting for you.",
+    "ctaButton": "Get it on Google Play",
+    "ctaSub": "Free on Android",
+    "featuresTitle": "Why you'll love it",
+    "feature1Title": "Daily inspiration",
+    "feature1Body": "A fresh, Bible-rooted word of encouragement every day.",
+    "feature2Title": "Scripture-guided conversations",
+    "feature2Body": "Ask what's on your heart and receive answers grounded in God's Word.",
+    "feature3Title": "Your language",
+    "feature3Body": "Available in 11 languages, so Scripture meets you where you are.",
+    "feature4Title": "Private, personal, ad-free",
+    "feature4Body": "No ads and no account required — just you and the Word.",
+    "betaLead": "Curious about new features before everyone else?",
+    "betaLink": "Join the beta program",
+    "backHome": "Back to home"
   },
   "Tester": {
     "metaTitle": "Become a Beta Tester",

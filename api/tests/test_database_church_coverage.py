@@ -191,6 +191,53 @@ class TestCloseDb:
             mock_engine.dispose.assert_awaited_once()
 
 
+class TestApplySessionHnswEfSearch:
+    """Tests for the ``connect`` event listener that sets ``hnsw.ef_search``
+    on every new pooled connection. It's a plain module-level function
+    (registered via @event.listens_for but still directly callable)."""
+
+    def test_sets_guc_on_connection(self):
+        from scripture.database import _apply_session_hnsw_ef_search
+
+        cursor = MagicMock()
+        dbapi_connection = MagicMock()
+        dbapi_connection.cursor.return_value = cursor
+
+        with patch("scripture.database.settings") as mock_settings:
+            mock_settings.hnsw_ef_search = 150
+            _apply_session_hnsw_ef_search(dbapi_connection, MagicMock())
+
+        cursor.execute.assert_called_once_with("SET hnsw.ef_search = 150")
+        cursor.close.assert_called_once()
+
+    def test_swallows_exception_when_cursor_unavailable(self):
+        from scripture.database import _apply_session_hnsw_ef_search
+
+        dbapi_connection = MagicMock()
+        dbapi_connection.cursor.side_effect = Exception("connection gone")
+
+        with patch("scripture.database.logger") as mock_logger:
+            # Must not raise -- a failure here would break every connection.
+            _apply_session_hnsw_ef_search(dbapi_connection, MagicMock())
+
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args.kwargs.get("exc_info") is True
+
+    def test_swallows_exception_and_still_closes_cursor_on_execute_failure(self):
+        from scripture.database import _apply_session_hnsw_ef_search
+
+        cursor = MagicMock()
+        cursor.execute.side_effect = Exception("SET failed")
+        dbapi_connection = MagicMock()
+        dbapi_connection.cursor.return_value = cursor
+
+        with patch("scripture.database.logger") as mock_logger:
+            _apply_session_hnsw_ef_search(dbapi_connection, MagicMock())
+
+        cursor.close.assert_called_once()
+        mock_logger.warning.assert_called_once()
+
+
 # ==================== Church Route Tests ====================
 
 
