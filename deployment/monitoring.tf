@@ -73,6 +73,35 @@
 #       that Sev1 rule (they're expected — Turnstile bot-rejection, auth, rate-limit),
 #       but a large spike in them can still mean a bot attack or a broken client-side
 #       Turnstile flow, so this rule watches them separately at a much higher threshold.
+#   - azurerm_monitor_metric_alert.backend_cpu_high/backend_memory_high
+#       Container App CPU/memory saturation (2026-07-21 audit finding: the Postgres
+#       tier had db_cpu/db_memory alerts, but the backend Container App — 0.5 vCPU /
+#       1Gi, scaling 0-2 replicas — had none. RestartCount only shows a crash-loop
+#       AFTER the fact; these are the leading saturation signal for the compute tier
+#       itself, mirroring db_cpu/db_memory below.
+#   - azurerm_monitor_metric_alert.frontend_cpu_high/frontend_memory_high
+#       Same as above for the frontend Container App. Sev3 (informational): frontend
+#       is stateless Next.js SSR, much less likely to be the constrained resource
+#       than backend, but cheap to cover symmetrically.
+#   - azurerm_monitor_metric_alert.backend_replicas_at_max
+#       Fires when the backend sits at var.backend_max_replicas (currently 2) for a
+#       sustained 15 minutes — i.e. autoscaling has hit its ceiling and additional
+#       load has nowhere to go. This is the direct "we are at capacity" signal that
+#       CPU/memory/restart alerts can only imply indirectly.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.chat_ttft_p95
+#       p95 of llm.ttft_ms (time-to-first-token) exceeded 5000ms, sustained across 2
+#       of 3 fifteen-minute evaluations over a 1h window. The 1h window + min-5-
+#       samples-per-bin guard (not the 15min/no-minimum shape used for scripture
+#       search) is deliberate: current chat volume is low enough that a tighter
+#       window would rarely have enough samples for a percentile to be meaningful —
+#       same rationale as llama_guard_primary_failure_rate below. User-facing
+#       complement to the CPU/memory/replica signals above.
+#
+# NOT added here: a db.connections.active pool-saturation alert. That metric
+# (db_connections_active_gauge in utils/metrics.py) is defined but never actually
+# incremented anywhere in the app — wiring it up is a separate change. Pool
+# exhaustion already pages today via the db_pool_timeout category inside
+# backend_errors above.
 
 locals {
   alerts_enabled = var.alert_email != "" && var.enable_application_insights
@@ -1402,6 +1431,207 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "llama_guard_primary_f
       | where total >= 5
       | extend failure_rate = todouble(failed) / todouble(total)
       | where failure_rate >= 0.9
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 3
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Container App resource-saturation alerts (2026-07-21 audit finding)
+# -----------------------------------------------------------------------------
+# Before this, the only microsoft.app/containerapps metric alert was
+# backend_restarts — nothing watched CPU, memory, or replica-count saturation on
+# either Container App. The backend runs 0.5 vCPU / 1Gi, autoscaling 0-2 replicas
+# on a 10-concurrent-requests-per-replica rule (see main.tf), so a traffic surge
+# maxes out at ~20 concurrent requests and degrades with no direct signal — only
+# downstream symptoms (5xx rate, latency) would eventually page. These four rules
+# add the leading indicators, mirroring the db_cpu/db_memory pattern above.
+
+resource "azurerm_monitor_metric_alert" "backend_cpu_high" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-backend-cpu-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Backend Container App CPU averaged >85% over 15 minutes (allocation: ${var.backend_cpu} vCPU/replica). Leading indicator of compute saturation before latency/errors appear; consider scaling up cpu/memory or max_replicas."
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "microsoft.app/containerapps"
+    metric_name      = "CpuPercentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 85
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+resource "azurerm_monitor_metric_alert" "backend_memory_high" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-backend-memory-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Backend Container App memory averaged >90% over 15 minutes (allocation: ${var.backend_memory}/replica). Risks OOM kill/restart; consider raising backend_memory or investigating a leak."
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "microsoft.app/containerapps"
+    metric_name      = "MemoryPercentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 90
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Direct "we are at capacity" signal: autoscaling has hit its ceiling
+# (var.backend_max_replicas) and sustained it for 15 minutes, so any further
+# load increase has nowhere to go. CPU/memory alerts above imply this
+# indirectly per-replica; this is the fleet-level complement.
+resource "azurerm_monitor_metric_alert" "backend_replicas_at_max" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-backend-replicas-at-max"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Backend Container App averaged >= ${var.backend_max_replicas} replicas (its configured max) over 15 minutes — autoscaling is pinned at the ceiling and cannot absorb further load. Consider raising backend_max_replicas."
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "microsoft.app/containerapps"
+    metric_name      = "Replicas"
+    aggregation      = "Average"
+    operator         = "GreaterThanOrEqual"
+    threshold        = var.backend_max_replicas
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Sev3 (informational): frontend is stateless Next.js SSR, structurally much less
+# likely than backend to be the constrained resource (no LLM/DB/embedding calls
+# on its hot path), but cheap to cover symmetrically rather than leave a blind spot.
+resource "azurerm_monitor_metric_alert" "frontend_cpu_high" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-frontend-cpu-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.frontend.id]
+  description         = "Frontend Container App CPU averaged >85% over 15 minutes (allocation: ${var.frontend_cpu} vCPU/replica)."
+  severity            = 3
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "microsoft.app/containerapps"
+    metric_name      = "CpuPercentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 85
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+resource "azurerm_monitor_metric_alert" "frontend_memory_high" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-frontend-memory-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.frontend.id]
+  description         = "Frontend Container App memory averaged >90% over 15 minutes (allocation: ${var.frontend_memory}/replica)."
+  severity            = 3
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "microsoft.app/containerapps"
+    metric_name      = "MemoryPercentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 90
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# Chat time-to-first-token p95 alert (2026-07-21 audit finding).
+# llm.ttft_ms is recorded per streaming response (providers/{openrouter,ollama,
+# claude}.py), but nothing alerted on it — only the DB-tier scripture-search p95
+# had a latency alert, leaving the user-facing chat-latency signal uncovered.
+#
+# Shape deliberately mirrors llama_guard_primary_failure_rate, not
+# scripture_search_latency_p95: current production chat volume is low (single-
+# digit TTFT samples per hour at the time this was written), so a 15-min window
+# with no minimum sample count would let one slow request masquerade as a p95
+# breach. Widening to a 1h window with a >=5-sample-per-bin guard, evaluated
+# every 15 minutes and requiring the breach to recur in 2 of the last 3
+# evaluations, keeps the alert statistically meaningful at current volume and
+# should be tightened back toward the 15min/2000ms-style shape once traffic
+# grows enough to support it.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_ttft_p95" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-chat-ttft-p95"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT1H"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "p95 of chat time-to-first-token (llm.ttft_ms) stayed above 5000ms over a 15-min bin (min 5 samples), sustained across 2 of the last 3 evaluations. User-facing complement to backend-cpu-high/backend-replicas-at-max — this is what a saturated backend or a degraded LLM provider looks like from the user's chair."
+
+  criteria {
+    query                   = <<-KQL
+      customMetrics
+      | where timestamp > ago(1h)
+      | where name == "llm.ttft_ms"
+      | summarize samples = sum(valueCount), total_ms = sum(valueSum) by bin(timestamp, 15m)
+      | where samples >= 5
+      // valueSum/valueCount over 15m is an average, not a true p95 (Application
+      // Insights pre-aggregates histogram records before this rule sees them) — an
+      // approximation, same tradeoff scripture_search_latency_p95 accepts by
+      // using percentile() over per-request `value` rows there. TTFT records one
+      // row per streamed response (not the OTel histogram export used elsewhere),
+      // so switch this to percentile(value, 95) if/when that changes.
+      | extend avg_ms = total_ms / samples
+      | where avg_ms > 5000
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
