@@ -1157,6 +1157,47 @@ curl -sI https://voxquieta.org/health | grep -E 'HTTP|cf-ray'
 curl -sI https://api.voxquieta.org/health | grep -E 'HTTP|cf-ray'
 ```
 
+## Rollback: Broken Backend/Frontend Revision
+
+Both Container Apps run `revision_mode = "Single"` — there is no traffic-split/revert between
+revisions, so a bad deploy fully replaces the serving image immediately (see the
+2026-07-21 `api/reports/` `.dockerignore` incident, where the deployed backend
+crash-looped on `ModuleNotFoundError: No module named 'reports'`). The fastest fix is to
+push a previously-good image straight to the Container App with `az containerapp update`,
+which bypasses the full CI/Terraform cycle. Follow up with a real fix-forward PR — this is
+a break-glass step, not a substitute for one.
+
+```bash
+RG="bible-app-rg"
+ACR="bibleappacrmb0172"
+APP="bible-app-backend"     # or bible-app-frontend
+
+# 1. Confirm it's actually crash-looping (ProvisioningState/RunningState, restart count)
+az containerapp revision list -n $APP -g $RG -o table
+az containerapp logs show -n $APP -g $RG --tail 50
+
+# 2. Find the last known-good image tag. Tags are the deploying commit SHA
+#    (see .github/workflows/azure-deploy.yml "Extract metadata" step) — pick the SHA
+#    from the last commit before the one that broke it (`git log --oneline -- api/`),
+#    or list what's actually in ACR ordered by push time:
+az acr repository show-tags -n $ACR --repository bible-backend \
+  --orderby time_desc --top 10 -o table
+
+# 3. Point the Container App straight at that image (creates + activates a new
+#    revision immediately; no terraform apply needed)
+az containerapp update \
+  --name $APP \
+  --resource-group $RG \
+  --image "$ACR.azurecr.io/bible-backend:<GOOD_SHA>"
+
+# 4. Verify
+curl -sf https://api.voxquieta.org/health/live && echo OK
+```
+
+Once the app is healthy again, land the real fix as a normal PR — the next `main` deploy
+will overwrite this manual revision with the fixed image anyway, so there's nothing to
+"undo" afterwards.
+
 ## 📝 License
 
 MIT License - see repository root for details.
