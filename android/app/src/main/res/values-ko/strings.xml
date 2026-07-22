@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">채팅 기록</string>
     <string name="drawer_no_conversations">아직 대화가 없습니다</string>
     <string name="drawer_see_all_conversations">모든 대화 보기</string>
+    <string name="drawer_change_language">언어 변경</string>
+    <string name="drawer_change_bible_version">성경 버전 변경</string>
+    <string name="drawer_search_community">커뮤니티 찾기</string>
     <string name="settings_theme_title">테마</string>
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>
     <string name="settings_theme_system">시스템 기본값</string>
-    <string name="bible_translation_section">성경 번역본</string>
-    <string name="bible_translation_default">기본값</string>
-    <string name="settings_current_translation">현재 번역</string>
-    <string name="settings_bible_change_from_chat">채팅 화면에서 변경</string>
     <string name="settings_data_privacy_title">데이터 및 개인 정보</string>
     <string name="settings_clear_history_title">대화 기록을 삭제하시겠습니까?</string>
     <string name="settings_clear_history_message">모든 대화가 영구적으로 삭제됩니다.</string>

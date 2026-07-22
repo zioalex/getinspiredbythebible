@@ -227,17 +227,63 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push backend
+      - name: Build backend image
         uses: docker/build-push-action@v7
         with:
           context: ./api
           file: ./api/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Catches images that build fine but can't actually start — e.g. a
+      # .dockerignore pattern that (intentionally or not) excludes a runtime
+      # package. `docker build` succeeding says nothing about `COPY . .`
+      # having shipped every module main.py's import chain needs; only
+      # actually importing it inside the built image proves that. This
+      # exact class of bug reached production once (api/reports/ excluded
+      # by a `reports/` .dockerignore line meant for coverage-report
+      # output, breaking routes/admin.py's import at container startup)
+      # before this step existed — see incident notes in api/.dockerignore.
+      - name: Smoke test — verify backend image imports cleanly
+        env:
+          # Routed through env: (not inlined via ${{ }}) because
+          # steps.meta.outputs.tags is a newline-separated multi-line string —
+          # splicing it straight into the script text breaks bash parsing.
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          LLM_PROVIDER: ollama
+        run: |
+          IMAGE=$(head -n1 <<< "$TAGS")
+          echo "Smoke-testing $IMAGE"
+          docker run --rm \
+            -e DATABASE_URL \
+            -e LLM_PROVIDER \
+            "$IMAGE" python -c "
+          import main
+          from routes import admin, chat, scripture
+          from reports.weekly_report import build_weekly_report
+          print('backend image imports cleanly')
+          "
+
+      - name: Push backend image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          # Same reasoning as the smoke-test step above: route the multi-line
+          # tags list through env:, and iterate with `read` (not unquoted `for
+          # tag in $TAGS`) so a raw ${{ }} splice can't reintroduce a syntax
+          # error and word-splitting quirks can't drop/mangle a tag.
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "Pushing $tag"
+            docker push "$tag"
+          done <<< "$TAGS"
 
   # ---------------------------------------------------------------------------
   # Build and Push Frontend
