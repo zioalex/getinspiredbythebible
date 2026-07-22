@@ -3,15 +3,29 @@
 
 Usage
 -----
---validate   Validate the golden-set file (no DB/LLM required; safe to run in CI).
-             Exits 0 on success, 1 on validation failure.
+--validate            Validate the golden-set file (no DB/LLM required; safe for CI).
+                       Exits 0 on success, 1 on validation failure.
+--run                 Run the golden set through the real search pipeline.
+                       Requires DATABASE_URL + embedding (and, for expansion
+                       configs, LLM) provider credentials. Exits non-zero with
+                       a clear message (no traceback) if a connection/provider
+                       cannot be reached.
+--config NAMES        Comma-separated config names to run (default:
+                       baseline_semantic,expansion_semantic). See
+                       search_eval.runner.EVAL_CONFIGS for the full list.
+--language CODE        Restrict to one golden-set language (e.g. it, de).
+--smoke                Run --run against only the first 3 cases — a fast
+                       plumbing check, not a real measurement.
+--json                 Print machine-readable JSON instead of the text report.
 
-Future phases (P3/P4) will add --run, --config, --language, --smoke, --json flags
-that execute real retrieval against a live database.
+P4 (full-corpus, nightly/manual CI on Azure) is tracked separately —
+see docs/SEARCH_EVAL_HOWTO.md.
 
 Example
 -------
     python scripts/run_search_eval.py --validate
+    python scripts/run_search_eval.py --run --smoke
+    DATABASE_URL=... python scripts/run_search_eval.py --run --config hybrid,hybrid_expansion --language it
 """
 
 from __future__ import annotations
@@ -79,6 +93,71 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_run(args: argparse.Namespace) -> int:
+    """Run the golden set through the real search pipeline and print a report."""
+    import asyncio
+
+    from search_eval.loader import load_golden_set
+    from search_eval.report import format_report, to_json
+    from search_eval.runner import DEFAULT_AB, EVAL_CONFIGS, run_eval
+
+    if args.config:
+        config_names = [name.strip() for name in args.config.split(",") if name.strip()]
+        unknown = [name for name in config_names if name not in EVAL_CONFIGS]
+        if unknown:
+            print(
+                f"ERROR: unknown config(s) {unknown}; choose from {sorted(EVAL_CONFIGS)}",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        config_names = list(DEFAULT_AB)
+
+    try:
+        cases = load_golden_set(
+            Path(args.path) if args.path else None, language=args.language
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"ERROR: failed to load golden set — {exc}", file=sys.stderr)
+        return 1
+
+    if not cases:
+        print("ERROR: no golden-set cases matched the given filters.", file=sys.stderr)
+        return 1
+
+    if args.smoke:
+        cases = cases[:3]
+
+    try:
+        run_result = asyncio.run(run_eval(cases, config_names))
+    except Exception as exc:  # noqa: BLE001 - surface a clean message, not a traceback
+        print(f"ERROR: search-eval run failed — {exc}", file=sys.stderr)
+        print(
+            "Hint: --run needs DATABASE_URL and embedding-provider credentials "
+            "(and an LLM provider for *_expansion configs). See docs/SEARCH_EVAL_HOWTO.md.",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(to_json(run_result) if args.json else format_report(run_result))
+
+    # run_eval() is fail-open per query (a few bad cases shouldn't abort a
+    # partial report), but if EVERY case errored that's not partial
+    # degradation — it means the DB/provider was never reachable at all, and
+    # the "Done when" contract promises a non-zero exit with no traceback.
+    total = len(run_result.query_results)
+    failed = sum(1 for r in run_result.query_results if r.error is not None)
+    if total and failed == total:
+        print(
+            "ERROR: every query failed — DB/provider likely unreachable. "
+            "See docs/SEARCH_EVAL_HOWTO.md for required env vars.",
+            file=sys.stderr,
+        )
+        return 1
+
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Retrieval-evaluation harness for scripture search (BITB-051)."
@@ -95,11 +174,34 @@ def main() -> int:
         help="Validate golden set (no DB required).",
     )
     parser.add_argument("--path", help="Override golden-set JSON path.")
+    parser.add_argument(
+        "--run",
+        action="store_true",
+        help="Run the golden set through the real search pipeline (needs DB + provider creds).",
+    )
+    parser.add_argument(
+        "--config",
+        help="Comma-separated eval config names (default: baseline_semantic,expansion_semantic).",
+    )
+    parser.add_argument(
+        "--language", help="Restrict --run to one golden-set language code."
+    )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="With --run, use only the first 3 cases — a fast plumbing check.",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="With --run, print JSON output."
+    )
 
     args = parser.parse_args()
 
     if args.validate or args.command == "--validate":
         return _cmd_validate(args)
+
+    if args.run:
+        return _cmd_run(args)
 
     parser.print_help()
     return 0

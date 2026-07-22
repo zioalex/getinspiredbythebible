@@ -1,0 +1,41 @@
+# Keep the image and build context lean — and keep local secrets out of it.
+# The production stage does `COPY . .`, so anything not listed here ships.
+
+# Local env files (a real .env here would be baked into the image)
+.env
+.env.*
+!.env.example
+
+# Tests and tooling config not needed at runtime
+#
+# Incident: this file previously listed `reports/`, intending to drop
+# generated test/coverage report output. There is no such directory —
+# coverage output goes to htmlcov/ and .coverage (excluded below). Instead
+# it matched api/reports/, a real runtime package (weekly_report.py) that
+# routes/admin.py imports, so `docker build` shipped a backend image
+# main.py couldn't start. `docker build` succeeding proves nothing about
+# imports; CI now also runs the built image with `python -c "import main"`
+# before pushing (see .github/workflows/azure-deploy.yml,
+# "Smoke test — verify backend image imports cleanly") so this class of
+# bug fails the build instead of reaching production. Don't add a bare
+# package-looking name here without checking `ls api/` first.
+tests/
+pytest.ini
+.flake8
+.safety-policy.yml
+uv.lock
+
+# Python cruft
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS noise
+.DS_Store
+*.swp

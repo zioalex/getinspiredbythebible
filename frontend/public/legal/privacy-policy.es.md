@@ -33,7 +33,12 @@ Vox Quieta ("nosotros", "nos", "nuestro") es una aplicación gratuita de inspira
 
 ## Historial de conversaciones
 
-El historial de conversaciones se almacena **solo localmente en tu dispositivo** en una base de datos cifrada en el dispositivo (Room/SQLite). Nunca se sube a nuestros servidores.
+El historial de conversaciones se almacena **solo localmente en tu dispositivo** y nunca se sube a nuestros servidores:
+
+- **Aplicación móvil:** una base de datos cifrada en el dispositivo (Room/SQLite).
+- **Aplicación web:** el almacenamiento local de tu navegador (IndexedDB), en el dispositivo que uses.
+
+Puedes ver, renombrar, eliminar o borrar este historial en cualquier momento. También puedes exportarlo como un **archivo cifrado con una frase de contraseña** para trasladarlo a otro de tus dispositivos: el archivo se cifra con una frase que solo tú conoces, de modo que permanece en tus manos incluso durante la transferencia.
 
 ## Servicios de terceros
 

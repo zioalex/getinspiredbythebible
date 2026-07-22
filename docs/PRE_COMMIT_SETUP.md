@@ -274,7 +274,7 @@ pre-commit run --all-files
 - [.pre-commit-config.yaml](../.pre-commit-config.yaml) - Main hook configuration
 - [api/pyproject.toml](../api/pyproject.toml) - Python tool settings
 - [api/.flake8](../api/.flake8) - Flake8 rules
-- [frontend/.prettierrc](../frontend/.prettierrc) - Prettier formatting
+- [frontend/.prettierignore](../frontend/.prettierignore) - Prettier exclusions (formatting itself uses Prettier defaults; there is no `.prettierrc`)
 - [.markdownlint.json](../.markdownlint.json) - Markdown rules
 - [.secrets.baseline](../.secrets.baseline) - Known secrets to ignore
 
