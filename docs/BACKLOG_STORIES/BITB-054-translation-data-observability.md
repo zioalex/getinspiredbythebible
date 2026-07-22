@@ -23,7 +23,7 @@ two things happen silently:
    with `grounding_strip_unresolved=False` (default), **leaves the model's text untouched**.
 
 There is no easy way to confirm what's actually loaded (the diagnostic is a manual SQL snippet
-in `NEXT_STEPS.md`), and the `unresolved` path is invisible to users. This was the leading
+in `docs/archive/NEXT_STEPS.md`), and the `unresolved` path is invisible to users. This was the leading
 hypothesis while debugging the Italian "citation doesn't match the DB" report.
 
 ## Scope
@@ -31,7 +31,7 @@ hypothesis while debugging the Italian "citation doesn't match the DB" report.
 In scope:
 
 1. **Diagnostic** — a queryable surface (admin route and/or startup log) reporting, per
-   translation: total verses and verses-with-embeddings (reuse the SQL in `NEXT_STEPS.md`:
+   translation: total verses and verses-with-embeddings (reuse the SQL in `docs/archive/NEXT_STEPS.md`:
    `SELECT translation, COUNT(*), COUNT(embedding) FROM verses GROUP BY translation`).
 2. **Startup / CI guard** — warn (loudly, with a metric) when a *supported* UI language's
    translation has zero verses or zero embeddings, so an unloaded language can't ship unnoticed.
@@ -59,7 +59,7 @@ Out of scope:
 | Grounding (`unresolved` path) | `api/chat/verse_grounding.py`, `api/chat/service.py` |
 | Settings | `api/config.py` (`grounding_strip_unresolved`, new behaviour flag) |
 | Repository / counts | `api/scripture/repository.py` |
-| Loader | `scripts/load_bible.py`, `NEXT_STEPS.md` (diagnostic SQL) |
+| Loader | `scripts/load_bible.py`, `docs/archive/NEXT_STEPS.md` (diagnostic SQL) |
 | Tests | `api/tests/` |
 
 ## Related

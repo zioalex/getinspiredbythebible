@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">聊天历史</string>
     <string name="drawer_no_conversations">暂无对话</string>
     <string name="drawer_see_all_conversations">查看所有对话</string>
+    <string name="drawer_change_language">更改语言</string>
+    <string name="drawer_change_bible_version">更改圣经版本</string>
+    <string name="drawer_search_community">寻找信仰团体</string>
     <string name="settings_theme_title">主题</string>
     <string name="settings_theme_light">浅色</string>
     <string name="settings_theme_dark">深色</string>
     <string name="settings_theme_system">跟随系统</string>
-    <string name="bible_translation_section">圣经译本</string>
-    <string name="bible_translation_default">默认</string>
-    <string name="settings_current_translation">当前译本</string>
-    <string name="settings_bible_change_from_chat">从聊天界面更改</string>
     <string name="settings_data_privacy_title">数据与隐私</string>
     <string name="settings_clear_history_title">清除对话记录？</string>
     <string name="settings_clear_history_message">所有对话将被永久删除。</string>

@@ -48,7 +48,23 @@ WITH (m = 16, ef_construction = 64);
 
 -- Note: This ALTER DATABASE command sets the default for all sessions.
 -- Individual queries can override with: SET hnsw.ef_search = <value>;
-ALTER DATABASE bibleapp SET hnsw.ef_search = 80;
+--
+-- Hardcoded to the prod database name ("bibleapp"), which fails outright
+-- against any other database (e.g. local/CI's "bibledb"). Also, per migration
+-- 007's docstring, this exact statement already raised "permission denied to
+-- set parameter" on managed Postgres (Azure Flexible Server / AWS RDS) --
+-- which is why the app now sets hnsw.ef_search per-session instead
+-- (api/scripture/database.py). Target the current database dynamically and
+-- treat a privilege error as non-fatal (same idiom as migration 007's
+-- pg_prewarm step) so this migration doesn't block the ones after it on
+-- either front.
+DO $$
+BEGIN
+    EXECUTE format('ALTER DATABASE %I SET hnsw.ef_search = 80', current_database());
+EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'ALTER DATABASE SET hnsw.ef_search skipped (insufficient privilege -- expected on some managed Postgres tiers; the app sets this per-session instead, see migration 007)';
+END
+$$;
 
 COMMIT;
 

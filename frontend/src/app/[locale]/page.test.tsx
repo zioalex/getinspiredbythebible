@@ -604,21 +604,23 @@ describe("Home page responsive layout", () => {
     });
   });
 
-  // Regression guard for the Android beta-tester call-to-action. The bold CTA
-  // (header pill + welcome-screen invitation card) was once silently dropped
-  // when a homepage refactor branched off before the CTA landed and replaced
-  // ChatIsland.tsx wholesale (no merge conflict). These assertions fail fast in
-  // CI if either entry point to /tester is removed again.
-  describe("Android beta-tester CTA", () => {
-    it("renders an emphasized header pill link to /tester", () => {
+  // Regression guard for the official-app call-to-action. The bold CTA (header
+  // pill + welcome-screen invitation card) was once silently dropped when a
+  // homepage refactor branched off before the CTA landed and replaced
+  // ChatIsland.tsx wholesale (no merge conflict). Both entry points now promote
+  // the published Google Play app via /app (the closed-beta funnel at /tester is
+  // intentionally demoted to a subtle link on that page). These assertions fail
+  // fast in CI if either entry point to /app is removed again.
+  describe("Official app CTA", () => {
+    it("renders an emphasized header pill link to /app", () => {
       renderWithIntl(<Home />);
 
-      const label = screen.getByText(enMessages.Header.testerCta);
-      const headerLink = label.closest('a[href="/tester"]');
+      const label = screen.getByText(enMessages.Header.appCta);
+      const headerLink = label.closest('a[href="/app"]');
       expect(headerLink).not.toBeNull();
       // Guard the *emphasis*, not just presence: the regression downgraded the
-      // pill to a muted text link (which still linked to /tester). The filled
-      // pill is what makes it a call to participate.
+      // pill to a muted text link. The filled pill is what makes it a primary
+      // call to action.
       expect(headerLink!.className).toContain("rounded-full");
       expect(headerLink!.className).toContain("bg-teal-600");
     });
@@ -626,14 +628,12 @@ describe("Home page responsive layout", () => {
     it("renders the welcome-screen invitation card in the empty-chat state", () => {
       renderWithIntl(<Home />);
 
-      const cardTitle = screen.getByText(enMessages.Welcome.testerTitle);
+      const cardTitle = screen.getByText(enMessages.Welcome.appTitle);
       expect(cardTitle).toBeInTheDocument();
-      expect(
-        screen.getByText(enMessages.Welcome.testerBody),
-      ).toBeInTheDocument();
+      expect(screen.getByText(enMessages.Welcome.appBody)).toBeInTheDocument();
 
-      // The card itself links to /tester.
-      expect(cardTitle.closest('a[href="/tester"]')).not.toBeNull();
+      // The card itself links to /app.
+      expect(cardTitle.closest('a[href="/app"]')).not.toBeNull();
     });
   });
 

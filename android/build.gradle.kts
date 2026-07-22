@@ -1,7 +1,10 @@
 // Top-level build file — configuration shared across all sub-projects/modules.
 plugins {
     alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
+    // NOTE: org.jetbrains.kotlin.android is intentionally NOT applied. AGP 9.0
+    // provides built-in Kotlin compilation; the standalone kotlin-android plugin
+    // is incompatible with AGP 9.0's extension model. Compose/serialization
+    // remain separate Kotlin compiler plugins and are still applied below.
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false

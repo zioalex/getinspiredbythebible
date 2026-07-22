@@ -179,6 +179,11 @@ class Settings(BaseSettings):
     # Security Settings
     max_message_length: int = 300  # Max characters per chat message
     rate_limit_enabled: bool = True
+    # BITB-061: "postgres" shares counters across replicas and survives
+    # restarts/deploys (the whole point of this setting); "memory" is the
+    # legacy in-process behavior, kept reachable for tests and local dev
+    # without a database.
+    rate_limit_backend: Literal["postgres", "memory"] = "postgres"
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute
     rate_limit_session_max_requests: int = 10  # Lifetime max per session (encourages breaks)
