@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">История чата</string>
     <string name="drawer_no_conversations">Пока нет разговоров</string>
     <string name="drawer_see_all_conversations">Показать все разговоры</string>
+    <string name="drawer_change_language">Сменить язык</string>
+    <string name="drawer_change_bible_version">Сменить версию Библии</string>
+    <string name="drawer_search_community">Найти общину</string>
     <string name="settings_theme_title">Тема</string>
     <string name="settings_theme_light">Светлая</string>
     <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_theme_system">Системная</string>
-    <string name="bible_translation_section">Перевод Библии</string>
-    <string name="bible_translation_default">По умолчанию</string>
-    <string name="settings_current_translation">Текущий перевод</string>
-    <string name="settings_bible_change_from_chat">Изменить в чате</string>
     <string name="settings_data_privacy_title">Данные и конфиденциальность</string>
     <string name="settings_clear_history_title">Очистить историю?</string>
     <string name="settings_clear_history_message">Все беседы будут удалены навсегда.</string>

@@ -11,9 +11,8 @@ import {
   X,
   ChevronDown,
   Square,
-  FlaskConical,
+  Smartphone,
   ArrowRight,
-  Menu,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -25,6 +24,7 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
+import MainMenu from "@/components/MainMenu";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
 import {
   streamMessage,
@@ -941,16 +941,13 @@ export default function ChatIsland({
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Menu — opens the local (device-only) conversation history sidebar;
-                  a generic burger icon leaves room to hang more entries off it later. */}
-              <button
-                onClick={() => setHistoryOpen(true)}
-                title={tChat("historyTitle")}
-                aria-label={tChat("historyTitle")}
-                className="flex items-center justify-center rounded-full border border-primary-200 p-2 text-primary-600 hover:bg-primary-50 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+              <MainMenu
+                onOpenHistory={() => setHistoryOpen(true)}
+                onOpenChurchFinder={() => setChurchFinderModalOpen(true)}
+                translations={translations}
+                activeTranslationCode={activeTranslationCode}
+                onSelectTranslation={handleTranslationChange}
+              />
               <Book className="w-8 h-8 text-primary-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">
@@ -962,19 +959,14 @@ export default function ChatIsland({
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Android beta tester recruitment — prominent call to participate */}
+              {/* Official app on Google Play — primary call to action */}
               <Link
-                href="/tester"
-                title={tHeader("testerCta")}
+                href="/app"
+                title={tHeader("appCta")}
                 className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all"
               >
-                {/* Pinging dot draws the eye to the invitation */}
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-teal-500" />
-                </span>
-                <FlaskConical className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">{tHeader("testerCta")}</span>
+                <Smartphone className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{tHeader("appCta")}</span>
               </Link>
 
               {/* Language Switcher */}
@@ -1078,20 +1070,24 @@ export default function ChatIsland({
                 ))}
               </div>
 
-              {/* Beta tester invitation — call to participate */}
+              {/* Official app invitation — get Vox Quieta on Google Play */}
               <Link
-                href="/tester"
+                href="/app"
                 className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-left"
               >
-                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white">
-                  <FlaskConical className="w-5 h-5" />
-                </span>
+                <img
+                  src="/app-icon.png"
+                  alt={tWelcome("appTitle")}
+                  width={40}
+                  height={40}
+                  className="flex-shrink-0 w-10 h-10 rounded-xl"
+                />
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold text-teal-900">
-                    {tWelcome("testerTitle")}
+                    {tWelcome("appTitle")}
                   </span>
                   <span className="block text-sm text-teal-700">
-                    {tWelcome("testerBody")}
+                    {tWelcome("appBody")}
                   </span>
                 </span>
                 <ArrowRight className="w-5 h-5 text-teal-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />

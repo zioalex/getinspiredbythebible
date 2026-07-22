@@ -69,8 +69,6 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentThemeMode = uiState.themeMode
-    val availableTranslations by viewModel.availableTranslations.collectAsState()
-    val preferredTranslation by viewModel.preferredTranslation.collectAsState()
     val contactFormState by viewModel.contactFormState.collectAsState()
     val diagnosticReportState by viewModel.diagnosticReportState.collectAsState()
     val context = LocalContext.current
@@ -78,15 +76,6 @@ fun SettingsScreen(
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
     var showDiagnosticSheet by rememberSaveable { mutableStateOf(false) }
     var showClearHistoryDialog by rememberSaveable { mutableStateOf(false) }
-
-    // Resolve current translation display name for the read-only row.
-    val currentTranslationName = when {
-        preferredTranslation.isBlank() -> stringResource(R.string.bible_translation_default)
-        else -> availableTranslations
-            .firstOrNull { it.id == preferredTranslation }
-            ?.name
-            ?: preferredTranslation.uppercase()
-    }
 
     Scaffold(
         topBar = {
@@ -131,40 +120,6 @@ fun SettingsScreen(
                     labelRes = option.labelRes,
                     selected = option.mode == currentThemeMode,
                     onSelect = { viewModel.setThemeMode(option.mode) },
-                )
-            }
-
-            // ── Bible section ──────────────────────────────────────────────────
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = stringResource(R.string.bible_translation_section),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            // Read-only row showing the active translation; the in-chat chip is
-            // the canonical place to change it.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_current_translation),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_bible_change_from_chat),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Text(
-                    text = currentTranslationName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
