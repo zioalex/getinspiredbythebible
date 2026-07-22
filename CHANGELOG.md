@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.48.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.47.0...v1.48.0) (2026-07-22)
 
-
 ### Features
 
 * **frontend,android:** add language/Bible-version/community entries to the hamburger menu ([#921](https://github.com/zioalex/getinspiredbythebible/issues/921)) ([afbe106](https://github.com/zioalex/getinspiredbythebible/commit/afbe106ebb7b425520309d0ab4e4a8efcf54ca37))
-
 
 ### Bug Fixes
 
