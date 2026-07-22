@@ -138,7 +138,11 @@
     "languageSwitchSuggestion": "您似乎在用{language}书写。要切换吗？",
     "languageSwitchAction": "切换",
     "languageSwitchDismiss": "忽略",
-    "historyTitle": "对话历史"
+    "historyTitle": "对话历史",
+    "mainMenuLabel": "菜单",
+    "changeLanguage": "更改语言",
+    "changeBibleVersion": "更改圣经版本",
+    "searchCommunity": "寻找信仰团体"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",

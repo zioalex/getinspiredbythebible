@@ -465,6 +465,12 @@ class TestGetAllTranslations:
             for field in required:
                 assert field in trans
 
+    def test_each_translation_has_a_publication_year(self):
+        """Test each translation carries an integer publication year."""
+        for trans in get_all_translations():
+            assert "year" in trans
+            assert isinstance(trans["year"], int)
+
 
 class TestGetTranslationsForLanguage:
     """Tests for get_translations_for_language."""

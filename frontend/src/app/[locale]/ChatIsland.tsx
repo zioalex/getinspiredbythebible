@@ -13,7 +13,6 @@ import {
   Square,
   Smartphone,
   ArrowRight,
-  Menu,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -25,6 +24,7 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
+import MainMenu from "@/components/MainMenu";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
 import {
   streamMessage,
@@ -941,16 +941,13 @@ export default function ChatIsland({
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Menu — opens the local (device-only) conversation history sidebar;
-                  a generic burger icon leaves room to hang more entries off it later. */}
-              <button
-                onClick={() => setHistoryOpen(true)}
-                title={tChat("historyTitle")}
-                aria-label={tChat("historyTitle")}
-                className="flex items-center justify-center rounded-full border border-primary-200 p-2 text-primary-600 hover:bg-primary-50 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+              <MainMenu
+                onOpenHistory={() => setHistoryOpen(true)}
+                onOpenChurchFinder={() => setChurchFinderModalOpen(true)}
+                translations={translations}
+                activeTranslationCode={activeTranslationCode}
+                onSelectTranslation={handleTranslationChange}
+              />
               <Book className="w-8 h-8 text-primary-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">

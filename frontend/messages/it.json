@@ -138,7 +138,11 @@
     "languageSwitchSuggestion": "Sembra che tu stia scrivendo in {language}. Vuoi cambiare?",
     "languageSwitchAction": "Cambia",
     "languageSwitchDismiss": "Ignora",
-    "historyTitle": "Cronologia conversazioni"
+    "historyTitle": "Cronologia conversazioni",
+    "mainMenuLabel": "Menu",
+    "changeLanguage": "Cambia lingua",
+    "changeBibleVersion": "Cambia versione biblica",
+    "searchCommunity": "Cerca una comunità"
   },
   "Verses": {
     "scriptureReferences": "Riferimenti Scritturali",

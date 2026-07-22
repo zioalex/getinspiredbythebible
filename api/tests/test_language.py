@@ -354,12 +354,14 @@ class TestTranslationInfo:
         assert info["code"] == "kjv"
         assert info["name"] == "King James Version"
         assert info["language"] == "English"
+        assert info["year"] == 1611
 
     def test_get_translation_info_web(self):
         """get_translation_info should return correct WEB info."""
         info = get_translation_info("web")
         assert info["code"] == "web"
         assert info["name"] == "World English Bible"
+        assert info["year"] == 2000
 
     def test_get_translation_info_invalid_returns_default(self):
         """get_translation_info should return default for invalid code."""

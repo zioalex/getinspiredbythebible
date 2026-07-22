@@ -138,7 +138,11 @@
     "languageSwitchSuggestion": "Похоже, вы пишете на {language}. Переключить?",
     "languageSwitchAction": "Переключить",
     "languageSwitchDismiss": "Скрыть",
-    "historyTitle": "История разговоров"
+    "historyTitle": "История разговоров",
+    "mainMenuLabel": "Меню",
+    "changeLanguage": "Сменить язык",
+    "changeBibleVersion": "Сменить версию Библии",
+    "searchCommunity": "Найти общину"
   },
   "Verses": {
     "scriptureReferences": "Ссылки на Писание",
