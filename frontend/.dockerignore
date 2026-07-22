@@ -1,0 +1,24 @@
+# Keep the Docker build context lean. Stage 1 runs `npm ci` and stage 2 does
+# `COPY . .` — without this file a local node_modules/.next would be sent to
+# the daemon (hundreds of MB) and could overwrite the freshly installed deps.
+
+node_modules/
+.next/
+out/
+
+# Local env files (NEXT_PUBLIC_* come in via build args, not .env)
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+
+# Misc
+npm-debug.log*
+.DS_Store
+*.swp
+Dockerfile
+.dockerignore

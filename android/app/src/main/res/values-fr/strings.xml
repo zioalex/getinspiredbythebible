@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">Historique des chats</string>
     <string name="drawer_no_conversations">Aucune conversation pour le moment</string>
     <string name="drawer_see_all_conversations">Voir toutes les conversations</string>
+    <string name="drawer_change_language">Changer de langue</string>
+    <string name="drawer_change_bible_version">Changer de version de la Bible</string>
+    <string name="drawer_search_community">Rechercher une communauté</string>
     <string name="settings_theme_title">Thème</string>
     <string name="settings_theme_light">Clair</string>
     <string name="settings_theme_dark">Sombre</string>
     <string name="settings_theme_system">Défaut du système</string>
-    <string name="bible_translation_section">Traduction Biblique</string>
-    <string name="bible_translation_default">Par défaut</string>
-    <string name="settings_current_translation">Traduction actuelle</string>
-    <string name="settings_bible_change_from_chat">Changer depuis l\'écran de chat</string>
     <string name="settings_data_privacy_title">Données et confidentialité</string>
     <string name="settings_clear_history_title">Effacer l\'historique ?</string>
     <string name="settings_clear_history_message">Toutes les conversations seront supprimées définitivement.</string>
