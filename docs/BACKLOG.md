@@ -498,9 +498,10 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] Query expansion enabled by default (#741)
-- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
-- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [x] Hybrid search enabled (`hybrid_search_enabled = True` in `api/config.py`, PR #727 trimmed per BITB-051 P0)
+- [x] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051** (P0–P3 landed)
 - [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
+      (needs a live run against prod data/Azure credentials — see `docs/SEARCH_EVAL_HOWTO.md`)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
 
@@ -508,7 +509,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
 **Size:** L (3-5 days, 5 small PRs)
 **Created:** 2026-06-16
 
@@ -520,17 +521,17 @@ their weights instead of shipping search changes blind.
 **Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
 Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
 normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
-languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
-report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
-Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+languages) + `--validate` + non-blocking CI ✅; **P3** runner over real retrieval + A/B
+report/CLI ✅; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embedding-3-small`
 (1536) everywhere** to match prod; per-PR CI is validate-only.
 
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] P0: PR #727 trimmed to hybrid-search enablement only
 - [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
-- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
-- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [x] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [x] P3: runner (`api/search_eval/runner.py`) + report/CLI (`--run`); manual prod-read-only A/B table documented in `docs/SEARCH_EVAL_HOWTO.md`
 - [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
