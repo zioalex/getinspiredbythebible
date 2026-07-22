@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.48.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.47.0...v1.48.0) (2026-07-22)
+
+### Features
+
+* **frontend,android:** add language/Bible-version/community entries to the hamburger menu ([#921](https://github.com/zioalex/getinspiredbythebible/issues/921)) ([afbe106](https://github.com/zioalex/getinspiredbythebible/commit/afbe106ebb7b425520309d0ab4e4a8efcf54ca37))
+
+### Bug Fixes
+
+* **android:** remove staleness gate blocking in-app update prompts ([#919](https://github.com/zioalex/getinspiredbythebible/issues/919)) ([fe716af](https://github.com/zioalex/getinspiredbythebible/commit/fe716af07da8453dbe9e4ee8b9c71b45bf5dc1f6))
+* **ci:** route multi-line docker tags through env:, not raw ${{ }} splice ([#922](https://github.com/zioalex/getinspiredbythebible/issues/922)) ([fe63044](https://github.com/zioalex/getinspiredbythebible/commit/fe630447f243ad55e8695891fa5b9a630c0f2b35))
+
 ## [1.47.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.46.2...v1.47.0) (2026-07-21)
 
 ### Features
