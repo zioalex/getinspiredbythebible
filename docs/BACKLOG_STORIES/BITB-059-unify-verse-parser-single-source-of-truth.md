@@ -33,6 +33,13 @@ catches a content-only edit — was real and is what this PR closes for the Andr
 "already diverged" framing in the original problem statement was not confirmed and should not
 be repeated.
 
+**Live drift instance closed during this PR's own CI cycle:** while this PR was open, PR #903
+merged to main and added 12 new Hindi aliases (`रोमियो`, `इफिसियो`, etc.) to the web map —
+without touching the Android map, reproducing the exact drift this story predicts. Merging
+main into this branch and re-running the generator picked up all 12 automatically and closed
+the gap in the same PR, with no manual synchronization. Concrete validation that the guard
+works as intended.
+
 **Explicitly deferred (Phase 2):** generate the **web** `LOCALIZED_BOOK_TO_ENGLISH` from the
 same JSON (currently locked to it only via a new parity test,
 `frontend/src/lib/localizedBookMap.parity.test.ts`, not generation) and reconcile the JSON
