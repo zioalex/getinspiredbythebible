@@ -2,6 +2,7 @@
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	repo-metrics audit-metrics \
@@ -742,8 +743,8 @@ az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
 	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
 		--resource-group $(PG_RG) \
+		--server-name $(PG_SERVER) \
 		--name $(PG_SERVER) \
-		--rule-name "allow-my-ip-$$(date +%Y%m%d%H%M%S)" \
 		--start-ip-address $$MY_IP \
 		--end-ip-address $$MY_IP && \
 	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP$(NC)"
@@ -752,7 +753,7 @@ az-pg-list-rules: ## List PostgreSQL firewall rules
 	@echo "$(BLUE)Listing PostgreSQL firewall rules...$(NC)"
 	@az postgres flexible-server firewall-rule list \
 		--resource-group $(PG_RG) \
-		--name $(PG_SERVER) \
+		--server-name $(PG_SERVER) \
 		--output table
 
 az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name)
@@ -764,8 +765,8 @@ az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip 
 	@echo "$(BLUE)Removing firewall rule: $(RULE)...$(NC)"
 	@az postgres flexible-server firewall-rule delete \
 		--resource-group $(PG_RG) \
-		--name $(PG_SERVER) \
-		--rule-name $(RULE) \
+		--server-name $(PG_SERVER) \
+		--name $(RULE) \
 		--yes && \
 	echo "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
 
