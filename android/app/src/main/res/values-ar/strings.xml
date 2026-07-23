@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">سجل الدردشة</string>
     <string name="drawer_no_conversations">لا توجد محادثات بعد</string>
     <string name="drawer_see_all_conversations">عرض جميع المحادثات</string>
+    <string name="drawer_change_language">تغيير اللغة</string>
+    <string name="drawer_change_bible_version">تغيير إصدار الكتاب المقدس</string>
+    <string name="drawer_search_community">البحث عن مجتمع إيماني</string>
     <string name="settings_theme_title">السمة</string>
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>
     <string name="settings_theme_system">إعداد النظام</string>
-    <string name="bible_translation_section">ترجمة الكتاب المقدس</string>
-    <string name="bible_translation_default">افتراضية</string>
-    <string name="settings_current_translation">الترجمة الحالية</string>
-    <string name="settings_bible_change_from_chat">التغيير من شاشة الدردشة</string>
     <string name="settings_data_privacy_title">البيانات والخصوصية</string>
     <string name="settings_clear_history_title">مسح سجل المحادثات؟</string>
     <string name="settings_clear_history_message">سيتم حذف جميع المحادثات نهائيًا.</string>

@@ -1,6 +1,6 @@
 # BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
 **Priority:** P1 (High) — without it we cannot tell whether the now-enabled query
 expansion / hybrid search actually improve retrieval
 **Size:** L (3–5 days, delivered in 5 small PRs)
@@ -97,7 +97,7 @@ blocking `backend-tests` job.
 - **Done when:** `pytest tests/test_search_eval_metrics.py` green; metric values match
   hand-computed expectations. **No DB.**
 
-### P2 — Golden set data + loader + `--validate` + non-blocking CI (todo)
+### P2 — Golden set data + loader + `--validate` + non-blocking CI ✅ (landed)
 
 - `api/search_eval/data/retrieval_golden_set.json`: 55+ cases, all 11 languages (≥5
   each), seeded from `query_expansion_test_cases.json` + #727's 12 cases (with
@@ -110,7 +110,7 @@ blocking `backend-tests` job.
   `test_update.yml` running `--validate`.
 - **Done when:** `--validate` exits 0 with ≥55 cases / 11 languages; dataset tests green.
 
-### P3 — Runner (real retrieval) + report + CLI (todo)
+### P3 — Runner (real retrieval) + report + CLI ✅ (landed)
 
 - `api/search_eval/runner.py`: bootstrap standalone like
   `scripts/migrations/run_migrations.py`
@@ -119,12 +119,21 @@ blocking `backend-tests` job.
   `ChatService._expand_query` → `embedding.embed` → `search(extra_embeddings=[…])`,
   mirroring `_search_scripture`. Fail-open per query; **read-only**.
 - Named `EvalConfig`s: `baseline_semantic`, `expansion_semantic` (default A/B),
-  `hybrid`, `hybrid_expansion`, optional `topic_boosted` (warn until BITB-044).
+  `hybrid`, `hybrid_expansion`, `topic_boosted` (documented no-op — falls back to
+  `hybrid` + a warning — until BITB-044 populates `verse_topics`).
 - `report.py`: configs × P@5/R@10/MRR table + per-language breakdown + false-positive
-  guard + expansion latency/cost. CLI: `--config`, `--language`, `--json`, `--smoke`.
-- `docs/SEARCH_EVAL_HOWTO.md`; update BITB-043 + `BACKLOG.md`.
+  guard + expansion latency. CLI: `--run`, `--config`, `--language`, `--json`, `--smoke`.
+- `docs/SEARCH_EVAL_HOWTO.md` added; `BACKLOG.md` updated.
+- Runner orchestration + metric assembly covered by
+  `api/tests/test_search_eval_runner.py` / `test_search_eval_report.py` against
+  injected fakes (no DB, no secrets — this sandbox has neither).
 - **Done when:** manual `DATABASE_URL=<prod-ro>` + Azure env →
-  `run_search_eval.py` prints the expansion OFF-vs-ON A/B table + per-language breakdown.
+  `run_search_eval.py` prints the expansion OFF-vs-ON A/B table + per-language
+  breakdown. **Not exercised against real prod data in this PR** (no prod DB / Azure
+  credentials available in this environment) — the exact command is documented in
+  `docs/SEARCH_EVAL_HOWTO.md` for a maintainer to run; `--run --smoke` locally against
+  an unreachable DB was confirmed to fail-open per query yet still exit non-zero with
+  a clear message (no traceback), and `--config`/`--language`/`--json` were exercised.
 
 ### P4 — Full-corpus eval automated in CI (Routes A + B; manual + nightly) (todo)
 
@@ -147,9 +156,11 @@ New `.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly
 - [x] P0: PR #727 trimmed to hybrid-search enablement only.
 - [x] P1: `api/search_eval/` core (normalize + metrics + `GoldenCase` incl.
       `irrelevant_refs`) with no-DB tests in the blocking job.
-- [ ] P2: 55+ multilingual golden set (all 11 languages) + loader + `--validate` +
+- [x] P2: 55+ multilingual golden set (all 11 languages) + loader + `--validate` +
       non-blocking CI; maintainer-reviewed labels.
-- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table.
+- [x] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+      documented in `docs/SEARCH_EVAL_HOWTO.md` (not exercised against real prod
+      data in this sandbox — no DB/Azure credentials available).
 - [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure.
 - [ ] Retrospective once expansion/hybrid validated against the set (feeds BITB-043).
 

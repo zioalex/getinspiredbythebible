@@ -138,7 +138,11 @@
     "languageSwitchSuggestion": "{language}(으)로 작성 중인 것 같습니다. 전환할까요?",
     "languageSwitchAction": "전환",
     "languageSwitchDismiss": "닫기",
-    "historyTitle": "대화 기록"
+    "historyTitle": "대화 기록",
+    "mainMenuLabel": "메뉴",
+    "changeLanguage": "언어 변경",
+    "changeBibleVersion": "성경 버전 변경",
+    "searchCommunity": "커뮤니티 찾기"
   },
   "Verses": {
     "scriptureReferences": "성경 참조",
