@@ -46,6 +46,7 @@ TRANSLATION_INFO = {
         "short_name": "KJV",
         "language": "English",
         "language_code": "en",
+        "year": 1611,
     },
     "web": {
         "code": "web",
@@ -53,6 +54,7 @@ TRANSLATION_INFO = {
         "short_name": "WEB",
         "language": "English",
         "language_code": "en",
+        "year": 2000,
     },
     "ita1927": {
         "code": "ita1927",
@@ -60,6 +62,7 @@ TRANSLATION_INFO = {
         "short_name": "Riveduta",
         "language": "Italian",
         "language_code": "it",
+        "year": 1927,
     },
     "schlachter": {
         "code": "schlachter",
@@ -67,6 +70,7 @@ TRANSLATION_INFO = {
         "short_name": "Schlachter",
         "language": "German",
         "language_code": "de",
+        "year": 1951,
     },
     "luther1912": {
         "code": "luther1912",
@@ -74,6 +78,7 @@ TRANSLATION_INFO = {
         "short_name": "Luther",
         "language": "German",
         "language_code": "de",
+        "year": 1912,
     },
     "valera": {
         "code": "valera",
@@ -81,6 +86,7 @@ TRANSLATION_INFO = {
         "short_name": "Valera",
         "language": "Spanish",
         "language_code": "es",
+        "year": 1909,
     },
     "ls1910": {
         "code": "ls1910",
@@ -88,6 +94,7 @@ TRANSLATION_INFO = {
         "short_name": "Segond",
         "language": "French",
         "language_code": "fr",
+        "year": 1910,
     },
     "almeida": {
         "code": "almeida",
@@ -95,6 +102,7 @@ TRANSLATION_INFO = {
         "short_name": "Almeida",
         "language": "Portuguese",
         "language_code": "pt",
+        "year": 1959,
     },
     "arabicsv": {
         "code": "arabicsv",
@@ -102,6 +110,7 @@ TRANSLATION_INFO = {
         "short_name": "SVD",
         "language": "Arabic",
         "language_code": "ar",
+        "year": 1865,
     },
     "synodal": {
         "code": "synodal",
@@ -109,6 +118,7 @@ TRANSLATION_INFO = {
         "short_name": "Synodal",
         "language": "Russian",
         "language_code": "ru",
+        "year": 1876,
     },
     "cuv": {
         "code": "cuv",
@@ -116,6 +126,7 @@ TRANSLATION_INFO = {
         "short_name": "CUV",
         "language": "Chinese",
         "language_code": "zh",
+        "year": 1919,
     },
     "hindi": {
         "code": "hindi",
@@ -123,6 +134,7 @@ TRANSLATION_INFO = {
         "short_name": "IRV",
         "language": "Hindi",
         "language_code": "hi",
+        "year": 2019,
     },
     "krv": {
         "code": "krv",
@@ -130,6 +142,7 @@ TRANSLATION_INFO = {
         "short_name": "KRV",
         "language": "Korean",
         "language_code": "ko",
+        "year": 1998,
     },
 }
 

@@ -138,7 +138,11 @@
     "languageSwitchSuggestion": "लगता है आप {language} में लिख रहे हैं। बदलें?",
     "languageSwitchAction": "बदलें",
     "languageSwitchDismiss": "खारिज करें",
-    "historyTitle": "बातचीत इतिहास"
+    "historyTitle": "बातचीत इतिहास",
+    "mainMenuLabel": "मेनू",
+    "changeLanguage": "भाषा बदलें",
+    "changeBibleVersion": "बाइबिल संस्करण बदलें",
+    "searchCommunity": "एक समुदाय खोजें"
   },
   "Verses": {
     "scriptureReferences": "पवित्रशास्त्र संदर्भ",
