@@ -1734,6 +1734,40 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
+### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+
+**Status:** 🎯 Todo
+**Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
+**Created:** 2026-07-21
+
+**As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
+financially support the project from the website, the Android app, and the
+GitHub repo, **so that** I can help cover hosting/LLM inference costs, without
+the app ever touching payment data itself.
+
+Research compared GitHub Sponsors, Ko-fi, Buy Me a Coffee, Patreon, Open
+Collective, Stripe Payment Links, and PayPal. Recommendation: **Ko-fi**
+(0% platform fee, one-time + recurring, supports Stripe and PayPal checkout)
+as the primary user-facing donation page, plus **GitHub Sponsors** enabled on
+the repo for the developer audience. Both are pure external link-outs — no
+feature is gated or unlocked in exchange for donating, keeping this out of
+Google Play Billing scope (to be re-verified against the current Play
+Developer Program Policy before shipping).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
+- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all 10 locale files
+- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+      section, opening the donate URL via `LocalUriHandler`
+- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+      gated behind the donation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
+
+---
+
 ## P3 - Low Priority (Future)
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
