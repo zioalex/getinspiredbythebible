@@ -62,7 +62,9 @@ describe("verse reference corpus (cross-platform, web)", () => {
       }
 
       const expected = testCase.expected as CorpusExpected;
-      const expectedRef = `${expected.book} ${expected.chapter}:${expected.verseStart}`;
+      const expectedRef = expected.verseEnd
+        ? `${expected.book} ${expected.chapter}:${expected.verseStart}-${expected.verseEnd}`
+        : `${expected.book} ${expected.chapter}:${expected.verseStart}`;
       expect(Array.from(refs)).toContain(expectedRef);
     });
   }
