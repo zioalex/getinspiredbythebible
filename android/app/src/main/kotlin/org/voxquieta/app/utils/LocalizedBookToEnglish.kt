@@ -4,14 +4,16 @@ package org.voxquieta.app.utils
  * Bundled fallback map of localized Bible book names (lowercased) to their canonical
  * English book names (lowercased).
  *
- * This is the Android parity copy of the web frontend map
- * (frontend/src/lib/verseExtraction.ts `LOCALIZED_BOOK_TO_ENGLISH`), which in turn
- * mirrors the backend source of truth (api/utils/translation_registry.py). It lets verse
- * detection and normalization work offline / before the /api/v1/scripture/book-names call
- * returns. Runtime API data is merged on top of — never replaced by — this map.
+ * This is the Android copy of the canonical map at tests/fixtures/localized_book_map.json
+ * (BITB-059), which in turn mirrors the backend source of truth
+ * (api/utils/translation_registry.py). It lets verse detection and normalization work
+ * offline / before the /api/v1/scripture/book-names call returns. Runtime API data is
+ * merged on top of — never replaced by — this map.
  *
- * Keep in sync with the web map; LocalizedBookToEnglishTest guards the entry count.
- * Generated from the web map — do not edit individual entries by hand.
+ * @generated from tests/fixtures/localized_book_map.json by
+ * scripts/generate_localized_book_map.py — DO NOT EDIT individual entries by hand. Edit the
+ * JSON and re-run the generator; LocalizedBookToEnglishTest checks content equivalence
+ * against the JSON so drift fails CI.
  */
 internal val LOCALIZED_BOOK_TO_ENGLISH: Map<String, String> = mapOf(
     "psalm" to "psalms",
