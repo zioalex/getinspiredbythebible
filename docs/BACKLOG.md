@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-20
+**Last Updated:** 2026-07-21
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1224,9 +1224,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
-### 🎯 BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
+### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #917, pending merge)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-16
 
@@ -1246,11 +1246,11 @@ worth fixing, not just console noise.
 
 **Acceptance Criteria:**
 
-- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
-- [ ] First-time visitor still sees the full splash screen unchanged
-- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
+- [x] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [x] First-time visitor still sees the full splash screen unchanged
+- [x] Returning visitor doesn't see a visible splash flash before it's skipped
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-069-splash-screen-hydration-mismatch.md`
+**Full Story:** `docs/DONE/BITB-069-splash-screen-hydration-mismatch.md`
 
 ---
 
