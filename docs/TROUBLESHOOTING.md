@@ -545,6 +545,52 @@ BITB-065). If none fired, verify `TF_VAR_ALERT_EMAIL` / `TELEGRAM_CHAT_ID` are s
 
 ---
 
+### Tracing a single request by its correlation ID
+
+Every API response carries an `X-Request-ID` header (a client-supplied value is echoed back
+verbatim; otherwise the `CorrelationIDMiddleware` generates a UUID v4). Use it to pull every trace of
+that one request back out of logs, traces, and the database:
+
+- **Console / Container App logs** — every log line includes the ID in brackets
+  (`api/utils/logging_config.py`'s formatter: `... | [%(request_id)s] | <message>`):
+
+  ```bash
+  az containerapp logs show \
+    --name bible-app-backend --resource-group bible-app-rg --follow \
+    | grep '[<request-id>]'
+  ```
+
+- **Application Insights `traces`** — the same ID is attached to OTel spans as the `request_id`
+  attribute (`scripture/repository.py`), so it's queryable as a `customDimension`:
+
+  ```kusto
+  traces
+  | where customDimensions.request_id == "<request-id>"
+  | order by timestamp asc
+  ```
+
+  ```bash
+  az monitor app-insights query \
+    --app bible-app-insights --resource-group bible-app-rg \
+    --analytics-query "traces | where customDimensions.request_id == '<request-id>' | order by timestamp asc"
+  ```
+
+- **PostgreSQL** — every query issued during the request is tagged with a
+  `/* request_id=<id> */` SQL comment (a `before_cursor_execute` listener in
+  `scripture/database.py`), so a slow or stuck query can be matched back to the request via
+  `pg_stat_activity` or the server log:
+
+  ```sql
+  SELECT pid, state, query_start, query FROM pg_stat_activity
+  WHERE query LIKE '%request_id=<request-id>%';
+  ```
+
+**Where to get the ID:** it's returned in the response `X-Request-ID` header for every request
+(including error responses), so client-side logging/error reporting should capture it alongside any
+user-facing error message.
+
+---
+
 ## Getting Help
 
 If issues persist:
