@@ -1793,11 +1793,12 @@ with zero behavioural risk.
 
 ---
 
-### 🎯 BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
+### ✅ BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** ✅ Done
+**Status:** ✅ Done (PR #928 merged 2026-07-23)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
+**Completed:** 2026-07-23
 
 **As a** maintainer, **I want** test-only deps out of `api/requirements.txt`
 (into a new `requirements-dev.txt`), **so that** the production image doesn't carry the
@@ -1810,7 +1811,7 @@ because it touches 2 workflows + Makefile + docs.
 - [x] Backend CI (unit + integration) green with updated install lines and cache keys
 - [x] Docker image builds unchanged; dependabot still covers both files
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-073-split-dev-prod-python-requirements.md`
+**Full Story:** `docs/DONE/BITB-073-split-dev-prod-python-requirements.md`
 
 ---
 
