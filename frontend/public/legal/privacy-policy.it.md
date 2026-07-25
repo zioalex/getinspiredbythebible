@@ -42,7 +42,12 @@ Il testo del tuo messaggio viene utilizzato da questi fornitori **esclusivamente
 
 ## Cronologia delle conversazioni
 
-La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** in un database cifrato on-device (Room/SQLite). Non viene mai caricata sui nostri server.
+La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** e non viene mai caricata sui nostri server:
+
+- **App mobile:** un database cifrato on-device (Room/SQLite).
+- **App web:** l'archiviazione locale del browser (IndexedDB), sul dispositivo che usi.
+
+Puoi visualizzare, rinominare, eliminare o cancellare questa cronologia in qualsiasi momento. Puoi anche esportarla come **file cifrato con passphrase** per spostarla su un altro dei tuoi dispositivi: il file è cifrato con una passphrase che conosci solo tu, quindi resta nelle tue mani anche durante il trasferimento.
 
 ## Servizi di terze parti
 

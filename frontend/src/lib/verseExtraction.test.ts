@@ -69,7 +69,7 @@ describe("extractVerseReferences", () => {
   describe("comma separator (German/French/Italian citation style)", () => {
     it("extracts a German comma reference with a range", () => {
       const refs = extractVerseReferences("Siehe Römer 13,1-2 für Kontext.");
-      expect(refs.has("romans 13:1")).toBe(true);
+      expect(refs.has("romans 13:1-2")).toBe(true);
     });
 
     it("extracts a German comma reference without a range", () => {
@@ -81,7 +81,7 @@ describe("extractVerseReferences", () => {
 
     it("extracts a numbered German comma reference", () => {
       const refs = extractVerseReferences("Lies 1. Petrus 2,13-17 heute.");
-      expect(refs.has("1 peter 2:13")).toBe(true);
+      expect(refs.has("1 peter 2:13-17")).toBe(true);
     });
 
     it("extracts a French comma reference", () => {
@@ -109,8 +109,9 @@ describe("extractVerseReferences", () => {
   it("should handle verse ranges", () => {
     const text = "Read Matthew 5:3-12 for the beatitudes";
     const refs = extractVerseReferences(text);
-    // Should capture the starting verse
-    expect(refs.has("matthew 5:3")).toBe(true);
+    // Captures the full range so isVerseReferenced() can match every verse
+    // in [start, end], not just the first.
+    expect(refs.has("matthew 5:3-12")).toBe(true);
     expect(refs.size).toBe(1);
   });
 
@@ -126,7 +127,7 @@ describe("extractVerseReferences", () => {
     const text = "Check out 1 Peter 5:7 and Philippians 4:6-7 for peace";
     const refs = extractVerseReferences(text);
     expect(refs.has("1 peter 5:7")).toBe(true);
-    expect(refs.has("philippians 4:6")).toBe(true);
+    expect(refs.has("philippians 4:6-7")).toBe(true);
     expect(refs.size).toBe(2);
   });
 
@@ -568,8 +569,8 @@ describe("extractVerseReferences", () => {
   it("should handle verse ranges with conjunctions", () => {
     const text = "Psalm 23:1-6 and Psalm 91:1-2";
     const refs = extractVerseReferences(text);
-    expect(refs.has("psalms 23:1")).toBe(true);
-    expect(refs.has("psalms 91:1")).toBe(true);
+    expect(refs.has("psalms 23:1-6")).toBe(true);
+    expect(refs.has("psalms 91:1-2")).toBe(true);
     for (const ref of refs) {
       expect(ref).not.toMatch(/^and\s+\d+:\d+/);
     }
@@ -1557,9 +1558,9 @@ describe("extractVerseReferences — Arabic", () => {
   });
 
   describe("verse ranges", () => {
-    it("should capture starting verse from يوحنا 3:16-18", () => {
+    it("should capture the full range from يوحنا 3:16-18", () => {
       const refs = extractVerseReferences("يوحنا 3:16-18");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-18")).toBe(true);
     });
   });
 
@@ -1704,9 +1705,21 @@ describe("extractVerseReferences — Hindi", () => {
   });
 
   describe("verse ranges", () => {
-    it("should capture starting verse from यूहन्ना 3:16-20", () => {
+    it("should capture the full range from यूहन्ना 3:16-20", () => {
       const refs = extractVerseReferences("यूहन्ना 3:16-20");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-20")).toBe(true);
+    });
+  });
+
+  describe("reported bug: comma-separated VERSES with anusvara-dropped alias and a range", () => {
+    it("detects रोमियो (alias, no trailing ं) with its full verse range", () => {
+      const refs = extractVerseReferences(
+        "याकूब 1:3, रोमियो 5:3-4, गलातियों 5:22",
+      );
+      expect(refs.has("james 1:3")).toBe(true);
+      expect(refs.has("romans 5:3-4")).toBe(true);
+      expect(refs.has("galatians 5:22")).toBe(true);
+      expect(refs.size).toBe(3);
     });
   });
 
@@ -1726,7 +1739,7 @@ describe("extractVerseReferences — Hindi edge cases (verse range + conjunction
     const text =
       "यह बाइबिल से है, विशेष रूप से लेवियतियुस 1:3-4 और इब्रानियों 9:22। रोमियों 12:1 में कहा गया है।";
     const refs = extractVerseReferences(text);
-    expect(refs.has("leviticus 1:3")).toBe(true);
+    expect(refs.has("leviticus 1:3-4")).toBe(true);
     expect(refs.has("hebrews 9:22")).toBe(true);
     expect(refs.has("romans 12:1")).toBe(true);
     // Must not produce the greedy '4 और इब्रानियों' garbage match.
@@ -1834,9 +1847,9 @@ describe("extractVerseReferences — Chinese", () => {
   });
 
   describe("verse ranges", () => {
-    it("should capture starting verse from 约翰福音 3:16-18", () => {
+    it("should capture the full range from 约翰福音 3:16-18", () => {
       const refs = extractVerseReferences("约翰福音 3:16-18");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-18")).toBe(true);
     });
   });
 
@@ -1891,9 +1904,9 @@ describe("extractVerseReferences — Chinese no-space format", () => {
   });
 
   describe("no-space with verse range", () => {
-    it("should detect 约翰福音3:16-18 (no space, range) → john 3:16", () => {
+    it("should detect 约翰福音3:16-18 (no space, range) → john 3:16-18", () => {
       const refs = extractVerseReferences("约翰福音3:16-18");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-18")).toBe(true);
       expect(refs.size).toBe(1);
     });
   });
@@ -1982,9 +1995,9 @@ describe("extractVerseReferences — Korean", () => {
   });
 
   describe("verse ranges", () => {
-    it("should capture starting verse from 요한복음 3:16-18", () => {
+    it("should capture the full range from 요한복음 3:16-18", () => {
       const refs = extractVerseReferences("요한복음 3:16-18");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-18")).toBe(true);
     });
   });
 
@@ -2095,9 +2108,9 @@ describe("extractVerseReferences — Russian extended", () => {
   });
 
   describe("verse ranges", () => {
-    it("should capture starting verse from Иоанна 3:16-18", () => {
+    it("should capture the full range from Иоанна 3:16-18", () => {
       const refs = extractVerseReferences("Иоанна 3:16-18");
-      expect(refs.has("john 3:16")).toBe(true);
+      expect(refs.has("john 3:16-18")).toBe(true);
     });
   });
 

@@ -42,7 +42,12 @@ Le texte de votre message est utilisé par ces fournisseurs **uniquement** pour 
 
 ## Historique des conversations
 
-L'historique des conversations est stocké **uniquement en local sur votre appareil** dans une base de données chiffrée sur l'appareil (Room/SQLite). Il n'est jamais téléchargé sur nos serveurs.
+L'historique des conversations est stocké **uniquement en local sur votre appareil** et n'est jamais téléchargé sur nos serveurs :
+
+- **Application mobile :** une base de données chiffrée sur l'appareil (Room/SQLite).
+- **Application web :** le stockage local de votre navigateur (IndexedDB), sur l'appareil que vous utilisez.
+
+Vous pouvez consulter, renommer, supprimer ou effacer cet historique à tout moment. Vous pouvez également l'exporter sous forme de **fichier chiffré par une phrase secrète** afin de le transférer vers un autre de vos appareils : le fichier est chiffré avec une phrase que vous seul connaissez, il reste donc entre vos mains même pendant le transfert.
 
 ## Services tiers
 

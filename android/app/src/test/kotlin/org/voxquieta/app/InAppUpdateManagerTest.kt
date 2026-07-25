@@ -56,6 +56,18 @@ class InAppUpdateManagerTest {
     }
 
     @Test
+    fun `checkForUpdate prompts even for a freshly published release (staleness 0)`() {
+        fakeAppUpdateManager.setUpdateAvailable(2)
+        fakeAppUpdateManager.setClientVersionStalenessDays(0)
+        idleMainLooper()
+
+        manager.checkForUpdate(activity)
+        idleMainLooper()
+
+        assertTrue(fakeAppUpdateManager.isConfirmationDialogVisible)
+    }
+
+    @Test
     fun `checkForUpdate is a no-op and does not throw when no update is available`() = runTest {
         var emissionCount = 0
         val job = launch { manager.installReady.collect { emissionCount++ } }

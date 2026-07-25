@@ -73,7 +73,19 @@ function TurnstileTokenSync({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [splashDone, setSplashDone] = useState(() => hasSplashCookie());
+  // Seed deterministically to `false` on BOTH server and client so the first
+  // client render matches the server-rendered HTML (no hydration mismatch).
+  // The cookie is a client-only value, so read it after mount in an effect:
+  // for a returning visitor this flips splashDone to true immediately
+  // post-hydration, skipping the splash without diverging the initial tree.
+  // See BITB-069.
+  const [splashDone, setSplashDone] = useState(false);
+
+  useEffect(() => {
+    if (hasSplashCookie()) {
+      setSplashDone(true);
+    }
+  }, []);
 
   return (
     <TurnstileProvider>

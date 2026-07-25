@@ -1,0 +1,232 @@
+{
+  "description": "BITB-059 AC#4 — shared cross-platform regression corpus for verse-reference parsing. Each case is run against the Python (api/utils/verse_parser.py), web (frontend/src/lib/verseExtraction.ts), and Android (android/.../ChatMessageItem.kt) implementations so that a citation-parsing fix or regression in one platform is caught everywhere. See tests/fixtures/README.md for the schema and the skip/skipReason convention.",
+  "test_cases": [
+    {
+      "id": "baseline_john_3_16",
+      "input": "John 3:16",
+      "language": "en",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "Baseline sanity case — the canonical example reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "baseline_romans_8_28_30",
+      "input": "Romans 8:28-30",
+      "language": "en",
+      "expected": { "book": "romans", "chapter": 8, "verseStart": 28, "verseEnd": 30 },
+      "origin": "Baseline sanity case — a verse range with a hyphen separator.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "baseline_1_corinthians_13_4",
+      "input": "1 Corinthians 13:4",
+      "language": "en",
+      "expected": { "book": "1 corinthians", "chapter": 13, "verseStart": 4, "verseEnd": null },
+      "origin": "Baseline sanity case — a numbered book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "baseline_song_of_solomon_1_1",
+      "input": "Song of Solomon 1:1",
+      "language": "en",
+      "expected": { "book": "song of solomon", "chapter": 1, "verseStart": 1, "verseEnd": null },
+      "origin": "Baseline sanity case — a multi-word book name with a connector word ('of').",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_801_greedy_rewind_english_of",
+      "input": "I also want to remind you of Psalm 56:9, which says.",
+      "language": "en",
+      "expected": { "book": "psalms", "chapter": 56, "verseStart": 9, "verseEnd": null },
+      "origin": "PR #801 — greedy over-match regression: a connector word ('of') before a real book name used to let a greedy alternative swallow the preceding prose ('you of Psalm'), which then failed the known-book check and hid the real reference. Parsers must rewind and recover the embedded reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_801_greedy_rewind_german_numbered_prefix",
+      "input": "Wie in 1 day of Psalm 56:9 beschrieben.",
+      "language": "de",
+      "expected": { "book": "psalms", "chapter": 56, "verseStart": 9, "verseEnd": null },
+      "origin": "PR #801 — greedy over-match hidden by a leading digit ('1 day of Psalm 56:9'), which can be mistaken for a numbered-book prefix. Parsers must still recover 'Psalm 56:9'.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_801_greedy_rewind_spanish_connector",
+      "input": "Recuerda la palabra de Isaías 41:10 hoy.",
+      "language": "es",
+      "expected": { "book": "isaiah", "chapter": 41, "verseStart": 10, "verseEnd": null },
+      "origin": "PR #801 — greedy over-match regression via the Spanish connector word 'de' before 'Isaías'.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_804_comma_german_range",
+      "input": "Das steht in Römer 13,1-2 geschrieben.",
+      "language": "de",
+      "expected": { "book": "romans", "chapter": 13, "verseStart": 1, "verseEnd": 2 },
+      "origin": "PR #804 — German/French/Italian citation style uses a comma instead of a colon as the chapter:verse separator ('Römer 13,1-2'), including a hyphenated range.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_804_comma_german_no_range",
+      "input": "Jakobus 1,27",
+      "language": "de",
+      "expected": { "book": "james", "chapter": 1, "verseStart": 27, "verseEnd": null },
+      "origin": "PR #804 — German comma separator without a verse range.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_804_comma_french",
+      "input": "Jean 3,16",
+      "language": "fr",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "PR #804 — French comma separator citation style.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_decimal_amount",
+      "input": "Ich habe 3,50 Euro gespart.",
+      "language": "de",
+      "expected": null,
+      "expectNone": true,
+      "origin": "Negative control — a German decimal amount ('3,50 Euro') must not be mistaken for a comma-separated chapter:verse reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_clock_time",
+      "input": "um 14:30",
+      "language": "de",
+      "expected": null,
+      "expectNone": true,
+      "origin": "Negative control — a clock time ('um 14:30') has no book name and must not be parsed as a verse reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_893_devanagari_digits",
+      "input": "यूहन्ना ५:२४",
+      "language": "hi",
+      "expected": { "book": "john", "chapter": 5, "verseStart": 24, "verseEnd": null },
+      "origin": "BITB-071 / #893 — Devanagari numerals (५:२४ = 5:24) must be normalized to ASCII digits so the reference is recognized instead of silently dropped or producing NaN.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_893_eastern_arabic_digits",
+      "input": "يوحنا ٣:١٦",
+      "language": "ar",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-071 / #893 — Eastern Arabic numerals (٣:١٦ = 3:16) must be normalized to ASCII digits so the reference is recognized.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "regression_903_hindi_range",
+      "input": "रोमियों 12:1-2",
+      "language": "hi",
+      "expected": { "book": "romans", "chapter": 12, "verseStart": 1, "verseEnd": 2 },
+      "origin": "#903 — Hindi book name 'रोमियों' (Romans) with a verse range.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_german_matthew",
+      "input": "Matthäus 5:7",
+      "language": "de",
+      "expected": { "book": "matthew", "chapter": 5, "verseStart": 7, "verseEnd": null },
+      "origin": "Non-Latin/diacritic single-word book name parity — German 'Matthäus' (Matthew).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_german_genesis_numbered",
+      "input": "1. Mose 1:1",
+      "language": "de",
+      "expected": { "book": "genesis", "chapter": 1, "verseStart": 1, "verseEnd": null },
+      "origin": "Numbered-word book name parity — German '1. Mose' (Genesis) uses a period after the numeral instead of a space.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_german_2_kings",
+      "input": "2. Könige 5:14",
+      "language": "de",
+      "expected": { "book": "2 kings", "chapter": 5, "verseStart": 14, "verseEnd": null },
+      "origin": "Numbered-word book name parity — German '2. Könige' (2 Kings) with an umlaut.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_arabic_psalms",
+      "input": "المزامير 23:1",
+      "language": "ar",
+      "expected": { "book": "psalms", "chapter": 23, "verseStart": 1, "verseEnd": null },
+      "origin": "Non-Latin single-word book name parity — Arabic 'المزامير' (Psalms).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_arabic_1_corinthians",
+      "input": "1 كورنثوس 13:4",
+      "language": "ar",
+      "expected": { "book": "1 corinthians", "chapter": 13, "verseStart": 4, "verseEnd": null },
+      "origin": "Numbered-word book name parity — Arabic '1 كورنثوس' (1 Corinthians).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_chinese_john",
+      "input": "约翰福音 3:16",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "Non-Latin single-word (CJK) book name parity — Chinese '约翰福音' (John).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_korean_john",
+      "input": "요한복음 3:16",
+      "language": "ko",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "Non-Latin single-word (Hangul) book name parity — Korean '요한복음' (John).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "nonlatin_russian_1_corinthians",
+      "input": "1 Коринфянам 13:4",
+      "language": "ru",
+      "expected": { "book": "1 corinthians", "chapter": 13, "verseStart": 4, "verseEnd": null },
+      "origin": "Numbered-word book name parity — Russian '1 Коринфянам' (1 Corinthians).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "embedded_cjk_no_space_john",
+      "input": "请阅读约翰福音10:28来获得鼓励",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 10, "verseStart": 28, "verseEnd": null },
+      "origin": "CJK reference embedded in surrounding Chinese text with no space between the book name and the chapter number ('约翰福音10:28'), and no space/punctuation boundary before the book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "known_divergence_android_russian_lamentations",
+      "input": "Плач Иеремии 3:3",
+      "language": "ru",
+      "expected": { "book": "lamentations", "chapter": 3, "verseStart": 3, "verseEnd": null },
+      "origin": "Known cross-platform divergence (tracked by BITB-059): the two-word Russian book name 'Плач Иеремии' (Lamentations of Jeremiah) is resolved correctly by Python and web, but Android's default/dynamic regex only captures the second word ('Иеремии') when there is no connector word between them, which can resolve to Jeremiah instead of Lamentations depending on which book-name alternation wins. Left as a deliberate, tracked gap for this test-only PR — the fix belongs to the full BITB-059 unification.",
+      "skip": ["android"],
+      "skipReason": "BITB-059 — Android's default/dynamic regex may resolve multi-word Russian 'Плач Иеремии' to Jeremiah instead of Lamentations; tracked for the full-unification follow-up, not fixed here (test-only scope)."
+    }
+  ]
+}

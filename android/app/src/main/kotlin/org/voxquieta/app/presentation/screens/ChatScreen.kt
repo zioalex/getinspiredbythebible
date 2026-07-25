@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
@@ -30,8 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -46,8 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -74,6 +71,7 @@ import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
+import org.voxquieta.app.presentation.components.LanguagePickerBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
@@ -152,8 +150,8 @@ fun ChatScreen(
     // Whether the translation picker bottom sheet should be open.
     var showTranslationPicker by rememberSaveable { mutableStateOf(false) }
 
-    // Whether the language picker dropdown menu should be open.
-    var showLanguageMenu by remember { mutableStateOf(false) }
+    // Whether the language picker bottom sheet should be open.
+    var showLanguagePicker by rememberSaveable { mutableStateOf(false) }
 
     // Load existing conversation when navigated to a specific one.
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
@@ -237,9 +235,17 @@ fun ChatScreen(
         )
     }
 
-    // Label shown on the translation chip: the short ID (e.g. "KJV") or "Bible Version".
-    val translationLabel = translationChipLabel(preferredTranslation)
-        ?: stringResource(R.string.translation_picker_title)
+    // Language picker bottom sheet
+    if (showLanguagePicker) {
+        LanguagePickerBottomSheet(
+            currentLocale = uiState.currentLocale,
+            onSelectLocale = { code ->
+                viewModel.setLocale(code)
+                showLanguagePicker = false
+            },
+            onDismiss = { showLanguagePicker = false },
+        )
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val conversations by conversationsViewModel.conversations.collectAsState()
@@ -271,6 +277,19 @@ fun ChatScreen(
                     scope.launch { drawerState.close() }
                     viewModel.clearConversation()
                 },
+                onOpenLanguagePicker = {
+                    scope.launch { drawerState.close() }
+                    showLanguagePicker = true
+                },
+                onOpenTranslationPicker = {
+                    scope.launch { drawerState.close() }
+                    showTranslationPicker = true
+                },
+                onOpenChurchFinder = {
+                    scope.launch { drawerState.close() }
+                    showChurchFinderSheet = true
+                    viewModel.openChurchFinder()
+                },
                 onOpenSettings = {
                     scope.launch { drawerState.close() }
                     onOpenSettings()
@@ -296,21 +315,6 @@ fun ChatScreen(
                     }
                 },
                 actions = {
-                    // Bible translation chip — always visible so users can switch versions.
-                    SuggestionChip(
-                        onClick = { showTranslationPicker = true },
-                        label = {
-                            Text(
-                                text = translationLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ),
-                        modifier = Modifier.padding(end = 4.dp),
-                    )
                     // Verses panel icon — shown when there are related verses.
                     if (topBarPolicy.showVersesPanelInTopBar) {
                         IconButton(onClick = { showVersesPanel = true }) {
@@ -322,41 +326,6 @@ fun ChatScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                     contentDescription = stringResource(R.string.action_open_verses_panel),
-                                )
-                            }
-                        }
-                    }
-                    // ── Language picker ────────────────────────────────────────
-                    Box {
-                        IconButton(onClick = { showLanguageMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Language,
-                                contentDescription = stringResource(R.string.action_select_language),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showLanguageMenu,
-                            onDismissRequest = { showLanguageMenu = false },
-                        ) {
-                            LANGUAGE_OPTIONS.forEach { option ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = option.displayName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = if (option.code == uiState.currentLocale) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurface
-                                                },
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-                                        viewModel.setLocale(option.code)
-                                        showLanguageMenu = false
-                                    },
                                 )
                             }
                         }
@@ -589,6 +558,9 @@ private fun ChatHistoryDrawer(
     onSelectConversation: (String) -> Unit,
     onOpenAllConversations: () -> Unit,
     onClearConversation: () -> Unit,
+    onOpenLanguagePicker: () -> Unit,
+    onOpenTranslationPicker: () -> Unit,
+    onOpenChurchFinder: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet {
@@ -670,6 +642,44 @@ private fun ChatHistoryDrawer(
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
         }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.drawer_change_language)) },
+            selected = false,
+            onClick = onOpenLanguagePicker,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.drawer_change_bible_version)) },
+            selected = false,
+            onClick = onOpenTranslationPicker,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.drawer_search_community)) },
+            selected = false,
+            onClick = onOpenChurchFinder,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         NavigationDrawerItem(
             icon = {
                 Icon(

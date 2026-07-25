@@ -42,7 +42,12 @@ Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um
 
 ## Gesprächsverlauf
 
-Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** in einer verschlüsselten On-Device-Datenbank (Room/SQLite) gespeichert. Er wird niemals auf unsere Server hochgeladen.
+Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** gespeichert und niemals auf unsere Server hochgeladen:
+
+- **Mobile App:** eine verschlüsselte On-Device-Datenbank (Room/SQLite).
+- **Web-App:** der lokale Speicher deines Browsers (IndexedDB) auf dem von dir genutzten Gerät.
+
+Du kannst diesen Verlauf jederzeit ansehen, umbenennen, löschen oder vollständig entfernen. Du kannst ihn außerdem als **mit einer Passphrase verschlüsselte Datei** exportieren, um ihn auf ein anderes deiner Geräte zu übertragen – die Datei ist mit einer nur dir bekannten Passphrase verschlüsselt und bleibt so auch bei der Übertragung in deiner Hand.
 
 ## Drittanbieterdienste
 

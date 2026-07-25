@@ -42,7 +42,12 @@ O texto da sua mensagem é usado por esses provedores **exclusivamente** para ge
 
 ## Histórico de conversas
 
-O histórico de conversas é armazenado **apenas localmente em seu dispositivo** em um banco de dados criptografado no dispositivo (Room/SQLite). Ele nunca é enviado para nossos servidores.
+O histórico de conversas é armazenado **apenas localmente em seu dispositivo** e nunca é enviado para nossos servidores:
+
+- **Aplicativo móvel:** um banco de dados criptografado no dispositivo (Room/SQLite).
+- **Aplicativo web:** o armazenamento local do seu navegador (IndexedDB), no dispositivo que você usa.
+
+Você pode visualizar, renomear, excluir ou limpar esse histórico a qualquer momento. Você também pode exportá-lo como um **arquivo criptografado com uma frase secreta** para movê-lo para outro dos seus dispositivos: o arquivo é criptografado com uma frase que só você conhece, de modo que permanece em suas mãos mesmo durante a transferência.
 
 ## Serviços de terceiros
 

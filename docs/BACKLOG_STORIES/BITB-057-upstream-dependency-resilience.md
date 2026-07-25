@@ -1,8 +1,10 @@
 # BITB-057: Upstream Dependency Resilience — Bounded, Self-Healing, Observable DB + Inference Calls
 
-**Status:** 🚧 In progress (Phase 1 — readiness fix + DB bounding + probe alert — implemented; embedding hardening + infra = follow-up)
+**Status:** 🚧 In progress (Phases 1 & 2 — readiness fix, DB bounding, probe alert, embedding
+resilience/cache, generalized DB retry — implemented; infra (Phase 3) + observability-of-the-
+observability (Phase 4) = follow-up, need owner sign-off)
 **Priority:** P1 (High) — production availability; caused a multi-week readiness incident with real user impact
-**Size:** M–L (Phase 1 done; follow-up ~2-3 days incl. infra sign-off)
+**Size:** M–L (Phases 1 & 2 done; infra follow-up ~2-3 days incl. sign-off)
 **Created:** 2026-06-30
 
 ## User Story
@@ -66,17 +68,22 @@ never break the service, but it must always be visible.
 - [x] **Synthetic-chat probe sends a real scripture prompt** (not `"hi"`) so the verse-citation
       assertion is meaningful (`.github/workflows/prod-monitor.yml`).
 
-### Phase 2 — harden the embedding/inference path (backend code) — **follow-up**
+### Phase 2 — harden the embedding/inference path (backend code) — **implemented**
 
-- [ ] **Embedding provider resilience parity with the LLM path.** Give the embedding client the same
+- [x] **Embedding provider resilience parity with the LLM path.** Give the embedding client the same
       treatment OpenRouter/Llama Guard already have (`utils/circuit_breaker.py`): a **circuit
       breaker**, a **request-path timeout** tighter than the current 60s Ollama embed client, and a
       bounded **retry-with-jittered-backoff** on transient 429/5xx. Emit a fallback/circuit-open
       metric and alert on a sustained fallback rate.
-- [ ] **Embedding cache.** Cache embeddings for hot/repeated queries (in-process LRU and/or Redis) to
-      cut upstream call volume and smooth latency — the embedding call is on the chat critical path
-      and was the load the readiness probe amplified.
-- [ ] **Generalize the bounded-timeout + retry-on-disconnect pattern** beyond `_search_scripture` to
+      (`api/providers/embedding_resilience.py::ResilientEmbeddingProvider`, `embedding.fallback_total`.)
+- [x] **Embedding cache.** Cache embeddings for hot/repeated queries (in-process LRU+TTL — no Redis
+      exists anywhere in this stack, see Notes) to cut upstream call volume and smooth latency — the
+      embedding call is on the chat critical path and was the load the readiness probe amplified.
+      (`api/providers/embedding_cache.py::CachingEmbeddingProvider`, composed as the outermost layer
+      over `ResilientEmbeddingProvider` in `providers/factory.py`; `embedding.cache_total` hit/miss
+      counter; `embedding_cache_enabled`/`embedding_cache_max_size`/`embedding_cache_ttl_seconds`
+      config knobs.)
+- [x] **Generalize the bounded-timeout + retry-on-disconnect pattern** beyond `_search_scripture` to
       the other request-path DB users (`_resolve_cited_verses`, feedback/blocked-samples writes) via a
       small shared helper, so no request-path query is unbounded.
 

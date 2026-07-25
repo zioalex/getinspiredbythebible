@@ -143,14 +143,13 @@
     <string name="drawer_chat_history_title">चैट इतिहास</string>
     <string name="drawer_no_conversations">अभी तक कोई बातचीत नहीं</string>
     <string name="drawer_see_all_conversations">सभी बातचीत देखें</string>
+    <string name="drawer_change_language">भाषा बदलें</string>
+    <string name="drawer_change_bible_version">बाइबिल संस्करण बदलें</string>
+    <string name="drawer_search_community">एक समुदाय खोजें</string>
     <string name="settings_theme_title">थीम</string>
     <string name="settings_theme_light">हल्का</string>
     <string name="settings_theme_dark">गहरा</string>
     <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
-    <string name="bible_translation_section">बाइबिल अनुवाद</string>
-    <string name="bible_translation_default">डिफ़ॉल्ट</string>
-    <string name="settings_current_translation">वर्तमान अनुवाद</string>
-    <string name="settings_bible_change_from_chat">चैट स्क्रीन से बदलें</string>
     <string name="settings_data_privacy_title">डेटा और गोपनीयता</string>
     <string name="settings_clear_history_title">इतिहास मिटाएं?</string>
     <string name="settings_clear_history_message">सभी बातचीत स्थायी रूप से हटा दी जाएंगी।</string>
