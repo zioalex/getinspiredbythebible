@@ -4,6 +4,9 @@
 # by AGP 9.0 (the reason for the previous 8.7.x pin), so the graphics-path pin
 # and useLegacyPackaging=false below are retained purely as defence in depth.
 # Kotlin 2.2.10 is AGP 9.0's KGP floor; KSP is the matching 2.2.10-2.0.2 build.
+# This line also satisfies Google Play's yearly target API level requirement
+# (compileSdk/targetSdk 36, deadline 2026-08-31) — see targetSdk in
+# app/build.gradle.kts.
 agp = "9.0.1"
 kotlin = "2.2.10"
 firebase-bom = "33.7.0"
@@ -17,7 +20,7 @@ compose-bom = "2025.08.01"
 # ui-graphics). Older releases shipped libandroidx.graphics.path.so with 4 KB
 # ELF segment alignment; 1.1.0 is built with 16 KB alignment. Pinned directly
 # (rather than bumping the whole Compose BOM) to keep the tested Compose/UI
-# surface on compileSdk 35 while fixing the only Compose-side native library.
+# surface unchanged while fixing the only Compose-side native library.
 graphicsPath = "1.1.0"
 activityCompose = "1.11.0"
 navigationCompose = "2.8.5"

@@ -52,6 +52,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Guard — Android book-name map stays generated (BITB-059)
+        run: |
+          python3 scripts/generate_localized_book_map.py --check
+
       - name: Guard — prod Application Insights must remain enabled (BITB-055)
         run: |
           # Prevent someone from accidentally disabling the alert layer by setting

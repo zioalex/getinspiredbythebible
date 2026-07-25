@@ -1,6 +1,6 @@
 # BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not a Generic "Failed to Send")
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P3
 **Size:** S (< 2 hrs)
 **Created:** 2026-06-16
@@ -53,10 +53,11 @@ actionable, email-specific message would close the loop.
 
 ## Acceptance Criteria
 
-- [ ] A 422 email-validation rejection renders an email-specific message, **not** `errorSend`.
-- [ ] Other (non-422 / non-email) failures still show `errorSend`.
-- [ ] `Contact.errorEmailInvalid` present in all 11 locale files.
-- [ ] (Optional) A non-empty malformed email is caught client-side before submit.
+- [x] A 422 email-validation rejection renders an email-specific message, **not** `errorSend`.
+- [x] Other (non-422 / non-email) failures still show `errorSend`.
+- [x] `Contact.errorEmailInvalid` present in all 11 locale files.
+- [x] (Optional) A non-empty malformed email is caught client-side before submit — already covered by
+      the existing `type="email"` + `required` input; no additional client-side validation added.
 
 ## Tests to Add
 

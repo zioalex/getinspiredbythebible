@@ -246,7 +246,8 @@
     "successTitle": "消息发送成功！",
     "successDescription": "感谢您的联系。我们将很快查看您的消息。",
     "sendAnother": "发送另一条",
-    "errorSend": "发送消息失败。请再试一次或直接发邮件给我们。"
+    "errorSend": "发送消息失败。请再试一次或直接发邮件给我们。",
+    "errorEmailInvalid": "请输入有效的邮箱，以便我们回复。"
   },
   "ErrorBoundary": {
     "title": "出错了",
