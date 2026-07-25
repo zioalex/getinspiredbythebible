@@ -1874,11 +1874,19 @@ Chatbot"](https://ai4you.sh/posts/Building-Something-That-Matters-How-Claude-Cod
 is the foundation and canonical reference for the page. New static localized route at
 `/{locale}/about`, built like the existing `/app` page.
 
+The post's motivation is the mental-health one — "something simple, accessible, and deeply rooted in
+Scripture that could offer encouragement when someone needed it most. Not a replacement for therapy
+or pastoral care, but a gentle companion for moments of struggle." Note that the post describes
+**v1.0** and is now stale on the name, the stack and the language list (see the story's *Source
+Material* section): it is the origin story to adapt, not text to transcribe.
+
 **Acceptance Criteria (summary):**
 
 - [ ] `/{locale}/about` renders for all 11 locales, server-rendered and statically generated
 - [ ] Copy adapted from the ai4you.sh post, which is linked as the full story
 - [ ] States plainly what Vox Quieta is *not* (not pastoral care, not counseling)
+- [ ] Reflects the project as it is today; one sentence of continuity for the rename from
+      "Get Inspired by the Bible" to "Vox Quieta"
 - [ ] `About` namespace complete in all 11 `frontend/messages/*.json`; Arabic RTL correct
 - [ ] Linked from the footer **and** from the chat screen; added to `sitemap.ts` `PATHS`
 

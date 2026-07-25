@@ -42,6 +42,13 @@ This story needs the *union* of those two behaviours, which is neither one exact
 A dismissible modal — `AboutIntroModal` — showing a condensed version of the About copy
 (2–3 short paragraphs from the `About` namespace), with:
 
+> **Copy guidance.** The modal is not a summary of the About page; it is the *one thing* a person
+> needs before typing something personal. The source post gives it almost verbatim — "something
+> simple, accessible, and deeply rooted in Scripture that could offer encouragement when someone
+> needed it most. Not a replacement for therapy or pastoral care, but a gentle companion for
+> moments of struggle" — and that second sentence is the one that must survive the edit down.
+> Target ~60 words total. See BITB-076's *Source Material* section.
+
 - a primary action → `/{locale}/about` (the full page),
 - a secondary "Continue" / close action,
 - an accessible dialog shell (`role="dialog"`, `aria-modal`, focus trap, Esc to close), modelled on
