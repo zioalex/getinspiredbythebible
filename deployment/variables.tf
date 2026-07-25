@@ -260,6 +260,12 @@ variable "monitor_probe_secret" {
     sent by .github/workflows/prod-monitor.yml (repo secret MONITOR_PROBE_SECRET).
     Leave empty to disable bypass (the probe will then receive 403 from
     Turnstile in production).
+
+    BITB-067 gap #6: this variable only gates whether the ACA `secret` block
+    exists (for_each) — it is NOT the live value on the backend Container App.
+    The real value is provisioned out-of-band, post-apply, by the "Populate
+    probe secrets" step in azure-deploy.yml (az containerapp secret set), so
+    rotating MONITOR_PROBE_SECRET never forces a backend app replacement.
   EOT
   type        = string
   default     = ""
@@ -273,6 +279,12 @@ variable "smoke_probe_secret" {
     so a leak (it transits an ephemeral CI browser) is revocable independently.
     Must match the repo secret SMOKE_PROBE_SECRET sent by
     .github/workflows/prod-browser-smoke.yml. Leave empty to disable.
+
+    BITB-067 gap #6: this variable only gates whether the ACA `secret` block
+    exists (for_each) — it is NOT the live value on the backend Container App.
+    The real value is provisioned out-of-band, post-apply, by the "Populate
+    probe secrets" step in azure-deploy.yml (az containerapp secret set), so
+    rotating SMOKE_PROBE_SECRET never forces a backend app replacement.
   EOT
   type        = string
   default     = ""

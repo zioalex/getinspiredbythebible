@@ -3,7 +3,9 @@ import { routing } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/seo";
 
 // Routes that exist under every locale. Keep in sync with the app router.
-const PATHS = ["", "/privacy", "/terms", "/changelog", "/tester"];
+// `/tester` is intentionally omitted: the beta funnel is kept reachable by URL
+// but no longer advertised to crawlers now that the official app is published.
+const PATHS = ["", "/app", "/privacy", "/terms", "/changelog"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();

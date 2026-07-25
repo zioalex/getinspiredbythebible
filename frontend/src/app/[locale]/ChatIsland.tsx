@@ -11,7 +11,7 @@ import {
   X,
   ChevronDown,
   Square,
-  FlaskConical,
+  Smartphone,
   ArrowRight,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
@@ -24,6 +24,7 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
+import MainMenu from "@/components/MainMenu";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
 import {
   streamMessage,
@@ -61,6 +62,12 @@ import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { isSmokeMode } from "@/lib/smoke";
 import { useRouter, usePathname } from "@/i18n/navigation";
+import ConversationSidebar from "@/components/ConversationSidebar";
+import {
+  listConversations,
+  getMessages,
+  saveFullConversation,
+} from "@/lib/conversationStore";
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
@@ -177,6 +184,12 @@ export default function ChatIsland({
     generateSessionId(),
   );
 
+  // Local (privacy-first) conversation history: sidebar visibility + a counter
+  // bumped after each save so the sidebar re-reads the store. History lives
+  // only in the browser (IndexedDB) and is never sent to the server.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
+
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
     interactionCount >= 3 && !churchFinderDismissed && messages.length > 0;
@@ -237,28 +250,76 @@ export default function ChatIsland({
     );
   }, []);
 
-  // Rehydrate a conversation preserved across a language switch. The switch
-  // triggers router.replace which remounts this page, so we stash messages in
-  // sessionStorage before navigating and restore them here exactly once.
+  // Restore a conversation on mount. Two sources, in priority order:
+  //   1. A conversation preserved across a language switch. The switch triggers
+  //      router.replace which remounts this page, so we stash messages in
+  //      sessionStorage before navigating and restore them here exactly once.
+  //   2. Otherwise, resume the most-recently-updated conversation from the
+  //      browser-local history store (IndexedDB) so a reload doesn't lose the
+  //      thread. History never leaves the device.
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("preservedConversation");
-      if (!raw) return;
-      sessionStorage.removeItem("preservedConversation");
-      const saved = JSON.parse(raw) as {
-        messages?: ChatMessage[];
-        conversationId?: string;
-      };
-      if (saved.messages && saved.messages.length > 0) {
-        setMessages(saved.messages);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raw = sessionStorage.getItem("preservedConversation");
+        if (raw) {
+          sessionStorage.removeItem("preservedConversation");
+          const saved = JSON.parse(raw) as {
+            messages?: ChatMessage[];
+            conversationId?: string;
+          };
+          if (saved.messages && saved.messages.length > 0) {
+            if (!cancelled) setMessages(saved.messages);
+            if (saved.conversationId && !cancelled)
+              setConversationId(saved.conversationId);
+            return;
+          }
+        }
+      } catch {
+        // Corrupt/blocked storage: fall through to the local history store.
       }
-      if (saved.conversationId) {
-        setConversationId(saved.conversationId);
+
+      try {
+        const list = await listConversations();
+        if (cancelled || list.length === 0) return;
+        const latest = list[0];
+        const stored = await getMessages(latest.id);
+        if (cancelled || stored.length === 0) return;
+        setMessages(
+          stored.map((m) => ({
+            role: m.role,
+            content: m.content,
+            versesCited: m.versesCited,
+          })),
+        );
+        setConversationId(latest.id);
+      } catch {
+        // No usable local history: start fresh.
       }
-    } catch {
-      // Corrupt/blocked storage: ignore and start fresh.
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // Auto-save the active conversation to browser-local history whenever a turn
+  // completes. Runs only when not streaming so we persist finished exchanges
+  // (with their cited verses) rather than partial tokens. Idempotent: the store
+  // replaces the thread wholesale, keyed by conversationId.
+  useEffect(() => {
+    if (isLoading || messages.length === 0) return;
+    const firstUser = messages.find((m) => m.role === "user");
+    const title = (firstUser?.content ?? "").trim().slice(0, 60) || "…";
+    void saveFullConversation(
+      conversationId,
+      title,
+      messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        versesCited: m.versesCited,
+      })),
+    ).then(() => setHistoryRefresh((n) => n + 1));
+  }, [messages, isLoading, conversationId]);
 
   // Save preference to localStorage when changed
   const handleTranslationChange = (code: string) => {
@@ -741,6 +802,34 @@ export default function ChatIsland({
     setConversationId(generateSessionId()); // New conversation, same persistent session
   };
 
+  // Open a past conversation from local history. Loads its messages and resets
+  // the transient UI state, mirroring handleNewChat but keeping the thread.
+  const handleSelectConversation = async (id: string) => {
+    if (id === conversationId) return;
+    const stored = await getMessages(id);
+    setRelevantVerses([]);
+    setDetectedTranslation(null);
+    setLanguageSuggestion(null);
+    setLanguageSuggestionDismissed(false);
+    setInteractionCount(0);
+    setChurchFinderDismissed(false);
+    setInlinePromptShown(false);
+    setInlinePromptDismissed(false);
+    setInlinePromptIndex(null);
+    setFeedbackGiven({});
+    setFeedbackError(null);
+    setMobileVersesOpen(false);
+    setShowSessionLimitButton(false);
+    setConversationId(id);
+    setMessages(
+      stored.map((m) => ({
+        role: m.role,
+        content: m.content,
+        versesCited: m.versesCited,
+      })),
+    );
+  };
+
   const handleNewSession = () => {
     const newSessionId = resetSessionId(); // generate + persist new ID
     setSessionId(newSessionId); // update state so next API call uses it
@@ -847,11 +936,18 @@ export default function ChatIsland({
   return (
     <main className="flex h-dvh">
       {/* Main Chat Area */}
-      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-hidden">
+      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto [overflow-x:clip]">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <MainMenu
+                onOpenHistory={() => setHistoryOpen(true)}
+                onOpenChurchFinder={() => setChurchFinderModalOpen(true)}
+                translations={translations}
+                activeTranslationCode={activeTranslationCode}
+                onSelectTranslation={handleTranslationChange}
+              />
               <Book className="w-8 h-8 text-primary-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">
@@ -863,19 +959,14 @@ export default function ChatIsland({
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Android beta tester recruitment — prominent call to participate */}
+              {/* Official app on Google Play — primary call to action */}
               <Link
-                href="/tester"
-                title={tHeader("testerCta")}
+                href="/app"
+                title={tHeader("appCta")}
                 className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all"
               >
-                {/* Pinging dot draws the eye to the invitation */}
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-teal-500" />
-                </span>
-                <FlaskConical className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">{tHeader("testerCta")}</span>
+                <Smartphone className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{tHeader("appCta")}</span>
               </Link>
 
               {/* Language Switcher */}
@@ -979,20 +1070,24 @@ export default function ChatIsland({
                 ))}
               </div>
 
-              {/* Beta tester invitation — call to participate */}
+              {/* Official app invitation — get Vox Quieta on Google Play */}
               <Link
-                href="/tester"
+                href="/app"
                 className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-left"
               >
-                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-600 text-white">
-                  <FlaskConical className="w-5 h-5" />
-                </span>
+                <img
+                  src="/app-icon.png"
+                  alt={tWelcome("appTitle")}
+                  width={40}
+                  height={40}
+                  className="flex-shrink-0 w-10 h-10 rounded-xl"
+                />
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold text-teal-900">
-                    {tWelcome("testerTitle")}
+                    {tWelcome("appTitle")}
                   </span>
                   <span className="block text-sm text-teal-700">
-                    {tWelcome("testerBody")}
+                    {tWelcome("appBody")}
                   </span>
                 </span>
                 <ArrowRight className="w-5 h-5 text-teal-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
@@ -1365,6 +1460,15 @@ export default function ChatIsland({
       <ChurchFinderModal
         isOpen={churchFinderModalOpen}
         onClose={() => setChurchFinderModalOpen(false)}
+      />
+
+      <ConversationSidebar
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        activeConversationId={conversationId}
+        onSelectConversation={(id) => void handleSelectConversation(id)}
+        onNewConversation={handleNewChat}
+        refreshSignal={historyRefresh}
       />
 
       {/* Toast notification for errors */}

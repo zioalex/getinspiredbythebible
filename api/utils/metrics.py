@@ -279,6 +279,15 @@ embedding_fallback_counter = meter.create_counter(
     unit="1",
 )
 
+embedding_cache_counter = meter.create_counter(
+    name="embedding.cache_total",
+    description=(
+        "Count of embed() calls served from the in-process cache (hit) vs "
+        "requiring an upstream call (miss), by CachingEmbeddingProvider"
+    ),
+    unit="1",
+)
+
 circuit_breaker_state_counter = meter.create_counter(
     name="circuit_breaker.state_transitions",
     description="Circuit breaker state transitions (open/half_open/closed)",
@@ -311,3 +320,21 @@ content_safety_fallback_counter = meter.create_counter(
     ),
     unit="1",
 )  # attributes: stage (llama_guard|openai_moderation|azure), reason
+
+rate_limiter_db_error_counter = meter.create_counter(
+    name="rate_limiter.db_error_total",
+    description="Postgres-backed rate limiter errors (transient DB failure while checking/recording a hit) (BITB-061)",
+    unit="1",
+)  # attributes: reason (<exc_name>)
+
+rate_limiter_fallback_counter = meter.create_counter(
+    name="rate_limiter.fallback_total",
+    description="Rate-limit checks served by the in-memory fallback store because Postgres was unavailable (BITB-061)",
+    unit="1",
+)
+
+rate_limiter_fail_closed_counter = meter.create_counter(
+    name="rate_limiter.fail_closed_total",
+    description="Rate-limit checks rejected because the Postgres store's circuit breaker is open (persistent DB outage) (BITB-061)",
+    unit="1",
+)

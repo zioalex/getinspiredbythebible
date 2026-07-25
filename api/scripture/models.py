@@ -237,5 +237,15 @@ class Topic(Base):
     # Self-referential relationship for hierarchical topics
     parent: Mapped[Optional["Topic"]] = relationship(remote_side=[id], backref="children")
 
+    __table_args__ = (
+        Index(
+            "idx_topic_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
+
     def __repr__(self) -> str:
         return f"<Topic(name='{self.name}')>"

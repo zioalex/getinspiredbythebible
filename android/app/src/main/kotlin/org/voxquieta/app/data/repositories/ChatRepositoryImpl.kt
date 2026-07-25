@@ -49,7 +49,9 @@ class ChatRepositoryImpl @Inject constructor(
         }
 
     override suspend fun saveMessage(conversationId: String, message: Message) {
-        db.messageDao().upsert(message.toEntity(conversationId))
+        // upsertIfConversationExists skips the write (rather than crashing with a FOREIGN
+        // KEY constraint failure) when the parent conversation was deleted mid-stream.
+        db.messageDao().upsertIfConversationExists(message.toEntity(conversationId))
     }
 
     override suspend fun createConversation(id: String, title: String): Conversation {

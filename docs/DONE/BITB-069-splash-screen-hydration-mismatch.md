@@ -1,6 +1,6 @@
 # BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #917, pending merge)
 **Priority:** P2 (Medium) — cosmetic/console-only today (React recovers by regenerating the tree
 client-side), but it's a real SSR/CSR divergence, not just noise, and the failure mode gets worse
 if anything downstream ever depends on first-paint DOM matching (e.g. a future analytics/observer
@@ -79,8 +79,8 @@ pass `splashSeen` down as a prop, avoiding the client-only read entirely — mor
 
 ## Acceptance Criteria
 
-- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
-- [ ] First-time visitor still sees the full splash screen unchanged
-- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
-- [ ] Manual verification: load once (first-time splash), reload (returning visitor, no console
+- [x] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [x] First-time visitor still sees the full splash screen unchanged
+- [x] Returning visitor doesn't see a visible splash flash before it's skipped
+- [x] Manual verification: load once (first-time splash), reload (returning visitor, no console
       error)

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-17
+**Last Updated:** 2026-07-21
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -362,9 +362,37 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
+**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
+`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
+
+**Note:** this story existed only as a loose story file (never indexed here) since PR #809 created
+it alongside BITB-059/060/061/063 — the gap that let it sit unstarted without showing up in a
+backlog scan. Added here for visibility.
+
+**As** the operator of a 2-vCPU/4GB production Postgres serving 12 translations, **I want** every
+vector-search path to use the HNSW index, **so that** a handful of unauthenticated search calls
+cannot saturate the database and starve chat — the actual product — of connections and CPU.
+
+**Why P1:** `search_verses_semantic` / `search_passages_semantic` backed the **public**
+`GET /api/v1/scripture/search` endpoint with a `WHERE (1 - cosine_distance) >= threshold` predicate
+— the exact full-scan shape the hybrid search path was already rewritten to avoid — and
+`topics.embedding` had no vector index at all.
+
+**Acceptance Criteria:** see `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+for the full checklist and what's shipped vs. deferred.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+
+---
+
+### ✅ BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
@@ -385,7 +413,7 @@ error — unacceptable for a pastoral-care product serving people in crisis.
 
 - [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
       breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
-- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+- [x] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
       session lifetime cap survives deploys; dedicated unit tests added
 - [x] Content safety: keyword stage always runs regardless of ML-stage availability; empty/malformed
       Llama Guard response treated as an error, not "safe"; every fallback branch emits
@@ -470,9 +498,10 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] Query expansion enabled by default (#741)
-- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
-- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [x] Hybrid search enabled (`hybrid_search_enabled = True` in `api/config.py`, PR #727 trimmed per BITB-051 P0)
+- [x] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051** (P0–P3 landed)
 - [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
+      (needs a live run against prod data/Azure credentials — see `docs/SEARCH_EVAL_HOWTO.md`)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
 
@@ -480,7 +509,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
 **Size:** L (3-5 days, 5 small PRs)
 **Created:** 2026-06-16
 
@@ -492,17 +521,17 @@ their weights instead of shipping search changes blind.
 **Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
 Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
 normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
-languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
-report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
-Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+languages) + `--validate` + non-blocking CI ✅; **P3** runner over real retrieval + A/B
+report/CLI ✅; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embedding-3-small`
 (1536) everywhere** to match prod; per-PR CI is validate-only.
 
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] P0: PR #727 trimmed to hybrid-search enablement only
 - [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
-- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
-- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [x] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [x] P3: runner (`api/search_eval/runner.py`) + report/CLI (`--run`); manual prod-read-only A/B table documented in `docs/SEARCH_EVAL_HOWTO.md`
 - [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
@@ -1195,9 +1224,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
-### 🎯 BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
+### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #917, pending merge)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-16
 
@@ -1217,11 +1246,11 @@ worth fixing, not just console noise.
 
 **Acceptance Criteria:**
 
-- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
-- [ ] First-time visitor still sees the full splash screen unchanged
-- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
+- [x] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [x] First-time visitor still sees the full splash screen unchanged
+- [x] Returning visitor doesn't see a visible splash flash before it's skipped
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-069-splash-screen-hydration-mismatch.md`
+**Full Story:** `docs/DONE/BITB-069-splash-screen-hydration-mismatch.md`
 
 ---
 
@@ -1641,9 +1670,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-008: Add Request Tracing with Correlation IDs
+### ✅ BITB-008: Add Request Tracing with Correlation IDs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S
 
 **As a** developer debugging production issues,
@@ -1652,11 +1681,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] Middleware generates UUID for each request
-- [ ] `X-Request-ID` header added to all responses
-- [ ] Trace ID logged in every log entry for that request
-- [ ] Trace ID propagated to database queries (as SQL comment)
-- [ ] Documentation includes how to search logs by trace ID
+- [x] Middleware generates UUID for each request (`api/middleware/correlation_id.py`)
+- [x] `X-Request-ID` header added to all responses, including error responses
+- [x] Trace ID logged in every log entry for that request (`api/utils/logging_config.py`)
+- [x] Trace ID propagated to database queries as a SQL comment (`before_cursor_execute` listener
+      in `api/scripture/database.py`)
+- [x] Documentation includes how to search logs by trace ID (`docs/TROUBLESHOOTING.md`,
+      "Tracing a single request by its correlation ID")
 
 **Tech Constraints:**
 
@@ -1705,7 +1736,83 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
+### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+
+**Status:** 🎯 Todo
+**Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
+**Created:** 2026-07-21
+
+**As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
+financially support the project from the website, the Android app, and the
+GitHub repo, **so that** I can help cover hosting/LLM inference costs, without
+the app ever touching payment data itself.
+
+Research compared GitHub Sponsors, Ko-fi, Buy Me a Coffee, Patreon, Open
+Collective, Stripe Payment Links, and PayPal. Recommendation: **Ko-fi**
+(0% platform fee, one-time + recurring, supports Stripe and PayPal checkout)
+as the primary user-facing donation page, plus **GitHub Sponsors** enabled on
+the repo for the developer audience. Both are pure external link-outs — no
+feature is gated or unlocked in exchange for donating, keeping this out of
+Google Play Billing scope (to be re-verified against the current Play
+Developer Program Policy before shipping).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
+- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all 10 locale files
+- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+      section, opening the donate URL via `LocalUriHandler`
+- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+      gated behind the donation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
+
+---
+
 ## P3 - Low Priority (Future)
+
+### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
+
+**Status:** ✅ Done (PR #916, 2026-07-20)
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+
+**As a** maintainer, **I want** the low-risk items from the 2026-07-20 360° review
+shipped as independent commits, **so that** build hygiene and the doc surface improve
+with zero behavioural risk.
+
+**Acceptance Criteria (summary):**
+
+- [x] Dead `AGENTS.md.old`/`AGENTS.old.md` deleted; stale 2026-01 root planning docs archived to `docs/archive/`
+- [x] `.dockerignore` added for `api/` and `frontend/` build contexts (keeps local `.env` and `tests/` out of images)
+- [x] `eslint-config-next` aligned with `next` 16 (lint + tsc verified)
+- [x] Review report at `docs/audits/2026-07-20-360-review.md`; follow-up story BITB-073 filed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-072-repo-hygiene-build-quick-wins.md`
+
+---
+
+### 🎯 BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+
+**As a** maintainer, **I want** test-only deps out of `api/requirements.txt`
+(into a new `requirements-dev.txt`), **so that** the production image doesn't carry the
+test framework. Finding F3 of the 2026-07-20 360° review; deferred from BITB-072
+because it touches 2 workflows + Makefile + docs.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
+- [ ] Backend CI (unit + integration) green with updated install lines and cache keys
+- [ ] Docker image builds unchanged; dependabot still covers both files
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-073-split-dev-prod-python-requirements.md`
+
+---
 
 ### 🎯 BITB-070: Re-evaluate `hybrid` Content-Safety Mode (Two-Vendor Defense-in-Depth)
 

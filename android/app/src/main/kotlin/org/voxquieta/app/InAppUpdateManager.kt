@@ -26,7 +26,6 @@ class InAppUpdateManager @Inject constructor(
 ) {
 
     companion object {
-        private const val DAYS_FOR_FLEXIBLE_UPDATE = 3
         private const val UPDATE_REQUEST_CODE = 1001
     }
 
@@ -40,11 +39,7 @@ class InAppUpdateManager @Inject constructor(
         appUpdateManager.appUpdateInfo
             .addOnSuccessListener { info ->
                 when {
-                    // Play may not report staleness (null) for a device/test double that
-                    // hasn't recorded an install timestamp; treat unknown staleness as
-                    // meeting the bar rather than silently never prompting.
                     info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-                        (info.clientVersionStalenessDays() ?: DAYS_FOR_FLEXIBLE_UPDATE) >= DAYS_FOR_FLEXIBLE_UPDATE &&
                         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
                         registerInstallListener()
                         appUpdateManager.startUpdateFlowForResult(

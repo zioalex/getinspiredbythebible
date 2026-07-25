@@ -501,6 +501,22 @@ export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
   फिलेमोन: "philemon",
   इब्रानियों: "hebrews",
   याकूब: "james",
+
+  // ── Hindi aliases (oblique-case ों/anusvara ending dropped) ─────────────
+  // LLMs and casual usage commonly drop the trailing ं these canonical IRV
+  // names use — mirrors HINDI_ALIASES in api/utils/translation_registry.py.
+  न्यायियो: "judges",
+  "1 राजाओ": "1 kings",
+  "2 राजाओ": "2 kings",
+  रोमियो: "romans",
+  "1 कुरिन्थियो": "1 corinthians",
+  "2 कुरिन्थियो": "2 corinthians",
+  गलातियो: "galatians",
+  इफिसियो: "ephesians",
+  कुलुस्सियो: "colossians",
+  "1 थिस्सलुनीकियो": "1 thessalonians",
+  "2 थिस्सलुनीकियो": "2 thessalonians",
+  इब्रानियो: "hebrews",
   "1 पतरस": "1 peter",
   "2 पतरस": "2 peter",
   "1 यूहन्ना": "1 john",
@@ -996,11 +1012,19 @@ export function extractVerseReferences(text: string): Set<string> {
     // Normalize Devanagari (३→3) and Eastern Arabic (٣→3) digits
     const chapter = normalizeDigits(match[2]);
     const verse = normalizeDigits(match[3]);
+    // Range end (e.g. the "18" in "3:16-18"), if present — see versePatterns.ts
+    // group 4. isVerseReferenced() parses this suffix to test every verse in
+    // [start, end], so omitting it here would silently drop range verses
+    // after the first from citation matching.
+    const verseEnd = match[4] ? normalizeDigits(match[4]) : null;
 
     // Normalize the book name to English before storing, so that
     // isVerseReferenced() can match against English verse.reference values.
     const normalizedBook = normalizeBookName(book);
-    references.add(`${normalizedBook} ${chapter}:${verse}`);
+    const reference = verseEnd
+      ? `${normalizedBook} ${chapter}:${verse}-${verseEnd}`
+      : `${normalizedBook} ${chapter}:${verse}`;
+    references.add(reference);
   }
 
   return references;

@@ -8,6 +8,9 @@ export default function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-white py-6 mt-8">
       <div className="max-w-3xl mx-auto px-4 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
+        <Link href="/app" className="hover:text-primary-700 transition-colors">
+          {tFooter("getApp")}
+        </Link>
         <Link
           href="/privacy"
           className="hover:text-primary-700 transition-colors"

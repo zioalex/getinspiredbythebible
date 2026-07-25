@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from feedback.models import ContactRequest, FeedbackRequest
+from feedback.models import ContactRequest, Feedback, FeedbackRequest
 from feedback.repository import FeedbackRepository
 
 
@@ -90,3 +90,42 @@ async def test_save_contact_retries_once_on_disconnect_then_succeeds():
 
     assert result is not None
     assert db.commit.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_feedback_by_message_id_found():
+    message_id = str(uuid.uuid4())
+    found = Feedback(message_id=uuid.UUID(message_id), rating="positive")
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=found)))
+
+    repo = FeedbackRepository(db)
+    result = await repo.get_feedback_by_message_id(message_id)
+
+    assert result is found
+    db.execute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_feedback_by_message_id_not_found():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+
+    repo = FeedbackRepository(db)
+    result = await repo.get_feedback_by_message_id(str(uuid.uuid4()))
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_feedback_by_message_id_invalid_uuid_raises():
+    db = MagicMock()
+    db.execute = AsyncMock()
+
+    repo = FeedbackRepository(db)
+
+    with pytest.raises(ValueError):
+        await repo.get_feedback_by_message_id("not-a-uuid")
+
+    db.execute.assert_not_awaited()

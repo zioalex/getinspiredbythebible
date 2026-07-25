@@ -437,7 +437,9 @@ def parse_structured_citations(text: str) -> list[VerseReference]:
     Parse the LLM's structured verse citation HTML comment.
 
     Looks for a comment like: <!-- VERSES: John 3:16; Romans 8:28 -->
-    and parses each semicolon-separated reference.
+    The prompt asks for semicolon-separated references, but the LLM doesn't
+    always follow that (e.g. commas), so this scans the comment body for every
+    reference it contains rather than splitting on a single separator.
 
     Args:
         text: Full LLM response text
@@ -449,21 +451,7 @@ def parse_structured_citations(text: str) -> list[VerseReference]:
     if not match:
         return []
 
-    results: list[VerseReference] = []
-    seen: set[str] = set()
-
-    for ref_text in match.group(1).split(";"):
-        ref_text = ref_text.strip()
-        if not ref_text:
-            continue
-        ref = parse_verse_reference(ref_text)
-        if ref:
-            key = str(ref)
-            if key not in seen:
-                seen.add(key)
-                results.append(ref)
-
-    return results
+    return extract_all_references(match.group(1))
 
 
 # Quote-mark pairs used across the 11 supported UI languages, as (open, close).

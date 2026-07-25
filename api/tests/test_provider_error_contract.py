@@ -116,6 +116,7 @@ class TestRouteMapsTypedError:
         mock_db = AsyncMock()
         mock_llm = AsyncMock()
         mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
         request = ChatRequest(message="Hello")
 
         async def mock_gen(req):
@@ -131,7 +132,7 @@ class TestRouteMapsTypedError:
             mock_service.chat_stream = mock_gen
             mock_service_cls.return_value = mock_service
 
-            response = await chat_stream(request, mock_db, mock_llm, mock_embedding)
+            response = await chat_stream(request, mock_http, mock_db, mock_llm, mock_embedding)
 
             chunks = [chunk async for chunk in response.body_iterator]
 

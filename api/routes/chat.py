@@ -105,7 +105,11 @@ async def chat(
     ],
 )
 async def chat_stream(
-    request: ChatRequest, db: DbSession, llm: LLMProviderDep, embedding: EmbeddingProviderDep
+    request: ChatRequest,
+    http_request: Request,
+    db: DbSession,
+    llm: LLMProviderDep,
+    embedding: EmbeddingProviderDep,
 ):
     """
     Stream a chat response for real-time display.
@@ -118,6 +122,11 @@ async def chat_stream(
     if request.session_id:
         chat_sessions_counter.add(1, {"session_token": request.session_id})
 
+    # Header-derived session attributes (mirrors the non-streaming `chat` handler).
+    user_agent = http_request.headers.get("user-agent")
+    accept_lang = http_request.headers.get("accept-language", "")
+    language = accept_lang.split(",")[0].split("-")[0] if accept_lang else None
+
     service = ChatService(db, llm, embedding)
 
     async def generate():
@@ -126,6 +135,10 @@ async def chat_stream(
                 # chunk is now a dict with 'type' field
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"
+            # Track session only after the stream completes successfully, matching
+            # the non-streaming path. Fire-and-forget (never raises); committed by the
+            # get_db_session dependency cleanup once the response body is drained.
+            await track_session(db, request.session_id, user_agent=user_agent, language=language)
             yield "data: [DONE]\n\n"
         except AllModelsExhaustedError as e:
             logger.warning("Streaming: all LLM models exhausted (%s): %s", e.reason, e)

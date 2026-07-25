@@ -14,6 +14,7 @@ run-name: >-
     paths:
       - "api/**"
       - "frontend/**"
+      - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
       - ".github/workflows/test_update.yml"
@@ -24,6 +25,7 @@ run-name: >-
     paths:
       - "api/**"
       - "frontend/**"
+      - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
       - ".github/workflows/test_update.yml"
@@ -49,6 +51,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Guard — Android book-name map stays generated (BITB-059)
+        run: |
+          python3 scripts/generate_localized_book_map.py --check
 
       - name: Guard — prod Application Insights must remain enabled (BITB-055)
         run: |
@@ -98,6 +104,13 @@ jobs:
           DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
           LLM_PROVIDER: ollama
           OLLAMA_HOST: http://localhost:11434
+          # BITB-061: this job's Postgres service has no migrations applied, so
+          # the shared rate-limit tables don't exist. Route-level tests that
+          # exercise require_rate_limit() would otherwise hit real DB errors
+          # until the circuit breaker trips and fails closed for the rest of
+          # the session. test_rate_limiter*.py exercise the postgres backend
+          # explicitly (backend="postgres") regardless of this default.
+          RATE_LIMIT_BACKEND: memory
         run: |
           cd api
           pytest -v --tb=short
@@ -177,10 +190,17 @@ jobs:
           # Primary: free model, Fallback: paid model (minimal cost)
           cat > .env << EOF
           LLM_PROVIDER=openrouter
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY=${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
           OPENROUTER_FALLBACK_MODELS=meta-llama/llama-3.3-70b-instruct
           OPENROUTER_ALLOW_FALLBACKS=true
+          # docker-compose.yml already defaults to this, but pin it explicitly so this
+          # job keeps working even if that default changes. This ephemeral, single-
+          # instance Postgres has no pg_cron purge job (migration 010, BITB-061) for
+          # the Postgres-backed rate limiter's tables, and (the original incident)
+          # once had neither table at all -- which tripped the limiter's circuit
+          # breaker to fail closed (real 429s) after 5 chat/stream requests.
+          RATE_LIMIT_BACKEND=memory
           OLLAMA_HOST=http://ollama:11434
           EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large

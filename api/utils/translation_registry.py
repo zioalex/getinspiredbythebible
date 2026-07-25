@@ -855,6 +855,20 @@ KOREAN_ALIASES: dict[str, str] = {
 # not the canonical IRV Bible keys in ENGLISH_TO_HINDI.
 HINDI_ALIASES: dict[str, str] = {
     "लेवियतियुस": "Leviticus",  # Transliterated form; IRV uses लैव्यव्यवस्था
+    # Oblique-case ों (anusvara) ending dropped — a common casual/LLM spelling
+    # variant of several canonical IRV book names ending in ों.
+    "न्यायियो": "Judges",  # IRV: न्यायियों
+    "1 राजाओ": "1 Kings",  # IRV: 1 राजाओं
+    "2 राजाओ": "2 Kings",  # IRV: 2 राजाओं
+    "रोमियो": "Romans",  # IRV: रोमियों
+    "1 कुरिन्थियो": "1 Corinthians",  # IRV: 1 कुरिन्थियों
+    "2 कुरिन्थियो": "2 Corinthians",  # IRV: 2 कुरिन्थियों
+    "गलातियो": "Galatians",  # IRV: गलातियों
+    "इफिसियो": "Ephesians",  # IRV: इफिसियों
+    "कुलुस्सियो": "Colossians",  # IRV: कुलुस्सियों
+    "1 थिस्सलुनीकियो": "1 Thessalonians",  # IRV: 1 थिस्सलुनीकियों
+    "2 थिस्सलुनीकियो": "2 Thessalonians",  # IRV: 2 थिस्सलुनीकियों
+    "इब्रानियो": "Hebrews",  # IRV: इब्रानियों
 }
 
 # Hindi (IRV Bible / hindi)
