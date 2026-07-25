@@ -15,8 +15,8 @@ android {
     namespace = "org.voxquieta.app"
     // compileSdk 36 is required by androidx.activity 1.11.0 (its AAR metadata
     // mandates compiling against API 36+) and is natively supported by AGP 9.0.
-    // targetSdk stays at 35 — the edge-to-edge work targets Android 15 and
-    // compileSdk only controls which APIs compile, not runtime behaviour.
+    // targetSdk is also bumped to 36 below (see defaultConfig) to meet Google
+    // Play's yearly target API level requirement (deadline 2026-08-31).
     compileSdk = 36
 
     // Helper: read a Gradle property, treating blank/empty as absent so the default kicks in.
@@ -66,7 +66,7 @@ android {
     defaultConfig {
         applicationId = "org.voxquieta"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?)?.takeIf { it.isNotBlank() }
             ?: manifestVersionName
