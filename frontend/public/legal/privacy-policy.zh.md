@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-04-20
+lastUpdated: 2026-07-18
 ---
 
 # 隐私政策
 
 > _本译文由人工智能生成，仅供参考。如有遗漏、含糊或与英文原文不一致之处，以英文版本为准（英文版本为权威文本）。_
 
-最后更新：2026 年 4 月 20 日
+最后更新：2026 年 7 月 18 日
 
 ## 关于我们
 
@@ -16,8 +16,17 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 
 ### 您提供的数据
 
-- **聊天消息**：您输入的文字将被发送至我们的 API，以生成基于圣经的回应。我们不会在服务器上存储您的消息，超出生成回应所需的时间。
+- **聊天消息**：您输入的文字将被发送至我们的 API，API 仅为生成基于圣经的回应并进行安全检查而将其转发给第三方 AI 服务提供商（见下文列表）。我们不会在服务器上存储您的消息，超出生成回应所需的时间。
 - **反馈评分**：您对回应提交的可选点赞/点踩评分。
+
+### AI 如何处理您的消息
+
+为回答您的问题，我们的 API 会将您的消息文本发送给以下第三方 AI 提供商：
+
+- **OpenRouter** — 接收您的消息文本，用于生成基于圣经的回应（大语言模型补全）并对消息进行安全检查（Llama Guard 内容安全检查）。
+- **Azure OpenAI（Microsoft）** — 接收您的消息文本，用于计算文本嵌入（embeddings），以查找最相关的圣经段落。
+
+这些提供商**仅**将您的消息文本用于生成对该消息的回应或进行安全检查。我们不会——且根据各提供商的 API 条款，提供商也不会——将其用于训练其通用 AI 模型；提供商不会在处理请求所需时间之外保留该文本；该文本也绝不会用于广告或被出售。有关各提供商的数据处理做法，请参阅 [OpenRouter 隐私政策](https://openrouter.ai/privacy)和 [Microsoft 隐私声明](https://privacy.microsoft.com)。
 
 ### 自动收集的数据
 
@@ -42,10 +51,12 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 
 ## 第三方服务
 
-| 服务                           | 用途         | 隐私政策                                                           |
-| ------------------------------ | ------------ | ------------------------------------------------------------------ |
-| Firebase Crashlytics（Google） | 崩溃报告     | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics（Google）   | 匿名使用分析 | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| 服务                           | 用途                       | 隐私政策                                                           |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics（Google） | 崩溃报告                   | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics（Google）   | 匿名使用分析               | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| OpenRouter                     | AI 回应生成及内容安全检查  | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
+| Azure OpenAI（Microsoft）      | 用于圣经段落检索的文本嵌入 | [privacy.microsoft.com](https://privacy.microsoft.com)             |
 
 ## 数据保留
 
@@ -66,7 +77,7 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 - 请求删除您的数据，
 - 反对处理您的数据。
 
-由于我们不收集任何个人身份信息，大多数请求可通过在应用程序内清除本地对话历史记录来完成。对于 Google 持有的崩溃/分析数据，请参阅 [myaccount.google.com](https://myaccount.google.com) 上 Google 的隐私控制选项。
+由于我们不收集任何个人身份信息，大多数请求可通过在应用程序内清除本地对话历史记录来完成。对于 Google 持有的崩溃/分析数据，请参阅 [myaccount.google.com](https://myaccount.google.com) 上 Google 的隐私控制选项。对于由我们的 AI 提供商处理的数据，请参阅上文链接的 OpenRouter 和 Microsoft 隐私政策。
 
 如有任何隐私问题，请通过以下方式联系我们：**<privacy@voxquieta.org>**
 

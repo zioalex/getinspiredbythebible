@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-04-20
+lastUpdated: 2026-07-18
 ---
 
 # Privacy Policy
 
-Last updated: April 20, 2026
+Last updated: July 18, 2026
 
 ## Who We Are
 
@@ -14,10 +14,30 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 
 ### Data You Provide
 
-- **Chat messages**: The text you type is sent to our API to generate Scripture-based
-  responses. We do not store your messages on our servers beyond the time needed to generate
-  a response.
+- **Chat messages**: The text you type is sent to our API, which forwards it to third-party
+  AI service providers (listed below) solely to generate a Scripture-based response and to
+  screen it for safety. We do not store your messages on our servers beyond the time needed
+  to generate a response.
 - **Feedback ratings**: Optional thumbs-up/thumbs-down ratings you submit on responses.
+
+### How Your Messages Are Processed by AI
+
+To answer your questions, our API sends the text of your message to the following third-party
+AI providers:
+
+- **OpenRouter** — receives your message text to generate the Scripture-based response
+  (large-language-model completion) and to screen messages for safety (Llama Guard
+  content-safety check).
+- **Azure OpenAI (Microsoft)** — receives your message text to compute text embeddings used
+  to find the most relevant Scripture passages.
+
+Your message text is used by these providers **only** to generate or safety-screen the
+response to that message. It is not used by us — or, per each provider's API terms, by the
+provider — to train their general-purpose AI models, it is not retained by the provider
+beyond what is needed to service the request, and it is never used for advertising or sold.
+See [OpenRouter's privacy policy](https://openrouter.ai/privacy) and
+[Microsoft's privacy statement](https://privacy.microsoft.com) for each provider's own
+data-handling practices.
 
 ### Data Collected Automatically
 
@@ -48,10 +68,12 @@ with a passphrase only you know, so it stays in your hands even in transit.
 
 ## Third-Party Services
 
-| Service                       | Purpose                    | Privacy Policy                                                     |
-| ----------------------------- | -------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Crash reporting            | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Anonymised usage analytics | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Service                       | Purpose                                             | Privacy Policy                                                     |
+| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Crash reporting                                     | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Anonymised usage analytics                          | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| OpenRouter                    | AI response generation and content-safety screening | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
+| Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                | [privacy.microsoft.com](https://privacy.microsoft.com)             |
 
 ## Data Retention
 
@@ -77,7 +99,8 @@ If you are in the European Economic Area, you have the right to:
 Since we collect no personally identifiable information, most requests can be fulfilled by
 clearing your local conversation history within the app. For crash/analytics data held by
 Google, please refer to Google's privacy controls at
-[myaccount.google.com](https://myaccount.google.com).
+[myaccount.google.com](https://myaccount.google.com). For data handled by our AI providers,
+see the OpenRouter and Microsoft privacy policies linked above.
 
 For any privacy questions, contact us at: **<privacy@voxquieta.org>**
 
