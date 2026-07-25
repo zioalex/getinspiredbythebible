@@ -11,7 +11,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { submitContactForm, ContactRequest } from "@/lib/api";
+import {
+  submitContactForm,
+  ContactRequest,
+  InvalidContactEmailError,
+} from "@/lib/api";
 
 const CONTACT_EMAIL = "contact@voxquieta.org";
 
@@ -74,7 +78,11 @@ export default function ContactForm() {
       setBugBehavior("");
       setSubject("spiritual");
     } catch (err) {
-      setError(t("errorSend"));
+      setError(
+        err instanceof InvalidContactEmailError
+          ? t("errorEmailInvalid")
+          : t("errorSend"),
+      );
       console.error("Failed to submit contact form:", err);
     } finally {
       setIsSubmitting(false);

@@ -246,7 +246,8 @@
     "successTitle": "Message sent successfully!",
     "successDescription": "Thank you for reaching out. We'll review your message soon.",
     "sendAnother": "Send another",
-    "errorSend": "Failed to send message. Please try again or email us directly."
+    "errorSend": "Failed to send message. Please try again or email us directly.",
+    "errorEmailInvalid": "Please enter a valid email so we can reply."
   },
   "ErrorBoundary": {
     "title": "Something went wrong",

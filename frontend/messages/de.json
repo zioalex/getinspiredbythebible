@@ -246,7 +246,8 @@
     "successTitle": "Nachricht erfolgreich gesendet!",
     "successDescription": "Danke für deine Nachricht. Wir werden sie bald prüfen.",
     "sendAnother": "Weitere senden",
-    "errorSend": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut oder schreib uns direkt per E-Mail."
+    "errorSend": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut oder schreib uns direkt per E-Mail.",
+    "errorEmailInvalid": "Bitte gib eine gültige E-Mail an, damit wir antworten können."
   },
   "ErrorBoundary": {
     "title": "Etwas ist schiefgelaufen",

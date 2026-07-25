@@ -1840,9 +1840,9 @@ adding an OpenAI key, unless a new mode is added.
 
 ---
 
-### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+### ✅ BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 2 hrs)
 **Created:** 2026-06-16
 
@@ -1852,9 +1852,9 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 **Acceptance Criteria (summary):**
 
-- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
-- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
-- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+- [x] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [x] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [x] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
 

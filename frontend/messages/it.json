@@ -246,7 +246,8 @@
     "successTitle": "Messaggio inviato con successo!",
     "successDescription": "Grazie per averci contattato. Esamineremo il tuo messaggio presto.",
     "sendAnother": "Invia un altro",
-    "errorSend": "Invio del messaggio non riuscito. Riprova o scrivici direttamente via email."
+    "errorSend": "Invio del messaggio non riuscito. Riprova o scrivici direttamente via email.",
+    "errorEmailInvalid": "Inserisci un'email valida così possiamo risponderti."
   },
   "ErrorBoundary": {
     "title": "Qualcosa è andato storto",
