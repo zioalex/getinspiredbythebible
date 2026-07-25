@@ -12,6 +12,7 @@ from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import settings
+from middleware.context import REQUEST_ID_CTX_VAR
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,30 @@ def _apply_session_hnsw_ef_search(dbapi_connection, connection_record):
             cursor.close()
     except Exception:  # noqa: BLE001 - never let this take down a connection
         logger.warning("Failed to set hnsw.ef_search on new connection", exc_info=True)
+
+
+def _prepend_request_id_comment(statement: str) -> str:
+    """Prefix ``statement`` with a ``/* request_id=... */`` SQL comment.
+
+    Lets a slow or stuck query be matched back to the request that issued it
+    via ``pg_stat_activity``/server logs. The id may come from a client-supplied
+    ``X-Request-ID`` header (see ``CorrelationIDMiddleware``), so it is
+    sanitized to prevent breaking out of the comment.
+    """
+    request_id = REQUEST_ID_CTX_VAR.get("")
+    if not request_id:
+        return statement
+    safe_id = request_id.replace("*/", "").replace("\n", " ")
+    return f"/* request_id={safe_id} */ {statement}"
+
+
+@event.listens_for(engine.sync_engine, "before_cursor_execute", retval=True)
+def _tag_query_with_request_id(conn, cursor, statement, parameters, context, executemany):
+    # Note: making every statement string unique defeats asyncpg's prepared-statement
+    # cache (keyed on SQL text), trading a per-query re-parse for traceability. Given
+    # this app's read-mostly, low-QPS load, shipping as-is; revisit if profiling shows
+    # a regression.
+    return _prepend_request_id_comment(statement), parameters
 
 
 # Session factory
