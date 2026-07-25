@@ -88,7 +88,9 @@ export class MessageTooLongError extends Error {
  * field-specific message rather than the generic send failure.
  */
 export class InvalidContactEmailError extends Error {
-  constructor(message: string = "The email address was rejected by the server") {
+  constructor(
+    message: string = "The email address was rejected by the server",
+  ) {
     super(message);
     this.name = "InvalidContactEmailError";
   }
