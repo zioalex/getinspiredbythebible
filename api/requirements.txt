@@ -40,9 +40,5 @@ numpy==1.26.4
 lingua-language-detector==2.2.0
 pyyaml>=6.0.3
 
-# Testing
-pytest==9.1.1
-pytest-asyncio==1.4.0
-
 # CORS
 python-multipart==0.0.32

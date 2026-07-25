@@ -1,6 +1,6 @@
 # BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P3
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
@@ -36,8 +36,8 @@ bundled with BITB-072.
 
 ## Acceptance Criteria
 
-- [ ] `pip install -r api/requirements.txt` in a clean venv does **not** install pytest
-- [ ] `pip install -r api/requirements-dev.txt` installs everything the test suite needs; `cd api && python -m pytest tests/ -x -q` passes
-- [ ] Backend CI jobs (unit + integration) green with the new install lines and cache keys
-- [ ] Docker image builds and `/health` passes (image never needed pytest — assert it still installs cleanly)
-- [ ] Dependabot pip config still picks up both files (directory-level `pip` ecosystem covers requirements*.txt automatically)
+- [x] `pip install -r api/requirements.txt` in a clean venv does **not** install pytest
+- [x] `pip install -r api/requirements-dev.txt` installs everything the test suite needs; `cd api && python -m pytest tests/ -x -q` passes
+- [x] Backend CI jobs (unit + integration) green with the new install lines and cache keys
+- [x] Docker image builds and `/health` passes (image never needed pytest — assert it still installs cleanly)
+- [x] Dependabot pip config still picks up both files (directory-level `pip` ecosystem covers requirements*.txt automatically)

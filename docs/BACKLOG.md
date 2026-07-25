@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-21
+**Last Updated:** 2026-07-23
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1795,7 +1795,7 @@ with zero behavioural risk.
 
 ### 🎯 BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
 
@@ -1806,9 +1806,9 @@ because it touches 2 workflows + Makefile + docs.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
-- [ ] Backend CI (unit + integration) green with updated install lines and cache keys
-- [ ] Docker image builds unchanged; dependabot still covers both files
+- [x] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
+- [x] Backend CI (unit + integration) green with updated install lines and cache keys
+- [x] Docker image builds unchanged; dependabot still covers both files
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-073-split-dev-prod-python-requirements.md`
 

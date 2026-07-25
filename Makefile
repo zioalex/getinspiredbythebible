@@ -59,8 +59,8 @@ install-hooks: venv ## Install pre-commit hooks
 setup-dev: venv install-hooks ## Setup development environment
 	@echo "$(BLUE)Setting up development environment...$(NC)"
 	@echo "$(YELLOW)Installing Python dependencies...$(NC)"
-	@$(PIP) install -q -r api/requirements.txt
-	@$(PIP) install -q ruff black mypy pytest pytest-asyncio bandit isort safety detect-secrets
+	@$(PIP) install -q -r api/requirements-dev.txt
+	@$(PIP) install -q ruff black mypy bandit isort safety detect-secrets
 	@echo "$(YELLOW)Fixing frontend permissions (if needed)...$(NC)"
 	@if [ -d "frontend/node_modules" ]; then \
 		if [ "$$(stat -c '%U' frontend/node_modules 2>/dev/null || stat -f '%Su' frontend/node_modules 2>/dev/null)" != "$$(whoami)" ]; then \
@@ -120,8 +120,8 @@ security: install-deps ## Run security checks
 install-deps: venv ## Install Python dependencies
 	@if ! $(CURDIR)/$(PYTHON) -c "import pytest" 2>/dev/null; then \
 		echo "$(YELLOW)Installing Python dependencies...$(NC)"; \
-		$(CURDIR)/$(PIP) install -q -r api/requirements.txt; \
-		$(CURDIR)/$(PIP) install -q ruff black mypy pytest pytest-asyncio bandit isort safety detect-secrets; \
+		$(CURDIR)/$(PIP) install -q -r api/requirements-dev.txt; \
+		$(CURDIR)/$(PIP) install -q ruff black mypy bandit isort safety detect-secrets; \
 		echo "$(GREEN)✓ Dependencies installed$(NC)"; \
 	fi
 
