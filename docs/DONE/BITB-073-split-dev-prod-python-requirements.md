@@ -1,9 +1,10 @@
 # BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** ✅ Done
+**Status:** ✅ Done (PR #928 merged 2026-07-23)
 **Priority:** P3
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
+**Completed:** 2026-07-23
 
 **As a** maintainer, **I want** test-only Python dependencies out of
 `api/requirements.txt`, **so that** the production image doesn't carry the test
