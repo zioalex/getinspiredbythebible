@@ -175,7 +175,7 @@ Organized by priority and category. Each item includes effort estimate and impac
 - **File**: `api/utils/logging_config.py`
 - **Issue**: Logs include session_id but no request_id/trace_id. Cannot trace a single request through the system.
 - **Fix**: Add request-id middleware that generates and propagates a unique ID per request.
-- **Effort**: S | **Impact**: High | **Status**: Open
+- **Effort**: S | **Impact**: High | **Status**: Done (BITB-008)
 
 ### 5.2 No Metrics / APM
 

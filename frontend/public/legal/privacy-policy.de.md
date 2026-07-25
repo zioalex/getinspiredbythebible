@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-04-20
+lastUpdated: 2026-07-18
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 20. April 2026
+Letzte Aktualisierung: 18. Juli 2026
 
 ## Wer wir sind
 
@@ -16,8 +16,17 @@ Vox Quieta („wir", „uns", „unser") ist eine kostenlose App zur Bibelinspir
 
 ### Von dir bereitgestellte Daten
 
-- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, um auf der Heiligen Schrift basierende Antworten zu erzeugen. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist.
+- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, die ihn ausschließlich zur Erzeugung einer auf der Heiligen Schrift basierenden Antwort und zur Sicherheitsprüfung an Dritt-KI-Dienstleister (siehe unten) weiterleitet. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist.
 - **Feedback-Bewertungen**: Optionale Daumen-hoch-/Daumen-runter-Bewertungen, die du für Antworten abgibst.
+
+### Wie deine Nachrichten durch KI verarbeitet werden
+
+Um deine Fragen zu beantworten, sendet unsere API den Text deiner Nachricht an die folgenden Dritt-KI-Anbieter:
+
+- **OpenRouter** — erhält deinen Nachrichtentext, um die auf der Heiligen Schrift basierende Antwort zu erzeugen (Sprachmodell-Vervollständigung) und um Nachrichten auf Sicherheit zu prüfen (Llama-Guard-Inhaltssicherheitsprüfung).
+- **Azure OpenAI (Microsoft)** — erhält deinen Nachrichtentext, um Text-Embeddings zu berechnen, mit denen die relevantesten Bibelstellen gefunden werden.
+
+Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um die Antwort auf diese Nachricht zu erzeugen oder auf Sicherheit zu prüfen. Er wird weder von uns noch — gemäß den API-Bedingungen des jeweiligen Anbieters — vom Anbieter zum Training ihrer allgemeinen KI-Modelle verwendet, nicht länger vom Anbieter aufbewahrt, als zur Bearbeitung der Anfrage nötig ist, und niemals für Werbung genutzt oder verkauft. Siehe die [Datenschutzrichtlinie von OpenRouter](https://openrouter.ai/privacy) und die [Datenschutzerklärung von Microsoft](https://privacy.microsoft.com) für die jeweiligen Datenverarbeitungspraktiken.
 
 ### Automatisch erhobene Daten
 
@@ -42,10 +51,12 @@ Du kannst diesen Verlauf jederzeit ansehen, umbenennen, löschen oder vollständ
 
 ## Drittanbieterdienste
 
-| Dienst                        | Zweck                          | Datenschutzrichtlinie                                              |
-| ----------------------------- | ------------------------------ | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Absturzberichte                | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Anonymisierte Nutzungsanalysen | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Dienst                        | Zweck                                             | Datenschutzrichtlinie                                              |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Absturzberichte                                   | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Anonymisierte Nutzungsanalysen                    | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| OpenRouter                    | KI-Antworterzeugung und Inhaltssicherheitsprüfung | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
+| Azure OpenAI (Microsoft)      | Text-Embeddings für die Bibelstellensuche         | [privacy.microsoft.com](https://privacy.microsoft.com)             |
 
 ## Datenspeicherung
 
@@ -70,7 +81,7 @@ Wenn du dich im Europäischen Wirtschaftsraum befindest, hast du das Recht:
 - die Löschung deiner Daten zu verlangen,
 - der Verarbeitung deiner Daten zu widersprechen.
 
-Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com).
+Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter und Microsoft.
 
 Bei Fragen zum Datenschutz erreichst du uns unter: **<privacy@voxquieta.org>**
 

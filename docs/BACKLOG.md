@@ -1670,9 +1670,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-008: Add Request Tracing with Correlation IDs
+### ✅ BITB-008: Add Request Tracing with Correlation IDs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S
 
 **As a** developer debugging production issues,
@@ -1681,11 +1681,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] Middleware generates UUID for each request
-- [ ] `X-Request-ID` header added to all responses
-- [ ] Trace ID logged in every log entry for that request
-- [ ] Trace ID propagated to database queries (as SQL comment)
-- [ ] Documentation includes how to search logs by trace ID
+- [x] Middleware generates UUID for each request (`api/middleware/correlation_id.py`)
+- [x] `X-Request-ID` header added to all responses, including error responses
+- [x] Trace ID logged in every log entry for that request (`api/utils/logging_config.py`)
+- [x] Trace ID propagated to database queries as a SQL comment (`before_cursor_execute` listener
+      in `api/scripture/database.py`)
+- [x] Documentation includes how to search logs by trace ID (`docs/TROUBLESHOOTING.md`,
+      "Tracing a single request by its correlation ID")
 
 **Tech Constraints:**
 

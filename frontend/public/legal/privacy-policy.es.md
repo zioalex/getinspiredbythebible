@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-04-20
+lastUpdated: 2026-07-18
 ---
 
 # Política de privacidad
 
 > _Esta traducción ha sido generada por inteligencia artificial y se proporciona únicamente como cortesía. En caso de omisión, ambigüedad o contradicción con el original en inglés, prevalece la versión en inglés, que es la canónica._
 
-Última actualización: 20 de abril de 2026
+Última actualización: 18 de julio de 2026
 
 ## Quiénes somos
 
@@ -16,8 +16,17 @@ Vox Quieta ("nosotros", "nos", "nuestro") es una aplicación gratuita de inspira
 
 ### Datos que tú proporcionas
 
-- **Mensajes del chat**: el texto que escribes se envía a nuestra API para generar respuestas basadas en las Escrituras. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta.
+- **Mensajes del chat**: el texto que escribes se envía a nuestra API, que lo reenvía a proveedores externos de servicios de IA (indicados más abajo) únicamente para generar una respuesta basada en las Escrituras y comprobar su seguridad. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta.
 - **Valoraciones de comentarios**: valoraciones opcionales de pulgar arriba/pulgar abajo que envías sobre las respuestas.
+
+### Cómo la IA procesa tus mensajes
+
+Para responder a tus preguntas, nuestra API envía el texto de tu mensaje a los siguientes proveedores externos de IA:
+
+- **OpenRouter** — recibe el texto de tu mensaje para generar la respuesta basada en las Escrituras (modelo de lenguaje) y para comprobar la seguridad de los mensajes (verificación de seguridad de contenido Llama Guard).
+- **Azure OpenAI (Microsoft)** — recibe el texto de tu mensaje para calcular las representaciones vectoriales (embeddings) que permiten encontrar los pasajes bíblicos más relevantes.
+
+Estos proveedores utilizan el texto de tu mensaje **únicamente** para generar la respuesta a ese mensaje o comprobar su seguridad. Ni nosotros ni —según los términos de la API de cada proveedor— el proveedor lo utilizamos para entrenar sus modelos de IA de propósito general, el proveedor no lo conserva más allá de lo necesario para atender la solicitud, y nunca se usa con fines publicitarios ni se vende. Consulta la [política de privacidad de OpenRouter](https://openrouter.ai/privacy) y la [declaración de privacidad de Microsoft](https://privacy.microsoft.com) para conocer las prácticas de tratamiento de datos de cada proveedor.
 
 ### Datos recopilados automáticamente
 
@@ -42,10 +51,12 @@ Puedes ver, renombrar, eliminar o borrar este historial en cualquier momento. Ta
 
 ## Servicios de terceros
 
-| Servicio                      | Propósito                   | Política de privacidad                                             |
-| ----------------------------- | --------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Informes de fallos          | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Análisis de uso anonimizado | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Servicio                      | Propósito                                                                | Política de privacidad                                             |
+| ----------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Informes de fallos                                                       | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Análisis de uso anonimizado                                              | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| OpenRouter                    | Generación de respuestas de IA y comprobación de seguridad del contenido | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
+| Azure OpenAI (Microsoft)      | Embeddings de texto para la búsqueda de pasajes bíblicos                 | [privacy.microsoft.com](https://privacy.microsoft.com)             |
 
 ## Retención de datos
 
@@ -69,7 +80,7 @@ Si te encuentras en el Espacio Económico Europeo, tienes derecho a:
 - solicitar la eliminación de tus datos,
 - oponerte al tratamiento de tus datos.
 
-Dado que no recopilamos información de identificación personal, la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com).
+Dado que no recopilamos información de identificación personal, la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com). Para los datos tratados por nuestros proveedores de IA, consulta las políticas de privacidad de OpenRouter y Microsoft enlazadas más arriba.
 
 Para cualquier pregunta sobre privacidad, contáctanos en: **<privacy@voxquieta.org>**
 
