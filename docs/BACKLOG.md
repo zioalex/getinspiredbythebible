@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-20
+**Last Updated:** 2026-07-21
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1224,9 +1224,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
-### 🎯 BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
+### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #917, pending merge)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-16
 
@@ -1246,11 +1246,11 @@ worth fixing, not just console noise.
 
 **Acceptance Criteria:**
 
-- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
-- [ ] First-time visitor still sees the full splash screen unchanged
-- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
+- [x] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [x] First-time visitor still sees the full splash screen unchanged
+- [x] Returning visitor doesn't see a visible splash flash before it's skipped
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-069-splash-screen-hydration-mismatch.md`
+**Full Story:** `docs/DONE/BITB-069-splash-screen-hydration-mismatch.md`
 
 ---
 
@@ -1670,9 +1670,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-008: Add Request Tracing with Correlation IDs
+### ✅ BITB-008: Add Request Tracing with Correlation IDs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S
 
 **As a** developer debugging production issues,
@@ -1681,11 +1681,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] Middleware generates UUID for each request
-- [ ] `X-Request-ID` header added to all responses
-- [ ] Trace ID logged in every log entry for that request
-- [ ] Trace ID propagated to database queries (as SQL comment)
-- [ ] Documentation includes how to search logs by trace ID
+- [x] Middleware generates UUID for each request (`api/middleware/correlation_id.py`)
+- [x] `X-Request-ID` header added to all responses, including error responses
+- [x] Trace ID logged in every log entry for that request (`api/utils/logging_config.py`)
+- [x] Trace ID propagated to database queries as a SQL comment (`before_cursor_execute` listener
+      in `api/scripture/database.py`)
+- [x] Documentation includes how to search logs by trace ID (`docs/TROUBLESHOOTING.md`,
+      "Tracing a single request by its correlation ID")
 
 **Tech Constraints:**
 
@@ -1731,6 +1733,40 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - Rewriting all queries to use new-style syntax
 
 **Related:** TASKS.md #3.3, TECHNICAL_DEBT.md #1
+
+---
+
+### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+
+**Status:** 🎯 Todo
+**Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
+**Created:** 2026-07-21
+
+**As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
+financially support the project from the website, the Android app, and the
+GitHub repo, **so that** I can help cover hosting/LLM inference costs, without
+the app ever touching payment data itself.
+
+Research compared GitHub Sponsors, Ko-fi, Buy Me a Coffee, Patreon, Open
+Collective, Stripe Payment Links, and PayPal. Recommendation: **Ko-fi**
+(0% platform fee, one-time + recurring, supports Stripe and PayPal checkout)
+as the primary user-facing donation page, plus **GitHub Sponsors** enabled on
+the repo for the developer audience. Both are pure external link-outs — no
+feature is gated or unlocked in exchange for donating, keeping this out of
+Google Play Billing scope (to be re-verified against the current Play
+Developer Program Policy before shipping).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
+- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all 10 locale files
+- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+      section, opening the donate URL via `LocalUriHandler`
+- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+      gated behind the donation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
 
 ---
 
