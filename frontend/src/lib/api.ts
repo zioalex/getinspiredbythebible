@@ -80,6 +80,21 @@ export class MessageTooLongError extends Error {
 }
 
 /**
+ * Error thrown when the contact form's email fails backend validation
+ * (HTTP 422 with `detail[].loc` pointing at "email"). The field is
+ * `type="email"` + `required` client-side, but that's laxer than the
+ * server's EmailStr check (e.g. `user@localhost` passes the browser and
+ * fails server-side), so this round-trip case is real — surface a
+ * field-specific message rather than the generic send failure.
+ */
+export class InvalidContactEmailError extends Error {
+  constructor(message: string = "The email address was rejected by the server") {
+    super(message);
+    this.name = "InvalidContactEmailError";
+  }
+}
+
+/**
  * Error thrown when Cloudflare Turnstile rejects a request (HTTP 403:
  * TURNSTILE_REQUIRED — no token reached the server — or TURNSTILE_FAILED —
  * token stale/duplicate). The gated POST already retries once with a fresh
@@ -959,6 +974,16 @@ export async function submitContactForm(
   if (!response.ok) {
     if (response.status === 403) {
       throw new VerificationError();
+    }
+    if (response.status === 422) {
+      const data = await response.json().catch(() => ({}));
+      const detail = data?.detail;
+      const emailRejected =
+        Array.isArray(detail) &&
+        detail.some((d) => Array.isArray(d?.loc) && d.loc.includes("email"));
+      if (emailRejected) {
+        throw new InvalidContactEmailError();
+      }
     }
     throw new Error(`API error: ${response.status}`);
   }

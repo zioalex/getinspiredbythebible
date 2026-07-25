@@ -40,6 +40,7 @@ vi.mock("@/lib/api", () => ({
   }),
   searchChurches: vi.fn(),
   submitContactForm: vi.fn(),
+  InvalidContactEmailError: class InvalidContactEmailError extends Error {},
 }));
 
 // Use real verse extraction logic for proper testing
