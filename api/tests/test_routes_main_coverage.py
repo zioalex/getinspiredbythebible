@@ -502,6 +502,194 @@ class TestMainLifespan:
             mock_close.assert_awaited_once()
 
 
+def _session_factory_mock(session=None):
+    """Build a MagicMock mimicking ``async_session_factory()`` — an async
+    context manager whose __aenter__ yields ``session`` (or a fresh mock)."""
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=session if session is not None else MagicMock())
+    cm.__aexit__ = AsyncMock(return_value=False)
+    return MagicMock(return_value=cm)
+
+
+class TestCheckTranslationCoverageAtStartup:
+    """Tests for main.py's _check_translation_coverage_at_startup()."""
+
+    @pytest.mark.asyncio
+    async def test_logs_and_counts_unusable_languages(self):
+        from main import _check_translation_coverage_at_startup
+        from scripture.coverage import UnusableLanguage
+
+        unusable = [UnusableLanguage(language="fr", translation="fr1910", problem="no_embeddings")]
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "main.check_translation_coverage",
+                new_callable=AsyncMock,
+                return_value=([], unusable),
+            ),
+            patch("main.translation_data_missing_counter") as mock_counter,
+        ):
+            await _check_translation_coverage_at_startup()
+
+        mock_counter.add.assert_called_once_with(
+            1, {"language": "fr", "translation": "fr1910", "problem": "no_embeddings"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _check_translation_coverage_at_startup
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "main.check_translation_coverage",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            # Must not raise -- a cold/unreachable DB must never block startup.
+            await _check_translation_coverage_at_startup()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestWarmReadyTranslations:
+    """Tests for main.py's _warm_ready_translations()."""
+
+    @pytest.mark.asyncio
+    async def test_calls_refresh_ready_translations(self):
+        from main import _warm_ready_translations
+
+        mock_session = MagicMock()
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock(mock_session)),
+            patch(
+                "scripture.coverage.refresh_ready_translations", new_callable=AsyncMock
+            ) as mock_refresh,
+        ):
+            await _warm_ready_translations()
+
+        mock_refresh.assert_awaited_once_with(mock_session)
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _warm_ready_translations
+
+        with (
+            patch("scripture.database.async_session_factory", _session_factory_mock()),
+            patch(
+                "scripture.coverage.refresh_ready_translations",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _warm_ready_translations()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestPurgeBlockedSamplesAtStartup:
+    """Tests for main.py's _purge_blocked_samples_at_startup()."""
+
+    @pytest.mark.asyncio
+    async def test_logs_when_deleted(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.info.assert_called_once_with(
+            "Purged expired blocked-message samples", extra={"deleted": 3}
+        )
+
+    @pytest.mark.asyncio
+    async def test_silent_when_zero_deleted(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.info.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self):
+        from main import _purge_blocked_samples_at_startup
+
+        with (
+            patch(
+                "feedback.blocked_samples.purge_expired_blocked_samples",
+                new_callable=AsyncMock,
+                side_effect=Exception("db down"),
+            ),
+            patch("main.logger") as mock_logger,
+        ):
+            await _purge_blocked_samples_at_startup()
+
+        mock_logger.warning.assert_called_once()
+
+
+class TestReadinessRefreshLoop:
+    """Tests for main.py's _readiness_refresh_loop() (infinite loop)."""
+
+    @pytest.mark.asyncio
+    async def test_runs_then_cancels(self):
+        from main import _readiness_refresh_loop
+
+        with (
+            patch(
+                "main.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=[None, asyncio.CancelledError()],
+            ),
+            patch("main._warm_ready_translations", new_callable=AsyncMock) as mock_warm,
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await _readiness_refresh_loop()
+
+        mock_warm.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_swallows_warm_up_exception_and_loops(self):
+        from main import _readiness_refresh_loop
+
+        with (
+            patch(
+                "main.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=[None, None, asyncio.CancelledError()],
+            ),
+            patch(
+                "main._warm_ready_translations",
+                new_callable=AsyncMock,
+                side_effect=[Exception("transient"), None],
+            ) as mock_warm,
+            patch("main.logger") as mock_logger,
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await _readiness_refresh_loop()
+
+        assert mock_warm.await_count == 2
+        mock_logger.warning.assert_called_once()
+
+
 # ==================== Feedback Route Tests ====================
 
 
@@ -847,18 +1035,16 @@ class TestChatRoutes:
 class TestChatStreamRoute:
     """Tests for chat_stream route function."""
 
-    @pytest.mark.asyncio
-    async def test_chat_stream_returns_streaming_response(self):
-        from chat.service import ChatRequest
-        from routes.chat import chat_stream
+    @staticmethod
+    def _mock_http_request():
+        """Create a mock HTTP request with headers for chat_stream route tests."""
+        mock_req = MagicMock()
+        mock_req.headers = {"user-agent": "test-agent", "accept-language": "en-US"}
+        return mock_req
 
-        mock_db = AsyncMock()
-        mock_llm = AsyncMock()
-        mock_embedding = AsyncMock()
-
-        request = ChatRequest(message="Hello")
-
-        async def mock_gen(req):
+    @staticmethod
+    def _mock_gen(req):
+        async def gen(_req):
             yield {
                 "type": "metadata",
                 "message_id": "test-id",
@@ -869,15 +1055,65 @@ class TestChatStreamRoute:
             yield {"type": "content", "content": "Hello "}
             yield {"type": "content", "content": "world!"}
 
-        with patch("routes.chat.ChatService") as mock_service_cls:
+        return gen(req)
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_returns_streaming_response(self):
+        from chat.service import ChatRequest
+        from routes.chat import chat_stream
+
+        mock_db = AsyncMock()
+        mock_llm = AsyncMock()
+        mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
+
+        request = ChatRequest(message="Hello")
+
+        with (
+            patch("routes.chat.ChatService") as mock_service_cls,
+            patch("routes.chat.track_session", new_callable=AsyncMock),
+        ):
             mock_service = MagicMock()
-            mock_service.chat_stream = mock_gen
+            mock_service.chat_stream = self._mock_gen
             mock_service_cls.return_value = mock_service
 
-            response = await chat_stream(request, mock_db, mock_llm, mock_embedding)
+            response = await chat_stream(request, mock_http, mock_db, mock_llm, mock_embedding)
 
         # Should be a StreamingResponse
         assert response.media_type == "text/event-stream"
+
+    @pytest.mark.asyncio
+    async def test_chat_stream_tracks_session_after_stream(self):
+        """Draining the streamed body should upsert the session exactly once."""
+        from chat.service import ChatRequest
+        from routes.chat import chat_stream
+
+        mock_db = AsyncMock()
+        mock_llm = AsyncMock()
+        mock_embedding = AsyncMock()
+        mock_http = self._mock_http_request()
+
+        request = ChatRequest(message="Hello", session_id="sess-123")
+
+        with (
+            patch("routes.chat.ChatService") as mock_service_cls,
+            patch("routes.chat.track_session", new_callable=AsyncMock) as mock_track,
+        ):
+            mock_service = MagicMock()
+            mock_service.chat_stream = self._mock_gen
+            mock_service_cls.return_value = mock_service
+
+            response = await chat_stream(request, mock_http, mock_db, mock_llm, mock_embedding)
+
+            # Tracking happens inside the generator, so it only fires once the body
+            # is consumed — not merely by constructing the StreamingResponse.
+            mock_track.assert_not_awaited()
+            chunks = [chunk async for chunk in response.body_iterator]
+
+        assert any("[DONE]" in chunk for chunk in chunks)
+        mock_track.assert_awaited_once_with(
+            mock_db, "sess-123", user_agent="test-agent", language="en"
+        )
 
 
 # ==================== Scripture Route Tests ====================

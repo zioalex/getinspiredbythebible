@@ -2,6 +2,7 @@
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	repo-metrics audit-metrics \
@@ -58,8 +59,8 @@ install-hooks: venv ## Install pre-commit hooks
 setup-dev: venv install-hooks ## Setup development environment
 	@echo "$(BLUE)Setting up development environment...$(NC)"
 	@echo "$(YELLOW)Installing Python dependencies...$(NC)"
-	@$(PIP) install -q -r api/requirements.txt
-	@$(PIP) install -q ruff black mypy pytest pytest-asyncio bandit isort safety detect-secrets
+	@$(PIP) install -q -r api/requirements-dev.txt
+	@$(PIP) install -q ruff black mypy bandit isort safety detect-secrets
 	@echo "$(YELLOW)Fixing frontend permissions (if needed)...$(NC)"
 	@if [ -d "frontend/node_modules" ]; then \
 		if [ "$$(stat -c '%U' frontend/node_modules 2>/dev/null || stat -f '%Su' frontend/node_modules 2>/dev/null)" != "$$(whoami)" ]; then \
@@ -119,8 +120,8 @@ security: install-deps ## Run security checks
 install-deps: venv ## Install Python dependencies
 	@if ! $(CURDIR)/$(PYTHON) -c "import pytest" 2>/dev/null; then \
 		echo "$(YELLOW)Installing Python dependencies...$(NC)"; \
-		$(CURDIR)/$(PIP) install -q -r api/requirements.txt; \
-		$(CURDIR)/$(PIP) install -q ruff black mypy pytest pytest-asyncio bandit isort safety detect-secrets; \
+		$(CURDIR)/$(PIP) install -q -r api/requirements-dev.txt; \
+		$(CURDIR)/$(PIP) install -q ruff black mypy bandit isort safety detect-secrets; \
 		echo "$(GREEN)✓ Dependencies installed$(NC)"; \
 	fi
 
@@ -742,8 +743,8 @@ az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
 	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
 		--resource-group $(PG_RG) \
+		--server-name $(PG_SERVER) \
 		--name $(PG_SERVER) \
-		--rule-name "allow-my-ip-$$(date +%Y%m%d%H%M%S)" \
 		--start-ip-address $$MY_IP \
 		--end-ip-address $$MY_IP && \
 	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP$(NC)"
@@ -752,7 +753,7 @@ az-pg-list-rules: ## List PostgreSQL firewall rules
 	@echo "$(BLUE)Listing PostgreSQL firewall rules...$(NC)"
 	@az postgres flexible-server firewall-rule list \
 		--resource-group $(PG_RG) \
-		--name $(PG_SERVER) \
+		--server-name $(PG_SERVER) \
 		--output table
 
 az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name)
@@ -764,8 +765,8 @@ az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip 
 	@echo "$(BLUE)Removing firewall rule: $(RULE)...$(NC)"
 	@az postgres flexible-server firewall-rule delete \
 		--resource-group $(PG_RG) \
-		--name $(PG_SERVER) \
-		--rule-name $(RULE) \
+		--server-name $(PG_SERVER) \
+		--name $(RULE) \
 		--yes && \
 	echo "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
 

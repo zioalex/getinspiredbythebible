@@ -1,0 +1,107 @@
+name: DB Firewall Cleanup
+
+# Cleans up stale Azure Postgres flexible-server firewall rules named like
+# "ClientIPAddress_2026-6-19_23-36-24" — Azure's auto-generated name for any
+# rule created without an explicit --name (e.g. via the Azure Portal's "Add
+# current client IP" button). These accumulate over time and are unrelated to
+# the single fixed-name rule `make az-pg-add-ip` maintains (see Makefile).
+#
+# Required repo secrets:
+#   ARM_CLIENT_ID / ARM_CLIENT_SECRET / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID
+#
+# Manual run:
+#   Actions → DB Firewall Cleanup → Run workflow
+#   (max_age_days overrides the default 7-day threshold for that run)
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      max_age_days:
+        description: "Delete ClientIPAddress_* rules older than this many days"
+        required: false
+        default: "7"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-firewall-cleanup-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  PG_RESOURCE_GROUP: bible-app-rg
+  PG_SERVER_NAME: bible-app-db-mb0172
+  MAX_AGE_DAYS: ${{ github.event.inputs.max_age_days || '7' }}
+
+jobs:
+  cleanup-stale-firewall-rules:
+    name: Delete stale ClientIPAddress firewall rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Delete stale ClientIPAddress rules
+        run: |
+          set -o pipefail
+
+          echo "Threshold: rules older than ${MAX_AGE_DAYS} day(s) will be deleted"
+
+          rule_names=$(az postgres flexible-server firewall-rule list \
+            --resource-group "$PG_RESOURCE_GROUP" \
+            --server-name "$PG_SERVER_NAME" \
+            --query "[].name" -o tsv)
+
+          now_epoch=$(date +%s)
+          deleted=0
+          kept=0
+
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
+
+            case "$name" in
+              ClientIPAddress_*) ;;
+              *) continue ;;
+            esac
+
+            # Name format: ClientIPAddress_<Y>-<M>-<D>_<H>-<Mi>-<S>, no zero-padding.
+            ts="${name#ClientIPAddress_}"
+            datepart="${ts%_*}"
+            timepart="${ts##*_}"
+
+            rule_epoch=$(date -d "${datepart} ${timepart//-/:}" +%s 2>/dev/null) || {
+              echo "::warning::could not parse timestamp from rule name '$name'; skipping"
+              continue
+            }
+
+            age_days=$(( (now_epoch - rule_epoch) / 86400 ))
+
+            if [ "$age_days" -gt "$MAX_AGE_DAYS" ]; then
+              echo "Deleting $name (age: ${age_days}d)"
+              az postgres flexible-server firewall-rule delete \
+                --resource-group "$PG_RESOURCE_GROUP" \
+                --server-name "$PG_SERVER_NAME" \
+                --name "$name" \
+                --yes
+              deleted=$((deleted + 1))
+            else
+              echo "Keeping $name (age: ${age_days}d)"
+              kept=$((kept + 1))
+            fi
+          done <<< "$rule_names"
+
+          echo "Summary: deleted=$deleted kept=$kept"

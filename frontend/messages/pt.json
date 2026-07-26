@@ -8,7 +8,8 @@
     "subtitle": "Inspire-se diariamente pela Palavra de Deus",
     "bibleVersion": "Versão da Bíblia",
     "newChat": "Nova Conversa",
-    "testerCta": "Testar o app"
+    "testerCta": "Testar o app",
+    "appCta": "Baixar o app"
   },
   "Welcome": {
     "heading": "Bem-vindo",
@@ -114,7 +115,9 @@
     "prompt99": "O que diz a Bíblia sobre a generosidade?",
     "prompt100": "Preciso de ser lembrado de que Deus está comigo",
     "testerTitle": "Ajude a moldar o Vox Quieta",
-    "testerBody": "Seja beta tester de Android — leva apenas um minuto."
+    "testerBody": "Seja beta tester de Android — leva apenas um minuto.",
+    "appTitle": "Leve o Vox Quieta no seu celular",
+    "appBody": "Agora no Google Play — inspiração diária e conversas guiadas pelas Escrituras, privadas e pensadas só para você."
   },
   "Chat": {
     "inputPlaceholder": "Partilhe o que está no seu coração...",
@@ -134,7 +137,12 @@
     "stopGenerating": "Parar geração",
     "languageSwitchSuggestion": "Parece que você está escrevendo em {language}. Mudar?",
     "languageSwitchAction": "Mudar",
-    "languageSwitchDismiss": "Dispensar"
+    "languageSwitchDismiss": "Dispensar",
+    "historyTitle": "Histórico de conversas",
+    "mainMenuLabel": "Menu",
+    "changeLanguage": "Mudar idioma",
+    "changeBibleVersion": "Mudar versão da Bíblia",
+    "searchCommunity": "Procurar uma comunidade"
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",
@@ -238,7 +246,8 @@
     "successTitle": "Mensagem enviada com sucesso!",
     "successDescription": "Obrigado por entrar em contacto. Analisaremos a sua mensagem em breve.",
     "sendAnother": "Enviar outra",
-    "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente."
+    "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente.",
+    "errorEmailInvalid": "Insira um e-mail válido para podermos responder."
   },
   "ErrorBoundary": {
     "title": "Algo deu errado",
@@ -271,7 +280,32 @@
     "viewFullChangelog": "Ver changelog completo"
   },
   "Footer": {
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "getApp": "Baixar o app"
+  },
+  "App": {
+    "metaTitle": "Baixe o app Vox Quieta",
+    "metaDescription": "O Vox Quieta já está no Google Play. Leve inspiração bíblica diária, conforto nos momentos difíceis e conversas guiadas pelas Escrituras aonde você for — privado, pessoal e sem anúncios.",
+    "heroAlt": "Vox Quieta — Inspire-se diariamente com a Palavra de Deus",
+    "iconAlt": "Ícone do app Vox Quieta",
+    "title": "O Vox Quieta já está no Google Play",
+    "storyLead": "O que começou como uma ideia silenciosa — um companheiro que o encontra nas Escrituras sempre que você precisa — agora é um app que você pode segurar na mão.",
+    "storyBody1": "Em alguns dias você precisa de encorajamento. Em outros, carrega uma dor, uma pergunta que não o solta ou simplesmente o desejo de se aproximar de Deus. O Vox Quieta escuta e responde com as palavras vivas das Escrituras — com gentileza, sempre apontando de volta para a Palavra.",
+    "storyBody2": "Agora ele vive no seu celular. Abra-o no trem, na sala de espera ou tarde da noite quando o sono não vem, e encontre um versículo, uma oração e uma conversa à sua espera.",
+    "ctaButton": "Disponível no Google Play",
+    "ctaSub": "Grátis no Android",
+    "featuresTitle": "Por que você vai amar",
+    "feature1Title": "Inspiração diária",
+    "feature1Body": "A cada dia, uma nova palavra de encorajamento enraizada na Bíblia.",
+    "feature2Title": "Conversas guiadas pelas Escrituras",
+    "feature2Body": "Pergunte o que está no seu coração e receba respostas fundadas na Palavra de Deus.",
+    "feature3Title": "Seu idioma",
+    "feature3Body": "Disponível em 11 idiomas, para que as Escrituras o encontrem onde você está.",
+    "feature4Title": "Privado, pessoal, sem anúncios",
+    "feature4Body": "Sem anúncios e sem necessidade de conta — apenas você e a Palavra.",
+    "betaLead": "Curioso para conhecer as novidades antes de todos?",
+    "betaLink": "Participe do programa beta",
+    "backHome": "Voltar ao início"
   },
   "Tester": {
     "metaTitle": "Seja um beta tester",
@@ -290,5 +324,34 @@
     "step3Button": "Abrir na Google Play",
     "note": "O teste é totalmente gratuito e você pode sair a qualquer momento. Tem dúvidas ou sugestões? Fale conosco pela página inicial.",
     "backHome": "Voltar ao início"
+  },
+  "History": {
+    "title": "Histórico de conversas",
+    "close": "Fechar",
+    "newConversation": "Nova conversa",
+    "empty": "Ainda não há conversas salvas.",
+    "untitled": "Conversa sem título",
+    "storageUnavailable": "O histórico não pode ser salvo neste navegador (modo privado ou armazenamento desativado).",
+    "rename": "Renomear",
+    "saveTitle": "Salvar título",
+    "delete": "Excluir",
+    "clearAll": "Limpar tudo",
+    "export": "Exportar",
+    "import": "Importar",
+    "cancel": "Cancelar",
+    "privacyNote": "Seu histórico é armazenado apenas neste dispositivo e nunca é enviado aos nossos servidores.",
+    "exportHint": "Escolha uma frase secreta para criptografar o arquivo do histórico. Você precisará dela para importar.",
+    "importHint": "Selecione um arquivo de histórico exportado e digite a frase secreta dele.",
+    "passphrasePlaceholder": "Frase secreta",
+    "confirmDelete": "Excluir esta conversa? Isso não pode ser desfeito.",
+    "confirmClearAll": "Excluir TODAS as conversas salvas neste dispositivo? Isso não pode ser desfeito.",
+    "passphraseTooShort": "Use uma frase secreta de pelo menos 6 caracteres.",
+    "passphraseRequired": "Digite a frase secreta deste arquivo.",
+    "chooseFile": "Escolha um arquivo para importar.",
+    "exportDone": "Histórico exportado.",
+    "exportFailed": "A exportação falhou. Tente novamente.",
+    "importDone": "{count} conversa(s) importada(s).",
+    "importFailed": "A importação falhou. Este é um arquivo de histórico válido?",
+    "wrongPassphrase": "Frase secreta incorreta ou arquivo corrompido."
   }
 }

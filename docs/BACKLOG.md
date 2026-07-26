@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-17
+**Last Updated:** 2026-07-25
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -362,9 +362,37 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — Turnstile and content-safety phases complete; rate-limiter phase remains
+**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
+`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
+**Created:** 2026-07-03
+**Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
+
+**Note:** this story existed only as a loose story file (never indexed here) since PR #809 created
+it alongside BITB-059/060/061/063 — the gap that let it sit unstarted without showing up in a
+backlog scan. Added here for visibility.
+
+**As** the operator of a 2-vCPU/4GB production Postgres serving 12 translations, **I want** every
+vector-search path to use the HNSW index, **so that** a handful of unauthenticated search calls
+cannot saturate the database and starve chat — the actual product — of connections and CPU.
+
+**Why P1:** `search_verses_semantic` / `search_passages_semantic` backed the **public**
+`GET /api/v1/scripture/search` endpoint with a `WHERE (1 - cosine_distance) >= threshold` predicate
+— the exact full-scan shape the hybrid search path was already rewritten to avoid — and
+`topics.embedding` had no vector index at all.
+
+**Acceptance Criteria:** see `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+for the full checklist and what's shipped vs. deferred.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-062-index-friendly-public-semantic-search.md`
+
+---
+
+### ✅ BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
+
+**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
 **Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
@@ -385,7 +413,7 @@ error — unacceptable for a pastoral-care product serving people in crisis.
 
 - [x] Turnstile: rejections fail closed (403); repeated transient siteverify errors trip a circuit
       breaker to fail-closed; isolated blips still fail open but emit a metric (`turnstile.fail_open_total`)
-- [ ] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
+- [x] Rate limiting: counters live in a shared store surviving restarts and consistent across replicas;
       session lifetime cap survives deploys; dedicated unit tests added
 - [x] Content safety: keyword stage always runs regardless of ML-stage availability; empty/malformed
       Llama Guard response treated as an error, not "safe"; every fallback branch emits
@@ -470,9 +498,10 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] Query expansion enabled by default (#741)
-- [ ] Hybrid search enabled (PR #727, trimmed to the flag flip)
-- [ ] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051**
+- [x] Hybrid search enabled (`hybrid_search_enabled = True` in `api/config.py`, PR #727 trimmed per BITB-051 P0)
+- [x] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051** (P0–P3 landed)
 - [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
+      (needs a live run against prod data/Azure credentials — see `docs/SEARCH_EVAL_HOWTO.md`)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-043-validate-and-enable-phase1-search.md`
 
@@ -480,7 +509,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0 + P1 landed; P2–P4 todo)
+**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
 **Size:** L (3-5 days, 5 small PRs)
 **Created:** 2026-06-16
 
@@ -492,17 +521,17 @@ their weights instead of shipping search changes blind.
 **Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
 Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
 normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
-languages) + `--validate` + non-blocking CI; **P3** runner over real retrieval + A/B
-report/CLI; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
-Azure embeddings, manual + nightly). Embeddings are **Azure `text-embedding-3-small`
+languages) + `--validate` + non-blocking CI ✅; **P3** runner over real retrieval + A/B
+report/CLI ✅; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
+Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embedding-3-small`
 (1536) everywhere** to match prod; per-PR CI is validate-only.
 
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] P0: PR #727 trimmed to hybrid-search enablement only
 - [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
-- [ ] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
-- [ ] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
+- [x] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
+- [x] P3: runner (`api/search_eval/runner.py`) + report/CLI (`--run`); manual prod-read-only A/B table documented in `docs/SEARCH_EVAL_HOWTO.md`
 - [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
@@ -1188,6 +1217,94 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 
 ---
 
+> **Product feature batch (maintainer, 2026-07-25) → BITB-075…081.**
+> Seven stories from a single product review: raise the message limit, an About page and
+> intro modal explaining why Vox Quieta exists, clarify-before-answering, the off-screen
+> web bottom bar, follow-up suggestion chips, and the Android example-tap fix.
+
+### 🎯 BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As a** user describing a real, complicated situation, **I want** to write up to 500 characters in
+one message, **so that** I can give enough context to get a useful answer instead of amputating my
+question to fit a 300-character box.
+
+**Why P1:** Raising the number also fixes a live production defect. The limit is hard-coded in five
+places that disagree: the deployed value is **200** (`deployment/terraform.tfvars:91`), the backend
+default is **300** (`api/config.py:180`), and both clients cap at **300**
+(`frontend/src/lib/api.ts:121`, `ChatViewModel.kt:173`). Today a 250-character message passes the
+input box, is rejected with a 422, and the error tells the user the limit is 300. Raising the number
+without fixing the drift just moves the bug.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 500 accepted end-to-end (web + Android); 501 blocked client-side and rejected server-side
+- [ ] Every layer agrees — code default, Terraform, tfvars, env manifest, deployment README
+- [ ] `GET /config` publishes `chat.max_message_length`; clients use it, constant is fallback only
+- [ ] "Message too long" error and the character counter show the *effective* limit
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-075-raise-message-limit-to-500.md`
+
+---
+
+### 🎯 BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As a** web visitor, **I want** the bottom bar (Get the app / Privacy / Terms / Changelog) to be
+reachable from the chat page, **so that** I can get to the legal pages and the app link.
+
+**Why P1:** `layout.tsx:107-111` renders `<Footer />` *after* a `flex-1` slot, while
+`ChatIsland.tsx:938` gives the chat `h-dvh` — the full dynamic viewport. The footer therefore sits
+exactly one footer-height below the fold, and the chat's own `overflow-y-auto` scroller
+(`ChatIsland.tsx:1035`) swallows the gestures that would reach it. On mobile `100dvh` tracks the
+browser chrome, so it keeps sliding away. Privacy and Terms are legally required disclosures; a nav
+surface that never appears on screen is the same as not having one. Chat-page-only — short pages are
+unaffected.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Footer links reachable without a document scroll at 360×640, 390×844, 768×1024, 1440×900
+- [ ] Composer stays visible with the mobile keyboard open; no horizontal scroll; RTL correct
+- [ ] Bottom region decrowded (collapsed contact form, one promo element at a time)
+- [ ] Playwright viewport regression test — a unit test cannot catch this
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-079-web-bottom-bar-always-offscreen.md`
+
+---
+
+### 🎯 BITB-081: Android — Tapping an Example Question Must Send on the First Tap
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As an** Android user tapping an example question on the welcome screen, **I want** it sent
+immediately, **so that** I get an answer from one tap instead of finding the text silently pasted
+into the composer.
+
+**Why P1:** This is the app's first interaction. `ChatScreen.kt:370-382` only sends when
+`isTurnstileReady` is true — which on a cold start it usually is not while the welcome screen is
+showing — so the tap becomes a silent paste with no feedback. The guard is unnecessary:
+`TurnstileInterceptor` already waits for a token, proceeds without one, and retries once on 403
+(`TurnstileInterceptor.kt:28-79`). Web already sends on tap.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Tapping an example on a cold start (no token yet) sends and starts streaming
+- [ ] Tapped text never remains in the input field; no second tap ever needed
+- [ ] Failures surface the normal error state — never silence
+- [ ] Compose UI test with `isTurnstileReady = false` asserts `sendMessage` is invoked
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-081-android-example-prompt-sends-on-tap.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
@@ -1195,9 +1312,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
-### 🎯 BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
+### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #917, pending merge)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-16
 
@@ -1217,11 +1334,11 @@ worth fixing, not just console noise.
 
 **Acceptance Criteria:**
 
-- [ ] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
-- [ ] First-time visitor still sees the full splash screen unchanged
-- [ ] Returning visitor doesn't see a visible splash flash before it's skipped
+- [x] No hydration-mismatch error/warning on load for a returning visitor (cookie already set)
+- [x] First-time visitor still sees the full splash screen unchanged
+- [x] Returning visitor doesn't see a visible splash flash before it's skipped
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-069-splash-screen-hydration-mismatch.md`
+**Full Story:** `docs/DONE/BITB-069-splash-screen-hydration-mismatch.md`
 
 ---
 
@@ -1641,9 +1758,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-008: Add Request Tracing with Correlation IDs
+### ✅ BITB-008: Add Request Tracing with Correlation IDs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S
 
 **As a** developer debugging production issues,
@@ -1652,11 +1769,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] Middleware generates UUID for each request
-- [ ] `X-Request-ID` header added to all responses
-- [ ] Trace ID logged in every log entry for that request
-- [ ] Trace ID propagated to database queries (as SQL comment)
-- [ ] Documentation includes how to search logs by trace ID
+- [x] Middleware generates UUID for each request (`api/middleware/correlation_id.py`)
+- [x] `X-Request-ID` header added to all responses, including error responses
+- [x] Trace ID logged in every log entry for that request (`api/utils/logging_config.py`)
+- [x] Trace ID propagated to database queries as a SQL comment (`before_cursor_execute` listener
+      in `api/scripture/database.py`)
+- [x] Documentation includes how to search logs by trace ID (`docs/TROUBLESHOOTING.md`,
+      "Tracing a single request by its correlation ID")
 
 **Tech Constraints:**
 
@@ -1705,7 +1824,205 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
+### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+
+**Status:** 🎯 Todo
+**Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
+**Created:** 2026-07-21
+
+**As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
+financially support the project from the website, the Android app, and the
+GitHub repo, **so that** I can help cover hosting/LLM inference costs, without
+the app ever touching payment data itself.
+
+Research compared GitHub Sponsors, Ko-fi, Buy Me a Coffee, Patreon, Open
+Collective, Stripe Payment Links, and PayPal. Recommendation: **Ko-fi**
+(0% platform fee, one-time + recurring, supports Stripe and PayPal checkout)
+as the primary user-facing donation page, plus **GitHub Sponsors** enabled on
+the repo for the developer audience. Both are pure external link-outs — no
+feature is gated or unlocked in exchange for donating, keeping this out of
+Google Play Billing scope (to be re-verified against the current Play
+Developer Program Policy before shipping).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
+- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all 10 locale files
+- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+      section, opening the donate URL via `LocalUriHandler`
+- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+      gated behind the donation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
+
+---
+
+### 🎯 BITB-076: "About" Page — Why Vox Quieta Exists
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, mostly copywriting + 11 locales)
+**Created:** 2026-07-25
+
+**As a** visitor who has just found Vox Quieta, **I want** to read who built this and why, **so
+that** I can decide whether to trust a chatbot with something as personal as my faith and my grief.
+
+The site answers "what are you doing with my data" (privacy, terms) but never "why does this exist
+and who made it" — the question that actually earns the first message. The motivation is already
+written: **["Building Something That Matters: How Claude Code Helped Me Create a Bible Inspiration
+Chatbot"](https://ai4you.sh/posts/Building-Something-That-Matters-How-Claude-Code-Helped-Me-Create-a-Bible-Inspiration-Chatbot/)**
+is the foundation and canonical reference for the page. New static localized route at
+`/{locale}/about`, built like the existing `/app` page.
+
+The post's motivation is the mental-health one — "something simple, accessible, and deeply rooted in
+Scripture that could offer encouragement when someone needed it most. Not a replacement for therapy
+or pastoral care, but a gentle companion for moments of struggle." Note that the post describes
+**v1.0** and is now stale on the name, the stack and the language list (see the story's *Source
+Material* section): it is the origin story to adapt, not text to transcribe.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `/{locale}/about` renders for all 11 locales, server-rendered and statically generated
+- [ ] Copy adapted from the ai4you.sh post, which is linked as the full story
+- [ ] States plainly what Vox Quieta is *not* (not pastoral care, not counseling)
+- [ ] Reflects the project as it is today; one sentence of continuity for the rename from
+      "Get Inspired by the Bible" to "Vox Quieta"
+- [ ] `About` namespace complete in all 11 `frontend/messages/*.json`; Arabic RTL correct
+- [ ] Linked from the footer **and** from the chat screen; added to `sitemap.ts` `PATHS`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-076-about-page-motivation.md`
+
+---
+
+### 🎯 BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs, after BITB-076)
+**Created:** 2026-07-25
+**Blocked by:** BITB-076
+
+**As a** person opening Vox Quieta, **I want** a short, dismissible introduction explaining who made
+this and why, **so that** I know what I am talking to before typing something personal into it.
+
+A page nobody clicks changes nothing, so the new message warrants one deliberate interruption — then
+it belongs in the onboarding path only. Both halves of the mechanism already exist in the repo: the
+one-time splash cookie (`providers.tsx:13-24`) and the show-once-per-version localStorage gate with
+silent first-visit seeding (`WhatsNewModal.tsx:33-40`). A single versioned
+`vq:aboutIntroSeen` key gives "everyone now, new visitors later" for free.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Every visitor sees it exactly once after deploy; dismissal persists forever
+- [ ] Never stacked on `SplashScreen` or `WhatsNewModal`; appears after the splash completes
+- [ ] Copy from the `About` namespace in all 11 locales; primary action opens `/about`
+- [ ] No SSR/CSR hydration mismatch (see BITB-069); keyboard accessible
+- [ ] Bumping the version constant re-shows it — proven by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-077-about-intro-modal.md`
+
+---
+
+### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, prompt work + eval)
+**Created:** 2026-07-25
+
+**As a** user who types something short and raw like "I'm lost", **I want** the companion to ask one
+gentle question about what I'm facing, **so that** the answer speaks to my actual situation instead
+of whatever the model guessed.
+
+The worst failure mode for this product is sounding caring while addressing someone else's problem.
+The instruction exists (`SYSTEM_PROMPT_TEMPLATE`, "## When the Request Is Unclear") but is
+outweighed: "## Your Role" step 2 reads as an unconditional order to bring in a verse, the per-intent
+addenda reinforce it, and scripture context is already retrieved and injected before the model is
+asked whether it understood the question. This makes clarification a first-class intent
+(`NEEDS_CLARIFICATION`) that skips retrieval, capped at one question per conversation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Vague openings get a warm one-question reply with no verse citation; search is skipped
+- [ ] At most one clarifying question per conversation; specific messages never trigger one
+- [ ] Never asked for verse lookups or `compassionate_response_needed` (crisis) turns
+- [ ] Works across en/it/de/es; clarification rate logged so rollout can be judged
+- [ ] Vague-opening cases added to the retrieval-eval harness (BITB-051)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-078-clarify-before-answering.md`
+
+---
+
+### 🎯 BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, backend + web + Android)
+**Created:** 2026-07-25
+
+**As a** user who has just read an answer, **I want** two or three suggested next questions offered
+as buttons, **so that** I can keep exploring without working out what to ask — or typing it on a
+phone.
+
+The welcome screen already proves the pattern works (tap a starter prompt, it sends), and it
+disappears exactly when the user has the most to explore. The streaming `completion` event is the
+natural carrier: it already grew `resolved_verses` and `corrections` as optional fields that older
+clients ignore (`service.py:1375-1386`). v1 generates follow-ups in-prompt via a machine-readable
+trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
+- [ ] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
+- [ ] Clients on an older backend are unaffected (absent field renders nothing)
+- [ ] Shares one chip component with BITB-078; accessible on web and Android
+- [ ] Interaction with the 10-message session limit (BITB-024) checked before rollout
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-080-suggested-followup-questions.md`
+
+---
+
 ## P3 - Low Priority (Future)
+
+### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
+
+**Status:** ✅ Done (PR #916, 2026-07-20)
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+
+**As a** maintainer, **I want** the low-risk items from the 2026-07-20 360° review
+shipped as independent commits, **so that** build hygiene and the doc surface improve
+with zero behavioural risk.
+
+**Acceptance Criteria (summary):**
+
+- [x] Dead `AGENTS.md.old`/`AGENTS.old.md` deleted; stale 2026-01 root planning docs archived to `docs/archive/`
+- [x] `.dockerignore` added for `api/` and `frontend/` build contexts (keeps local `.env` and `tests/` out of images)
+- [x] `eslint-config-next` aligned with `next` 16 (lint + tsc verified)
+- [x] Review report at `docs/audits/2026-07-20-360-review.md`; follow-up story BITB-073 filed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-072-repo-hygiene-build-quick-wins.md`
+
+---
+
+### ✅ BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
+
+**Status:** ✅ Done (PR #928 merged 2026-07-23)
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-20
+**Completed:** 2026-07-23
+
+**As a** maintainer, **I want** test-only deps out of `api/requirements.txt`
+(into a new `requirements-dev.txt`), **so that** the production image doesn't carry the
+test framework. Finding F3 of the 2026-07-20 360° review; deferred from BITB-072
+because it touches 2 workflows + Makefile + docs.
+
+**Acceptance Criteria (summary):**
+
+- [x] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
+- [x] Backend CI (unit + integration) green with updated install lines and cache keys
+- [x] Docker image builds unchanged; dependabot still covers both files
+
+**Full Story:** `docs/DONE/BITB-073-split-dev-prod-python-requirements.md`
+
+---
 
 ### 🎯 BITB-070: Re-evaluate `hybrid` Content-Safety Mode (Two-Vendor Defense-in-Depth)
 
@@ -1733,9 +2050,9 @@ adding an OpenAI key, unless a new mode is added.
 
 ---
 
-### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+### ✅ BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 2 hrs)
 **Created:** 2026-06-16
 
@@ -1745,9 +2062,9 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 **Acceptance Criteria (summary):**
 
-- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
-- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
-- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+- [x] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [x] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [x] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
 

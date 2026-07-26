@@ -1,0 +1,99 @@
+# Search-Eval Harness — How To (BITB-051)
+
+A repeatable scorer that measures **verse-retrieval ranking quality**
+(Precision@5 / Recall@10 / MRR) over a curated, multilingual golden set — so
+query expansion and hybrid search can be validated and tuned against real
+numbers instead of shipped blind.
+
+This is **not** the same tool as `golden_set/`, which scores chat *response*
+quality (scripture present, tone, source). This harness only measures
+*retrieval ranking* — does the right verse come back, and how high.
+
+## Prerequisites for `--run`
+
+`--validate` needs nothing but the repo. `--run` executes the **real**
+search pipeline and needs:
+
+- `DATABASE_URL` — a Postgres instance with the scripture corpus loaded
+  (ideally read-only access to prod's data, since retrieval quality depends
+  on the actual stored embeddings).
+- An embedding provider configured to match how the target database's
+  vectors were generated. **Prod uses Azure `text-embedding-3-small`
+  (1536-dim)** — set `EMBEDDING_PROVIDER=azure_openai`,
+  `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
+  `AZURE_EMBEDDING_DEPLOYMENT`. **Do not use Ollama embeddings against Azure
+  vectors** — query embeddings must come from the same model family as the
+  stored vectors, or similarity scores are meaningless.
+- An LLM provider (for `*_expansion` configs only) — whatever
+  `LLM_PROVIDER`/related env vars the app normally uses.
+
+## Commands
+
+```bash
+# No DB required — validates the golden-set file structure (also runs in CI)
+python scripts/run_search_eval.py --validate
+
+# Fast plumbing check: 3 cases only, default A/B configs
+python scripts/run_search_eval.py --run --smoke
+
+# Full run, default A/B (baseline_semantic vs expansion_semantic)
+DATABASE_URL=... EMBEDDING_PROVIDER=azure_openai ... \
+  python scripts/run_search_eval.py --run
+
+# Specific configs, one language
+python scripts/run_search_eval.py --run --config hybrid,hybrid_expansion --language it
+
+# Machine-readable output
+python scripts/run_search_eval.py --run --json
+```
+
+Available config names (`search_eval.runner.EVAL_CONFIGS`):
+
+| Config | Search method | Expansion |
+|---|---|---|
+| `baseline_semantic` | `search()` (semantic only) | no |
+| `expansion_semantic` | `search()` | yes |
+| `hybrid` | `search_hybrid()` | no |
+| `hybrid_expansion` | `search_hybrid()` | yes |
+| `topic_boosted` | `search_hybrid()` (boosting is a **no-op**, see below) | no |
+
+Default `--config` is the A/B pair `baseline_semantic,expansion_semantic`.
+
+## Reading the results
+
+The report prints a configs × P@5/R@10/MRR/FP@5 table, a per-language
+breakdown, mean expansion latency (for `*_expansion` configs), and the
+false-positive guard status (should read `healthy (0)` — any non-zero count
+means a query surfaced a verse explicitly flagged as irrelevant, e.g. the
+Italian frustration query returning Job 21:27; investigate immediately).
+
+**Versification caveat:** `relevant_refs` in the golden set are
+English-canonical, and retrieved references are also always English-canonical
+— so a *correct* hit in a non-English translation can still score as a miss
+if that translation numbers the verse differently (Psalm superscriptions,
+Joel/Malachi chapter splits, etc.). Read per-language scores with this in
+mind; closing the underlying reference-normalization gaps is tracked in
+**BITB-052**.
+
+**`topic_boosted` is a documented no-op** until **BITB-044** populates
+`verse_topics` — the runner logs a warning and falls back to plain hybrid
+search, so its numbers are expected to equal `hybrid`'s. Don't read anything
+into `topic_boosted` results until BITB-044 ships.
+
+## Satisfying the story's "Done when" bullet
+
+BITB-051 P3's acceptance criterion is: a maintainer with prod-read-only DB
+access and Azure credentials runs
+
+```bash
+DATABASE_URL=<prod-read-only-url> EMBEDDING_PROVIDER=azure_openai \
+  AZURE_OPENAI_ENDPOINT=... AZURE_OPENAI_API_KEY=... AZURE_EMBEDDING_DEPLOYMENT=... \
+  python scripts/run_search_eval.py --run
+```
+
+and gets the expansion OFF-vs-ON A/B table with a per-language breakdown.
+This cannot be exercised inside a sandboxed dev environment with no prod DB
+or Azure credentials — the harness's *code* is tested against injected fakes
+(see `api/tests/test_search_eval_runner.py`); the *live* A/B numbers are a
+manual maintainer step (above) until **P4** automates a nightly/manual CI
+run against Azure.
