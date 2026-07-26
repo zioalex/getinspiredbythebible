@@ -56,10 +56,12 @@ jobs:
             if [ "$committer_email" = "noreply@github.com" ] && \
                [ "$author_email" != "$PLANNING_AUTHOR_EMAIL" ]; then
               all_docs=true
+              found_any=false
               while IFS= read -r f; do
+                found_any=true
                 [[ "$f" == *.md ]] || { all_docs=false; break; }
               done < <(git diff-tree --no-commit-id -r --name-only "$sha")
-              if $all_docs; then
+              if $all_docs && $found_any; then
                 echo "Skipping web UI markdown-only commit $sha (author: $author_email)"
                 continue
               fi
