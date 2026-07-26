@@ -170,6 +170,204 @@ def collect_units(repo: Path, branch: str) -> list[dict]:
     return units
 
 
+# ---------------------------------------------------------------------------
+# AI model / harness attribution from Co-Authored-By trailers
+# ---------------------------------------------------------------------------
+# Squash-merging keeps branch-commit trailers only partially on the mainline,
+# so attribution scans ALL commits (its own denominator), not first-parent.
+
+ATTRIBUTION_FAMILIES = [
+    "Claude Opus", "Claude Sonnet", "Claude (other)", "GitHub Copilot",
+    "Android Dev alias", "human/unattributed",
+]
+
+BOT_HINTS = ("github-actions", "dependabot", "ci bot", "release-please")
+
+
+def classify_coauthor(value: str) -> str | None:
+    """Map one Co-Authored-By value to an attribution label (None = ignore)."""
+    low = value.lower()
+    name = value.split("<", 1)[0].strip()
+    if "noreply@anthropic.com" in low or name.lower().startswith("claude"):
+        return name if name != "Claude" else "Claude (unversioned)"
+    if "copilot" in low:
+        return "GitHub Copilot"
+    if "android-dev@" in low or name == "Android Dev":
+        return "Android Dev alias"
+    if any(h in low for h in BOT_HINTS):
+        return "bot"
+    return "human"
+
+
+def family_of(label: str) -> str:
+    if label.startswith("Claude Opus"):
+        return "Claude Opus"
+    if label.startswith("Claude Sonnet"):
+        return "Claude Sonnet"
+    if label.startswith("Claude"):
+        return "Claude (other)"
+    if label == "GitHub Copilot":
+        return "GitHub Copilot"
+    if label == "Android Dev alias":
+        return "Android Dev alias"
+    return "human/unattributed"
+
+
+def label_rank(label: str) -> int:
+    """Precedence when a commit has several co-authors: most specific wins."""
+    if label.startswith("Claude") and any(c.isdigit() for c in label):
+        return 0
+    if label == "Claude (unversioned)":
+        return 1
+    if label == "GitHub Copilot":
+        return 2
+    if label == "Android Dev alias":
+        return 3
+    if label == "human":
+        return 4
+    return 5  # bot
+
+
+def collect_attribution(repo: Path, branch: str) -> dict:
+    log = run_git(
+        repo, "log", branch, "--date=iso-strict",
+        f"--format=%aI{FIELD_SEP}%s{FIELD_SEP}"
+        "%(trailers:key=Co-Authored-By,valueonly,separator=%x7c)",
+    )
+    by_label: dict[str, Counter] = defaultdict(Counter)
+    monthly: dict[str, Counter] = defaultdict(Counter)
+    bot_commits = 0
+    total = 0
+    for line in log.splitlines():
+        parts = line.split(FIELD_SEP)
+        if len(parts) != 3:
+            continue
+        total += 1
+        date_iso, subject, trailers = parts
+        labels = [classify_coauthor(v) for v in trailers.split("|") if v.strip()]
+        labels = [l for l in labels if l]
+        label = min(labels, key=label_rank) if labels else "unattributed"
+        if label == "bot":
+            bot_commits += 1
+            continue
+        if label in ("human", "unattributed"):
+            label = "human/unattributed"
+        ctype = parse_subject(subject)["type"]
+        by_label[label]["commits"] += 1
+        if ctype in ("fix", "feat"):
+            by_label[label][ctype] += 1
+        monthly[date_iso[:7]][family_of(label)] += 1
+    return {
+        "note": "Per-commit Co-Authored-By trailers across all commits "
+                "(branch commits included; release/dependabot bot commits "
+                "counted separately). Absence of a trailer does not prove "
+                "no AI was involved — early history under-reports.",
+        "total_commits": total,
+        "bot_commits": bot_commits,
+        "attributed_ai_commits": sum(
+            c["commits"] for l, c in by_label.items()
+            if l != "human/unattributed"),
+        "families": ATTRIBUTION_FAMILIES,
+        "by_label": sorted(
+            ({"label": l, "commits": c["commits"],
+              "fix": c.get("fix", 0), "feat": c.get("feat", 0)}
+             for l, c in by_label.items()),
+            key=lambda x: -x["commits"]),
+        "monthly": [
+            {"month": m, **{f: cnt.get(f, 0) for f in ATTRIBUTION_FAMILIES}}
+            for m, cnt in sorted(monthly.items())
+        ],
+    }
+
+
+# Process-change milestones, dated from the first (or last) commit on the
+# analyzed branch that touched a marker file. The renderer aligns each event
+# with the monthly fix:feat series so "did this process change help?" stays
+# answerable from a fresh run instead of a one-off git dig. Add a row here
+# whenever a new practice gets a marker file.
+MILESTONES = [
+    (("CLAUDE.md", "AGENTS.md"), "first",
+     "Structured agent context file introduced (CLAUDE.md → AGENTS.md)"),
+    (("opencode.json",), "first", "opencode multi-agent harness introduced"),
+    (("opencode.json",), "last", "opencode config last touched (harness parked)"),
+    (("release-please-config.json",), "first",
+     "Conventional commits enforced + release-please automation"),
+    ((".claude/commands/plan-build-verify.md",), "first",
+     "Plan→Build→Verify relay codified as the default workflow"),
+    ((".claude/commands/risk-audit.md", "docs/AUDIT_PLAYBOOK.md"), "first",
+     "Adversarial risk audit: playbook, /risk-audit command, baseline report"),
+    (("tools/repo-metrics/analyze.py",), "first",
+     "Self-measuring productivity metrics tooling added"),
+]
+
+
+def collect_milestones(repo: Path, branch: str) -> list[dict]:
+    """Dated process-change events mined from marker-file history."""
+    events = []
+    for paths, mode, label in MILESTONES:
+        out = run_git(repo, "log", branch, "--format=%ad", "--date=short",
+                      "--", *paths)
+        dates = out.split()
+        if not dates:
+            continue  # marker not present on this branch (yet)
+        events.append({
+            "date": dates[-1] if mode == "first" else dates[0],
+            "mode": mode,
+            "event": label,
+            "markers": list(paths),
+        })
+    events.sort(key=lambda e: e["date"])
+    return events
+
+
+def detect_harnesses(repo: Path, attribution: dict) -> list[dict]:
+    """Evidence-based inventory of the AI coding harnesses used."""
+    harnesses = []
+    agents_md = repo / "AGENTS.md"
+    if agents_md.is_file():
+        text = agents_md.read_text(encoding="utf-8", errors="ignore")
+        if "Claude Code" in text:
+            models = []
+            if "Opus" in text:
+                models.append("Claude Opus (plan + verify)")
+            if "Sonnet" in text:
+                models.append("Claude Sonnet (build)")
+            harnesses.append({
+                "name": "Claude Code",
+                "evidence": "AGENTS.md context file; Plan→Build→Verify relay "
+                            "across models; Claude Co-Authored-By trailers",
+                "models": models,
+            })
+    oc = repo / "opencode.json"
+    if oc.is_file():
+        try:
+            cfg = json.loads(oc.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            cfg = {}
+        models = set()
+        for prov in (cfg.get("provider") or {}).values():
+            models.update((prov.get("models") or {}).keys())
+        for agent in (cfg.get("agent") or {}).values():
+            if isinstance(agent, dict) and agent.get("model"):
+                models.add(agent["model"])
+        harnesses.append({
+            "name": "opencode",
+            "evidence": "opencode.json multi-agent config "
+                        "(orchestrator + specialist subagents)",
+            "models": sorted(models),
+        })
+    copilot = next((r for r in attribution["by_label"]
+                    if r["label"] == "GitHub Copilot"), None)
+    if copilot:
+        harnesses.append({
+            "name": "GitHub Copilot coding agent",
+            "evidence": f"{copilot['commits']} commits co-authored by "
+                        "Copilot / copilot-swe-agent[bot]",
+            "models": [],
+        })
+    return harnesses
+
+
 def parse_changelog(repo: Path) -> list[dict]:
     text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
     header_re = re.compile(
@@ -255,7 +453,9 @@ def iso_week_start(d: dt.date) -> str:
 
 
 def build_metrics(units: list[dict], releases: list[dict],
-                  tags: dict[str, str], snapshot: dict, as_of: str) -> dict:
+                  tags: dict[str, str], snapshot: dict, as_of: str,
+                  attribution: dict, harnesses: list[dict],
+                  milestones: list[dict]) -> dict:
     def date_of(u: dict) -> dt.date:
         return dt.datetime.fromisoformat(u["date"]).date()
 
@@ -460,6 +660,9 @@ def build_metrics(units: list[dict], releases: list[dict],
         "reverts": [{"pr": u["pr"], "date": u["date"][:10], "desc": u["desc"]}
                     for u in reverts],
         "phases": {"pre_launch": phase_stats(pre), "post_launch": phase_stats(post)},
+        "attribution": attribution,
+        "harnesses": harnesses,
+        "milestones": milestones,
         "snapshot": snapshot,
     }
 
@@ -483,7 +686,11 @@ def main() -> None:
     releases = parse_changelog(repo)
     tags = tag_timestamps(repo)
     snapshot = snapshot_worktree(repo)
-    metrics = build_metrics(units, releases, tags, snapshot, args.as_of)
+    attribution = collect_attribution(repo, args.branch)
+    harnesses = detect_harnesses(repo, attribution)
+    milestones = collect_milestones(repo, args.branch)
+    metrics = build_metrics(units, releases, tags, snapshot, args.as_of,
+                            attribution, harnesses, milestones)
 
     out_dir = Path(args.out_dir) if args.out_dir else repo / "docs" / "metrics" / "history"
     out_dir.mkdir(parents=True, exist_ok=True)

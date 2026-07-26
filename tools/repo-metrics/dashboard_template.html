@@ -183,6 +183,31 @@
       </div>
     </div>
 
+    <div class="card" id="card-milestones" style="display:none">
+      <h3>Process timeline</h3>
+      <p class="desc">Dated process changes (mined from marker-file history) against the monthly fix:feat ratio. Correlation, not causation — months are confounded and pre-merge effects are invisible here.</p>
+      <div class="scrollx" id="c-milestones"></div>
+    </div>
+
+    <h2>Models &amp; harness</h2>
+    <div class="card">
+      <h3>Commits by AI model per month</h3>
+      <p class="desc" id="attr-note">Per-commit Co-Authored-By trailers across the full commit graph (bot commits excluded).</p>
+      <div id="c-attr"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Who wrote the commits</h3>
+        <p class="desc">Attribution per commit — the most specific co-author trailer wins.</p>
+        <div class="scrollx" id="c-attr-table"></div>
+      </div>
+      <div class="card">
+        <h3>Harnesses in use</h3>
+        <p class="desc">Evidence-based inventory of the AI coding setups found in the repo.</p>
+        <div class="scrollx" id="c-harness"></div>
+      </div>
+    </div>
+
     <h2>Churn &amp; rework</h2>
     <div class="grid2">
       <div class="card">
@@ -669,6 +694,71 @@ function mkTable(container, header, rows, opts) {
     mkTable(inc, ["PR", "Date", "What"], d.reverts.map(r =>
       [r.pr ? { href: d.repoUrl + "/pull/" + r.pr, text: "#" + r.pr } : "—",
        r.date, r.desc]));
+  }
+
+  /* process milestones */
+  if (d.milestones && d.milestones.length) {
+    document.getElementById("card-milestones").style.display = "";
+    const fmtR = v => v == null ? "—" : v;
+    mkTable(document.getElementById("c-milestones"),
+      ["Date", "Process change", "fix:feat before", "month of", "after"],
+      d.milestones.map(e => [e.date, e.event, fmtR(e.ratio_before),
+        fmtR(e.ratio_of), fmtR(e.ratio_after)]),
+      { numFrom: 2 });
+  }
+
+  /* attribution */
+  if (d.attribution) {
+    const A = d.attribution;
+    const ATTR_SERIES = [
+      { key: "Claude Opus", name: "Claude Opus", color: "--s-feat" },
+      { key: "Claude Sonnet", name: "Claude Sonnet", color: "--s-fix" },
+      { key: "Claude (other)", name: "Claude (other)", color: "--s-build" },
+      { key: "GitHub Copilot", name: "GitHub Copilot", color: "--s-ci" },
+      { key: "Android Dev alias", name: "Android Dev alias", color: "--s-docs" },
+      { key: "human/unattributed", name: "human/unattributed", color: "--s-other" },
+    ];
+    const ca = document.getElementById("c-attr");
+    stackedColumns(ca, A.monthly.map(r => ({ ...r })), ATTR_SERIES,
+      A.monthly.map(r => r.month + "-01"),
+      { head: l => new Date(l + "T00:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        skipZero: true });
+    legend(ca, ATTR_SERIES);
+    tableView(ca, ["month", ...ATTR_SERIES.map(s => s.name)],
+      A.monthly.map(r => [r.month, ...ATTR_SERIES.map(s => r[s.key] || 0)]));
+    document.getElementById("attr-note").textContent =
+      `${fmtN(A.attributed_ai_commits)} of ${fmtN(A.total_commits - A.bot_commits)} non-bot commits (` +
+      Math.round(100 * A.attributed_ai_commits / (A.total_commits - A.bot_commits)) +
+      "%) carry an AI co-author trailer. Absence of a trailer does not prove no AI was involved — early history under-reports.";
+
+    const tbl = document.getElementById("c-attr-table");
+    mkTable(tbl, ["Model / author", "Commits", "feat", "fix"],
+      A.by_label.map(r => [r.label, r.commits, r.feat, r.fix]), { numFrom: 1 });
+    const known = A.by_label.filter(r => d.modelInfo[r.label]);
+    if (known.length) {
+      h("p", { class: "desc", text: "About the models:" }, tbl);
+      const ul = h("ul", { style: "margin:4px 0 10px;padding-left:18px;font-size:12px;color:var(--ink-2)" }, tbl);
+      for (const r of known) {
+        const li = h("li", { style: "margin-bottom:4px" }, ul);
+        const b = h("strong", { text: r.label + ": " }, li);
+        li.appendChild(document.createTextNode(d.modelInfo[r.label]));
+      }
+    }
+
+    const hw = document.getElementById("c-harness");
+    for (const hs of d.harnesses) {
+      const p = h("p", { style: "font-size:12.5px;margin:6px 0" }, hw);
+      h("strong", { text: hs.name }, p);
+      p.appendChild(document.createTextNode(" — " + hs.evidence + "."));
+      if (hs.models.length) {
+        const ul = h("ul", { style: "margin:4px 0 8px;padding-left:18px;font-size:12px;color:var(--ink-2)" }, hw);
+        for (const mdl of hs.models) {
+          const li = h("li", {}, ul);
+          h("code", { text: mdl }, li);
+          if (d.modelInfo[mdl]) li.appendChild(document.createTextNode(" — " + d.modelInfo[mdl]));
+        }
+      }
+    }
   }
 
   /* chains */

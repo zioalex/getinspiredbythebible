@@ -43,5 +43,10 @@ GitHub Pages (one-time setup: Settings → Pages → Source: "GitHub Actions").
 - **Fix chain** — ≥2 fixes on one scope with ≤7-day gaps between them.
 - **Hotfix release** — a patch release tagged <24 h after the previous
   release (production-incident proxy).
+- **Process timeline** — dated process-change events mined from the
+  first/last commit touching each marker file (`MILESTONES` in
+  `analyze.py`), aligned with monthly fix:feat. Add a row to `MILESTONES`
+  whenever a new practice gets a marker file, so "did this change help?"
+  stays answerable from a fresh run rather than a one-off git dig.
 
 Tune thresholds and file classification at the top of `analyze.py`.
