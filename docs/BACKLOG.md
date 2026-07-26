@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-21
+**Last Updated:** 2026-07-25
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1217,6 +1217,94 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 
 ---
 
+> **Product feature batch (maintainer, 2026-07-25) → BITB-075…081.**
+> Seven stories from a single product review: raise the message limit, an About page and
+> intro modal explaining why Vox Quieta exists, clarify-before-answering, the off-screen
+> web bottom bar, follow-up suggestion chips, and the Android example-tap fix.
+
+### 🎯 BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As a** user describing a real, complicated situation, **I want** to write up to 500 characters in
+one message, **so that** I can give enough context to get a useful answer instead of amputating my
+question to fit a 300-character box.
+
+**Why P1:** Raising the number also fixes a live production defect. The limit is hard-coded in five
+places that disagree: the deployed value is **200** (`deployment/terraform.tfvars:91`), the backend
+default is **300** (`api/config.py:180`), and both clients cap at **300**
+(`frontend/src/lib/api.ts:121`, `ChatViewModel.kt:173`). Today a 250-character message passes the
+input box, is rejected with a 422, and the error tells the user the limit is 300. Raising the number
+without fixing the drift just moves the bug.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 500 accepted end-to-end (web + Android); 501 blocked client-side and rejected server-side
+- [ ] Every layer agrees — code default, Terraform, tfvars, env manifest, deployment README
+- [ ] `GET /config` publishes `chat.max_message_length`; clients use it, constant is fallback only
+- [ ] "Message too long" error and the character counter show the *effective* limit
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-075-raise-message-limit-to-500.md`
+
+---
+
+### 🎯 BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As a** web visitor, **I want** the bottom bar (Get the app / Privacy / Terms / Changelog) to be
+reachable from the chat page, **so that** I can get to the legal pages and the app link.
+
+**Why P1:** `layout.tsx:107-111` renders `<Footer />` *after* a `flex-1` slot, while
+`ChatIsland.tsx:938` gives the chat `h-dvh` — the full dynamic viewport. The footer therefore sits
+exactly one footer-height below the fold, and the chat's own `overflow-y-auto` scroller
+(`ChatIsland.tsx:1035`) swallows the gestures that would reach it. On mobile `100dvh` tracks the
+browser chrome, so it keeps sliding away. Privacy and Terms are legally required disclosures; a nav
+surface that never appears on screen is the same as not having one. Chat-page-only — short pages are
+unaffected.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Footer links reachable without a document scroll at 360×640, 390×844, 768×1024, 1440×900
+- [ ] Composer stays visible with the mobile keyboard open; no horizontal scroll; RTL correct
+- [ ] Bottom region decrowded (collapsed contact form, one promo element at a time)
+- [ ] Playwright viewport regression test — a unit test cannot catch this
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-079-web-bottom-bar-always-offscreen.md`
+
+---
+
+### 🎯 BITB-081: Android — Tapping an Example Question Must Send on the First Tap
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs)
+**Created:** 2026-07-25
+
+**As an** Android user tapping an example question on the welcome screen, **I want** it sent
+immediately, **so that** I get an answer from one tap instead of finding the text silently pasted
+into the composer.
+
+**Why P1:** This is the app's first interaction. `ChatScreen.kt:370-382` only sends when
+`isTurnstileReady` is true — which on a cold start it usually is not while the welcome screen is
+showing — so the tap becomes a silent paste with no feedback. The guard is unnecessary:
+`TurnstileInterceptor` already waits for a token, proceeds without one, and retries once on 403
+(`TurnstileInterceptor.kt:28-79`). Web already sends on tap.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Tapping an example on a cold start (no token yet) sends and starts streaming
+- [ ] Tapped text never remains in the input field; no second tap ever needed
+- [ ] Failures surface the normal error state — never silence
+- [ ] Compose UI test with `isTurnstileReady = false` asserts `sendMessage` is invoked
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-081-android-example-prompt-sends-on-tap.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
@@ -1770,6 +1858,127 @@ Developer Program Policy before shipping).
 
 ---
 
+### 🎯 BITB-076: "About" Page — Why Vox Quieta Exists
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, mostly copywriting + 11 locales)
+**Created:** 2026-07-25
+
+**As a** visitor who has just found Vox Quieta, **I want** to read who built this and why, **so
+that** I can decide whether to trust a chatbot with something as personal as my faith and my grief.
+
+The site answers "what are you doing with my data" (privacy, terms) but never "why does this exist
+and who made it" — the question that actually earns the first message. The motivation is already
+written: **["Building Something That Matters: How Claude Code Helped Me Create a Bible Inspiration
+Chatbot"](https://ai4you.sh/posts/Building-Something-That-Matters-How-Claude-Code-Helped-Me-Create-a-Bible-Inspiration-Chatbot/)**
+is the foundation and canonical reference for the page. New static localized route at
+`/{locale}/about`, built like the existing `/app` page.
+
+The post's motivation is the mental-health one — "something simple, accessible, and deeply rooted in
+Scripture that could offer encouragement when someone needed it most. Not a replacement for therapy
+or pastoral care, but a gentle companion for moments of struggle." Note that the post describes
+**v1.0** and is now stale on the name, the stack and the language list (see the story's *Source
+Material* section): it is the origin story to adapt, not text to transcribe.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `/{locale}/about` renders for all 11 locales, server-rendered and statically generated
+- [ ] Copy adapted from the ai4you.sh post, which is linked as the full story
+- [ ] States plainly what Vox Quieta is *not* (not pastoral care, not counseling)
+- [ ] Reflects the project as it is today; one sentence of continuity for the rename from
+      "Get Inspired by the Bible" to "Vox Quieta"
+- [ ] `About` namespace complete in all 11 `frontend/messages/*.json`; Arabic RTL correct
+- [ ] Linked from the footer **and** from the chat screen; added to `sitemap.ts` `PATHS`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-076-about-page-motivation.md`
+
+---
+
+### 🎯 BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
+
+**Status:** 🎯 Todo
+**Size:** S (< 4 hrs, after BITB-076)
+**Created:** 2026-07-25
+**Blocked by:** BITB-076
+
+**As a** person opening Vox Quieta, **I want** a short, dismissible introduction explaining who made
+this and why, **so that** I know what I am talking to before typing something personal into it.
+
+A page nobody clicks changes nothing, so the new message warrants one deliberate interruption — then
+it belongs in the onboarding path only. Both halves of the mechanism already exist in the repo: the
+one-time splash cookie (`providers.tsx:13-24`) and the show-once-per-version localStorage gate with
+silent first-visit seeding (`WhatsNewModal.tsx:33-40`). A single versioned
+`vq:aboutIntroSeen` key gives "everyone now, new visitors later" for free.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Every visitor sees it exactly once after deploy; dismissal persists forever
+- [ ] Never stacked on `SplashScreen` or `WhatsNewModal`; appears after the splash completes
+- [ ] Copy from the `About` namespace in all 11 locales; primary action opens `/about`
+- [ ] No SSR/CSR hydration mismatch (see BITB-069); keyboard accessible
+- [ ] Bumping the version constant re-shows it — proven by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-077-about-intro-modal.md`
+
+---
+
+### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, prompt work + eval)
+**Created:** 2026-07-25
+
+**As a** user who types something short and raw like "I'm lost", **I want** the companion to ask one
+gentle question about what I'm facing, **so that** the answer speaks to my actual situation instead
+of whatever the model guessed.
+
+The worst failure mode for this product is sounding caring while addressing someone else's problem.
+The instruction exists (`SYSTEM_PROMPT_TEMPLATE`, "## When the Request Is Unclear") but is
+outweighed: "## Your Role" step 2 reads as an unconditional order to bring in a verse, the per-intent
+addenda reinforce it, and scripture context is already retrieved and injected before the model is
+asked whether it understood the question. This makes clarification a first-class intent
+(`NEEDS_CLARIFICATION`) that skips retrieval, capped at one question per conversation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Vague openings get a warm one-question reply with no verse citation; search is skipped
+- [ ] At most one clarifying question per conversation; specific messages never trigger one
+- [ ] Never asked for verse lookups or `compassionate_response_needed` (crisis) turns
+- [ ] Works across en/it/de/es; clarification rate logged so rollout can be judged
+- [ ] Vague-opening cases added to the retrieval-eval harness (BITB-051)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-078-clarify-before-answering.md`
+
+---
+
+### 🎯 BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, backend + web + Android)
+**Created:** 2026-07-25
+
+**As a** user who has just read an answer, **I want** two or three suggested next questions offered
+as buttons, **so that** I can keep exploring without working out what to ask — or typing it on a
+phone.
+
+The welcome screen already proves the pattern works (tap a starter prompt, it sends), and it
+disappears exactly when the user has the most to explore. The streaming `completion` event is the
+natural carrier: it already grew `resolved_verses` and `corrections` as optional fields that older
+clients ignore (`service.py:1375-1386`). v1 generates follow-ups in-prompt via a machine-readable
+trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
+- [ ] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
+- [ ] Clients on an older backend are unaffected (absent field renders nothing)
+- [ ] Shares one chip component with BITB-078; accessible on web and Android
+- [ ] Interaction with the 10-message session limit (BITB-024) checked before rollout
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-080-suggested-followup-questions.md`
+
+---
+
 ## P3 - Low Priority (Future)
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
@@ -1793,11 +2002,12 @@ with zero behavioural risk.
 
 ---
 
-### 🎯 BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
+### ✅ BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #928 merged 2026-07-23)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-20
+**Completed:** 2026-07-23
 
 **As a** maintainer, **I want** test-only deps out of `api/requirements.txt`
 (into a new `requirements-dev.txt`), **so that** the production image doesn't carry the
@@ -1806,11 +2016,11 @@ because it touches 2 workflows + Makefile + docs.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
-- [ ] Backend CI (unit + integration) green with updated install lines and cache keys
-- [ ] Docker image builds unchanged; dependabot still covers both files
+- [x] Clean-venv install of `requirements.txt` contains no pytest; `requirements-dev.txt` runs the full suite
+- [x] Backend CI (unit + integration) green with updated install lines and cache keys
+- [x] Docker image builds unchanged; dependabot still covers both files
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-073-split-dev-prod-python-requirements.md`
+**Full Story:** `docs/DONE/BITB-073-split-dev-prod-python-requirements.md`
 
 ---
 
@@ -1840,9 +2050,9 @@ adding an OpenAI key, unless a new mode is added.
 
 ---
 
-### 🎯 BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
+### ✅ BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not Generic "Failed to Send")
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 2 hrs)
 **Created:** 2026-06-16
 
@@ -1852,9 +2062,9 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 **Acceptance Criteria (summary):**
 
-- [ ] A 422 email rejection renders an email-specific message, not the generic `errorSend`
-- [ ] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
-- [ ] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
+- [x] A 422 email rejection renders an email-specific message, not the generic `errorSend`
+- [x] `submitContactForm` parses the 422 `detail` (mirroring `streamMessage`/`MessageTooLongError`); other failures still show `errorSend`
+- [x] `Contact.errorEmailInvalid` added in all 11 locales; tests in `api.test.ts` + `ContactForm.test.tsx`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-052-web-contact-form-email-specific-error.md`
 

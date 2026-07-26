@@ -246,7 +246,8 @@
     "successTitle": "Mensagem enviada com sucesso!",
     "successDescription": "Obrigado por entrar em contacto. Analisaremos a sua mensagem em breve.",
     "sendAnother": "Enviar outra",
-    "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente."
+    "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente.",
+    "errorEmailInvalid": "Insira um e-mail válido para podermos responder."
   },
   "ErrorBoundary": {
     "title": "Algo deu errado",

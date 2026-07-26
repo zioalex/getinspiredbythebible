@@ -246,7 +246,8 @@
     "successTitle": "Message envoyé avec succès !",
     "successDescription": "Merci de nous avoir contactés. Nous examinerons votre message bientôt.",
     "sendAnother": "Envoyer un autre",
-    "errorSend": "Impossible d'envoyer le message. Veuillez réessayer ou nous écrire directement."
+    "errorSend": "Impossible d'envoyer le message. Veuillez réessayer ou nous écrire directement.",
+    "errorEmailInvalid": "Veuillez saisir un e-mail valide afin que nous puissions répondre."
   },
   "ErrorBoundary": {
     "title": "Quelque chose s'est mal passé",

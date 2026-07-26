@@ -82,8 +82,8 @@ The CI/CD pipeline includes comprehensive testing across multiple layers:
 cd api
 
 # Install dependencies
-pip install -r requirements.txt
-pip install ruff black mypy pytest pytest-asyncio
+pip install -r requirements-dev.txt
+pip install ruff black mypy
 
 # Run linting
 ruff check .
