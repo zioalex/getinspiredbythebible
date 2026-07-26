@@ -1272,7 +1272,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -1462,7 +1462,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -1527,7 +1527,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -1592,7 +1592,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
@@ -1687,7 +1687,7 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
