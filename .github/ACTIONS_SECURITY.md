@@ -33,7 +33,7 @@
 ```yaml
 env:
   # ✅ GOOD
-  API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  API_KEY: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
   # ❌ BAD

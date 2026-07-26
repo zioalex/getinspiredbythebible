@@ -2,21 +2,19 @@ package org.voxquieta.app.screens
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.voxquieta.app.presentation.screens.ChatTopBarPolicy
 import org.voxquieta.app.presentation.screens.chatTopBarPolicy
-import org.voxquieta.app.presentation.screens.translationChipLabel
 
 /**
  * Unit tests for the [chatTopBarPolicy] helper which encodes the visibility
  * rules for the Chat screen's top app bar and navigation drawer.
  *
  * These rules implement the product requirement that the top-right of the
- * Chat screen exposes only the Bible version chip, the language picker, and
- * (when applicable) the verses panel — every other action lives in the left
- * hamburger drawer.
+ * Chat screen exposes only the "+ New chat" shortcut and (when applicable)
+ * the verses panel — every other action, including the Bible-version picker
+ * and the language picker, lives in the left hamburger drawer.
  */
 class ChatTopBarPolicyTest {
 
@@ -109,34 +107,5 @@ class ChatTopBarPolicyTest {
         val policy = chatTopBarPolicy(versesCount = -1, messagesCount = -5)
         assertFalse(policy.showVersesPanelInTopBar)
         assertFalse(policy.showClearConversationInDrawer)
-    }
-
-    // ── translationChipLabel ──────────────────────────────────────────────────
-
-    @Test
-    fun `translationChipLabel returns null for empty preference (auto-detect)`() {
-        // null signals the composable to display the localised "Bible Version"
-        // placeholder, matching the web behaviour introduced in #551.
-        assertNull(translationChipLabel(""))
-    }
-
-    @Test
-    fun `translationChipLabel returns null for blank preference`() {
-        assertNull(translationChipLabel("   "))
-    }
-
-    @Test
-    fun `translationChipLabel uppercases a stored translation id`() {
-        assertEquals("KJV", translationChipLabel("kjv"))
-    }
-
-    @Test
-    fun `translationChipLabel preserves already-uppercase id`() {
-        assertEquals("NIV", translationChipLabel("NIV"))
-    }
-
-    @Test
-    fun `translationChipLabel uppercases mixed-case id`() {
-        assertEquals("ESV", translationChipLabel("Esv"))
     }
 }

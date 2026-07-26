@@ -39,6 +39,7 @@ vi.mock("@/lib/api", () => ({
   warmupBackend: vi.fn(),
   searchChurches: vi.fn(),
   submitContactForm: vi.fn(),
+  InvalidContactEmailError: class InvalidContactEmailError extends Error {},
 }));
 vi.mock("@/lib/turnstile", () => ({
   useTurnstile: vi.fn(),

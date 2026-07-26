@@ -116,10 +116,10 @@ make setup-dev
 source .venv/bin/activate
 
 # Install from requirements
-pip install -r api/requirements.txt
+pip install -r api/requirements-dev.txt
 
 # Install development tools
-pip install ruff black mypy pytest
+pip install ruff black mypy
 
 # Install individual package
 pip install httpx
@@ -176,7 +176,7 @@ python3 -m venv .venv
 
 # Install everything
 source .venv/bin/activate
-pip install -r api/requirements.txt
+pip install -r api/requirements-dev.txt
 ```
 
 ## Troubleshooting

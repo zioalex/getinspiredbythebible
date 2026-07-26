@@ -426,20 +426,26 @@ class TestSearchVersesText:
 
 
 class TestSearchVersesSemantic:
-    """Tests for ScriptureRepository.search_verses_semantic()."""
+    """Tests for ScriptureRepository.search_verses_semantic().
+
+    Index-friendly path (BITB-062): the first execute() runs the raw-SQL
+    candidate-pool CTE and returns (id, similarity) rows; the second execute()
+    re-fetches the full Verse objects by id, mirroring search_verses_hybrid.
+    """
 
     @pytest.mark.asyncio
     async def test_returns_results(self):
         session = _make_mock_session()
         mock_verse = _make_mock_verse()
+        mock_verse.id = 1
 
-        mock_row = MagicMock()
-        mock_row.Verse = mock_verse
-        mock_row.similarity = 0.85
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = [(1, 0.85)]
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = [mock_row]
-        session.execute = AsyncMock(return_value=mock_result)
+        mock_verses_result = MagicMock()
+        mock_verses_result.scalars.return_value.all.return_value = [mock_verse]
+
+        session.execute = AsyncMock(side_effect=[mock_sql_result, mock_verses_result])
 
         repo = ScriptureRepository(session)
         results = await repo.search_verses_semantic([0.1] * 1024, limit=5)
@@ -447,33 +453,37 @@ class TestSearchVersesSemantic:
         assert len(results) == 1
         verse, similarity = results[0]
         assert verse == mock_verse
-        assert similarity == 0.85
+        assert similarity == pytest.approx(0.85)
 
     @pytest.mark.asyncio
     async def test_no_results(self):
         session = _make_mock_session()
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        session.execute = AsyncMock(return_value=mock_result)
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        session.execute = AsyncMock(return_value=mock_sql_result)
 
         repo = ScriptureRepository(session)
         results = await repo.search_verses_semantic([0.1] * 1024)
 
         assert len(results) == 0
+        # No-results path short-circuits before the id-lookup query.
+        session.execute.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_with_translation_filter(self):
         session = _make_mock_session()
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        session.execute = AsyncMock(return_value=mock_result)
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = []
+        session.execute = AsyncMock(return_value=mock_sql_result)
 
         repo = ScriptureRepository(session)
         await repo.search_verses_semantic([0.1] * 1024, translation="kjv")
 
-        session.execute.assert_awaited_once()
+        call_args = session.execute.call_args
+        params = call_args[0][1]
+        assert params["translation"] == "kjv"
 
 
 class TestGetPassageById:
@@ -509,20 +519,25 @@ class TestGetPassageById:
 
 
 class TestSearchPassagesSemantic:
-    """Tests for ScriptureRepository.search_passages_semantic()."""
+    """Tests for ScriptureRepository.search_passages_semantic().
+
+    Index-friendly path (BITB-062): same two-execute pattern as
+    TestSearchVersesSemantic, mirroring search_passages_hybrid.
+    """
 
     @pytest.mark.asyncio
     async def test_returns_results(self):
         session = _make_mock_session()
         mock_passage = _make_mock_passage()
+        mock_passage.id = 1
 
-        mock_row = MagicMock()
-        mock_row.Passage = mock_passage
-        mock_row.similarity = 0.75
+        mock_sql_result = MagicMock()
+        mock_sql_result.fetchall.return_value = [(1, 0.75)]
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = [mock_row]
-        session.execute = AsyncMock(return_value=mock_result)
+        mock_passages_result = MagicMock()
+        mock_passages_result.scalars.return_value.all.return_value = [mock_passage]
+
+        session.execute = AsyncMock(side_effect=[mock_sql_result, mock_passages_result])
 
         repo = ScriptureRepository(session)
         results = await repo.search_passages_semantic([0.1] * 1024)
@@ -530,7 +545,7 @@ class TestSearchPassagesSemantic:
         assert len(results) == 1
         passage, similarity = results[0]
         assert passage.title == "The Lord's Prayer"
-        assert similarity == 0.75
+        assert similarity == pytest.approx(0.75)
 
 
 class TestGetAllTopics:

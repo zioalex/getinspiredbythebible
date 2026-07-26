@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-04-20
+lastUpdated: 2026-07-18
 ---
 
 # Política de Privacidade
 
 > _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
-Última atualização: 20 de abril de 2026
+Última atualização: 18 de julho de 2026
 
 ## Quem somos
 
@@ -16,8 +16,17 @@ Vox Quieta ("nós", "nos", "nosso") é um aplicativo gratuito de inspiração b�
 
 ### Dados que você fornece
 
-- **Mensagens do chat**: o texto que você digita é enviado para nossa API para gerar respostas baseadas nas Escrituras. Não armazenamos suas mensagens em nossos servidores além do tempo necessário para gerar uma resposta.
+- **Mensagens do chat**: o texto que você digita é enviado para nossa API, que o encaminha a provedores terceirizados de serviços de IA (listados abaixo) exclusivamente para gerar uma resposta baseada nas Escrituras e verificar sua segurança. Não armazenamos suas mensagens em nossos servidores além do tempo necessário para gerar uma resposta.
 - **Avaliações de feedback**: avaliações opcionais de polegar para cima/para baixo que você envia sobre as respostas.
+
+### Como suas mensagens são processadas por IA
+
+Para responder às suas perguntas, nossa API envia o texto da sua mensagem aos seguintes provedores terceirizados de IA:
+
+- **OpenRouter** — recebe o texto da sua mensagem para gerar a resposta baseada nas Escrituras (geração por modelo de linguagem) e para verificar a segurança das mensagens (verificação de segurança de conteúdo Llama Guard).
+- **Azure OpenAI (Microsoft)** — recebe o texto da sua mensagem para calcular os embeddings de texto usados para encontrar as passagens bíblicas mais relevantes.
+
+O texto da sua mensagem é usado por esses provedores **exclusivamente** para gerar ou verificar a segurança da resposta àquela mensagem. Ele não é usado por nós — nem, conforme os termos de API de cada provedor, pelo provedor — para treinar seus modelos de IA de uso geral, não é retido pelo provedor além do necessário para atender à solicitação e nunca é usado para publicidade nem vendido. Consulte a [política de privacidade da OpenRouter](https://openrouter.ai/privacy) e a [declaração de privacidade da Microsoft](https://privacy.microsoft.com) para conhecer as práticas de tratamento de dados de cada provedor.
 
 ### Dados coletados automaticamente
 
@@ -33,14 +42,21 @@ Vox Quieta ("nós", "nos", "nosso") é um aplicativo gratuito de inspiração b�
 
 ## Histórico de conversas
 
-O histórico de conversas é armazenado **apenas localmente em seu dispositivo** em um banco de dados criptografado no dispositivo (Room/SQLite). Ele nunca é enviado para nossos servidores.
+O histórico de conversas é armazenado **apenas localmente em seu dispositivo** e nunca é enviado para nossos servidores:
+
+- **Aplicativo móvel:** um banco de dados criptografado no dispositivo (Room/SQLite).
+- **Aplicativo web:** o armazenamento local do seu navegador (IndexedDB), no dispositivo que você usa.
+
+Você pode visualizar, renomear, excluir ou limpar esse histórico a qualquer momento. Você também pode exportá-lo como um **arquivo criptografado com uma frase secreta** para movê-lo para outro dos seus dispositivos: o arquivo é criptografado com uma frase que só você conhece, de modo que permanece em suas mãos mesmo durante a transferência.
 
 ## Serviços de terceiros
 
-| Serviço                       | Finalidade                   | Política de Privacidade                                            |
-| ----------------------------- | ---------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Relatórios de falhas         | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Análises de uso anonimizadas | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Serviço                       | Finalidade                                                        | Política de Privacidade                                            |
+| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Firebase Crashlytics (Google) | Relatórios de falhas                                              | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| Firebase Analytics (Google)   | Análises de uso anonimizadas                                      | [policies.google.com/privacy](https://policies.google.com/privacy) |
+| OpenRouter                    | Geração de respostas de IA e verificação de segurança de conteúdo | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
+| Azure OpenAI (Microsoft)      | Embeddings de texto para busca de passagens bíblicas              | [privacy.microsoft.com](https://privacy.microsoft.com)             |
 
 ## Retenção de dados
 
@@ -65,7 +81,7 @@ Se você estiver no Espaço Econômico Europeu, tem o direito de:
 - solicitar a exclusão de seus dados,
 - opor-se ao processamento de seus dados.
 
-Como não coletamos informações de identificação pessoal, a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com).
+Como não coletamos informações de identificação pessoal, a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter e da Microsoft indicadas acima.
 
 Para quaisquer dúvidas sobre privacidade, entre em contato conosco em: **<privacy@voxquieta.org>**
 

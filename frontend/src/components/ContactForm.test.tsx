@@ -2,10 +2,11 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ContactForm from "./ContactForm";
 import { renderWithIntl } from "@/test/i18n-helpers";
-import { submitContactForm } from "@/lib/api";
+import { submitContactForm, InvalidContactEmailError } from "@/lib/api";
 
 vi.mock("@/lib/api", () => ({
   submitContactForm: vi.fn(),
+  InvalidContactEmailError: class InvalidContactEmailError extends Error {},
 }));
 
 const mockSubmit = vi.mocked(submitContactForm);
@@ -104,6 +105,31 @@ describe("ContactForm", () => {
         ),
       ).toBeDefined();
     });
+  });
+
+  it("a 422 email rejection shows the email-specific message", async () => {
+    mockSubmit.mockRejectedValue(new InvalidContactEmailError());
+
+    renderWithIntl(<ContactForm />);
+    fireEvent.click(screen.getByText("Get in Touch"));
+
+    const emailInput = screen.getByLabelText(/email/i);
+    fireEvent.change(emailInput, { target: { value: "user@example.com" } });
+
+    const messageInput = screen.getByLabelText("Message");
+    fireEvent.change(messageInput, { target: { value: "Hello!" } });
+    fireEvent.submit(messageInput.closest("form")!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Please enter a valid email so we can reply."),
+      ).toBeDefined();
+    });
+    expect(
+      screen.queryByText(
+        "Failed to send message. Please try again or email us directly.",
+      ),
+    ).toBeNull();
   });
 
   it("all 5 subject options render", () => {

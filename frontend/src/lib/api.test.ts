@@ -13,10 +13,12 @@ import {
   setOnTokenConsumed,
   setTurnstileAwaiter,
   submitFeedback,
+  submitContactForm,
   streamMessage,
   ColdStartError,
   StreamTimeoutError,
   MessageTooLongError,
+  InvalidContactEmailError,
   VerificationError,
   type ChatResponse,
   type ScriptureContext,
@@ -1115,5 +1117,61 @@ describe("streamMessage", () => {
       // The stalled reader must be released so the connection isn't leaked.
       expect(cancel).toHaveBeenCalled();
     });
+  });
+});
+
+describe("submitContactForm", () => {
+  const contact = {
+    email: "test@example.com",
+    subject: "feedback" as const,
+    message: "Hello",
+  };
+
+  it("throws InvalidContactEmailError on a 422 pointing at the email field", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [
+          {
+            type: "value_error",
+            loc: ["body", "email"],
+            msg: "value is not a valid email address",
+          },
+        ],
+      }),
+    });
+
+    await expect(submitContactForm(contact)).rejects.toBeInstanceOf(
+      InvalidContactEmailError,
+    );
+  });
+
+  it("throws a generic error on a 422 unrelated to the email field", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [
+          {
+            type: "string_too_short",
+            loc: ["body", "message"],
+            msg: "String should have at least 1 character",
+          },
+        ],
+      }),
+    });
+
+    const result = submitContactForm(contact);
+    await expect(result).rejects.not.toBeInstanceOf(InvalidContactEmailError);
+    await expect(result).rejects.toThrow("API error: 422");
+  });
+
+  it("throws a generic error on a non-422 failure", async () => {
+    (global.fetch as any).mockResolvedValueOnce({ ok: false, status: 500 });
+
+    const result = submitContactForm(contact);
+    await expect(result).rejects.not.toBeInstanceOf(InvalidContactEmailError);
+    await expect(result).rejects.toThrow("API error: 500");
   });
 });

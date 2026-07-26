@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     embedding_retry_max_attempts: int = 2  # Total attempts (including the first) per embed call
     embedding_retry_base_delay_seconds: float = 0.5  # Base for jittered exponential backoff
 
+    # Embedding cache (BITB-057 Phase 2). In-process only - no Redis or other
+    # shared cache exists anywhere in this stack, so a hit on one replica does
+    # not help another. See providers/embedding_cache.py::CachingEmbeddingProvider.
+    embedding_cache_enabled: bool = True
+    embedding_cache_max_size: int = 1024  # Entries; hot-query working set is small
+    embedding_cache_ttl_seconds: float = 3600.0  # 1h - mainly a memory/staleness bound
+
     # Azure OpenAI Settings (optional - for Azure deployment)
     azure_openai_endpoint: str | None = None
     azure_openai_api_key: str | None = None
@@ -172,6 +179,11 @@ class Settings(BaseSettings):
     # Security Settings
     max_message_length: int = 300  # Max characters per chat message
     rate_limit_enabled: bool = True
+    # BITB-061: "postgres" shares counters across replicas and survives
+    # restarts/deploys (the whole point of this setting); "memory" is the
+    # legacy in-process behavior, kept reachable for tests and local dev
+    # without a database.
+    rate_limit_backend: Literal["postgres", "memory"] = "postgres"
     rate_limit_requests_per_minute: int = 20  # Per IP address
     rate_limit_requests_per_session_minute: int = 10  # Per session per minute
     rate_limit_session_max_requests: int = 10  # Lifetime max per session (encourages breaks)
