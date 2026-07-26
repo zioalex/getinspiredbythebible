@@ -26,15 +26,15 @@ response. The code side shipped as:
 The following Console-only items are **not done by either PR** and need a
 human with Play Console access:
 
-- [ ] **Data safety form** (Play Console → App content → Data safety):
+- [x] **Data safety form** (Play Console → App content → Data safety):
   update to reflect that chat message text is shared with third-party AI
   processors (OpenRouter, Azure OpenAI) for the purpose of generating and
   safety-screening responses. Confirm the "Location" section still correctly
   states no location data is collected.
-- [ ] **Content rating questionnaire** (Play Console → App content → Content
+- [x] **Content rating questionnaire** (Play Console → App content → Content
   rating): re-confirm the IARC questionnaire is complete. Google's July 2026
   update states unrated apps are no longer allowed on Play.
-- [ ] **App registration / developer verification** (Play Console → Home):
+- [x] **App registration / developer verification** (Play Console → Home):
   confirm this app shows as registered. Google auto-registered ~99% of
   existing apps, but unregistered apps risk removal from Play.
 
