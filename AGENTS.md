@@ -388,6 +388,20 @@ into the branch (`git fetch origin && git merge origin/main`), resolve
 conflicts, push — CI will start. Don't sit waiting for a CI signal that
 will never arrive.
 
+### Reproducible Repo Analyses
+
+**Any repo/process analysis whose numbers get published or committed
+(docs, dashboards, content, PR descriptions) must be reproducible from
+the analysis tooling whenever feasible** — `tools/repo-metrics/` for
+productivity/history questions, `tools/audit-metrics/` for audit trends.
+If answering a question required a one-off `git log` dig (a new
+attribution, a milestone date, a per-era breakdown), codify it into the
+script as a normal report section before (or along with) publishing the
+numbers, so the next monthly run keeps them fresh instead of letting a
+hand-computed snapshot rot. Hand-mined numbers are acceptable only for
+throwaway exploration, or where the source isn't in this repo's history;
+cite the exact command in that case.
+
 ## Architecture Patterns
 
 ### Provider Abstraction (api/providers/)

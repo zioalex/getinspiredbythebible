@@ -1,38 +1,38 @@
 {
  "schema": 1,
- "generated": "2026-07-03",
+ "generated": "2026-07-13",
  "range": {
   "first": "2026-01-18",
-  "last": "2026-07-02"
+  "last": "2026-07-12"
  },
  "launch_date": "2026-05-02",
  "totals": {
-  "units": 610,
-  "release_prs": 66,
-  "prs_seen": 645,
-  "max_pr": 807,
-  "calendar_days": 166,
-  "active_days": 132,
-  "added_code": 126470,
-  "deleted_code": 20956,
-  "net_code": 105514,
-  "churn_ratio": 0.166,
-  "fix_per_feat": 1.88,
-  "releases": 67,
-  "hotfix_releases": 24,
+  "units": 670,
+  "release_prs": 79,
+  "prs_seen": 718,
+  "max_pr": 864,
+  "calendar_days": 176,
+  "active_days": 141,
+  "added_code": 141809,
+  "deleted_code": 21630,
+  "net_code": 120179,
+  "churn_ratio": 0.153,
+  "fix_per_feat": 1.76,
+  "releases": 80,
+  "hotfix_releases": 27,
   "reverts": 2,
-  "regression_fixes": 158,
-  "regression_fixes_same_scope": 57,
-  "fix_chain_count": 24
+  "regression_fixes": 169,
+  "regression_fixes_same_scope": 62,
+  "fix_chain_count": 25
  },
  "types": {
-  "fix": 245,
-  "feat": 130,
-  "build": 83,
+  "fix": 258,
+  "feat": 147,
+  "build": 101,
+  "docs": 44,
   "other": 43,
-  "docs": 40,
-  "ci": 35,
-  "test": 14,
+  "ci": 42,
+  "test": 15,
   "refactor": 7,
   "chore": 7,
   "perf": 5,
@@ -404,14 +404,33 @@
   {
    "week": "2026-06-29",
    "units": {
-    "fix": 5,
-    "feat": 1
+    "fix": 12,
+    "feat": 12,
+    "docs": 1,
+    "build": 9,
+    "ci": 1
    },
-   "added_code": 3284,
-   "deleted_code": 330,
-   "added_docs": 140,
-   "deleted_docs": 0,
-   "active_days": 3
+   "added_code": 14497,
+   "deleted_code": 625,
+   "added_docs": 2270,
+   "deleted_docs": 91,
+   "active_days": 6
+  },
+  {
+   "week": "2026-07-06",
+   "units": {
+    "build": 9,
+    "feat": 6,
+    "fix": 6,
+    "ci": 6,
+    "test": 1,
+    "docs": 3
+   },
+   "added_code": 4126,
+   "deleted_code": 379,
+   "added_docs": 2244,
+   "deleted_docs": 239,
+   "active_days": 6
   }
  ],
  "monthly_fix_feat": [
@@ -447,16 +466,16 @@
   },
   {
    "month": "2026-07",
-   "fix": 4,
-   "feat": 1
+   "fix": 17,
+   "feat": 18
   }
  ],
  "scopes": [
   {
    "scope": "android",
-   "total": 107,
-   "feat": 37,
-   "fix": 59,
+   "total": 111,
+   "feat": 40,
+   "fix": 60,
    "test": 6,
    "docs": 1,
    "revert": 1,
@@ -466,21 +485,27 @@
   },
   {
    "scope": "deps-backend",
-   "total": 28,
-   "build": 28
+   "total": 39,
+   "build": 39
   },
   {
    "scope": "api",
-   "total": 24,
-   "fix": 10,
-   "feat": 12,
-   "perf": 2
+   "total": 33,
+   "fix": 14,
+   "feat": 16,
+   "perf": 2,
+   "test": 1
   },
   {
    "scope": "deps",
-   "total": 22,
-   "ci": 21,
+   "total": 28,
+   "ci": 27,
    "fix": 1
+  },
+  {
+   "scope": "deps-frontend",
+   "total": 23,
+   "build": 23
   },
   {
    "scope": "frontend",
@@ -497,14 +522,15 @@
    "feat": 3
   },
   {
-   "scope": "deps-frontend",
-   "total": 17,
-   "build": 17
+   "scope": "backlog",
+   "total": 15,
+   "docs": 15
   },
   {
-   "scope": "backlog",
-   "total": 12,
-   "docs": 12
+   "scope": "web",
+   "total": 8,
+   "fix": 5,
+   "feat": 3
   },
   {
    "scope": "ops",
@@ -521,10 +547,10 @@
    "docs": 3
   },
   {
-   "scope": "web",
-   "total": 6,
-   "fix": 5,
-   "feat": 1
+   "scope": "security",
+   "total": 5,
+   "docs": 3,
+   "fix": 2
   },
   {
    "scope": "chat",
@@ -540,16 +566,16 @@
    "ci": 2
   },
   {
-   "scope": "security",
-   "total": 4,
-   "docs": 3,
-   "fix": 1
-  },
-  {
    "scope": "content-safety",
    "total": 4,
    "feat": 1,
    "fix": 2,
+   "test": 1
+  },
+  {
+   "scope": "metrics",
+   "total": 4,
+   "feat": 3,
    "test": 1
   },
   {
@@ -566,6 +592,11 @@
    "ci": 1
   },
   {
+   "scope": "seo",
+   "total": 4,
+   "feat": 4
+  },
+  {
    "scope": "config",
    "total": 3,
    "fix": 1,
@@ -573,14 +604,25 @@
    "chore": 1
   },
   {
-   "scope": "seo",
+   "scope": "translations",
    "total": 3,
-   "feat": 3
+   "fix": 2,
+   "feat": 1
+  },
+  {
+   "scope": "deploy",
+   "total": 3,
+   "fix": 3
   },
   {
    "scope": "verse-links",
    "total": 3,
    "fix": 3
+  },
+  {
+   "scope": "deps-docker",
+   "total": 2,
+   "build": 2
   },
   {
    "scope": "android-ci",
@@ -594,16 +636,15 @@
    "fix": 2
   },
   {
+   "scope": "openrouter",
+   "total": 2,
+   "fix": 2
+  },
+  {
    "scope": "terraform",
    "total": 2,
    "feat": 1,
    "fix": 1
-  },
-  {
-   "scope": "metrics",
-   "total": 2,
-   "feat": 1,
-   "test": 1
   },
   {
    "scope": "dashboard",
@@ -614,28 +655,6 @@
    "scope": "i18n",
    "total": 2,
    "feat": 2
-  },
-  {
-   "scope": "bible-data",
-   "total": 2,
-   "feat": 1,
-   "fix": 1
-  },
-  {
-   "scope": "translations",
-   "total": 2,
-   "fix": 2
-  },
-  {
-   "scope": "book-names",
-   "total": 2,
-   "fix": 1,
-   "refactor": 1
-  },
-  {
-   "scope": "deploy",
-   "total": 2,
-   "fix": 2
   }
  ],
  "fix_chains": [
@@ -885,6 +904,24 @@
   },
   {
    "scope": "api",
+   "count": 4,
+   "start": "2026-07-03",
+   "end": "2026-07-10",
+   "prs": [
+    811,
+    815,
+    824,
+    843
+   ],
+   "subjects": [
+    "prevent weekly digest crash on missing session analytics",
+    "repair weekly report 500 and harden its workflow",
+    "resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel)",
+    "raise typed error for exhausted LLM providers (BITB-063)"
+   ]
+  },
+  {
+   "scope": "api",
    "count": 3,
    "start": "2026-06-05",
    "end": "2026-06-10",
@@ -1047,20 +1084,6 @@
    "subjects": [
     "correct scroll-to-bottom FAB and add offline banner",
     "surface session-limit as assistant message and block input proactively"
-   ]
-  },
-  {
-   "scope": "translations",
-   "count": 2,
-   "start": "2026-03-09",
-   "end": "2026-03-09",
-   "prs": [
-    277,
-    282
-   ],
-   "subjects": [
-    "correct book names for Chinese CUS, Korean KRV, and Russian Synodal",
-    "downgrade deuterocanonical book skips from warning to info"
    ]
   }
  ],
@@ -2644,107 +2667,217 @@
    "feat_date": "2026-06-27",
    "days": 3,
    "match": "files"
+  },
+  {
+   "fix_pr": 811,
+   "fix": "prevent weekly digest crash on missing session analytics",
+   "fix_date": "2026-07-03",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 815,
+   "fix": "repair weekly report 500 and harden its workflow",
+   "fix_date": "2026-07-04",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 814,
+   "fix": "stop email service from blocking the event loop",
+   "fix_date": "2026-07-04",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 822,
+   "fix": "harden parser, slim snapshots, detect moved hotspots",
+   "fix_date": "2026-07-05",
+   "feat_pr": 817,
+   "feat": "audit trend framework \u2014 tools/audit-metrics with report, dashboard and workflow",
+   "feat_date": "2026-07-04",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 821,
+   "fix": "make Turnstile fail closed on persistent errors (BITB-061)",
+   "fix_date": "2026-07-05",
+   "feat_pr": 785,
+   "feat": "ground unquoted/paraphrased verse citations (ships in detect-only mode)",
+   "feat_date": "2026-07-05",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 824,
+   "fix": "resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel)",
+   "fix_date": "2026-07-05",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 842,
+   "fix": "rebind custom domain + origin cert when the backend app is replaced",
+   "fix_date": "2026-07-07",
+   "feat_pr": 839,
+   "feat": "browser smoke test + backend/frontend error alerting (BITB-064/065/066)",
+   "feat_date": "2026-07-07",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 845,
+   "fix": "deploy & smoke-monitor reliability \u2014 cert re-bind + smoke-test hardening (BITB-067)",
+   "fix_date": "2026-07-08",
+   "feat_pr": 839,
+   "feat": "browser smoke test + backend/frontend error alerting (BITB-064/065/066)",
+   "feat_date": "2026-07-07",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 844,
+   "fix": "16 KB page-size support \u2014 AGP 8.7 + graphics-path pin + CI gate",
+   "fix_date": "2026-07-08",
+   "feat_pr": 783,
+   "feat": "negative-feedback reason chips (BITB-042)",
+   "feat_date": "2026-07-03",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 843,
+   "fix": "raise typed error for exhausted LLM providers (BITB-063)",
+   "fix_date": "2026-07-10",
+   "feat_pr": 787,
+   "feat": "add Luther 1912 and Elberfelder 1871 German Bible translations (BITB-046)",
+   "feat_date": "2026-07-10",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 861,
+   "fix": "make local dev and local-prod environments actually startable",
+   "fix_date": "2026-07-12",
+   "feat_pr": 851,
+   "feat": "auto-derive seed matrix and add Luther 1912 (German)",
+   "feat_date": "2026-07-10",
+   "days": 2,
+   "match": "files"
   }
  ],
  "hotspots": [
   {
    "path": ".github/workflows/azure-deploy.yml",
-   "changes": 74
+   "changes": 77
   },
   {
    "path": "api/config.py",
+   "changes": 49
+  },
+  {
+   "path": "frontend/package.json",
    "changes": 46
   },
   {
    "path": "android/app/src/main/res/values/strings.xml",
-   "changes": 43
-  },
-  {
-   "path": "frontend/package.json",
-   "changes": 40
-  },
-  {
-   "path": "android/app/src/main/res/values-de/strings.xml",
-   "changes": 39
-  },
-  {
-   "path": "android/app/src/main/res/values-fr/strings.xml",
-   "changes": 39
-  },
-  {
-   "path": "android/app/src/main/res/values-pt/strings.xml",
-   "changes": 39
+   "changes": 45
   },
   {
    "path": "android/app/src/main/res/values-it/strings.xml",
-   "changes": 39
+   "changes": 41
+  },
+  {
+   "path": "android/app/src/main/res/values-de/strings.xml",
+   "changes": 41
+  },
+  {
+   "path": "android/app/src/main/res/values-fr/strings.xml",
+   "changes": 41
   },
   {
    "path": "android/app/src/main/res/values-es/strings.xml",
-   "changes": 39
+   "changes": 41
+  },
+  {
+   "path": "android/app/src/main/res/values-pt/strings.xml",
+   "changes": 41
   },
   {
    "path": "android/app/src/main/res/values-ar/strings.xml",
-   "changes": 39
+   "changes": 41
   },
   {
    "path": "frontend/src/lib/api.ts",
+   "changes": 38
+  },
+  {
+   "path": ".github/workflows/android-ci.yml",
+   "changes": 38
+  },
+  {
+   "path": "api/chat/service.py",
    "changes": 37
   },
   {
    "path": "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt",
-   "changes": 35
-  },
-  {
-   "path": "api/chat/service.py",
-   "changes": 34
+   "changes": 36
   },
   {
    "path": "frontend/src/app/[locale]/page.tsx",
    "changes": 34
   },
   {
-   "path": ".github/workflows/android-ci.yml",
-   "changes": 34
-  },
-  {
-   "path": "android/app/src/main/res/values-hi/strings.xml",
-   "changes": 30
+   "path": "android/app/src/main/res/values-ko/strings.xml",
+   "changes": 32
   },
   {
    "path": "android/app/src/main/res/values-ru/strings.xml",
-   "changes": 30
-  },
-  {
-   "path": "android/app/src/main/res/values-ko/strings.xml",
-   "changes": 30
+   "changes": 32
   },
   {
    "path": "android/app/src/main/res/values-zh/strings.xml",
-   "changes": 30
+   "changes": 32
+  },
+  {
+   "path": "android/app/src/main/res/values-hi/strings.xml",
+   "changes": 32
   },
   {
    "path": "api/main.py",
-   "changes": 28
+   "changes": 31
   },
   {
    "path": "deployment/main.tf",
+   "changes": 30
+  },
+  {
+   "path": "android/app/build.gradle.kts",
+   "changes": 29
+  },
+  {
+   "path": "api/tests/test_chat_coverage.py",
    "changes": 28
-  },
-  {
-   "path": "frontend/messages/en.json",
-   "changes": 27
-  },
-  {
-   "path": "frontend/messages/it.json",
-   "changes": 27
   },
   {
    "path": "frontend/messages/de.json",
    "changes": 27
   },
   {
-   "path": "android/app/build.gradle.kts",
+   "path": "frontend/messages/it.json",
    "changes": 27
   }
  ],
@@ -3443,6 +3576,145 @@
    },
    "tagged_at": "2026-07-02T21:31:06+02:00",
    "hours_since_prev": 12.3
+  },
+  {
+   "version": "1.35.0",
+   "date": "2026-07-03",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-03T18:45:28+02:00",
+   "hours_since_prev": 21.2
+  },
+  {
+   "version": "1.36.0",
+   "date": "2026-07-03",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-03T20:40:41+02:00",
+   "hours_since_prev": 1.9
+  },
+  {
+   "version": "1.37.0",
+   "date": "2026-07-04",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-04T12:48:18+02:00",
+   "hours_since_prev": 16.1
+  },
+  {
+   "version": "1.38.0",
+   "date": "2026-07-04",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-07-04T16:33:51+02:00",
+   "hours_since_prev": 3.8
+  },
+  {
+   "version": "1.39.0",
+   "date": "2026-07-05",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-07-05T17:25:39+02:00",
+   "hours_since_prev": 24.9
+  },
+  {
+   "version": "1.39.1",
+   "date": "2026-07-05",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-05T19:37:28+02:00",
+   "hours_since_prev": 2.2
+  },
+  {
+   "version": "1.40.0",
+   "date": "2026-07-07",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-07T22:33:09+02:00",
+   "hours_since_prev": 50.9
+  },
+  {
+   "version": "1.40.1",
+   "date": "2026-07-08",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-08T22:02:49+02:00",
+   "hours_since_prev": 23.5
+  },
+  {
+   "version": "1.41.0",
+   "date": "2026-07-10",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-10T14:37:11+02:00",
+   "hours_since_prev": 40.6
+  },
+  {
+   "version": "1.42.0",
+   "date": "2026-07-10",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-07-10T17:45:36+02:00",
+   "hours_since_prev": 3.1
+  },
+  {
+   "version": "1.42.1",
+   "date": "2026-07-10",
+   "level": "patch",
+   "sections": {
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-11T00:23:01+02:00",
+   "hours_since_prev": 6.6
+  },
+  {
+   "version": "1.43.0",
+   "date": "2026-07-11",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-07-11T15:55:58+02:00",
+   "hours_since_prev": 15.5
+  },
+  {
+   "version": "1.44.0",
+   "date": "2026-07-12",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-12T15:06:11+02:00",
+   "hours_since_prev": 23.2
   }
  ],
  "hotfixes": [
@@ -3565,6 +3837,21 @@
    "version": "1.34.4",
    "date": "2026-07-02",
    "hours_since_prev": 12.3
+  },
+  {
+   "version": "1.39.1",
+   "date": "2026-07-05",
+   "hours_since_prev": 2.2
+  },
+  {
+   "version": "1.40.1",
+   "date": "2026-07-08",
+   "hours_since_prev": 23.5
+  },
+  {
+   "version": "1.42.1",
+   "date": "2026-07-10",
+   "hours_since_prev": 6.6
   }
  ],
  "reverts": [
@@ -3592,22 +3879,22 @@
    "deleted_code": 15378
   },
   "post_launch": {
-   "units": 214,
-   "days": 62,
-   "active_days": 53,
-   "units_per_active_day": 4.04,
-   "feat": 54,
-   "fix": 81,
-   "fix_per_feat": 1.5,
-   "added_code": 30885,
-   "deleted_code": 5578
+   "units": 274,
+   "days": 72,
+   "active_days": 62,
+   "units_per_active_day": 4.42,
+   "feat": 71,
+   "fix": 94,
+   "fix_per_feat": 1.32,
+   "added_code": 46224,
+   "deleted_code": 6252
   }
  },
  "attribution": {
   "note": "Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved \u2014 early history under-reports.",
-  "total_commits": 1042,
-  "bot_commits": 110,
-  "attributed_ai_commits": 575,
+  "total_commits": 1115,
+  "bot_commits": 129,
+  "attributed_ai_commits": 617,
   "families": [
    "Claude Opus",
    "Claude Sonnet",
@@ -3619,15 +3906,15 @@
   "by_label": [
    {
     "label": "human/unattributed",
-    "commits": 357,
+    "commits": 369,
     "fix": 111,
     "feat": 52
    },
    {
     "label": "Claude (unversioned)",
-    "commits": 251,
-    "fix": 110,
-    "feat": 61
+    "commits": 292,
+    "fix": 122,
+    "feat": 78
    },
    {
     "label": "Claude Opus 4.5",
@@ -3649,8 +3936,8 @@
    },
    {
     "label": "GitHub Copilot",
-    "commits": 22,
-    "fix": 14,
+    "commits": 23,
+    "fix": 15,
     "feat": 1
    },
    {
@@ -3731,10 +4018,10 @@
     "month": "2026-07",
     "Claude Opus": 0,
     "Claude Sonnet": 0,
-    "Claude (other)": 5,
-    "GitHub Copilot": 0,
+    "Claude (other)": 46,
+    "GitHub Copilot": 1,
     "Android Dev alias": 0,
-    "human/unattributed": 0
+    "human/unattributed": 12
    }
   ]
  },
@@ -3761,71 +4048,131 @@
   },
   {
    "name": "GitHub Copilot coding agent",
-   "evidence": "22 commits co-authored by Copilot / copilot-swe-agent[bot]",
+   "evidence": "23 commits co-authored by Copilot / copilot-swe-agent[bot]",
    "models": []
+  }
+ ],
+ "milestones": [
+  {
+   "date": "2026-01-20",
+   "mode": "first",
+   "event": "Structured agent context file introduced (CLAUDE.md \u2192 AGENTS.md)",
+   "markers": [
+    "CLAUDE.md",
+    "AGENTS.md"
+   ]
+  },
+  {
+   "date": "2026-03-03",
+   "mode": "first",
+   "event": "opencode multi-agent harness introduced",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-05-02",
+   "mode": "first",
+   "event": "Conventional commits enforced + release-please automation",
+   "markers": [
+    "release-please-config.json"
+   ]
+  },
+  {
+   "date": "2026-05-24",
+   "mode": "last",
+   "event": "opencode config last touched (harness parked)",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-06-08",
+   "mode": "first",
+   "event": "Plan\u2192Build\u2192Verify relay codified as the default workflow",
+   "markers": [
+    ".claude/commands/plan-build-verify.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Adversarial risk audit: playbook, /risk-audit command, baseline report",
+   "markers": [
+    ".claude/commands/risk-audit.md",
+    "docs/AUDIT_PLAYBOOK.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Self-measuring productivity metrics tooling added",
+   "markers": [
+    "tools/repo-metrics/analyze.py"
+   ]
   }
  ],
  "snapshot": {
   "components": {
    "android": {
-    "files": 218,
-    "loc": 25917,
-    "test_files": 44,
-    "test_loc": 9139
+    "files": 222,
+    "loc": 26491,
+    "test_files": 46,
+    "test_loc": 9328
    },
    "api": {
-    "files": 141,
-    "loc": 43112,
-    "test_files": 59,
-    "test_loc": 24808
+    "files": 156,
+    "loc": 47146,
+    "test_files": 68,
+    "test_loc": 27071
    },
    "ci": {
-    "files": 19,
-    "loc": 4808,
+    "files": 23,
+    "loc": 5507,
     "test_files": 1,
-    "test_loc": 492
+    "test_loc": 521
    },
    "data": {
-    "files": 4,
+    "files": 5,
     "loc": 0,
     "test_files": 0,
     "test_loc": 0
    },
    "docs": {
-    "files": 149,
-    "loc": 35694,
+    "files": 179,
+    "loc": 48626,
     "test_files": 0,
     "test_loc": 0
    },
    "frontend": {
-    "files": 126,
-    "loc": 32004,
-    "test_files": 32,
-    "test_loc": 8324
+    "files": 133,
+    "loc": 32281,
+    "test_files": 35,
+    "test_loc": 8691
    },
    "infra": {
     "files": 26,
-    "loc": 6456,
+    "loc": 6945,
     "test_files": 0,
     "test_loc": 0
    },
    "root": {
-    "files": 24,
-    "loc": 3515,
+    "files": 29,
+    "loc": 3807,
     "test_files": 0,
     "test_loc": 0
    },
    "scripts": {
-    "files": 34,
-    "loc": 6085,
+    "files": 39,
+    "loc": 6988,
     "test_files": 3,
     "test_loc": 773
    },
    "tools": {
-    "files": 4,
-    "loc": 1721,
-    "test_files": 0,
-    "test_loc": 0
+    "files": 8,
+    "loc": 2774,
+    "test_files": 1,
+    "test_loc": 96
    }
   },
   "cruft": [
@@ -3834,7 +4181,7 @@
    "frontend/src/components/ChapterModal.test.tsx.backup",
    "scripts/load_bible.py.backup"
   ],
-  "docs_loc": 38389,
-  "tracked_files": 745
+  "docs_loc": 43195,
+  "tracked_files": 820
  }
 }

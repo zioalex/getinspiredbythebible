@@ -1,36 +1,36 @@
 {
  "schema": 1,
- "generated": "2026-07-03",
+ "generated": "2026-07-04",
  "range": {
   "first": "2026-01-18",
-  "last": "2026-07-02"
+  "last": "2026-07-03"
  },
  "launch_date": "2026-05-02",
  "totals": {
-  "units": 610,
-  "release_prs": 66,
-  "prs_seen": 645,
-  "max_pr": 807,
-  "calendar_days": 166,
-  "active_days": 132,
-  "added_code": 126470,
-  "deleted_code": 20956,
-  "net_code": 105514,
-  "churn_ratio": 0.166,
-  "fix_per_feat": 1.88,
+  "units": 618,
+  "release_prs": 68,
+  "prs_seen": 655,
+  "max_pr": 813,
+  "calendar_days": 167,
+  "active_days": 133,
+  "added_code": 133804,
+  "deleted_code": 21068,
+  "net_code": 112736,
+  "churn_ratio": 0.157,
+  "fix_per_feat": 1.81,
   "releases": 67,
   "hotfix_releases": 24,
   "reverts": 2,
-  "regression_fixes": 158,
-  "regression_fixes_same_scope": 57,
+  "regression_fixes": 159,
+  "regression_fixes_same_scope": 58,
   "fix_chain_count": 24
  },
  "types": {
-  "fix": 245,
-  "feat": 130,
+  "fix": 246,
+  "feat": 136,
   "build": 83,
   "other": 43,
-  "docs": 40,
+  "docs": 41,
   "ci": 35,
   "test": 14,
   "refactor": 7,
@@ -404,14 +404,15 @@
   {
    "week": "2026-06-29",
    "units": {
-    "fix": 5,
-    "feat": 1
+    "fix": 6,
+    "feat": 7,
+    "docs": 1
    },
-   "added_code": 3284,
-   "deleted_code": 330,
-   "added_docs": 140,
-   "deleted_docs": 0,
-   "active_days": 3
+   "added_code": 10618,
+   "deleted_code": 442,
+   "added_docs": 1157,
+   "deleted_docs": 1,
+   "active_days": 4
   }
  ],
  "monthly_fix_feat": [
@@ -447,15 +448,15 @@
   },
   {
    "month": "2026-07",
-   "fix": 4,
-   "feat": 1
+   "fix": 5,
+   "feat": 7
   }
  ],
  "scopes": [
   {
    "scope": "android",
-   "total": 107,
-   "feat": 37,
+   "total": 109,
+   "feat": 39,
    "fix": 59,
    "test": 6,
    "docs": 1,
@@ -471,9 +472,9 @@
   },
   {
    "scope": "api",
-   "total": 24,
-   "fix": 10,
-   "feat": 12,
+   "total": 27,
+   "fix": 11,
+   "feat": 14,
    "perf": 2
   },
   {
@@ -507,6 +508,12 @@
    "docs": 12
   },
   {
+   "scope": "web",
+   "total": 8,
+   "fix": 5,
+   "feat": 3
+  },
+  {
    "scope": "ops",
    "total": 8,
    "fix": 7,
@@ -519,12 +526,6 @@
    "refactor": 1,
    "chore": 1,
    "docs": 3
-  },
-  {
-   "scope": "web",
-   "total": 6,
-   "fix": 5,
-   "feat": 1
   },
   {
    "scope": "chat",
@@ -573,6 +574,12 @@
    "chore": 1
   },
   {
+   "scope": "metrics",
+   "total": 3,
+   "feat": 2,
+   "test": 1
+  },
+  {
    "scope": "seo",
    "total": 3,
    "feat": 3
@@ -598,12 +605,6 @@
    "total": 2,
    "feat": 1,
    "fix": 1
-  },
-  {
-   "scope": "metrics",
-   "total": 2,
-   "feat": 1,
-   "test": 1
   },
   {
    "scope": "dashboard",
@@ -2644,6 +2645,16 @@
    "feat_date": "2026-06-27",
    "days": 3,
    "match": "files"
+  },
+  {
+   "fix_pr": 811,
+   "fix": "prevent weekly digest crash on missing session analytics",
+   "fix_date": "2026-07-03",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 0,
+   "match": "scope"
   }
  ],
  "hotspots": [
@@ -2653,51 +2664,51 @@
   },
   {
    "path": "api/config.py",
-   "changes": 46
+   "changes": 47
   },
   {
    "path": "android/app/src/main/res/values/strings.xml",
-   "changes": 43
+   "changes": 44
   },
   {
    "path": "frontend/package.json",
    "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-de/strings.xml",
-   "changes": 39
-  },
-  {
    "path": "android/app/src/main/res/values-fr/strings.xml",
-   "changes": 39
+   "changes": 40
   },
   {
    "path": "android/app/src/main/res/values-pt/strings.xml",
-   "changes": 39
+   "changes": 40
   },
   {
    "path": "android/app/src/main/res/values-it/strings.xml",
-   "changes": 39
+   "changes": 40
   },
   {
-   "path": "android/app/src/main/res/values-es/strings.xml",
-   "changes": 39
+   "path": "android/app/src/main/res/values-de/strings.xml",
+   "changes": 40
   },
   {
    "path": "android/app/src/main/res/values-ar/strings.xml",
-   "changes": 39
+   "changes": 40
+  },
+  {
+   "path": "android/app/src/main/res/values-es/strings.xml",
+   "changes": 40
   },
   {
    "path": "frontend/src/lib/api.ts",
    "changes": 37
   },
   {
-   "path": "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt",
-   "changes": 35
+   "path": "api/chat/service.py",
+   "changes": 36
   },
   {
-   "path": "api/chat/service.py",
-   "changes": 34
+   "path": "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt",
+   "changes": 36
   },
   {
    "path": "frontend/src/app/[locale]/page.tsx",
@@ -2708,27 +2719,31 @@
    "changes": 34
   },
   {
-   "path": "android/app/src/main/res/values-hi/strings.xml",
-   "changes": 30
+   "path": "android/app/src/main/res/values-ko/strings.xml",
+   "changes": 31
   },
   {
    "path": "android/app/src/main/res/values-ru/strings.xml",
-   "changes": 30
+   "changes": 31
   },
   {
-   "path": "android/app/src/main/res/values-ko/strings.xml",
-   "changes": 30
+   "path": "android/app/src/main/res/values-hi/strings.xml",
+   "changes": 31
   },
   {
    "path": "android/app/src/main/res/values-zh/strings.xml",
-   "changes": 30
+   "changes": 31
   },
   {
    "path": "api/main.py",
-   "changes": 28
+   "changes": 29
   },
   {
    "path": "deployment/main.tf",
+   "changes": 28
+  },
+  {
+   "path": "api/tests/test_chat_coverage.py",
    "changes": 28
   },
   {
@@ -2741,10 +2756,6 @@
   },
   {
    "path": "frontend/messages/de.json",
-   "changes": 27
-  },
-  {
-   "path": "android/app/build.gradle.kts",
    "changes": 27
   }
  ],
@@ -3592,22 +3603,22 @@
    "deleted_code": 15378
   },
   "post_launch": {
-   "units": 214,
-   "days": 62,
-   "active_days": 53,
-   "units_per_active_day": 4.04,
-   "feat": 54,
-   "fix": 81,
-   "fix_per_feat": 1.5,
-   "added_code": 30885,
-   "deleted_code": 5578
+   "units": 222,
+   "days": 63,
+   "active_days": 54,
+   "units_per_active_day": 4.11,
+   "feat": 60,
+   "fix": 82,
+   "fix_per_feat": 1.37,
+   "added_code": 38219,
+   "deleted_code": 5690
   }
  },
  "attribution": {
   "note": "Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved \u2014 early history under-reports.",
-  "total_commits": 1042,
-  "bot_commits": 110,
-  "attributed_ai_commits": 575,
+  "total_commits": 1052,
+  "bot_commits": 112,
+  "attributed_ai_commits": 583,
   "families": [
    "Claude Opus",
    "Claude Sonnet",
@@ -3625,9 +3636,9 @@
    },
    {
     "label": "Claude (unversioned)",
-    "commits": 251,
+    "commits": 258,
     "fix": 110,
-    "feat": 61
+    "feat": 67
    },
    {
     "label": "Claude Opus 4.5",
@@ -3649,8 +3660,8 @@
    },
    {
     "label": "GitHub Copilot",
-    "commits": 22,
-    "fix": 14,
+    "commits": 23,
+    "fix": 15,
     "feat": 1
    },
    {
@@ -3731,8 +3742,8 @@
     "month": "2026-07",
     "Claude Opus": 0,
     "Claude Sonnet": 0,
-    "Claude (other)": 5,
-    "GitHub Copilot": 0,
+    "Claude (other)": 12,
+    "GitHub Copilot": 1,
     "Android Dev alias": 0,
     "human/unattributed": 0
    }
@@ -3761,7 +3772,7 @@
   },
   {
    "name": "GitHub Copilot coding agent",
-   "evidence": "22 commits co-authored by Copilot / copilot-swe-agent[bot]",
+   "evidence": "23 commits co-authored by Copilot / copilot-swe-agent[bot]",
    "models": []
   }
  ],
@@ -3792,8 +3803,8 @@
     "test_loc": 0
    },
    "docs": {
-    "files": 149,
-    "loc": 35694,
+    "files": 150,
+    "loc": 39814,
     "test_files": 0,
     "test_loc": 0
    },
@@ -3823,7 +3834,7 @@
    },
    "tools": {
     "files": 4,
-    "loc": 1721,
+    "loc": 1834,
     "test_files": 0,
     "test_loc": 0
    }
@@ -3834,7 +3845,7 @@
    "frontend/src/components/ChapterModal.test.tsx.backup",
    "scripts/load_bible.py.backup"
   ],
-  "docs_loc": 38389,
-  "tracked_files": 745
+  "docs_loc": 38417,
+  "tracked_files": 746
  }
 }

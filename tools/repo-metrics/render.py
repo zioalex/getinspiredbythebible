@@ -17,6 +17,22 @@ import json
 from pathlib import Path
 
 TYPE_GROUPS = ["feat", "fix", "build", "ci", "docs", "other"]
+
+# Short background notes for models seen in Co-Authored-By trailers or harness
+# configs. Keyed by prefix match against the attribution label / model string.
+MODEL_INFO = {
+    "Claude Opus 4.5": "Anthropic's frontier Opus-tier model (released Nov 2025) — the strongest reasoning/agentic tier of its generation; workhorse of this repo's pre-launch phase.",
+    "Claude Opus 4.6": "Opus-tier successor (early 2026) with adaptive thinking and a 1M-token context window; used in the later phase and as the opencode orchestrator.",
+    "Claude Sonnet 4.5": "Mid-tier Anthropic model balancing speed and capability; used for implementation-heavy subtasks.",
+    "Claude Sonnet 4.6": "Sonnet-tier successor (early 2026); the 'build' model in the Plan→Build→Verify relay documented in AGENTS.md.",
+    "Claude (unversioned)": "Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers.",
+    "Claude (moonshotai/kimi-k2.5)": "A third-party model (Moonshot Kimi K2.5) driven through a Claude-Code-style harness.",
+    "GitHub Copilot": "GitHub's autonomous coding agent (copilot-swe-agent) — assigned issues/PRs directly on GitHub.",
+    "Android Dev alias": "Commit persona used by the opencode Android subagents (`android-dev@bibleinspiration.app`).",
+    "opencode/minimax-m2.5-free": "MiniMax M2.5 via the opencode gateway — implementation model for opencode specialist subagents.",
+    "openrouter/qwen/qwen3-coder": "Alibaba Qwen3-Coder via OpenRouter — the opencode android-gemini subagent's model.",
+    "github-copilot/claude-opus-4.6": "Claude Opus 4.6 accessed through the GitHub Copilot provider — the opencode orchestrator model.",
+}
 GROUP_OF = {
     "feat": "feat", "fix": "fix", "build": "build", "ci": "ci", "docs": "docs",
 }
@@ -24,6 +40,33 @@ GROUP_OF = {
 
 def group_type(t: str) -> str:
     return GROUP_OF.get(t, "other")
+
+
+def _month_shift(month: str, delta: int) -> str:
+    y, m = int(month[:4]), int(month[5:7])
+    m += delta
+    y, m = y + (m - 1) // 12, (m - 1) % 12 + 1
+    return f"{y:04d}-{m:02d}"
+
+
+def milestone_ratios(m: dict) -> list[dict]:
+    """Each process milestone with the fix:feat ratio of the month before,
+    the month of, and the month after the event — the reproducible core of
+    any 'did this process change help?' analysis."""
+    monthly = {r["month"]: r for r in m["monthly_fix_feat"]}
+
+    def ratio(month: str):
+        r = monthly.get(month)
+        if not r or not r["feat"]:
+            return None
+        return round(r["fix"] / r["feat"], 2)
+
+    return [{
+        **e,
+        "ratio_before": ratio(_month_shift(e["date"][:7], -1)),
+        "ratio_of": ratio(e["date"][:7]),
+        "ratio_after": ratio(_month_shift(e["date"][:7], 1)),
+    } for e in m.get("milestones", [])]
 
 
 def load_history(history_dir: Path) -> list[dict]:
@@ -146,6 +189,45 @@ def render_report(m: dict, snaps: list[dict], repo_url: str) -> str:
         add(f"| {s['scope']} | {s['total']} | {s.get('feat', 0)} | {s.get('fix', 0)} |")
     add("")
 
+    ms = milestone_ratios(m)
+    if ms:
+        add("## Process timeline")
+        add("")
+        add("Dated process changes, mined from the first/last commit touching "
+            "each marker file, aligned with the monthly fix:feat series. "
+            "Correlation, not causation: months are confounded (launch "
+            "freezes, platform pushes), a partial month distorts the ratio, "
+            "and a change's effect may land pre-merge where these numbers "
+            "can't see it. — means the month had no feats to divide by.")
+        add("")
+        add("| Date | Process change | fix:feat month before | month of | month after |")
+        add("|---|---|---|---|---|")
+        for e in ms:
+            add(f"| {e['date']} | {e['event']} | {fmt(e['ratio_before'])} "
+                f"| {fmt(e['ratio_of'])} | {fmt(e['ratio_after'])} |")
+        add("")
+
+    add("## Models & harness")
+    add("")
+    a = m.get("attribution")
+    if a:
+        share = a["attributed_ai_commits"] / max(a["total_commits"] - a["bot_commits"], 1)
+        add(f"Of {fmt(a['total_commits'])} commits in the full graph, "
+            f"{fmt(a['bot_commits'])} are automation bots; of the rest, "
+            f"**{fmt(a['attributed_ai_commits'])} ({share:.0%}) carry an AI "
+            f"co-author trailer**. {a['note']}")
+        add("")
+        add("| Model / author | Commits | feat | fix | About |")
+        add("|---|---|---|---|---|")
+        for r in a["by_label"]:
+            info = MODEL_INFO.get(r["label"], "")
+            add(f"| {r['label']} | {fmt(r['commits'])} | {r['feat']} | {r['fix']} | {info} |")
+        add("")
+    for h in m.get("harnesses", []):
+        add(f"- **{h['name']}** — {h['evidence']}."
+            + (f" Models: {', '.join(h['models'])}." if h["models"] else ""))
+    add("")
+
     add("## Codebase health")
     add("")
     add("| Component | Files | LOC | Test files | Test LOC |")
@@ -238,6 +320,10 @@ def dashboard_payload(m: dict, snaps: list[dict], repo_url: str) -> dict:
         "cruft": m["snapshot"]["cruft"],
         "hotfixes": m["hotfixes"],
         "reverts": m["reverts"],
+        "attribution": m.get("attribution"),
+        "harnesses": m.get("harnesses", []),
+        "milestones": milestone_ratios(m),
+        "modelInfo": MODEL_INFO,
         "runs": [{"generated": s["generated"], **{k: s["totals"].get(k) for k in
                   ("units", "fix_per_feat", "net_code", "releases",
                    "regression_fixes")}} for s in snaps],
