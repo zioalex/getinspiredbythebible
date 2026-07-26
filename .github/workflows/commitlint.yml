@@ -43,10 +43,28 @@ jobs:
           while IFS= read -r sha; do
             message="$(git log -1 --format=%B "$sha")"
             author_email="$(git log -1 --format=%ae "$sha")"
+            committer_email="$(git log -1 --format=%ce "$sha")"
             if [[ "$message" =~ ^[Ii]nitial[[:space:]]plan ]] && \
               [ "$author_email" = "$PLANNING_AUTHOR_EMAIL" ]; then
               echo "Skipping agent planning commit $sha"
               continue
+            fi
+            # Skip web-UI edits to markdown-only files by human (non-bot) authors.
+            # In a squash-merge flow these informal edits (e.g. checking off
+            # boxes in a compliance doc) never reach main — only the PR title,
+            # linted separately by the commitlint-pr-title job, lands on main.
+            if [ "$committer_email" = "noreply@github.com" ] && \
+               [ "$author_email" != "$PLANNING_AUTHOR_EMAIL" ]; then
+              all_docs=true
+              found_any=false
+              while IFS= read -r f; do
+                found_any=true
+                [[ "$f" == *.md ]] || { all_docs=false; break; }
+              done < <(git diff-tree --no-commit-id -r --name-only "$sha")
+              if $all_docs && $found_any; then
+                echo "Skipping web UI markdown-only commit $sha (author: $author_email)"
+                continue
+              fi
             fi
             if ! printf '%s\n' "$message" | npx --no-install commitlint --config commitlint.config.cjs; then
               echo "Commit $sha failed commitlint"
