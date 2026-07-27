@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "lucide-react": "^0.577.0",
-    "next": "^16.2.11",
+    "next": "^16.2.12",
     "next-intl": "^4.13.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -37,7 +37,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.5.2",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.10",
+    "eslint-config-next": "^16.2.12",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.23",
