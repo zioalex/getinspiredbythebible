@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">Спасибо — мы получили ваш отчёт и скоро его рассмотрим.</string>
 
     <string name="settings_about_title">О приложении</string>
+    <string name="settings_about_link">О Vox Quieta</string>
     <string name="settings_version">Версия</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_terms_of_service">Условия обслуживания</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">Что нового</string>
     <string name="whats_new_dismiss">Понятно</string>
     <string name="whats_new_see_all">Показать все</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">Почему Vox Quieta</string>
+    <string name="about_intro_body">Депрессия и трудности с психическим здоровьем затрагивают очень многих людей. Vox Quieta создан простым, доступным и укоренённым в Писании — мягким спутником в трудные моменты, а не заменой терапии или пастырской заботы.</string>
+    <string name="about_intro_primary_cta">Узнать больше</string>
+    <string name="about_intro_secondary_cta">Продолжить</string>
 
     <!-- Errors -->
     <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
