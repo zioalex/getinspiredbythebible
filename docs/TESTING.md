@@ -37,7 +37,7 @@ The CI/CD pipeline includes comprehensive testing across multiple layers:
 - ✅ ESLint code quality checks
 - ✅ TypeScript compilation (type checking)
 - ✅ Production build creation
-- ✅ Multi-version Node.js compatibility (18.x, 20.x)
+- ✅ Multi-version Node.js compatibility (22.x, 26.x)
 
 **Runs on:** Every push and PR
 

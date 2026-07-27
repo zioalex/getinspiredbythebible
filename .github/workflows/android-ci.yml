@@ -412,7 +412,7 @@ jobs:
       - name: TruffleHog OSS scan
         # TruffleHog auto-detects PR base/head from GITHUB_BASE_REF/HEAD_REF
         # env vars set by GitHub Actions — no explicit base/head needed.
-        uses: trufflesecurity/trufflehog@v3.95.9
+        uses: trufflesecurity/trufflehog@v3.96.0
         with:
           extra_args: --only-verified
 

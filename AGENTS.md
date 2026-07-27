@@ -231,7 +231,7 @@ Format commands: `make format` (auto-fix Python + frontend)
 | Job | What it does |
 | ----- | ------------- |
 | `backend-tests` | Ruff, Black, MyPy, pytest (PostgreSQL 16 + pgvector service) |
-| `frontend-tests` | npm lint, tsc, vitest, build (Node 20.x + 22.x matrix) |
+| `frontend-tests` | npm lint, tsc, vitest, build (Node 22.x + 26.x matrix) |
 | `integration-tests` | Docker Compose: health check, scripture search, chat, streaming, frontend |
 | `security-check` | Python + npm dependency vulnerability scans |
 
