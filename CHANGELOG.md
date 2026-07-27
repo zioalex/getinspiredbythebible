@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.49.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.48.0...v1.49.0) (2026-07-27)
+
+### Features
+
+* **api:** cache embedding provider calls (BITB-057 Phase 2) ([#886](https://github.com/zioalex/getinspiredbythebible/issues/886)) ([f96d226](https://github.com/zioalex/getinspiredbythebible/commit/f96d2267b0deb1f91d0447eb7007ca9974d4e942))
+* **api:** propagate request ID into SQL queries as a comment (BITB-008) ([#929](https://github.com/zioalex/getinspiredbythebible/issues/929)) ([8850491](https://github.com/zioalex/getinspiredbythebible/commit/8850491bca3603631327e3bf1feda6f575e0ab72))
+* **search-eval:** add retrieval runner + report/CLI (BITB-051 P3) ([#881](https://github.com/zioalex/getinspiredbythebible/issues/881)) ([14810f4](https://github.com/zioalex/getinspiredbythebible/commit/14810f422ff3a6db52cacd8ccb7e695ffadfb1d5))
+* **verse-parser:** generate Android book-name map from single JSON source (BITB-059 Phase 1) ([#926](https://github.com/zioalex/getinspiredbythebible/issues/926)) ([2417373](https://github.com/zioalex/getinspiredbythebible/commit/241737352510bf2b0d2fbd0fd89894360f0da21d))
+* **web:** add About page and one-time intro modal (BITB-076, BITB-077) ([#939](https://github.com/zioalex/getinspiredbythebible/issues/939)) ([482658c](https://github.com/zioalex/getinspiredbythebible/commit/482658c7933bccc3c117eeef6c03972041df9a3b))
+
+### Bug Fixes
+
+* **api:** split dev/prod Python requirements (BITB-073) ([#928](https://github.com/zioalex/getinspiredbythebible/issues/928)) ([0b49837](https://github.com/zioalex/getinspiredbythebible/commit/0b498375730e259bd058357647e68d5c5c0c5d7e))
+* **deploy:** decouple probe-secret rotation from backend app replacement (BITB-067) ([#896](https://github.com/zioalex/getinspiredbythebible/issues/896)) ([a0099cd](https://github.com/zioalex/getinspiredbythebible/commit/a0099cd048f0ee883531505d610ec59ff7c4226b))
+* **dev-env:** correct db firewall Makefile CLI flags, add stale-rule cleanup ([#885](https://github.com/zioalex/getinspiredbythebible/issues/885)) ([3bce7f0](https://github.com/zioalex/getinspiredbythebible/commit/3bce7f098eaf954ec68f4c29e5e70a3628edd18a))
+* **frontend:** seed splash state deterministically to avoid SSR/CSR hydration mismatch ([#917](https://github.com/zioalex/getinspiredbythebible/issues/917)) ([24285e2](https://github.com/zioalex/getinspiredbythebible/commit/24285e28c9d5b7c1254a48171990838e3f5a9771))
+* **frontend:** show email-specific error on contact form 422 (BITB-052) ([#930](https://github.com/zioalex/getinspiredbythebible/issues/930)) ([a75477f](https://github.com/zioalex/getinspiredbythebible/commit/a75477fb90e60c07d2c17648a91b027a94df7109))
+* **verse-parser:** recognize रोमियो alias and preserve full verse ranges ([#903](https://github.com/zioalex/getinspiredbythebible/issues/903)) ([f39ff94](https://github.com/zioalex/getinspiredbythebible/commit/f39ff94780adbd6107491a48406c5200e32e695f))
+
+### Documentation
+
+* add BITB-074 research and user story for a support-us funding feature ([#924](https://github.com/zioalex/getinspiredbythebible/issues/924)) ([7ef74c1](https://github.com/zioalex/getinspiredbythebible/commit/7ef74c11321221c460958b93127995bfb9378344))
+* **android:** add Play Console compliance checklist for policy updates ([#902](https://github.com/zioalex/getinspiredbythebible/issues/902)) ([59eb6e6](https://github.com/zioalex/getinspiredbythebible/commit/59eb6e6445081fee2a344f2f1de816a25f81cd7f))
+* **backlog:** close out BITB-073 (PR [#928](https://github.com/zioalex/getinspiredbythebible/issues/928) merged, move to DONE) ([#932](https://github.com/zioalex/getinspiredbythebible/issues/932)) ([7a81a55](https://github.com/zioalex/getinspiredbythebible/commit/7a81a554f0ec49652bcdc6662e14a16eabd024c7))
+* **backlog:** product review batch (BITB-075…081) — message limit, About page, UX fixes ([#931](https://github.com/zioalex/getinspiredbythebible/issues/931)) ([3e5031d](https://github.com/zioalex/getinspiredbythebible/commit/3e5031d64644bf99b967978598630a0a65069628))
+* **content:** dev-process content kit + recover Models & harness metrics section + PR template ([#865](https://github.com/zioalex/getinspiredbythebible/issues/865)) ([9ae0711](https://github.com/zioalex/getinspiredbythebible/commit/9ae071176052978356aa58c2076870967cb0312c))
+* **legal:** disclose third-party AI processing in privacy policy ([#900](https://github.com/zioalex/getinspiredbythebible/issues/900)) ([9a3f261](https://github.com/zioalex/getinspiredbythebible/commit/9a3f261033da5042571d05d8fad36d6b9ced731b))
+
 ## [1.48.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.47.0...v1.48.0) (2026-07-22)
 
 ### Features
