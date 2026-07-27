@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.49.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.48.0...v1.49.0) (2026-07-27)
 
-
 ### Features
 
 * **api:** cache embedding provider calls (BITB-057 Phase 2) ([#886](https://github.com/zioalex/getinspiredbythebible/issues/886)) ([f96d226](https://github.com/zioalex/getinspiredbythebible/commit/f96d2267b0deb1f91d0447eb7007ca9974d4e942))
@@ -12,7 +11,6 @@ All notable changes to this project will be documented in this file.
 * **search-eval:** add retrieval runner + report/CLI (BITB-051 P3) ([#881](https://github.com/zioalex/getinspiredbythebible/issues/881)) ([14810f4](https://github.com/zioalex/getinspiredbythebible/commit/14810f422ff3a6db52cacd8ccb7e695ffadfb1d5))
 * **verse-parser:** generate Android book-name map from single JSON source (BITB-059 Phase 1) ([#926](https://github.com/zioalex/getinspiredbythebible/issues/926)) ([2417373](https://github.com/zioalex/getinspiredbythebible/commit/241737352510bf2b0d2fbd0fd89894360f0da21d))
 * **web:** add About page and one-time intro modal (BITB-076, BITB-077) ([#939](https://github.com/zioalex/getinspiredbythebible/issues/939)) ([482658c](https://github.com/zioalex/getinspiredbythebible/commit/482658c7933bccc3c117eeef6c03972041df9a3b))
-
 
 ### Bug Fixes
 
@@ -22,7 +20,6 @@ All notable changes to this project will be documented in this file.
 * **frontend:** seed splash state deterministically to avoid SSR/CSR hydration mismatch ([#917](https://github.com/zioalex/getinspiredbythebible/issues/917)) ([24285e2](https://github.com/zioalex/getinspiredbythebible/commit/24285e28c9d5b7c1254a48171990838e3f5a9771))
 * **frontend:** show email-specific error on contact form 422 (BITB-052) ([#930](https://github.com/zioalex/getinspiredbythebible/issues/930)) ([a75477f](https://github.com/zioalex/getinspiredbythebible/commit/a75477fb90e60c07d2c17648a91b027a94df7109))
 * **verse-parser:** recognize रोमियो alias and preserve full verse ranges ([#903](https://github.com/zioalex/getinspiredbythebible/issues/903)) ([f39ff94](https://github.com/zioalex/getinspiredbythebible/commit/f39ff94780adbd6107491a48406c5200e32e695f))
-
 
 ### Documentation
 
