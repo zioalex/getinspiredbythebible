@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">Danke — wir haben deinen Bericht erhalten und werden ihn bald prüfen.</string>
 
     <string name="settings_about_title">Über</string>
+    <string name="settings_about_link">Über Vox Quieta</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Datenschutzrichtlinie</string>
     <string name="settings_terms_of_service">Nutzungsbedingungen</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">Was ist neu</string>
     <string name="whats_new_dismiss">Verstanden</string>
     <string name="whats_new_see_all">Alle anzeigen</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">Warum Vox Quieta</string>
+    <string name="about_intro_body">Depressionen und psychische Belastungen betreffen so viele Menschen. Vox Quieta wurde geschaffen, um einfach, zugänglich und in der Schrift verwurzelt zu sein — ein sanfter Begleiter in schweren Momenten, kein Ersatz für Therapie oder Seelsorge.</string>
+    <string name="about_intro_primary_cta">Mehr erfahren</string>
+    <string name="about_intro_secondary_cta">Weiter</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>

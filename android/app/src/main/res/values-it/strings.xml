@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">Grazie — abbiamo ricevuto la tua segnalazione e la esamineremo a breve.</string>
 
     <string name="settings_about_title">Informazioni</string>
+    <string name="settings_about_link">Chi siamo</string>
     <string name="settings_version">Versione</string>
     <string name="settings_privacy_policy">Informativa sulla privacy</string>
     <string name="settings_terms_of_service">Termini di servizio</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">Novità</string>
     <string name="whats_new_dismiss">Ho capito</string>
     <string name="whats_new_see_all">Vedi tutto</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">Perché Vox Quieta</string>
+    <string name="about_intro_body">La depressione e le difficoltà legate alla salute mentale toccano moltissime persone. Vox Quieta è nato per essere semplice, accessibile e radicato nelle Scritture: un compagno gentile nei momenti di difficoltà, non un sostituto della terapia o dell\'assistenza pastorale.</string>
+    <string name="about_intro_primary_cta">Scopri di più</string>
+    <string name="about_intro_secondary_cta">Continua</string>
 
     <!-- Errors -->
     <string name="error_session_limit">Hai avuto 10 messaggi in questa sessione! Perché non fare una pausa e goderti il creato di Dio all\'aria aperta? 🌳</string>
