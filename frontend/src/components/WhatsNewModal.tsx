@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "@/i18n/navigation";
+import { useAboutIntroGate } from "@/lib/aboutIntroGate";
 
 const STORAGE_KEY = "vq:lastSeenVersion";
 
@@ -18,10 +19,16 @@ interface ChangelogEntry {
 export default function WhatsNewModal() {
   const t = useTranslations("WhatsNew");
   const [entry, setEntry] = useState<ChangelogEntry | null>(null);
+  const introGate = useAboutIntroGate();
 
   useEffect(() => {
     // Guard: only runs client-side
     if (typeof window === "undefined") return;
+
+    // BITB-077: wait for Providers to resolve whether the About intro modal
+    // is showing. "show-intro" defers this to the next visit entirely —
+    // never fetch/mark-seen while it's the modal of record for this session.
+    if (introGate !== "clear") return;
 
     fetch("/changelog.json")
       .then((r) => {
@@ -48,7 +55,7 @@ export default function WhatsNewModal() {
       .catch(() => {
         // changelog.json is optional — ignore fetch errors silently
       });
-  }, []);
+  }, [introGate]);
 
   if (!entry) return null;
 

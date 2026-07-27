@@ -12,6 +12,12 @@ export default function Footer() {
           {tFooter("getApp")}
         </Link>
         <Link
+          href="/about"
+          className="hover:text-primary-700 transition-colors"
+        >
+          {tFooter("about")}
+        </Link>
+        <Link
           href="/privacy"
           className="hover:text-primary-700 transition-colors"
         >
