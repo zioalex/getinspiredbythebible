@@ -1922,6 +1922,39 @@ silent first-visit seeding (`WhatsNewModal.tsx:33-40`). A single versioned
 
 ---
 
+### 🎯 BITB-082: Android — About Settings Row + First-Run Intro Fold-In
+
+**Status:** 🎯 Todo
+**Size:** S (~1 day)
+**Created:** 2026-07-27
+
+**As an** Android user, **I want** to read who built Vox Quieta and why, from Settings, **so
+that** I have the same answer web visitors get from `/about`. **As an** Android user opening the
+app for the first time after this ships, **I want** the same one-time intro web users get,
+**so that** I'm not left out without a fifth first-run interruption competing for attention.
+
+BITB-076 and BITB-077 both excluded Android and pointed here. Part A links Settings → About out
+to `voxquieta.org/{locale}/about`, the same external-link pattern already used for Privacy/Terms
+(`SettingsScreen.kt:174-224`, `LegalUrls.kt`) — no native content duplication. Part B mirrors the
+splash-cookie "seen once ever" pattern (`MainActivity.kt:51-57`), not the What's-New
+per-version pattern, and requires making the What's New version-seen write conditional
+(currently unconditional at `MainActivity.kt:121`) so the two sheets never render on the same
+cold start — About intro wins, What's New defers to the next launch. Note: BITB-054 (first-run
+spotlight), floated as an alternative fold-in target, is still `Todo` — not available today.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Settings → About gets a third row opening `/about` in-language, same pattern as Privacy/Terms
+- [ ] About intro sheet shows once ever per install; dismissal persists
+- [ ] About intro and What's New never render on the same cold start; What's New's version-seen
+      write becomes conditional so a deferred run re-evaluates next launch
+- [ ] All new strings in `values/strings.xml` + all 11 `values-*/strings.xml`, sourced from the
+      same copy as web's `About.intro*` keys — not re-derived independently
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-082-android-about-settings-and-intro.md`
+
+---
+
 ### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
 **Status:** 🎯 Todo

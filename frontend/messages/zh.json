@@ -281,7 +281,8 @@
   },
   "Footer": {
     "changelog": "更新日志",
-    "getApp": "获取应用"
+    "getApp": "获取应用",
+    "about": "关于"
   },
   "App": {
     "metaTitle": "获取 Vox Quieta 应用",
@@ -306,6 +307,38 @@
     "betaLead": "想抢先体验新功能吗？",
     "betaLink": "加入 Beta 计划",
     "backHome": "返回首页"
+  },
+  "About": {
+    "metaTitle": "关于 Vox Quieta",
+    "metaDescription": "Vox Quieta 为什么存在、是谁创建的,以及它不是什么——一个扎根于圣经、在艰难时刻给予温柔陪伴的伙伴。",
+    "backHome": "返回首页",
+    "title": "关于 Vox Quieta",
+    "heroLead": "一个在你需要时寻找希望与启发的地方。",
+    "whyTitle": "为什么会有它",
+    "whyBody1": "你是否有过一个挥之不去的想法?抑郁症和心理健康困扰影响着许多人——无论年轻还是年长。我想创造一些简单、易用、深深扎根于圣经的东西,能在最需要的时候带来慰藉。",
+    "whyBody2": "它不能替代心理治疗或牧灵辅导,而是在艰难时刻给予温柔陪伴的伙伴。",
+    "whyBody3": "它不想成为一切。它只想把一件事做好:成为一个在你需要时寻找希望与启发的地方。",
+    "notTitle": "它不是什么",
+    "notBody": "Vox Quieta 不是牧师,不是治疗师,也不能替代信仰群体。它是在艰难时刻给予温柔陪伴的伙伴——不能替代心理治疗或牧灵辅导。",
+    "todayTitle": "它现在是什么",
+    "todayBody": "扎根于圣经的对话,配有清晰可见的经文引用,支持 11 种语言,可在网页和 Android 上使用——完全免费。",
+    "todayContinuity": "项目刚开始时名为 \"Get Inspired by the Bible\"。此后它有了很大的发展,现在的名字是 Vox Quieta。",
+    "builtTitle": "由一个人在 AI 帮助下打造",
+    "builtBody1": "这个想法来自我自己。理解什么才真正有帮助、该用什么语气、该以哪些经文来指导回答——这些都需要人的判断与用心。",
+    "builtBody2": "技术只是工具。这个项目的\"初心\"——对正经历心理困扰之人的同理心,以及带去希望的愿望——完全是人性的。",
+    "builtBody3": "我不是专业的前端开发者,Vox Quieta 是在 Claude Code 的帮助下构建的。该项目是开源的。",
+    "builtLinkLabel": "在 GitHub 上查看源代码",
+    "fullStoryTitle": "阅读完整故事",
+    "fullStoryBody": "关于项目起源——包括它是如何被构建的——完整记录在这篇文章中。",
+    "fullStoryLinkLabel": "阅读文章",
+    "contactTitle": "联系我",
+    "contactBody": "哪些做得好?哪些还可以改进?怎样才能让它更有帮助?我很想听听你的想法。",
+    "contactLinkLabel": "发送反馈",
+    "introTitle": "为什么会有 Vox Quieta",
+    "introBody": "抑郁症和心理健康困扰影响着许多人。Vox Quieta 的诞生,是为了简单、易用、扎根于圣经——在艰难时刻给予温柔陪伴,而不是替代心理治疗或牧灵辅导。",
+    "introPrimaryCta": "了解更多",
+    "introSecondaryCta": "继续",
+    "introDismissLabel": "关闭"
   },
   "Tester": {
     "metaTitle": "成为测试员",

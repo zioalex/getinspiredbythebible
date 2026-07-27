@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, History as HistoryIcon, MapPin } from "lucide-react";
+import { Menu, History as HistoryIcon, MapPin, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TranslationSwitcher from "@/components/TranslationSwitcher";
+import { Link } from "@/i18n/navigation";
 import type { TranslationInfo } from "@/lib/api";
 
 interface MainMenuProps {
@@ -23,6 +24,7 @@ export default function MainMenu({
   onSelectTranslation,
 }: MainMenuProps) {
   const t = useTranslations("Chat");
+  const tFooter = useTranslations("Footer");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +96,17 @@ export default function MainMenu({
             <MapPin className="w-4 h-4 flex-shrink-0" />
             {t("searchCommunity")}
           </button>
+
+          <div className="border-t border-gray-100 my-1" />
+
+          <Link
+            href="/about"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Info className="w-4 h-4 flex-shrink-0" />
+            {tFooter("about")}
+          </Link>
         </div>
       )}
     </div>

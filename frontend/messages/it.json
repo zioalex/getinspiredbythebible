@@ -281,7 +281,8 @@
   },
   "Footer": {
     "changelog": "Changelog",
-    "getApp": "Scarica l'app"
+    "getApp": "Scarica l'app",
+    "about": "Chi siamo"
   },
   "App": {
     "metaTitle": "Scarica l'app Vox Quieta",
@@ -306,6 +307,38 @@
     "betaLead": "Curioso di provare le novità prima di tutti?",
     "betaLink": "Partecipa al programma beta",
     "backHome": "Torna alla home"
+  },
+  "About": {
+    "metaTitle": "Chi siamo — Vox Quieta",
+    "metaDescription": "Perché esiste Vox Quieta, chi l'ha creato e cosa non è — un compagno gentile nei momenti di difficoltà, radicato nelle Scritture.",
+    "backHome": "Torna alla home",
+    "title": "Chi siamo",
+    "heroLead": "Un luogo dove trovare speranza e ispirazione quando ne hai bisogno.",
+    "whyTitle": "Perché esiste",
+    "whyBody1": "Ti è mai capitato di avere un'idea che proprio non ti lasciava in pace? La depressione e le difficoltà legate alla salute mentale toccano moltissime persone, giovani e meno giovani. Volevo creare qualcosa di semplice, accessibile e profondamente radicato nelle Scritture, che potesse offrire conforto proprio quando serve di più.",
+    "whyBody2": "Non sostituisce la terapia o l'assistenza pastorale, ma è un compagno gentile nei momenti di difficoltà.",
+    "whyBody3": "Non vuole essere tutto. Vuole essere una cosa sola, fatta bene: un luogo dove trovare speranza e ispirazione quando ne hai bisogno.",
+    "notTitle": "Cosa non è",
+    "notBody": "Vox Quieta non è un pastore, non è un terapeuta e non sostituisce una comunità di fede. È un compagno gentile nei momenti di difficoltà, non un sostituto della terapia o dell'assistenza pastorale.",
+    "todayTitle": "Cos'è oggi",
+    "todayBody": "Conversazioni radicate nelle Scritture, con riferimenti biblici visibili, in 11 lingue, sul web e su Android — gratuito.",
+    "todayContinuity": "Quando è nato, questo progetto si chiamava \"Get Inspired by the Bible\". Da allora è cresciuto molto ed è diventato Vox Quieta.",
+    "builtTitle": "Creato da una sola persona, con l'aiuto dell'IA",
+    "builtBody1": "L'idea è nata da me. La comprensione di cosa fosse davvero utile, quale tono usare, quali Scritture dovessero guidare le risposte: tutto questo ha richiesto giudizio e cura umani.",
+    "builtBody2": "La tecnologia è solo uno strumento. Il \"perché\" di questo progetto — l'empatia verso chi soffre per la salute mentale, il desiderio di offrire speranza — è del tutto umano.",
+    "builtBody3": "Non sono uno sviluppatore frontend professionista, e Vox Quieta è stato realizzato con l'aiuto di Claude Code. Il progetto è open source.",
+    "builtLinkLabel": "Vedi il codice sorgente su GitHub",
+    "fullStoryTitle": "Leggi la storia completa",
+    "fullStoryBody": "La storia delle origini — compreso come è stato realizzato — è raccontata per intero.",
+    "fullStoryLinkLabel": "Leggi l'articolo",
+    "contactTitle": "Contattami",
+    "contactBody": "Cosa ha funzionato? Cosa si potrebbe migliorare? Cosa lo renderebbe più utile? Mi piacerebbe sentirti.",
+    "contactLinkLabel": "Invia un feedback",
+    "introTitle": "Perché Vox Quieta",
+    "introBody": "La depressione e le difficoltà legate alla salute mentale toccano moltissime persone. Vox Quieta è nato per essere semplice, accessibile e radicato nelle Scritture: un compagno gentile nei momenti di difficoltà, non un sostituto della terapia o dell'assistenza pastorale.",
+    "introPrimaryCta": "Scopri di più",
+    "introSecondaryCta": "Continua",
+    "introDismissLabel": "Chiudi"
   },
   "Tester": {
     "metaTitle": "Diventa beta tester",

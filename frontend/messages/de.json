@@ -281,7 +281,8 @@
   },
   "Footer": {
     "changelog": "Changelog",
-    "getApp": "App holen"
+    "getApp": "App holen",
+    "about": "Über uns"
   },
   "App": {
     "metaTitle": "Die Vox-Quieta-App holen",
@@ -306,6 +307,38 @@
     "betaLead": "Neugierig auf neue Funktionen vor allen anderen?",
     "betaLink": "Am Beta-Programm teilnehmen",
     "backHome": "Zurück zur Startseite"
+  },
+  "About": {
+    "metaTitle": "Über Vox Quieta",
+    "metaDescription": "Warum es Vox Quieta gibt, wer es gebaut hat und was es nicht ist — ein sanfter Begleiter in schweren Momenten, verwurzelt in der Heiligen Schrift.",
+    "backHome": "Zurück zur Startseite",
+    "title": "Über Vox Quieta",
+    "heroLead": "Ein Ort, um Hoffnung und Inspiration zu finden, wenn du sie brauchst.",
+    "whyTitle": "Warum es das gibt",
+    "whyBody1": "Hattest du schon einmal eine Idee, die dich einfach nicht losgelassen hat? Depressionen und psychische Belastungen betreffen so viele Menschen — Junge wie Alte. Ich wollte etwas Einfaches, Zugängliches schaffen, tief in der Schrift verwurzelt, das Trost spenden kann, wenn er am meisten gebraucht wird.",
+    "whyBody2": "Kein Ersatz für Therapie oder Seelsorge, sondern ein sanfter Begleiter in schweren Momenten.",
+    "whyBody3": "Es will nicht alles sein. Es will eine Sache richtig gut machen: ein Ort, um Hoffnung und Inspiration zu finden, wenn du sie brauchst.",
+    "notTitle": "Was es nicht ist",
+    "notBody": "Vox Quieta ist kein Pastor, kein Therapeut und kein Ersatz für eine Glaubensgemeinschaft. Es ist ein sanfter Begleiter in schweren Momenten — kein Ersatz für Therapie oder seelsorgerliche Beratung.",
+    "todayTitle": "Was es heute ist",
+    "todayBody": "Gespräche, die in der Schrift verwurzelt sind, mit sichtbaren Bibelstellen, in 11 Sprachen, im Web und auf Android — kostenlos.",
+    "todayContinuity": "Als es begann, hieß dieses Projekt \"Get Inspired by the Bible\". Seitdem ist es gewachsen und heißt jetzt Vox Quieta.",
+    "builtTitle": "Von einer Person gebaut, mit Hilfe von KI",
+    "builtBody1": "Die Idee kam von mir. Das Verständnis dafür, was wirklich hilft, welchen Ton man trifft, welche Schriftstellen die Antworten leiten sollten — das brauchte menschliches Urteilsvermögen und Sorgfalt.",
+    "builtBody2": "Technologie ist nur ein Werkzeug. Das \"Warum\" hinter diesem Projekt — die Empathie für Menschen mit psychischen Belastungen, der Wunsch, Hoffnung zu schenken — das ist ganz und gar menschlich.",
+    "builtBody3": "Ich bin kein professioneller Frontend-Entwickler, und Vox Quieta wurde mit Hilfe von Claude Code gebaut. Das Projekt ist Open Source.",
+    "builtLinkLabel": "Quellcode auf GitHub ansehen",
+    "fullStoryTitle": "Die ganze Geschichte lesen",
+    "fullStoryBody": "Die Entstehungsgeschichte — einschließlich der Umsetzung — ist vollständig aufgeschrieben.",
+    "fullStoryLinkLabel": "Artikel lesen",
+    "contactTitle": "Kontakt aufnehmen",
+    "contactBody": "Was hat funktioniert? Was könnte besser sein? Was würde es hilfreicher machen? Ich würde gerne von dir hören.",
+    "contactLinkLabel": "Feedback senden",
+    "introTitle": "Warum Vox Quieta",
+    "introBody": "Depressionen und psychische Belastungen betreffen so viele Menschen. Vox Quieta wurde geschaffen, um einfach, zugänglich und in der Schrift verwurzelt zu sein — ein sanfter Begleiter in schweren Momenten, kein Ersatz für Therapie oder Seelsorge.",
+    "introPrimaryCta": "Mehr erfahren",
+    "introSecondaryCta": "Weiter",
+    "introDismissLabel": "Schließen"
   },
   "Tester": {
     "metaTitle": "Beta-Tester werden",
