@@ -45,7 +45,6 @@ import {
   StreamTimeoutError,
   MessageTooLongError,
   VerificationError,
-  MAX_MESSAGE_LENGTH,
   checkBackendReady,
   warmupBackend,
   StreamChunk,
@@ -60,6 +59,7 @@ import {
 import { updateMultiWordNames } from "@/lib/versePatterns";
 import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
+import { useServerConfig } from "@/lib/serverConfig";
 import { isSmokeMode } from "@/lib/smoke";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import ConversationSidebar from "@/components/ConversationSidebar";
@@ -97,6 +97,7 @@ export default function ChatIsland({
     isEnabled: turnstileEnabled,
     configLoaded: turnstileConfigLoaded,
   } = useTurnstile();
+  const { maxMessageLength } = useServerConfig();
   // Block submissions until /config has resolved: until then we don't yet
   // know whether Turnstile is enabled, and a fast click could fire a POST
   // without an X-Turnstile-Token header and get bounced as 403.
@@ -735,7 +736,7 @@ export default function ChatIsland({
       // Backend rejected an over-long message (422) — tell the user to shorten
       // it instead of showing a misleading connection error.
       if (error instanceof MessageTooLongError) {
-        showError(tChat("messageTooLong", { max: MAX_MESSAGE_LENGTH }));
+        showError(tChat("messageTooLong", { max: maxMessageLength }));
         setIsLoading(false);
         return;
       }
@@ -1177,7 +1178,7 @@ export default function ChatIsland({
               onKeyDown={handleInputKeyDown}
               placeholder={tChat("inputPlaceholder")}
               rows={1}
-              maxLength={MAX_MESSAGE_LENGTH}
+              maxLength={maxMessageLength}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
               disabled={showSessionLimitButton}
             />
@@ -1205,16 +1206,16 @@ export default function ChatIsland({
           </form>
           {/* Character counter — surfaces only as the user nears the limit so
               they understand why a long message can't grow further. */}
-          {input.length >= MAX_MESSAGE_LENGTH * 0.8 && (
+          {input.length >= maxMessageLength * 0.8 && (
             <p
               className={`text-xs mt-1 text-right ${
-                input.length >= MAX_MESSAGE_LENGTH
+                input.length >= maxMessageLength
                   ? "text-red-500"
                   : "text-gray-400"
               }`}
               aria-live="polite"
             >
-              {input.length}/{MAX_MESSAGE_LENGTH}
+              {input.length}/{maxMessageLength}
             </p>
           )}
           <p className="text-xs text-gray-400 mt-2 text-center">
