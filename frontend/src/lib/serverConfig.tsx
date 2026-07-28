@@ -44,11 +44,7 @@ export function ServerConfigProvider({
         if (!response.ok) return;
         const config = await response.json();
         const value = config?.chat?.max_message_length;
-        if (
-          !cancelled &&
-          Number.isInteger(value) &&
-          value > 0
-        ) {
+        if (!cancelled && Number.isInteger(value) && value > 0) {
           setMaxMessageLength(value);
         }
       } catch {
