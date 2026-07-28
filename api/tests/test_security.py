@@ -65,6 +65,34 @@ class TestInputValidation:
         request = ChatRequest(message=exact_message)
         assert len(request.message) == limit
 
+    def test_max_message_length_is_500(self):
+        """BITB-075: the configured default limit must be 500, not the old
+        300 (web/Android) or 200 (production terraform) values that used to
+        disagree with each other."""
+        assert settings.max_message_length == 500
+
+    def test_500_char_message_accepted(self):
+        """BITB-075: a 500-character message must be accepted end-to-end."""
+        message_500 = "a" * 500
+        request = ChatRequest(message=message_500)
+        assert len(request.message) == 500
+
+    def test_501_char_message_rejected_with_422(self):
+        """BITB-075: a message one character over the 500 limit must be
+        rejected by the API with HTTP 422 (not just at the Pydantic-model
+        level). Uses varied, realistic text (not a repeated character) so the
+        content filter's spam check doesn't mask the length rejection."""
+        client = TestClient(app)
+        sentence = "This is a realistic sentence about finding peace and hope. "
+        long_message = (sentence * ((501 // len(sentence)) + 1))[:501]
+        assert len(long_message) == 501
+
+        response = client.post(
+            "/api/v1/chat",
+            json={"message": long_message},
+        )
+        assert response.status_code == 422
+
     def test_valid_session_id(self):
         """Accept valid session ID format."""
         request = ChatRequest(message="Hello", session_id="abc123-xyz_456")
@@ -373,8 +401,13 @@ class TestSecurityIntegration:
     def test_message_too_long_returns_422(self):
         """API should return 422 for messages over limit."""
         client = TestClient(app)
-        # Use realistic text to avoid content filter triggering on repeated chars
-        long_message = "This is a test message that is too long " * 10  # Over 200 limit
+        # Use realistic text to avoid content filter triggering on repeated chars.
+        # Repeat enough times to exceed the configured limit (BITB-075: 500),
+        # rather than a fixed repeat count that would stop exceeding the limit
+        # whenever the limit is raised.
+        phrase = "This is a test message that is too long "
+        repeats = (settings.max_message_length // len(phrase)) + 2
+        long_message = phrase * repeats
 
         response = client.post("/api/v1/chat", json={"message": long_message})
         assert response.status_code == 422

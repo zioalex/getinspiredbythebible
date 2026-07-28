@@ -177,7 +177,7 @@ class Settings(BaseSettings):
     memory_warning_threshold_mb: int = 512  # Memory usage warning threshold
 
     # Security Settings
-    max_message_length: int = 300  # Max characters per chat message
+    max_message_length: int = 500  # Max characters per chat message
     rate_limit_enabled: bool = True
     # BITB-061: "postgres" shares counters across replicas and survives
     # restarts/deploys (the whole point of this setting); "memory" is the
