@@ -404,7 +404,7 @@ variable "content_filter_enabled" {
 variable "max_message_length" {
   description = "Maximum length of chat messages"
   type        = number
-  default     = 200
+  default     = 500
 }
 
 variable "content_safety_enabled" {
