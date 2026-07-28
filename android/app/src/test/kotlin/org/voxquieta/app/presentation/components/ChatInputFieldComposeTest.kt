@@ -4,9 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
@@ -35,6 +37,7 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
                 value = text,
                 onValueChange = { text = it },
                 onSend = { sent = it },
+                maxLength = 500,
             )
         }
 
@@ -54,10 +57,31 @@ class ChatInputFieldComposeTest : ComposeTestHarness() {
                 onSend = {},
                 isLoading = true,
                 isSessionLimitReached = false,
+                maxLength = 500,
             )
         }
 
         // Field must remain editable during streaming (enabled = !isSessionLimitReached)
         composeRule.onNode(hasSetTextAction()).assertIsEnabled()
+    }
+
+    @Test
+    fun `counter reflects the passed maxLength rather than a hardcoded default`() {
+        // BITB-075: maxLength is now a required, server-derived value (no
+        // compiled-in default) — this guards against silent drift back to a
+        // stale constant if a call site ever forgets to pass it explicitly.
+        setContentThemed {
+            var text by remember { mutableStateOf("a".repeat(9)) }
+            ChatInputField(
+                value = text,
+                onValueChange = { text = it },
+                onSend = {},
+                maxLength = 10,
+            )
+        }
+
+        // At 9/10 chars (>= 80% of maxLength=10) the counter must be visible
+        // and show the maxLength we passed in, not some other default.
+        composeRule.onNodeWithText("9/10").assertExists()
     }
 }
