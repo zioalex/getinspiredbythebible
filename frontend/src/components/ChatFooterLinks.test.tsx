@@ -5,10 +5,7 @@ import { renderWithIntl } from "@/test/i18n-helpers";
 import enMessages from "../../messages/en.json";
 
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({
-    children,
-    href,
-  }: React.PropsWithChildren<{ href: string }>) => (
+  Link: ({ children, href }: React.PropsWithChildren<{ href: string }>) => (
     <a href={href}>{children}</a>
   ),
 }));
@@ -21,7 +18,13 @@ describe("ChatFooterLinks", () => {
     const hrefs = Array.from(nav.querySelectorAll("a")).map((a) =>
       a.getAttribute("href"),
     );
-    expect(hrefs).toEqual(["/app", "/about", "/privacy", "/terms", "/changelog"]);
+    expect(hrefs).toEqual([
+      "/app",
+      "/about",
+      "/privacy",
+      "/terms",
+      "/changelog",
+    ]);
   });
 
   it("labels each link with the translated Footer/Legal copy", () => {

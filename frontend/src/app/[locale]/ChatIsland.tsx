@@ -194,7 +194,9 @@ export default function ChatIsland({
   // Only one promo/suggestion element in the sticky bottom region at a time,
   // so it never crowds the composer off a small screen (BITB-079).
   const showLanguageSuggestion =
-    !!languageSuggestion && !languageSuggestionDismissed && !showSessionLimitButton;
+    !!languageSuggestion &&
+    !languageSuggestionDismissed &&
+    !showSessionLimitButton;
 
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =

@@ -6,10 +6,7 @@ const mockPathname = vi.fn();
 
 vi.mock("@/i18n/navigation", () => ({
   usePathname: () => mockPathname(),
-  Link: ({
-    children,
-    href,
-  }: React.PropsWithChildren<{ href: string }>) => (
+  Link: ({ children, href }: React.PropsWithChildren<{ href: string }>) => (
     <a href={href}>{children}</a>
   ),
 }));

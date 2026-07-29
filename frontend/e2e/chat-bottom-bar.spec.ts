@@ -61,9 +61,7 @@ test.describe("chat page bottom bar", () => {
     expect(textareaBox).not.toBeNull();
     expect(textareaBox!.y + textareaBox!.height).toBeLessThanOrEqual(641);
 
-    const linksBox = await page
-      .getByTestId("chat-footer-links")
-      .boundingBox();
+    const linksBox = await page.getByTestId("chat-footer-links").boundingBox();
     expect(linksBox).not.toBeNull();
     expect(linksBox!.y + linksBox!.height).toBeLessThanOrEqual(641);
   });
