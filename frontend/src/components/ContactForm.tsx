@@ -95,7 +95,7 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="mt-6 border-t border-gray-200 pt-4">
+    <div className="mt-3 pt-3 sm:mt-6 sm:pt-4 border-t border-gray-200">
       {/* Header - always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -114,7 +114,7 @@ export default function ContactForm() {
 
       {/* Collapsible content */}
       {isExpanded && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 max-h-[50dvh] overflow-y-auto">
           {/* Contact email */}
           <div className="flex items-center gap-2 text-sm">
             <Mail className="w-4 h-4 text-gray-400" />

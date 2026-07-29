@@ -11,7 +11,7 @@ import { routing } from "@/i18n/routing";
 import { pageMetadata, buildJsonLd, SITE_NAME } from "@/lib/seo";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Footer from "@/components/Footer";
+import FooterGate from "@/components/FooterGate";
 import WhatsNewModal from "@/components/WhatsNewModal";
 
 export async function generateMetadata({
@@ -107,7 +107,7 @@ export default async function LocaleLayout({
             <ErrorBoundary>
               <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col [overflow-x:clip]">
                 <div className="flex-1">{children}</div>
-                <Footer />
+                <FooterGate />
               </div>
               <WhatsNewModal />
             </ErrorBoundary>

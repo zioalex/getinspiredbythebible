@@ -616,9 +616,18 @@ describe("Home page responsive layout", () => {
     it("renders an emphasized header pill link to /app", () => {
       renderWithIntl(<Home />);
 
-      const label = screen.getByText(enMessages.Header.appCta);
-      const headerLink = label.closest('a[href="/app"]');
-      expect(headerLink).not.toBeNull();
+      // The chat page's compact footer link row (BITB-079) also links to
+      // /app with the same label, so disambiguate by finding the pill —
+      // the emphasized filled link, not any /app link.
+      const labels = screen.getAllByText(enMessages.Header.appCta);
+      const headerLink = labels
+        .map((label) => label.closest('a[href="/app"]'))
+        .find(
+          (link) =>
+            link?.className.includes("rounded-full") &&
+            link?.className.includes("bg-teal-600"),
+        );
+      expect(headerLink).not.toBeUndefined();
       // Guard the *emphasis*, not just presence: the regression downgraded the
       // pill to a muted text link. The filled pill is what makes it a primary
       // call to action.
