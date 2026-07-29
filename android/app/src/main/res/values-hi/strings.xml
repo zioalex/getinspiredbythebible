@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">धन्यवाद — हमें आपकी रिपोर्ट मिल गई है और हम जल्द ही इसकी समीक्षा करेंगे।</string>
 
     <string name="settings_about_title">के बारे में</string>
+    <string name="settings_about_link">Vox Quieta के बारे में</string>
     <string name="settings_version">संस्करण</string>
     <string name="settings_privacy_policy">गोपनीयता नीति</string>
     <string name="settings_terms_of_service">सेवा की शर्तें</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">नया क्या है</string>
     <string name="whats_new_dismiss">समझ गया</string>
     <string name="whats_new_see_all">सभी देखें</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">Vox Quieta क्यों</string>
+    <string name="about_intro_body">अवसाद और मानसिक स्वास्थ्य से जुड़ी चुनौतियाँ बहुत से लोगों को प्रभावित करती हैं। Vox Quieta को सरल, सुलभ और पवित्रशास्त्र में निहित बनाया गया — कठिन क्षणों में एक कोमल साथी, चिकित्सा या पास्टरल देखभाल का विकल्प नहीं।</string>
+    <string name="about_intro_primary_cta">और पढ़ें</string>
+    <string name="about_intro_secondary_cta">जारी रखें</string>
 
     <!-- Errors -->
     <string name="error_session_limit">इस सत्र में आपके 10 संदेश हो चुके हैं! क्यों न एक ब्रेक लें और परमेश्वर की सृष्टि का आनंद लें? 🌳</string>

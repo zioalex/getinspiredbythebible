@@ -45,6 +45,7 @@ import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
+import org.voxquieta.app.utils.aboutUrl
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
 
@@ -196,6 +197,18 @@ fun SettingsScreen(
                     text = BuildConfig.VERSION_NAME,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(aboutUrl(currentLanguage)))
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_about_link),
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
             TextButton(

@@ -30,3 +30,7 @@ fun privacyUrl(languageCode: String, base: String = BuildConfig.FRONTEND_URL): S
 /** Locale-aware Terms of Service URL for the voxquieta.org web app. */
 fun termsUrl(languageCode: String, base: String = BuildConfig.FRONTEND_URL): String =
     "${frontendBase(base)}/${webLocaleFor(languageCode)}/terms"
+
+/** Locale-aware About page URL for the voxquieta.org web app (BITB-082). */
+fun aboutUrl(languageCode: String, base: String = BuildConfig.FRONTEND_URL): String =
+    "${frontendBase(base)}/${webLocaleFor(languageCode)}/about"
