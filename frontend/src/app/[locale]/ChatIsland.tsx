@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import ChatFooterLinks from "@/components/ChatFooterLinks";
 import ChatMessage from "@/components/ChatMessage";
 import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
@@ -191,9 +192,20 @@ export default function ChatIsland({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
+  // Only one promo/suggestion element in the sticky bottom region at a time,
+  // so it never crowds the composer off a small screen (BITB-079).
+  const showLanguageSuggestion =
+    !!languageSuggestion &&
+    !languageSuggestionDismissed &&
+    !showSessionLimitButton;
+
   // Show church finder banner after 3+ messages and not dismissed
   const showChurchFinderBanner =
-    interactionCount >= 3 && !churchFinderDismissed && messages.length > 0;
+    interactionCount >= 3 &&
+    !churchFinderDismissed &&
+    messages.length > 0 &&
+    !showSessionLimitButton &&
+    !showLanguageSuggestion;
 
   // Translation preference
   const [translations, setTranslations] = useState<TranslationInfo[]>([]);
@@ -1162,7 +1174,7 @@ export default function ChatIsland({
           )}
 
           {/* Language-mismatch suggestion */}
-          {languageSuggestion && !languageSuggestionDismissed && (
+          {showLanguageSuggestion && (
             <LanguageSwitchSuggestion
               suggestedLocale={languageSuggestion}
               onSwitch={handleLanguageSwitch}
@@ -1221,6 +1233,10 @@ export default function ChatIsland({
           <p className="text-xs text-gray-400 mt-2 text-center">
             {tChat("disclaimer")}
           </p>
+
+          {/* Compact link row — the page-level Footer is unreachable on this
+              h-dvh chat page, so these links live in the shell instead. */}
+          <ChatFooterLinks />
 
           {/* Church Finder Banner */}
           {showChurchFinderBanner && (
