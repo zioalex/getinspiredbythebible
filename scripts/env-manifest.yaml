@@ -154,7 +154,7 @@ variables:
   MAX_MESSAGE_LENGTH:
     required_in: remote
     description: Maximum chat message length
-    default: "200"
+    default: "500"
 
   ENVIRONMENT:
     required_in: remote

@@ -15,6 +15,7 @@ vi.mock("@/lib/api", () => ({
   setTurnstileToken: () => {},
   setOnTokenConsumed: () => {},
   setTurnstileAwaiter: () => {},
+  MAX_MESSAGE_LENGTH: 500,
 }));
 vi.mock("@/lib/clientErrorReporter", () => ({ reportClientError: () => {} }));
 
