@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.50.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.49.0...v1.50.0) (2026-07-29)
+
+### Features
+
+* **android:** add About settings row + first-run intro sheet (BITB-082) ([#941](https://github.com/zioalex/getinspiredbythebible/issues/941)) ([c0aec69](https://github.com/zioalex/getinspiredbythebible/commit/c0aec69bee9d020bbf5412202b3d645c3ce4344e))
+* **web:** give the About page a more personal voice (BITB-083) ([#947](https://github.com/zioalex/getinspiredbythebible/issues/947)) ([c3760ce](https://github.com/zioalex/getinspiredbythebible/commit/c3760ceeae47d703a94e51fb178765e002cbe270))
+
+### Bug Fixes
+
+* **api:** raise chat message limit to 500 and publish via /config (BITB-075) ([#944](https://github.com/zioalex/getinspiredbythebible/issues/944)) ([749c302](https://github.com/zioalex/getinspiredbythebible/commit/749c3020cec70f018cfd7926a7cbd0bf0e793f86))
+* **frontend:** make chat page footer links reachable (BITB-079) ([#945](https://github.com/zioalex/getinspiredbythebible/issues/945)) ([47e44de](https://github.com/zioalex/getinspiredbythebible/commit/47e44deb26d3e1a1a10a88def1f7f9fc8bf563ce))
+
+### Documentation
+
+* **backlog:** capture About page personal-voice follow-up (BITB-083) ([#943](https://github.com/zioalex/getinspiredbythebible/issues/943)) ([460a9df](https://github.com/zioalex/getinspiredbythebible/commit/460a9df801d224103575ecd25cd0eace5963cdf5))
+
 ## [1.49.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.48.0...v1.49.0) (2026-07-27)
 
 ### Features
