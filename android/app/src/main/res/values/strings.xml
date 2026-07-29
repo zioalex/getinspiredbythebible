@@ -169,6 +169,7 @@
     <!-- Settings: About section -->
     <string name="settings_about_title">About</string>
     <string name="settings_version">Version</string>
+    <string name="settings_about_link">About Vox Quieta</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_terms_of_service">Terms of Service</string>
     <string name="settings_changelog_title">What\'s New</string>
@@ -177,6 +178,12 @@
     <string name="whats_new_title">What\'s New</string>
     <string name="whats_new_dismiss">Got it</string>
     <string name="whats_new_see_all">See all</string>
+
+    <!-- About intro bottom sheet (BITB-082) — condensed from the web About.intro* copy -->
+    <string name="about_intro_title">Why Vox Quieta</string>
+    <string name="about_intro_body">Depression and mental health struggles affect so many people. Vox Quieta was built to be simple, accessible, and deeply rooted in Scripture — a gentle companion for moments of struggle, not a replacement for therapy or pastoral care.</string>
+    <string name="about_intro_primary_cta">Read more</string>
+    <string name="about_intro_secondary_cta">Continue</string>
 
     <!-- Offline notice -->
     <string name="offline_notice">You\'re offline. You can read past messages, but sending new ones requires an internet connection.</string>

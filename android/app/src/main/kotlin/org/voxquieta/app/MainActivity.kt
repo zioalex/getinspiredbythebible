@@ -1,6 +1,8 @@
 package org.voxquieta.app
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -34,6 +37,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.voxquieta.app.analytics.AnalyticsHelper
+import org.voxquieta.app.presentation.components.AboutIntroBottomSheet
 import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.components.WhatsNewBottomSheet
 import org.voxquieta.app.presentation.components.shouldShowWhatsNew
@@ -45,6 +49,7 @@ import org.voxquieta.app.presentation.screens.SplashScreen
 import org.voxquieta.app.presentation.theme.VoxQuietaTheme
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.utils.aboutUrl
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -63,6 +68,46 @@ private fun Context.lastSeenVersionCode(): Int =
 private fun Context.markVersionSeen(code: Int) =
     getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         .edit().putInt("last_seen_version_code", code).apply()
+
+// BITB-082: "seen once ever" flag for the About intro sheet, mirroring the
+// splash_seen boolean pattern above rather than the version-int pattern used
+// by What's New — this is a one-time announcement, not a per-release changelog.
+private fun Context.hasAboutIntroBeenSeen(): Boolean =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .getBoolean("about_intro_seen", false)
+
+private fun Context.markAboutIntroSeen() =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("about_intro_seen", true).apply()
+
+/** Which first-run sheet (if any) a cold start should show, and whether to mark the
+ * What's New version seen. Pure so the priority rule (About intro wins; What's New
+ * defers to the next launch rather than being marked seen now) is unit-testable
+ * without a Context (BITB-082). */
+internal data class LaunchModalDecision(
+    val showAboutIntro: Boolean,
+    val showWhatsNew: Boolean,
+    val shouldMarkVersionSeen: Boolean,
+)
+
+internal fun resolveLaunchModals(
+    aboutIntroSeen: Boolean,
+    storedVersionCode: Int,
+    currentVersionCode: Int,
+): LaunchModalDecision {
+    if (!aboutIntroSeen) {
+        return LaunchModalDecision(
+            showAboutIntro = true,
+            showWhatsNew = false,
+            shouldMarkVersionSeen = false,
+        )
+    }
+    return LaunchModalDecision(
+        showAboutIntro = false,
+        showWhatsNew = shouldShowWhatsNew(storedVersionCode, currentVersionCode),
+        shouldMarkVersionSeen = storedVersionCode != currentVersionCode,
+    )
+}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -87,6 +132,10 @@ class MainActivity : ComponentActivity() {
     // Computed once on cold start (BITB-058); read inside setContent{} to seed the
     // "What's New" sheet's Compose state.
     private var showWhatsNewOnLaunch = false
+
+    // Computed once on cold start (BITB-082); read inside setContent{} to seed the
+    // About intro sheet's Compose state.
+    private var showAboutIntroOnLaunch = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Capture the splash screen handle before super.onCreate() as required by the API.
@@ -113,12 +162,19 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             analyticsHelper.logEvent(AnalyticsHelper.EVENT_APP_OPEN)
 
-            // "What's New" bottom sheet (BITB-058): shown once per update, never on
-            // fresh install. The version is marked seen here (not on dismiss/see-all)
-            // so a process death before the user acts still counts as "seen".
-            val storedVersion = lastSeenVersionCode()
-            showWhatsNewOnLaunch = shouldShowWhatsNew(storedVersion, BuildConfig.VERSION_CODE)
-            if (storedVersion != BuildConfig.VERSION_CODE) markVersionSeen(BuildConfig.VERSION_CODE)
+            // About intro sheet (BITB-082) and "What's New" (BITB-058) must never both
+            // fire on the same cold start — About intro wins, What's New defers to the
+            // next launch. See resolveLaunchModals() for the pure decision logic.
+            val decision = resolveLaunchModals(
+                aboutIntroSeen = hasAboutIntroBeenSeen(),
+                storedVersionCode = lastSeenVersionCode(),
+                currentVersionCode = BuildConfig.VERSION_CODE,
+            )
+            showAboutIntroOnLaunch = decision.showAboutIntro
+            showWhatsNewOnLaunch = decision.showWhatsNew
+            if (decision.shouldMarkVersionSeen) {
+                markVersionSeen(BuildConfig.VERSION_CODE)
+            }
         }
 
         // Play Store isn't available in debug builds, so the check is a silent no-op there.
@@ -142,7 +198,9 @@ class MainActivity : ComponentActivity() {
             VoxQuietaTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
                 val context = LocalContext.current
+                val currentLanguage = LocalConfiguration.current.locales[0].language
                 var showWhatsNew by remember { mutableStateOf(showWhatsNewOnLaunch) }
+                var showAboutIntro by remember { mutableStateOf(showAboutIntroOnLaunch) }
 
                 // Track screen views every time the user navigates to a new destination.
                 DisposableEffect(navController) {
@@ -265,6 +323,29 @@ class MainActivity : ComponentActivity() {
                             onSeeAll = {
                                 showWhatsNew = false
                                 navController.navigate("changelog")
+                            },
+                        )
+                    }
+
+                    // About intro sheet (BITB-082). Mutually exclusive with What's New —
+                    // showAboutIntroOnLaunch forces showWhatsNewOnLaunch to false in
+                    // onCreate when both would otherwise be eligible on this cold start.
+                    // Marked seen only on dismiss/learn-more, not preemptively, so a
+                    // process death before the user acts still shows it next launch.
+                    if (showAboutIntro) {
+                        AboutIntroBottomSheet(
+                            onDismiss = {
+                                context.markAboutIntroSeen()
+                                showAboutIntro = false
+                            },
+                            onLearnMore = {
+                                context.markAboutIntroSeen()
+                                showAboutIntro = false
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(aboutUrl(currentLanguage)),
+                                )
+                                context.startActivity(intent)
                             },
                         )
                     }
