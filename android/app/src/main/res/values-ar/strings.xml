@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">شكرًا — تلقّينا تقريرك وسنراجعه قريبًا.</string>
 
     <string name="settings_about_title">حول</string>
+    <string name="settings_about_link">عن Vox Quieta</string>
     <string name="settings_version">الإصدار</string>
     <string name="settings_privacy_policy">سياسة الخصوصية</string>
     <string name="settings_terms_of_service">شروط الخدمة</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">ما الجديد</string>
     <string name="whats_new_dismiss">حسناً</string>
     <string name="whats_new_see_all">عرض الكل</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">لماذا Vox Quieta</string>
+    <string name="about_intro_body">يؤثر الاكتئاب والتحديات النفسية على الكثير من الناس. صُنع Vox Quieta ليكون بسيطًا وسهل الوصول ومتجذرًا في الكتاب المقدس — رفيق لطيف في لحظات الصعوبة، وليس بديلاً عن العلاج النفسي أو الإرشاد الرعوي.</string>
+    <string name="about_intro_primary_cta">اقرأ المزيد</string>
+    <string name="about_intro_secondary_cta">متابعة</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>

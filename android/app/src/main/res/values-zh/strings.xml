@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">感谢您 — 我们已收到您的报告，将尽快审阅。</string>
 
     <string name="settings_about_title">关于</string>
+    <string name="settings_about_link">关于 Vox Quieta</string>
     <string name="settings_version">版本</string>
     <string name="settings_privacy_policy">隐私政策</string>
     <string name="settings_terms_of_service">服务条款</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">更新内容</string>
     <string name="whats_new_dismiss">知道了</string>
     <string name="whats_new_see_all">查看全部</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">为什么会有 Vox Quieta</string>
+    <string name="about_intro_body">抑郁症和心理健康困扰影响着许多人。Vox Quieta 的诞生，是为了简单、易用、扎根于圣经——在艰难时刻给予温柔陪伴，而不是替代心理治疗或牧灵辅导。</string>
+    <string name="about_intro_primary_cta">了解更多</string>
+    <string name="about_intro_secondary_cta">继续</string>
 
     <!-- Errors -->
     <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>

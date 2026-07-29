@@ -175,6 +175,7 @@
     <string name="diagnostic_success_description">Merci — nous avons reçu votre rapport et nous l\'examinerons sous peu.</string>
 
     <string name="settings_about_title">À propos</string>
+    <string name="settings_about_link">À propos de Vox Quieta</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>
     <string name="settings_terms_of_service">Conditions d\'utilisation</string>
@@ -184,6 +185,12 @@
     <string name="whats_new_title">Nouveautés</string>
     <string name="whats_new_dismiss">J\'ai compris</string>
     <string name="whats_new_see_all">Tout voir</string>
+
+    <!-- About intro bottom sheet (BITB-082) -->
+    <string name="about_intro_title">Pourquoi Vox Quieta</string>
+    <string name="about_intro_body">La dépression et les difficultés de santé mentale touchent tant de personnes. Vox Quieta a été conçu pour être simple, accessible et ancré dans les Écritures — un compagnon bienveillant dans les moments difficiles, pas un substitut à la thérapie ou à l\'accompagnement pastoral.</string>
+    <string name="about_intro_primary_cta">En savoir plus</string>
+    <string name="about_intro_secondary_cta">Continuer</string>
 
     <!-- Session limit error -->
     <string name="error_session_limit">Vous avez eu 10 messages dans cette session ! Pourquoi ne pas faire une pause et profiter de la création de Dieu en plein air ? 🌳</string>

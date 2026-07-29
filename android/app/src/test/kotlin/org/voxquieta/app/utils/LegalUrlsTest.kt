@@ -34,6 +34,12 @@ class LegalUrlsTest {
     }
 
     @Test
+    fun `about url includes locale segment`() {
+        assertEquals("$base/it/about", aboutUrl("it", base))
+        assertEquals("$base/en/about", aboutUrl("ja", base))
+    }
+
+    @Test
     fun `trailing slash on base is normalized`() {
         assertEquals("$base/en/privacy", privacyUrl("en-US", "$base/"))
     }
