@@ -136,6 +136,12 @@ data class ChatUiState(
      * language-switch suggestion banner. Null means no banner.
      */
     val languageSuggestion: String? = null,
+    /**
+     * Effective max characters allowed in a single chat message. Seeded from
+     * the compiled-in [ChatViewModel.MAX_MESSAGE_LENGTH] fallback and updated
+     * once GET /config resolves (BITB-075) — see [ChatViewModel.fetchConfigWithRetry].
+     */
+    val maxMessageLength: Int = ChatViewModel.MAX_MESSAGE_LENGTH,
 )
 
 @HiltViewModel
@@ -166,11 +172,14 @@ class ChatViewModel @Inject constructor(
         const val CHAPTER_LOAD_TIMEOUT_MS = 10_000L
 
         /**
-         * Max characters allowed in a single chat message. Must match the
-         * backend's max_message_length setting (api/config.py); the server
-         * rejects anything longer with HTTP 422.
+         * Pre-config fallback only (BITB-075). The effective max characters
+         * allowed in a single chat message comes from the backend at runtime
+         * via GET /config -> chat.max_message_length (see
+         * [ChatUiState.maxMessageLength], seeded from this constant and
+         * updated by [fetchConfigWithRetry]). The server always enforces its
+         * own configured limit regardless of this value.
          */
-        const val MAX_MESSAGE_LENGTH = 300
+        const val MAX_MESSAGE_LENGTH = 500
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -304,6 +313,9 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
         viewModelScope.launch { fetchBookNamesWithRetry() }
+        // Fetch server-published config (currently just the effective chat
+        // message-length limit) from the backend with retry (BITB-075).
+        viewModelScope.launch { fetchConfigWithRetry() }
         // Mirror the connectivity state into uiState so the UI can react.
         viewModelScope.launch {
             networkMonitor.isOffline.collect { offline ->
@@ -369,6 +381,41 @@ class ChatViewModel @Inject constructor(
                     Timber.w(e, "Failed to fetch book names after $maxAttempts attempts; falling back to default regex")
                 } else {
                     Timber.w(e, "Failed to fetch book names (attempt ${attempt + 1}/$maxAttempts); retrying in ${delayMs}ms")
+                    delay(delayMs)
+                    delayMs *= 2
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetches server-published config from the backend with exponential backoff
+     * (BITB-075). Attempts up to [maxAttempts] times, starting with a
+     * [initialDelayMs] ms delay that doubles on each retry. Falls back to
+     * leaving [ChatUiState.maxMessageLength] at its compiled-in default when
+     * all attempts fail, or when the response doesn't include a valid
+     * positive value.
+     */
+    private suspend fun fetchConfigWithRetry(
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 1_000L,
+    ) {
+        var delayMs = initialDelayMs
+        repeat(maxAttempts) { attempt ->
+            try {
+                val response = bibleApiService.getConfig()
+                val maxLength = response.chat?.maxMessageLength
+                if (maxLength != null && maxLength > 0) {
+                    _uiState.update { it.copy(maxMessageLength = maxLength) }
+                }
+                return
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                val isLastAttempt = attempt == maxAttempts - 1
+                if (isLastAttempt) {
+                    Timber.w(e, "Failed to fetch config after $maxAttempts attempts; keeping fallback maxMessageLength")
+                } else {
+                    Timber.w(e, "Failed to fetch config (attempt ${attempt + 1}/$maxAttempts); retrying in ${delayMs}ms")
                     delay(delayMs)
                     delayMs *= 2
                 }
@@ -1210,7 +1257,7 @@ class ChatViewModel @Inject constructor(
         // over-long message. Tell the user to shorten it rather than showing a
         // generic server error.
         e is HttpException && e.code() == 422 ->
-            context.getString(R.string.error_message_too_long, MAX_MESSAGE_LENGTH)
+            context.getString(R.string.error_message_too_long, _uiState.value.maxMessageLength)
         e is HttpException ->
             context.getString(R.string.error_server)
         e is IOException ->

@@ -1072,13 +1072,13 @@ describe("streamMessage", () => {
           {
             type: "string_too_long",
             loc: ["body", "message"],
-            msg: "String should have at most 300 characters",
+            msg: "String should have at most 500 characters",
           },
         ],
       }),
     });
 
-    const gen = streamMessage("a".repeat(301));
+    const gen = streamMessage("a".repeat(501));
     await expect(gen.next()).rejects.toBeInstanceOf(MessageTooLongError);
   });
 

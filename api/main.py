@@ -397,6 +397,7 @@ async def get_config():
         "chat": {
             "max_context_verses": settings.max_context_verses,
             "max_conversation_history": settings.max_conversation_history,
+            "max_message_length": settings.max_message_length,
         },
         "security": {
             "turnstile_enabled": settings.turnstile_enabled,

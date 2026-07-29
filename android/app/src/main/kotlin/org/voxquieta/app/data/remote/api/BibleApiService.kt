@@ -4,6 +4,7 @@ import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChatRequestDto
 import org.voxquieta.app.data.remote.models.ChurchSearchRequestDto
 import org.voxquieta.app.data.remote.models.ChurchSearchResponseDto
+import org.voxquieta.app.data.remote.models.ConfigResponseDto
 import org.voxquieta.app.data.remote.models.ContactRequestDto
 import org.voxquieta.app.data.remote.models.ContactResponseDto
 import org.voxquieta.app.data.remote.models.FeedbackRequestDto
@@ -54,6 +55,14 @@ interface BibleApiService {
         @Query("translation") translation: String? = null,
         @Query("lang") lang: String? = null,
     ): ChapterResponseDto
+
+    /**
+     * Fetches non-sensitive runtime configuration published by the backend
+     * (BITB-075), currently just the effective chat message-length limit
+     * (`chat.max_message_length`). Root path — NOT prefixed with `api/v1/`.
+     */
+    @GET("config")
+    suspend fun getConfig(): ConfigResponseDto
 
     /**
      * Submits thumbs-up / thumbs-down feedback for a finished assistant message.

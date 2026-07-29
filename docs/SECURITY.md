@@ -170,7 +170,7 @@ All inputs are validated before processing.
 
 | Constraint | Value | Configuration |
 |------------|-------|---------------|
-| Max length | 200 chars | `MAX_MESSAGE_LENGTH` |
+| Max length | 500 chars | `MAX_MESSAGE_LENGTH` |
 | Min length | 1 char | Hardcoded |
 | Session ID format | Alphanumeric + `-_` | Regex pattern |
 | Session ID max length | 64 chars | Hardcoded |
@@ -224,7 +224,7 @@ CONTENT_FILTER_MAX_REPEATED_CHARS=5
 CONTENT_FILTER_MAX_URLS=0
 
 # Input Limits
-MAX_MESSAGE_LENGTH=200
+MAX_MESSAGE_LENGTH=500
 
 # CORS
 CORS_ORIGINS=https://custom-domain.com

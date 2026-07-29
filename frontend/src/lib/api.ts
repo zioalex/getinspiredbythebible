@@ -114,11 +114,13 @@ export class VerificationError extends Error {
 }
 
 /**
- * Max characters allowed in a single chat message. MUST stay in sync with the
- * backend's `max_message_length` setting (api/config.py); the server rejects
- * anything longer with HTTP 422.
+ * Pre-config fallback only. The effective max characters allowed in a single
+ * chat message comes from the backend at runtime via `GET /config` ->
+ * `chat.max_message_length` (see `useServerConfig()` in `@/lib/serverConfig`);
+ * this constant is used only until that fetch resolves (or if it fails). The
+ * server always enforces its own configured limit regardless of this value.
  */
-export const MAX_MESSAGE_LENGTH = 300;
+export const MAX_MESSAGE_LENGTH = 500;
 
 /**
  * Max time to wait for the next chunk from the streaming endpoint before
