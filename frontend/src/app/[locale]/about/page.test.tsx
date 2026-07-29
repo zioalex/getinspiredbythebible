@@ -85,6 +85,40 @@ describe("About page", () => {
     expect(screen.getByText(enMessages.About.notBody)).toBeInTheDocument();
   });
 
+  it("renders the opening hook as its own beat", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    expect(screen.getByText(enMessages.About.whyHook)).toBeInTheDocument();
+  });
+
+  it("renders the origin-era screenshot with a labeled caption", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    const img = screen.getByAltText(enMessages.About.originScreenshotAlt);
+    expect(img).toHaveAttribute("src", "/about/origin-welcome-screen.png");
+    expect(
+      screen.getByText(enMessages.About.originScreenshotCaption),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the closing personal beat before the contact section", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    expect(screen.getByText(enMessages.About.closingBody)).toBeInTheDocument();
+  });
+
+  it("signs the closing beat with the author's name", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    expect(
+      screen.getByText(enMessages.About.closingSignature),
+    ).toBeInTheDocument();
+  });
+
   it.each(["en", "de", "ar"])(
     "renders the localized title for /%s",
     async (locale) => {
