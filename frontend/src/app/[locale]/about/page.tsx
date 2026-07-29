@@ -59,6 +59,9 @@ export default async function AboutPage({
         <h2 className="text-lg font-semibold text-gray-800 mb-3">
           {t("whyTitle")}
         </h2>
+        <p className="text-lg text-gray-800 mb-4 leading-relaxed">
+          {t("whyHook")}
+        </p>
         <p className="text-gray-600 mb-4 leading-relaxed">{t("whyBody1")}</p>
         <p className="text-gray-600 mb-4 leading-relaxed">{t("whyBody2")}</p>
         <p className="text-gray-600 leading-relaxed">{t("whyBody3")}</p>
@@ -99,6 +102,19 @@ export default async function AboutPage({
         </a>
       </section>
 
+      <figure className="mb-10">
+        <img
+          src="/about/origin-welcome-screen.png"
+          alt={t("originScreenshotAlt")}
+          width={1517}
+          height={970}
+          className="w-full h-auto rounded-2xl shadow-sm border border-gray-100"
+        />
+        <figcaption className="mt-2 text-xs text-gray-400 text-center">
+          {t("originScreenshotCaption")}
+        </figcaption>
+      </figure>
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-10">
         <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
           <BookOpen className="w-5 h-5" />
@@ -118,6 +134,10 @@ export default async function AboutPage({
           {t("fullStoryLinkLabel")}
         </a>
       </div>
+
+      <p className="text-center text-gray-600 italic mb-10 px-4 leading-relaxed">
+        {t("closingBody")}
+      </p>
 
       <section className="border-t border-gray-100 pt-8 text-center">
         <h2 className="text-lg font-semibold text-gray-800 mb-2">
