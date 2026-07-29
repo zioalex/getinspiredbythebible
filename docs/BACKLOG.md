@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-25
+**Last Updated:** 2026-07-29
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2044,6 +2044,104 @@ trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, 
 
 ---
 
+### 🎯 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days)
+**Created:** 2026-07-29
+
+**As an** iPhone user, **I want** Vox Quieta to install to my home screen and behave like an app,
+**so that** I open it like any other app instead of hunting for a browser tab.
+
+**Why P2:** Stage 0 of the iOS plan and the only stage needing no Apple account, no Mac, and no new
+codebase — worth shipping even if the native app never happens. Three concrete gaps today:
+`frontend/public/` has no manifest or service worker; the safe-area CSS at `globals.css:57-62` is
+**inert** because `[locale]/layout.tsx:46-50` omits `viewportFit: "cover"` (and becomes a real
+overlap the moment the app runs standalone); and `/app` tells iPhone visitors, in 11 languages, to
+"Get it on Google Play".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Valid installable manifest (192/512/maskable icons from `public/app-icon.png`) + apple-touch icons
+- [ ] `viewportFit: "cover"` set and every `env(safe-area-inset-*)` consumer re-checked against
+      non-zero insets, portrait + landscape, LTR **and** RTL
+- [ ] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
+- [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
+      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache
+- [ ] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
+      11 locales; **no** App Store badge until BITB-088
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-084-iphone-ready-web-installable-pwa.md`
+
+---
+
+### 🎯 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
+
+**Status:** 🎯 Todo
+**Size:** S–M (1 day of analysis + the setup it unblocks)
+**Created:** 2026-07-29
+
+**As the** maintainer, **I want** the iOS approach chosen once, in writing, against explicit criteria,
+**so that** the multi-week build in BITB-087 is not restarted halfway through.
+
+**Why P2:** The repo currently carries **three contradictory iOS strategies** with no recorded
+reasoning — `docs/ROADMAP.md:219` ("native iOS app"), BITB-012's *Out of Scope* below ("future
+consideration"), and `docs/ARCHITECTURE.md:926` (still says **React Native**, stale since Android
+shipped as native Kotlin). Gates BITB-087 and BITB-088.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `docs/ios/delivery-approach.md` rates PWA-only / WebView wrapper / native SwiftUI / KMP-shared
+      against 7 weighted criteria with evidence, and records the decision + what would reverse it
+- [ ] The fourth-verse-parser question is answered concretely (BITB-086 as hard prerequisite, or how
+      the chosen option otherwise avoids a fourth grammar)
+- [ ] Turnstile in a WKWebView proved by an **actual token obtained**, not by reading docs — if it
+      cannot be, every POST endpoint is unreachable and the plan changes
+- [ ] Apple Developer enrolment, bundle id, macOS-CI cost, and signing strategy decided/owned
+- [ ] Donation decision recorded: **no Ko-fi entry point on iOS v1** (Apple 3.2.1(vi) is stricter
+      than the Play carve-out BITB-074 relies on)
+- [ ] `ROADMAP.md:219` and `ARCHITECTURE.md:926` corrected to point at the record
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-085-ios-delivery-approach-decision.md`
+
+---
+
+### 🎯 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
+
+**Status:** 🎯 Todo
+**Size:** L
+**Created:** 2026-07-29
+
+**As a** maintainer about to add a fourth client, **I want** the backend to tell clients *where* each
+citation appears in the answer, **so that** tappable verses stop requiring an 11-language citation
+grammar per platform.
+
+**Why P2 (raise to P1 the moment BITB-087 is scheduled):** The backend already knows every citation —
+`api/chat/service.py:1310-1321` merges structured + regex extraction and ships `verses_cited` at
+`:1375-1386` — yet **no client consumes it**: grepping `verses_cited`/`versesCited` across
+`frontend/src/` and `android/app/src/main` returns nothing. Instead three clients re-derive it in
+three regex dialects, which is audit finding **A1 (CRITICAL)** and BITB-059's unfinished Phase 3. A
+native iOS client would add a fourth. BITB-059's *Out of scope* names this as the alternative to
+revisit — a fourth client is the revisit trigger.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Additive `citations` array on the streaming `completion` event (`text`, `start`, `end`,
+      `occurrence`, book/chapter/verse/`verse_end`); `verses_cited`/`resolved_verses` unchanged
+- [ ] Spans computed **after** grounding, against `corrected_message` when present — with a
+      regression test, since that is exactly where silent off-by-N would hide
+- [ ] Offset unit specified (UTF-16 code units) and asserted with Arabic marks, Devanagari, CJK, emoji
+- [ ] `text` + `occurrence` make the contract self-verifying so a Swift client can use substring
+      search and ignore offsets; corrupt spans degrade to plain text, never crash or duplicate
+- [ ] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
+      the regex path over the shared corpus from `tests/fixtures/` (PR #906)
+- [ ] Old clients (no `citations`) provably unaffected
+- [ ] Does **not** delete the existing three parsers — that stays BITB-059 Phase 3
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-086-server-emitted-citation-spans.md`
+
+---
+
 ## P3 - Low Priority (Future)
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
@@ -2381,6 +2479,81 @@ text = t2s.transliterate(text)
 **Dependencies:**
 
 - ✅ BITB-003 (Turnstile on Android) — done
+
+**Note (2026-07-29):** the *Out of Scope* line above ("iOS app — future consideration") is now
+superseded. iOS is planned as BITB-084 → BITB-085 → BITB-086 → BITB-087 → BITB-088.
+
+---
+
+### 🎯 BITB-087: iOS App v1 — SwiftUI Chat Parity, TestFlight-Ready
+
+**Status:** 🎯 Todo (blocked on BITB-085; BITB-086 is a hard prerequisite)
+**Size:** XL (2+ weeks; re-estimate once BITB-085 picks the approach)
+**Created:** 2026-07-29
+
+**As an** iPhone user, **I want** an app that streams a Scripture-grounded answer with tappable
+verses, remembers my conversations, and speaks my language, **so that** I get the companion Android
+users already have.
+
+**Why P3:** Large, and correctly gated behind a decision (BITB-085) and a prerequisite (BITB-086).
+"Same features as Android" is 21k lines of Kotlin across 144 files, so v1 is a deliberate vertical
+slice — chat, verses, translations, 11 locales, history, feedback, settings — with church finder,
+contact form, changelog, What's New, diagnostics and follow-up chips explicitly deferred to a
+follow-on story filed *after* v1 lands.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Streaming chat works against production on a physical iPhone
+- [ ] Turnstile state machine matches `TurnstileInterceptor.kt`: `X-Turnstile-Token` on POSTs,
+      single-use tokens, 403 → reset → one retry, fail-open on timeout
+- [ ] **No verse-reference regex anywhere in the iOS codebase** — enforced by a CI grep, not review
+      diligence; citations come from BITB-086's spans and degrade to plain text when absent
+- [ ] Conversations persist across cold launch and are readable offline
+- [ ] All 11 locales render, `ar` in RTL, CI fails on a missing key (mirrors Android
+      `translation-validation`); translations **generated** from existing `strings.xml`/`messages/*.json`,
+      not hand-copied (255 × 11 = 2,805 strings)
+- [ ] Dynamic Type at max size, VoiceOver, light/dark, notch + keyboard safe areas all correct
+- [ ] No new permissions, no donate link, no changes outside `ios/` (plus the strings script + CI)
+- [ ] XCUITest ships as a separate non-required CI tier first, mirroring `android/COMPOSE_TESTS.md`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-087-ios-app-v1-chat-parity.md`
+
+---
+
+### 🎯 BITB-088: iOS Release Pipeline & App Store Compliance
+
+**Status:** 🎯 Todo (blocked on BITB-087)
+**Size:** L (3–5 days + App Review latency)
+**Created:** 2026-07-29
+
+**As an** iPhone user, **I want** to install Vox Quieta from the App Store; **as the** maintainer,
+**I want** iOS releases as automated as Android's, **so that** a second store does not double the
+manual work of every release.
+
+**Why P3 and separate from BITB-087:** on Android the release machinery was the fiddlier half —
+`android-publish.yml`, `android-promote.yml`, `android/fastlane/`, plus a Console-only compliance
+checklist that needed its own file because it "otherwise has no home in the repo"
+(`docs/android/play-console-compliance.md`). iOS needs all three; folding them into the app story is
+how they get skipped.
+
+**Acceptance Criteria (summary):**
+
+- [ ] A `vX.Y.Z` tag produces a TestFlight build with no manual Xcode step; version read from
+      `.release-please-manifest.json` (as `android/app/build.gradle.kts` already does)
+- [ ] Publish refuses to upload on tag/manifest mismatch or non-green iOS CI (mirrors the Android
+      gate); local build/test succeeds with **no** Apple credentials present
+- [ ] `PrivacyInfo.xcprivacy` + App Privacy answers **derived from the agreed Play Data safety
+      answers** (chat text shared with OpenRouter/Azure OpenAI per PR #900; no location) — the two
+      stores must not describe the same backend differently
+- [ ] Age rating + review notes state the LLM content-safety pipeline (Llama Guard 3, BITB-020), no
+      account/IAP/ads/tracking/permissions, and pre-empt Guideline 4.2 with the native-capability list
+- [ ] `ITSAppUsesNonExemptEncryption` set; store listing English-only (matches today's Android
+      listing) with native iPhone screenshots reusing Android's 9-scene list
+- [ ] **App approved and downloadable**; `/app` shows the App Store badge in all 11 locales
+- [ ] `docs/ios/app-store-compliance.md` created (modelled on the Play one, including its
+      check-off-and-archive discipline); `docs/RELEASE_PROCESS.md` documents the two-store tag fan-out
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-088-ios-release-pipeline-and-app-store-compliance.md`
 
 ---
 
