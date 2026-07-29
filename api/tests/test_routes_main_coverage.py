@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from config import settings
 from providers import EmbeddingResponse, ProviderError
 
 # ==================== Health Route Tests ====================
@@ -422,6 +423,10 @@ class TestMainApp:
             assert "chat" in data
             assert "provider" in data["llm"]
             assert "model" in data["llm"]
+            # BITB-075: the effective chat message-length limit must be
+            # published so clients don't rely on a hard-coded, possibly
+            # out-of-sync, constant.
+            assert data["chat"]["max_message_length"] == settings.max_message_length
 
     def test_provider_error_handler(self):
         with (

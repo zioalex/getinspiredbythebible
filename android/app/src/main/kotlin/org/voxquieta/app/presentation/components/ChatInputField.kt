@@ -34,7 +34,7 @@ fun ChatInputField(
     isLoading: Boolean = false,
     isTurnstileReady: Boolean = true,
     isSessionLimitReached: Boolean = false,
-    maxLength: Int = 300,
+    maxLength: Int,
     onStop: () -> Unit = {},
 ) {
     val canSend = !isLoading && isTurnstileReady && !isSessionLimitReached

@@ -35,6 +35,7 @@ vi.mock("@/lib/api", () => ({
   ColdStartError: class ColdStartError extends Error {},
   ContentBlockedError: class ContentBlockedError extends Error {},
   SessionLimitError: class SessionLimitError extends Error {},
+  MAX_MESSAGE_LENGTH: 500,
   checkBackendReady: vi.fn().mockResolvedValue(true),
   warmupBackend: vi.fn(),
   searchChurches: vi.fn(),
