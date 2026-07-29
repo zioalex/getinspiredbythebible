@@ -11,6 +11,8 @@ import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
+import org.voxquieta.app.data.remote.models.ConfigChatDto
+import org.voxquieta.app.data.remote.models.ConfigResponseDto
 import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
@@ -37,6 +39,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -132,6 +135,12 @@ class ChatViewModelTest {
         coEvery { lastConversationPreferences.getLastConversationId() } returns null
         bibleApiService = mockk(relaxed = true)
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        // BITB-075: the relaxed mock would otherwise return a garbage/default
+        // ConfigResponseDto; stub it explicitly so maxMessageLength updates
+        // are only exercised by tests that mean to exercise them.
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 500),
+        )
         viewModel = ChatViewModel(
             repository,
             churchRepository,
@@ -722,6 +731,168 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { localApiService.getBookNames() }
+    }
+
+    // ── BITB-075: server-published max message length ─────────────────────
+
+    @Test
+    fun `initial state has the compiled-in fallback maxMessageLength before config loads`() {
+        // Before advanceUntilIdle() runs the init{} coroutines, the state must
+        // already carry the fallback constant (500) so the UI never briefly
+        // renders with 0 / an unset limit.
+        assertEquals(ChatViewModel.MAX_MESSAGE_LENGTH, viewModel.uiState.value.maxMessageLength)
+        assertEquals(500, viewModel.uiState.value.maxMessageLength)
+    }
+
+    @Test
+    fun `maxMessageLength reflects the server value once config loads`() = runTest {
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 800),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(800, vm.uiState.value.maxMessageLength)
+    }
+
+    @Test
+    fun `maxMessageLength keeps the fallback when getConfig throws`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        coEvery { localApiService.getConfig() } throws IOException("no network")
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ChatViewModel.MAX_MESSAGE_LENGTH, vm.uiState.value.maxMessageLength)
+    }
+
+    @Test
+    fun `maxMessageLength keeps the fallback when the server value is not a valid positive int`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        coEvery { localApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 0),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ChatViewModel.MAX_MESSAGE_LENGTH, vm.uiState.value.maxMessageLength)
+    }
+
+    @Test
+    fun `fetchConfigWithRetry propagates CancellationException without retrying`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getConfig() } throws CancellationException("scope cancelled")
+
+        ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { localApiService.getConfig() }
+    }
+
+    @Test
+    fun `HTTP 422 error message uses the effective server-derived limit, not the raw constant`() = runTest {
+        // The context mock in setUp() doesn't stub error_message_too_long by
+        // default (BITB-075) — stub it here, scoped to this test, so a
+        // forgotten stub fails loudly instead of silently passing.
+        every {
+            context.getString(R.string.error_message_too_long, any())
+        } returns "Your message is a little long (max 800 characters)."
+        // Seed a non-default effective limit so this test can tell the
+        // difference between "uses the raw MAX_MESSAGE_LENGTH constant" (bug)
+        // and "uses the state-derived effective limit" (correct).
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 800),
+        )
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(800, vm.uiState.value.maxMessageLength)
+
+        every { repository.chatStream(any()) } returns flow {
+            throw make422Exception("""{"detail": [{"msg": "String should have at most 800 characters"}]}""")
+        }
+
+        vm.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Your message is a little long (max 800 characters).",
+            vm.uiState.value.error,
+        )
+        verify { context.getString(R.string.error_message_too_long, 800) }
     }
 
     @Test

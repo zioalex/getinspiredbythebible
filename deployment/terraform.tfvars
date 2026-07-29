@@ -88,7 +88,7 @@ rate_limit_enabled             = true
 rate_limit_requests_per_minute = 10
 
 content_filter_enabled = true
-max_message_length     = 200
+max_message_length     = 500
 
 # -----------------------------------------------------------------------------
 # Azure OpenAI for Embeddings

@@ -8,6 +8,7 @@ import {
   setTurnstileAwaiter,
 } from "@/lib/api";
 import { useTurnstile } from "@/lib/turnstile";
+import { ServerConfigProvider } from "@/lib/serverConfig";
 import { reportClientError } from "@/lib/clientErrorReporter";
 import { SplashScreen } from "@/components/SplashScreen";
 import AboutIntroModal from "@/components/AboutIntroModal";
@@ -123,23 +124,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <TurnstileProvider>
-      <TurnstileTokenSync>
-        {!splashDone && (
-          <SplashScreen
-            onComplete={() => {
-              setSplashCookie();
-              setSplashDone(true);
-            }}
-          />
-        )}
-        <AboutIntroGateProvider value={introGate}>
-          {children}
-        </AboutIntroGateProvider>
-        {splashDone && showAboutIntro && (
-          <AboutIntroModal onDismiss={dismissAboutIntro} />
-        )}
-      </TurnstileTokenSync>
-    </TurnstileProvider>
+    <ServerConfigProvider>
+      <TurnstileProvider>
+        <TurnstileTokenSync>
+          {!splashDone && (
+            <SplashScreen
+              onComplete={() => {
+                setSplashCookie();
+                setSplashDone(true);
+              }}
+            />
+          )}
+          <AboutIntroGateProvider value={introGate}>
+            {children}
+          </AboutIntroGateProvider>
+          {splashDone && showAboutIntro && (
+            <AboutIntroModal onDismiss={dismissAboutIntro} />
+          )}
+        </TurnstileTokenSync>
+      </TurnstileProvider>
+    </ServerConfigProvider>
   );
 }

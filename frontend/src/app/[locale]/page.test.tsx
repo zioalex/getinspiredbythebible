@@ -33,7 +33,7 @@ vi.mock("@/lib/api", () => ({
   generateSessionId: vi.fn().mockReturnValue("test-session-id"),
   getOrCreateSessionId: vi.fn().mockReturnValue("test-session-id"),
   ColdStartError: class ColdStartError extends Error {},
-  MAX_MESSAGE_LENGTH: 300,
+  MAX_MESSAGE_LENGTH: 500,
   checkBackendReady: vi.fn().mockResolvedValue(true),
   warmupBackend: vi.fn((onReady: () => void) => {
     onReady();

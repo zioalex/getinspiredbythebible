@@ -801,7 +801,7 @@ The application includes several security features that are enabled by default i
 | Rate Limiting | `rate_limit_enabled` | `true` | Limits requests per IP/session |
 | Content Filtering | `content_filter_enabled` | `true` | Blocks profanity, spam, URLs |
 | Debug Mode | `debug_mode` | `false` | Prevents verbose error messages |
-| Message Length | `max_message_length` | `200` | Prevents oversized messages |
+| Message Length | `max_message_length` | `500` | Prevents oversized messages |
 
 ### Configuration in Terraform
 
@@ -812,7 +812,7 @@ log_level                      = "INFO"
 rate_limit_enabled             = true
 rate_limit_requests_per_minute = 20
 content_filter_enabled         = true
-max_message_length             = 200
+max_message_length             = 500
 ```
 
 ### Additional Best Practices
