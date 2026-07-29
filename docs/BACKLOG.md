@@ -1955,6 +1955,38 @@ spotlight), floated as an alternative fold-in target, is still `Todo` — not av
 
 ---
 
+### 🎯 BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
+
+**Status:** 🎯 Todo
+**Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
+**Created:** 2026-07-27
+
+**As a** visitor reading `/about`, **I want** to feel a real person behind Vox Quieta, **so that**
+the page earns the trust BITB-076 set out to earn — not read like a feature list.
+
+Maintainer feedback after BITB-076/077 shipped: *"it looks like a feature description... make it
+personal — add screenshots or renderings from the original post."* Concrete evidence: `About.todayBody`
+("Scripture-grounded conversation... in 11 languages... free to use") reads exactly like the
+`/app` marketing copy, and the post's own closing line — *"I'm just happy it exists... someone
+having a rough day can visit that URL and find encouragement. That's what matters"* — was captured
+in BITB-076's Source Material but never made it onto the shipped page. The post also has two real
+app screenshots (`bible-chatbot-welcome-screen.png`, `bible-chatbot-response-example.png`), though
+they show the pre-rename v1.0 UI — must be labeled as "then," not presented as current.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `todayBody` no longer reads as a feature/spec list
+- [ ] Opening hook ("Have you ever had an idea...") gets its own beat, including the dropped
+      follow-up question
+- [ ] A closing personal beat (adapted from "I'm just happy it exists...") lands before Get in touch
+- [ ] At least one screenshot renders, labeled if origin-era
+- [ ] `notBody`'s safety-boundary language stays unambiguous — not softened
+- [ ] Applied across all 11 locales; `About.introBody` (BITB-077) rechecked for consistency
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-083-about-page-personal-voice-and-photos.md`
+
+---
+
 ### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
 **Status:** 🎯 Todo
