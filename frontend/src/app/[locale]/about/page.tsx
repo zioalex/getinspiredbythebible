@@ -135,8 +135,11 @@ export default async function AboutPage({
         </a>
       </div>
 
-      <p className="text-center text-gray-600 italic mb-10 px-4 leading-relaxed">
+      <p className="text-center text-gray-600 italic mb-2 px-4 leading-relaxed">
         {t("closingBody")}
+      </p>
+      <p className="text-center text-sm text-gray-400 mb-10">
+        {t("closingSignature")}
       </p>
 
       <section className="border-t border-gray-100 pt-8 text-center">

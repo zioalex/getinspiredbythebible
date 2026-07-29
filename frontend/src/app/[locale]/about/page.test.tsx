@@ -110,6 +110,15 @@ describe("About page", () => {
     expect(screen.getByText(enMessages.About.closingBody)).toBeInTheDocument();
   });
 
+  it("signs the closing beat with the author's name", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    expect(
+      screen.getByText(enMessages.About.closingSignature),
+    ).toBeInTheDocument();
+  });
+
   it.each(["en", "de", "ar"])(
     "renders the localized title for /%s",
     async (locale) => {
