@@ -5,6 +5,7 @@
 	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
+	alembic-roundtrip \
 	repo-metrics audit-metrics \
 	check-env-production \
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
@@ -155,6 +156,24 @@ test-frontend: ## Run frontend tests
 	@echo "$(GREEN)✓ Frontend tests complete$(NC)"
 
 test: test-backend test-frontend ## Run all tests
+
+alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.
+	@echo "$(BLUE)Running Alembic migration roundtrip...$(NC)"
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "$(YELLOW)Error: DATABASE_URL is not set$(NC)"; \
+		echo "$(YELLOW)This target runs 'alembic downgrade base', which drops every$(NC)"; \
+		echo "$(YELLOW)Alembic-managed table. Point it at a local/CI database only.$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)alembic upgrade head$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@echo "$(YELLOW)alembic check$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic check
+	@echo "$(YELLOW)alembic downgrade base$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic downgrade base
+	@echo "$(YELLOW)alembic upgrade head$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@echo "$(GREEN)✓ Alembic roundtrip complete$(NC)"
 
 # ==================== Android ====================
 

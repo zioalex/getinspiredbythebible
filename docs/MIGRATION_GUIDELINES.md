@@ -1,8 +1,25 @@
 # Migration Best Practices & Guidelines
 
-**Version:** 1.0
-**Last Updated:** 2026-03-04
+**Version:** 1.1
+**Last Updated:** 2026-07-30
 **Owner:** Product & Engineering Team
+
+---
+
+> ## 🔔 BITB-004: Alembic is now the current system for new schema changes
+>
+> **`api/alembic/`** (Alembic, run from `api/`) is the current system for **all
+> new** schema changes. `scripts/migrations/` (this document's original
+> subject) is **frozen as historical record** — its files are not deleted,
+> renamed, or edited, and it is not backfilled into Alembic. New tables or
+> columns go through an Alembic revision from now on. See
+> `api/alembic/README.md` for the day-to-day workflow and
+> "Long-Term Solution: Alembic" below for the full story, including the
+> **prod adoption runbook note** (this PR does not touch production).
+>
+> The manual-migration guidance below this banner still applies to everything
+> already in `scripts/migrations/` and is kept for historical reference; it is
+> not the guidance for new work.
 
 ---
 
@@ -606,14 +623,94 @@ Before creating a PR with your migration:
 
 ## Long-Term Solution: Alembic
 
-**Note:** This manual migration approach is temporary. We plan to migrate to Alembic (tracked in BITB-004) for:
+**Status (BITB-004): done.** Alembic is installed and configured under
+`api/alembic/`, with a baseline migration (`r0001_baseline_schema.py`)
+generated from the current SQLAlchemy models. It runs from `api/` — see
+`api/alembic/README.md` for the exact commands.
 
-- Automatic migration generation from model changes
-- Built-in versioning and dependency tracking
-- Rollback support
-- Better integration with SQLAlchemy
+### Workflow: revision → review → upgrade → downgrade
 
-Until then, follow these guidelines for all manual migrations.
+```bash
+cd api
+
+# 1. Change a model in scripture/models.py or feedback/models.py, then
+#    generate a revision from the diff against a local database.
+export DATABASE_URL="postgresql://bible:bible123@localhost:5432/bibledb" # pragma: allowlist secret
+alembic revision --autogenerate -m "add some_column to verses"
+
+# 2. Review the generated file under api/alembic/versions/ by hand.
+#    Autogenerate is a starting point, not a final answer -- check that
+#    downgrade() is the true inverse of upgrade(), that any new pgvector
+#    index/extension usage is correct, and that nothing unexpected (see the
+#    include_name caveat below) got swept in.
+
+# 3. Apply it locally.
+alembic upgrade head
+
+# 4. Prove the rollback actually works before opening a PR.
+alembic downgrade -1
+alembic upgrade head
+```
+
+CI (`.github/workflows/test_update.yml`, `alembic-migrations` job) runs this
+same upgrade → check → downgrade base → upgrade head → history sequence
+against its own ephemeral Postgres service on every PR touching `api/**`. It
+never runs `--autogenerate` — only read-only `check` plus the
+upgrade/downgrade cycle, so CI can never generate a migration, only validate
+one that's already committed.
+
+### The SSL rule carries forward unchanged
+
+`api/alembic/env.py` reuses `scripture.database.get_async_database_url()` for
+its connection URL — the exact same helper the app itself uses, which returns
+`(url, connect_args)` with SSL configured via the asyncpg `ssl` connect
+argument. The same caveat from Rule #1 above still applies: never put
+`?ssl=require`/`?sslmode=require` in `DATABASE_URL` for an asyncpg-driven
+tool. `env.py` does not re-derive SSL handling — do not add a second
+implementation.
+
+### The `include_name` allowlist caveat
+
+Five tables — `sessions`, `verse_topics`, `rate_limit_hits`,
+`rate_limit_sessions`, `schema_migrations` — were created by
+`scripts/init.sql` / `scripts/migrations/` and have no SQLAlchemy ORM model.
+`env.py` allowlists only the tables backed by `ScriptureBase.metadata` /
+`FeedbackBase.metadata`, so these five are **invisible to Alembic by design**.
+This is intentional scope-limiting, not a bug: without it, the first
+`--autogenerate` would try to drop all five. A raw-SQL-created index (FTS GIN
+indexes, per-translation partial HNSW indexes) is filtered the same way via
+`include_object`. Adopting these tables into Alembic's metadata is explicitly
+out of scope for BITB-004 and is not done anywhere in this change.
+
+### `CREATE INDEX CONCURRENTLY` needs an autocommit block
+
+Alembic wraps each migration in a transaction by default, but `CONCURRENTLY`
+cannot run inside one. A future migration that needs it must open an
+autocommit block explicitly:
+
+```python
+def upgrade() -> None:
+    with op.get_context().autocommit_block():
+        op.execute("CREATE INDEX CONCURRENTLY ...")
+```
+
+### Operator runbook note: adopting Alembic against the existing prod database
+
+The production database already has the full schema (built up over time by
+`scripts/migrations/`). Alembic has never run against it. Before Alembic can
+manage prod schema changes, an operator must run, once:
+
+```bash
+DATABASE_URL="<prod-url>" alembic stamp r0001
+```
+
+`stamp` only writes a row to `alembic_version` marking `r0001` as already
+applied — it executes **zero DDL** (it does not create or touch a single
+table), because prod already has the equivalent schema from the manual
+migrations. **This PR does not run that command anywhere** (see the hard
+constraint against contacting the production/Azure database) — it is a
+deliberate one-time, manual, operator-run step for whenever the team decides
+to cut prod over.
 
 ---
 
@@ -637,13 +734,19 @@ Until then, follow these guidelines for all manual migrations.
 ## References
 
 - Backend SSL handling: `api/scripture/database.py` → `get_async_database_url()`
-- CI workflow: `.github/workflows/azure-deploy.yml` → `run-migrations` job
-- Existing migrations: `scripts/migrations/001_*.py`, `002_*.py`
+- Legacy CI workflow (scripts/migrations/ only): `.github/workflows/azure-deploy.yml` → `run-migrations` job
+- Alembic CI check (new schema changes): `.github/workflows/test_update.yml` → `alembic-migrations` job
+- Alembic usage: `api/alembic/README.md`
+- Existing legacy migrations: `scripts/migrations/001_*.py`, `002_*.py`
 - asyncpg docs: <https://magicstack.github.io/asyncpg/current/>
 - PostgreSQL docs: <https://www.postgresql.org/docs/current/>
+- Alembic docs: <https://alembic.sqlalchemy.org/en/latest/>
 
 ---
 
 **Version History:**
 
+- 1.1 (2026-07-30): BITB-004 — Alembic (`api/alembic/`) is now the current system for new
+  schema changes; `scripts/migrations/` frozen as historical record. Added the "Long-Term
+  Solution: Alembic" real usage section and the prod-adoption runbook note.
 - 1.0 (2026-03-04): Initial version after SSL connection bug discovery
