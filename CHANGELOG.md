@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.50.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.50.0...v1.50.1) (2026-07-30)
 
-
 ### Documentation
 
 * plan the iOS launch as five staged backlog stories (BITB-084…088) ([#949](https://github.com/zioalex/getinspiredbythebible/issues/949)) ([b9e0281](https://github.com/zioalex/getinspiredbythebible/commit/b9e028179dd4d2dcb11c186fb3ec848e6f6b90f7))
