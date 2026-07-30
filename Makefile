@@ -3,6 +3,8 @@
 	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
 	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
+	db-backup-info db-backup db-restore-verify db-restore-local \
+	db-restore-new-server db-restore-same-server \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	repo-metrics audit-metrics \
@@ -736,6 +738,30 @@ az-image-info: ## Show detailed info for a specific image (usage: make az-image-
 # PostgreSQL server name (using shared RESOURCE_SUFFIX)
 PG_SERVER := bible-app-db-$(RESOURCE_SUFFIX)
 PG_RG := bible-app-rg
+
+# ---- Backup & restore (see docs/HOW-TO-BACKUP-RESTORE-DATABASE.md) ----
+# All of these delegate to scripts/db-backup-restore.sh, which owns the safety
+# guards. Connection comes from DATABASE_URL (+ PGPASSWORD), never from a
+# password on the command line.
+DB_TOOL := PG_RG=$(PG_RG) PG_SERVER=$(PG_SERVER) bash scripts/db-backup-restore.sh
+
+db-backup-info: ## Show backup retention + earliest restore point (read-only)
+	@$(DB_TOOL) info
+
+db-backup: ## Logical backup to backups/ (usage: DATABASE_URL=... make db-backup [DUMP=path])
+	@$(DB_TOOL) dump
+
+db-restore-verify: ## Post-restore checklist: extensions, counts, HNSW, invalid indexes
+	@$(DB_TOOL) verify
+
+db-restore-local: ## Restore a dump into a local pgvector container (usage: make db-restore-local DUMP=backups/x.dump)
+	@$(DB_TOOL) restore-local
+
+db-restore-new-server: ## Azure PITR into a NEW server (usage: make db-restore-new-server NEW_SERVER=... RESTORE_POINT=2026-07-30T14:25:00Z)
+	@$(DB_TOOL) restore-new-server
+
+db-restore-same-server: ## DESTRUCTIVE — replace an existing database from a dump (usage: DATABASE_URL=... make db-restore-same-server DUMP=...)
+	@$(DB_TOOL) restore-same-server
 
 az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
 	@echo "$(BLUE)Adding your IP to PostgreSQL firewall...$(NC)"

@@ -16,6 +16,39 @@ configuration), [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md)
 
 ---
 
+## Commands
+
+Every step below is wrapped by a Make target. They all delegate to
+[`scripts/db-backup-restore.sh`](../scripts/db-backup-restore.sh), which owns
+the safety guards — prefer them over running the raw commands by hand.
+
+| Target                        | Does                                            | Risk        |
+| ----------------------------- | ----------------------------------------------- | ----------- |
+| `make db-backup-info`         | Retention, earliest restore point, geo setting   | read-only   |
+| `make db-backup`              | `pg_dump -Fc` into `backups/`                    | read-only   |
+| `make db-restore-verify`      | Post-restore checklist                           | read-only   |
+| `make db-restore-local`       | Restore a dump into a local pgvector container   | local only  |
+| `make db-restore-new-server`  | Azure PITR into a **new** server                 | provisions  |
+| `make db-restore-same-server` | Replace an existing database from a dump         | **destructive** |
+
+```bash
+# Connection: DATABASE_URL for the target, PGPASSWORD for the password.
+# Never put the password in the URL — the script redacts what it logs, but
+# your shell history does not.
+export DATABASE_URL='postgresql://bible@<fqdn>:5432/bibledb?sslmode=require'
+export PGPASSWORD='...'
+```
+
+The script accepts the app's own URL form (`postgresql+asyncpg://...?ssl=require`)
+and rewrites it to what `psql`/`pg_dump` need — see
+[Rule #1](MIGRATION_GUIDELINES.md#-rule-1-never-pass-ssl-parameters-in-connection-url).
+
+**The two destructive targets require you to retype the target** (the host, or
+the container name) before they do anything. Non-interactively, pass it as
+`CONFIRM=...`. A y/n prompt would be too easy to answer by reflex.
+
+---
+
 ## What protection exists today
 
 From [`deployment/main.tf:384-408`](../deployment/main.tf):
@@ -64,9 +97,7 @@ export PG_DB="<db_name>"                     # TF_VAR_DB_NAME
 make az-pg-add-ip
 
 # 3. Confirm how far back you can actually restore
-az postgres flexible-server show \
-  --resource-group "$PG_RG" --name "$PG_SERVER" \
-  --query "{earliest:backup.earliestRestoreDate, retention:backup.backupRetentionDays, geo:backup.geoRedundantBackup}" -o table
+make db-backup-info
 ```
 
 `earliestRestoreDate` is authoritative — it is often later than
@@ -80,15 +111,15 @@ The native path. Non-destructive: production keeps running untouched while the
 restored copy comes up beside it.
 
 ```bash
-export RESTORE_POINT="2026-07-30T14:25:00Z"        # UTC, inside the window
-export NEW_SERVER="${PG_SERVER}-restore-$(date +%Y%m%d)"
-
-az postgres flexible-server restore \
-  --resource-group "$PG_RG" \
-  --name "$NEW_SERVER" \
-  --source-server "$PG_SERVER" \
-  --restore-time "$RESTORE_POINT"
+make db-restore-new-server \
+  NEW_SERVER="${PG_SERVER}-restore-$(date +%Y%m%d)" \
+  RESTORE_POINT="2026-07-30T14:25:00Z"          # UTC, inside the window
 ```
+
+It asks you to retype the new server name before provisioning anything.
+Underneath it runs `az postgres flexible-server restore --source-server ...
+--restore-time ...`; use `az` directly if you need flags the target does not
+expose.
 
 Takes roughly 10–30 minutes on the Burstable SKU. The restored server is a
 **separate Azure resource** with its own FQDN, billed separately — delete it
@@ -120,29 +151,30 @@ data back onto the existing server you replace the database contents logically,
 which means **downtime and a destructive step**.
 
 ```bash
-# 0. SAFETY: take a fresh dump of current state first — this is your undo
-pg_dump "postgresql://<user>:<pass>@<fqdn>:5432/${PG_DB}?sslmode=require" \
-  -Fc -f "pre-restore-$(date +%Y%m%dT%H%M%S).dump"
+# 0. SAFETY: dump the CURRENT state first — this is your only undo
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup
 
-# 1. Get the good data (e.g. dump it from a Scenario A restored server)
-pg_dump "postgresql://<user>:<pass>@<restored-fqdn>:5432/${PG_DB}?sslmode=require" \
-  -Fc -f good.dump
+# 1. Get the good data (e.g. from a Scenario A restored server)
+DATABASE_URL="postgresql://bible@<restored-fqdn>:5432/${PG_DB}?sslmode=require" \
+  make db-backup DUMP=good.dump
 
 # 2. Stop writes — scale the backend to zero so nothing writes mid-restore
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 0 --max-replicas 0
 
-# 3. Restore into the live database, replacing objects
-pg_restore --clean --if-exists --no-owner --no-acl \
-  -d "postgresql://<user>:<pass>@<fqdn>:5432/${PG_DB}?sslmode=require" good.dump
+# 3. Replace the live database. Prompts for the hostname before doing anything.
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" \
+  make db-restore-same-server DUMP=good.dump
 
-# 4. Bring the backend back
+# 4. Verify, then bring the backend back
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-restore-verify
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 1 --max-replicas <n>
 ```
 
-- `--clean --if-exists` drops each object before recreating it. **This is the
-  destructive step.** Do not run it without step 0.
-- `--no-owner --no-acl` because Azure gives you no superuser; roles from the
-  source will not exist verbatim on the target.
+- Step 3 runs `pg_restore --clean --if-exists`, which drops each object before
+  recreating it. **This is the destructive step.** The target refuses to run
+  until you retype the hostname; do not skip step 0 to save time.
+- `--no-owner --no-acl` are always passed, because Azure gives you no superuser
+  and roles from the source will not exist verbatim on the target.
 - Restoring into a *differently named* database on the same server and renaming
   afterwards is gentler, but PG will not let you rename a database with open
   connections — you still need step 2.
@@ -158,22 +190,20 @@ shaped data.
 
 ```bash
 # 1. Dump prod (read-only, safe)
-pg_dump "postgresql://<user>:<pass>@<fqdn>:5432/${PG_DB}?sslmode=require" \
-  -Fc -f prod.dump
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup
 
-# 2. Local PG 16 + pgvector (PGPASSWORD keeps credentials off the command line)
-export PGPASSWORD=local
-docker run -d --name pg-restore -e POSTGRES_PASSWORD="$PGPASSWORD" \
-  -e POSTGRES_DB=bibledb -p 5433:5432 pgvector/pgvector:pg16
+# 2. Bring up PG 16 + pgvector locally and restore into it
+make db-restore-local DUMP=backups/<the-file>.dump
 
-# 3. HNSW index rebuilds are the slow part — give them memory
-psql "postgresql://postgres@localhost:5433/bibledb" \
-  -c "ALTER SYSTEM SET maintenance_work_mem = '512MB';" -c "SELECT pg_reload_conf();"
-
-# 4. Restore
-pg_restore --no-owner --no-acl -j 4 \
-  -d "postgresql://postgres@localhost:5433/bibledb" prod.dump
+# 3. Check it
+DATABASE_URL="postgresql://postgres@localhost:5433/bibledb" PGPASSWORD=local \
+  make db-restore-verify
 ```
+
+`db-restore-local` starts the `pgvector/pgvector:pg16` container, waits for it
+to accept connections, raises `maintenance_work_mem` to 512MB (HNSW rebuilds
+are the slow part), and restores with `-j 4`. Override `LOCAL_PORT`,
+`LOCAL_DB`, `LOCAL_CONTAINER` or `JOBS` if the defaults collide with something.
 
 This is the environment to use for the **schema-change rehearsal** referenced
 in [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md) — run the migration
@@ -186,24 +216,38 @@ against this copy and confirm the result before touching production.
 Use before any risky operation, and to keep a copy beyond the 7-day window.
 
 ```bash
-pg_dump "postgresql://<user>:<pass>@<fqdn>:5432/${PG_DB}?sslmode=require" \
-  -Fc --no-owner --no-acl \
-  -f "bibledb-$(date +%Y%m%dT%H%M%SZ).dump"
+make db-backup                          # -> backups/<host>-<timestamp>.dump
+make db-backup DUMP=/path/to/name.dump  # explicit destination
 ```
 
-- `-Fc` (custom format) is required for parallel restore (`pg_restore -j`) and
-  selective restore (`-t`). Do not use plain SQL for a database this size.
+- `-Fc` (custom format) is always used: it is required for parallel restore
+  (`pg_restore -j`) and selective restore (`-t`). Plain SQL is unusable at this
+  size.
 - Embeddings dominate the size — expect the dump to be **large and slow**.
-  Compress and store it outside the DB's region if it is a real safety net.
-- To exclude the bulk and keep only operational data:
-  `--exclude-table-data='verses' --exclude-table-data='passages'`
-  (schema is preserved; embeddings are re-derivable via the seeding scripts).
+  Store it outside the DB's region if it is a real safety net.
+- To skip the bulk and keep only operational data:
+
+  ```bash
+  make db-backup DUMP_ARGS="--exclude-table-data=verses --exclude-table-data=passages"
+  ```
+
+  Schema is preserved; embeddings are re-derivable via the seeding scripts.
+- `backups/` and `*.dump` are git-ignored, so a dump cannot be committed by
+  accident.
 
 ---
 
 ## Verification checklist
 
 Run against the restored target **before** cutting over or declaring success.
+
+```bash
+DATABASE_URL="<target-url>" make db-restore-verify
+```
+
+It runs the queries below and **exits non-zero if any index is invalid** — the
+failure this checklist exists to catch, because the restore otherwise looks
+successful while searches silently fall back to sequential scans.
 
 ```sql
 -- 1. Extensions present (vector is the one that breaks silently)
