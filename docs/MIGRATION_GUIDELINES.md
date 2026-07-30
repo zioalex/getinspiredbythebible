@@ -659,6 +659,13 @@ never runs `--autogenerate` — only read-only `check` plus the
 upgrade/downgrade cycle, so CI can never generate a migration, only validate
 one that's already committed.
 
+The unattended entry points for that sequence — `make alembic-roundtrip` and
+`api/tests/test_alembic_migrations.py` — both fail closed on a non-local
+`DATABASE_URL` host (allowlist: `localhost`, `127.0.0.1`, `postgres`, `db`;
+override with `ALEMBIC_TEST_ALLOW_HOST=1`, checked against that exact value).
+Since they run `downgrade base`, "point it at a local database" is enforced
+rather than left to the operator. See `api/alembic/README.md`.
+
 ### The SSL rule carries forward unchanged
 
 `api/alembic/env.py` reuses `scripture.database.get_async_database_url()` for

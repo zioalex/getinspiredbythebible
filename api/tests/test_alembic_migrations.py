@@ -43,7 +43,21 @@ _API_DIR = Path(__file__).resolve().parents[1]
 # service name other than the ones below) -- absent by default, so the guard
 # fails closed.
 _ALLOW_HOST_ENV = "ALEMBIC_TEST_ALLOW_HOST"
+_ALLOW_HOST_VALUE = "1"
 _SAFE_HOSTS = {"localhost", "127.0.0.1", "postgres", "db"}
+
+
+def _host_override_enabled() -> bool:
+    """True only for an exact `ALEMBIC_TEST_ALLOW_HOST=1`.
+
+    Deliberately not a truthiness check: every non-empty string is truthy in
+    Python, so a plain `os.environ.get(...)` would treat `=0`, `=false` and
+    `=no` -- the values someone reaches for to turn the override *off* -- as
+    turning it *on*, silently disabling the guard in front of a destructive
+    operation. Requiring the one value the skip message documents keeps the
+    code and the docs in agreement.
+    """
+    return os.environ.get(_ALLOW_HOST_ENV) == _ALLOW_HOST_VALUE
 
 
 def _require_local_database_or_skip() -> None:
@@ -53,10 +67,11 @@ def _require_local_database_or_skip() -> None:
     table. Structurally guarding against a real database is not optional.
     """
     host = urlparse(settings.database_url).hostname
-    if host not in _SAFE_HOSTS and not os.environ.get(_ALLOW_HOST_ENV):
+    if host not in _SAFE_HOSTS and not _host_override_enabled():
         pytest.skip(
             f"Refusing to run destructive Alembic roundtrip test against host "
-            f"{host!r} (not in {_SAFE_HOSTS}). Set {_ALLOW_HOST_ENV}=1 to override "
+            f"{host!r} (not in {_SAFE_HOSTS}). Set "
+            f"{_ALLOW_HOST_ENV}={_ALLOW_HOST_VALUE} to override "
             "for an explicitly-approved non-default local/CI host."
         )
 
@@ -257,3 +272,59 @@ def test_alembic_check_reports_no_drift(throwaway_database_url):
     # `alembic check` exits non-zero (raising CalledProcessError, since
     # _run_alembic uses check=True) if it detects pending model changes.
     _run_alembic("check", database_url=throwaway_database_url)
+
+
+class TestHostSafetyGuard:
+    """Tests for the guard itself -- the thing standing between
+    `alembic downgrade base` and a database nobody meant to touch.
+
+    These need no database: they exercise the pure host/env-var logic that
+    decides whether the destructive tests above are allowed to run at all.
+    """
+
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off", "", "2", "yes", "true"])
+    def test_override_requires_the_exact_documented_value(self, monkeypatch, value):
+        """Anything other than `=1` must leave the guard armed.
+
+        Regression: the check used `not os.environ.get(...)`, and every
+        non-empty string is truthy in Python -- so `=0`, `=false` and `=no`,
+        the values someone picks to mean "off", all turned the override *on*.
+        """
+        monkeypatch.setenv(_ALLOW_HOST_ENV, value)
+        assert _host_override_enabled() is False
+
+    def test_override_enabled_by_exact_value(self, monkeypatch):
+        monkeypatch.setenv(_ALLOW_HOST_ENV, _ALLOW_HOST_VALUE)
+        assert _host_override_enabled() is True
+
+    def test_override_absent_by_default(self, monkeypatch):
+        """Unset means armed -- the guard fails closed."""
+        monkeypatch.delenv(_ALLOW_HOST_ENV, raising=False)
+        assert _host_override_enabled() is False
+
+    @pytest.mark.parametrize("host", sorted(_SAFE_HOSTS))
+    def test_local_hosts_run_without_an_override(self, monkeypatch, host):
+        monkeypatch.delenv(_ALLOW_HOST_ENV, raising=False)
+        monkeypatch.setattr(settings, "database_url", f"postgresql://{host}:5432/bibledb")
+        _require_local_database_or_skip()  # must not raise Skipped
+
+    def test_remote_host_skips_when_override_is_falsy(self, monkeypatch):
+        """The exact case the regression allowed through."""
+        monkeypatch.setenv(_ALLOW_HOST_ENV, "0")
+        monkeypatch.setattr(settings, "database_url", "postgresql://prod.example.com:5432/bibledb")
+        with pytest.raises(pytest.skip.Exception):
+            _require_local_database_or_skip()
+
+    def test_remote_host_skips_when_override_absent(self, monkeypatch):
+        monkeypatch.delenv(_ALLOW_HOST_ENV, raising=False)
+        monkeypatch.setattr(settings, "database_url", "postgresql://prod.example.com:5432/bibledb")
+        with pytest.raises(pytest.skip.Exception):
+            _require_local_database_or_skip()
+
+    def test_remote_host_runs_with_explicit_override(self, monkeypatch):
+        """The escape hatch still works for a deliberately-approved CI host."""
+        monkeypatch.setenv(_ALLOW_HOST_ENV, _ALLOW_HOST_VALUE)
+        monkeypatch.setattr(
+            settings, "database_url", "postgresql://ci-postgres.internal:5432/bibledb"
+        )
+        _require_local_database_or_skip()  # must not raise Skipped

@@ -33,6 +33,16 @@ Never point any of the above at the production database from a local
 machine or a PR. `DATABASE_URL` should always resolve to `localhost` /
 `127.0.0.1` / a CI service container in this workflow.
 
+For the two destructive entry points that run `downgrade base` unattended —
+`make alembic-roundtrip` and `api/tests/test_alembic_migrations.py` — that
+rule is enforced, not just documented. Both parse the host out of
+`DATABASE_URL` and refuse to proceed unless it is one of `localhost`,
+`127.0.0.1`, `postgres`, `db` (the make target exits non-zero; the tests
+skip). To approve a different local/CI host — say a docker-compose service
+under another name — set `ALEMBIC_TEST_ALLOW_HOST=1`. The check is against
+that exact value, so `ALEMBIC_TEST_ALLOW_HOST=0` leaves the guard armed
+rather than silently disabling it.
+
 ## Three invariants
 
 1. **The `include_name` allowlist is intentional, not a bug.** Five tables —
