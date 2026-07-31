@@ -146,3 +146,7 @@ sslcert/origin-cert.pem
 sslcert/origin-key.pem
 sslcert/cloudflare-origin.pfx
 *.signing
+
+# Database dumps produced by scripts/db-backup-restore.sh (make db-backup)
+backups/
+*.dump
