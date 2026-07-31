@@ -597,6 +597,16 @@ Keep it under 120 words."""
             response.content, scripture_context, translation, effective_language
         )
 
+        # AC2 (BITB-055): emit the same silent-degradation SLI as the streaming
+        # path (chat_stream) so a retrieval outage affecting non-stream clients
+        # isn't invisible to the chat_verseless_responses alert. This path has
+        # no resolved_verses local (grounding resolves them internally without
+        # returning the list), so the signal is scoped to "search was attempted
+        # but scripture_context came back empty" rather than also requiring
+        # zero resolved citations.
+        if request.include_search and not (scripture_context and scripture_context.verses):
+            chat_verseless_responses_counter.add(1, {"language": effective_language})
+
         record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
         logger.info(
             "chat_stage_timings %s",
