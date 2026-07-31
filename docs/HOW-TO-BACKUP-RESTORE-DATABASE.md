@@ -27,7 +27,7 @@ the safety guards — prefer them over running the raw commands by hand.
 | `make db-backup-info`         | Retention, earliest restore point, geo setting   | read-only   |
 | `make db-backup`              | `pg_dump -Fc` into `backups/`                    | read-only   |
 | `make db-restore-verify`      | Post-restore checklist                           | read-only   |
-| `make db-restore-local`       | Restore a dump into a local pgvector container   | local only  |
+| `make db-restore-local`       | **Creates** a local pgvector container, restores into it | local only |
 | `make db-restore-new-server`  | Azure PITR into a **new** server                 | provisions  |
 | `make db-restore-same-server` | Replace an existing database from a dump         | **destructive** |
 
@@ -200,10 +200,19 @@ DATABASE_URL="postgresql://postgres@localhost:5433/bibledb" PGPASSWORD=local \
   make db-restore-verify
 ```
 
-`db-restore-local` starts the `pgvector/pgvector:pg16` container, waits for it
-to accept connections, raises `maintenance_work_mem` to 512MB (HNSW rebuilds
-are the slow part), and restores with `-j 4`. Override `LOCAL_PORT`,
-`LOCAL_DB`, `LOCAL_CONTAINER` or `JOBS` if the defaults collide with something.
+**You do not need a local database first — this creates one.** It requires
+Docker and a dump file, nothing else. `db-restore-local` starts
+`pgvector/pgvector:pg16` as the container `bibledb-restore` on port 5433, waits
+for it to accept connections, raises `maintenance_work_mem` to 512MB (HNSW
+rebuilds are the slow part), and restores with `-j 4`. If that container
+already exists it asks you to retype the name before recreating it.
+
+It is also the one target that **ignores `DATABASE_URL`** — it builds its own
+`postgresql://postgres@localhost:5433/bibledb`. That is deliberate: you will
+usually have a production URL exported for the other targets, and this command
+must never be able to aim at it. Override `LOCAL_PORT`, `LOCAL_DB`,
+`LOCAL_CONTAINER`, `JOBS` or `PGPASSWORD` (default `local`) if the defaults
+collide with something.
 
 This is the environment to use for the **schema-change rehearsal** referenced
 in [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md) — run the migration

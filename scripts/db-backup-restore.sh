@@ -29,11 +29,6 @@ LOCAL_PORT="${LOCAL_PORT:-5433}"
 LOCAL_IMAGE="${LOCAL_IMAGE:-pgvector/pgvector:pg16}"
 LOCAL_DB="${LOCAL_DB:-bibledb}"
 
-# Hosts we accept as "obviously local/CI" for destructive local operations.
-# Mirrors _SAFE_HOSTS in api/tests/test_alembic_migrations.py deliberately —
-# same rule, same names, so the two cannot drift into disagreeing.
-SAFE_HOSTS=("localhost" "127.0.0.1" "postgres" "db")
-
 log()  { echo -e "${BLUE}$*${NC}"; }
 ok()   { echo -e "${GREEN}✓ $*${NC}"; }
 warn() { echo -e "${YELLOW}$*${NC}"; }
@@ -83,14 +78,6 @@ Use PGPASSWORD for the password rather than putting it in the URL."
   DB_URL="$(normalize_libpq_url "$DATABASE_URL")"
   DB_HOST="$(url_host "$DB_URL")"
   [[ -n "$DB_HOST" ]] || die "Could not parse a host out of DATABASE_URL."
-}
-
-is_safe_host() {
-  local host="$1" safe
-  for safe in "${SAFE_HOSTS[@]}"; do
-    [[ "$host" == "$safe" ]] && return 0
-  done
-  return 1
 }
 
 # Destructive commands require the operator to retype the exact target.

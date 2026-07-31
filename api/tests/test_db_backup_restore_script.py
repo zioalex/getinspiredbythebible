@@ -198,15 +198,19 @@ class TestDestructiveGuards:
         for cmd in ("dump", "verify", "restore-local", "restore-same-server"):
             assert cmd in result.stdout
 
+    def test_restore_local_ignores_database_url(self):
+        """`restore-local` must build its own localhost URL, never use DATABASE_URL.
 
-class TestSafeHosts:
-    """The local-restore allowlist mirrors `_SAFE_HOSTS` in
-    test_alembic_migrations.py on purpose — same rule, same names."""
-
-    @pytest.mark.parametrize("host", ["localhost", "127.0.0.1", "postgres", "db"])
-    def test_local_hosts_allowed(self, host):
-        assert _source_and_run('is_safe_host "$2"', host).returncode == 0
-
-    @pytest.mark.parametrize("host", ["prod.postgres.database.azure.com", "evil.example.com", ""])
-    def test_remote_hosts_rejected(self, host):
-        assert _source_and_run('is_safe_host "$2"', host).returncode != 0
+        Otherwise an exported production URL — the common case, since the other
+        targets need one — could aim a restore at production.
+        """
+        result = _run(
+            "restore-local",
+            env_extra={"DATABASE_URL": "postgresql://u@prod.example.com:5432/db"},
+        )
+        assert result.returncode == 1
+        # It stops on the missing dump (or on docker), never on DATABASE_URL,
+        # and the production host must not appear anywhere in its output.
+        assert "DATABASE_URL" not in result.stderr
+        assert "prod.example.com" not in result.stdout + result.stderr
+        assert "DUMP is not set" in result.stderr or "docker not found" in result.stderr
