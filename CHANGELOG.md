@@ -4,16 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [1.51.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.50.1...v1.51.0) (2026-07-31)
 
-
 ### Features
 
 * **api:** add Alembic migration framework (BITB-004) ([#948](https://github.com/zioalex/getinspiredbythebible/issues/948)) ([b81d85b](https://github.com/zioalex/getinspiredbythebible/commit/b81d85bc76dc59f9faed050948ed06620110b4a6))
 
-
 ### Bug Fixes
 
 * **api:** emit the verseless-response SLI on the non-stream chat path (BITB-055) ([#953](https://github.com/zioalex/getinspiredbythebible/issues/953)) ([4b54fcf](https://github.com/zioalex/getinspiredbythebible/commit/4b54fcf5668b499f71570299fba183206972673a))
-
 
 ### Documentation
 
