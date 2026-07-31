@@ -7,6 +7,7 @@
 	db-restore-new-server db-restore-same-server \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
+	alembic-roundtrip \
 	repo-metrics audit-metrics \
 	check-env-production \
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
@@ -120,7 +121,11 @@ security: install-deps ## Run security checks
 	@echo "$(GREEN)✓ Security checks complete$(NC)"
 
 install-deps: venv ## Install Python dependencies
-	@if ! $(CURDIR)/$(PYTHON) -c "import pytest" 2>/dev/null; then \
+	@# Sentinel imports: a venv that predates a newly-added requirement still
+	@# satisfies an older sentinel, so install-deps no-ops and the new package
+	@# is never installed. Add a sentinel here whenever a target starts
+	@# depending on a dependency that isn't reachable from the existing ones.
+	@if ! $(CURDIR)/$(PYTHON) -c "import pytest, alembic" 2>/dev/null; then \
 		echo "$(YELLOW)Installing Python dependencies...$(NC)"; \
 		$(CURDIR)/$(PIP) install -q -r api/requirements-dev.txt; \
 		$(CURDIR)/$(PIP) install -q ruff black mypy bandit isort safety detect-secrets; \
@@ -157,6 +162,42 @@ test-frontend: ## Run frontend tests
 	@echo "$(GREEN)✓ Frontend tests complete$(NC)"
 
 test: test-backend test-frontend ## Run all tests
+
+alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.
+	@echo "$(BLUE)Running Alembic migration roundtrip...$(NC)"
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "$(YELLOW)Error: DATABASE_URL is not set$(NC)"; \
+		echo "$(YELLOW)This target runs 'alembic downgrade base', which drops every$(NC)"; \
+		echo "$(YELLOW)Alembic-managed table. Point it at a local/CI database only.$(NC)"; \
+		exit 1; \
+	fi
+	@# Fail closed on a non-local host, mirroring the _SAFE_HOSTS allowlist in
+	@# api/tests/test_alembic_migrations.py. Strips scheme, then userinfo, then
+	@# port/path/query to leave the bare host.
+	@DB_HOST=$$(printf '%s' "$$DATABASE_URL" | sed -e 's|^[a-zA-Z0-9+.-]*://||' -e 's|^[^@/]*@||' -e 's|[:/?].*||'); \
+	case "$$DB_HOST" in \
+		localhost|127.0.0.1|postgres|db) ;; \
+		*) \
+			if [ "$$ALEMBIC_TEST_ALLOW_HOST" != "1" ]; then \
+				echo "$(YELLOW)Error: refusing to run against host '$$DB_HOST'$(NC)"; \
+				echo "$(YELLOW)This target runs 'alembic downgrade base', which drops every$(NC)"; \
+				echo "$(YELLOW)Alembic-managed table. Allowed hosts: localhost, 127.0.0.1,$(NC)"; \
+				echo "$(YELLOW)postgres, db. Set ALEMBIC_TEST_ALLOW_HOST=1 to override for an$(NC)"; \
+				echo "$(YELLOW)explicitly-approved non-default local/CI host.$(NC)"; \
+				exit 1; \
+			fi; \
+			echo "$(YELLOW)⚠ ALEMBIC_TEST_ALLOW_HOST=1 -- running against non-default host '$$DB_HOST'$(NC)"; \
+			;; \
+	esac
+	@echo "$(YELLOW)alembic upgrade head$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@echo "$(YELLOW)alembic check$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic check
+	@echo "$(YELLOW)alembic downgrade base$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic downgrade base
+	@echo "$(YELLOW)alembic upgrade head$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@echo "$(GREEN)✓ Alembic roundtrip complete$(NC)"
 
 # ==================== Android ====================
 
