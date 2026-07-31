@@ -1323,6 +1323,36 @@ showing — so the tap becomes a silent paste with no feedback. The guard is unn
 
 ---
 
+### 🎯 BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
+
+**Status:** 🎯 Todo
+**Size:** M
+**Depends on:** BITB-004 (PR #948) — merged, but **inert** until this ships
+**Unblocks:** BITB-090
+
+**As a** maintainer who has just merged the Alembic framework, **I want** a committed revision to
+actually reach the production database on deploy, **so that** "we have a migration system" is a
+true statement rather than a framework nobody is wired to.
+
+BITB-004 deliberately did not touch production or the deploy pipeline. Two consequences: prod has
+no `alembic_version` table (so `upgrade head` would fail there today), and the deploy path filter
+watches `scripts/migrations/**` only (`.github/workflows/azure-deploy.yml:167`) — so a revision
+under `api/alembic/versions/**` **silently never deploys**. No error, no warning.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `alembic check` against a *restored copy* of prod passes — the gate for everything else
+- [ ] Prod stamped at `r0001` (zero DDL), backup taken first, `alembic current` verified
+- [ ] Deploy workflow: path filter, `alembic` installed, `alembic upgrade head` replaces the legacy call
+- [ ] SSL form resolved — `:1498` emits `?ssl=require`, which `get_async_database_url()` does **not**
+      strip (`api/scripture/database.py:37`); covered by a test
+- [ ] Proven by a trivial reversible revision reaching prod, not by inspecting YAML
+- [ ] Rollback path documented for a mid-deploy `upgrade head` failure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
@@ -2160,6 +2190,33 @@ revisit — a fourth client is the revisit trigger.
 
 ---
 
+### 🎯 BITB-090: Remove `init_db()` / `create_all()` Once Alembic Owns the Schema
+
+**Status:** 🎯 Todo
+**Size:** S
+**Depends on:** BITB-089 — **hard** dependency, must not be done first
+
+**As a** maintainer, **I want** exactly one system allowed to create schema, **so that** the
+migration history is a truthful record of the database rather than one of two competing accounts.
+
+`api/main.py:201` → `init_db()` → `create_all()` (`api/scripture/database.py:175-186`) is a second
+schema authority. While it exists, a table added to an ORM model appears in the database on the
+next app boot with no revision and no `alembic_version` change — Alembic then believes the DB is at
+`r0001` when it is not. Latent today (Alembic is inert); a real divergence the moment BITB-089 lands.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `create_all()` removed; everything else `init_db()` does is preserved or its removal justified
+- [ ] Fresh local DB fully usable via `alembic upgrade head` alone — verified from empty
+- [ ] Test fixtures no longer depend on `create_all`; suite passes from an empty database
+- [ ] CI job that starts empty, runs only `alembic upgrade head`, and boots the app
+- [ ] Startup no longer silently swallows a schema-setup failure
+      (`docs/audits/2026-07-adversarial-audit.md:174`) — or a follow-up is filed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-090-remove-create-all-once-alembic-owns-schema.md`
+
+---
+
 ## P3 - Low Priority (Future)
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
@@ -2572,6 +2629,37 @@ how they get skipped.
       check-off-and-archive discipline); `docs/RELEASE_PROCESS.md` documents the two-store tag fan-out
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-088-ios-release-pipeline-and-app-store-compliance.md`
+
+---
+
+### 🎯 BITB-091: Backfill the Five Legacy Non-ORM Tables into Alembic
+
+**Status:** 🎯 Todo
+**Size:** M
+**Depends on:** BITB-089
+
+**As a** maintainer, **I want** every table managed by one migration system, **so that** no category
+of table changes only by hand-edited SQL.
+
+`sessions`, `verse_topics`, `rate_limit_hits`, `rate_limit_sessions`, `schema_migrations` have no
+ORM model and are excluded from Alembic by the `include_name` allowlist in `api/alembic/env.py`.
+That filter is **load-bearing** — without it the first `--autogenerate` would propose
+`op.drop_table(...)` for all five. The current state is safe and can stay indefinitely; the cost is
+that changing any of them means hand-rolled SQL with no history or rollback. Do this when one of
+them next needs to change.
+
+⚠️ `schema_migrations` should probably be **retired**, not adopted — it is the legacy system's own
+bookkeeping table.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Models verified against a *restored copy of prod*, not against `scripts/init.sql`
+- [ ] `alembic revision --autogenerate` produces an **empty** diff — evidence in the PR
+- [ ] No `drop_table` / `drop_column` in any generated revision — explicitly reviewed and stated
+- [ ] Decision recorded for `schema_migrations`: retire, adopt, or leave excluded
+- [ ] `api/alembic/README.md` invariant #1 updated to match
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-091-backfill-legacy-tables-into-alembic.md`
 
 ---
 
