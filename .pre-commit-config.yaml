@@ -49,6 +49,17 @@ repos:
     hooks:
       - id: mypy
         files: ^api/
+        # api/alembic/ (Alembic's own scaffold, no __init__.py) is excluded from this
+        # pinned mypy 1.8.0 hook only: mypy resolves it as a namespace package literally
+        # named "alembic" when multiple api/ files are checked together, which shadows
+        # the installed `alembic` PyPI package for `from alembic import op/context` and
+        # produces a false "Module has no attribute" error (a known mypy limitation for a
+        # local dir colliding with an installed distribution name -- see
+        # https://github.com/python/mypy/issues/10328). CI's unpinned/newer mypy
+        # (.github/workflows/test_update.yml) does not hit this and type-checks
+        # api/alembic/ normally; `make type-check` / `mypy .` locally with a current
+        # mypy also passes it cleanly (verified for BITB-004).
+        exclude: ^api/alembic/
         args: [--ignore-missing-imports, --no-strict-optional]
         additional_dependencies:
           - types-requests
