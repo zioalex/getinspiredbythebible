@@ -926,6 +926,134 @@ class TestChatServiceChat:
         assert response.scripture_context is None
 
 
+class TestBITB055ObservabilityCounters:
+    """Tests for the BITB-055 fail-open metrics: ``scripture_pipeline_errors_counter``
+    (search/resolve/grounding stages) and ``chat_verseless_responses_counter`` (the
+    silent-degradation SLI). Before this class, none of these ``.add()`` calls had any
+    test coverage — a refactor could delete every one of them with a fully green suite,
+    which is exactly the class of gap BITB-055 exists to close.
+    """
+
+    @pytest.mark.asyncio
+    async def test_search_error_increments_pipeline_counter(self):
+        service, _, embedding = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search_hybrid = AsyncMock(side_effect=ValueError("bad query"))
+
+        request = ChatRequest(message="test")
+        with patch("chat.service.scripture_pipeline_errors_counter") as mock_counter:
+            await service._search_scripture(request, "kjv", [], False)
+
+        mock_counter.add.assert_called_once_with(1, {"stage": "search", "error_type": "ValueError"})
+
+    @pytest.mark.asyncio
+    async def test_resolve_error_increments_pipeline_counter(self):
+        service, _, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.get_verse = AsyncMock(side_effect=Exception("DB gone"))
+
+        with patch("chat.service.scripture_pipeline_errors_counter") as mock_counter:
+            result = await service._resolve_cited_verses([_make_ref("John", 3, 16)], "kjv")
+
+        assert result == []
+        mock_counter.add.assert_called_once_with(1, {"stage": "resolve", "error_type": "Exception"})
+
+    @pytest.mark.asyncio
+    async def test_grounding_error_increments_pipeline_counter(self):
+        service, _, _ = _make_chat_service()
+
+        with (
+            patch("chat.service.ground_response", side_effect=Exception("boom")),
+            patch("chat.service.scripture_pipeline_errors_counter") as mock_counter,
+        ):
+            text, corrections = await service._apply_verse_grounding(
+                "Some text", None, "kjv", "en", resolved_verses=[]
+            )
+
+        assert text == "Some text"
+        assert corrections == []
+        mock_counter.add.assert_called_once_with(
+            1, {"stage": "grounding", "language": "en", "error_type": "Exception"}
+        )
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.get_translation_info", return_value={"code": "kjv", "name": "KJV"})
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_verseless_sli_emitted_when_no_verses(
+        self, mock_extract, mock_is_verse, mock_trans_info, mock_resolve, mock_detect
+    ):
+        """Non-stream chat() must emit the same SLI as chat_stream() — a total
+        retrieval outage on a non-stream client must not go invisible to the
+        chat_verseless_responses alert."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        empty = SearchResults(query="test", verses=[], passages=[])
+        service.search_service.search = AsyncMock(return_value=empty)
+        service.search_service.search_hybrid = AsyncMock(return_value=empty)
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="A reply", provider="test", model="m")
+        )
+
+        request = ChatRequest(message="I need encouragement")
+        with patch("chat.service.chat_verseless_responses_counter") as mock_counter:
+            await service.chat(request)
+
+        mock_counter.add.assert_called_once_with(1, {"language": "en"})
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.get_translation_info", return_value={"code": "kjv", "name": "KJV"})
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_verseless_sli_not_emitted_when_verses_present(
+        self, mock_extract, mock_is_verse, mock_trans_info, mock_resolve, mock_detect
+    ):
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        result = SearchResults(
+            query="test",
+            verses=[
+                VerseResult(reference="John 3:16", text="...", book="John", chapter=3, verse=16)
+            ],
+            passages=[],
+        )
+        service.search_service.search = AsyncMock(return_value=result)
+        service.search_service.search_hybrid = AsyncMock(return_value=result)
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="A reply", provider="test", model="m")
+        )
+
+        request = ChatRequest(message="I need encouragement")
+        with patch("chat.service.chat_verseless_responses_counter") as mock_counter:
+            await service.chat(request)
+
+        mock_counter.add.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.get_translation_info", return_value=None)
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_verseless_sli_not_emitted_when_search_disabled(
+        self, mock_extract, mock_is_verse, mock_trans_info, mock_resolve, mock_detect
+    ):
+        service, llm, _ = _make_chat_service()
+        llm.chat = AsyncMock(
+            return_value=LLMResponse(content="Response", provider="test", model="m")
+        )
+
+        request = ChatRequest(message="Hello", include_search=False)
+        with patch("chat.service.chat_verseless_responses_counter") as mock_counter:
+            await service.chat(request)
+
+        mock_counter.add.assert_not_called()
+
+
 class TestChatServiceSearchScripture:
     """Tests for ChatService._search_scripture()."""
 

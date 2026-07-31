@@ -1390,9 +1390,10 @@ worth fixing, not just console noise.
 
 ---
 
-### 🎯 BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
+### ✅ BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — shipped mostly under PR #910 (untracked at the time); this pass closed the
+remaining gap plus test coverage
 **Size:** M (1-2 days)
 **Created:** 2026-06-20
 
@@ -1407,14 +1408,14 @@ log-scraping the bug slipped through twice, no metric distinguished "served with
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [ ] Explicit error counters in the three `except` paths; alert on the metric, not log text
-- [ ] Business SLI: rate of responses served with zero DB verses / zero resolved citations
-- [ ] End-to-end synthetic check that the chat path returns cited/grounded verses
-- [ ] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
-- [ ] Fail loud (guard/CI check) when prod alerting is disabled
-- [ ] Integration test running the real search/grounding SQL against the Postgres service container
+- [x] Explicit error counters in the three `except` paths; alert on the metric, not log text
+- [x] Business SLI: rate of responses served with zero DB verses / zero resolved citations
+- [x] End-to-end synthetic check that the chat path returns cited/grounded verses
+- [x] Log-scan robustness (structured levels + allowlist, not a hand-kept keyword denylist)
+- [x] Fail loud (guard/CI check) when prod alerting is disabled
+- [x] Integration test running the real search/grounding SQL against the Postgres service container
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-055-scripture-pipeline-observability.md`
+**Full Story:** `docs/DONE/BITB-055-scripture-pipeline-observability.md`
 
 ---
 

@@ -1,6 +1,6 @@
 # BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2 (Medium) — reliability/observability hardening after a silent 2-week outage
 **Size:** M (1-2 days)
 **Created:** 2026-06-20
@@ -41,26 +41,58 @@ stopgap. This story addresses the **class** of problem so the next silent failur
 
 ## Acceptance Criteria
 
-- [ ] **Metrics from the fail-open paths, not inferred from logs.** Increment explicit counters in
+- [x] **Metrics from the fail-open paths, not inferred from logs.** Increment explicit counters in
       the three `except` blocks — e.g. `chat.scripture.search_errors`, `chat.cited_verse.resolve_errors`,
       `chat.grounding.errors` (dimensioned by error type / language) — via the existing
       `api/utils/metrics.py` helper (same pattern as `scripture.fetch.errors`, BITB-041). Alert on the
       metric in `deployment/monitoring.tf`, not on log text.
-- [ ] **Business-level SLI for silent degradation.** Emit a counter/ratio for chat responses served
+- [x] **Business-level SLI for silent degradation.** Emit a counter/ratio for chat responses served
       with **zero DB verses and zero resolved citations** (degradation that has no exception at all),
       and add a threshold alert (e.g. degraded-rate over a rolling window).
-- [ ] **End-to-end synthetic check.** Extend the `prod-monitor.yml` `verse-search` job (or add a
+- [x] **End-to-end synthetic check.** Extend the `prod-monitor.yml` `verse-search` job (or add a
       chat probe) to assert the chat path actually returns cited/grounded verses, so a
       transaction-abort-class regression is caught regardless of log content.
-- [ ] **Log-scan robustness.** Decouple the Telegram scan's level-marker and keyword conditions and
+- [x] **Log-scan robustness.** Decouple the Telegram scan's level-marker and keyword conditions and
       move toward alerting on structured `| ERROR |` / `| CRITICAL |` lines with a small
       benign-allowlist, rather than a growing keyword denylist that must be maintained by hand.
-- [ ] **Fail loud when alerting is disabled.** Add a prod guard / CI check that flags when production
+- [x] **Fail loud when alerting is disabled.** Add a prod guard / CI check that flags when production
       has `alerts_enabled = false` (no `alert_email` or App Insights), so the alert layer can't be
       silently off.
-- [ ] **Close the CI gap.** Add a lightweight integration test that runs the real search/grounding
+- [x] **Close the CI gap.** Add a lightweight integration test that runs the real search/grounding
       SQL against the Postgres service container already used in `test_update.yml`, so SQL-level
       regressions are caught pre-merge.
+
+## Implementation Notes (2026-07-31)
+
+Most of this story shipped already, bundled into PR #910's large squash commit (`bfd48ed`) without
+its own commit reference — the backlog status marker was never flipped, so it looked untouched.
+Verified against `main` at `5549b49` before starting:
+
+| AC | Where it landed |
+| --- | --- |
+| Error counters | `scripture_pipeline_errors_counter` (`api/utils/metrics.py`), emitted at all 3 fail-open sites in `api/chat/service.py`; alert `scripture_pipeline_errors` in `deployment/monitoring.tf` |
+| Silent-degradation SLI | `chat_verseless_responses_counter` + `chat_verseless_responses` alert in `monitoring.tf` — was previously only emitted from the streaming path (`chat_stream`) |
+| Synthetic check | `scripts/monitor/synthetic_chat.py`, wired as the `synthetic-chat` job in `prod-monitor.yml` |
+| Log-scan robustness | `deployment/azure-monitor/queries/backend-error-filter.kql`, shared by `monitoring.tf` and the `log-scan` job (landed via BITB-056) |
+| Fail loud when alerting disabled | Guard steps in `test_update.yml` and `azure-deploy.yml` for `enable_application_insights` / `alert_email` |
+| CI SQL integration test | `api/tests/test_hybrid_search_integration.py`, `_resolve_cited_verses`-path coverage against the `pgvector/pgvector:pg16` service container |
+
+**Gaps this pass closed:**
+
+1. **Correctness gap:** the non-streaming `ChatService.chat()` path ran the identical
+   search → resolve → ground pipeline but never emitted `chat_verseless_responses_counter` — a
+   retrieval outage affecting only non-stream clients would have left the alert at zero, the exact
+   failure mode this story exists to catch. Fixed in `api/chat/service.py` (`chat()`, after
+   `_apply_verse_grounding`).
+2. **Test-coverage gap:** neither `scripture_pipeline_errors_counter` nor
+   `chat_verseless_responses_counter` had any test asserting they fire — both `.add()` call sites
+   could have been deleted by a refactor with a fully green suite. Added
+   `TestBITB055ObservabilityCounters` in `api/tests/test_chat_coverage.py` (7 tests: 3 error-counter
+   sites, verseless SLI emitted/not-emitted for both `chat()` and the disabled-search case).
+
+**Follow-up worth filing, not done here:** the `chat_verseless_responses` alert threshold in
+`monitoring.tf` was tuned against stream-only volume; now that the non-stream path also emits, the
+threshold should be re-checked against a week of production data.
 
 ## Notes / Reuse
 
