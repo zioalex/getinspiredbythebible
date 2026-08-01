@@ -1,19 +1,19 @@
 # Repo productivity report
 
-*Generated 2026-07-13 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-12. Interactive dashboard: [index.html](./index.html).*
+*Generated 2026-08-01 by `tools/repo-metrics/` — history 2026-01-18 → 2026-07-31. Interactive dashboard: [index.html](./index.html).*
 
 ## Headline
 
 | Metric | Value |
 |---|---|
-| Units of work landed on main (PRs + direct commits, release bumps excluded) | **670** |
-| Calendar span | 176 days (141 active — 80%) |
-| Code lines added / deleted | +141,809 / −21,630 (net +120,179) |
-| Releases shipped | 80 |
-| fix : feat ratio | **1.76** |
-| Same-day hotfix releases (<24h after previous) | 27 |
-| Regression fixes (fix ≤7 days after related feat) | 169 (62 same-scope) |
-| Fix chains (≥2 fixes, same scope, ≤7-day gaps) | 25 |
+| Units of work landed on main (PRs + direct commits, release bumps excluded) | **744** |
+| Calendar span | 195 days (156 active — 80%) |
+| Code lines added / deleted | +165,487 / −22,771 (net +142,716) |
+| Releases shipped | 91 |
+| fix : feat ratio | **1.73** |
+| Same-day hotfix releases (<24h after previous) | 29 |
+| Regression fixes (fix ≤7 days after related feat) | 183 (70 same-scope) |
+| Fix chains (≥2 fixes, same scope, ≤7-day gaps) | 31 |
 | Reverts | 2 |
 
 ## Velocity
@@ -21,27 +21,27 @@
 | Phase | Units | Active days | Units/active day | feat | fix | fix:feat | Code +/− |
 |---|---|---|---|---|---|---|---|
 | Pre-launch (→ v0.1.0, 2026-05-02) | 396 | 77/104 | 5.14 | 76 | 164 | 2.16 | +95,585 / −15,378 |
-| Post-launch | 274 | 62/72 | 4.42 | 71 | 94 | 1.32 | +46,224 / −6,252 |
+| Post-launch | 348 | 77/91 | 4.52 | 86 | 116 | 1.35 | +69,902 / −7,393 |
 
 Work landed by type:
 
 | Type | Count |
 |---|---|
-| fix | 258 |
-| feat | 147 |
-| build | 101 |
-| docs | 44 |
+| fix | 280 |
+| feat | 162 |
+| build | 113 |
+| docs | 58 |
+| ci | 50 |
 | other | 43 |
-| ci | 42 |
-| test | 15 |
+| test | 17 |
+| chore | 8 |
 | refactor | 7 |
-| chore | 7 |
 | perf | 5 |
 | revert | 1 |
 
 ## Churn & rework
 
-Overall churn ratio (deleted/added code lines): **0.153** — 15% of written code was later removed or rewritten.
+Overall churn ratio (deleted/added code lines): **0.138** — 14% of written code was later removed or rewritten.
 
 Top fix chains (bursts of fixes on one scope):
 
@@ -56,27 +56,27 @@ Top fix chains (bursts of fixes on one scope):
 | frontend | 5 | 2026-05-07 → 2026-05-23 | [#498](https://github.com/zioalex/getinspiredbythebible/pull/498), [#508](https://github.com/zioalex/getinspiredbythebible/pull/508), [#521](https://github.com/zioalex/getinspiredbythebible/pull/521), [#577](https://github.com/zioalex/getinspiredbythebible/pull/577), [#607](https://github.com/zioalex/getinspiredbythebible/pull/607) |
 | frontend | 5 | 2026-06-02 → 2026-06-13 | [#674](https://github.com/zioalex/getinspiredbythebible/pull/674), [#699](https://github.com/zioalex/getinspiredbythebible/pull/699), [#709](https://github.com/zioalex/getinspiredbythebible/pull/709), [#721](https://github.com/zioalex/getinspiredbythebible/pull/721), [#739](https://github.com/zioalex/getinspiredbythebible/pull/739) |
 | api | 4 | 2026-07-03 → 2026-07-10 | [#811](https://github.com/zioalex/getinspiredbythebible/pull/811), [#815](https://github.com/zioalex/getinspiredbythebible/pull/815), [#824](https://github.com/zioalex/getinspiredbythebible/pull/824), [#843](https://github.com/zioalex/getinspiredbythebible/pull/843) |
-| api | 3 | 2026-06-05 → 2026-06-10 | [#682](https://github.com/zioalex/getinspiredbythebible/pull/682), [#700](https://github.com/zioalex/getinspiredbythebible/pull/700), [#712](https://github.com/zioalex/getinspiredbythebible/pull/712) |
+| api | 4 | 2026-07-21 → 2026-07-31 | [#920](https://github.com/zioalex/getinspiredbythebible/pull/920), [#928](https://github.com/zioalex/getinspiredbythebible/pull/928), [#944](https://github.com/zioalex/getinspiredbythebible/pull/944), [#953](https://github.com/zioalex/getinspiredbythebible/pull/953) |
 
 Hotspot files (code files touched by the most units of work):
 
 | File | Changes |
 |---|---|
-| `.github/workflows/azure-deploy.yml` | 77 |
-| `api/config.py` | 49 |
-| `frontend/package.json` | 46 |
-| `android/app/src/main/res/values/strings.xml` | 45 |
-| `android/app/src/main/res/values-it/strings.xml` | 41 |
-| `android/app/src/main/res/values-de/strings.xml` | 41 |
-| `android/app/src/main/res/values-fr/strings.xml` | 41 |
-| `android/app/src/main/res/values-es/strings.xml` | 41 |
-| `android/app/src/main/res/values-pt/strings.xml` | 41 |
-| `android/app/src/main/res/values-ar/strings.xml` | 41 |
-| `frontend/src/lib/api.ts` | 38 |
-| `.github/workflows/android-ci.yml` | 38 |
-| `api/chat/service.py` | 37 |
-| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 36 |
-| `frontend/src/app/[locale]/page.tsx` | 34 |
+| `.github/workflows/azure-deploy.yml` | 81 |
+| `api/config.py` | 53 |
+| `frontend/package.json` | 52 |
+| `android/app/src/main/res/values/strings.xml` | 48 |
+| `android/app/src/main/res/values-fr/strings.xml` | 44 |
+| `android/app/src/main/res/values-pt/strings.xml` | 44 |
+| `android/app/src/main/res/values-ar/strings.xml` | 44 |
+| `android/app/src/main/res/values-es/strings.xml` | 44 |
+| `android/app/src/main/res/values-de/strings.xml` | 44 |
+| `android/app/src/main/res/values-it/strings.xml` | 44 |
+| `frontend/src/lib/api.ts` | 41 |
+| `.github/workflows/android-ci.yml` | 41 |
+| `api/chat/service.py` | 38 |
+| `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt` | 38 |
+| `android/app/src/main/res/values-ru/strings.xml` | 35 |
 
 ## Quality & errors
 
@@ -90,9 +90,9 @@ Monthly fix vs feat:
 | 2026-04 | 5 | 37 | 7.4 |
 | 2026-05 | 35 | 48 | 1.37 |
 | 2026-06 | 18 | 31 | 1.72 |
-| 2026-07 | 18 | 17 | 0.94 |
+| 2026-07 | 33 | 39 | 1.18 |
 
-Production-incident proxies: 27 same-day hotfix releases out of 80 total; 2 reverts.
+Production-incident proxies: 29 same-day hotfix releases out of 91 total; 2 reverts.
 
 - 2026-03-14 revert: revert DB backup retention to 7 days and disable geo-redundant backup [#321](https://github.com/zioalex/getinspiredbythebible/pull/321)
 - 2026-05-07 revert: restore manifest + build.gradle.kts to pre-AD_ID-fix state [#491](https://github.com/zioalex/getinspiredbythebible/pull/491)
@@ -101,16 +101,16 @@ Most bug-prone scopes (by fix count):
 
 | Scope | Total units | feat | fix |
 |---|---|---|---|
-| android | 111 | 40 | 60 |
-| frontend | 21 | 3 | 16 |
-| ci | 19 | 3 | 16 |
-| api | 33 | 16 | 14 |
-| ops | 8 | 1 | 7 |
-| web | 8 | 3 | 5 |
+| android | 119 | 43 | 62 |
+| frontend | 28 | 6 | 19 |
+| api | 41 | 19 | 18 |
+| ci | 20 | 3 | 17 |
+| ops | 9 | 1 | 7 |
+| web | 10 | 5 | 5 |
+| security | 8 | 0 | 5 |
+| deploy | 5 | 0 | 5 |
 | chat | 5 | 1 | 3 |
 | android-publish | 5 | 0 | 3 |
-| migrations | 4 | 1 | 3 |
-| deploy | 3 | 0 | 3 |
 
 ## Process timeline
 
@@ -122,24 +122,27 @@ Dated process changes, mined from the first/last commit touching each marker fil
 | 2026-03-03 | opencode multi-agent harness introduced | 2.17 | 1.26 | 7.4 |
 | 2026-05-02 | Conventional commits enforced + release-please automation | 7.4 | 1.37 | 1.72 |
 | 2026-05-24 | opencode config last touched (harness parked) | 7.4 | 1.37 | 1.72 |
-| 2026-06-08 | Plan→Build→Verify relay codified as the default workflow | 1.37 | 1.72 | 0.94 |
-| 2026-07-03 | Adversarial risk audit: playbook, /risk-audit command, baseline report | 1.72 | 0.94 | — |
-| 2026-07-03 | Self-measuring productivity metrics tooling added | 1.72 | 0.94 | — |
+| 2026-06-08 | Plan→Build→Verify relay codified as the default workflow | 1.37 | 1.72 | 1.18 |
+| 2026-07-03 | Adversarial risk audit: playbook, /risk-audit command, baseline report | 1.72 | 1.18 | — |
+| 2026-07-03 | Self-measuring productivity metrics tooling added | 1.72 | 1.18 | — |
 
 ## Models & harness
 
-Of 1,115 commits in the full graph, 129 are automation bots; of the rest, **617 (63%) carry an AI co-author trailer**. Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved — early history under-reports.
+Of 1,200 commits in the full graph, 147 are automation bots; of the rest, **677 (64%) carry an AI co-author trailer**. Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved — early history under-reports.
 
 | Model / author | Commits | feat | fix | About |
 |---|---|---|---|---|
-| human/unattributed | 369 | 52 | 111 |  |
-| Claude (unversioned) | 292 | 78 | 122 | Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers. |
+| human/unattributed | 376 | 52 | 111 |  |
+| Claude (unversioned) | 324 | 88 | 135 | Commits co-authored as plain 'Claude' via Claude Code before version names were recorded in trailers. |
 | Claude Opus 4.5 | 168 | 42 | 69 | Anthropic's frontier Opus-tier model (released Nov 2025) — the strongest reasoning/agentic tier of its generation; workhorse of this repo's pre-launch phase. |
 | Android Dev alias | 57 | 21 | 26 | Commit persona used by the opencode Android subagents (`android-dev@bibleinspiration.app`). |
 | Claude Opus 4.6 | 56 | 11 | 30 | Opus-tier successor (early 2026) with adaptive thinking and a 1M-token context window; used in the later phase and as the opencode orchestrator. |
 | GitHub Copilot | 23 | 1 | 15 | GitHub's autonomous coding agent (copilot-swe-agent) — assigned issues/PRs directly on GitHub. |
+| Claude Sonnet 5 | 22 | 5 | 9 |  |
 | Claude Sonnet 4.6 | 11 | 3 | 4 | Sonnet-tier successor (early 2026); the 'build' model in the Plan→Build→Verify relay documented in AGENTS.md. |
 | Claude Sonnet 4.5 | 9 | 0 | 0 | Mid-tier Anthropic model balancing speed and capability; used for implementation-heavy subtasks. |
+| Claude Opus 5 | 3 | 0 | 0 |  |
+| Claude Fable 5 | 3 | 0 | 0 |  |
 | Claude (moonshotai/kimi-k2.5) | 1 | 1 | 0 | A third-party model (Moonshot Kimi K2.5) driven through a Claude-Code-style harness. |
 
 - **Claude Code** — AGENTS.md context file; Plan→Build→Verify relay across models; Claude Co-Authored-By trailers. Models: Claude Opus (plan + verify), Claude Sonnet (build).
@@ -150,21 +153,19 @@ Of 1,115 commits in the full graph, 129 are automation bots; of the rest, **617 
 
 | Component | Files | LOC | Test files | Test LOC |
 |---|---|---|---|---|
-| android | 222 | 26,491 | 46 | 9,328 |
-| api | 156 | 47,146 | 68 | 27,071 |
-| ci | 23 | 5,507 | 1 | 521 |
-| data | 5 | 0 | 0 | 0 |
-| docs | 179 | 48,626 | 0 | 0 |
-| frontend | 133 | 32,281 | 35 | 8,691 |
-| infra | 26 | 6,945 | 0 | 0 |
-| root | 29 | 3,807 | 0 | 0 |
-| scripts | 39 | 6,988 | 3 | 773 |
-| tools | 8 | 2,774 | 1 | 96 |
+| android | 231 | 27,804 | 51 | 10,030 |
+| api | 178 | 52,075 | 80 | 30,297 |
+| ci | 25 | 5,879 | 1 | 608 |
+| data | 7 | 0 | 0 | 0 |
+| docs | 212 | 54,606 | 0 | 0 |
+| frontend | 164 | 37,663 | 49 | 10,278 |
+| infra | 26 | 7,656 | 0 | 0 |
+| root | 27 | 4,000 | 3 | 1,063 |
+| scripts | 44 | 7,820 | 3 | 773 |
+| tools | 8 | 2,779 | 1 | 96 |
 
 Leftover cruft (candidates for deletion):
 
-- `AGENTS.md.old`
-- `AGENTS.old.md`
 - `frontend/src/components/ChapterModal.test.tsx.backup`
 - `scripts/load_bible.py.backup`
 
@@ -175,6 +176,7 @@ Leftover cruft (candidates for deletion):
 | 2026-07-03 | 610 | 1.88 | 105,514 | 67 | 158 |
 | 2026-07-04 | 618 | 1.81 | 112,736 | 67 | 159 |
 | 2026-07-13 | 670 | 1.76 | 120,179 | 80 | 169 |
+| 2026-08-01 | 744 | 1.73 | 142,716 | 91 | 183 |
 
 ## Methodology
 
