@@ -1,0 +1,128 @@
+{
+ "generated": "2026-08-02",
+ "commit": "857b435",
+ "report": {
+  "file": "2026-07-adversarial-audit.md",
+  "month": "2026-07",
+  "open_by_severity": {
+   "CRITICAL": 2,
+   "HIGH": 15,
+   "MEDIUM": 24,
+   "LOW": 6
+  },
+  "open_by_category": {
+   "architectural_debt": 10,
+   "edge_case_failures": 13,
+   "scalability_bottlenecks": 8,
+   "doc_test_gaps": 7,
+   "operational_security": 9
+  },
+  "open_total": 47,
+  "open_ids": [
+   "A1",
+   "A2",
+   "A3",
+   "A4",
+   "A5",
+   "A6",
+   "A7",
+   "A8",
+   "A9",
+   "A10",
+   "E1",
+   "E2",
+   "E3",
+   "E4",
+   "E5",
+   "E6",
+   "E7",
+   "E8",
+   "E9",
+   "E10",
+   "E11",
+   "E12",
+   "E13",
+   "S1",
+   "S2",
+   "S3",
+   "S4",
+   "S5",
+   "S6",
+   "S7",
+   "S8",
+   "D1",
+   "D2",
+   "D3",
+   "D4",
+   "D5",
+   "D6",
+   "D7",
+   "O1",
+   "O2",
+   "O3",
+   "O4",
+   "O5",
+   "O6",
+   "O7",
+   "O8",
+   "O9"
+  ],
+  "resolved_ids": [],
+  "status_counts": {
+   "NEW": 0,
+   "STILL OPEN": 0,
+   "RESOLVED": 0,
+   "UNMARKED": 47
+  },
+  "risk_score": 149
+ },
+ "latest_report": "2026-07",
+ "risk_score": 149,
+ "resolved_cumulative": 0,
+ "hotspots": {
+  "frontend/src/app/[locale]/ChatIsland.tsx": 1507,
+  "frontend/src/lib/api.ts": 996,
+  "frontend/src/lib/verseExtraction.ts": 1097,
+  "frontend/src/lib/versePatterns.ts": 325,
+  "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt": 1268,
+  "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt": 879,
+  "android/app/src/main/kotlin/org/voxquieta/app/utils/LocalizedBookToEnglish.kt": 751,
+  "api/chat/service.py": 1489,
+  "api/utils/security.py": 664,
+  ".github/workflows/azure-deploy.yml": 1783
+ },
+ "hotspot_moves": {},
+ "hygiene": {
+  "api_sync_httpx_client": 6,
+  "api_broad_except": 80,
+  "api_noqa": 26,
+  "frontend_eslint_disable": 1,
+  "frontend_ts_suppress": 2,
+  "android_run_blocking": 5,
+  "android_suppress": 0,
+  "todo_fixme_hack": 9,
+  "cruft_files": 2,
+  "compose_variants": 6
+ },
+ "areas": {
+  "api": {
+   "src_lines": 20437,
+   "src_files": 76,
+   "test_lines": 29995,
+   "test_files": 77
+  },
+  "frontend": {
+   "src_lines": 9922,
+   "src_files": 59,
+   "test_lines": 9930,
+   "test_files": 45
+  },
+  "android": {
+   "src_lines": 10987,
+   "src_files": 94,
+   "test_lines": 9969,
+   "test_files": 50
+  },
+  "frontend_e2e_specs": 3
+ }
+}
