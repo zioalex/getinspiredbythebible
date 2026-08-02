@@ -14,7 +14,7 @@ and this file were never updated to match, so the story kept surfacing as unstar
 directly against `main` on 2026-08-02:
 
 - **Diagnostic:** `ScriptureRepository.get_translation_coverage()` (`api/scripture/repository.py:902`)
-  + admin route `GET /api/v1/admin/translation-coverage` (`api/routes/admin.py:66`, probe-secret
+  - admin route `GET /api/v1/admin/translation-coverage` (`api/routes/admin.py:66`, probe-secret
   gated).
 - **Startup/CI guard:** `_check_translation_coverage_at_startup()` (`api/main.py:66`, called from
   the app lifespan) logs per-language warnings and increments the

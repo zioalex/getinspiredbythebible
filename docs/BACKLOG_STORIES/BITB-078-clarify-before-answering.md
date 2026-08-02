@@ -13,6 +13,7 @@ surfaces (frontend, Android, the retrieval-eval harness) that a repo-only agent 
 validate end-to-end in a day.
 
 **Shipped:**
+
 - `NEEDS_CLARIFICATION` intent category (`detect_intent_prompt`, `api/chat/prompts.py`) with the
   ask/don't-ask criteria from "Proposed Behaviour" #1 below, written into the classifier prompt.
 - Dedicated `CLARIFICATION_PROMPT` (acknowledge + one open question, <40 words, no verse
@@ -32,6 +33,7 @@ validate end-to-end in a day.
   `_build_messages` prompt-type dispatch.
 
 **Deferred (separate follow-up story):**
+
 - Tappable chip options (Proposed Behaviour #4) — shared UI mechanism with **BITB-080**; do both
   chip UIs together once BITB-080 is scoped, rather than building the mechanism twice.
 - Golden-set eval additions (`docs/SEARCH_EVAL_HOWTO.md`, BITB-051) for vague-opening cases.
