@@ -1,7 +1,6 @@
 package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
