@@ -1240,9 +1240,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > intro modal explaining why Vox Quieta exists, clarify-before-answering, the off-screen
 > web bottom bar, follow-up suggestion chips, and the Android example-tap fix.
 
-### 🎯 BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
+### ✅ BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #944 merged 2026-07-29)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25
 
@@ -1264,13 +1264,13 @@ without fixing the drift just moves the bug.
 - [ ] `GET /config` publishes `chat.max_message_length`; clients use it, constant is fallback only
 - [ ] "Message too long" error and the character counter show the *effective* limit
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-075-raise-message-limit-to-500.md`
+**Full Story:** `docs/DONE/BITB-075-raise-message-limit-to-500.md`
 
 ---
 
-### 🎯 BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
+### ✅ BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #945 merged 2026-07-29)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25
 
@@ -1292,7 +1292,7 @@ unaffected.
 - [ ] Bottom region decrowded (collapsed contact form, one promo element at a time)
 - [ ] Playwright viewport regression test — a unit test cannot catch this
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-079-web-bottom-bar-always-offscreen.md`
+**Full Story:** `docs/DONE/BITB-079-web-bottom-bar-always-offscreen.md`
 
 ---
 
@@ -1504,9 +1504,9 @@ selection-only story with an explicit button and web support.
 
 ---
 
-### 🎯 BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
+### ✅ BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #751 merged 2026-06-22)
 **Size:** S (< 1 hr)
 **Created:** 2026-06-12
 
@@ -1518,13 +1518,13 @@ the full response without manually dismissing it.
 - [ ] Keyboard collapses immediately after Send via `focusManager.clearFocus()`
 - [ ] Multi-line input (Enter = newline) unchanged; Stop icon while streaming unchanged
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-048-android-dismiss-keyboard-on-send.md`
+**Full Story:** `docs/DONE/BITB-048-android-dismiss-keyboard-on-send.md`
 
 ---
 
-### 🎯 BITB-049: Always Start with a Fresh Chat on App Launch (Android)
+### ✅ BITB-049: Always Start with a Fresh Chat on App Launch (Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #751 merged 2026-06-22)
 **Size:** S (< 1 hr)
 **Created:** 2026-06-12
 
@@ -1536,7 +1536,7 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 - [ ] App launch always lands on `chat/new`; drawer still lists/loads past conversations
 - [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+**Full Story:** `docs/DONE/BITB-049-android-fresh-chat-on-launch.md`
 
 ---
 
@@ -1643,9 +1643,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
+### ✅ BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #637 merged 2026-05-29)
 **Size:** M (1-2 days)
 **Created:** 2026-05-26
 
@@ -1661,7 +1661,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - [ ] Soft-break rendering unchanged from current behaviour after library upgrade
 - [ ] All CI checks pass (Unit Tests, Compose UI Tests, Android Lint, Build Prod APK)
 
-**Full story:** [docs/BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md](BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md)
+**Full story:** [docs/DONE/BITB-036-android-inline-amber-quote-chip.md](DONE/BITB-036-android-inline-amber-quote-chip.md)
 
 **References:** PR #629 (deferred amber styling), PR #619 (verse bold links), `ChatMessage.tsx → highlightQuotes()`
 
@@ -1717,9 +1717,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-026: Android Settings UX Improvements
+### ✅ BITB-026: Android Settings UX Improvements
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #539 merged 2026-05-12)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-08
 
@@ -1738,7 +1738,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - [ ] In-chat translation chip still persists selection across restarts (no regression)
 - [ ] All existing preference unit tests pass
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-026-android-settings-improvements.md`
+**Full Story:** `docs/DONE/BITB-026-android-settings-improvements.md`
 
 ---
 
@@ -1907,9 +1907,9 @@ Developer Program Policy before shipping).
 
 ---
 
-### 🎯 BITB-076: "About" Page — Why Vox Quieta Exists
+### ✅ BITB-076: "About" Page — Why Vox Quieta Exists
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #939 merged 2026-07-27)
 **Size:** M (1–2 days, mostly copywriting + 11 locales)
 **Created:** 2026-07-25
 
@@ -1939,13 +1939,13 @@ Material* section): it is the origin story to adapt, not text to transcribe.
 - [ ] `About` namespace complete in all 11 `frontend/messages/*.json`; Arabic RTL correct
 - [ ] Linked from the footer **and** from the chat screen; added to `sitemap.ts` `PATHS`
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-076-about-page-motivation.md`
+**Full Story:** `docs/DONE/BITB-076-about-page-motivation.md`
 
 ---
 
-### 🎯 BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
+### ✅ BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #939 merged 2026-07-27)
 **Size:** S (< 4 hrs, after BITB-076)
 **Created:** 2026-07-25
 **Blocked by:** BITB-076
@@ -1967,13 +1967,13 @@ silent first-visit seeding (`WhatsNewModal.tsx:33-40`). A single versioned
 - [ ] No SSR/CSR hydration mismatch (see BITB-069); keyboard accessible
 - [ ] Bumping the version constant re-shows it — proven by a test
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-077-about-intro-modal.md`
+**Full Story:** `docs/DONE/BITB-077-about-intro-modal.md`
 
 ---
 
-### 🎯 BITB-082: Android — About Settings Row + First-Run Intro Fold-In
+### ✅ BITB-082: Android — About Settings Row + First-Run Intro Fold-In
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #941 merged 2026-07-29)
 **Size:** S (~1 day)
 **Created:** 2026-07-27
 
@@ -2000,13 +2000,13 @@ spotlight), floated as an alternative fold-in target, is still `Todo` — not av
 - [ ] All new strings in `values/strings.xml` + all 11 `values-*/strings.xml`, sourced from the
       same copy as web's `About.intro*` keys — not re-derived independently
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-082-android-about-settings-and-intro.md`
+**Full Story:** `docs/DONE/BITB-082-android-about-settings-and-intro.md`
 
 ---
 
-### 🎯 BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
+### ✅ BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #947 merged 2026-07-29)
 **Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
 **Created:** 2026-07-27
 
@@ -2032,7 +2032,7 @@ they show the pre-rename v1.0 UI — must be labeled as "then," not presented as
 - [ ] `notBody`'s safety-boundary language stays unambiguous — not softened
 - [ ] Applied across all 11 locales; `About.introBody` (BITB-077) rechecked for consistency
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-083-about-page-personal-voice-and-photos.md`
+**Full Story:** `docs/DONE/BITB-083-about-page-personal-voice-and-photos.md`
 
 ---
 
