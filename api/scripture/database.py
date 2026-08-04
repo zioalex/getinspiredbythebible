@@ -30,21 +30,26 @@ def get_async_database_url() -> tuple[str, dict]:
     url = settings.database_url
     connect_args: dict = {}
 
-    # Parse the URL to extract and remove sslmode parameter
+    # Parse the URL to extract and remove sslmode/ssl parameters
     parsed = urlparse(url)
     if parsed.query:
         query_params = parse_qs(parsed.query)
         sslmode = query_params.pop("sslmode", [None])[0]
+        # BITB-089: some callers (e.g. the deploy workflow's legacy migration
+        # step) build the URL with `?ssl=require` instead of `sslmode=require`.
+        # asyncpg accepts neither as a URL param, so strip both the same way
+        # scripts/migrations/utils.py:get_migration_connection_params() does.
+        ssl_param = query_params.pop("ssl", [None])[0]
 
-        # Rebuild URL without sslmode
+        # Rebuild URL without SSL parameters
         new_query = urlencode(query_params, doseq=True) if query_params else ""
         url = urlunparse(parsed._replace(query=new_query))
 
-        # Configure SSL for asyncpg based on sslmode
-        if sslmode in ("require", "verify-ca", "verify-full"):
+        # Configure SSL for asyncpg based on sslmode/ssl
+        if sslmode in ("require", "verify-ca", "verify-full") or ssl_param == "require":
             # Create SSL context for secure connection
             ssl_context = ssl.create_default_context()
-            if sslmode == "require":
+            if sslmode == "require" or ssl_param == "require":
                 # Don't verify certificate (like psycopg2's sslmode=require)
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE

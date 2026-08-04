@@ -1,6 +1,8 @@
 # BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — Stage 3 (pipeline wiring) shipped; Stages 1-2 (production cutover)
+deferred to an operator runbook (see `docs/MIGRATION_GUIDELINES.md`), since they require live
+production database credentials that no CI session holds.
 **Priority:** P1
 **Size:** M (one-time operator step + workflow wiring)
 **Created:** 2026-07-31
@@ -89,17 +91,31 @@ failure in the new path does not block an unrelated release.
 
 ## Acceptance Criteria
 
-- [ ] `alembic check` run against a restored copy of production, output recorded in the PR
-- [ ] Production stamped at `r0001`; `alembic current` verified; backup taken beforehand
-- [ ] Deploy workflow path filter includes `api/alembic/versions/**`
-- [ ] Deploy job installs `alembic`
-- [ ] Deploy job runs `alembic upgrade head` from `api/`
-- [ ] SSL form resolved and covered by a test (no `?ssl=require` reaching an asyncpg-driven tool)
+- [ ] `alembic check` run against a restored copy of production, output recorded in the PR —
+      **deferred**: this is a live-credential, human-run operator step; see the runbook in
+      `docs/MIGRATION_GUIDELINES.md`
+- [ ] Production stamped at `r0001`; `alembic current` verified; backup taken beforehand —
+      **deferred**, same reason
+- [x] Deploy workflow path filter includes `api/alembic/versions/**`
+- [x] Deploy job installs `alembic` (`pip install -r api/requirements.txt`)
+- [x] Deploy job runs `alembic upgrade head` from `api/` — gated behind a "Check Alembic stamp"
+      preflight so it is a no-op until Stage 2 (prod stamping) has happened; the legacy
+      `scripts/migrations/` step keeps running unconditionally alongside it
+- [x] SSL form resolved and covered by a test (no `?ssl=require` reaching an asyncpg-driven tool)
+      — `get_async_database_url()` now strips `ssl` as well as `sslmode`; see
+      `api/tests/test_database_church_coverage.py::TestGetAsyncDatabaseUrl`
 - [ ] Proven end-to-end by a **trivial, reversible** revision (e.g. add then drop a comment on a
-      column) that demonstrably reaches prod via the pipeline — not by asserting the YAML looks right
-- [ ] Rollback path documented: what an operator does when `upgrade head` fails mid-deploy
-- [ ] `docs/MIGRATION_GUIDELINES.md` updated — the "operator runbook note" added by #948 becomes
-      the real procedure, and the "Legacy CI workflow" reference is corrected
+      column) that demonstrably reaches prod via the pipeline — not by asserting the YAML looks
+      right. **Deferred** to the operator's first post-stamp revision (no live prod access from
+      CI). The cutover sequence itself (upgrade → drop bookkeeping → stamp → no-op upgrade) is
+      rehearsed against a throwaway database in
+      `api/tests/test_alembic_migrations.py::test_stamp_cutover_matches_the_deploy_gate`, and the
+      "does the pipeline actually wire this up" regression is guarded by
+      `api/tests/test_deploy_workflow_migrations.py`.
+- [x] Rollback path documented: what an operator does when `upgrade head` fails mid-deploy — see
+      `docs/MIGRATION_GUIDELINES.md` → "When `alembic upgrade head` fails mid-deploy"
+- [x] `docs/MIGRATION_GUIDELINES.md` updated — the "operator runbook note" added by #948 becomes
+      the real Stage 1-3 procedure, and the "Legacy CI workflow" reference is corrected
 
 ## Out of Scope
 

@@ -1323,9 +1323,9 @@ showing — so the tap becomes a silent paste with no feedback. The guard is unn
 
 ---
 
-### 🎯 BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
+### 🚧 BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — Stage 3 (pipeline wiring) shipped; Stages 1-2 (prod cutover) pending operator
 **Size:** M
 **Depends on:** BITB-004 (PR #948) — merged, but **inert** until this ships
 **Unblocks:** BITB-090
@@ -1342,12 +1342,19 @@ under `api/alembic/versions/**` **silently never deploys**. No error, no warning
 **Acceptance Criteria (summary):**
 
 - [ ] `alembic check` against a *restored copy* of prod passes — the gate for everything else
+      (deferred: requires an operator with prod DB access, see the runbook)
 - [ ] Prod stamped at `r0001` (zero DDL), backup taken first, `alembic current` verified
-- [ ] Deploy workflow: path filter, `alembic` installed, `alembic upgrade head` replaces the legacy call
-- [ ] SSL form resolved — `:1498` emits `?ssl=require`, which `get_async_database_url()` does **not**
-      strip (`api/scripture/database.py:37`); covered by a test
+      (deferred: same operator step)
+- [x] Deploy workflow: path filter (`api/alembic/versions/**`), `alembic` installed
+      (`pip install -r api/requirements.txt`), `alembic upgrade head` runs alongside the legacy
+      call — gated on a "Check Alembic stamp" preflight so it self-skips until Stage 2 is done
+- [x] SSL form resolved — `get_async_database_url()` now strips `?ssl=require` in addition to
+      `sslmode=require`; covered by tests in `api/tests/test_database_church_coverage.py`
 - [ ] Proven by a trivial reversible revision reaching prod, not by inspecting YAML
-- [ ] Rollback path documented for a mid-deploy `upgrade head` failure
+      (deferred to the operator's first post-stamp revision; the cutover itself is rehearsed
+      in CI by `test_stamp_cutover_matches_the_deploy_gate` in `api/tests/test_alembic_migrations.py`)
+- [x] Rollback path documented for a mid-deploy `upgrade head` failure — see
+      `docs/MIGRATION_GUIDELINES.md` → "When `alembic upgrade head` fails mid-deploy"
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md`
 

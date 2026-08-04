@@ -143,6 +143,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       scripts: ${{ steps.filter.outputs.scripts }}
       migration_scripts: ${{ steps.filter.outputs.migration_scripts }}
+      alembic_migrations: ${{ steps.filter.outputs.alembic_migrations }}
       bible_scripts: ${{ steps.filter.outputs.bible_scripts }}
       deployment: ${{ steps.filter.outputs.deployment }}
     steps:
@@ -166,6 +167,8 @@ jobs:
               - 'scripts/**'
             migration_scripts:
               - 'scripts/migrations/**'
+            alembic_migrations:
+              - 'api/alembic/versions/**'
             bible_scripts:
               - 'scripts/load_bible.py'
               - 'scripts/create_embeddings.py'
@@ -1446,10 +1449,11 @@ jobs:
     # 1. always() - evaluate even if deploy was skipped
     # 2. Not a PR (no DB access from PR branches)
     # 3. Deploy didn't fail (success or skipped is OK)
-    # 4. Migration scripts changed OR manual workflow_dispatch
+    # 4. Migration scripts changed (legacy or Alembic) OR manual workflow_dispatch
     if: >-
       always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
       'skipped') && (needs.changes.outputs.migration_scripts == 'true' ||
+       needs.changes.outputs.alembic_migrations == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1467,7 +1471,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install asyncpg pydantic pydantic-settings
+        # BITB-089: use the pinned api/requirements.txt (includes alembic) so
+        # `alembic upgrade head` below runs the same version CI validates in
+        # the alembic-migrations job, instead of an unpinned ad-hoc set.
+        run: pip install -r api/requirements.txt
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -1498,6 +1505,65 @@ jobs:
           export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
           cd scripts/migrations
           python run_migrations.py
+
+      # BITB-089: the three steps below wire the Alembic framework (BITB-004,
+      # PR #948) into deploy. Production has not been cut over to Alembic yet
+      # (no `alembic_version` table) — see docs/MIGRATION_GUIDELINES.md for the
+      # operator runbook (Stages 1-2) that must run once before this activates.
+      # Until then "Check Alembic stamp" reports stamped=false and the upgrade
+      # step is skipped, so this job's behavior is unchanged from today.
+      - name: Check Alembic stamp
+        id: alembic_gate
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd api
+          CURRENT="$(alembic current 2>/dev/null | tr -d '[:space:]')"
+          if [ -n "$CURRENT" ]; then
+            echo "stamped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stamped=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # continue-on-error is deliberately temporary for the first release after
+      # the operator completes the Stage 1-2 cutover — remove it once a prod
+      # `alembic upgrade head` run has succeeded end-to-end, so failures start
+      # failing the job instead of only warning.
+      - name: Apply Alembic migrations
+        id: alembic_upgrade
+        if: steps.alembic_gate.outputs.stamped == 'true'
+        continue-on-error: true
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd api
+          alembic upgrade head
+          alembic current
+
+      - name: Migration summary
+        if: always()
+        run: |
+          if [ "${{ steps.alembic_gate.outputs.stamped }}" != "true" ]; then
+            echo "### Alembic migrations: skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Production is not yet stamped at an Alembic revision. Run the BITB-089" >> "$GITHUB_STEP_SUMMARY"
+            echo "Stage 1-2 operator runbook in docs/MIGRATION_GUIDELINES.md before this step" >> "$GITHUB_STEP_SUMMARY"
+            echo "can apply anything." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.alembic_upgrade.outcome }}" == "success" ]; then
+            echo "### Alembic migrations: applied" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Alembic upgrade step failed — see 'Apply Alembic migrations' step log."
+            echo "### Alembic migrations: FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo "The 'Apply Alembic migrations' step failed. The legacy migrations run" >> "$GITHUB_STEP_SUMMARY"
+            echo "above is unaffected. See docs/MIGRATION_GUIDELINES.md for rollback." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # ---------------------------------------------------------------------------
   # Seed Matrix (derives the translation list from scripts/translations.py)

@@ -274,6 +274,57 @@ def test_alembic_check_reports_no_drift(throwaway_database_url):
     _run_alembic("check", database_url=throwaway_database_url)
 
 
+def test_stamp_cutover_matches_the_deploy_gate(throwaway_database_url):
+    """Rehearses the BITB-089 production cutover, and doubles as the model
+    for the deploy workflow's "Check Alembic stamp" preflight.
+
+    Production today has the schema (built by scripts/migrations/) but no
+    `alembic_version` bookkeeping -- exactly what dropping that table on an
+    already-upgraded throwaway database simulates. The operator's Stage 2
+    (`alembic stamp r0001`) must then make `upgrade head` a no-op and
+    `current` report `r0001`, which is also precisely the condition the
+    deploy job's "Check Alembic stamp" step checks before it will run
+    `alembic upgrade head` against production.
+    """
+    # 1. Schema exists (as it does on prod today), but simulate "no Alembic
+    #    bookkeeping yet" by dropping alembic_version after creating it.
+    _run_alembic("upgrade", "head", database_url=throwaway_database_url)
+    parsed = urlparse(throwaway_database_url)
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        user=parsed.username,
+        password=parsed.password,
+        dbname=parsed.path.lstrip("/"),
+    )
+    try:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("DROP TABLE alembic_version")
+    finally:
+        conn.close()
+
+    # `alembic current` against an unstamped database prints nothing and
+    # exits 0 -- this is exactly what the deploy job's preflight step reads
+    # to decide stamped=false and skip the upgrade step.
+    result = _run_alembic("current", database_url=throwaway_database_url)
+    assert result.stdout.strip() == ""
+
+    # 2. Stage 2: stamp (writes one row, executes zero DDL).
+    _run_alembic("stamp", "r0001", database_url=throwaway_database_url)
+
+    # 3. Post-stamp, `current` reports r0001 (deploy gate now says stamped=true)...
+    result = _run_alembic("current", database_url=throwaway_database_url)
+    assert "r0001" in result.stdout
+
+    # ...and `upgrade head` is a no-op: no DDL, table set unchanged.
+    tables_before = _table_names(throwaway_database_url)
+    _run_alembic("upgrade", "head", database_url=throwaway_database_url)
+    tables_after = _table_names(throwaway_database_url)
+    assert tables_before == tables_after
+    assert _alembic_version_rows(throwaway_database_url) == ["r0001"]
+
+
 class TestHostSafetyGuard:
     """Tests for the guard itself -- the thing standing between
     `alembic downgrade base` and a database nobody meant to touch.

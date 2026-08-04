@@ -1,7 +1,7 @@
 # Migration Best Practices & Guidelines
 
-**Version:** 1.1
-**Last Updated:** 2026-07-30
+**Version:** 1.2
+**Last Updated:** 2026-08-04
 **Owner:** Product & Engineering Team
 
 ---
@@ -15,7 +15,10 @@
 > columns go through an Alembic revision from now on. See
 > `api/alembic/README.md` for the day-to-day workflow and
 > "Long-Term Solution: Alembic" below for the full story, including the
-> **prod adoption runbook note** (this PR does not touch production).
+> **operator runbook** for the one-time production cutover (BITB-089).
+> The deploy pipeline is wired to run `alembic upgrade head` automatically
+> once that cutover is done; until then it self-skips (see "CI/CD
+> Integration" below).
 >
 > The manual-migration guidance below this banner still applies to everything
 > already in `scripts/migrations/` and is kept for historical reference; it is
@@ -577,17 +580,33 @@ conn = await asyncpg.connect(clean_url, **conn_kwargs)
 - Azure production (SSL required)
 - Both `postgresql://` and `postgresql+asyncpg://` schemes
 
+**BITB-089:** the API's own `get_async_database_url()`
+(`api/scripture/database.py`, used by `api/alembic/env.py`) now strips both
+`sslmode` and `ssl` the same way, so it's safe to pass it either URL form —
+this closed a gap where `?ssl=require` (the form the deploy workflow's
+legacy migration step builds) passed through untouched.
+
 ---
 
 ## CI/CD Integration
 
 ### When Migrations Run Automatically
 
-Migrations run in the `run-migrations` job if:
+The `run-migrations` job runs two migration systems side by side (BITB-089):
+the legacy `scripts/migrations/` runner, and `alembic upgrade head`. Both are
+gated the same way at the job level:
 
-1. Files in `scripts/migrations/` changed
+1. Files in `scripts/migrations/**` OR `api/alembic/versions/**` changed
 2. NOT a pull request (only on merge to main)
 3. Deploy job succeeded OR was skipped
+
+Within the job, the Alembic half has one more gate: a "Check Alembic stamp"
+preflight runs `alembic current` first and only runs `alembic upgrade head`
+if it reports a revision. Production has no `alembic_version` row until the
+operator completes the Stage 1-2 cutover below, so until then this step
+prints a step-summary note and does nothing — merging this wiring changes no
+observable behavior. The legacy runner is unaffected either way and keeps
+running every deploy.
 
 ### Manual Trigger
 
@@ -701,23 +720,74 @@ def upgrade() -> None:
         op.execute("CREATE INDEX CONCURRENTLY ...")
 ```
 
-### Operator runbook note: adopting Alembic against the existing prod database
+### Operator runbook: adopting Alembic against the existing prod database (BITB-089)
 
 The production database already has the full schema (built up over time by
-`scripts/migrations/`). Alembic has never run against it. Before Alembic can
-manage prod schema changes, an operator must run, once:
+`scripts/migrations/`). Alembic has never run against it, and CI cannot and
+must not perform this cutover — it needs prod credentials and a human
+decision, so it stays a manual, operator-run procedure. The deploy
+pipeline's "Check Alembic stamp" step (BITB-089, `run-migrations` job) skips
+itself until Stage 2 below is done, so there is no time pressure to rush it.
+
+**Stage 1 — rehearse against a restored copy (the gate for everything else).**
+Restore production into a throwaway target — Scenario A or C of
+[`docs/HOW-TO-BACKUP-RESTORE-DATABASE.md`](HOW-TO-BACKUP-RESTORE-DATABASE.md) — then:
+
+```bash
+DATABASE_URL="<restored-copy-url>" alembic check
+```
+
+If this reports drift, the restored copy (and therefore prod) does not
+match what `r0001` was generated from. **Do not proceed to Stage 2** —
+reconcile the difference (usually by hand-writing a follow-up revision)
+first. Stamping over a genuine mismatch would make Alembic's view of the
+schema wrong from the very first deploy.
+
+**Stage 2 — stamp production (one-time, manual).** Take a backup first
+(Scenario D of the same runbook) even though `stamp` is non-destructive —
+cheap insurance for a step that only runs once:
 
 ```bash
 DATABASE_URL="<prod-url>" alembic stamp r0001
 ```
 
-`stamp` only writes a row to `alembic_version` marking `r0001` as already
+`stamp` writes one row to `alembic_version` marking `r0001` as already
 applied — it executes **zero DDL** (it does not create or touch a single
 table), because prod already has the equivalent schema from the manual
-migrations. **This PR does not run that command anywhere** (see the hard
-constraint against contacting the production/Azure database) — it is a
-deliberate one-time, manual, operator-run step for whenever the team decides
-to cut prod over.
+migrations. Verify:
+
+```bash
+DATABASE_URL="<prod-url>" alembic current   # must print r0001
+DATABASE_URL="<prod-url>" alembic upgrade head   # must be a no-op
+```
+
+Rollback, if needed: `DROP TABLE alembic_version` (removes the bookkeeping
+row only; the schema itself is untouched either way).
+
+**Stage 3 — already shipped.** Once Stage 2 lands, the very next deploy's
+"Check Alembic stamp" step reports `stamped=true` and `alembic upgrade
+head` starts running automatically from then on — no second PR needed.
+
+### When `alembic upgrade head` fails mid-deploy
+
+Each revision runs inside a transaction (the `CREATE INDEX CONCURRENTLY`
+autocommit block above is the one documented exception), so Postgres rolls
+back a failed revision itself — a failure does not normally leave a
+half-applied schema change. If it happens anyway:
+
+1. Check `DATABASE_URL="<prod-url>" alembic current` to see what actually
+   landed.
+2. If a revision partially applied outside a transaction, `alembic
+   downgrade <previous-revision>` run manually against prod.
+3. Restore from backup as a last resort (see the backup/restore runbook).
+4. The legacy `scripts/migrations/` step in the same job is unaffected and
+   keeps running regardless — an Alembic failure does not block or roll
+   back anything the legacy runner already applied.
+
+The deploy job's "Apply Alembic migrations" step uses `continue-on-error:
+true` for the first release after Stage 2 specifically so a failure here
+warns loudly (step summary + `::warning`) instead of failing the whole
+deploy — remove that once one prod run has succeeded end-to-end.
 
 ---
 
@@ -741,8 +811,10 @@ to cut prod over.
 ## References
 
 - Backend SSL handling: `api/scripture/database.py` → `get_async_database_url()`
-- Legacy CI workflow (scripts/migrations/ only): `.github/workflows/azure-deploy.yml` → `run-migrations` job
-- Alembic CI check (new schema changes): `.github/workflows/test_update.yml` → `alembic-migrations` job
+- Deploy CI workflow (runs both legacy `scripts/migrations/` and, once
+  stamped, `alembic upgrade head`): `.github/workflows/azure-deploy.yml` →
+  `run-migrations` job (BITB-089)
+- Alembic CI check (new schema changes, ephemeral DB only): `.github/workflows/test_update.yml` → `alembic-migrations` job
 - Alembic usage: `api/alembic/README.md`
 - Existing legacy migrations: `scripts/migrations/001_*.py`, `002_*.py`
 - asyncpg docs: <https://magicstack.github.io/asyncpg/current/>
@@ -753,6 +825,10 @@ to cut prod over.
 
 **Version History:**
 
+- 1.2 (2026-08-04): BITB-089 — wired `alembic upgrade head` into the deploy
+  pipeline (gated on a stamp preflight so it self-skips until the operator
+  cutover), fixed `get_async_database_url()` to strip `?ssl=require` too,
+  and turned the prod-adoption note into a full Stage 1-3 operator runbook.
 - 1.1 (2026-07-30): BITB-004 — Alembic (`api/alembic/`) is now the current system for new
   schema changes; `scripts/migrations/` frozen as historical record. Added the "Long-Term
   Solution: Alembic" real usage section and the prod-adoption runbook note.
