@@ -509,7 +509,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
+**Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
 **Size:** L (3-5 days, 5 small PRs)
 **Created:** 2026-06-16
 
@@ -519,12 +519,14 @@ that** I can validate whether query expansion / hybrid search actually help and 
 their weights instead of shipping search changes blind.
 
 **Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
-Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
+Delivered in phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
 normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
 languages) + `--validate` + non-blocking CI ✅; **P3** runner over real retrieval + A/B
-report/CLI ✅; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
-Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embedding-3-small`
-(1536) everywhere** to match prod; per-PR CI is validate-only.
+report/CLI ✅; **P4a** `eval-prod` (prod read-only, no new secret) + `eval-smoke`
+automated in CI (manual + nightly) ✅; **P4b** `eval-corpus` full-corpus cached
+rebuild (Route B) — deferred, todo (see story file for why). Embeddings are
+**Azure `text-embedding-3-small` (1536) everywhere** to match prod; per-PR CI is
+validate-only.
 
 **Acceptance Criteria (summary — full story has detail):**
 
@@ -532,7 +534,8 @@ Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embed
 - [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
 - [x] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
 - [x] P3: runner (`api/search_eval/runner.py`) + report/CLI (`--run`); manual prod-read-only A/B table documented in `docs/SEARCH_EVAL_HOWTO.md`
-- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
+- [x] P4a: `eval-prod` + `eval-smoke` automated in CI (manual + nightly, `.github/workflows/search-eval-full.yml`)
+- [ ] P4b: `eval-corpus` full-corpus rebuild (Route B) — deferred
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
 
