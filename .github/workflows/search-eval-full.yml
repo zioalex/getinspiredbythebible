@@ -101,8 +101,8 @@ jobs:
         id: check
         env:
           HAS_ARM: >-
-            ${{ secrets.ARM_CLIENT_ID != '' && secrets.ARM_CLIENT_SECRET != '' &&
-            secrets.ARM_SUBSCRIPTION_ID != '' && secrets.ARM_TENANT_ID != '' }}
+            ${{ secrets.ARM_CLIENT_ID != '' && secrets.ARM_CLIENT_SECRET != '' && secrets.ARM_SUBSCRIPTION_ID != '' &&
+            secrets.ARM_TENANT_ID != '' }}
           HAS_DB: >-
             ${{ secrets.TF_VAR_DB_ADMIN_USERNAME != '' && secrets.TF_VAR_DB_ADMIN_PASSWORD != '' &&
             secrets.TF_VAR_DB_NAME != '' }}
@@ -142,10 +142,9 @@ jobs:
     name: eval-prod (Route A)
     needs: preflight
     if: >-
-      needs.preflight.outputs.has_arm == 'true' &&
-      needs.preflight.outputs.has_db == 'true' &&
-      needs.preflight.outputs.has_azure == 'true' &&
-      (github.event_name == 'schedule' || github.event.inputs.route != 'smoke')
+      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db == 'true' &&
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'smoke')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -310,8 +309,8 @@ jobs:
     name: eval-smoke
     needs: preflight
     if: >-
-      needs.preflight.outputs.has_azure == 'true' &&
-      (github.event_name == 'schedule' || github.event.inputs.route != 'prod')
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'prod')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
