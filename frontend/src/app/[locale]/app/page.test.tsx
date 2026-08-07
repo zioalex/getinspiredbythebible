@@ -2,12 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import enMessages from "../../../../messages/en.json";
 
-const mockHeaders = vi.fn();
-
-vi.mock("next/headers", () => ({
-  headers: () => mockHeaders(),
-}));
-
 vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
   getTranslations: vi.fn(async ({ namespace }: { namespace: "App" }) => {
@@ -30,72 +24,38 @@ vi.mock("@/lib/testerLinks", () => ({
   PLAY_STORE_URL: "https://play.google.com/store/apps/details?id=test",
 }));
 
+// The page no longer branches on the User-Agent itself (that moved
+// client-side into AppInstallCta, see AppInstallCta.test.tsx for the
+// iOS-vs-non-iOS behavioral coverage) — this page just needs to render the
+// component with the right translated strings, as a fully static server
+// component (no `headers()` call, so it can stay prerendered).
+vi.mock("@/components/AppInstallCta", () => ({
+  default: (props: Record<string, string>) => (
+    <div data-testid="app-install-cta">{JSON.stringify(props)}</div>
+  ),
+}));
+
 import AppStoryPage from "./page";
 
-function createMockHeaders(userAgent: string | null) {
-  return {
-    get: (name: string) => (name === "user-agent" ? userAgent : null),
-  };
-}
-
-const IPHONE_UA =
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
-
-const ANDROID_UA =
-  "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36";
-
 describe("AppStoryPage", () => {
-  it("shows the iOS Add to Home Screen instructions and no Play Store link for an iPhone user agent", async () => {
-    mockHeaders.mockResolvedValue(createMockHeaders(IPHONE_UA));
-
+  it("renders as a static page and passes the translated CTA strings to AppInstallCta", async () => {
     const jsx = await AppStoryPage({
       params: Promise.resolve({ locale: "en" }),
     });
     render(jsx);
 
-    expect(screen.getByText(enMessages.App.iosCtaTitle)).toBeInTheDocument();
-    expect(screen.getByText(enMessages.App.iosCtaBody)).toBeInTheDocument();
-    expect(screen.getByText(enMessages.App.iosCtaSub)).toBeInTheDocument();
+    expect(screen.getByText(enMessages.App.title)).toBeInTheDocument();
 
-    expect(
-      screen.queryByText(enMessages.App.ctaButton),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /google play/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/app store/i)).not.toBeInTheDocument();
-  });
-
-  it("shows the Play Store CTA for a non-iOS (Android) user agent", async () => {
-    mockHeaders.mockResolvedValue(createMockHeaders(ANDROID_UA));
-
-    const jsx = await AppStoryPage({
-      params: Promise.resolve({ locale: "en" }),
+    const cta = screen.getByTestId("app-install-cta");
+    const props = JSON.parse(cta.textContent ?? "{}");
+    expect(props).toEqual({
+      iconAlt: enMessages.App.iconAlt,
+      ctaSub: enMessages.App.ctaSub,
+      ctaButton: enMessages.App.ctaButton,
+      iosCtaTitle: enMessages.App.iosCtaTitle,
+      iosCtaBody: enMessages.App.iosCtaBody,
+      iosCtaSub: enMessages.App.iosCtaSub,
+      playStoreUrl: "https://play.google.com/store/apps/details?id=test",
     });
-    render(jsx);
-
-    const link = screen.getByText(enMessages.App.ctaButton);
-    expect(link.closest("a")).toHaveAttribute(
-      "href",
-      "https://play.google.com/store/apps/details?id=test",
-    );
-
-    expect(
-      screen.queryByText(enMessages.App.iosCtaTitle),
-    ).not.toBeInTheDocument();
-  });
-
-  it("falls back to the Play Store CTA when there is no user-agent header", async () => {
-    mockHeaders.mockResolvedValue(createMockHeaders(null));
-
-    const jsx = await AppStoryPage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    render(jsx);
-
-    expect(screen.getByText(enMessages.App.ctaButton)).toBeInTheDocument();
-    expect(
-      screen.queryByText(enMessages.App.iosCtaTitle),
-    ).not.toBeInTheDocument();
   });
 });

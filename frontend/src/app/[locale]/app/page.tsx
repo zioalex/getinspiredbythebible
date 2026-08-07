@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   Smartphone,
@@ -13,7 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { pageMetadata } from "@/lib/seo";
 import { PLAY_STORE_URL } from "@/lib/testerLinks";
-import { isIOSUserAgent } from "@/lib/platformDetection";
+import AppInstallCta from "@/components/AppInstallCta";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -42,9 +41,6 @@ export default async function AppStoryPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-
-  const headersList = await headers();
-  const isIOS = isIOSUserAgent(headersList.get("user-agent"));
 
   const t = await getTranslations({ locale, namespace: "App" });
 
@@ -84,42 +80,18 @@ export default async function AppStoryPage({
 
       {/* Primary call to action — Google Play on Android/desktop, iOS
           "Add to Home Screen" instructions on iPhone. No App Store badge
-          here: there is no listing yet (BITB-088 adds one). */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-12">
-        <img
-          src="/app-icon.png"
-          alt={t("iconAlt")}
-          width={64}
-          height={64}
-          className="w-16 h-16 rounded-2xl flex-shrink-0"
-        />
-        {isIOS ? (
-          <div className="flex-1">
-            <p className="font-semibold text-primary-900">Vox Quieta</p>
-            <p className="text-sm text-gray-500 mb-2">{t("iosCtaSub")}</p>
-            <p className="text-sm font-medium text-gray-800">
-              {t("iosCtaTitle")}
-            </p>
-            <p className="text-sm text-gray-600">{t("iosCtaBody")}</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1">
-              <p className="font-semibold text-primary-900">Vox Quieta</p>
-              <p className="text-sm text-gray-500">{t("ctaSub")}</p>
-            </div>
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all whitespace-nowrap"
-            >
-              <Smartphone className="w-4 h-4" />
-              {t("ctaButton")}
-            </a>
-          </>
-        )}
-      </div>
+          here: there is no listing yet (BITB-088 adds one). The iOS/non-iOS
+          branch is detected client-side in AppInstallCta so this page stays
+          statically generated. */}
+      <AppInstallCta
+        iconAlt={t("iconAlt")}
+        ctaSub={t("ctaSub")}
+        ctaButton={t("ctaButton")}
+        iosCtaTitle={t("iosCtaTitle")}
+        iosCtaBody={t("iosCtaBody")}
+        iosCtaSub={t("iosCtaSub")}
+        playStoreUrl={PLAY_STORE_URL}
+      />
 
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         {t("featuresTitle")}
