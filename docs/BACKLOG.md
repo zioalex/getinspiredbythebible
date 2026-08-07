@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-30
+**Last Updated:** 2026-08-07
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2093,9 +2093,9 @@ trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, 
 
 ---
 
-### 🎯 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
+### 🚧 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-092)
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
 
@@ -2111,16 +2111,47 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
 
 **Acceptance Criteria (summary):**
 
-- [ ] Valid installable manifest (192/512/maskable icons from `public/app-icon.png`) + apple-touch icons
-- [ ] `viewportFit: "cover"` set and every `env(safe-area-inset-*)` consumer re-checked against
-      non-zero insets, portrait + landscape, LTR **and** RTL
-- [ ] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
+- [x] Valid installable manifest (192/512/maskable icons from `public/app-icon.png`) + apple-touch icons
+- [x] `viewportFit: "cover"` set and every `env(safe-area-inset-*)` consumer re-checked against
+      non-zero insets, portrait + landscape, LTR **and** RTL (device/hardware verification of the
+      rendered result still outstanding — see PR)
+- [x] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
 - [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
-      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache
-- [ ] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
+      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **split into
+      BITB-092**, per this story's own guidance to carve Part C out if it threatens the timebox
+- [x] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
       11 locales; **no** App Store badge until BITB-088
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-084-iphone-ready-web-installable-pwa.md`
+**Follow-up:** `docs/BACKLOG_STORIES/BITB-092-pwa-offline-shell-service-worker.md` (Part C)
+
+---
+
+### 🎯 BITB-092: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+
+**Status:** 🎯 Todo
+**Size:** M (1 day)
+**Created:** 2026-08-07
+**Split from:** BITB-084 Part C
+
+**As an** iPhone or Android user who has installed Vox Quieta to their home screen, **I want** the
+app shell to load instantly and show a friendly message instead of a browser error when I have no
+connection, **so that** the installed app feels like an app, not a bookmark that breaks offline.
+
+**Why P2:** BITB-084 shipped installability (manifest, icons, safe areas) but no service worker —
+deliberately deferred rather than rushed, since BITB-084 itself flagged cache-versioning as "the
+single biggest risk in Part C." Deferring for correctness beats shipping same-day and risking an
+un-versioned service worker pinning users to a stale shell.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
+      browser error page
+- [ ] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
+- [ ] Scripture `GET` endpoints cached stale-while-revalidate
+- [ ] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-092-pwa-offline-shell-service-worker.md`
 
 ---
 
