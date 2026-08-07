@@ -40,6 +40,20 @@ export async function generateMetadata({
       default: homeTitle,
       template: `%s · ${SITE_NAME}`,
     },
+    icons: {
+      icon: "/app-icon.png",
+      apple: "/apple-touch-icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      // "black-translucent" is what makes iOS draw content edge-to-edge
+      // under the status bar in standalone mode — the exact case the
+      // safe-area-inset CSS in globals.css needs non-zero insets for.
+      // "default"/"black" keep a solid status bar and would make that top
+      // padding redundant/wrong, so don't use those.
+      statusBarStyle: "black-translucent",
+      title: SITE_NAME,
+    },
   };
 }
 
@@ -47,6 +61,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export function generateStaticParams() {
