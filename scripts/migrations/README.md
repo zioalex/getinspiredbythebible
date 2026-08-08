@@ -130,7 +130,8 @@ DROP TABLE IF EXISTS verse_topics;
 
 - Table creation: instant
 - Index creation: instant (empty table)
-- `verse_topics` is initially empty — populate via curation scripts or manual tagging
+- `verse_topics` is initially empty — populate with `scripts/populate_verse_topics.py`
+  (BITB-044; see `docs/HOW-TO-POPULATE-VERSE-TOPICS.md`)
 - Topic-boosted queries add ~1 LEFT JOIN: +50-100ms latency when topics match
 - No impact when `TOPIC_BOOSTING_ENABLED=false` (feature flag default)
 
