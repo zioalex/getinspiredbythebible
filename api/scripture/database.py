@@ -24,19 +24,32 @@ def get_async_database_url() -> tuple[str, dict]:
     asyncpg doesn't support sslmode as a URL parameter like psycopg2.
     We need to extract it and pass SSL config via connect_args.
 
+    Both spellings are handled: ``?sslmode=require`` (libpq/psycopg2 form) and
+    ``?ssl=require`` (the form `.github/workflows/azure-deploy.yml` builds for
+    the migration job). Leaving either in the URL makes asyncpg fail at connect
+    time with ``parameter 'ssl' cannot be changed now``, so both are stripped
+    here and turned into a real SSL context on ``connect_args`` -- matching
+    ``scripts/migrations/utils.py::get_migration_connection_params()``, which
+    has always stripped both.
+
     Returns:
         Tuple of (async_url, connect_args)
     """
     url = settings.database_url
     connect_args: dict = {}
 
-    # Parse the URL to extract and remove sslmode parameter
+    # Parse the URL to extract and remove the SSL parameters
     parsed = urlparse(url)
     if parsed.query:
         query_params = parse_qs(parsed.query)
+        # Pop both unconditionally -- neither may survive into the DSN handed to
+        # asyncpg. `sslmode` wins when both are present; they are the same
+        # libpq-style value set.
         sslmode = query_params.pop("sslmode", [None])[0]
+        ssl_param = query_params.pop("ssl", [None])[0]
+        sslmode = sslmode or ssl_param
 
-        # Rebuild URL without sslmode
+        # Rebuild URL without the SSL parameters
         new_query = urlencode(query_params, doseq=True) if query_params else ""
         url = urlunparse(parsed._replace(query=new_query))
 
