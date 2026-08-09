@@ -388,7 +388,31 @@ await conn.execute("ANALYZE passages;")
 
 ## Testing Your Migration
 
-### Step 1: Test Locally (No SSL)
+### Current Alembic migrations
+
+New schema changes are managed by Alembic. Run the committed migration test
+from the repository root against a local PostgreSQL instance:
+
+```bash
+export DATABASE_URL="postgresql://user:pass@localhost:5432/bible_db" # pragma: allowlist secret
+python -m pytest api/tests/test_alembic_migrations.py -q
+```
+
+The test creates a throwaway database, runs `upgrade head`, `downgrade base`,
+and `upgrade head` again, and also verifies `alembic check`. It skips when
+PostgreSQL is unreachable or the role cannot create databases. The same flow
+is available through `make alembic-roundtrip`, but it mutates the database in
+`DATABASE_URL` and must only use a local/CI database. See
+[`api/tests/test_alembic_migrations.py`](../api/tests/test_alembic_migrations.py)
+and [`api/alembic/README.md`](../api/alembic/README.md).
+
+### Legacy scripts (historical only)
+
+The following steps apply only to existing scripts under `scripts/migrations/`.
+Do not use them for new schema changes; those must use the Alembic workflow
+above.
+
+#### Step 1: Test Locally (No SSL)
 
 ```bash
 # Set local database URL (no SSL)
@@ -403,7 +427,7 @@ psql $DATABASE_URL -c "\d+ your_table"
 
 ---
 
-### Step 2: Test Idempotency
+#### Step 2: Test Idempotency
 
 ```bash
 # Run migration again — should skip gracefully
@@ -414,7 +438,7 @@ python scripts/migrations/XXX_your_migration.py
 
 ---
 
-### Step 3: Test in CI/CD
+#### Step 3: Test in CI/CD
 
 ```bash
 # Push to a feature branch
@@ -433,7 +457,7 @@ gh pr create --title "Add migration: [description]"
 
 ---
 
-### Step 4: Test in Production (Manual Trigger)
+#### Step 4: Test in Production (Manual Trigger)
 
 ```bash
 # After PR merges, manually trigger if needed
