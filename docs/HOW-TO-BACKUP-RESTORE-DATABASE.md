@@ -217,11 +217,21 @@ of contents before restoring, and prints how many it skipped. Errors that
 survive the filter are real: the target stops rather than hand you a partial
 copy to rehearse against.
 
-Adjust with `SKIP_EXTENSIONS` / `SKIP_SCHEMAS` if a future Azure extension
-causes the same thing, or set both to empty to restore verbatim:
+Any *other* extension the dump creates that the local server cannot provide is
+detected and skipped automatically — the target compares the dump's extension
+list against `pg_available_extensions` and reports what it dropped. pg_cron is
+only the hardcoded default because its `cron` schema needs skipping too, which
+cannot be derived from the extension name.
+
+When a restore does fail, the target prints the **distinct** error causes (the
+raw output repeats the same handful once per failed object) and the path to the
+full log, so you can tell an Azure-only extension apart from a real problem.
+
+Add to the lists if a future extension brings its own schema, or set
+`SKIP_EXTENSIONS=''` to restore the dump verbatim:
 
 ```bash
-SKIP_EXTENSIONS='pg_cron pg_stat_statements' SKIP_SCHEMAS='cron' \
+SKIP_EXTENSIONS='pg_cron azure_storage' SKIP_SCHEMAS='cron azure_storage' \
   make db-restore-local DUMP=backups/<the-file>.dump
 ```
 

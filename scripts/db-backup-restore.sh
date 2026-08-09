@@ -190,13 +190,37 @@ SQL
 # a real one worth stopping for.
 #
 # Emits a temp file path (caller deletes it), or nothing when there is nothing
-# to filter. Override with SKIP_EXTENSIONS / SKIP_SCHEMAS; set both empty to
-# restore the dump verbatim.
+# to filter. Override with SKIP_EXTENSIONS / SKIP_SCHEMAS; set SKIP_EXTENSIONS
+# to the empty string to restore the dump verbatim.
 build_local_toc() {
-  local dump="$1"
+  local dump="$1" url="${2:-}" pw="${3:-}"
   local -a exts schemas alts=()
   read -r -a exts    <<< "${SKIP_EXTENSIONS-pg_cron}"
   read -r -a schemas <<< "${SKIP_SCHEMAS-cron}"
+
+  # Every extension the dump creates that this server cannot provide is added
+  # to the list automatically. The hardcoded pg_cron default only covers the
+  # one we know about; auto-detection means the next Azure-only extension
+  # produces a skip rather than 20 failed objects and a re-run. Skipped
+  # entirely when SKIP_EXTENSIONS is explicitly empty (restore verbatim).
+  if [[ -n "$url" && -n "${SKIP_EXTENSIONS-unset}" ]]; then
+    local -a missing=()
+    local available dumped ext
+    available="$(PGPASSWORD="$pw" psql "$url" -tAc \
+      "SELECT name FROM pg_available_extensions" 2>/dev/null || true)"
+    if [[ -n "$available" ]]; then
+      dumped="$(pg_restore -l "$dump" | sed -nE 's/.*[[:space:]]EXTENSION[[:space:]]+-[[:space:]]+([A-Za-z0-9_]+).*/\1/p' | sort -u)"
+      for ext in $dumped; do
+        grep -qxF "$ext" <<< "$available" || missing+=("$ext")
+      done
+    fi
+    if [[ ${#missing[@]} -gt 0 ]]; then
+      warn "Extensions in the dump that this server cannot provide: ${missing[*]}" >&2
+      exts+=("${missing[@]}")
+    fi
+  fi
+  # De-duplicate; the default and the auto-detected list overlap on pg_cron.
+  [[ ${#exts[@]} -gt 0 ]] && mapfile -t exts < <(printf '%s\n' "${exts[@]}" | sort -u)
 
   # A TOC line is "<id>; <oid> <oid> <DESCRIPTION> <schema> <name> <owner>",
   # where objects belonging to no schema (extensions, and the schemas
@@ -264,19 +288,26 @@ cmd_restore_local() {
 
   log "Restoring $dump"
   local -a toc_args=()
-  local toc
-  toc="$(build_local_toc "$dump")"
+  local toc log_file
+  toc="$(build_local_toc "$dump" "$url" "$pw")"
   [[ -n "$toc" ]] && toc_args=(-L "$toc")
+  log_file="$(mktemp)"
 
   if ! PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" \
-       ${toc_args[@]+"${toc_args[@]}"} -d "$url" "$dump"; then
-    warn "pg_restore reported errors. If they are about an extension Azure has"
-    warn "and this image does not, add it to SKIP_EXTENSIONS (and its schema to"
-    warn "SKIP_SCHEMAS) and re-run, e.g."
-    warn "  SKIP_EXTENSIONS='pg_cron pg_stat_statements' SKIP_SCHEMAS='cron' \\"
-    warn "    make db-restore-local DUMP=$dump"
+       ${toc_args[@]+"${toc_args[@]}"} -d "$url" "$dump" 2>&1 | tee "$log_file"; then
+    echo
+    warn "Distinct errors reported by pg_restore:"
+    # The raw output repeats the same handful of causes once per failed object.
+    # Collapsing to distinct reasons is what makes this diagnosable at a glance.
+    grep -oE 'ERROR:.*' "$log_file" | sort | uniq -c | sort -rn | head -20 | sed 's/^/    /'
+    echo
+    warn "Full output: $log_file"
+    warn "If a cause is an extension Azure has and this image does not, add it to"
+    warn "SKIP_EXTENSIONS and its schema to SKIP_SCHEMAS, then re-run:"
+    warn "  SKIP_EXTENSIONS='pg_cron <other>' SKIP_SCHEMAS='cron <other>' make db-restore-local DUMP=$dump"
     die "Restore incomplete — do not rehearse a migration against this copy."
   fi
+  rm -f "$log_file"
   [[ -n "$toc" ]] && rm -f "$toc"
 
   ok "Restored into $url"
