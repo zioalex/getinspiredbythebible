@@ -3,8 +3,9 @@
 	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
 	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
-	db-backup-info db-backup db-restore-verify db-restore-local \
+	db-backup-info db-backup db-backup-schema db-restore-verify db-restore-local \
 	db-restore-new-server db-restore-same-server \
+	db-server-url db-rehearse-alembic db-delete-server \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	alembic-roundtrip \
@@ -792,6 +793,9 @@ db-backup-info: ## Show backup retention + earliest restore point (read-only)
 db-backup: ## Logical backup to backups/ (usage: DATABASE_URL=... make db-backup [DUMP=path])
 	@$(DB_TOOL) dump
 
+db-backup-schema: ## Schema-only backup — tiny, enough to rehearse a migration (usage: DATABASE_URL=... make db-backup-schema)
+	@DUMP_ARGS="--schema-only $(DUMP_ARGS)" $(DB_TOOL) dump
+
 db-restore-verify: ## Post-restore checklist: extensions, counts, HNSW, invalid indexes
 	@$(DB_TOOL) verify
 
@@ -804,35 +808,48 @@ db-restore-new-server: ## Azure PITR into a NEW server (usage: make db-restore-n
 db-restore-same-server: ## DESTRUCTIVE — replace an existing database from a dump (usage: DATABASE_URL=... make db-restore-same-server DUMP=...)
 	@$(DB_TOOL) restore-same-server
 
-az-pg-add-ip: ## Add your current IP to PostgreSQL firewall
-	@echo "$(BLUE)Adding your IP to PostgreSQL firewall...$(NC)"
+db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...])
+	@SERVER="$(SERVER)" $(DB_TOOL) server-url
+
+db-rehearse-alembic: ## Stage 1 of BITB-089: stamp -> check -> upgrade against a COPY of prod (usage: DATABASE_URL=<copy> make db-rehearse-alembic)
+	@$(DB_TOOL) rehearse
+
+db-delete-server: ## DESTRUCTIVE — delete a restored Azure server (usage: make db-delete-server SERVER=...)
+	@SERVER="$(SERVER)" $(DB_TOOL) delete-server
+
+# The firewall targets default to the production server but accept SERVER=, so
+# the same commands work against a PITR copy (make db-restore-new-server).
+PG_FW_SERVER = $(or $(SERVER),$(PG_SERVER))
+
+az-pg-add-ip: ## Add your current IP to PostgreSQL firewall (usage: make az-pg-add-ip [SERVER=restored-copy])
+	@echo "$(BLUE)Adding your IP to the firewall on $(PG_FW_SERVER)...$(NC)"
 	@MY_IP=$$(curl -4 -s ifconfig.me) && \
 	echo "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
 		--resource-group $(PG_RG) \
-		--server-name $(PG_SERVER) \
-		--name $(PG_SERVER) \
+		--server-name $(PG_FW_SERVER) \
+		--name $(PG_FW_SERVER) \
 		--start-ip-address $$MY_IP \
 		--end-ip-address $$MY_IP && \
-	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP$(NC)"
+	echo "$(GREEN)✓ Firewall rule added for IP: $$MY_IP on $(PG_FW_SERVER)$(NC)"
 
-az-pg-list-rules: ## List PostgreSQL firewall rules
-	@echo "$(BLUE)Listing PostgreSQL firewall rules...$(NC)"
+az-pg-list-rules: ## List PostgreSQL firewall rules (usage: make az-pg-list-rules [SERVER=restored-copy])
+	@echo "$(BLUE)Listing firewall rules on $(PG_FW_SERVER)...$(NC)"
 	@az postgres flexible-server firewall-rule list \
 		--resource-group $(PG_RG) \
-		--server-name $(PG_SERVER) \
+		--server-name $(PG_FW_SERVER) \
 		--output table
 
-az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name)
+az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name [SERVER=restored-copy])
 	@if [ -z "$(RULE)" ]; then \
 		echo "$(YELLOW)Usage: make az-pg-remove-ip RULE=rule-name$(NC)"; \
 		echo "$(YELLOW)Run 'make az-pg-list-rules' to see existing rules$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(BLUE)Removing firewall rule: $(RULE)...$(NC)"
+	@echo "$(BLUE)Removing firewall rule $(RULE) from $(PG_FW_SERVER)...$(NC)"
 	@az postgres flexible-server firewall-rule delete \
 		--resource-group $(PG_RG) \
-		--server-name $(PG_SERVER) \
+		--server-name $(PG_FW_SERVER) \
 		--name $(RULE) \
 		--yes && \
 	echo "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
