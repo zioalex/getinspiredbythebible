@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-07-30
+**Last Updated:** 2026-08-09
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1350,6 +1350,49 @@ under `api/alembic/versions/**` **silently never deploys**. No error, no warning
 - [ ] Rollback path documented for a mid-deploy `upgrade head` failure
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md`
+
+---
+
+### ✅ BITB-092: Fix Dev Stack `db-init` Migration Failure and Embedding Config Drift
+
+**Status:** ✅ Done (2026-08-09)
+**Size:** S
+
+**As a** developer running `make docker-up-dev`, **I want** `db-init` to successfully run
+migrations and embedding config to match the main local stack, **so that** local dev testing
+works out of the box.
+
+`db-init` in `docker-compose.dev.yml` lacked the `./api:/api:ro` mount that
+`scripts/migrations/run_migrations.py` needs to import `api/config.py` (it resolves `../../api`
+relative to itself), so migrations crashed with `ModuleNotFoundError: config`. Separately, `api`
+was missing `EMBEDDING_DIMENSIONS` and `db-init` was missing `EMBEDDING_PROVIDER` /
+`EMBEDDING_DIMENSIONS`, causing embedding config drift versus the main stack.
+
+**Follow-up (same day):** `db-init` runs as non-root UID 1000 while the host-owned `./data` bind
+mount can be a different host UID, so `scripts/load_bible.py` downloaded KJV successfully but then
+crashed with a `PermissionError` writing it back into `./data`. Fixed by mounting `./data:/data:ro`
+in both compose files and adding an optional `BIBLE_DOWNLOAD_CACHE_DIR` env var
+(`scripts/load_bible.py`'s `resolve_bible_data_path()`) that redirects first-run downloads to a
+writable container path (`/tmp/bible-translations`) while committed source files (including
+manual-only Hindi/Luther data) still always win when present.
+
+**Acceptance Criteria (summary):**
+
+- [x] `db-init` mounts `./api:/api:ro`, matching `docker-compose.yml`'s reference contract
+- [x] `api` and `db-init` both set matching `EMBEDDING_PROVIDER` / `EMBEDDING_MODEL` /
+      `EMBEDDING_DIMENSIONS` defaults (`ollama` / `mxbai-embed-large` / `1024`)
+- [x] Regression test in `api/tests/test_docker_compose_dev.py`, collected by the standard API suite
+- [x] No production files changed
+- [x] `db-init` mounts `./data:/data:ro` (read-only) in both `docker-compose.yml` and
+      `docker-compose.dev.yml`, and sets `BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations`, so a
+      fresh `docker-up`/`docker-up-dev` can download KJV without a host-UID-mismatch
+      `PermissionError`, with no chmod/chown/root workaround
+- [x] Committed manual-only translations (Hindi, Luther 1912) remain loadable from the read-only
+      primary path unchanged
+- [x] Regression tests in `api/tests/test_load_bible_data_path.py` and
+      `api/tests/test_docker_compose_bible_cache.py`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-092-fix-dev-db-initialization.md`
 
 ---
 
