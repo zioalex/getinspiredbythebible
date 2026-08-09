@@ -1368,6 +1368,14 @@ relative to itself), so migrations crashed with `ModuleNotFoundError: config`. S
 was missing `EMBEDDING_DIMENSIONS` and `db-init` was missing `EMBEDDING_PROVIDER` /
 `EMBEDDING_DIMENSIONS`, causing embedding config drift versus the main stack.
 
+**Follow-up (same day):** `db-init` runs as non-root UID 1000 while the host-owned `./data` bind
+mount can be a different host UID, so `scripts/load_bible.py` downloaded KJV successfully but then
+crashed with a `PermissionError` writing it back into `./data`. Fixed by mounting `./data:/data:ro`
+in both compose files and adding an optional `BIBLE_DOWNLOAD_CACHE_DIR` env var
+(`scripts/load_bible.py`'s `resolve_bible_data_path()`) that redirects first-run downloads to a
+writable container path (`/tmp/bible-translations`) while committed source files (including
+manual-only Hindi/Luther data) still always win when present.
+
 **Acceptance Criteria (summary):**
 
 - [x] `db-init` mounts `./api:/api:ro`, matching `docker-compose.yml`'s reference contract
@@ -1375,6 +1383,14 @@ was missing `EMBEDDING_DIMENSIONS` and `db-init` was missing `EMBEDDING_PROVIDER
       `EMBEDDING_DIMENSIONS` defaults (`ollama` / `mxbai-embed-large` / `1024`)
 - [x] Regression test in `api/tests/test_docker_compose_dev.py`, collected by the standard API suite
 - [x] No production files changed
+- [x] `db-init` mounts `./data:/data:ro` (read-only) in both `docker-compose.yml` and
+      `docker-compose.dev.yml`, and sets `BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations`, so a
+      fresh `docker-up`/`docker-up-dev` can download KJV without a host-UID-mismatch
+      `PermissionError`, with no chmod/chown/root workaround
+- [x] Committed manual-only translations (Hindi, Luther 1912) remain loadable from the read-only
+      primary path unchanged
+- [x] Regression tests in `api/tests/test_load_bible_data_path.py` and
+      `api/tests/test_docker_compose_bible_cache.py`
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-092-fix-dev-db-initialization.md`
 

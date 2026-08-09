@@ -90,6 +90,9 @@ services:
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
+      # db-init runs as a non-root container user (UID 1000) while ./data is host-owned; mounting
+      # it read-only (below) means a missing translation download must land somewhere writable.
+      - BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,7 +100,12 @@ services:
         condition: service_started
     volumes:
       - ./scripts:/scripts
-      - ./data:/data
+      # Read-only: committed translations (data/bible/translations/*.json) are the source of
+      # truth, including manual-only Hindi/Luther data with no download URL. db-init runs as a
+      # non-root UID that doesn't own the host-owned bind mount, so this must stay read-only;
+      # first-run downloads (e.g. KJV) are written to BIBLE_DOWNLOAD_CACHE_DIR instead (see
+      # scripts/load_bible.py's resolve_bible_data_path()).
+      - ./data:/data:ro
       # Read-only: run_migrations.py resolves ../../api relative to its own
       # path (matching the layout azure-deploy.yml's run-migrations job sees
       # from a full checkout), so it needs api/ visible at /api here.

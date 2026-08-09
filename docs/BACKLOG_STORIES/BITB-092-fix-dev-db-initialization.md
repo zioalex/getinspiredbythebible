@@ -4,7 +4,7 @@
 **Priority:** P1
 **Size:** S
 **Created:** 2026-08-09
-**Completed:** 2026-08-09
+**Completed:** 2026-08-09 (follow-up permission fix also completed 2026-08-09)
 
 ## User Story
 
@@ -97,3 +97,94 @@ rm -f "$tmp"
 - `scripts/migrations/run_migrations.py` — the script whose `../../api` import path requires the
   `/api` mount.
 - `docs/LOCAL_DEVELOPMENT.md` — documents the `make docker-up-dev` workflow this story fixes.
+
+## Follow-up: `db-init` Permission Failure Writing Downloaded Translations (2026-08-09)
+
+### Problem
+
+After the fix above, `make docker-up`/`make docker-up-dev` still failed on a fresh `./data`
+checkout: `db-init` runs as non-root UID 1000 (`api/Dockerfile`), while the host-owned bind mount
+`./data` was owned by a different host UID (observed: 1002). `scripts/load_bible.py` successfully
+**downloaded** KJV from its source URL, then crashed writing
+`/data/bible/translations/kjv.json` with a `PermissionError` — the container user couldn't write
+into the host-owned directory it didn't own, even though the mount itself was read-write.
+
+### Root Cause
+
+- `docker-compose.yml`/`docker-compose.dev.yml`'s `db-init` mounted `./data:/data` read-write, but
+  db-init's non-root container UID doesn't necessarily match (and can't be assumed to match) the
+  host UID that owns `./data` on every developer machine.
+- `scripts/load_bible.py`'s `download_translation()` always wrote newly-downloaded translation
+  JSON straight back into `data/bible/translations/`, with no alternative writable location
+  configurable for container use.
+
+### Fix
+
+- **`scripts/load_bible.py`**: added `resolve_bible_data_path(translation_code, primary_path)`,
+  a small typed helper (independently unit-testable, no I/O side effects beyond `Path.exists()`)
+  that decides where to read/write a translation's JSON:
+  1. The committed `data/bible/translations/<code>.json` source file always wins when it exists —
+     this keeps manual-only translations (Hindi, Luther 1912, no download URL) working exactly as
+     before, since they have no other source.
+  2. If it's missing and the new optional `BIBLE_DOWNLOAD_CACHE_DIR` env var is set, downloads are
+     written to `<BIBLE_DOWNLOAD_CACHE_DIR>/<code>.json` instead.
+  3. If it's missing and `BIBLE_DOWNLOAD_CACHE_DIR` is unset, falls back to the primary path — the
+     historical bare-host default, unchanged for anyone running the script directly (no Docker).
+  - No permission errors are silently caught; explicit configuration is expected to prevent them
+    in containers, and `download_translation()`'s actual file write still raises normally if the
+    resolved path turns out not to be writable.
+- **`docker-compose.yml`** and **`docker-compose.dev.yml`** (`db-init` service, both stacks — the
+  main stack has the identical UID-mismatch exposure):
+  - Changed `./data:/data` to `./data:/data:ro` — db-init never needs to write into the committed
+    source tree.
+  - Added `BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations` so first-run downloads (e.g. KJV) land
+    in the container's own writable filesystem instead. This cache is ephemeral by design: source
+    data is re-downloadable, and `db-init` skips the whole load step on restart once verses are in
+    the database (`scripts/init-db.sh`'s `VERSE_COUNT` check).
+  - This is local-stack (`make docker-up`/`make docker-up-dev`) configuration only; no production
+    deployment file (`azure-deploy.yml`, etc.) was touched.
+- **Tests:**
+  - `api/tests/test_load_bible_data_path.py` (new) — unit tests for `resolve_bible_data_path()`
+    and `download_translation()`: existing committed/source path wins even when a cache dir is
+    configured; a missing source uses the configured cache; a missing source with no cache
+    preserves the default path; a download (HTTP mocked, no network) writes to the resolved
+    writable path and never touches the primary directory.
+  - `api/tests/test_docker_compose_bible_cache.py` (new) — parses both `docker-compose.yml` and
+    `docker-compose.dev.yml` with PyYAML (no Docker daemon needed) and asserts `db-init` mounts
+    `./data:/data:ro` (and not read-write) and sets
+    `BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations` in both stacks, plus a sanity check that the
+    pre-existing `./api:/api:ro` mount is unaffected.
+
+### Acceptance Criteria (follow-up)
+
+- [x] A fresh `make docker-up` or `make docker-up-dev` can download KJV without writing into the
+      host-owned `./data` bind mount, regardless of host/container UID mismatch.
+- [x] Committed manual-only translations (Hindi, Luther 1912) remain loadable unchanged — they
+      still read directly from `data/bible/translations/*.json`.
+- [x] No chmod/chown/root workaround; no silent catching of `PermissionError`.
+- [x] `docker-compose.yml` and `docker-compose.dev.yml` both mount `./data:/data:ro` and set
+      `BIBLE_DOWNLOAD_CACHE_DIR=/tmp/bible-translations` for `db-init`.
+- [x] Regression tests added and passing:
+      `.venv/bin/python -m pytest api/tests/test_load_bible_data_path.py api/tests/test_docker_compose_bible_cache.py -q`
+- [x] Both compose files still validate via `docker compose ... config` using throwaway env file
+      copies (`.env.local.example` / `.env.dev.example`), without starting/stopping containers.
+- [x] `.env.dev` (local, gitignored) left untouched.
+
+### Verification (follow-up)
+
+```bash
+# Targeted regression tests
+.venv/bin/python -m pytest api/tests/test_load_bible_data_path.py \
+  api/tests/test_docker_compose_bible_cache.py api/tests/test_docker_compose_dev.py -q
+
+# Compose config validates for both stacks (throwaway env copies, no containers started)
+cp .env.local.example /path/to/scratch/env.local.tmp
+docker compose -f docker-compose.yml --env-file /path/to/scratch/env.local.tmp config >/dev/null
+cp .env.dev.example /path/to/scratch/env.dev.tmp
+docker compose -f docker-compose.dev.yml --env-file /path/to/scratch/env.dev.tmp config >/dev/null
+
+# Manual container-level proof (UID 1000, read-only /data bind mount): a missing translation
+# resolves to BIBLE_DOWNLOAD_CACHE_DIR and writes succeed there, while a direct write attempt to
+# the read-only /data mount still raises PermissionError/OSError as expected; a committed
+# manual-only translation (hindi.json) is still read directly from the read-only primary path.
+```
