@@ -38,6 +38,12 @@ need() {
   command -v "$1" >/dev/null 2>&1 || die "$1 not found. $2"
 }
 
+# Join arguments with '|' for use inside an ERE alternation.
+join_alt() {
+  local IFS='|'
+  echo "$*"
+}
+
 # require_var NAME "what it is / example"
 require_var() {
   local name="$1"
@@ -172,6 +178,57 @@ SQL
   ok "No invalid indexes."
 }
 
+# Azure Flexible Server has extensions the local pgvector image does not ship.
+# pg_cron is the one that always bites: the dump carries
+# `CREATE EXTENSION pg_cron`, a `cron` schema, and the contents of cron.job /
+# cron.job_run_details. None of it exists locally, every one of those entries
+# fails, and pg_restore then exits non-zero — which under `set -e` aborts the
+# whole restore even though nothing this application reads is missing.
+#
+# Filtering the table of contents is better than ignoring the exit code: the
+# known-absent objects are never attempted, so any error that *does* survive is
+# a real one worth stopping for.
+#
+# Emits a temp file path (caller deletes it), or nothing when there is nothing
+# to filter. Override with SKIP_EXTENSIONS / SKIP_SCHEMAS; set both empty to
+# restore the dump verbatim.
+build_local_toc() {
+  local dump="$1"
+  local -a exts schemas alts=()
+  read -r -a exts    <<< "${SKIP_EXTENSIONS-pg_cron}"
+  read -r -a schemas <<< "${SKIP_SCHEMAS-cron}"
+
+  # A TOC line is "<id>; <oid> <oid> <DESCRIPTION> <schema> <name> <owner>",
+  # where objects belonging to no schema (extensions, and the schemas
+  # themselves) carry "-" in the schema column.
+  # Extensions: match by name anywhere on the line.
+  # Schema-owned objects: match only in the schema position — right after the
+  # uppercase description — so a public table that happens to be named "cron"
+  # is not swept up with them.
+  # The schemas' own entries ("SCHEMA - cron postgres", "ACL - cron ...") sit in
+  # the name column instead, hence the third alternative.
+  [[ ${#exts[@]}    -gt 0 ]] && alts+=("(^|[[:space:]])($(join_alt "${exts[@]}"))([[:space:]]|\$)")
+  if [[ ${#schemas[@]} -gt 0 ]]; then
+    alts+=("[[:space:]][A-Z][A-Z ]*[[:space:]]($(join_alt "${schemas[@]}"))[[:space:]]")
+    alts+=("[[:space:]]-[[:space:]]($(join_alt "${schemas[@]}"))([[:space:]]|\$)")
+  fi
+  [[ ${#alts[@]} -eq 0 ]] && return 0
+
+  local skip_re toc count
+  skip_re="$(join_alt "${alts[@]}")"
+  toc="$(mktemp)"
+  pg_restore -l "$dump" | grep -vE "$skip_re" > "$toc"
+  count="$(pg_restore -l "$dump" | grep -cE "$skip_re" || true)"
+
+  if [[ "$count" == "0" ]]; then
+    rm -f "$toc"
+    return 0
+  fi
+  warn "Skipping $count entr$([[ "$count" == "1" ]] && echo y || echo ies) not available locally" >&2
+  warn "  extensions: ${exts[*]:-none}   schemas: ${schemas[*]:-none}" >&2
+  printf '%s' "$toc"
+}
+
 cmd_restore_local() {
   need docker "Install Docker, or restore into a Postgres 16 + pgvector instance yourself."
   need pg_restore "Install the postgresql-client package."
@@ -206,7 +263,21 @@ cmd_restore_local() {
                                  -c "SELECT pg_reload_conf();" >/dev/null
 
   log "Restoring $dump"
-  PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" -d "$url" "$dump"
+  local -a toc_args=()
+  local toc
+  toc="$(build_local_toc "$dump")"
+  [[ -n "$toc" ]] && toc_args=(-L "$toc")
+
+  if ! PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" \
+       ${toc_args[@]+"${toc_args[@]}"} -d "$url" "$dump"; then
+    warn "pg_restore reported errors. If they are about an extension Azure has"
+    warn "and this image does not, add it to SKIP_EXTENSIONS (and its schema to"
+    warn "SKIP_SCHEMAS) and re-run, e.g."
+    warn "  SKIP_EXTENSIONS='pg_cron pg_stat_statements' SKIP_SCHEMAS='cron' \\"
+    warn "    make db-restore-local DUMP=$dump"
+    die "Restore incomplete — do not rehearse a migration against this copy."
+  fi
+  [[ -n "$toc" ]] && rm -f "$toc"
 
   ok "Restored into $url"
   echo "  DATABASE_URL=\"$url\" PGPASSWORD=$pw make db-restore-verify"

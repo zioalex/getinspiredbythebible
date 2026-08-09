@@ -207,6 +207,28 @@ for it to accept connections, raises `maintenance_work_mem` to 512MB (HNSW
 rebuilds are the slow part), and restores with `-j 4`. If that container
 already exists it asks you to retype the name before recreating it.
 
+**Azure-only extensions are filtered out of the restore.** A production dump
+carries `CREATE EXTENSION pg_cron`, a `cron` schema, and the contents of
+`cron.job` / `cron.job_run_details`. The `pgvector/pgvector:pg16` image does not
+ship pg_cron, so every one of those entries fails and `pg_restore` exits
+non-zero, aborting the target — even though nothing this application reads is
+missing. `db-restore-local` therefore drops those entries from the dump's table
+of contents before restoring, and prints how many it skipped. Errors that
+survive the filter are real: the target stops rather than hand you a partial
+copy to rehearse against.
+
+Adjust with `SKIP_EXTENSIONS` / `SKIP_SCHEMAS` if a future Azure extension
+causes the same thing, or set both to empty to restore verbatim:
+
+```bash
+SKIP_EXTENSIONS='pg_cron pg_stat_statements' SKIP_SCHEMAS='cron' \
+  make db-restore-local DUMP=backups/<the-file>.dump
+```
+
+Note that `make db-restore-verify` lists the extensions actually present, so
+the filtered ones are visibly absent from the restored copy — expected, and
+irrelevant to a schema rehearsal, which only reads the `public` schema.
+
 It is also the one target that **ignores `DATABASE_URL`** — it builds its own
 `postgresql://postgres@localhost:5433/bibledb`. That is deliberate: you will
 usually have a production URL exported for the other targets, and this command
@@ -301,6 +323,7 @@ az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you
 | `parameter 'ssl' cannot be changed now`           | `?ssl=require` in an asyncpg URL. Use `sslmode=require`. See Rule #1.  |
 | Restore finishes fast, searches are slow          | HNSW indexes not rebuilt / invalid. Check query 3 and 4 above.         |
 | `role "..." does not exist`                       | Missing `--no-owner --no-acl`.                                        |
+| `extension "pg_cron" is not available` (local)    | Azure-only extension in the dump. Filtered by default — see Scenario C. |
 | `must be superuser`                               | Expected on Azure. Use `--no-owner --no-acl`; never `pg_dumpall`.      |
 | PITR refuses your timestamp                       | Outside the window — check `earliestRestoreDate`, and use UTC.         |
 | Restored server reverts after a deploy            | Terraform still points at the old FQDN (`deployment/main.tf:93`).      |
