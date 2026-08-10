@@ -8,6 +8,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
+
+# Aliased for the same reason as api/scripture/models.py: `text` is a plausible
+# column name, and a bare import would be shadowed inside a class body.
+from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -81,7 +85,13 @@ class Feedback(Base):
     __tablename__ = "feedback"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    # server_default mirrors what is actually deployed (scripts/init.sql,
+    # scripts/migrations/001). Without it the ORM claims there is no
+    # database-level default while production has one, which `alembic check`
+    # reports as drift forever -- see BITB-093.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, server_default=sql_text("now()")
+    )
     message_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
     session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rating: Mapped[str] = mapped_column(String(10))  # 'positive' or 'negative'
@@ -105,7 +115,9 @@ class ContactSubmission(Base):
     __tablename__ = "contact_submissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, server_default=sql_text("now()")
+    )
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     subject: Mapped[str] = mapped_column(
         String(50)
@@ -114,7 +126,7 @@ class ContactSubmission(Base):
     session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), default="new"
+        String(20), default="new", server_default=sql_text("'new'")
     )  # 'new', 'read', 'replied', 'resolved'
 
     def __repr__(self) -> str:
