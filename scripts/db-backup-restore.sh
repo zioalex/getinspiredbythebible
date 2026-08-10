@@ -38,6 +38,12 @@ need() {
   command -v "$1" >/dev/null 2>&1 || die "$1 not found. $2"
 }
 
+# Join arguments with '|' for use inside an ERE alternation.
+join_alt() {
+  local IFS='|'
+  echo "$*"
+}
+
 # require_var NAME "what it is / example"
 require_var() {
   local name="$1"
@@ -172,6 +178,81 @@ SQL
   ok "No invalid indexes."
 }
 
+# Azure Flexible Server has extensions the local pgvector image does not ship.
+# pg_cron is the one that always bites: the dump carries
+# `CREATE EXTENSION pg_cron`, a `cron` schema, and the contents of cron.job /
+# cron.job_run_details. None of it exists locally, every one of those entries
+# fails, and pg_restore then exits non-zero — which under `set -e` aborts the
+# whole restore even though nothing this application reads is missing.
+#
+# Filtering the table of contents is better than ignoring the exit code: the
+# known-absent objects are never attempted, so any error that *does* survive is
+# a real one worth stopping for.
+#
+# Emits a temp file path (caller deletes it), or nothing when there is nothing
+# to filter. Override with SKIP_EXTENSIONS / SKIP_SCHEMAS; set SKIP_EXTENSIONS
+# to the empty string to restore the dump verbatim.
+build_local_toc() {
+  local dump="$1" url="${2:-}" pw="${3:-}"
+  local -a exts schemas alts=()
+  read -r -a exts    <<< "${SKIP_EXTENSIONS-pg_cron}"
+  read -r -a schemas <<< "${SKIP_SCHEMAS-cron}"
+
+  # Every extension the dump creates that this server cannot provide is added
+  # to the list automatically. The hardcoded pg_cron default only covers the
+  # one we know about; auto-detection means the next Azure-only extension
+  # produces a skip rather than 20 failed objects and a re-run. Skipped
+  # entirely when SKIP_EXTENSIONS is explicitly empty (restore verbatim).
+  if [[ -n "$url" && -n "${SKIP_EXTENSIONS-unset}" ]]; then
+    local -a missing=()
+    local available dumped ext
+    available="$(PGPASSWORD="$pw" psql "$url" -tAc \
+      "SELECT name FROM pg_available_extensions" 2>/dev/null || true)"
+    if [[ -n "$available" ]]; then
+      dumped="$(pg_restore -l "$dump" | sed -nE 's/.*[[:space:]]EXTENSION[[:space:]]+-[[:space:]]+([A-Za-z0-9_]+).*/\1/p' | sort -u)"
+      for ext in $dumped; do
+        grep -qxF "$ext" <<< "$available" || missing+=("$ext")
+      done
+    fi
+    if [[ ${#missing[@]} -gt 0 ]]; then
+      warn "Extensions in the dump that this server cannot provide: ${missing[*]}" >&2
+      exts+=("${missing[@]}")
+    fi
+  fi
+  # De-duplicate; the default and the auto-detected list overlap on pg_cron.
+  [[ ${#exts[@]} -gt 0 ]] && mapfile -t exts < <(printf '%s\n' "${exts[@]}" | sort -u)
+
+  # A TOC line is "<id>; <oid> <oid> <DESCRIPTION> <schema> <name> <owner>",
+  # where objects belonging to no schema (extensions, and the schemas
+  # themselves) carry "-" in the schema column.
+  # Extensions: match by name anywhere on the line.
+  # Schema-owned objects: match only in the schema position — right after the
+  # uppercase description — so a public table that happens to be named "cron"
+  # is not swept up with them.
+  # The schemas' own entries ("SCHEMA - cron postgres", "ACL - cron ...") sit in
+  # the name column instead, hence the third alternative.
+  [[ ${#exts[@]}    -gt 0 ]] && alts+=("(^|[[:space:]])($(join_alt "${exts[@]}"))([[:space:]]|\$)")
+  if [[ ${#schemas[@]} -gt 0 ]]; then
+    alts+=("[[:space:]][A-Z][A-Z ]*[[:space:]]($(join_alt "${schemas[@]}"))[[:space:]]")
+    alts+=("[[:space:]]-[[:space:]]($(join_alt "${schemas[@]}"))([[:space:]]|\$)")
+  fi
+  [[ ${#alts[@]} -eq 0 ]] && return 0
+
+  local skip_re toc count
+  skip_re="$(join_alt "${alts[@]}")"
+  toc="$(mktemp)"
+  pg_restore -l "$dump" | grep -vE "$skip_re" > "$toc"
+  count="$(pg_restore -l "$dump" | grep -cE "$skip_re" || true)"
+
+  if [[ "$count" == "0" ]]; then
+    rm -f "$toc"
+    return 0
+  fi
+  warn "Skipping $count entr$([[ "$count" == "1" ]] && echo y || echo ies) not available locally" >&2
+  warn "  extensions: ${exts[*]:-none}   schemas: ${schemas[*]:-none}" >&2
+  printf '%s' "$toc"
+}
+
 cmd_restore_local() {
   need docker "Install Docker, or restore into a Postgres 16 + pgvector instance yourself."
   need pg_restore "Install the postgresql-client package."
@@ -206,7 +287,28 @@ cmd_restore_local() {
                                  -c "SELECT pg_reload_conf();" >/dev/null
 
   log "Restoring $dump"
-  PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" -d "$url" "$dump"
+  local -a toc_args=()
+  local toc log_file
+  toc="$(build_local_toc "$dump" "$url" "$pw")"
+  [[ -n "$toc" ]] && toc_args=(-L "$toc")
+  log_file="$(mktemp)"
+
+  if ! PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" \
+       ${toc_args[@]+"${toc_args[@]}"} -d "$url" "$dump" 2>&1 | tee "$log_file"; then
+    echo
+    warn "Distinct errors reported by pg_restore:"
+    # The raw output repeats the same handful of causes once per failed object.
+    # Collapsing to distinct reasons is what makes this diagnosable at a glance.
+    grep -oE 'ERROR:.*' "$log_file" | sort | uniq -c | sort -rn | head -20 | sed 's/^/    /'
+    echo
+    warn "Full output: $log_file"
+    warn "If a cause is an extension Azure has and this image does not, add it to"
+    warn "SKIP_EXTENSIONS and its schema to SKIP_SCHEMAS, then re-run:"
+    warn "  SKIP_EXTENSIONS='pg_cron <other>' SKIP_SCHEMAS='cron <other>' make db-restore-local DUMP=$dump"
+    die "Restore incomplete — do not rehearse a migration against this copy."
+  fi
+  rm -f "$log_file"
+  [[ -n "$toc" ]] && rm -f "$toc"
 
   ok "Restored into $url"
   echo "  DATABASE_URL=\"$url\" PGPASSWORD=$pw make db-restore-verify"

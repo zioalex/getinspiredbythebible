@@ -164,8 +164,14 @@ jobs:
               - 'frontend/**'
             scripts:
               - 'scripts/**'
+            # Both migration systems gate the run-migrations job. Alembic
+            # (api/alembic/versions/**) is the current one; scripts/migrations/**
+            # is frozen historical record but still re-run idempotently.
+            # Omitting the Alembic path here is a silent failure: a committed
+            # revision would simply never be applied.
             migration_scripts:
               - 'scripts/migrations/**'
+              - 'api/alembic/versions/**'
             bible_scripts:
               - 'scripts/load_bible.py'
               - 'scripts/create_embeddings.py'
@@ -1430,8 +1436,11 @@ jobs:
   # ---------------------------------------------------------------------------
   # Run Database Migrations (runs when migration scripts change or on deploy)
   # ---------------------------------------------------------------------------
-  # Applies all numbered migration scripts in order after a successful deploy.
-  # Safe to re-run: each script is idempotent (uses IF EXISTS / IF NOT EXISTS).
+  # Applies both migration systems after a successful deploy:
+  #   1. scripts/migrations/  -- legacy, frozen, idempotent (IF EXISTS / IF NOT
+  #      EXISTS); kept alongside Alembic during the BITB-089 transition.
+  #   2. api/alembic/versions/ -- the current system; `alembic upgrade head`.
+  # Safe to re-run: both are no-ops against an up-to-date database.
   #
   # IMPORTANT: This job must be able to run independently when migration scripts
   # change, even if deploy is skipped. The 'always()' function ensures this job
@@ -1467,7 +1476,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install asyncpg pydantic pydantic-settings
+        # Install the API's pinned requirements rather than a hand-picked list:
+        # `alembic upgrade head` loads api/alembic/env.py, which imports
+        # config.py, scripture.models and feedback.models (pydantic-settings,
+        # sqlalchemy, pgvector, email-validator, ...). A curated list here goes
+        # stale the moment one of those modules grows an import, and it fails
+        # at deploy time against production.
+        run: pip install -r api/requirements.txt
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -1488,16 +1503,67 @@ jobs:
             --query "[0].fullyQualifiedDomainName" -o tsv)
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
 
-      - name: Run migrations
+      # Legacy migrations (scripts/migrations/) run first and are kept for now.
+      # They are frozen historical record and idempotent, so this is a no-op on
+      # an up-to-date database; running them before Alembic means a failure in
+      # the newer path cannot leave the legacy set half-applied.
+      - name: Run legacy migrations (scripts/migrations)
         env:
           DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
           DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?ssl=require"
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts/migrations
           python run_migrations.py
+
+      # Alembic (api/alembic/versions/) is the current migration system.
+      #
+      # SSL: the URL below says `sslmode=require`, not `ssl=require`. Alembic's
+      # env.py connects through scripture.database.get_async_database_url(),
+      # which converts a libpq-style sslmode into an asyncpg SSL context. That
+      # helper strips both spellings (covered by api/tests/
+      # test_database_church_coverage.py::TestGetAsyncDatabaseUrl), but
+      # `sslmode` is the form the whole codebase expects, and the legacy runner
+      # above accepts it too -- so both steps use one consistent URL.
+      #
+      # This step deliberately fails the job on error: an unapplied migration
+      # must be loud, not silent.
+      - name: Run Alembic migrations
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          # pipefail matters below: without it, a connection failure inside
+          # `alembic current | tail` would be masked by tail's exit 0 and
+          # misreported as "database not stamped".
+          set -o pipefail
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          cd api
+          echo "=== alembic current (before) ==="
+          CURRENT="$(alembic current | tail -n1 | tr -d '[:space:]')"
+          echo "${CURRENT:-<no alembic_version row>}"
+
+          # Preflight: refuse to run against a database that has never been
+          # stamped. The production schema predates Alembic, so `upgrade head`
+          # on an unstamped prod would replay the r0001 baseline and die on
+          # "relation already exists" -- an unhelpful error for whoever is
+          # holding the deploy. Fail early with the actual remedy instead.
+          if [ -z "$CURRENT" ]; then
+            echo "::error::Database has no alembic_version row. Stamp it once before"
+            echo "::error::enabling this step: DATABASE_URL=<prod> alembic stamp r0001"
+            echo "::error::(BITB-089 Stage 2 -- take a backup first; the stamp writes no DDL)."
+            echo "::error::For a genuinely empty database, run 'alembic upgrade head' manually once."
+            exit 1
+          fi
+
+          echo "=== alembic upgrade head ==="
+          alembic upgrade head
+          echo "=== alembic current (after) ==="
+          alembic current
 
   # ---------------------------------------------------------------------------
   # Seed Matrix (derives the translation list from scripts/translations.py)
