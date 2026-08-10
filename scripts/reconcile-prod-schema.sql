@@ -58,10 +58,22 @@
 --
 -- LOCKING
 -- -------
--- SET NOT NULL takes a brief ACCESS EXCLUSIVE lock and scans the table. At this
--- database's size (~340k verses) that is short, but it is not free: run it in a
--- quiet window. The FK change is split into ADD ... NOT VALID plus VALIDATE so
--- the row scan does not hold an exclusive lock.
+-- SET NOT NULL takes a brief ACCESS EXCLUSIVE lock and scans the table. `verses`
+-- is ~400k rows (measured), so this is short but not free: run it in a quiet
+-- window. Columns on the same table are combined into one ALTER TABLE so each
+-- table is locked once. The FK change is split into ADD ... NOT VALID plus
+-- VALIDATE so the row scan does not hold an exclusive lock.
+--
+-- PRIVILEGES
+-- ----------
+-- ALTER TABLE, RENAME CONSTRAINT and COMMENT ON all require table ownership, and
+-- Azure Flexible Server gives no superuser. Tables created by create_all() are
+-- owned by whichever role the application connects as, which need not be the
+-- admin role you are running this with. Check before the production run:
+--   SELECT current_user;
+--   SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public';
+-- A mismatch fails on the first ALTER and rolls back -- no harm, but it is
+-- better to find out before the maintenance window than during it.
 
 \set ON_ERROR_STOP on
 
@@ -172,15 +184,25 @@ $$;
 -- 2. NOT NULL. The models and scripts/init.sql agree these are mandatory;
 --    only production (built by an older create_all) allows NULL.
 -- ---------------------------------------------------------------------------
-ALTER TABLE chapters ALTER COLUMN book_id            SET NOT NULL;
-ALTER TABLE verses   ALTER COLUMN book_id            SET NOT NULL;
-ALTER TABLE verses   ALTER COLUMN chapter_id         SET NOT NULL;
-ALTER TABLE feedback ALTER COLUMN created_at         SET NOT NULL;
-ALTER TABLE contact_submissions ALTER COLUMN created_at SET NOT NULL;
-ALTER TABLE contact_submissions ALTER COLUMN status     SET NOT NULL;
-ALTER TABLE translations ALTER COLUMN license        SET NOT NULL;
-ALTER TABLE translations ALTER COLUMN is_default     SET NOT NULL;
-ALTER TABLE translations ALTER COLUMN created_at     SET NOT NULL;
+-- Columns on the same table are set in a single ALTER TABLE: one lock
+-- acquisition and one pass instead of one per column. `verses` is ~400k rows,
+-- so this is the difference between one brief ACCESS EXCLUSIVE window and two.
+ALTER TABLE verses
+    ALTER COLUMN book_id    SET NOT NULL,
+    ALTER COLUMN chapter_id SET NOT NULL;
+
+ALTER TABLE chapters ALTER COLUMN book_id SET NOT NULL;
+
+ALTER TABLE feedback ALTER COLUMN created_at SET NOT NULL;
+
+ALTER TABLE contact_submissions
+    ALTER COLUMN created_at SET NOT NULL,
+    ALTER COLUMN status     SET NOT NULL;
+
+ALTER TABLE translations
+    ALTER COLUMN license    SET NOT NULL,
+    ALTER COLUMN is_default SET NOT NULL,
+    ALTER COLUMN created_at SET NOT NULL;
 
 -- ---------------------------------------------------------------------------
 -- 3. Stray column comments. Two columns in production carry the literal comment
