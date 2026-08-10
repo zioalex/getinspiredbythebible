@@ -776,7 +776,7 @@ By hand, the same sequence is:
 
 ```bash
 cd api
-export DATABASE_URL="postgresql://postgres:local@localhost:5433/bibledb"  # Scenario C defaults
+export DATABASE_URL="postgresql://postgres:local@localhost:5433/bibledb" # pragma: allowlist secret — Scenario C defaults
 
 alembic current          # empty: the restored copy carries prod's history, not Alembic's
 alembic stamp r0001      # same one-time step as prod, rehearsed on a throwaway copy
