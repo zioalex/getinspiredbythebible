@@ -26,9 +26,12 @@
 --      schema-only copy is enough to prove the resulting schema (add
 --      -v allow_empty=1; see the note below the psql settings):
 --        make db-backup-schema && make db-restore-local DUMP=backups/<file>.dump
---        psql "postgresql://postgres:local@localhost:5433/bibledb" \
+--        PGPASSWORD=local psql "postgresql://postgres@localhost:5433/bibledb" \
 --             -v allow_empty=1 -f scripts/reconcile-prod-schema.sql
 --        make db-rehearse-alembic            # must now report a clean check
+--
+--      (password via PGPASSWORD, never in the URL -- the repo convention, see
+--      docs/HOW-TO-BACKUP-RESTORE-DATABASE.md)
 --
 --   2. A schema-only rehearsal cannot check the data preconditions, so run these
 --      two read-only queries against PRODUCTION before step 4. Both must be 0,
