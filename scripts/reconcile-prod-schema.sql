@@ -22,13 +22,29 @@
 --
 -- HOW TO RUN
 -- ----------
---   1. Rehearse it on a restored copy first, never on production first:
+--   1. Rehearse it on a restored copy first, never on production first. A
+--      schema-only copy is enough to prove the resulting schema (add
+--      -v allow_empty=1; see the note below the psql settings):
 --        make db-backup-schema && make db-restore-local DUMP=backups/<file>.dump
---        psql "postgresql://postgres:local@localhost:5433/bibledb" -f scripts/reconcile-prod-schema.sql
+--        psql "postgresql://postgres:local@localhost:5433/bibledb" \
+--             -v allow_empty=1 -f scripts/reconcile-prod-schema.sql
 --        make db-rehearse-alembic            # must now report a clean check
---   2. Take a backup of production (Scenario D of docs/HOW-TO-BACKUP-RESTORE-DATABASE.md).
---   3. Run it against production, then re-run the rehearsal against a fresh copy.
---   4. Only then: DATABASE_URL="<prod>" alembic stamp r0001   (BITB-089 Stage 2)
+--
+--   2. A schema-only rehearsal cannot check the data preconditions, so run these
+--      two read-only queries against PRODUCTION before step 4. Both must be 0,
+--      and a non-zero total proves you are not accidentally querying the empty
+--      copy:
+--        SELECT count(*) AS total,
+--               count(*) FILTER (WHERE book_id IS NULL OR chapter_id IS NULL) AS bad
+--          FROM verses;
+--        SELECT count(*) FROM verses v
+--          LEFT JOIN translations t ON v.translation = t.code
+--         WHERE t.code IS NULL;      -- orphans would fail VALIDATE CONSTRAINT
+--
+--   3. Take a backup of production (Scenario D of docs/HOW-TO-BACKUP-RESTORE-DATABASE.md).
+--   4. Run it against production -- WITHOUT allow_empty, so the guards are armed --
+--      then re-run the rehearsal against a fresh copy.
+--   5. Only then: DATABASE_URL="<prod>" alembic stamp r0001   (BITB-089 Stage 2)
 --
 -- PROPERTIES
 -- ----------
@@ -49,6 +65,22 @@
 
 \set ON_ERROR_STOP on
 
+-- Rehearsing against a schema-only copy? Pass -v allow_empty=1.
+--
+-- The DDL below works perfectly on empty tables, and the question a rehearsal
+-- answers -- "does `alembic check` come back clean afterwards?" -- is a pure
+-- schema comparison that never reads a row. What an empty copy cannot do is
+-- certify the data preconditions: a zero NULL count over zero rows is vacuous.
+-- So the checks are skipped rather than silently passed, and the run says so.
+--
+-- Interpolation happens out here because psql does not substitute :variables
+-- inside dollar-quoted blocks; set_config carries the value in instead.
+\if :{?allow_empty}
+\else
+  \set allow_empty 0
+\endif
+SELECT set_config('reconcile.allow_empty', :'allow_empty', false);
+
 BEGIN;
 
 -- ---------------------------------------------------------------------------
@@ -58,15 +90,33 @@ DO $$
 DECLARE
     n bigint;
 BEGIN
-    -- A schema-only restore has no rows, so a zero NULL count there is vacuous.
-    -- Refuse to certify NOT NULL against an empty table unless it is genuinely
-    -- empty in production too (translations aside, these tables are never empty).
     SELECT count(*) INTO n FROM verses;
     IF n = 0 THEN
+        IF current_setting('reconcile.allow_empty', true) = '1' THEN
+            RAISE NOTICE '%', concat(
+                'verses is empty -- schema-only rehearsal. Data preconditions ',
+                'SKIPPED: this run proves the resulting schema, and nothing about ',
+                'NULLs or FK orphans in production. Check those separately (see ',
+                'the header) before running this against production.');
+            RETURN;
+        END IF;
         RAISE EXCEPTION
             'verses is empty. This looks like a schema-only copy, where the NULL '
-            'checks below prove nothing. Run against production, or against a copy '
-            'restored with data.';
+            'checks below prove nothing. Run against production, against a copy '
+            'restored with data, or re-run with -v allow_empty=1 to rehearse the '
+            'DDL only.';
+    END IF;
+
+    -- Orphaned translation codes would make VALIDATE CONSTRAINT fail in step 4,
+    -- after the earlier steps have already committed. Catch it up front.
+    SELECT count(*) INTO n
+      FROM verses v
+      LEFT JOIN translations t ON v.translation = t.code
+     WHERE t.code IS NULL;
+    IF n > 0 THEN
+        RAISE EXCEPTION
+            'verses has % row(s) whose translation has no matching row in '
+            'translations. The FK cannot be validated until these are resolved.', n;
     END IF;
 
     SELECT count(*) INTO n FROM verses WHERE book_id IS NULL OR chapter_id IS NULL;

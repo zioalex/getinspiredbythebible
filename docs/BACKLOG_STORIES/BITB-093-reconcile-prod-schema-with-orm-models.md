@@ -83,7 +83,11 @@ comments. Both `init.sql` and the models agree on every one of these; production
   skipped or deferred deliberately.
 - **The script fails closed.** Every NOT NULL is preceded by a NULL count that aborts the
   transaction if non-zero, and it refuses to run against an empty `verses` — a schema-only copy has
-  no rows, so a zero NULL count there proves nothing.
+  no rows, so a zero NULL count there proves nothing. `-v allow_empty=1` skips those checks (loudly,
+  with a NOTICE saying the run proves nothing about production data) so a schema-only copy can still
+  be used to rehearse the DDL. Production runs without the flag, guards armed.
+- **Orphaned translation codes are checked up front.** They would otherwise fail
+  `VALIDATE CONSTRAINT` in the last step, after the earlier steps have already committed.
 
 ## Out of Scope — and one known blind spot
 
@@ -104,7 +108,14 @@ story before anyone concludes the schema is fully reconciled.
       `api/feedback/models.py`, matching the values actually deployed
 - [ ] `r0001` updated to match, with `blocked_message_samples` deliberately untouched
 - [ ] CI `alembic-migrations` job green — proves `r0001` still builds a database the models agree with
-- [ ] `scripts/reconcile-prod-schema.sql` rehearsed against a restored copy **with data**, output in the PR
+- [ ] `scripts/reconcile-prod-schema.sql` rehearsed against a restored copy, output in the PR.
+      A **schema-only** copy is sufficient for the schema question — pass
+      `-v allow_empty=1` — because `alembic check` never reads a row. It cannot
+      certify the data preconditions, so run these two read-only queries against
+      production separately, before the production run:
+      `SELECT count(*) AS total, count(*) FILTER (WHERE book_id IS NULL OR chapter_id IS NULL) FROM verses;`
+      and the FK orphan check
+      `SELECT count(*) FROM verses v LEFT JOIN translations t ON v.translation = t.code WHERE t.code IS NULL;`
 - [ ] Backup of production taken (Scenario D) before the script runs against it
 - [ ] Script run against production; verification queries at its end all pass
 - [ ] `make db-rehearse-alembic` against a **fresh** copy reports "No new upgrade operations detected."
