@@ -16,6 +16,7 @@
 // this module's const is initialised), and extractVerseReferences() is only
 // ever called after both modules are fully loaded.
 import { createVersePatternGlobal as _createVersePatternGlobal } from "./versePatterns";
+import { normalizeTraditionalToSimplified } from "./chineseScript";
 
 /**
  * Maps localized book names (lowercased) to canonical English book names (lowercased).
@@ -907,7 +908,12 @@ function getKnownBooks(): Set<string> {
  * over-matches from being marked as verses.
  */
 export function isKnownBook(book: string): boolean {
-  return getKnownBooks().has(book.trim().toLowerCase());
+  const key = book.trim().toLowerCase();
+  const known = getKnownBooks();
+  // Traditional Chinese retry (BITB-025): the book-name set only stores
+  // Simplified forms, so a Traditional-script name (e.g. "約翰福音") needs
+  // its Simplified form tried too. Normalize the candidate, never the set.
+  return known.has(key) || known.has(normalizeTraditionalToSimplified(key));
 }
 
 /**
@@ -917,7 +923,12 @@ export function isKnownBook(book: string): boolean {
  */
 function normalizeBookName(book: string): string {
   const lower = book.toLowerCase();
-  return LOCALIZED_BOOK_TO_ENGLISH[lower] ?? lower;
+  if (lower in LOCALIZED_BOOK_TO_ENGLISH) {
+    return LOCALIZED_BOOK_TO_ENGLISH[lower];
+  }
+  // Traditional Chinese retry (BITB-025) — see isKnownBook above.
+  const simplified = normalizeTraditionalToSimplified(lower);
+  return LOCALIZED_BOOK_TO_ENGLISH[simplified] ?? lower;
 }
 
 /**
@@ -976,8 +987,13 @@ function normalizeArabicText(text: string): string {
 }
 
 export function extractVerseReferences(text: string): Set<string> {
-  // Preprocess: strip Arabic tashkeel/tatweel and normalize guillemets.
-  text = normalizeArabicText(text);
+  // Preprocess: strip Arabic tashkeel/tatweel, normalize guillemets, and
+  // convert Traditional Chinese book names to Simplified (BITB-025). This
+  // function returns a Set of "book:chapter:verse" keys, not offsets into
+  // the original text, so overwriting `text` outright is safe here (unlike
+  // linkifyVerses.ts / ChatMessage.tsx, which must preserve the original
+  // script in what's displayed to the user).
+  text = normalizeTraditionalToSimplified(normalizeArabicText(text));
 
   // Use the shared verse pattern (auto-generated from LOCALIZED_BOOK_TO_ENGLISH).
   // Imported from versePatterns — the circular reference is safe because
