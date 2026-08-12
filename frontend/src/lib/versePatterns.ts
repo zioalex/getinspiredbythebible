@@ -11,16 +11,9 @@
  *   createVersePattern()         — single-match RegExp (/u)
  *   createVersePatternGlobal()   — global RegExp (/gu) — fresh instance each call
  *                                  (JavaScript /g regex has mutable lastIndex state)
- *
- * Circular-import note:
- *   verseExtraction.ts exports LOCALIZED_BOOK_TO_ENGLISH and imports from this
- *   module.  To break the init-time circular dependency, this module accesses
- *   LOCALIZED_BOOK_TO_ENGLISH lazily (only inside the exported factory functions,
- *   never at module top-level).  The getMultiWordAlternation() helper caches the
- *   computed alternation string on first call so there is no repeated work.
  */
 
-import { LOCALIZED_BOOK_TO_ENGLISH } from "./verseExtraction";
+import { LOCALIZED_BOOK_TO_ENGLISH } from "./localizedBookMap.generated";
 
 // ---------------------------------------------------------------------------
 // CONJUNCTIONS
@@ -55,10 +48,8 @@ function escapeForRegex(s: string): string {
 // Lazy-cached multi-word alternation
 // ---------------------------------------------------------------------------
 
-// These are populated on first call.
-// They MUST NOT be initialised at module-load time because this module and
-// verseExtraction.ts form a circular import pair — LOCALIZED_BOOK_TO_ENGLISH
-// is undefined if accessed before verseExtraction.ts finishes loading.
+// These are populated on first call and cached so repeated calls don't
+// recompute the alternation string.
 let _cachedMultiWordAlternation: string | null = null;
 let _cachedCjkAlternation: string | null = null;
 let _cachedHangulAlternation: string | null = null;
