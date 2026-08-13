@@ -6,102 +6,56 @@ This document tracks known technical debt and planned refactoring work.
 
 ### Refactor SQLAlchemy Models to Use `Mapped[]` Type Annotations
 
-**Status:** Planned
+**Status:** ✅ Done (BITB-009, PR #984)
 **Priority:** Medium
-**Effort:** 2-3 hours
 **Impact:** Improved type safety, removes mypy suppressions
 
-#### Problem
+#### Resolution
 
-Current models use SQLAlchemy 1.x-style `Column()` declarations:
+All models in `scripture/models.py` and `feedback/models.py` already use SQLAlchemy 2.0's
+`Mapped[]` / `mapped_column()` syntax (landed in an earlier, undocumented PR — this entry
+was stale). No `Column()`-style declarations remain in the ORM layer, and the
+`[[tool.mypy.overrides]]` suppressions described below are no longer present in
+`api/pyproject.toml`.
 
-```python
-class Book(Base):
-    __tablename__ = "books"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
-    # ... more columns
-```
-
-This causes mypy to see `Column[str]` types when analyzing code, but at runtime these are
-actual `str` values. This mismatch requires suppressing `arg-type` errors in `scripture.*`
-and `routes.*` modules.
-
-#### Root Cause
-
-1. **Static vs Runtime Types**: Mypy performs static analysis and sees the Column type
-descriptors, not the runtime attribute values
-2. **Legacy Syntax**: The Column-based syntax predates SQLAlchemy 2.0's improved type
-annotations
-3. **ORM Magic**: SQLAlchemy uses Python descriptors and metaclasses that mypy cannot
-fully understand
-
-#### Current Workaround
-
-In `api/pyproject.toml`:
-
-```toml
-[[tool.mypy.overrides]]
-module = "scripture.*"
-disable_error_code = ["arg-type"]
-
-[[tool.mypy.overrides]]
-module = "routes.*"
-disable_error_code = ["arg-type"]
-```
-
-This suppresses errors when passing ORM model attributes to Pydantic models:
+Current shape, e.g. `scripture/models.py`:
 
 ```python
-# Mypy sees: Column[str] passed where str expected
-# Runtime: actual str value passed correctly
-VerseResult(
-    text=verse.text,  # mypy thinks this is Column[str], actually str
-    chapter=verse.chapter_number,  # mypy thinks Column[int], actually int
-)
+class Verse(Base):
+    __tablename__ = "verses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey("books.id"))
+    text: Mapped[str] = mapped_column(Text)
+    translation: Mapped[str] = mapped_column(
+        String(20), ForeignKey("translations.code", ondelete="CASCADE"), default="kjv"
+    )
+    embedding: Mapped[Optional[Vector]] = mapped_column(
+        Vector(settings.embedding_dimensions), nullable=True
+    )
 ```
 
-#### Proposed Solution
+The only remaining `# type: ignore` suppressions in `scripture/*` and `routes/*` were four
+lines in `routes/scripture.py` (`search_scripture`, `search_text`), and they were unrelated
+to model typing — they suppressed a FastAPI parameter-ordering issue (`Depends`-based
+params defaulted to `None` after `Query(...)`-defaulted params). BITB-009 closed those out
+by reordering the dependency-injection params first, matching the existing pattern in
+`get_verse` / `get_verse_range`.
 
-Refactor to SQLAlchemy 2.0's `Mapped[]` syntax:
+#### Historical context (superseded)
 
-```python
-from sqlalchemy.orm import Mapped, mapped_column
+The section below described the original problem before the `Mapped[]` conversion landed;
+kept for reference.
 
-class Book(Base):
-    __tablename__ = "books"
+<details>
+<summary>Original problem writeup</summary>
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    # ... more columns
-```
+Models previously used SQLAlchemy 1.x-style `Column()` declarations, which mypy saw as
+`Column[str]` rather than the runtime `str` value, requiring `arg-type` suppressions in
+`scripture.*` and `routes.*`. The fix was to convert to `Mapped[type] = mapped_column(...)`
+so mypy understands `book.name` is `str`, not `Column[str]`.
 
-Benefits:
-
-- ✅ Mypy understands that `book.name` is `str`, not `Column[str]`
-- ✅ Better IDE autocomplete
-- ✅ Removes need for error suppressions
-- ✅ Aligns with SQLAlchemy 2.0 best practices
-- ✅ More explicit about nullable vs non-nullable fields
-
-#### Migration Steps
-
-1. Update `scripture/models.py`:
-   - Add `from sqlalchemy.orm import Mapped, mapped_column`
-   - Convert each `Column()` to `Mapped[type] = mapped_column(...)`
-   - Update relationship annotations
-
-2. Update affected files:
-   - `scripture/search.py`
-   - `scripture/repository.py`
-   - `routes/scripture.py`
-
-3. Remove mypy overrides from `pyproject.toml`
-
-4. Run full test suite to verify no regressions
-
-5. Update documentation
+</details>
 
 #### References
 

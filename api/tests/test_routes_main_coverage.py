@@ -1574,7 +1574,14 @@ class TestScriptureRoutes:
             mock_service.search = AsyncMock(return_value=expected)
             mock_service_cls.return_value = mock_service
 
-            result = await search_scripture("love", 5, 2, None, mock_db, mock_embedding)
+            result = await search_scripture(
+                db=mock_db,
+                embedding=mock_embedding,
+                q="love",
+                max_verses=5,
+                max_passages=2,
+                translation=None,
+            )
 
         assert result.query == "love"
 
@@ -1590,7 +1597,7 @@ class TestScriptureRoutes:
             mock_service.text_search = AsyncMock(return_value=[])
             mock_service_cls.return_value = mock_service
 
-            result = await search_text("love", 20, mock_db, mock_embedding)
+            result = await search_text(db=mock_db, embedding=mock_embedding, q="love", limit=20)
 
         assert result["query"] == "love"
         assert result["verses"] == []

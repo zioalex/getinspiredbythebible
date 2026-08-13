@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-13
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1884,10 +1884,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
+### ✅ BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
 
-**Status:** 🎯 Todo
-**Size:** L
+**Status:** ✅ Done (PR #984, 2026-08-13)
+**Size:** L (found already ~90% done by an earlier, undocumented PR; this PR closed the remainder)
 
 **As a** developer,
 **I want** SQLAlchemy models to use `Mapped[]` annotations,
@@ -1895,11 +1895,19 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] All models in `api/scripture/models.py` use `Mapped[]` syntax
-- [ ] MyPy suppressions removed from `scripture/*` and `routes/*`
-- [ ] All tests pass with no type errors
-- [ ] Database queries still work correctly
-- [ ] Documentation updated with new model syntax examples
+- [x] All models in `api/scripture/models.py` use `Mapped[]` syntax (already done pre-PR)
+- [x] MyPy suppressions removed from `scripture/*` and `routes/*` (4 lines in `routes/scripture.py`, unrelated to model typing — see below)
+- [x] All tests pass with no type errors
+- [x] Database queries still work correctly
+- [x] Documentation updated with new model syntax examples
+
+**Resolution note:** `scripture/models.py` and `feedback/models.py` were already fully
+`Mapped[]`/`mapped_column()` when this story was picked up, and the `pyproject.toml`
+mypy overrides the story references no longer exist. The only remaining suppressions in
+scope were `# type: ignore` on `db`/`embedding` params in `search_scripture` and
+`search_text` (`routes/scripture.py`), caused by FastAPI dependency params being
+defaulted to `None` after `Query(...)`-defaulted params — unrelated to model typing.
+Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_range`.
 
 **Tech Constraints:**
 
