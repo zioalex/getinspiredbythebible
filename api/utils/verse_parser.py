@@ -837,3 +837,93 @@ def extract_reference_mentions(text: str) -> list[ReferenceMention]:
             )
         )
     return mentions
+
+
+# ---------------------------------------------------------------------------
+# Client-facing citation spans (BITB-086)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CitationSpan:
+    """A verse citation located in the final answer text, for client linkification.
+
+    ``start``/``end`` are UTF-16 code unit offsets — native to JS and Kotlin,
+    and well-defined (if not native) for Python and Swift — computed against
+    the exact text the client renders. ``text`` and ``occurrence`` let a
+    client self-verify (``message[start:end] == text``) and recover by
+    locating the ``occurrence``-th literal match if the offsets are ever
+    wrong, rather than trusting unverified offsets.
+    """
+
+    text: str  # exact substring at [start, end), for client-side verification
+    start: int  # UTF-16 code unit offset, inclusive
+    end: int  # UTF-16 code unit offset, exclusive
+    occurrence: int  # 0-based index among identical `text` substrings in the source
+    book: str  # normalized English book name
+    chapter: int
+    verse: int
+    verse_end: int | None = None  # None for single-verse citations
+
+
+def _utf16_offset(text: str, code_point_offset: int) -> int:
+    """Convert a Python (code point) string offset into a UTF-16 code unit offset."""
+    return len(text[:code_point_offset].encode("utf-16-le")) // 2
+
+
+# Regions a span must never point into: fenced/inline code, the `<!-- VERSES:
+# ... -->` structured-citation trailer (and any other HTML comment), and the
+# target text of an existing markdown link. Mirrors the web linkifier's
+# PROTECTED_REGION_SOURCE (frontend/src/lib/linkifyVerses.ts) so a reference
+# sitting in one of these regions — most commonly the structured-citation
+# comment the system prompt asks the LLM to append — is not double-reported
+# as a second, spurious span for text the client already treats as opaque.
+_PROTECTED_REGION_PATTERN = re.compile(
+    r"```.*?```|`[^`]*`|<!--.*?-->|\[[^\]]*\]\([^)]*\)", re.DOTALL
+)
+
+
+def extract_citation_spans(text: str) -> list[CitationSpan]:
+    """Locate every verse citation in *text*, positioned for client linkification.
+
+    Built on ``extract_reference_mentions``, so it shares its scope: matching
+    runs against the original text with no Arabic tashkeel/tatweel
+    normalization (see ``_normalize_arabic_text``), because stripping those
+    marks would shift offsets out from under the spans they're meant to
+    describe. A fully-vocalized Arabic citation the LLM produced may
+    therefore be present in ``verses_cited`` but absent here — that is a
+    known, accepted gap (see docs/BACKLOG_STORIES/BITB-086), not a bug.
+
+    ``occurrence`` counts only among the spans this function actually
+    returns (protected-region matches are dropped before counting), so it
+    stays in sync with what a client doing its own literal-text search over
+    the *linkifiable* portions of the message would find.
+    """
+    protected_ranges = [m.span() for m in _PROTECTED_REGION_PATTERN.finditer(text)]
+
+    def _in_protected_region(start: int, end: int) -> bool:
+        return any(p_start <= start and end <= p_end for p_start, p_end in protected_ranges)
+
+    mentions = extract_reference_mentions(text)
+    occurrence_counts: dict[str, int] = {}
+    spans: list[CitationSpan] = []
+    for mention in mentions:
+        start, end = mention.ref_span
+        if _in_protected_region(start, end):
+            continue
+        substring = text[start:end]
+        occurrence = occurrence_counts.get(substring, 0)
+        occurrence_counts[substring] = occurrence + 1
+        spans.append(
+            CitationSpan(
+                text=substring,
+                start=_utf16_offset(text, start),
+                end=_utf16_offset(text, end),
+                occurrence=occurrence,
+                book=mention.reference.book,
+                chapter=mention.reference.chapter,
+                verse=mention.reference.verse_start,
+                verse_end=mention.reference.verse_end,
+            )
+        )
+    return spans

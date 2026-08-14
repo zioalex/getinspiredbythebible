@@ -2198,9 +2198,10 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 ---
 
-### 🎯 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
+### 🚧 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — backend contract shipped (PR TBD); web reference consumer is a
+deliberate fast-follow (see Notes)
 **Size:** L
 **Created:** 2026-07-29
 
@@ -2218,17 +2219,32 @@ revisit — a fourth client is the revisit trigger.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Additive `citations` array on the streaming `completion` event (`text`, `start`, `end`,
+- [x] Additive `citations` array on the streaming `completion` event (`text`, `start`, `end`,
       `occurrence`, book/chapter/verse/`verse_end`); `verses_cited`/`resolved_verses` unchanged
-- [ ] Spans computed **after** grounding, against `corrected_message` when present — with a
-      regression test, since that is exactly where silent off-by-N would hide
-- [ ] Offset unit specified (UTF-16 code units) and asserted with Arabic marks, Devanagari, CJK, emoji
-- [ ] `text` + `occurrence` make the contract self-verifying so a Swift client can use substring
-      search and ignore offsets; corrupt spans degrade to plain text, never crash or duplicate
+- [x] Spans computed **after** grounding, against `corrected_message` — with a regression test that
+      places the citation after the corrected quote, since that is exactly where silent off-by-N
+      would hide (a citation before the correction can't detect the ordering bug)
+- [x] Offset unit specified (UTF-16 code units) and asserted with Arabic marks, Devanagari, CJK, emoji
+- [x] `text` + `occurrence` make the contract self-verifying so a Swift client can use substring
+      search and ignore offsets
+- [ ] Corrupt spans degrade to plain text, never crash or duplicate — client-side, deferred to the
+      web/iOS consumer work
 - [ ] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
       the regex path over the shared corpus from `tests/fixtures/` (PR #906)
-- [ ] Old clients (no `citations`) provably unaffected
-- [ ] Does **not** delete the existing three parsers — that stays BITB-059 Phase 3
+- [x] Old clients (no `citations`) provably unaffected — purely additive field, existing
+      `verses_cited`/`resolved_verses` tests pass unchanged
+- [x] Does **not** delete the existing three parsers — that stays BITB-059 Phase 3
+
+**Notes (backend-first scope split):** PR #983 (BITB-059, open, unmerged) already touches
+`frontend/src/lib/verseExtraction.ts` / `versePatterns.ts` — the same files the web consumer here
+needs. Shipping the backend contract alone first (additive, zero client behaviour change, matches
+rollout step 1 in the full story) lets #983 merge without a collision, and the span-vs-regex parity
+test needs the backend actually emitting spans to be meaningful anyway. Web consumer is filed as the
+immediate fast-follow once #983 lands. Also fixed during implementation: a citation inside the
+`<!-- VERSES: ... -->` structured-citation trailer (or inside an existing markdown link / code span)
+is now excluded from `citations` — the trailer is invisible-but-present text the web linkifier
+already treats as a protected region (`linkifyVerses.ts`'s `PROTECTED_REGION_SOURCE`), and without
+this the backend would double-report the same reference as a second, spurious span.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-086-server-emitted-citation-spans.md`
 

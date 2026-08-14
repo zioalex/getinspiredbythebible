@@ -1504,6 +1504,108 @@ class TestChatServiceChatStream:
         assert "corrected_message" not in completion
         assert "corrections" not in completion
 
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_citations_present_and_verified(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """citations (BITB-086) locate John 3:16 in the streamed text, and every
+        span self-verifies: message[start:end] == text."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        service.search_service.get_verse = AsyncMock(return_value=None)
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            yield "As John 3:16 says, God loved the world."
+
+        llm.chat_stream = mock_stream
+
+        chunks = []
+        async for chunk in service.chat_stream(ChatRequest(message="Tell me about love")):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert "citations" in completion
+        citations = completion["citations"]
+        assert len(citations) == 1
+        span = citations[0]
+        assert span["book"] == "John"
+        assert span["chapter"] == 3
+        assert span["verse"] == 16
+        assert span["verse_end"] is None
+        assert span["occurrence"] == 0
+        rendered = "As John 3:16 says, God loved the world."
+        encoded = rendered.encode("utf-16-le")
+        substring = encoded[span["start"] * 2 : span["end"] * 2].decode("utf-16-le")
+        assert substring == span["text"] == "John 3:16"
+
+    @pytest.mark.asyncio
+    @patch("chat.service.detect_language", return_value="en")
+    @patch("chat.service.resolve_translation", return_value="kjv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_citations_computed_against_corrected_message(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect
+    ):
+        """Regression guard: citation spans must be computed AFTER grounding
+        rewrites a fabricated quote, against corrected_message — not against the
+        pre-correction streamed text. Getting this order wrong is the exact bug
+        the story calls out (docs/BACKLOG_STORIES/BITB-086.md)."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        canonical = "For God so loved the world, that he gave his only begotten Son."
+        service.search_service.get_verse = AsyncMock(
+            return_value=VerseResult(
+                reference="John 3:16",
+                text=canonical,
+                book="John",
+                chapter=3,
+                verse=16,
+                translation="kjv",
+            )
+        )
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            # The citation sits AFTER the fabricated quote, not before it, so a
+            # span wrongly computed against the pre-correction full_response
+            # (a different length than corrected_message) would land on the
+            # wrong substring here — this is what actually exercises the
+            # ordering bug rather than merely restating it.
+            yield (
+                '"God adored the whole planet so much he sent his one and only '
+                'child down," John 3:16 reminds us. Take heart.'
+                "\n<!-- VERSES: John 3:16 -->"
+            )
+
+        llm.chat_stream = mock_stream
+
+        chunks = []
+        async for chunk in service.chat_stream(ChatRequest(message="comfort me")):
+            chunks.append(chunk)
+
+        completion = next(c for c in chunks if c["type"] == "completion")
+        assert canonical in completion["corrected_message"]
+        assert len(completion["citations"]) == 1
+        span = completion["citations"][0]
+        corrected = completion["corrected_message"]
+        encoded = corrected.encode("utf-16-le")
+        substring = encoded[span["start"] * 2 : span["end"] * 2].decode("utf-16-le")
+        # The span must resolve inside the CORRECTED text, proving offsets were
+        # computed post-grounding rather than against the fabricated original
+        # (which has a different length and would silently misalign the span).
+        assert substring == span["text"] == "John 3:16"
+
 
 class TestScriptureGroundingGuardHelper:
     """Unit tests for ChatService._scripture_grounding_unavailable() (BITB-058)."""
