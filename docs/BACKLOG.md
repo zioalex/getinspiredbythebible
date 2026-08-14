@@ -2200,7 +2200,7 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 ### 🚧 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
 
-**Status:** 🚧 In Progress — backend contract shipped (PR TBD); web reference consumer is a
+**Status:** 🚧 In Progress — backend contract shipped (PR #985); web reference consumer is a
 deliberate fast-follow (see Notes)
 **Size:** L
 **Created:** 2026-07-29
