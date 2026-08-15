@@ -104,18 +104,15 @@ story before anyone concludes the schema is fully reconciled.
 
 ## Acceptance Criteria
 
-- [ ] `server_default=` added to the seven columns in `api/scripture/models.py` and
+- [x] `server_default=` added to the seven columns in `api/scripture/models.py` and
       `api/feedback/models.py`, matching the values actually deployed
-- [ ] `r0001` updated to match, with `blocked_message_samples` deliberately untouched
-- [ ] CI `alembic-migrations` job green — proves `r0001` still builds a database the models agree with
-- [ ] `scripts/reconcile-prod-schema.sql` rehearsed against a restored copy, output in the PR.
-      A **schema-only** copy is sufficient for the schema question — pass
-      `-v allow_empty=1` — because `alembic check` never reads a row. It cannot
-      certify the data preconditions, so run these two read-only queries against
-      production separately, before the production run:
-      `SELECT count(*) AS total, count(*) FILTER (WHERE book_id IS NULL OR chapter_id IS NULL) FROM verses;`
-      and the FK orphan check
-      `SELECT count(*) FROM verses v LEFT JOIN translations t ON v.translation = t.code WHERE t.code IS NULL;`
+- [x] `r0001` updated to match, with `blocked_message_samples` deliberately untouched
+- [x] CI `alembic-migrations` job green — proves `r0001` still builds a database the models agree with
+- [x] `scripts/reconcile-prod-schema.sql` rehearsed against a restored copy (schema-only,
+      `-v allow_empty=1`); `make db-rehearse-alembic` then reported **"No new upgrade
+      operations detected."** — the Stage 1 gate is green.
+      Data preconditions confirmed separately against production: 403,856 verses,
+      0 NULL `book_id`/`chapter_id`, 0 orphaned translation codes.
 - [ ] Backup of production taken (Scenario D) before the script runs against it
 - [ ] Script run against production; verification queries at its end all pass
 - [ ] `make db-rehearse-alembic` against a **fresh** copy reports "No new upgrade operations detected."
