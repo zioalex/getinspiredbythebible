@@ -176,6 +176,28 @@ def _run_alembic(*args: str, database_url: str) -> subprocess.CompletedProcess:
     return result
 
 
+def _head_revision(database_url: str) -> str:
+    """The revision id currently at the head of the migration chain.
+
+    Derived from `alembic heads` rather than hardcoded. Pinning the literal
+    makes the assertion below fail the moment a second revision is added --
+    which is exactly what happened when r0002 landed and this still said
+    "r0001". The property worth asserting is "upgrade head leaves the database
+    at head", not "the head is called r0001".
+
+    `alembic heads` reads the versions directory and never connects, so the
+    database_url only has to satisfy env.py's import-time config.
+    """
+    result = _run_alembic("heads", database_url=database_url)
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    assert lines, f"alembic heads printed nothing to stdout:\n{result.stdout!r}"
+    assert len(lines) == 1, (
+        "Expected exactly one head -- a branched migration history would make "
+        f"`upgrade head` ambiguous:\n{result.stdout}"
+    )
+    return lines[0].split()[0]
+
+
 def _table_names(database_url: str) -> set[str]:
     parsed = urlparse(database_url)
     conn = psycopg2.connect(
@@ -240,7 +262,10 @@ def test_upgrade_downgrade_upgrade_roundtrip(throwaway_database_url):
 
     version_rows = _alembic_version_rows(throwaway_database_url)
     assert len(version_rows) == 1, f"Expected exactly one alembic_version row, got {version_rows}"
-    assert version_rows[0] == "r0001"
+    head = _head_revision(throwaway_database_url)
+    assert (
+        version_rows[0] == head
+    ), f"After `upgrade head` the database should sit at {head}, got {version_rows[0]}"
 
     # 2. downgrade base -> all 9 ORM-backed tables are gone.
     _run_alembic("downgrade", "base", database_url=throwaway_database_url)
