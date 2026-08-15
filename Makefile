@@ -811,7 +811,7 @@ db-restore-same-server: ## DESTRUCTIVE — replace an existing database from a d
 db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...])
 	@SERVER="$(SERVER)" $(DB_TOOL) server-url
 
-db-rehearse-alembic: ## Stage 1 of BITB-089: stamp -> check -> upgrade against a COPY of prod (usage: DATABASE_URL=<copy> make db-rehearse-alembic)
+db-rehearse-alembic: ## Stage 1 of BITB-089: stamp -> check -> upgrade against a COPY of prod (usage: DATABASE_URL=<copy> PGPASSWORD=... make db-rehearse-alembic)
 	@$(DB_TOOL) rehearse
 
 db-delete-server: ## DESTRUCTIVE — delete a restored Azure server (usage: make db-delete-server SERVER=...)
