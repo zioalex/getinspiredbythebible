@@ -813,7 +813,12 @@ DATABASE_URL="<prod-url>" alembic stamp r0001
 applied — it executes **zero DDL** (it does not create or touch a single
 table), because prod already has the equivalent schema from the manual
 migrations. Verify with `alembic current` (reports `r0001`) and confirm
-`alembic upgrade head` is a no-op. Rollback, if ever needed, is
+`alembic upgrade head` is a no-op.
+
+**Then run `alembic check` against production.** It is read-only, emits no DDL,
+and is the only thing that actually proves the stamp is honest — `current` merely
+echoes the row you just wrote. A stamp applied to an unreconciled database looks
+perfectly healthy to `current` and is caught instantly by `check`. Rollback, if ever needed, is
 `DROP TABLE alembic_version`.
 
 **Stage 3 — the pipeline (already wired).** `run-migrations` installs

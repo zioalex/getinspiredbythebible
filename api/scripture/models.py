@@ -18,6 +18,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+
+# Aliased: Verse and Passage both declare a column named `text`, which shadows a
+# bare `text` import inside the class body (TypeError: 'MappedColumn' object is
+# not callable).
+from sqlalchemy import text as sql_text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from config import settings
@@ -46,9 +51,18 @@ class Translation(Base):
     language_code: Mapped[str] = mapped_column(String(10))  # ISO 639-1: 'en', 'it', 'de'
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    license: Mapped[str] = mapped_column(String(100), default="Public Domain")
-    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # server_default mirrors what is actually deployed (scripts/init.sql). Without
+    # it the ORM claims a column has no database-level default while production
+    # has one, which `alembic check` reports as drift forever -- see BITB-093.
+    license: Mapped[str] = mapped_column(
+        String(100), default="Public Domain", server_default=sql_text("'Public Domain'")
+    )
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sql_text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=sql_text("CURRENT_TIMESTAMP")
+    )
 
     # Relationships
     verses: Mapped[list["Verse"]] = relationship(back_populates="translation_rel")
@@ -124,6 +138,8 @@ class Verse(Base):
         String(20),
         ForeignKey("translations.code", ondelete="CASCADE"),
         default="kjv",
+        # Deployed with a database-level default too (scripts/init.sql) -- see BITB-093.
+        server_default=sql_text("'kjv'"),
     )
 
     # Vector embedding for semantic search
