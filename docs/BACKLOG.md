@@ -1392,6 +1392,40 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-094: Audit Column Types Against Production — the Blind Spot `alembic check` Cannot See
+
+**Status:** 🎯 Todo
+**Size:** S–M
+**Depends on:** BITB-093 (structural reconciliation) — done
+
+**As a** maintainer who has just made Alembic authoritative, **I want** to know whether production's
+column *types* match the ORM models, **so that** "the schema is reconciled" is a complete statement
+rather than one that quietly excludes a whole category of difference.
+
+`api/alembic/env.py` sets `compare_type=False`, correctly — `Vector(dim)` is 1024 locally and 1536
+in production, so type comparison would flap the CI gate forever. The cost is that it suppresses
+**all** type comparison. Every `alembic check` run during BITB-089 and BITB-093, including the clean
+one against production, compared structure and no types whatsoever. A `varchar(50)` vs `varchar(100)`
+or a `timestamp` vs `timestamptz` would have passed silently.
+
+A concrete candidate already exists: `translations.created_at` is `DateTime` (naive) while
+`feedback.created_at` and `contact_submissions.created_at` are `DateTime(timezone=True)`.
+`scripts/init.sql` agrees with the models, so it is probably faithful rather than drift — but that
+is the standard this story replaces.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Type comparison run against a schema-only copy of production, output in the PR
+- [ ] Vector columns reported as expected-difference, not silently skipped
+- [ ] Each finding classified: faithful-but-questionable vs genuine drift
+- [ ] `translations.created_at` resolved explicitly, or documented as intentionally naive
+- [ ] Any `ALTER TABLE ... TYPE` deferred to its own revision with a lock/rewrite assessment
+- [ ] `api/alembic/README.md` invariant #2 states plainly that **no** type is ever compared
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-094-audit-column-types-against-production.md`
+
+---
+
 ### ✅ BITB-092: Fix Dev Stack `db-init` Migration Failure and Embedding Config Drift
 
 **Status:** ✅ Done (2026-08-09)
