@@ -416,8 +416,28 @@ operator runbook in docs/MIGRATION_GUIDELINES.md."
   export DATABASE_URL="$DB_URL"
   cd api || die "Run this from the repository root."
 
-  local current
-  current="$(alembic current | tail -n1 | tr -d '[:space:]')"
+  # Connect via `alembic current` first, and translate a failure into something
+  # actionable. Alembic surfaces a connection problem as a ~40-line asyncpg
+  # traceback, and the most common cause here is simply a missing password:
+  # DATABASE_URL deliberately carries none (repo convention), and asyncpg falls
+  # back to PGPASSWORD -- which is easy to forget to export.
+  # stdout and stderr stay separate on purpose: alembic logs INFO lines to
+  # stderr, and merging them would make `tail -n1` read a log line as the
+  # revision id -- reporting an unstamped database as stamped.
+  local current raw errfile
+  errfile="$(mktemp)"
+  if ! raw="$(alembic current 2>"$errfile")"; then
+    tail -n 3 "$errfile" >&2
+    rm -f "$errfile"
+    echo >&2
+    die "Could not connect to $(redact_url "$DB_URL").
+If this is the local restore container, its password is 'local':
+  export PGPASSWORD=local
+asyncpg reads PGPASSWORD when the URL carries no password (as it should not).
+For an Azure copy, export the source server's admin password instead."
+  fi
+  rm -f "$errfile"
+  current="$(printf '%s' "$raw" | tail -n1 | tr -d '[:space:]')"
   if [[ -z "$current" ]]; then
     log "No alembic_version row — stamping $baseline (writes one row, zero DDL)"
     alembic stamp "$baseline"
