@@ -1353,6 +1353,35 @@ under `api/alembic/versions/**` **silently never deploys**. No error, no warning
 
 ---
 
+### 🎯 BITB-093: Reconcile the Production Schema with the ORM Models
+
+**Status:** 🎯 Todo
+**Size:** M
+**Blocks:** BITB-089 Stage 2 (stamping production) — and therefore BITB-090 and BITB-091
+
+**As a** maintainer about to make Alembic authoritative, **I want** production's schema and the ORM
+models to agree, **so that** `alembic stamp r0001` is a true statement rather than a promise the
+next `--autogenerate` will contradict.
+
+BITB-089 Stage 1 did its job: `alembic check` against a restored copy of production returns a
+non-empty diff, so `r0001` does not describe production and must not be stamped over. Production's
+`verses` was created by `create_all()` from an older model revision (nullable FK columns, a
+Postgres-generated unique constraint name, no FK delete action) and later extended by hand-rolled
+SQL — BITB-090's "two competing schema authorities" as a measured fact.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Seven columns gain `server_default=` in the models (production is right there); `r0001` matches
+- [ ] `scripts/reconcile-prod-schema.sql` brings production to the models: NOT NULL, constraint
+      renames (rename, never DROP + ADD), FK delete action, stray comment removal
+- [ ] Rehearsed against a restored copy **with data** before production
+- [ ] `make db-rehearse-alembic` clean against a fresh copy, then BITB-089 Stage 2 proceeds
+- [ ] Follow-up filed for the `compare_type=False` blind spot (type drift is invisible to `check`)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-093-reconcile-prod-schema-with-orm-models.md`
+
+---
+
 ### ✅ BITB-092: Fix Dev Stack `db-init` Migration Failure and Embedding Config Drift
 
 **Status:** ✅ Done (2026-08-09)
