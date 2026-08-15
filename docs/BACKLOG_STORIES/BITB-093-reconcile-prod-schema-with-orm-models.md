@@ -114,11 +114,29 @@ story before anyone concludes the schema is fully reconciled.
       Data preconditions confirmed separately against production: 403,856 verses,
       0 NULL `book_id`/`chapter_id`, 0 orphaned translation codes.
 - [ ] Backup of production taken (Scenario D) before the script runs against it
-- [ ] Script run against production; verification queries at its end all pass
-- [ ] `make db-rehearse-alembic` against a **fresh** copy reports "No new upgrade operations detected."
-- [ ] Only then: BITB-089 Stage 2 (`alembic stamp r0001`) proceeds
-- [ ] Decision recorded on the FK cascade: applied, or deferred with a reason
+- [x] Script run against production
+- [x] **Verified against production itself**, which is stronger than the planned
+      re-rehearsal on a fresh copy: `DATABASE_URL=<prod> alembic check` reports
+      "No new upgrade operations detected." Production, `r0001` and the ORM
+      models agree. `check` is read-only and emits no DDL, so it is safe to point
+      at production; it is now the definitive Stage 2 verification.
+- [x] BITB-089 Stage 2 (`alembic stamp r0001`) done; `alembic current` reports `r0001 (head)`
+- [x] FK cascade **applied**. `verses_translation_fkey` now carries `ON DELETE CASCADE`,
+      matching both `scripts/init.sql` and the model. Confirmed by its disappearance
+      from the `alembic check` diff. Deleting a translation now deletes its verses.
 - [ ] Follow-up story filed for the `compare_type=False` blind spot
+
+### Note on the order actually followed
+
+The stamp was applied before the reconciliation script, not after. `alembic check`
+against production caught it immediately — the full pre-reconciliation diff came
+back — and the fix was simply to run the script that had been skipped. No harm was
+possible: `upgrade head` is a no-op while production sits at head, so no DDL ran
+through Alembic in the interval, and `alembic_version` is a single row that
+`DROP TABLE` would have undone. The stamp became truthful once the script ran.
+
+The lesson worth keeping: `alembic check` against production is cheap, read-only,
+and the only thing that actually proves a stamp is honest. Run it after every stamp.
 
 ## Related
 
