@@ -1,6 +1,8 @@
 # BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — candidate-pool CTE + topics index + FTS rewrite done; persisted `tsvector` column deferred (see Scope Note)
+**Status:** 🚧 In Progress — candidate-pool CTE + topics index + FTS rewrite + persisted `tsvector`
+column done; `search_verses_text` query switch to the new column (and retiring
+`idx_verses_fts_simple`) deferred to a follow-up (see Scope Note)
 **Priority:** P1 (High) — 2026-07 adversarial audit S2 (HIGH); public unauthenticated endpoint full-scans the production database
 **Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
 **Created:** 2026-07-03
@@ -8,14 +10,38 @@
 
 ## Scope Note
 
-This PR ships acceptance criteria 1, 2, 4 (SQL-shape assertions; a row-count-independent
-`EXPLAIN`/Seq-Scan check isn't meaningful against sandbox-scale test data — see PR
-description), and 5, plus the `ILIKE` → `@@ plainto_tsquery` half of criterion 3. The
-**persisted generated `tsvector` column** half of criterion 3 is deferred to a follow-up:
-it's an `ALTER TABLE` full-table-rewrite on the 31K-row `verses` table (locking
-implications on the same box this story protects) — a materially different risk profile
-from the read-path rewrites here, and one PR/day shouldn't carry both. Criterion 6 (prod
-perf re-run) needs a deployed environment and is a post-merge follow-up.
+The original PR shipped acceptance criteria 1, 2, 4 (SQL-shape assertions; a
+row-count-independent `EXPLAIN`/Seq-Scan check isn't meaningful against sandbox-scale test
+data — see PR description), and 5, plus the `ILIKE` → `@@ plainto_tsquery` half of
+criterion 3. The **persisted generated `tsvector` column** half of criterion 3 was
+deferred to its own follow-up (this one): it's an `ALTER TABLE` full-table-rewrite on the
+31K-row `verses` table (locking implications on the same box this story protects) — a
+materially different risk profile from the read-path rewrites in the original PR, and one
+PR/day shouldn't carry both.
+
+**This follow-up** adds `verses.text_tsv` (`GENERATED ALWAYS AS (to_tsvector('simple',
+text)) STORED`) and its GIN index (`idx_verses_text_tsv`) as a single Alembic revision,
+`api/alembic/versions/r0004_add_verses_text_tsv.py`.
+
+> **Changed since this was first written.** The original version shipped the same change
+> twice — once as `scripts/migrations/012_*` and once as an Alembic revision — under the
+> "interim dual-write window" note in `docs/MIGRATION_GUIDELINES.md`, because the deploy
+> pipeline did not yet run Alembic against production. BITB-089 has since shipped: the
+> pipeline runs `alembic upgrade head`, production is stamped, and `scripts/migrations/`
+> is frozen. The legacy half and the dual-write note are gone, and the revision is
+> renumbered `r0004` (`r0002` and `r0003` were taken by BITB-089's pipeline probe).
+> The index is now built with `CREATE INDEX CONCURRENTLY` inside an `autocommit_block()`,
+> which matters now that this deploys automatically rather than by hand.
+
+It is deliberately additive
+only: `search_verses_text` still matches on the raw `to_tsvector('simple', text)`
+expression and `idx_verses_fts_simple` is left in place, so there is no functional or
+performance regression window. **Deferred to a second follow-up** (split for the same
+reason — deploy runs the new app code before `run-migrations`, so shipping the query
+switch in the same push as the migration would 500 public search for the deploy window):
+switching `search_verses_text` to query `text_tsv` directly and dropping the now-redundant
+`idx_verses_fts_simple`. Criterion 6 (prod perf re-run) still needs a deployed environment
+and remains a post-merge follow-up.
 
 ## User Story
 
@@ -52,8 +78,11 @@ scarce headroom fastest.
       already claims 009/010.
 - [x] `search_verses_text` replaced `ILIKE '%q%'` with `to_tsvector('simple', text) @@
       plainto_tsquery('simple', :query)`, matching migration 003's existing
-      `idx_verses_fts_simple` expression index. **Deferred:** the persisted generated `tsvector`
-      column — see Scope Note above.
+      `idx_verses_fts_simple` expression index.
+- [x] Persisted generated `tsvector` column: `verses.text_tsv` + `idx_verses_text_tsv`
+      (Alembic `r0004`). **Deferred to a follow-up:** switching
+      `search_verses_text` to query this column instead of the raw expression, and
+      retiring `idx_verses_fts_simple` — see Scope Note above.
 - [x] SQL-shape regression tests assert the candidate-pool CTE runs before the threshold filter and
       that no `ILIKE` remains (`test_hybrid_search.py`); real-DB integration tests confirm the
       rewritten queries execute and return correct results (`test_hybrid_search_integration.py`).
