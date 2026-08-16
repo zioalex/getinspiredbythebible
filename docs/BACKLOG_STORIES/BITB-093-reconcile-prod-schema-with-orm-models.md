@@ -1,10 +1,15 @@
 # BITB-093: Reconcile the Production Schema with the ORM Models
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-15)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-08-10
-**Blocks:** BITB-089 Stage 2 (stamping production) — and therefore BITB-090 and BITB-091.
+**Blocked:** BITB-089 Stage 2 (stamping production) — now unblocked, stamped and verified.
+
+> **Outcome.** `scripts/reconcile-prod-schema.sql` ran against production, and
+> `DATABASE_URL=<prod> alembic check` reports "No new upgrade operations detected."
+> Production, `r0001` and the ORM models agree. The one open item is the follow-up
+> story below — everything in this story's scope is done.
 
 ## User Story
 

@@ -815,6 +815,14 @@ table), because prod already has the equivalent schema from the manual
 migrations. Verify with `alembic current` (reports `r0001`) and confirm
 `alembic upgrade head` is a no-op.
 
+**Run Alembic against production only from a checkout of `main`.** `alembic
+current` resolves the revision id stored in the database against your *local*
+`api/alembic/versions/` directory, so a stale branch fails with
+`Can't locate revision identified by '<rev>'` even though production is
+perfectly healthy — and `upgrade head` from a branch could target the wrong
+head entirely. If you see that error, update your checkout before suspecting
+the database.
+
 **Then run `alembic check` against production.** It is read-only, emits no DDL,
 and is the only thing that actually proves the stamp is honest — `current` merely
 echoes the row you just wrote. A stamp applied to an unreconciled database looks
