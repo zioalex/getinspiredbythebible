@@ -1323,12 +1323,12 @@ showing — so the tap becomes a silent paste with no feedback. The guard is unn
 
 ---
 
-### 🎯 BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
+### ✅ BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-15)
 **Size:** M
-**Depends on:** BITB-004 (PR #948) — merged, but **inert** until this ships
-**Unblocks:** BITB-090
+**Depends on:** BITB-004 (PR #948) — merged, but **inert** until this shipped
+**Unblocks:** BITB-090, BITB-091 — both now unblocked
 
 **As a** maintainer who has just merged the Alembic framework, **I want** a committed revision to
 actually reach the production database on deploy, **so that** "we have a migration system" is a
@@ -1341,23 +1341,33 @@ under `api/alembic/versions/**` **silently never deploys**. No error, no warning
 
 **Acceptance Criteria (summary):**
 
-- [ ] `alembic check` against a *restored copy* of prod passes — the gate for everything else
-- [ ] Prod stamped at `r0001` (zero DDL), backup taken first, `alembic current` verified
-- [ ] Deploy workflow: path filter, `alembic` installed, `alembic upgrade head` replaces the legacy call
-- [ ] SSL form resolved — `:1498` emits `?ssl=require`, which `get_async_database_url()` does **not**
-      strip (`api/scripture/database.py:37`); covered by a test
-- [ ] Proven by a trivial reversible revision reaching prod, not by inspecting YAML
-- [ ] Rollback path documented for a mid-deploy `upgrade head` failure
+- [x] `alembic check` against a *restored copy* of prod passes — the gate for everything else.
+      It initially **failed**, which is what BITB-093 exists for; clean after that reconciliation.
+- [x] Prod stamped at `r0001` (zero DDL); `alembic current` reports `r0001`, and `alembic check`
+      against production itself reports "No new upgrade operations detected."
+- [x] Deploy workflow: path filter includes `api/alembic/versions/**`, job installs
+      `api/requirements.txt`, and `alembic upgrade head` runs after the legacy call (PR #974)
+- [x] SSL form resolved — `get_async_database_url()` now strips `ssl` as well as `sslmode`;
+      covered by `api/tests/test_database_church_coverage.py::TestGetAsyncDatabaseUrl`
+- [x] **Proven end-to-end.** The `r0002` probe revision (PR #987) reached production through the
+      pipeline on 2026-08-15: the `run-migrations` job ran rather than skipping — the first time
+      the `api/alembic/versions/**` filter has ever fired — and its "Run Alembic migrations" step
+      succeeded against production. Not inferred from the YAML.
+- [x] Rollback path documented for a mid-deploy `upgrade head` failure — see
+      `docs/MIGRATION_GUIDELINES.md`
+
+**Remaining tidy-up (not blocking):** `r0003` removes the probe's table comment from `sessions`.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md`
 
 ---
 
-### 🎯 BITB-093: Reconcile the Production Schema with the ORM Models
+### ✅ BITB-093: Reconcile the Production Schema with the ORM Models
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-15) — production reconciled and verified; `alembic check` against
+production reports "No new upgrade operations detected."
 **Size:** M
-**Blocks:** BITB-089 Stage 2 (stamping production) — and therefore BITB-090 and BITB-091
+**Blocked:** BITB-089 Stage 2 (stamping production) — now unblocked and done
 
 **As a** maintainer about to make Alembic authoritative, **I want** production's schema and the ORM
 models to agree, **so that** `alembic stamp r0001` is a true statement rather than a promise the
