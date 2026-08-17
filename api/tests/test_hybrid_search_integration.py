@@ -244,3 +244,38 @@ async def test_search_verses_text_executes_against_real_db(seeded_repo):
     verses = await seeded_repo.search_verses_text(query="loved the world")
     assert verses, "text search returned no rows from the real DB"
     assert any(v.text == _VERSE_TEXT for v in verses)
+
+
+# ── BITB-062: verses.text_tsv persisted generated column ──────────────────
+# search_verses_text itself still matches on the raw to_tsvector(...) expression
+# (a follow-up PR switches it to this column and retires idx_verses_fts_simple);
+# this guards that the column/index this follow-up depends on actually exist
+# and that Postgres populates the column, not just that the ORM declares it.
+
+
+async def test_verses_text_tsv_column_is_generated(seeded_repo):
+    """verses.text_tsv must be a DB-generated (STORED) column, and Postgres
+    must populate it from `text` on every row -- not merely be declared on
+    the ORM model, which `Base.metadata.create_all` alone wouldn't prove."""
+    column_info = (
+        await seeded_repo.session.execute(
+            text(
+                "SELECT is_generated, generation_expression "
+                "FROM information_schema.columns "
+                "WHERE table_name = 'verses' AND column_name = 'text_tsv'"
+            )
+        )
+    ).one()
+    assert (
+        column_info.is_generated == "ALWAYS"
+    ), "text_tsv must be GENERATED ALWAYS, not a plain column"
+    assert "to_tsvector" in column_info.generation_expression
+
+    tsv_value = (
+        await seeded_repo.session.execute(
+            text("SELECT text_tsv FROM verses WHERE translation = :translation").bindparams(
+                translation=_TRANSLATION
+            )
+        )
+    ).scalar_one()
+    assert tsv_value is not None, "text_tsv was not populated for the seeded verse"

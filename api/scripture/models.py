@@ -10,6 +10,7 @@ from typing import Optional
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
+    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -23,6 +24,7 @@ from sqlalchemy import (
 # bare `text` import inside the class body (TypeError: 'MappedColumn' object is
 # not callable).
 from sqlalchemy import text as sql_text
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from config import settings
@@ -147,6 +149,17 @@ class Verse(Base):
         Vector(settings.embedding_dimensions), nullable=True
     )
 
+    # Persisted, DB-generated full-text search vector (BITB-062, Alembic r0004).
+    # Read-only from the app's side -- Postgres derives it from
+    # `text` on every write, so nothing here ever assigns to it. Backs
+    # `idx_verses_text_tsv`, letting search_verses_text query an indexed column
+    # instead of recomputing `to_tsvector('simple', text)` per row.
+    text_tsv: Mapped[Optional[str]] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('simple', text)", persisted=True),
+        nullable=True,
+    )
+
     # Relationships
     book: Mapped["Book"] = relationship(back_populates="verses")
     chapter: Mapped["Chapter"] = relationship(back_populates="verses")
@@ -168,6 +181,7 @@ class Verse(Base):
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
         Index("idx_verses_translation", "translation"),
+        Index("idx_verses_text_tsv", "text_tsv", postgresql_using="gin"),
     )
 
     @property
