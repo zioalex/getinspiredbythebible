@@ -2,7 +2,7 @@
 
 **Status:** 🚧 In Progress — candidate-pool CTE + topics index + FTS rewrite + persisted `tsvector`
 column done; `search_verses_text` query switch to the new column (and retiring
-`idx_verses_fts_simple`) deferred to a follow-up (see Scope Note)
+`idx_verses_fts_simple`) split out as **BITB-095** (see Scope Note)
 **Priority:** P1 (High) — 2026-07 adversarial audit S2 (HIGH); public unauthenticated endpoint full-scans the production database
 **Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
 **Created:** 2026-07-03
@@ -36,7 +36,7 @@ text)) STORED`) and its GIN index (`idx_verses_text_tsv`) as a single Alembic re
 It is deliberately additive
 only: `search_verses_text` still matches on the raw `to_tsvector('simple', text)`
 expression and `idx_verses_fts_simple` is left in place, so there is no functional or
-performance regression window. **Deferred to a second follow-up** (split for the same
+performance regression window. **Split out as BITB-095** (for the same
 reason — deploy runs the new app code before `run-migrations`, so shipping the query
 switch in the same push as the migration would 500 public search for the deploy window):
 switching `search_verses_text` to query `text_tsv` directly and dropping the now-redundant
@@ -80,7 +80,7 @@ scarce headroom fastest.
       plainto_tsquery('simple', :query)`, matching migration 003's existing
       `idx_verses_fts_simple` expression index.
 - [x] Persisted generated `tsvector` column: `verses.text_tsv` + `idx_verses_text_tsv`
-      (Alembic `r0004`). **Deferred to a follow-up:** switching
+      (Alembic `r0004`). **Carried by BITB-095:** switching
       `search_verses_text` to query this column instead of the raw expression, and
       retiring `idx_verses_fts_simple` — see Scope Note above.
 - [x] SQL-shape regression tests assert the candidate-pool CTE runs before the threshold filter and

@@ -246,11 +246,10 @@ async def test_search_verses_text_executes_against_real_db(seeded_repo):
     assert any(v.text == _VERSE_TEXT for v in verses)
 
 
-# ── BITB-062: verses.text_tsv persisted generated column ──────────────────
-# search_verses_text itself still matches on the raw to_tsvector(...) expression
-# (a follow-up PR switches it to this column and retires idx_verses_fts_simple);
-# this guards that the column/index this follow-up depends on actually exist
-# and that Postgres populates the column, not just that the ORM declares it.
+# ── BITB-062 / BITB-095: verses.text_tsv persisted generated column ───────
+# BITB-062 added the column; BITB-095 pointed search_verses_text at it. These
+# guard that the column really is DB-generated (not merely declared on the ORM
+# model) and that querying it returns exactly what the old expression returned.
 
 
 async def test_verses_text_tsv_column_is_generated(seeded_repo):
@@ -279,3 +278,55 @@ async def test_verses_text_tsv_column_is_generated(seeded_repo):
         )
     ).scalar_one()
     assert tsv_value is not None, "text_tsv was not populated for the seeded verse"
+
+
+async def test_text_tsv_match_agrees_with_the_expression_it_replaced(seeded_repo):
+    """BITB-095: the switched query must select exactly the rows the old
+    `to_tsvector('simple', text)` form did.
+
+    The two are identical by construction -- the generated column stores that
+    same expression -- but "by construction" is the claim the follow-up PR that
+    drops `idx_verses_fts_simple` will rest on, so it is worth asserting rather
+    than assuming. Both forms are run here against the same rows, so a
+    divergence (say, a future change to the column's expression) fails loudly.
+
+    Deliberately *not* an EXPLAIN assertion: the seeded table holds a handful of
+    rows, where Postgres correctly prefers a sequential scan over any GIN index.
+    A plan check here would assert the fixture's size, not the production plan.
+    BITB-095 carries an EXPLAIN against production as its own criterion.
+    """
+    query = "loved the world"
+
+    new_form = (
+        (
+            await seeded_repo.session.execute(
+                text(
+                    "SELECT id FROM verses "
+                    "WHERE text_tsv @@ plainto_tsquery('simple', :q) ORDER BY id"
+                ).bindparams(q=query)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    old_form = (
+        (
+            await seeded_repo.session.execute(
+                text(
+                    "SELECT id FROM verses "
+                    "WHERE to_tsvector('simple', text) @@ plainto_tsquery('simple', :q) "
+                    "ORDER BY id"
+                ).bindparams(q=query)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    assert new_form, "the seeded verse should match; an empty result proves nothing"
+    assert new_form == old_form
+
+    # And the repository method -- the thing actually switched -- agrees too.
+    verses = await seeded_repo.search_verses_text(query=query)
+    assert sorted(v.id for v in verses) == list(old_form)

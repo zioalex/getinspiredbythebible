@@ -247,17 +247,20 @@ class ScriptureRepository:
     async def search_verses_text(self, query: str, limit: int = 20) -> Sequence[Verse]:
         """Full-text search on verse content.
 
-        Uses ``@@`` against ``to_tsvector('simple', text)`` so the planner can use the
-        expression GIN index (``idx_verses_fts_simple``, migration 003) instead of the
-        leading-wildcard ``ILIKE`` full scan.
+        Matches ``@@`` against the persisted generated column ``verses.text_tsv``
+        (revision ``r0004``), so the planner uses ``idx_verses_text_tsv`` -- a plain
+        GIN index over a stored value -- rather than recomputing the tsvector.
+
+        This previously matched ``to_tsvector('simple', text)`` against the *expression*
+        index ``idx_verses_fts_simple`` (migration 003). Results are identical by
+        construction: the generated column's expression is that same expression. See
+        BITB-095, which also retires the now-unused expression index -- deliberately in
+        a later deploy, since until then it is what keeps a rollback to the previous
+        app version off a sequential scan.
         """
         result = await self.session.execute(
             select(Verse)
-            .where(
-                text("to_tsvector('simple', text) @@ plainto_tsquery('simple', :query)").bindparams(
-                    query=query
-                )
-            )
+            .where(text("text_tsv @@ plainto_tsquery('simple', :query)").bindparams(query=query))
             .limit(limit)
             .options(selectinload(Verse.book))
         )
@@ -400,7 +403,7 @@ class ScriptureRepository:
                     d.id,
                     (1 - d.dist) AS semantic_score,
                     ts_rank(
-                        to_tsvector('simple', v.text),
+                        v.text_tsv,
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM dedup d
@@ -612,7 +615,7 @@ class ScriptureRepository:
                     d.id,
                     (1 - d.dist) AS semantic_score,
                     ts_rank(
-                        to_tsvector('simple', v.text),
+                        v.text_tsv,
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM dedup d

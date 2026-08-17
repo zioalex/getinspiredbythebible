@@ -1426,6 +1426,45 @@ is the standard this story replaces.
 
 ---
 
+### 🚧 BITB-095: Switch the Verse FTS Queries to `text_tsv` and Retire the Expression Index
+
+**Status:** 🚧 In Progress — Phase 1 (query switch) implemented; Phase 2 (index drop) not started
+**Size:** S (two phases, each small; the care is in the ordering, not the code)
+**Depends on:** BITB-062 / PR #955 — `r0004` must be **deployed and applied in production**, not
+merely merged
+
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the verse full-text queries to
+read the persisted `verses.text_tsv` column instead of recomputing `to_tsvector('simple', text)`
+per row, **so that** the column PR #955 paid for actually gets used and the redundant expression
+index can be dropped instead of being maintained on every write forever.
+
+PR #955 is deliberately additive: it adds the generated column and `idx_verses_text_tsv`, and
+changes no query. So on the day it deploys, production carries two GIN indexes over the same value
+plus a stored column on 403,856 rows, and nothing reads the new one. That intermediate state is
+what makes the switch reversible; this story is the other half, and closing it is what turns #955
+from a cost into a win.
+
+**Why two phases:** `azure-deploy.yml` runs `deploy` **before** `run-migrations`, so new app code
+is live before the migration it depends on has been applied. Shipping the query switch with the
+column would 500 public search for the deploy window. The same asymmetry runs the other way at the
+end — dropping `idx_verses_fts_simple` while the previous app version is still rollback-reachable
+puts that code on a sequential scan over the whole `verses` table.
+
+**Acceptance Criteria:** see the full story. Phase 1 is the three call sites in
+`api/scripture/repository.py` plus tests; Phase 2 is `r0005`, `DROP INDEX CONCURRENTLY
+idx_verses_fts_simple`, opened only after Phase 1 has been healthy in production for a deploy
+cycle, with production `EXPLAIN` output before and after.
+
+**Adjacent finding, deliberately not folded in:** `idx_verses_fts_english` and
+`idx_passages_fts_english` (`scripts/migrations/003`) are queried by nothing — no code anywhere
+builds a `to_tsvector('english', ...)`. Two GIN indexes maintained on every write for no reader.
+Worth its own story with `pg_stat_user_indexes.idx_scan` evidence from production rather than being
+dropped on the strength of a grep.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-095-switch-verse-fts-queries-to-text-tsv.md`
+
+---
+
 ### ✅ BITB-092: Fix Dev Stack `db-init` Migration Failure and Embedding Config Drift
 
 **Status:** ✅ Done (2026-08-09)

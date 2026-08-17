@@ -509,8 +509,12 @@ class TestSearchVersesTextUsesFts:
         compiled_stmt = mock_session.execute.call_args_list[0][0][0]
         sql = str(compiled_stmt.compile(compile_kwargs={"literal_binds": False}))
         assert "ilike" not in sql.lower()
-        assert "to_tsvector" in sql
         assert "plainto_tsquery" in sql
+        # BITB-095: matches the persisted generated column, not the recomputed
+        # expression. Asserting the expression is *absent* is the half that
+        # matters -- it is what makes dropping idx_verses_fts_simple safe.
+        assert "text_tsv" in sql
+        assert "to_tsvector" not in sql
 
 
 # ==================== SearchService Tests ====================
