@@ -10,7 +10,6 @@ from typing import Optional
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
-    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -149,16 +148,8 @@ class Verse(Base):
         Vector(settings.embedding_dimensions), nullable=True
     )
 
-    # Persisted, DB-generated full-text search vector (BITB-062, Alembic r0004).
-    # Read-only from the app's side -- Postgres derives it from
-    # `text` on every write, so nothing here ever assigns to it. Backs
-    # `idx_verses_text_tsv`, letting search_verses_text query an indexed column
-    # instead of recomputing `to_tsvector('simple', text)` per row.
-    text_tsv: Mapped[Optional[str]] = mapped_column(
-        TSVECTOR,
-        Computed("to_tsvector('simple', text)", persisted=True),
-        nullable=True,
-    )
+    # The persisted full-text search vector lives in `VerseTsv`, deliberately
+    # not as a column here -- see that class and Alembic r0004 (BITB-096).
 
     # Relationships
     book: Mapped["Book"] = relationship(back_populates="verses")
@@ -181,7 +172,6 @@ class Verse(Base):
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
         Index("idx_verses_translation", "translation"),
-        Index("idx_verses_text_tsv", "text_tsv", postgresql_using="gin"),
     )
 
     @property
@@ -191,6 +181,41 @@ class Verse(Base):
 
     def __repr__(self) -> str:
         return f"<Verse(reference='{self.reference}', translation='{self.translation}')>"
+
+
+class VerseTsv(Base):
+    """Persisted ``simple`` full-text search vector for each verse (BITB-096).
+
+    A side table rather than a column on ``verses`` because adding a ``STORED``
+    generated column rewrites the whole table under ``ACCESS EXCLUSIVE`` -- a
+    45-minute production outage on 2026-08-17 -- and because rewriting
+    ``verses`` rows also churns ``idx_verse_embedding_hnsw`` over its 1536-dim
+    vectors. Populating a separate table costs neither. See Alembic ``r0004``.
+
+    Keeping the tsvector off ``Verse`` has a second benefit worth preserving:
+    ``search_verses_text`` issues ``select(Verse)``, which emits every mapped
+    column, so a tsvector column there makes *every verse read* depend on the
+    migration having run. That coupling is what turned a slow migration into a
+    total outage. Nothing here is mapped onto ``Verse``, and there is
+    intentionally no ``relationship()`` between the two.
+
+    Maintained by the ``verses_tsv_sync`` trigger (also ``r0004``), so the app
+    never writes it; deletes are handled by ``ON DELETE CASCADE``.
+    """
+
+    __tablename__ = "verse_tsv"
+
+    verse_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("verses.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    text_tsv: Mapped[str] = mapped_column(TSVECTOR, nullable=False)
+
+    __table_args__ = (Index("idx_verse_tsv_tsv", "text_tsv", postgresql_using="gin"),)
+
+    def __repr__(self) -> str:
+        return f"<VerseTsv(verse_id={self.verse_id})>"
 
 
 class Passage(Base):
