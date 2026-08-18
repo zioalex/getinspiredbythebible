@@ -357,7 +357,10 @@ async def test_verse_tsv_has_its_gin_index_and_cascades(seeded_repo):
     delete_action = (
         await session.execute(
             text(
-                "SELECT confdeltype FROM pg_constraint "
+                # ::text matters -- confdeltype is Postgres's internal "char"
+                # type, which asyncpg hands back as bytes (b"c"), not str. psql
+                # renders it as text, so this only shows up under the driver.
+                "SELECT confdeltype::text FROM pg_constraint "
                 "WHERE conrelid = 'verse_tsv'::regclass AND contype = 'f'"
             )
         )
