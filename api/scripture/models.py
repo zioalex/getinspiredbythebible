@@ -201,6 +201,14 @@ class VerseTsv(Base):
 
     Maintained by the ``verses_tsv_sync`` trigger (also ``r0004``), so the app
     never writes it; deletes are handled by ``ON DELETE CASCADE``.
+
+    Deliberately **unindexed** on ``text_tsv``. Only ``ts_rank`` in the hybrid
+    search builders reads this table, reached by ``verse_id`` from the
+    already-narrowed HNSW candidate pool, and ``ts_rank`` uses no index.
+    ``search_verses_text`` keeps matching ``@@`` against the expression index
+    ``idx_verses_fts_simple``, which measured faster than joining through here
+    (0.105 ms vs 0.144 ms over 403,856 rows). A GIN index on this column would
+    have no reader and cost write overhead on every seed. See ``r0004``.
     """
 
     __tablename__ = "verse_tsv"
@@ -211,8 +219,6 @@ class VerseTsv(Base):
         primary_key=True,
     )
     text_tsv: Mapped[str] = mapped_column(TSVECTOR, nullable=False)
-
-    __table_args__ = (Index("idx_verse_tsv_tsv", "text_tsv", postgresql_using="gin"),)
 
     def __repr__(self) -> str:
         return f"<VerseTsv(verse_id={self.verse_id})>"

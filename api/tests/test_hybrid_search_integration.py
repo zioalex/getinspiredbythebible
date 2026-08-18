@@ -341,19 +341,36 @@ async def test_verse_tsv_trigger_follows_text_updates(seeded_repo):
     assert matched is True, "verse_tsv did not follow the update to verses.text"
 
 
-async def test_verse_tsv_has_its_gin_index_and_cascades(seeded_repo):
-    """The GIN index is what makes the BITB-095 switch worth doing, and the
-    cascade is what keeps `verse_tsv` from outliving its verses -- the side
-    table's substitute for a column's automatic lifecycle."""
-    session = seeded_repo.session
-    index_def = (
-        await session.execute(
-            text("SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_verse_tsv_tsv'")
-        )
-    ).scalar_one_or_none()
-    assert index_def is not None, "idx_verse_tsv_tsv is missing"
-    assert "gin" in index_def.lower()
+async def test_verse_tsv_text_tsv_stays_unindexed(seeded_repo):
+    """`verse_tsv.text_tsv` must have no index on it.
 
+    Measured over 403,856 rows, matching `@@` through a join against this
+    table is *slower* than the existing expression index
+    `idx_verses_fts_simple` (0.144 ms vs 0.105 ms), because that index already
+    stores the same computed tsvectors. So `search_verses_text` keeps using it,
+    and this table is read only by `ts_rank` -- reached by `verse_id`, which
+    uses no index at all. An index here would have no reader and would cost
+    write overhead on every seed. See r0004 and BITB-096.
+    """
+    indexes = (
+        (
+            await seeded_repo.session.execute(
+                text(
+                    "SELECT indexdef FROM pg_indexes "
+                    "WHERE tablename = 'verse_tsv' AND indexdef ILIKE '%text_tsv%'"
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert indexes == [], f"verse_tsv.text_tsv should carry no index, found: {indexes}"
+
+
+async def test_verse_tsv_cascades_on_verse_delete(seeded_repo):
+    """The cascade is the side table's substitute for a column's automatic
+    lifecycle -- without it `verse_tsv` rows outlive the verses they describe."""
+    session = seeded_repo.session
     delete_action = (
         await session.execute(
             text(

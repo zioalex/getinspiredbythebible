@@ -1411,17 +1411,24 @@ revision can be replaced in place.
 
 The tsvector moves to a `verse_tsv(verse_id PK, text_tsv)` side table maintained by a trigger. No
 rewrite, and — unlike the shadow-table and batched-`UPDATE` alternatives — no rebuild of
-`idx_verse_embedding_hnsw` over 403,856 1536-dimension vectors. Measured on identical data: 12 ms
+`idx_verse_embedding_hnsw` over 403,856 1536-dimension vectors. Measured on identical data: 6.3 ms
 for the whole migration against 7.5 s for the `ALTER TABLE` alone, before production's ~40× wider
 rows and throttled CPU.
+
+**The justification is safety, not speed**, and the benchmark is why. Over 403,856 rows the
+`ts_rank` sites get 11.5× faster (2.750 ms → 0.238 ms per hybrid query), but `search_verses_text`
+is **37% slower** through the side table (0.105 ms → 0.144 ms) — `idx_verses_fts_simple` is an
+expression index that already stores the computed tsvectors, so that lookup was never recomputing
+anything. It therefore stays as it is, `verse_tsv.text_tsv` carries no index at all, and BITB-095
+Phase 2 (dropping the expression index) is cancelled.
 
 **Acceptance Criteria (summary):**
 
 - [x] `r0004` rewritten in place, with `lock_timeout`/`statement_timeout` set inside the migration
 - [x] `VerseTsv` ORM model; **no** tsvector column on `Verse`, so `select(Verse)` no longer depends
       on the migration having run — the coupling that made the outage total
-- [x] `scripts/backfill_verse_tsv.py`: batched, resumable, idempotent, ends in the mandatory
-      `VACUUM ANALYZE` (without it the GIN pending list makes the planner reject the index)
+- [x] `scripts/backfill_verse_tsv.py`: batched, resumable, idempotent, ends in `ANALYZE verse_tsv`
+- [x] Benchmarked rather than assumed; `search_verses_text` left on the expression index
 - [x] Verified against a real Postgres 16 at 403,856 rows, including downgrade and re-upgrade
 - [ ] Applied in production; `alembic current` reports `r0004` and counts match
 

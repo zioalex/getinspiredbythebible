@@ -180,18 +180,14 @@ async def main() -> int:
             log(f"ERROR: incomplete -- {verses - tsv_after:,} verses still have no tsvector")
             return 1
 
-        # Not optional. r0004 creates idx_verse_tsv_tsv on an empty table, so
-        # every row this script inserts lands in the GIN *pending list*
-        # (fastupdate is on by default) rather than the index proper. Measured
-        # on 403,856 rows: with the pending list unmerged the planner costs a
-        # bitmap index scan at 1506 and picks a sequential scan instead --
-        # 99ms per query, and the index this whole story exists to provide goes
-        # unused. VACUUM merges the pending list; the same scan then costs 27
-        # and the planner uses it (0.1ms). ANALYZE comes along for the stats.
-        log("Merging the GIN pending list (VACUUM ANALYZE verse_tsv)…")
-        vacuum_started = time.monotonic()
-        await conn.execute("VACUUM ANALYZE verse_tsv")
-        log(f"  done in {time.monotonic() - vacuum_started:.1f}s")
+        # verse_tsv carries no index on text_tsv (see r0004), so there is no
+        # GIN pending list to merge here. ANALYZE still earns its place: the
+        # hybrid builders join this table by verse_id, and the planner needs
+        # statistics on a table that went from empty to 400k rows in one go.
+        log("ANALYZE verse_tsv…")
+        analyze_started = time.monotonic()
+        await conn.execute("ANALYZE verse_tsv")
+        log(f"  done in {time.monotonic() - analyze_started:.1f}s")
 
         log("verse_tsv covers every verse.")
         return 0

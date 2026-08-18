@@ -8,9 +8,14 @@
 
 ## User Story
 
-**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the persisted verse tsvector to
-land without rewriting the `verses` table, **so that** BITB-095 can stop recomputing
-`to_tsvector('simple', text)` per row without a repeat of the 2026-08-17 outage.
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the migration that took
+production down replaced by one that cannot, **and** the hybrid search's per-candidate
+`to_tsvector` recomputation eliminated, **so that** `r0004` stops being a landmine without a
+repeat of the 2026-08-17 outage.
+
+**The primary justification is safety, not speed.** The merged `r0004` will take production down
+if anyone runs `upgrade head`; something has to replace it. The performance gain is real but
+narrow, and measured below rather than assumed.
 
 ## Why This Exists — the 2026-08-17 outage
 
@@ -64,7 +69,7 @@ The side table also breaks coupling **2** permanently: with no tsvector on the `
 compatible with an un-migrated database, which is the property whose absence turned a slow
 migration into a total outage.
 
-**Cost accepted:** a primary-key join in the FTS queries, and a trigger instead of a generated
+**Cost accepted:** a primary-key join in the `ts_rank` sites, and a trigger instead of a generated
 column's automatic maintenance. The trigger is tested rather than assumed.
 
 ## Design
@@ -74,7 +79,7 @@ CREATE TABLE verse_tsv (
     verse_id integer PRIMARY KEY REFERENCES verses(id) ON DELETE CASCADE,
     text_tsv tsvector NOT NULL
 );
-CREATE INDEX idx_verse_tsv_tsv ON verse_tsv USING GIN (text_tsv);
+-- deliberately no index on text_tsv; see "What this is actually worth" below
 ```
 
 maintained by an `AFTER INSERT OR UPDATE OF text` trigger on `verses`. Deletes need no handling —
@@ -97,7 +102,7 @@ Postgres 16, 403,856 rows, identical data, local hardware:
 
 | | time |
 | --- | --- |
-| **`r0004` as implemented here** (whole migration) | **12 ms** |
+| **`r0004` as implemented here** (whole migration) | **6.3 ms** |
 | superseded generated column: `ALTER TABLE` | 7,545 ms |
 | superseded generated column: `CREATE INDEX` | 5,337 ms |
 | `scripts/backfill_verse_tsv.py`, 403,856 rows | 22 s |
@@ -109,20 +114,35 @@ rows carry a 1536-dimension vector, making them roughly 40× wider, on a throttl
 The rewrite copies all of it. That ratio is the whole story, and it is why "measured locally" was
 never evidence for this class of change.
 
-### `VACUUM` after the backfill is mandatory, not hygiene
+### What this is actually worth — and where it is a regression
 
-The GIN index is created on an empty table, so every row the backfill inserts lands in the index's
-**pending list** (`fastupdate` is on by default) rather than the index proper. Measured at 403,856
-rows:
+The original framing of this work (BITB-062, BITB-095) claimed the queries "recompute
+`to_tsvector('simple', text)` per row". **For `search_verses_text` that was never true.**
+`idx_verses_fts_simple` (`scripts/migrations/003`) is an *expression* index, so it already stores
+the computed tsvectors and the lookup was always index-backed. Benchmarked on Postgres 16 over
+403,856 rows, both indexes freshly built at 10 MB, 2,000 iterations each:
 
-| | estimated cost of the bitmap index scan | plan chosen | query time |
+| path | today (expression index) | via `verse_tsv` | delta |
 | --- | --- | --- | --- |
-| before `VACUUM` | 1506 | **sequential scan** | 99 ms |
-| after `VACUUM ANALYZE verse_tsv` | 27 | bitmap index scan | 0.1 ms |
+| `search_verses_text` (`@@` lookup) | **0.105 ms** | 0.144 ms | **37% slower** |
+| `ts_rank` over a 200-row candidate pool (159-char verses) | 2.750 ms | **0.238 ms** | **11.5× faster, −2.51 ms** |
 
-Without the vacuum the planner rejects the index and the entire point of the story evaporates
-silently — the query still returns correct rows, just slowly. `scripts/backfill_verse_tsv.py`
-therefore runs `VACUUM ANALYZE verse_tsv` as its final step, and it is not optional.
+Two conclusions follow, and they reshaped this story:
+
+- **`search_verses_text` keeps using `idx_verses_fts_simple`.** Routing it through the side table
+  adds a primary-key hop back into `verses` for work the expression index already does. It is a
+  regression, small but real, and there is no reason to take it.
+- **`verse_tsv.text_tsv` carries no index.** The only reader is `ts_rank`, which reaches rows by
+  `verse_id` from the already-narrowed HNSW pool and uses no index at all. A GIN index here would
+  have no reader and would cost write overhead on every seed. Dropping it also removes a trap the
+  earlier draft had: an index built on an empty table leaves every backfilled row in the GIN
+  *pending list*, which made the planner cost a bitmap scan at 1506 and choose a sequential scan
+  (99 ms) until a `VACUUM` merged it. No index, no pending list, no mandatory vacuum.
+
+**So the honest value of this story is:** it removes a migration that will take production down,
+and it saves ~2.5 ms per hybrid query — call it 8–12 ms on the throttled 2-vCPU server. Against a
+hybrid request that already spends 50–200 ms on an Azure embedding call, that is low single-digit
+percent. Worth having; not worth much. The safety argument is what carries it.
 
 ## Rollout
 
@@ -134,11 +154,13 @@ Each step is invisible to users, and reversible until step 5.
    `run-migrations` job (`api/alembic/README.md` forbids pointing Alembic at production from a
    local machine).
 3. **Backfill** — `python scripts/backfill_verse_tsv.py`. Resumable, holds no lock anyone waits
-   on, ends with the mandatory `VACUUM ANALYZE`. Slow on the throttled server; it does not matter.
+   on, ends with `ANALYZE verse_tsv` for planner statistics. Slow on the throttled server; it
+   does not matter, because nothing waits on it.
 4. **Verify** — `SELECT count(*) FROM verses` equals `SELECT count(*) FROM verse_tsv`, and
    `bool_and(t.text_tsv = to_tsvector('simple', v.text))` is true.
 5. **Only then** switch the queries — BITB-095 Phase 1, reworked (below).
-6. **Later, separate deploy** — retire `idx_verses_fts_simple`, BITB-095 Phase 2, unchanged.
+6. ~~Retire `idx_verses_fts_simple`~~ — **cancelled.** `search_verses_text` still uses it, and
+   measurably should. See BITB-095 below.
 
 ## Acceptance Criteria
 
@@ -151,27 +173,35 @@ Each step is invisible to users, and reversible until step 5.
 - [x] `VerseTsv` ORM model, so `env.py`'s `_OWNED_TABLES` picks it up and `alembic check` stays
       clean; **no** tsvector column on `Verse` and no `relationship()` between them
 - [x] `scripts/backfill_verse_tsv.py` — batched, per-batch commits, resumable, idempotent,
-      `--dry-run`, ending in `VACUUM ANALYZE`
+      `--dry-run`, ending in `ANALYZE verse_tsv`
 - [x] Integration tests: the trigger populates on insert, follows an update to `text`, the stored
-      value equals `to_tsvector('simple', text)` exactly, the GIN index exists, the FK cascades
+      value equals `to_tsvector('simple', text)` exactly, `text_tsv` carries **no** index, the
+      FK cascades
 - [x] Verified end to end against a real Postgres 16 at 403,856 rows: upgrade, backfill,
       resume-after-interruption, parity, downgrade, and re-upgrade
 - [ ] Applied in production; `alembic current` reports `r0004` and counts match
-- [ ] `EXPLAIN` from production showing `idx_verse_tsv_tsv` in the plan (BITB-095 Phase 2 criterion)
+- [x] Benchmarked rather than assumed: the FTS lookup is *slower* through the side table, so
+      `search_verses_text` is left on `idx_verses_fts_simple` and BITB-095 Phase 2 is cancelled
 
 ## Follow-ups this creates
 
-**PR #1000 must be reworked, not merged.** It switches three call sites in
-`api/scripture/repository.py` to a `text_tsv` *column* that will no longer exist:
+**PR #1000 must be reworked, not merged — and reduced from three call sites to two.** It
+switches all three to a `text_tsv` *column* that will no longer exist. On the benchmark above,
+only the `ts_rank` pair should move:
 
-- `search_verses_text` — inner-join `verse_tsv`, match
-  `verse_tsv.text_tsv @@ plainto_tsquery('simple', :query)`
 - `search_verses_hybrid` and `search_verses_hybrid_multi` —
   `LEFT JOIN verse_tsv vt ON vt.verse_id = d.id`, with
   `ts_rank(COALESCE(vt.text_tsv, ''::tsvector), ...)`. **Left** join and `COALESCE` deliberately:
   a verse missing its row ranks zero instead of vanishing from results.
+- `search_verses_text` — **left alone.** It keeps matching
+  `to_tsvector('simple', text) @@ ...` against `idx_verses_fts_simple`, which is 37% faster than
+  the join.
 
 Its merge gate changes from "`r0004` applied" to "backfill verified complete".
+
+**BITB-095 Phase 2 is cancelled.** It planned to drop `idx_verses_fts_simple` on the grounds that
+nothing would use it after the switch. Something still does, and measurably should. The story
+should be closed with that finding recorded, not left open as a to-do.
 
 **The pipeline failures are their own story, and rank above this one.** None is a schema change,
 and all three caused the outage: `deploy` runs before `run-migrations`; `functional-tests` needs
