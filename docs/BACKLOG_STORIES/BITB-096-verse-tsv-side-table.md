@@ -1,6 +1,6 @@
 # BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
 
-**Status:** 🚧 In Progress — migration, model, backfill and tests implemented; not yet applied to production
+**Status:** ✅ Done (2026-08-18) — applied in production, backfilled and verified; query switch landed
 **Priority:** P1 (unblocks BITB-095, and removes a migration that will take production down if anyone runs it)
 **Size:** M
 **Created:** 2026-08-17
@@ -46,8 +46,10 @@ is a constraint on the replacement:
    "low single-digit seconds -- measured". That measurement was not taken at production scale or
    on production hardware.
 
-Production is currently at **`r0003`** on the pre-#955 image. The merged `r0004` has never been
-applied, which is the only reason it can be replaced in place rather than reverted.
+Production was at **`r0003`** on the pre-#955 image when this was written, and the merged `r0004`
+had never been applied — which is the only reason it could be replaced in place rather than
+reverted. It has since landed: `alembic current` reports `r0004 (head)`, and the backfill covers
+all 403,856 verses with `bool_and(t.text_tsv = to_tsvector('simple', v.text))` returning true.
 
 ### Why a side table, and not the other three options
 
@@ -179,34 +181,44 @@ Each step is invisible to users, and reversible until step 5.
       FK cascades
 - [x] Verified end to end against a real Postgres 16 at 403,856 rows: upgrade, backfill,
       resume-after-interruption, parity, downgrade, and re-upgrade
-- [ ] Applied in production; `alembic current` reports `r0004` and counts match
+- [x] Applied in production (2026-08-18): `alembic current` reports `r0004 (head)`,
+      `count(verses) = count(verse_tsv) = 403,856`, and
+      `bool_and(t.text_tsv = to_tsvector('simple', v.text))` returns true
+- [x] Query switch landed: `ts_rank` in `search_verses_hybrid` and
+      `search_verses_hybrid_boosted` reads `verse_tsv` via `LEFT JOIN`;
+      `search_verses_text` deliberately untouched
 - [x] Benchmarked rather than assumed: the FTS lookup is *slower* through the side table, so
       `search_verses_text` is left on `idx_verses_fts_simple` and BITB-095 Phase 2 is cancelled
 
 ## Follow-ups this creates
 
-**PR #1000 must be reworked, not merged — and reduced from three call sites to two.** It
-switches all three to a `text_tsv` *column* that will no longer exist. On the benchmark above,
-only the `ts_rank` pair should move:
-
-- `search_verses_hybrid` and `search_verses_hybrid_multi` —
-  `LEFT JOIN verse_tsv vt ON vt.verse_id = d.id`, with
-  `ts_rank(COALESCE(vt.text_tsv, ''::tsvector), ...)`. **Left** join and `COALESCE` deliberately:
-  a verse missing its row ranks zero instead of vanishing from results.
-- `search_verses_text` — **left alone.** It keeps matching
-  `to_tsvector('simple', text) @@ ...` against `idx_verses_fts_simple`, which is 37% faster than
-  the join.
-
-Its merge gate changes from "`r0004` applied" to "backfill verified complete".
+**PR #1000 is superseded, not merged.** It switched three call sites to a `text_tsv` *column*
+that does not exist in this design. The correct switch — two sites, not three — is included in
+this story's own change instead, so #1000 should be closed.
 
 **BITB-095 Phase 2 is cancelled.** It planned to drop `idx_verses_fts_simple` on the grounds that
-nothing would use it after the switch. Something still does, and measurably should. The story
-should be closed with that finding recorded, not left open as a to-do.
+nothing would use it after the switch. `search_verses_text` still does, and measurably should
+(0.105 ms against 0.144 ms through the side table). The index stays.
 
-**The pipeline failures are their own story, and rank above this one.** None is a schema change,
-and all three caused the outage: `deploy` runs before `run-migrations`; `functional-tests` needs
-only `deploy`, so it races the migration and reports failures it cannot avoid; and a CI job
-timeout orphans server-side DDL rather than stopping it.
+**Naming correction.** BITB-095 and the first draft of this story both referred to
+`search_verses_hybrid_multi`. No such function exists — the second `ts_rank` site is in
+`search_verses_hybrid_boosted`. The multi-embedding case is a parameter (`extra_embeddings`) of
+`search_verses_hybrid`, not a separate method. The right two sites were changed regardless, since
+they were found by grepping for `ts_rank` over `verses`.
+
+**The pipeline failures remain unaddressed and rank above everything here.** None is a schema
+change, and between them they caused the outage and hid it:
+
+- `deploy` runs before `run-migrations`, so new code is live before its migration.
+- `functional-tests` needs only `deploy`, so it races the migration and reports failures it
+  cannot avoid.
+- A CI job timeout kills the client but not server-side DDL, which then holds its lock with no
+  possible commit.
+- `azure-deploy.yml` has **no `push` trigger** for `main`; it fires on `workflow_run` after
+  "CI/CD - Test Application". A merge touching only paths that workflow ignores (e.g. a
+  `deployment/**`-only change) therefore never deploys — observed with #1002 on 2026-08-18.
+- The `production` environment approval gate had 16 runs queued behind it, the oldest from
+  11 August. A gate with a two-week backlog is not gating anything.
 
 ## Related
 

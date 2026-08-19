@@ -1392,9 +1392,100 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
-### 🚧 BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
+### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🚧 In Progress
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+
+**As** the operator of a Postgres server with `public_network_access_enabled = true`, **I want**
+the application and migration connections to verify the server's certificate, **so that** TLS
+protects against an active attacker and not only a passive one.
+
+`sslmode=require` resolves to `check_hostname = False` and `verify_mode = CERT_NONE` in both
+`get_async_database_url()` and `get_migration_connection_params()` — verified by evaluating both
+against the production URL. Traffic is encrypted but the server is unauthenticated: any
+certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
+
+This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
+knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
+decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
+model. Not an Alembic issue; filed separately.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-098: Retire the Two English FTS Indexes Nothing Queries
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the GIN indexes no query reads
+to stop being maintained on every write, **so that** seeding and future backfills stop paying to
+update structures nothing will ever scan.
+
+`scripts/migrations/003` created four GIN indexes. Grepping the repo for
+`to_tsvector('english', …)` returns exactly two hits — the two `CREATE INDEX` statements that
+define `idx_verses_fts_english` and `idx_passages_fts_english`. Nothing else builds an `english`
+tsvector, so no query can match either index.
+
+**`idx_verses_fts_simple` must not be dropped** — that was BITB-095 Phase 2, cancelled on the
+measurement (0.105 ms against 0.144 ms through `verse_tsv`). This story covers only the two
+`_english` indexes, and requires `pg_stat_user_indexes.idx_scan` evidence from production before
+dropping anything: a grep proves no reader in this repo, not that nothing has ever queried them.
+Drop with `DROP INDEX CONCURRENTLY` inside an `autocommit_block()` — a plain `DROP INDEX` takes
+`ACCESS EXCLUSIVE` on `verses` and queues every reader behind it.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-098-retire-unused-english-fts-indexes.md`
+
+---
+
+### 🎯 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
+
+**Status:** 🎯 Todo
+**Priority:** P1 — five defects, each independently capable of causing or hiding an outage
+**Size:** M
+**Prompted by:** the 2026-08-17 outage (BITB-096) and the 2026-08-18 deploy that never fired
+
+**As** the operator of a single-maintainer production service, **I want** the deploy pipeline to
+run migrations before the code that needs them, to bound them from the database, and to actually
+fire when I merge, **so that** a schema change cannot take the site down for 45 minutes and a
+merged fix cannot silently never reach production.
+
+BITB-096 fixed the migration, not the pipeline. All five defects below are still live; yesterday's
+migration was safe only because it was written defensively.
+
+1. `deploy` runs **before** `run-migrations`, so new code is live before its schema exists.
+2. `functional-tests` needs only `deploy`, so it races the migration — all 33 failures it
+   reported on 2026-08-17 were unavoidable.
+3. A CI `timeout-minutes` kills the client, not the server-side DDL, which held its lock a
+   further 15 minutes with no possible commit. Only the database can bound the database.
+4. `azure-deploy.yml` has **no `push` trigger**; it fires on `workflow_run` after
+   "CI/CD - Test Application", whose paths exclude `deployment/**`. #1002 merged and never
+   deployed.
+5. The `production` gate had **16 runs queued, oldest from 11 August**, and there is no
+   `concurrency` group. On 2026-08-17 `deploy` was approved and `run-migrations` was not — the
+   gate's partial application *caused* the outage rather than preventing it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `deploy` depends on `run-migrations`, plus the expand/contract rule that ordering requires
+      documented in `docs/MIGRATION_GUIDELINES.md`
+- [ ] `functional-tests` depends on both; `lock_timeout`/`statement_timeout` set at job or role
+      level, below `timeout-minutes`
+- [ ] `deployment/**` added to the trigger paths, proven by a Terraform-only change deploying
+- [ ] `concurrency` group with `cancel-in-progress: false` (true would cancel a live migration)
+- [ ] Stranded `waiting` runs cleared and a decision recorded on the approval gate
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-097-deploy-pipeline-cannot-be-trusted-with-migrations.md`
+
+---
+
+### ✅ BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
+
+**Status:** ✅ Done (2026-08-18)
 **Size:** M
 **Supersedes:** the generated-column form of `r0004` (BITB-062 / PR #955)
 
@@ -1430,7 +1521,9 @@ Phase 2 (dropping the expression index) is cancelled.
 - [x] `scripts/backfill_verse_tsv.py`: batched, resumable, idempotent, ends in `ANALYZE verse_tsv`
 - [x] Benchmarked rather than assumed; `search_verses_text` left on the expression index
 - [x] Verified against a real Postgres 16 at 403,856 rows, including downgrade and re-upgrade
-- [ ] Applied in production; `alembic current` reports `r0004` and counts match
+- [x] Applied in production: `r0004 (head)`, 403,856 rows backfilled, expression parity true
+- [x] Query switch landed on the two `ts_rank` sites; `search_verses_text` left on the
+      expression index, BITB-095 Phase 2 cancelled
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-096-verse-tsv-side-table.md`
 
