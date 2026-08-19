@@ -1392,9 +1392,9 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
-### 🚧 BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
+### ✅ BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (2026-08-18)
 **Size:** M
 **Supersedes:** the generated-column form of `r0004` (BITB-062 / PR #955)
 
@@ -1430,7 +1430,9 @@ Phase 2 (dropping the expression index) is cancelled.
 - [x] `scripts/backfill_verse_tsv.py`: batched, resumable, idempotent, ends in `ANALYZE verse_tsv`
 - [x] Benchmarked rather than assumed; `search_verses_text` left on the expression index
 - [x] Verified against a real Postgres 16 at 403,856 rows, including downgrade and re-upgrade
-- [ ] Applied in production; `alembic current` reports `r0004` and counts match
+- [x] Applied in production: `r0004 (head)`, 403,856 rows backfilled, expression parity true
+- [x] Query switch landed on the two `ts_rank` sites; `search_verses_text` left on the
+      expression index, BITB-095 Phase 2 cancelled
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-096-verse-tsv-side-table.md`
 
