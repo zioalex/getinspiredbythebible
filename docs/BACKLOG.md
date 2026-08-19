@@ -1392,6 +1392,56 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+
+**As** the operator of a Postgres server with `public_network_access_enabled = true`, **I want**
+the application and migration connections to verify the server's certificate, **so that** TLS
+protects against an active attacker and not only a passive one.
+
+`sslmode=require` resolves to `check_hostname = False` and `verify_mode = CERT_NONE` in both
+`get_async_database_url()` and `get_migration_connection_params()` — verified by evaluating both
+against the production URL. Traffic is encrypted but the server is unauthenticated: any
+certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
+
+This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
+knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
+decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
+model. Not an Alembic issue; filed separately.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-098: Retire the Two English FTS Indexes Nothing Queries
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the GIN indexes no query reads
+to stop being maintained on every write, **so that** seeding and future backfills stop paying to
+update structures nothing will ever scan.
+
+`scripts/migrations/003` created four GIN indexes. Grepping the repo for
+`to_tsvector('english', …)` returns exactly two hits — the two `CREATE INDEX` statements that
+define `idx_verses_fts_english` and `idx_passages_fts_english`. Nothing else builds an `english`
+tsvector, so no query can match either index.
+
+**`idx_verses_fts_simple` must not be dropped** — that was BITB-095 Phase 2, cancelled on the
+measurement (0.105 ms against 0.144 ms through `verse_tsv`). This story covers only the two
+`_english` indexes, and requires `pg_stat_user_indexes.idx_scan` evidence from production before
+dropping anything: a grep proves no reader in this repo, not that nothing has ever queried them.
+Drop with `DROP INDEX CONCURRENTLY` inside an `autocommit_block()` — a plain `DROP INDEX` takes
+`ACCESS EXCLUSIVE` on `verses` and queues every reader behind it.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-098-retire-unused-english-fts-indexes.md`
+
+---
+
 ### 🎯 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
 
 **Status:** 🎯 Todo
