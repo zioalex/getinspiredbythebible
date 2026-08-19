@@ -1392,6 +1392,47 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
+
+**Status:** 🎯 Todo
+**Priority:** P1 — five defects, each independently capable of causing or hiding an outage
+**Size:** M
+**Prompted by:** the 2026-08-17 outage (BITB-096) and the 2026-08-18 deploy that never fired
+
+**As** the operator of a single-maintainer production service, **I want** the deploy pipeline to
+run migrations before the code that needs them, to bound them from the database, and to actually
+fire when I merge, **so that** a schema change cannot take the site down for 45 minutes and a
+merged fix cannot silently never reach production.
+
+BITB-096 fixed the migration, not the pipeline. All five defects below are still live; yesterday's
+migration was safe only because it was written defensively.
+
+1. `deploy` runs **before** `run-migrations`, so new code is live before its schema exists.
+2. `functional-tests` needs only `deploy`, so it races the migration — all 33 failures it
+   reported on 2026-08-17 were unavoidable.
+3. A CI `timeout-minutes` kills the client, not the server-side DDL, which held its lock a
+   further 15 minutes with no possible commit. Only the database can bound the database.
+4. `azure-deploy.yml` has **no `push` trigger**; it fires on `workflow_run` after
+   "CI/CD - Test Application", whose paths exclude `deployment/**`. #1002 merged and never
+   deployed.
+5. The `production` gate had **16 runs queued, oldest from 11 August**, and there is no
+   `concurrency` group. On 2026-08-17 `deploy` was approved and `run-migrations` was not — the
+   gate's partial application *caused* the outage rather than preventing it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `deploy` depends on `run-migrations`, plus the expand/contract rule that ordering requires
+      documented in `docs/MIGRATION_GUIDELINES.md`
+- [ ] `functional-tests` depends on both; `lock_timeout`/`statement_timeout` set at job or role
+      level, below `timeout-minutes`
+- [ ] `deployment/**` added to the trigger paths, proven by a Terraform-only change deploying
+- [ ] `concurrency` group with `cancel-in-progress: false` (true would cancel a live migration)
+- [ ] Stranded `waiting` runs cleared and a decision recorded on the approval gate
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-097-deploy-pipeline-cannot-be-trusted-with-migrations.md`
+
+---
+
 ### ✅ BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
 
 **Status:** ✅ Done (2026-08-18)
