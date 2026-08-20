@@ -14,6 +14,9 @@
 #   restore-local        Restore a dump into a local pgvector container   (local only)
 #   restore-new-server   Azure PITR into a NEW server                     (non-destructive)
 #   restore-same-server  Replace an existing database from a dump         (DESTRUCTIVE)
+#   server-url           Print the DATABASE_URL for an Azure server       (read-only)
+#   rehearse             Alembic stamp -> check -> upgrade on a COPY      (mutates a copy)
+#   delete-server        Delete a restored Azure server                   (DESTRUCTIVE)
 #
 # Connection: set DATABASE_URL, or PGHOST/PGDATABASE/PGUSER + PGPASSWORD.
 # Passwords are never taken as command-line arguments and never echoed.
@@ -36,6 +39,12 @@ die()  { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
 
 need() {
   command -v "$1" >/dev/null 2>&1 || die "$1 not found. $2"
+}
+
+# Join arguments with '|' for use inside an ERE alternation.
+join_alt() {
+  local IFS='|'
+  echo "$*"
 }
 
 # require_var NAME "what it is / example"
@@ -172,6 +181,81 @@ SQL
   ok "No invalid indexes."
 }
 
+# Azure Flexible Server has extensions the local pgvector image does not ship.
+# pg_cron is the one that always bites: the dump carries
+# `CREATE EXTENSION pg_cron`, a `cron` schema, and the contents of cron.job /
+# cron.job_run_details. None of it exists locally, every one of those entries
+# fails, and pg_restore then exits non-zero — which under `set -e` aborts the
+# whole restore even though nothing this application reads is missing.
+#
+# Filtering the table of contents is better than ignoring the exit code: the
+# known-absent objects are never attempted, so any error that *does* survive is
+# a real one worth stopping for.
+#
+# Emits a temp file path (caller deletes it), or nothing when there is nothing
+# to filter. Override with SKIP_EXTENSIONS / SKIP_SCHEMAS; set SKIP_EXTENSIONS
+# to the empty string to restore the dump verbatim.
+build_local_toc() {
+  local dump="$1" url="${2:-}" pw="${3:-}"
+  local -a exts schemas alts=()
+  read -r -a exts    <<< "${SKIP_EXTENSIONS-pg_cron}"
+  read -r -a schemas <<< "${SKIP_SCHEMAS-cron}"
+
+  # Every extension the dump creates that this server cannot provide is added
+  # to the list automatically. The hardcoded pg_cron default only covers the
+  # one we know about; auto-detection means the next Azure-only extension
+  # produces a skip rather than 20 failed objects and a re-run. Skipped
+  # entirely when SKIP_EXTENSIONS is explicitly empty (restore verbatim).
+  if [[ -n "$url" && -n "${SKIP_EXTENSIONS-unset}" ]]; then
+    local -a missing=()
+    local available dumped ext
+    available="$(PGPASSWORD="$pw" psql "$url" -tAc \
+      "SELECT name FROM pg_available_extensions" 2>/dev/null || true)"
+    if [[ -n "$available" ]]; then
+      dumped="$(pg_restore -l "$dump" | sed -nE 's/.*[[:space:]]EXTENSION[[:space:]]+-[[:space:]]+([A-Za-z0-9_]+).*/\1/p' | sort -u)"
+      for ext in $dumped; do
+        grep -qxF "$ext" <<< "$available" || missing+=("$ext")
+      done
+    fi
+    if [[ ${#missing[@]} -gt 0 ]]; then
+      warn "Extensions in the dump that this server cannot provide: ${missing[*]}" >&2
+      exts+=("${missing[@]}")
+    fi
+  fi
+  # De-duplicate; the default and the auto-detected list overlap on pg_cron.
+  [[ ${#exts[@]} -gt 0 ]] && mapfile -t exts < <(printf '%s\n' "${exts[@]}" | sort -u)
+
+  # A TOC line is "<id>; <oid> <oid> <DESCRIPTION> <schema> <name> <owner>",
+  # where objects belonging to no schema (extensions, and the schemas
+  # themselves) carry "-" in the schema column.
+  # Extensions: match by name anywhere on the line.
+  # Schema-owned objects: match only in the schema position — right after the
+  # uppercase description — so a public table that happens to be named "cron"
+  # is not swept up with them.
+  # The schemas' own entries ("SCHEMA - cron postgres", "ACL - cron ...") sit in
+  # the name column instead, hence the third alternative.
+  [[ ${#exts[@]}    -gt 0 ]] && alts+=("(^|[[:space:]])($(join_alt "${exts[@]}"))([[:space:]]|\$)")
+  if [[ ${#schemas[@]} -gt 0 ]]; then
+    alts+=("[[:space:]][A-Z][A-Z ]*[[:space:]]($(join_alt "${schemas[@]}"))[[:space:]]")
+    alts+=("[[:space:]]-[[:space:]]($(join_alt "${schemas[@]}"))([[:space:]]|\$)")
+  fi
+  [[ ${#alts[@]} -eq 0 ]] && return 0
+
+  local skip_re toc count
+  skip_re="$(join_alt "${alts[@]}")"
+  toc="$(mktemp)"
+  pg_restore -l "$dump" | grep -vE "$skip_re" > "$toc"
+  count="$(pg_restore -l "$dump" | grep -cE "$skip_re" || true)"
+
+  if [[ "$count" == "0" ]]; then
+    rm -f "$toc"
+    return 0
+  fi
+  warn "Skipping $count entr$([[ "$count" == "1" ]] && echo y || echo ies) not available locally" >&2
+  warn "  extensions: ${exts[*]:-none}   schemas: ${schemas[*]:-none}" >&2
+  printf '%s' "$toc"
+}
+
 cmd_restore_local() {
   need docker "Install Docker, or restore into a Postgres 16 + pgvector instance yourself."
   need pg_restore "Install the postgresql-client package."
@@ -206,7 +290,28 @@ cmd_restore_local() {
                                  -c "SELECT pg_reload_conf();" >/dev/null
 
   log "Restoring $dump"
-  PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" -d "$url" "$dump"
+  local -a toc_args=()
+  local toc log_file
+  toc="$(build_local_toc "$dump" "$url" "$pw")"
+  [[ -n "$toc" ]] && toc_args=(-L "$toc")
+  log_file="$(mktemp)"
+
+  if ! PGPASSWORD="$pw" pg_restore --no-owner --no-acl -j "${JOBS:-4}" \
+       ${toc_args[@]+"${toc_args[@]}"} -d "$url" "$dump" 2>&1 | tee "$log_file"; then
+    echo
+    warn "Distinct errors reported by pg_restore:"
+    # The raw output repeats the same handful of causes once per failed object.
+    # Collapsing to distinct reasons is what makes this diagnosable at a glance.
+    grep -oE 'ERROR:.*' "$log_file" | sort | uniq -c | sort -rn | head -20 | sed 's/^/    /'
+    echo
+    warn "Full output: $log_file"
+    warn "If a cause is an extension Azure has and this image does not, add it to"
+    warn "SKIP_EXTENSIONS and its schema to SKIP_SCHEMAS, then re-run:"
+    warn "  SKIP_EXTENSIONS='pg_cron <other>' SKIP_SCHEMAS='cron <other>' make db-restore-local DUMP=$dump"
+    die "Restore incomplete — do not rehearse a migration against this copy."
+  fi
+  rm -f "$log_file"
+  [[ -n "$toc" ]] && rm -f "$toc"
 
   ok "Restored into $url"
   echo "  DATABASE_URL=\"$url\" PGPASSWORD=$pw make db-restore-verify"
@@ -234,8 +339,125 @@ cmd_restore_new_server() {
     --source-server "$source" --restore-time "$point"
 
   ok "Restore started for $target"
-  warn "Verify it, then remember to delete it:"
-  echo "  az postgres flexible-server delete -g $rg -n $target --yes"
+  echo
+  echo "Next:"
+  echo "  make az-pg-add-ip SERVER=$target        # open the firewall on the COPY"
+  echo "  make db-server-url SERVER=$target       # build its DATABASE_URL"
+  echo "  make db-delete-server SERVER=$target    # when you are done — it is billable"
+}
+
+cmd_server_url() {
+  need az "Install the Azure CLI: https://aka.ms/azure-cli"
+  require_var PG_RG "the Azure resource group"
+  require_var SERVER "the server to build a URL for, e.g. make db-server-url SERVER=${PG_SERVER:-<server>}-restore-20260810"
+  # shellcheck disable=SC2153  # SERVER is an environment input (see the Makefile
+  # targets), not a misspelling of the unrelated local `server` in cmd_info.
+  local target="$SERVER" fqdn
+
+  fqdn="$(az postgres flexible-server show \
+    --resource-group "$PG_RG" --name "$target" \
+    --query fullyQualifiedDomainName -o tsv 2>/dev/null || true)"
+  [[ -n "$fqdn" ]] || die "No server '$target' in resource group '$PG_RG' (or the restore is still provisioning)."
+
+  # sslmode, never ssl — see Rule #1 in docs/MIGRATION_GUIDELINES.md.
+  # No password: a PITR copy keeps the source server's admin credentials, and
+  # this URL is meant to be pasted into a shell where PGPASSWORD supplies it.
+  echo "postgresql://${DB_USER:-bible}@${fqdn}:5432/${PG_DB:-bibledb}?sslmode=require"
+  warn "Password: export PGPASSWORD — a PITR copy keeps the SOURCE server's admin credentials." >&2
+  warn "asyncpg and libpq both read PGPASSWORD, so it never needs to go in the URL." >&2
+}
+
+cmd_delete_server() {
+  need az "Install the Azure CLI: https://aka.ms/azure-cli"
+  require_var PG_RG "the Azure resource group"
+  require_var SERVER "the restored server to delete, e.g. make db-delete-server SERVER=..."
+  # shellcheck disable=SC2153  # SERVER is an environment input (see the Makefile
+  # targets), not a misspelling of the unrelated local `server` in cmd_info.
+  local target="$SERVER"
+
+  # The whole point of this target is tearing down rehearsal copies, so the one
+  # thing it must never accept is the production server name.
+  [[ "$target" != "${PG_SERVER:-}" ]] || die "Refusing to delete '$target' — that is PG_SERVER (production).
+This target exists to delete restored *copies*. Deleting the live server is
+not something to do through a convenience wrapper."
+
+  warn "Deleting an Azure server also deletes its automatic backups."
+  require_confirmation "$target" "permanently delete the Azure server '$target'"
+  az postgres flexible-server delete --resource-group "$PG_RG" --name "$target" --yes
+  ok "Deleted $target"
+}
+
+# Stage 1 of the Alembic prod-adoption sequence (BITB-089): prove the r0001
+# baseline matches a real copy of production before stamping production itself.
+#
+# stamp-then-check, not check alone: `alembic check` runs autogenerate, and
+# autogenerate refuses to compare anything while the database is not at head
+# ("Target database is not up to date."). A restored copy of prod carries the
+# schema but none of Alembic's bookkeeping, so it must be stamped first — which
+# also rehearses the exact command Stage 2 runs against production.
+cmd_rehearse() {
+  need alembic "Install the API requirements: pip install -r api/requirements.txt"
+  require_database_url
+  local baseline="${BASELINE:-r0001}"
+
+  # A PITR copy's FQDN is "<server>.postgres.database.azure.com", so the
+  # production server name is a prefix of the production host and of nothing
+  # else. There is deliberately no override: stamping production is a
+  # documented one-time operator step, and `upgrade head` against production is
+  # the deploy pipeline's job, not a laptop's.
+  if [[ -n "${PG_SERVER:-}" && "$DB_HOST" == "$PG_SERVER".* ]]; then
+    die "Refusing to rehearse against '$DB_HOST' — that is production.
+Restore a copy first (make db-restore-new-server, or make db-restore-local),
+then point DATABASE_URL at the copy. For production itself, follow the
+operator runbook in docs/MIGRATION_GUIDELINES.md."
+  fi
+
+  log "Rehearsing the Alembic baseline against $(redact_url "$DB_URL")"
+  export DATABASE_URL="$DB_URL"
+  cd api || die "Run this from the repository root."
+
+  # Connect via `alembic current` first, and translate a failure into something
+  # actionable. Alembic surfaces a connection problem as a ~40-line asyncpg
+  # traceback, and the most common cause here is simply a missing password:
+  # DATABASE_URL deliberately carries none (repo convention), and asyncpg falls
+  # back to PGPASSWORD -- which is easy to forget to export.
+  # stdout and stderr stay separate on purpose: alembic logs INFO lines to
+  # stderr, and merging them would make `tail -n1` read a log line as the
+  # revision id -- reporting an unstamped database as stamped.
+  local current raw errfile
+  errfile="$(mktemp)"
+  if ! raw="$(alembic current 2>"$errfile")"; then
+    tail -n 3 "$errfile" >&2
+    rm -f "$errfile"
+    echo >&2
+    die "Could not connect to $(redact_url "$DB_URL").
+If this is the local restore container, its password is 'local':
+  export PGPASSWORD=local
+asyncpg reads PGPASSWORD when the URL carries no password (as it should not).
+For an Azure copy, export the source server's admin password instead."
+  fi
+  rm -f "$errfile"
+  current="$(printf '%s' "$raw" | tail -n1 | tr -d '[:space:]')"
+  if [[ -z "$current" ]]; then
+    log "No alembic_version row — stamping $baseline (writes one row, zero DDL)"
+    alembic stamp "$baseline"
+  else
+    log "Already stamped at $current — leaving it alone"
+  fi
+
+  log "alembic check (the gate — read-only, emits no DDL)"
+  if ! alembic check; then
+    echo
+    die "The baseline does not match this copy of production.
+Reconcile the difference with a reviewed revision — do NOT stamp production
+until this is clean. See docs/MIGRATION_GUIDELINES.md, Stage 1."
+  fi
+
+  log "alembic upgrade head (must be a no-op)"
+  alembic upgrade head
+  alembic current
+
+  ok "Baseline verified against this copy. Production can be stamped (Stage 2)."
 }
 
 cmd_restore_same_server() {
@@ -283,6 +505,9 @@ main() {
     restore-local)       cmd_restore_local ;;
     restore-new-server)  cmd_restore_new_server ;;
     restore-same-server) cmd_restore_same_server ;;
+    server-url)          cmd_server_url ;;
+    delete-server)       cmd_delete_server ;;
+    rehearse)            cmd_rehearse ;;
     -h|--help|help)      usage 0 ;;
     *) die "Unknown command '$cmd'. Run '$SCRIPT_NAME --help'." ;;
   esac

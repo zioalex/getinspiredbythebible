@@ -14,8 +14,15 @@ Usage:
     python load_bible.py --status           # Show verse count and embedding coverage per translation
 
 Environment Variables:
-    DATABASE_URL          - PostgreSQL connection string
-    EMBEDDING_DIMENSIONS  - Vector dimensions (default: 1024 for Ollama, use 1536 for Azure OpenAI)
+    DATABASE_URL              - PostgreSQL connection string
+    EMBEDDING_DIMENSIONS      - Vector dimensions (default: 1024 for Ollama, use 1536 for Azure OpenAI)
+    BIBLE_DOWNLOAD_CACHE_DIR  - Optional directory for freshly downloaded translation JSON. Only
+                                used when the committed data/bible/translations/<code>.json source
+                                file does not already exist. Lets containers bind-mount
+                                data/bible/translations read-only while still allowing first-run
+                                downloads (e.g. KJV) to land in a writable cache instead of failing
+                                with a PermissionError. Unset preserves the historical bare-host
+                                behavior of writing straight into data/bible/translations/.
 """
 
 import argparse
@@ -120,6 +127,33 @@ def log(message: str, flush: bool = True):
     """Print timestamped log message and flush immediately for CI visibility."""
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"[{timestamp}] {message}", flush=flush)
+
+
+def resolve_bible_data_path(translation_code: str, primary_path: Path) -> Path:
+    """Choose where to read/write a translation's Bible JSON.
+
+    Precedence:
+    1. `primary_path` (the committed `data/bible/translations/<code>.json` source) wins whenever
+       it already exists on disk — this is the read-only source of truth, and the only place
+       manual-only translations (e.g. Hindi, Luther) live, since they have no download URL.
+    2. If it doesn't exist and `BIBLE_DOWNLOAD_CACHE_DIR` is set, downloads are written under
+       `<BIBLE_DOWNLOAD_CACHE_DIR>/<translation_code>.json` instead. This lets containers bind
+       `data/` read-only (so a UID mismatch between the container user and the host-owned bind
+       mount can't produce a `PermissionError`) while still allowing a first-run download.
+    3. Otherwise, fall back to `primary_path` — the historical bare-host default, where the
+       process account owns `data/` and can write directly into it.
+
+    This function never swallows permission errors itself; the caller's actual file write will
+    raise normally if the resolved path turns out not to be writable.
+    """
+    if primary_path.exists():
+        return primary_path
+
+    cache_dir = os.environ.get("BIBLE_DOWNLOAD_CACHE_DIR")
+    if cache_dir:
+        return Path(cache_dir) / f"{translation_code}.json"
+
+    return primary_path
 
 
 async def download_translation(translation_code: str, output_path: Path) -> dict:
@@ -760,14 +794,16 @@ async def load_translation_to_db(
             # Ensure books and chapters exist
             book_ids = await ensure_books_and_chapters(session)
 
-            # Download translation data
-            bible_path = (
+            # Download translation data. Prefer the committed source file; fall back to
+            # BIBLE_DOWNLOAD_CACHE_DIR (if configured) when it's missing and needs downloading.
+            primary_bible_path = (
                 Path(__file__).parent.parent
                 / "data"
                 / "bible"
                 / "translations"
                 / f"{translation_code}.json"
             )
+            bible_path = resolve_bible_data_path(translation_code, primary_bible_path)
             bible_data = await download_translation(translation_code, bible_path)
 
             # Skip verse loading if no data available (e.g. manual-only translations with no URL)

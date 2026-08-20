@@ -250,6 +250,13 @@ class ScriptureRepository:
         Uses ``@@`` against ``to_tsvector('simple', text)`` so the planner can use the
         expression GIN index (``idx_verses_fts_simple``, migration 003) instead of the
         leading-wildcard ``ILIKE`` full scan.
+
+        **Deliberately does not use ``verse_tsv``** (BITB-096), unlike the ``ts_rank``
+        sites in the hybrid builders below. An expression index already *stores* the
+        computed tsvectors, so this lookup was never recomputing anything, and routing
+        it through the side table adds a primary-key hop back into ``verses``. Measured
+        over 403,856 rows: 0.144 ms via the join against 0.105 ms here. That is also why
+        ``idx_verses_fts_simple`` is not being retired -- BITB-095 Phase 2 is cancelled.
         """
         result = await self.session.execute(
             select(Verse)
@@ -352,6 +359,17 @@ class ScriptureRepository:
         """
         Hybrid search combining semantic similarity and keyword matching.
 
+        ``ts_rank`` reads the persisted tsvector from ``verse_tsv`` rather than
+        recomputing ``to_tsvector('simple', v.text)`` for every candidate row
+        (BITB-096). Measured over a 200-row candidate pool of 159-character verses:
+        2.750 ms recomputed against 0.238 ms stored.
+
+        The join is a ``LEFT JOIN`` with ``COALESCE(..., ''::tsvector)`` on purpose. A
+        verse whose ``verse_tsv`` row is missing -- mid-backfill, or if the
+        ``verses_tsv_sync`` trigger were ever dropped -- then ranks zero on the keyword
+        component instead of disappearing from the results entirely. Degrading a score
+        is recoverable; silently losing scripture from a search is not.
+
         Args:
             query_text: The raw text query (for full-text search)
             query_embedding: The embedding vector of the search query
@@ -400,11 +418,11 @@ class ScriptureRepository:
                     d.id,
                     (1 - d.dist) AS semantic_score,
                     ts_rank(
-                        to_tsvector('simple', v.text),
+                        COALESCE(vt.text_tsv, CAST('' AS tsvector)),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM dedup d
-                JOIN verses v ON v.id = d.id
+                LEFT JOIN verse_tsv vt ON vt.verse_id = d.id
                 WHERE (1 - d.dist) >= :threshold
             ),
             normalized AS (
@@ -576,6 +594,11 @@ class ScriptureRepository:
 
         Combines semantic + keyword scores, then applies topic boost.
         Formula: final_score = hybrid_score * (1 + factor * matching_topic_count)
+
+        Like ``search_verses_hybrid``, ``ts_rank`` here reads the persisted tsvector
+        from ``verse_tsv`` via a ``LEFT JOIN`` rather than recomputing it per candidate
+        row (BITB-096). See that method for the measurements and for why the join is
+        outer.
         """
         # Normalize weights
         total_weight = semantic_weight + keyword_weight
@@ -612,11 +635,11 @@ class ScriptureRepository:
                     d.id,
                     (1 - d.dist) AS semantic_score,
                     ts_rank(
-                        to_tsvector('simple', v.text),
+                        COALESCE(vt.text_tsv, CAST('' AS tsvector)),
                         plainto_tsquery('simple', :query_text)
                     ) AS keyword_score_raw
                 FROM dedup d
-                JOIN verses v ON v.id = d.id
+                LEFT JOIN verse_tsv vt ON vt.verse_id = d.id
                 WHERE (1 - d.dist) >= :threshold
             ),
             normalized AS (
