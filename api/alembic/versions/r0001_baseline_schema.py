@@ -69,9 +69,19 @@ def upgrade() -> None:
         sa.Column("language_code", sa.String(length=10), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("source_url", sa.Text(), nullable=True),
-        sa.Column("license", sa.String(length=100), nullable=False),
-        sa.Column("is_default", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column(
+            "license",
+            sa.String(length=100),
+            server_default=sa.text("'Public Domain'"),
+            nullable=False,
+        ),
+        sa.Column("is_default", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("code"),
     )
     op.create_table(
@@ -121,7 +131,12 @@ def upgrade() -> None:
         sa.Column("chapter_number", sa.Integer(), nullable=False),
         sa.Column("verse_number", sa.Integer(), nullable=False),
         sa.Column("text", sa.Text(), nullable=False),
-        sa.Column("translation", sa.String(length=20), nullable=False),
+        sa.Column(
+            "translation",
+            sa.String(length=20),
+            server_default=sa.text("'kjv'"),
+            nullable=False,
+        ),
         sa.Column("embedding", pgvector.sqlalchemy.vector.VECTOR(dim=1024), nullable=True),
         sa.ForeignKeyConstraint(
             ["book_id"],
@@ -188,19 +203,29 @@ def upgrade() -> None:
     op.create_table(
         "contact_submissions",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("email", sa.String(length=255), nullable=True),
         sa.Column("subject", sa.String(length=50), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
         sa.Column("session_id", sa.String(length=255), nullable=True),
         sa.Column("user_agent", sa.Text(), nullable=True),
-        sa.Column("status", sa.String(length=20), nullable=False),
+        sa.Column("status", sa.String(length=20), server_default=sa.text("'new'"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "feedback",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("message_id", sa.UUID(), nullable=False),
         sa.Column("session_id", sa.String(length=255), nullable=True),
         sa.Column("rating", sa.String(length=10), nullable=False),

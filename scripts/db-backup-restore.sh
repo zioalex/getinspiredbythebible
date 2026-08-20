@@ -14,6 +14,9 @@
 #   restore-local        Restore a dump into a local pgvector container   (local only)
 #   restore-new-server   Azure PITR into a NEW server                     (non-destructive)
 #   restore-same-server  Replace an existing database from a dump         (DESTRUCTIVE)
+#   server-url           Print the DATABASE_URL for an Azure server       (read-only)
+#   rehearse             Alembic stamp -> check -> upgrade on a COPY      (mutates a copy)
+#   delete-server        Delete a restored Azure server                   (DESTRUCTIVE)
 #
 # Connection: set DATABASE_URL, or PGHOST/PGDATABASE/PGUSER + PGPASSWORD.
 # Passwords are never taken as command-line arguments and never echoed.
@@ -336,8 +339,125 @@ cmd_restore_new_server() {
     --source-server "$source" --restore-time "$point"
 
   ok "Restore started for $target"
-  warn "Verify it, then remember to delete it:"
-  echo "  az postgres flexible-server delete -g $rg -n $target --yes"
+  echo
+  echo "Next:"
+  echo "  make az-pg-add-ip SERVER=$target        # open the firewall on the COPY"
+  echo "  make db-server-url SERVER=$target       # build its DATABASE_URL"
+  echo "  make db-delete-server SERVER=$target    # when you are done — it is billable"
+}
+
+cmd_server_url() {
+  need az "Install the Azure CLI: https://aka.ms/azure-cli"
+  require_var PG_RG "the Azure resource group"
+  require_var SERVER "the server to build a URL for, e.g. make db-server-url SERVER=${PG_SERVER:-<server>}-restore-20260810"
+  # shellcheck disable=SC2153  # SERVER is an environment input (see the Makefile
+  # targets), not a misspelling of the unrelated local `server` in cmd_info.
+  local target="$SERVER" fqdn
+
+  fqdn="$(az postgres flexible-server show \
+    --resource-group "$PG_RG" --name "$target" \
+    --query fullyQualifiedDomainName -o tsv 2>/dev/null || true)"
+  [[ -n "$fqdn" ]] || die "No server '$target' in resource group '$PG_RG' (or the restore is still provisioning)."
+
+  # sslmode, never ssl — see Rule #1 in docs/MIGRATION_GUIDELINES.md.
+  # No password: a PITR copy keeps the source server's admin credentials, and
+  # this URL is meant to be pasted into a shell where PGPASSWORD supplies it.
+  echo "postgresql://${DB_USER:-bible}@${fqdn}:5432/${PG_DB:-bibledb}?sslmode=require"
+  warn "Password: export PGPASSWORD — a PITR copy keeps the SOURCE server's admin credentials." >&2
+  warn "asyncpg and libpq both read PGPASSWORD, so it never needs to go in the URL." >&2
+}
+
+cmd_delete_server() {
+  need az "Install the Azure CLI: https://aka.ms/azure-cli"
+  require_var PG_RG "the Azure resource group"
+  require_var SERVER "the restored server to delete, e.g. make db-delete-server SERVER=..."
+  # shellcheck disable=SC2153  # SERVER is an environment input (see the Makefile
+  # targets), not a misspelling of the unrelated local `server` in cmd_info.
+  local target="$SERVER"
+
+  # The whole point of this target is tearing down rehearsal copies, so the one
+  # thing it must never accept is the production server name.
+  [[ "$target" != "${PG_SERVER:-}" ]] || die "Refusing to delete '$target' — that is PG_SERVER (production).
+This target exists to delete restored *copies*. Deleting the live server is
+not something to do through a convenience wrapper."
+
+  warn "Deleting an Azure server also deletes its automatic backups."
+  require_confirmation "$target" "permanently delete the Azure server '$target'"
+  az postgres flexible-server delete --resource-group "$PG_RG" --name "$target" --yes
+  ok "Deleted $target"
+}
+
+# Stage 1 of the Alembic prod-adoption sequence (BITB-089): prove the r0001
+# baseline matches a real copy of production before stamping production itself.
+#
+# stamp-then-check, not check alone: `alembic check` runs autogenerate, and
+# autogenerate refuses to compare anything while the database is not at head
+# ("Target database is not up to date."). A restored copy of prod carries the
+# schema but none of Alembic's bookkeeping, so it must be stamped first — which
+# also rehearses the exact command Stage 2 runs against production.
+cmd_rehearse() {
+  need alembic "Install the API requirements: pip install -r api/requirements.txt"
+  require_database_url
+  local baseline="${BASELINE:-r0001}"
+
+  # A PITR copy's FQDN is "<server>.postgres.database.azure.com", so the
+  # production server name is a prefix of the production host and of nothing
+  # else. There is deliberately no override: stamping production is a
+  # documented one-time operator step, and `upgrade head` against production is
+  # the deploy pipeline's job, not a laptop's.
+  if [[ -n "${PG_SERVER:-}" && "$DB_HOST" == "$PG_SERVER".* ]]; then
+    die "Refusing to rehearse against '$DB_HOST' — that is production.
+Restore a copy first (make db-restore-new-server, or make db-restore-local),
+then point DATABASE_URL at the copy. For production itself, follow the
+operator runbook in docs/MIGRATION_GUIDELINES.md."
+  fi
+
+  log "Rehearsing the Alembic baseline against $(redact_url "$DB_URL")"
+  export DATABASE_URL="$DB_URL"
+  cd api || die "Run this from the repository root."
+
+  # Connect via `alembic current` first, and translate a failure into something
+  # actionable. Alembic surfaces a connection problem as a ~40-line asyncpg
+  # traceback, and the most common cause here is simply a missing password:
+  # DATABASE_URL deliberately carries none (repo convention), and asyncpg falls
+  # back to PGPASSWORD -- which is easy to forget to export.
+  # stdout and stderr stay separate on purpose: alembic logs INFO lines to
+  # stderr, and merging them would make `tail -n1` read a log line as the
+  # revision id -- reporting an unstamped database as stamped.
+  local current raw errfile
+  errfile="$(mktemp)"
+  if ! raw="$(alembic current 2>"$errfile")"; then
+    tail -n 3 "$errfile" >&2
+    rm -f "$errfile"
+    echo >&2
+    die "Could not connect to $(redact_url "$DB_URL").
+If this is the local restore container, its password is 'local':
+  export PGPASSWORD=local
+asyncpg reads PGPASSWORD when the URL carries no password (as it should not).
+For an Azure copy, export the source server's admin password instead."
+  fi
+  rm -f "$errfile"
+  current="$(printf '%s' "$raw" | tail -n1 | tr -d '[:space:]')"
+  if [[ -z "$current" ]]; then
+    log "No alembic_version row — stamping $baseline (writes one row, zero DDL)"
+    alembic stamp "$baseline"
+  else
+    log "Already stamped at $current — leaving it alone"
+  fi
+
+  log "alembic check (the gate — read-only, emits no DDL)"
+  if ! alembic check; then
+    echo
+    die "The baseline does not match this copy of production.
+Reconcile the difference with a reviewed revision — do NOT stamp production
+until this is clean. See docs/MIGRATION_GUIDELINES.md, Stage 1."
+  fi
+
+  log "alembic upgrade head (must be a no-op)"
+  alembic upgrade head
+  alembic current
+
+  ok "Baseline verified against this copy. Production can be stamped (Stage 2)."
 }
 
 cmd_restore_same_server() {
@@ -385,6 +505,9 @@ main() {
     restore-local)       cmd_restore_local ;;
     restore-new-server)  cmd_restore_new_server ;;
     restore-same-server) cmd_restore_same_server ;;
+    server-url)          cmd_server_url ;;
+    delete-server)       cmd_delete_server ;;
+    rehearse)            cmd_rehearse ;;
     -h|--help|help)      usage 0 ;;
     *) die "Unknown command '$cmd'. Run '$SCRIPT_NAME --help'." ;;
   esac
