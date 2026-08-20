@@ -394,6 +394,8 @@ resource "azurerm_postgresql_flexible_server" "main" {
   # stay cached and the second vCore absorbs concurrent multilingual search load.
   sku_name = "B_Standard_B2s"
 
+  # Provisioning size for a *new* server only. Once auto_grow_enabled is on, Azure
+  # owns this value -- see the lifecycle block, which ignores it for that reason.
   storage_mb                   = 32768 # 32GB minimum
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
@@ -410,7 +412,16 @@ resource "azurerm_postgresql_flexible_server" "main" {
   lifecycle {
     ignore_changes = [
       zone,
-      high_availability[0].standby_availability_zone
+      high_availability[0].standby_availability_zone,
+      # Azure owns storage_mb once auto_grow_enabled is true, and Azure only ever
+      # grows it (doubling: 32GB -> 64GB -> ...). Without this, the first auto-grow
+      # makes every subsequent `terraform apply` fail with
+      #   'storage_mb' can only be scaled up, expected the new 'storage_mb' value
+      #   (32768) to be larger than the previous 'storage_mb' value (65536)
+      # because Terraform tries to shrink the disk back to the declared size. That
+      # blocked the deploy on 2026-08-18. Ignoring it is the only reconciliation
+      # available: the shrink is impossible, so the config can never win.
+      storage_mb
     ]
   }
 }
