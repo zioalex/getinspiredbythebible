@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.52.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.51.0...v1.52.0) (2026-08-20)
 
-
 ### Features
 
 * **api:** add persisted generated tsvector column on verses (BITB-062) ([#955](https://github.com/zioalex/getinspiredbythebible/issues/955)) ([fe1d69f](https://github.com/zioalex/getinspiredbythebible/commit/fe1d69f47eb8f12fd267cabac3dad1386a49f50f))
@@ -12,7 +11,6 @@ All notable changes to this project will be documented in this file.
 * **db:** prove the deploy pipeline reaches production (BITB-089) ([#987](https://github.com/zioalex/getinspiredbythebible/issues/987)) ([c3f7448](https://github.com/zioalex/getinspiredbythebible/commit/c3f7448020381d9a6c8e3f2ee7ee6adaf41a9f4b))
 * **db:** reconcile the production schema with the ORM models (BITB-093) ([#980](https://github.com/zioalex/getinspiredbythebible/issues/980)) ([d71e148](https://github.com/zioalex/getinspiredbythebible/commit/d71e148a14db0c52d8d1089b0327e00d002ba292))
 * **db:** remove the pipeline probe comment (BITB-089) ([#990](https://github.com/zioalex/getinspiredbythebible/issues/990)) ([eed8584](https://github.com/zioalex/getinspiredbythebible/commit/eed85840a72b8a2ab642c9f02912dab9df1e58a1))
-
 
 ### Bug Fixes
 
@@ -22,11 +20,9 @@ All notable changes to this project will be documented in this file.
 * **scripts:** make a failed rehearsal connection say what to do ([#986](https://github.com/zioalex/getinspiredbythebible/issues/986)) ([548b5ec](https://github.com/zioalex/getinspiredbythebible/commit/548b5ec1416349a24bd21f8725d4cc233f06913b))
 * **scripts:** restore the Alembic rehearsal targets lost when [#975](https://github.com/zioalex/getinspiredbythebible/issues/975) merged ([#981](https://github.com/zioalex/getinspiredbythebible/issues/981)) ([b52af26](https://github.com/zioalex/getinspiredbythebible/commit/b52af268f49aeeb619f90bae08bb496b5f3cab7e))
 
-
 ### Performance Improvements
 
 * **api:** read the persisted tsvector in ts_rank instead of recomputing it (BITB-095) ([#1003](https://github.com/zioalex/getinspiredbythebible/issues/1003)) ([1cb0ac9](https://github.com/zioalex/getinspiredbythebible/commit/1cb0ac9d966fd111ce1762259e70dd4866df970b))
-
 
 ### Documentation
 
