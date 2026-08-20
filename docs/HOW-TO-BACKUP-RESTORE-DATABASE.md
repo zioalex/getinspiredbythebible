@@ -82,6 +82,7 @@ destructive, and keep one off-region if the data matters beyond a week.
 | Put data back on the **existing** server        | [B](#scenario-b--restore-onto-the-same-server) | `pg_dump`/`pg_restore` | **yes** |
 | Rehearse a migration / test a restore           | [C](#scenario-c--restore-into-a-local-instance) | dump → local Docker | none |
 | Keep a copy beyond 7 days or off-region         | [D](#scenario-d--take-a-portable-logical-backup) | `pg_dump -Fc` | none |
+| Rehearse when the dump will not fit on disk     | [E](#scenario-e--rehearse-in-azure-no-local-disk) | PITR → copy → rehearse → delete | none |
 
 ---
 
@@ -207,6 +208,38 @@ for it to accept connections, raises `maintenance_work_mem` to 512MB (HNSW
 rebuilds are the slow part), and restores with `-j 4`. If that container
 already exists it asks you to retype the name before recreating it.
 
+**Azure-only extensions are filtered out of the restore.** A production dump
+carries `CREATE EXTENSION pg_cron`, a `cron` schema, and the contents of
+`cron.job` / `cron.job_run_details`. The `pgvector/pgvector:pg16` image does not
+ship pg_cron, so every one of those entries fails and `pg_restore` exits
+non-zero, aborting the target — even though nothing this application reads is
+missing. `db-restore-local` therefore drops those entries from the dump's table
+of contents before restoring, and prints how many it skipped. Errors that
+survive the filter are real: the target stops rather than hand you a partial
+copy to rehearse against.
+
+Any *other* extension the dump creates that the local server cannot provide is
+detected and skipped automatically — the target compares the dump's extension
+list against `pg_available_extensions` and reports what it dropped. pg_cron is
+only the hardcoded default because its `cron` schema needs skipping too, which
+cannot be derived from the extension name.
+
+When a restore does fail, the target prints the **distinct** error causes (the
+raw output repeats the same handful once per failed object) and the path to the
+full log, so you can tell an Azure-only extension apart from a real problem.
+
+Add to the lists if a future extension brings its own schema, or set
+`SKIP_EXTENSIONS=''` to restore the dump verbatim:
+
+```bash
+SKIP_EXTENSIONS='pg_cron azure_storage' SKIP_SCHEMAS='cron azure_storage' \
+  make db-restore-local DUMP=backups/<the-file>.dump
+```
+
+Note that `make db-restore-verify` lists the extensions actually present, so
+the filtered ones are visibly absent from the restored copy — expected, and
+irrelevant to a schema rehearsal, which only reads the `public` schema.
+
 It is also the one target that **ignores `DATABASE_URL`** — it builds its own
 `postgresql://postgres@localhost:5433/bibledb`. That is deliberate: you will
 usually have a production URL exported for the other targets, and this command
@@ -217,6 +250,21 @@ collide with something.
 This is the environment to use for the **schema-change rehearsal** referenced
 in [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md) — run the migration
 against this copy and confirm the result before touching production.
+
+**If the dump does not fit on your disk**, you almost certainly do not need the
+data. Embeddings dominate the size, and a schema rehearsal never reads a row:
+
+```bash
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup-schema
+make db-restore-local DUMP=backups/<the-file>.dump
+```
+
+`db-backup-schema` is `db-backup` with `--schema-only` — same custom format,
+same filter, a fraction of the size. Every table, column, index and constraint
+is present; only rows are absent. `make db-restore-verify` will report zero row
+counts on such a copy, which is expected. If you need real data volumes (to
+time a migration, say), use [Scenario E](#scenario-e--rehearse-in-azure-no-local-disk)
+instead of trying to fit the full dump locally.
 
 ---
 
@@ -243,6 +291,65 @@ make db-backup DUMP=/path/to/name.dump  # explicit destination
   Schema is preserved; embeddings are re-derivable via the seeding scripts.
 - `backups/` and `*.dump` are git-ignored, so a dump cannot be committed by
   accident.
+
+---
+
+## Scenario E — rehearse in Azure (no local disk)
+
+For the [BITB-089](BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md)
+Stage 1 rehearsal when a full dump will not fit locally, or when the rehearsal
+needs production's real data volumes.
+
+Azure copies the data server-side: nothing transits your machine, and no dump
+file is written. The trade is a second billable server for as long as it exists
+— **the last step is not optional.**
+
+```bash
+# 0. Variables (see Preparation above)
+export PG_RG="bible-app-rg"
+export PG_SERVER="bible-app-db-<suffix>"
+export PG_DB="<db_name>"
+export COPY="${PG_SERVER}-rehearse-$(date +%Y%m%d)"
+
+# 1. Copy production into a new server (10–30 min on Burstable)
+make db-backup-info                                  # pick a point inside the window
+make db-restore-new-server NEW_SERVER="$COPY" RESTORE_POINT="2026-08-09T20:00:00Z"
+
+# 2. Reach it: the copy has its own firewall, and its own FQDN
+make az-pg-add-ip SERVER="$COPY"
+export DATABASE_URL="$(make -s db-server-url SERVER="$COPY")"
+export PGPASSWORD='<the production admin password>'  # a PITR copy keeps it
+
+# 3. Confirm the copy is sound before drawing conclusions from it
+make db-restore-verify
+
+# 4. Rehearse: stamp -> check -> upgrade (this is the Stage 1 gate)
+make db-rehearse-alembic
+
+# 5. Tear it down — it bills until you do
+make db-delete-server SERVER="$COPY"
+make az-pg-remove-ip RULE="$COPY" SERVER="$COPY"
+```
+
+Notes on the pieces:
+
+- **The firewall targets take `SERVER=`.** Without it they act on production,
+  which is not where your rehearsal is.
+- **`db-server-url` prints a URL with no password.** `PGPASSWORD` supplies it —
+  both libpq and asyncpg read that variable, so it never has to be in the URL
+  (or in your shell history).
+- **A PITR copy keeps the source's admin credentials and server parameters**,
+  including the `azure.extensions` allow-list, so `vector` and pg_cron are
+  present exactly as in production. This is what makes it a better rehearsal
+  target than a local container.
+- **`db-rehearse-alembic` refuses to run against production.** It compares the
+  target host against `PG_SERVER`; there is no override. Stamping production is
+  a deliberate one-time operator step (Stage 2 in
+  [`MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md)), and `upgrade head`
+  against production belongs to the deploy pipeline.
+- **`db-delete-server` refuses `PG_SERVER`** for the same reason, and asks you
+  to retype the server name. Deleting a server also deletes its automatic
+  backups — fine for a rehearsal copy, unrecoverable for anything else.
 
 ---
 
@@ -301,6 +408,7 @@ az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you
 | `parameter 'ssl' cannot be changed now`           | `?ssl=require` in an asyncpg URL. Use `sslmode=require`. See Rule #1.  |
 | Restore finishes fast, searches are slow          | HNSW indexes not rebuilt / invalid. Check query 3 and 4 above.         |
 | `role "..." does not exist`                       | Missing `--no-owner --no-acl`.                                        |
+| `extension "pg_cron" is not available` (local)    | Azure-only extension in the dump. Filtered by default — see Scenario C. |
 | `must be superuser`                               | Expected on Azure. Use `--no-owner --no-acl`; never `pg_dumpall`.      |
 | PITR refuses your timestamp                       | Outside the window — check `earliestRestoreDate`, and use UTC.         |
 | Restored server reverts after a deploy            | Terraform still points at the old FQDN (`deployment/main.tf:93`).      |
