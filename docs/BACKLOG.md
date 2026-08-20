@@ -1392,6 +1392,26 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+
+**As** the maintainer, **I want** the outage retrospective's process rules in checked documents
+and CI assertions, **so that** the next migration is safe by construction, not by memory.
+
+Covers what BITB-097 (pipeline) does not: a "Locking & scale" section in MIGRATION_GUIDELINES
+(lock level + production-scale duration stated per revision; rewriting DDL banned from CI;
+new-code-old-schema as default), a conditional migration checklist in the PR template, a CI check
+that new revisions set `lock_timeout`, and the benchmark-before-build rule in CONTRIBUTING.
+
+Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-100-adopt-migration-safety-rules-from-retrospective.md`
+
+---
+
 ### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
 **Status:** 🎯 Todo
