@@ -74,6 +74,31 @@ async def seeded_repo():
                     "PRIMARY KEY (verse_id, topic_id))"
                 )
             )
+            # `verse_tsv` itself is an ORM model, so create_all makes the table --
+            # but the trigger that keeps it in sync lives only in Alembic r0004,
+            # and create_all knows nothing about triggers. Without it the seeded
+            # verse would have no tsvector row and every FTS assertion below
+            # would pass or fail for the wrong reason. Kept character-identical
+            # to r0004; `test_verse_tsv_trigger_matches_the_indexed_expression`
+            # is what catches the two drifting apart.
+            await conn.execute(
+                text(
+                    "CREATE OR REPLACE FUNCTION verse_tsv_sync() RETURNS trigger AS $$ "
+                    "BEGIN "
+                    "INSERT INTO verse_tsv (verse_id, text_tsv) "
+                    "VALUES (NEW.id, to_tsvector('simple', NEW.text)) "
+                    "ON CONFLICT (verse_id) DO UPDATE SET text_tsv = EXCLUDED.text_tsv; "
+                    "RETURN NEW; "
+                    "END; $$ LANGUAGE plpgsql"
+                )
+            )
+            await conn.execute(text("DROP TRIGGER IF EXISTS verses_tsv_sync ON verses"))
+            await conn.execute(
+                text(
+                    "CREATE TRIGGER verses_tsv_sync AFTER INSERT OR UPDATE OF text ON verses "
+                    "FOR EACH ROW EXECUTE FUNCTION verse_tsv_sync()"
+                )
+            )
     except Exception as exc:  # connection refused, auth failure, etc.
         await engine.dispose()
         pytest.skip(f"Postgres+pgvector not reachable: {exc}")
@@ -244,3 +269,117 @@ async def test_search_verses_text_executes_against_real_db(seeded_repo):
     verses = await seeded_repo.search_verses_text(query="loved the world")
     assert verses, "text search returned no rows from the real DB"
     assert any(v.text == _VERSE_TEXT for v in verses)
+
+
+# ── BITB-096: the verse_tsv side table ────────────────────────────────────
+# The persisted tsvector lives in `verse_tsv`, not in a `verses.text_tsv`
+# generated column. The column form rewrites the whole table under ACCESS
+# EXCLUSIVE, which took production down for ~45 minutes on 2026-08-17; see
+# Alembic r0004. These guard the properties BITB-095's query switch depends
+# on -- that the row exists, that a trigger keeps it current, and above all
+# that it holds *exactly* the expression the queries and index use.
+
+
+async def test_verse_tsv_row_is_populated_for_every_verse(seeded_repo):
+    """The seeded verse must have a `verse_tsv` row. Nothing in the app writes
+    one, so this passes only if the r0004 trigger fired on insert."""
+    tsv_value = (
+        await seeded_repo.session.execute(
+            text(
+                "SELECT t.text_tsv FROM verse_tsv t "
+                "JOIN verses v ON v.id = t.verse_id "
+                "WHERE v.translation = :translation"
+            ).bindparams(translation=_TRANSLATION)
+        )
+    ).scalar_one()
+    assert tsv_value is not None, "the trigger did not populate verse_tsv for the seeded verse"
+
+
+async def test_verse_tsv_trigger_matches_the_indexed_expression(seeded_repo):
+    """`verse_tsv.text_tsv` must equal `to_tsvector('simple', text)` exactly.
+
+    This is the assertion the whole design rests on. BITB-095 replaces
+    `to_tsvector('simple', v.text)` in three queries with a read of this
+    column, and that is a plan change rather than a semantics change *only*
+    while the two expressions are identical. If someone edits the trigger to
+    use a different text search configuration, this fails.
+    """
+    agrees = (
+        await seeded_repo.session.execute(
+            text(
+                "SELECT bool_and(t.text_tsv = to_tsvector('simple', v.text)) "
+                "FROM verses v JOIN verse_tsv t ON t.verse_id = v.id"
+            )
+        )
+    ).scalar_one()
+    assert agrees is True, "verse_tsv drifted from to_tsvector('simple', text)"
+
+
+async def test_verse_tsv_trigger_follows_text_updates(seeded_repo):
+    """Updating `verses.text` must update the stored tsvector.
+
+    A generated column got this for free; a side table only gets it from the
+    trigger, so it has to be tested rather than assumed. `verses` takes no
+    writes at runtime, but the seeding scripts do write it.
+    """
+    session = seeded_repo.session
+    await session.execute(
+        text("UPDATE verses SET text = :new_text WHERE translation = :translation").bindparams(
+            new_text="Rejoice in hope, be patient in tribulation.",
+            translation=_TRANSLATION,
+        )
+    )
+    matched = (
+        await session.execute(
+            text(
+                "SELECT t.text_tsv = to_tsvector('simple', v.text) "
+                "FROM verses v JOIN verse_tsv t ON t.verse_id = v.id "
+                "WHERE v.translation = :translation"
+            ).bindparams(translation=_TRANSLATION)
+        )
+    ).scalar_one()
+    assert matched is True, "verse_tsv did not follow the update to verses.text"
+
+
+async def test_verse_tsv_text_tsv_stays_unindexed(seeded_repo):
+    """`verse_tsv.text_tsv` must have no index on it.
+
+    Measured over 403,856 rows, matching `@@` through a join against this
+    table is *slower* than the existing expression index
+    `idx_verses_fts_simple` (0.144 ms vs 0.105 ms), because that index already
+    stores the same computed tsvectors. So `search_verses_text` keeps using it,
+    and this table is read only by `ts_rank` -- reached by `verse_id`, which
+    uses no index at all. An index here would have no reader and would cost
+    write overhead on every seed. See r0004 and BITB-096.
+    """
+    indexes = (
+        (
+            await seeded_repo.session.execute(
+                text(
+                    "SELECT indexdef FROM pg_indexes "
+                    "WHERE tablename = 'verse_tsv' AND indexdef ILIKE '%text_tsv%'"
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert indexes == [], f"verse_tsv.text_tsv should carry no index, found: {indexes}"
+
+
+async def test_verse_tsv_cascades_on_verse_delete(seeded_repo):
+    """The cascade is the side table's substitute for a column's automatic
+    lifecycle -- without it `verse_tsv` rows outlive the verses they describe."""
+    session = seeded_repo.session
+    delete_action = (
+        await session.execute(
+            text(
+                # ::text matters -- confdeltype is Postgres's internal "char"
+                # type, which asyncpg hands back as bytes (b"c"), not str. psql
+                # renders it as text, so this only shows up under the driver.
+                "SELECT confdeltype::text FROM pg_constraint "
+                "WHERE conrelid = 'verse_tsv'::regclass AND contype = 'f'"
+            )
+        )
+    ).scalar_one()
+    assert delete_action == "c", "verse_tsv.verse_id must be ON DELETE CASCADE"
