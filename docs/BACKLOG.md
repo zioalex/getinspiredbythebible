@@ -1323,12 +1323,12 @@ showing — so the tap becomes a silent paste with no feedback. The guard is unn
 
 ---
 
-### 🎯 BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
+### ✅ BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-15)
 **Size:** M
-**Depends on:** BITB-004 (PR #948) — merged, but **inert** until this ships
-**Unblocks:** BITB-090
+**Depends on:** BITB-004 (PR #948) — merged, but **inert** until this shipped
+**Unblocks:** BITB-090, BITB-091 — both now unblocked
 
 **As a** maintainer who has just merged the Alembic framework, **I want** a committed revision to
 actually reach the production database on deploy, **so that** "we have a migration system" is a
@@ -1341,15 +1341,245 @@ under `api/alembic/versions/**` **silently never deploys**. No error, no warning
 
 **Acceptance Criteria (summary):**
 
-- [ ] `alembic check` against a *restored copy* of prod passes — the gate for everything else
-- [ ] Prod stamped at `r0001` (zero DDL), backup taken first, `alembic current` verified
-- [ ] Deploy workflow: path filter, `alembic` installed, `alembic upgrade head` replaces the legacy call
-- [ ] SSL form resolved — `:1498` emits `?ssl=require`, which `get_async_database_url()` does **not**
-      strip (`api/scripture/database.py:37`); covered by a test
-- [ ] Proven by a trivial reversible revision reaching prod, not by inspecting YAML
-- [ ] Rollback path documented for a mid-deploy `upgrade head` failure
+- [x] `alembic check` against a *restored copy* of prod passes — the gate for everything else.
+      It initially **failed**, which is what BITB-093 exists for; clean after that reconciliation.
+- [x] Prod stamped at `r0001` (zero DDL); `alembic current` reports `r0001`, and `alembic check`
+      against production itself reports "No new upgrade operations detected."
+- [x] Deploy workflow: path filter includes `api/alembic/versions/**`, job installs
+      `api/requirements.txt`, and `alembic upgrade head` runs after the legacy call (PR #974)
+- [x] SSL form resolved — `get_async_database_url()` now strips `ssl` as well as `sslmode`;
+      covered by `api/tests/test_database_church_coverage.py::TestGetAsyncDatabaseUrl`
+- [x] **Proven end-to-end.** The `r0002` probe revision (PR #987) reached production through the
+      pipeline on 2026-08-15: the `run-migrations` job ran rather than skipping — the first time
+      the `api/alembic/versions/**` filter has ever fired — and its "Run Alembic migrations" step
+      succeeded against production. Not inferred from the YAML.
+- [x] Rollback path documented for a mid-deploy `upgrade head` failure — see
+      `docs/MIGRATION_GUIDELINES.md`
+
+**Remaining tidy-up (not blocking):** `r0003` removes the probe's table comment from `sessions`.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-089-deploy-alembic-migrations-from-ci.md`
+
+---
+
+### ✅ BITB-093: Reconcile the Production Schema with the ORM Models
+
+**Status:** ✅ Done (2026-08-15) — production reconciled and verified; `alembic check` against
+production reports "No new upgrade operations detected."
+**Size:** M
+**Blocked:** BITB-089 Stage 2 (stamping production) — now unblocked and done
+
+**As a** maintainer about to make Alembic authoritative, **I want** production's schema and the ORM
+models to agree, **so that** `alembic stamp r0001` is a true statement rather than a promise the
+next `--autogenerate` will contradict.
+
+BITB-089 Stage 1 did its job: `alembic check` against a restored copy of production returns a
+non-empty diff, so `r0001` does not describe production and must not be stamped over. Production's
+`verses` was created by `create_all()` from an older model revision (nullable FK columns, a
+Postgres-generated unique constraint name, no FK delete action) and later extended by hand-rolled
+SQL — BITB-090's "two competing schema authorities" as a measured fact.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Seven columns gain `server_default=` in the models (production is right there); `r0001` matches
+- [ ] `scripts/reconcile-prod-schema.sql` brings production to the models: NOT NULL, constraint
+      renames (rename, never DROP + ADD), FK delete action, stray comment removal
+- [ ] Rehearsed against a restored copy **with data** before production
+- [ ] `make db-rehearse-alembic` clean against a fresh copy, then BITB-089 Stage 2 proceeds
+- [ ] Follow-up filed for the `compare_type=False` blind spot (type drift is invisible to `check`)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-093-reconcile-prod-schema-with-orm-models.md`
+
+---
+
+### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+
+**As** the maintainer, **I want** the outage retrospective's process rules in checked documents
+and CI assertions, **so that** the next migration is safe by construction, not by memory.
+
+Covers what BITB-097 (pipeline) does not: a "Locking & scale" section in MIGRATION_GUIDELINES
+(lock level + production-scale duration stated per revision; rewriting DDL banned from CI;
+new-code-old-schema as default), a conditional migration checklist in the PR template, a CI check
+that new revisions set `lock_timeout`, and the benchmark-before-build rule in CONTRIBUTING.
+
+Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-100-adopt-migration-safety-rules-from-retrospective.md`
+
+---
+
+### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+
+**As** the operator of a Postgres server with `public_network_access_enabled = true`, **I want**
+the application and migration connections to verify the server's certificate, **so that** TLS
+protects against an active attacker and not only a passive one.
+
+`sslmode=require` resolves to `check_hostname = False` and `verify_mode = CERT_NONE` in both
+`get_async_database_url()` and `get_migration_connection_params()` — verified by evaluating both
+against the production URL. Traffic is encrypted but the server is unauthenticated: any
+certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
+
+This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
+knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
+decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
+model. Not an Alembic issue; filed separately.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-098: Retire the Two English FTS Indexes Nothing Queries
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the GIN indexes no query reads
+to stop being maintained on every write, **so that** seeding and future backfills stop paying to
+update structures nothing will ever scan.
+
+`scripts/migrations/003` created four GIN indexes. Grepping the repo for
+`to_tsvector('english', …)` returns exactly two hits — the two `CREATE INDEX` statements that
+define `idx_verses_fts_english` and `idx_passages_fts_english`. Nothing else builds an `english`
+tsvector, so no query can match either index.
+
+**`idx_verses_fts_simple` must not be dropped** — that was BITB-095 Phase 2, cancelled on the
+measurement (0.105 ms against 0.144 ms through `verse_tsv`). This story covers only the two
+`_english` indexes, and requires `pg_stat_user_indexes.idx_scan` evidence from production before
+dropping anything: a grep proves no reader in this repo, not that nothing has ever queried them.
+Drop with `DROP INDEX CONCURRENTLY` inside an `autocommit_block()` — a plain `DROP INDEX` takes
+`ACCESS EXCLUSIVE` on `verses` and queues every reader behind it.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-098-retire-unused-english-fts-indexes.md`
+
+---
+
+### 🎯 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
+
+**Status:** 🎯 Todo
+**Priority:** P1 — five defects, each independently capable of causing or hiding an outage
+**Size:** M
+**Prompted by:** the 2026-08-17 outage (BITB-096) and the 2026-08-18 deploy that never fired
+
+**As** the operator of a single-maintainer production service, **I want** the deploy pipeline to
+run migrations before the code that needs them, to bound them from the database, and to actually
+fire when I merge, **so that** a schema change cannot take the site down for 45 minutes and a
+merged fix cannot silently never reach production.
+
+BITB-096 fixed the migration, not the pipeline. All five defects below are still live; yesterday's
+migration was safe only because it was written defensively.
+
+1. `deploy` runs **before** `run-migrations`, so new code is live before its schema exists.
+2. `functional-tests` needs only `deploy`, so it races the migration — all 33 failures it
+   reported on 2026-08-17 were unavoidable.
+3. A CI `timeout-minutes` kills the client, not the server-side DDL, which held its lock a
+   further 15 minutes with no possible commit. Only the database can bound the database.
+4. `azure-deploy.yml` has **no `push` trigger**; it fires on `workflow_run` after
+   "CI/CD - Test Application", whose paths exclude `deployment/**`. #1002 merged and never
+   deployed.
+5. The `production` gate had **16 runs queued, oldest from 11 August**, and there is no
+   `concurrency` group. On 2026-08-17 `deploy` was approved and `run-migrations` was not — the
+   gate's partial application *caused* the outage rather than preventing it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `deploy` depends on `run-migrations`, plus the expand/contract rule that ordering requires
+      documented in `docs/MIGRATION_GUIDELINES.md`
+- [ ] `functional-tests` depends on both; `lock_timeout`/`statement_timeout` set at job or role
+      level, below `timeout-minutes`
+- [ ] `deployment/**` added to the trigger paths, proven by a Terraform-only change deploying
+- [ ] `concurrency` group with `cancel-in-progress: false` (true would cancel a live migration)
+- [ ] Stranded `waiting` runs cleared and a decision recorded on the approval gate
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-097-deploy-pipeline-cannot-be-trusted-with-migrations.md`
+
+---
+
+### ✅ BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
+
+**Status:** ✅ Done (2026-08-18)
+**Size:** M
+**Supersedes:** the generated-column form of `r0004` (BITB-062 / PR #955)
+
+**As** the operator of a 2-vCPU/4GB production Postgres, **I want** the persisted verse tsvector to
+land without rewriting the `verses` table, **so that** BITB-095 can stop recomputing
+`to_tsvector('simple', text)` per row without a repeat of the 2026-08-17 outage.
+
+`r0004` as merged added `verses.text_tsv` as a `STORED` generated column, which forces a full table
+rewrite under `ACCESS EXCLUSIVE`. On ~400k production rows it was still running at 33 minutes; the
+`run-migrations` job then hit its 30-minute timeout, which killed the client but left the DDL
+holding its lock for another 15 minutes. Production was down ~45 minutes and recovered only by
+cancelling the orphaned backend and rolling the image back. Production is still at `r0003`, so the
+revision can be replaced in place.
+
+The tsvector moves to a `verse_tsv(verse_id PK, text_tsv)` side table maintained by a trigger. No
+rewrite, and — unlike the shadow-table and batched-`UPDATE` alternatives — no rebuild of
+`idx_verse_embedding_hnsw` over 403,856 1536-dimension vectors. Measured on identical data: 6.3 ms
+for the whole migration against 7.5 s for the `ALTER TABLE` alone, before production's ~40× wider
+rows and throttled CPU.
+
+**The justification is safety, not speed**, and the benchmark is why. Over 403,856 rows the
+`ts_rank` sites get 11.5× faster (2.750 ms → 0.238 ms per hybrid query), but `search_verses_text`
+is **37% slower** through the side table (0.105 ms → 0.144 ms) — `idx_verses_fts_simple` is an
+expression index that already stores the computed tsvectors, so that lookup was never recomputing
+anything. It therefore stays as it is, `verse_tsv.text_tsv` carries no index at all, and BITB-095
+Phase 2 (dropping the expression index) is cancelled.
+
+**Acceptance Criteria (summary):**
+
+- [x] `r0004` rewritten in place, with `lock_timeout`/`statement_timeout` set inside the migration
+- [x] `VerseTsv` ORM model; **no** tsvector column on `Verse`, so `select(Verse)` no longer depends
+      on the migration having run — the coupling that made the outage total
+- [x] `scripts/backfill_verse_tsv.py`: batched, resumable, idempotent, ends in `ANALYZE verse_tsv`
+- [x] Benchmarked rather than assumed; `search_verses_text` left on the expression index
+- [x] Verified against a real Postgres 16 at 403,856 rows, including downgrade and re-upgrade
+- [x] Applied in production: `r0004 (head)`, 403,856 rows backfilled, expression parity true
+- [x] Query switch landed on the two `ts_rank` sites; `search_verses_text` left on the
+      expression index, BITB-095 Phase 2 cancelled
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-096-verse-tsv-side-table.md`
+
+---
+
+### 🎯 BITB-094: Audit Column Types Against Production — the Blind Spot `alembic check` Cannot See
+
+**Status:** 🎯 Todo
+**Size:** S–M
+**Depends on:** BITB-093 (structural reconciliation) — done
+
+**As a** maintainer who has just made Alembic authoritative, **I want** to know whether production's
+column *types* match the ORM models, **so that** "the schema is reconciled" is a complete statement
+rather than one that quietly excludes a whole category of difference.
+
+`api/alembic/env.py` sets `compare_type=False`, correctly — `Vector(dim)` is 1024 locally and 1536
+in production, so type comparison would flap the CI gate forever. The cost is that it suppresses
+**all** type comparison. Every `alembic check` run during BITB-089 and BITB-093, including the clean
+one against production, compared structure and no types whatsoever. A `varchar(50)` vs `varchar(100)`
+or a `timestamp` vs `timestamptz` would have passed silently.
+
+A concrete candidate already exists: `translations.created_at` is `DateTime` (naive) while
+`feedback.created_at` and `contact_submissions.created_at` are `DateTime(timezone=True)`.
+`scripts/init.sql` agrees with the models, so it is probably faithful rather than drift — but that
+is the standard this story replaces.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Type comparison run against a schema-only copy of production, output in the PR
+- [ ] Vector columns reported as expected-difference, not silently skipped
+- [ ] Each finding classified: faithful-but-questionable vs genuine drift
+- [ ] `translations.created_at` resolved explicitly, or documented as intentionally naive
+- [ ] Any `ALTER TABLE ... TYPE` deferred to its own revision with a lock/rewrite assessment
+- [ ] `api/alembic/README.md` invariant #2 states plainly that **no** type is ever compared
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-094-audit-column-types-against-production.md`
 
 ---
 
