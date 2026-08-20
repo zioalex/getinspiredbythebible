@@ -492,6 +492,69 @@ class TestSearchPassagesSemanticIndexFriendly:
         assert "emb0" in positiontup
 
 
+class TestTsRankReadsVerseTsv:
+    """BITB-096: the two ``ts_rank`` sites read the persisted tsvector from
+    ``verse_tsv`` instead of recomputing ``to_tsvector('simple', v.text)`` for
+    every candidate row. Measured 2.750 ms -> 0.238 ms over a 200-row pool."""
+
+    @staticmethod
+    def _assert_reads_verse_tsv(sql: str) -> None:
+        assert "LEFT JOIN verse_tsv vt ON vt.verse_id = d.id" in sql
+        # CAST(...) not ::tsvector -- the `:` in a cast trips the unbound-parameter
+        # guard in TestEmbeddingBindCompilesForAsyncpg, which exists because a
+        # `:embedding::vector` cast once shipped broken SQL to production.
+        assert "COALESCE(vt.text_tsv, CAST('' AS tsvector))" in sql
+        # The whole point: no per-row recomputation over `verses` survives here.
+        assert "to_tsvector('simple', v.text)" not in sql
+
+    @pytest.mark.asyncio
+    async def test_search_verses_hybrid_reads_verse_tsv(self):
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid(query_text="peace", query_embedding=[0.1, 0.2])
+
+        self._assert_reads_verse_tsv(mock_session.execute.call_args_list[0][0][0].text)
+
+    @pytest.mark.asyncio
+    async def test_multi_embedding_path_reads_verse_tsv(self):
+        """The ``extra_embeddings`` path builds its own SQL string, so it needs
+        its own assertion -- the two were switched independently."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid(
+            query_text="peace",
+            query_embedding=[0.1, 0.2],
+            extra_embeddings=[[0.3, 0.4]],
+        )
+
+        self._assert_reads_verse_tsv(mock_session.execute.call_args_list[0][0][0].text)
+
+    @pytest.mark.asyncio
+    async def test_join_is_outer_so_a_missing_row_cannot_drop_a_verse(self):
+        """LEFT, not INNER. A verse with no ``verse_tsv`` row -- mid-backfill, or
+        if the ``verses_tsv_sync`` trigger were dropped -- must rank zero on the
+        keyword component rather than vanish from the results."""
+        mock_session = AsyncMock()
+        repo = ScriptureRepository(mock_session)
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repo.search_verses_hybrid(query_text="peace", query_embedding=[0.1, 0.2])
+
+        sql = mock_session.execute.call_args_list[0][0][0].text
+        assert "JOIN verse_tsv vt" in sql
+        assert "LEFT JOIN verse_tsv vt" in sql, "an inner join here silently loses verses"
+
+
 class TestSearchVersesTextUsesFts:
     """BITB-062: search_verses_text must use FTS (index-backed), not a
     leading-wildcard ILIKE (unindexable full scan)."""
