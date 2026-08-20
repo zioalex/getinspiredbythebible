@@ -91,6 +91,56 @@ class TestGetAsyncDatabaseUrl:
         assert url.count("asyncpg") == 1
 
     @patch("scripture.database.settings")
+    def test_url_with_ssl_require(self, mock_settings):
+        """`?ssl=require` must be stripped exactly like `?sslmode=require`.
+
+        The deploy workflow's migration job builds its DATABASE_URL with
+        `?ssl=require` (.github/workflows/azure-deploy.yml, run-migrations).
+        Leaving that parameter in the URL reaches asyncpg as a connect kwarg
+        and fails with "parameter 'ssl' cannot be changed now" -- which would
+        break `alembic upgrade head` on every deploy.
+        """
+        mock_settings.database_url = (
+            "postgresql+asyncpg://user:pass@host/db?ssl=require"  # pragma: allowlist secret
+        )
+        from scripture.database import get_async_database_url
+
+        with patch("scripture.database.settings", mock_settings):
+            url, args = get_async_database_url()
+
+        assert "ssl" not in url
+        assert "ssl" in args
+
+    @patch("scripture.database.settings")
+    def test_url_with_ssl_and_sslmode(self, mock_settings):
+        """Both spellings present: both stripped, one SSL context produced."""
+        mock_settings.database_url = (
+            "postgresql://user:pass@host/db?ssl=require&sslmode=require"  # pragma: allowlist secret
+        )
+        from scripture.database import get_async_database_url
+
+        with patch("scripture.database.settings", mock_settings):
+            url, args = get_async_database_url()
+
+        assert "ssl=" not in url
+        assert "sslmode" not in url
+        assert "ssl" in args
+
+    @patch("scripture.database.settings")
+    def test_url_with_ssl_disable(self, mock_settings):
+        """A non-TLS `ssl` value is still stripped, but yields no SSL context."""
+        mock_settings.database_url = (
+            "postgresql://user:pass@host/db?ssl=disable"  # pragma: allowlist secret
+        )
+        from scripture.database import get_async_database_url
+
+        with patch("scripture.database.settings", mock_settings):
+            url, args = get_async_database_url()
+
+        assert "ssl" not in url
+        assert "ssl" not in args
+
+    @patch("scripture.database.settings")
     def test_url_with_other_params(self, mock_settings):
         mock_settings.database_url = "postgresql://user:pass@host/db?sslmode=require&connect_timeout=10"  # pragma: allowlist secret
         from scripture.database import get_async_database_url
