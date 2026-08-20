@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.52.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.51.0...v1.52.0) (2026-08-20)
+
+
+### Features
+
+* **api:** add persisted generated tsvector column on verses (BITB-062) ([#955](https://github.com/zioalex/getinspiredbythebible/issues/955)) ([fe1d69f](https://github.com/zioalex/getinspiredbythebible/commit/fe1d69f47eb8f12fd267cabac3dad1386a49f50f))
+* **ci:** deploy Alembic migrations from the pipeline (BITB-089) ([#974](https://github.com/zioalex/getinspiredbythebible/issues/974)) ([ca23ac5](https://github.com/zioalex/getinspiredbythebible/commit/ca23ac580679332b4f9e7b2463f0dbdbfccf19c1))
+* **db:** prove the deploy pipeline reaches production (BITB-089) ([#987](https://github.com/zioalex/getinspiredbythebible/issues/987)) ([c3f7448](https://github.com/zioalex/getinspiredbythebible/commit/c3f7448020381d9a6c8e3f2ee7ee6adaf41a9f4b))
+* **db:** reconcile the production schema with the ORM models (BITB-093) ([#980](https://github.com/zioalex/getinspiredbythebible/issues/980)) ([d71e148](https://github.com/zioalex/getinspiredbythebible/commit/d71e148a14db0c52d8d1089b0327e00d002ba292))
+* **db:** remove the pipeline probe comment (BITB-089) ([#990](https://github.com/zioalex/getinspiredbythebible/issues/990)) ([eed8584](https://github.com/zioalex/getinspiredbythebible/commit/eed85840a72b8a2ab642c9f02912dab9df1e58a1))
+
+
+### Bug Fixes
+
+* **db:** persist the verse tsvector in a side table, not a rewrite (BITB-096) ([#1001](https://github.com/zioalex/getinspiredbythebible/issues/1001)) ([9840e8b](https://github.com/zioalex/getinspiredbythebible/commit/9840e8b23725091bee89ff6f7db42aad337389a2))
+* **dev:** restore local database initialization (BITB-092) ([#973](https://github.com/zioalex/getinspiredbythebible/issues/973)) ([4881561](https://github.com/zioalex/getinspiredbythebible/commit/4881561c0a50820617df994d9513a4419a80430a))
+* **infra:** let Azure own storage_mb once auto-grow is enabled ([#1002](https://github.com/zioalex/getinspiredbythebible/issues/1002)) ([afebd76](https://github.com/zioalex/getinspiredbythebible/commit/afebd76b85622a8c0fdbd7b129fe285370a76a78))
+* **scripts:** make a failed rehearsal connection say what to do ([#986](https://github.com/zioalex/getinspiredbythebible/issues/986)) ([548b5ec](https://github.com/zioalex/getinspiredbythebible/commit/548b5ec1416349a24bd21f8725d4cc233f06913b))
+* **scripts:** restore the Alembic rehearsal targets lost when [#975](https://github.com/zioalex/getinspiredbythebible/issues/975) merged ([#981](https://github.com/zioalex/getinspiredbythebible/issues/981)) ([b52af26](https://github.com/zioalex/getinspiredbythebible/commit/b52af268f49aeeb619f90bae08bb496b5f3cab7e))
+
+
+### Performance Improvements
+
+* **api:** read the persisted tsvector in ts_rank instead of recomputing it (BITB-095) ([#1003](https://github.com/zioalex/getinspiredbythebible/issues/1003)) ([1cb0ac9](https://github.com/zioalex/getinspiredbythebible/commit/1cb0ac9d966fd111ce1762259e70dd4866df970b))
+
+
+### Documentation
+
+* **backlog:** file the column-type audit as BITB-094 ([#988](https://github.com/zioalex/getinspiredbythebible/issues/988)) ([18ecc5e](https://github.com/zioalex/getinspiredbythebible/commit/18ecc5e87bc9e3aa5fa7933270757c81145a8396))
+* **backlog:** mark BITB-089 and BITB-093 done ([#989](https://github.com/zioalex/getinspiredbythebible/issues/989)) ([2f54792](https://github.com/zioalex/getinspiredbythebible/commit/2f54792376ab40fb7d621b153b3e3c79397fd4d3))
+* point migration guide to Alembic tests ([#971](https://github.com/zioalex/getinspiredbythebible/issues/971)) ([c6be70b](https://github.com/zioalex/getinspiredbythebible/commit/c6be70b272b787a47d04032f5c2997020820fe18))
+* retrospective on the tsvector migration outage, plus BITB-100 ([#1004](https://github.com/zioalex/getinspiredbythebible/issues/1004)) ([5141e20](https://github.com/zioalex/getinspiredbythebible/commit/5141e203291ff067bf5e14219668d11758c5fee1))
+
 ## [1.51.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.50.1...v1.51.0) (2026-07-31)
 
 ### Features
