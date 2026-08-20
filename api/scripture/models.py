@@ -18,6 +18,12 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+
+# Aliased: Verse and Passage both declare a column named `text`, which shadows a
+# bare `text` import inside the class body (TypeError: 'MappedColumn' object is
+# not callable).
+from sqlalchemy import text as sql_text
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from config import settings
@@ -46,9 +52,18 @@ class Translation(Base):
     language_code: Mapped[str] = mapped_column(String(10))  # ISO 639-1: 'en', 'it', 'de'
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    license: Mapped[str] = mapped_column(String(100), default="Public Domain")
-    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # server_default mirrors what is actually deployed (scripts/init.sql). Without
+    # it the ORM claims a column has no database-level default while production
+    # has one, which `alembic check` reports as drift forever -- see BITB-093.
+    license: Mapped[str] = mapped_column(
+        String(100), default="Public Domain", server_default=sql_text("'Public Domain'")
+    )
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sql_text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, server_default=sql_text("CURRENT_TIMESTAMP")
+    )
 
     # Relationships
     verses: Mapped[list["Verse"]] = relationship(back_populates="translation_rel")
@@ -124,12 +139,17 @@ class Verse(Base):
         String(20),
         ForeignKey("translations.code", ondelete="CASCADE"),
         default="kjv",
+        # Deployed with a database-level default too (scripts/init.sql) -- see BITB-093.
+        server_default=sql_text("'kjv'"),
     )
 
     # Vector embedding for semantic search
     embedding: Mapped[Optional[Vector]] = mapped_column(
         Vector(settings.embedding_dimensions), nullable=True
     )
+
+    # The persisted full-text search vector lives in `VerseTsv`, deliberately
+    # not as a column here -- see that class and Alembic r0004 (BITB-096).
 
     # Relationships
     book: Mapped["Book"] = relationship(back_populates="verses")
@@ -161,6 +181,47 @@ class Verse(Base):
 
     def __repr__(self) -> str:
         return f"<Verse(reference='{self.reference}', translation='{self.translation}')>"
+
+
+class VerseTsv(Base):
+    """Persisted ``simple`` full-text search vector for each verse (BITB-096).
+
+    A side table rather than a column on ``verses`` because adding a ``STORED``
+    generated column rewrites the whole table under ``ACCESS EXCLUSIVE`` -- a
+    45-minute production outage on 2026-08-17 -- and because rewriting
+    ``verses`` rows also churns ``idx_verse_embedding_hnsw`` over its 1536-dim
+    vectors. Populating a separate table costs neither. See Alembic ``r0004``.
+
+    Keeping the tsvector off ``Verse`` has a second benefit worth preserving:
+    ``search_verses_text`` issues ``select(Verse)``, which emits every mapped
+    column, so a tsvector column there makes *every verse read* depend on the
+    migration having run. That coupling is what turned a slow migration into a
+    total outage. Nothing here is mapped onto ``Verse``, and there is
+    intentionally no ``relationship()`` between the two.
+
+    Maintained by the ``verses_tsv_sync`` trigger (also ``r0004``), so the app
+    never writes it; deletes are handled by ``ON DELETE CASCADE``.
+
+    Deliberately **unindexed** on ``text_tsv``. Only ``ts_rank`` in the hybrid
+    search builders reads this table, reached by ``verse_id`` from the
+    already-narrowed HNSW candidate pool, and ``ts_rank`` uses no index.
+    ``search_verses_text`` keeps matching ``@@`` against the expression index
+    ``idx_verses_fts_simple``, which measured faster than joining through here
+    (0.105 ms vs 0.144 ms over 403,856 rows). A GIN index on this column would
+    have no reader and cost write overhead on every seed. See ``r0004``.
+    """
+
+    __tablename__ = "verse_tsv"
+
+    verse_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("verses.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    text_tsv: Mapped[str] = mapped_column(TSVECTOR, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<VerseTsv(verse_id={self.verse_id})>"
 
 
 class Passage(Base):

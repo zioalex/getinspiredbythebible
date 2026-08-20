@@ -1,8 +1,42 @@
 #!/bin/bash
 set -e
 
-echo "=== Applying database migrations ==="
+echo "=== Applying database migrations (legacy scripts/migrations) ==="
 python3 -u migrations/run_migrations.py
+echo ""
+
+# Alembic owns new schema changes (BITB-004/089), but until now this dev stack
+# never ran it: the schema came from scripts/init.sql plus the legacy runner
+# above, while production runs `alembic upgrade head` from the deploy pipeline.
+# Two environments on two different migration systems is how a revision can be
+# correct in production and missing here -- which is exactly what happened when
+# BITB-062's legacy half was dropped as redundant and every `SELECT verses.*`
+# started failing in the compose stack.
+#
+# The stamp mirrors the production cutover (docs/MIGRATION_GUIDELINES.md): a
+# database built by init.sql already has the r0001 baseline schema, it just has
+# no bookkeeping to say so. Stamping records that, and `upgrade head` then
+# applies only the revisions after it -- so an existing volume picks up new
+# columns instead of silently lacking them.
+#
+# `python3 -m alembic` rather than the `alembic` console script: the module is
+# installed via api/requirements.txt, but this entrypoint should not depend on
+# the script directory being on PATH in that image. Matches how
+# api/tests/test_alembic_migrations.py invokes it.
+#
+# PYTHONDONTWRITEBYTECODE: /api is a read-only bind mount here, so alembic must
+# not try to write __pycache__ next to env.py.
+echo "=== Applying Alembic migrations ==="
+(
+  cd /api
+  export PYTHONDONTWRITEBYTECODE=1
+  if [ -z "$(python3 -m alembic current 2>/dev/null | tail -n1 | tr -d '[:space:]')" ]; then
+    echo "No alembic_version row -- stamping r0001 (schema came from init.sql)"
+    python3 -m alembic stamp r0001
+  fi
+  python3 -m alembic upgrade head
+  python3 -m alembic current
+)
 echo ""
 
 echo "=== Translation status before load ==="
