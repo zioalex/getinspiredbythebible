@@ -94,6 +94,36 @@ DATABASE_URL=<prod-read-only-url> EMBEDDING_PROVIDER=azure_openai \
 and gets the expansion OFF-vs-ON A/B table with a per-language breakdown.
 This cannot be exercised inside a sandboxed dev environment with no prod DB
 or Azure credentials — the harness's *code* is tested against injected fakes
-(see `api/tests/test_search_eval_runner.py`); the *live* A/B numbers are a
-manual maintainer step (above) until **P4** automates a nightly/manual CI
-run against Azure.
+(see `api/tests/test_search_eval_runner.py`); the *live* A/B numbers are
+produced automatically by the CI workflow below (**P4a**).
+
+## Running it in CI (P4a)
+
+`.github/workflows/search-eval-full.yml` runs this harness for real, on a
+schedule and on demand — no maintainer machine required:
+
+- **`eval-prod`** — read-only against the production database (DB connection
+  built the same way `azure-deploy.yml` does for migrations/seeding — no new
+  DB secret), Azure-embeds the golden set's queries, and retrieves from prod's
+  real vectors. True prod numbers, no rebuild, no writes.
+- **`eval-smoke`** — loads 1 Corinthians into an ephemeral CI Postgres,
+  Azure-embeds it, and runs `--run --smoke`. Proves the CLI/Azure plumbing
+  end-to-end without touching prod. Its P@5/R@10/MRR are expected to be
+  **~0** — the golden set's first 3 cases live in Matthew/Philippians/Proverbs,
+  not 1 Corinthians — so a non-zero *exit code* is the failure signal here,
+  not the metric values.
+
+Both routes run nightly (04:23 UTC) and via **Actions → Search Eval — Full →
+Run workflow** (`route: both | prod | smoke`, optional `configs` / `language`
+inputs). Results land as a `$GITHUB_STEP_SUMMARY` table and as a downloadable
+JSON+log artifact (30-day retention). Missing secrets/vars make the affected
+job skip with a `::notice::` rather than fail — this workflow never runs on
+`pull_request` and never gates a merge.
+
+**Not yet built:** a third route (`eval-corpus`, tracked as **P4b**) that
+rebuilds all 11 translations from scratch into a cached pgvector instance, for
+a reproducible-corpus A/B that doesn't drift with prod's live data. Deferred
+deliberately — see the "P4b" section of
+`docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md` for why.
+Until it lands, `eval-prod` is the only source of real A/B numbers, and its
+per-language scores still carry the versification caveat above.
