@@ -274,6 +274,71 @@ print("✅ Migration completed successfully")
 
 ---
 
+### 🔴 Rule #7: Migrations Must Be Backward-Compatible With the Running App (Expand/Contract)
+
+**Why this rule exists:** as of BITB-097, [`run-migrations` runs *before*
+`deploy`](../.github/workflows/azure-deploy.yml) — not after it. For the
+duration of the deploy, the **old** application code (still serving traffic)
+runs against the **new** schema (already migrated). That ordering is what
+lets a bad migration be caught and rolled back before any new code ever
+depends on it, but it is only safe if every migration is compatible with
+the app version that is *currently deployed*, not just the one about to be.
+
+**Rule:** classify every migration before you write it.
+
+- **Additive changes are safe to ship in a single migration + deploy.** New
+  tables, new nullable columns (or columns with a server-side `DEFAULT`), and
+  new indexes don't change how existing columns/tables behave, so the old
+  app code simply ignores them.
+- **Renames, drops, and type changes are NOT safe in one step.** The old app
+  code still reads/writes the old shape; migrating it out from under a
+  running process breaks every request until the new app code deploys —
+  exactly the failure mode this rule exists to prevent. These must be split
+  across **two separate deploys** using the expand/contract pattern:
+  1. **Expand** (deploy 1): add the new shape *alongside* the old one. The
+     migration only adds; it never removes. If code needs to move data or
+     serve both shapes, it dual-writes (and dual-reads, if necessary) so
+     either app version works against the post-migration schema.
+  2. **Contract** (deploy 2, later — once you're sure no running instance of
+     the old code is still in flight): a second migration removes the old
+     shape now that nothing references it.
+
+**❌ WRONG — a column rename in one migration:**
+
+```python
+# Single migration, single deploy:
+op.alter_column("verses", "txt", new_column_name="text")
+```
+
+The old app code (still running while this migration applies, and for the
+rest of the deploy) selects/inserts `txt`. The moment this migration
+commits, every one of those queries starts failing — the same shape of
+outage BITB-096 traced back to, just from a rename instead of a broken
+`ALTER TABLE`.
+
+**✅ CORRECT — split into expand, then contract:**
+
+```python
+# Migration N (deploy 1 — "expand"): add the new column, backfill, dual-write.
+# Old app code (reads/writes `txt`) and new app code (reads/writes `text`)
+# both work against this schema.
+op.add_column("verses", sa.Column("text", sa.Text(), nullable=True))
+op.execute("UPDATE verses SET text = txt")
+# App code deployed alongside this migration writes both `txt` and `text`
+# until the contract migration ships.
+
+# Migration N+1 (deploy 2, later — "contract"): only once no deployed app
+# version still references `txt`.
+op.drop_column("verses", "txt")
+```
+
+**Why?** The ordering fix in BITB-097 (migrate first, deploy second) removes
+one outage mode — new code running before its migration exists — but
+introduces this one in its place if ignored. Expand/contract is what makes
+migrating first actually safe rather than just moving the risk around.
+
+---
+
 ## Common Patterns
 
 ### Pattern: Add a New Table
