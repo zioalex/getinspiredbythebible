@@ -576,9 +576,10 @@ scope here.
 
 ---
 
-### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+### ✅ BITB-053: Ground Unquoted / Paraphrased Verse Citations
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (code, detect-only mode) — `_apply_paraphrase_grounding`/`_classify_paraphrase`
+shipped in `api/chat/verse_grounding.py`; this entry was stale, see the story file for rollout status
 **Size:** M (1-2 days)
 **Created:** 2026-06-19
 
@@ -601,27 +602,14 @@ fixed.
 
 ---
 
-### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+### ✅ BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
 
-**Status:** 🎯 Todo
-**Size:** M (1-2 days)
-**Created:** 2026-06-19
+**Status:** ✅ Done (PR #803) — `get_translation_coverage()` + admin diagnostic route, startup
+coverage check + `scripture.translation_data.missing` metric, and configurable
+`grounding_unresolved_behavior` (`keep`/`strip`/`notice`, default `strip`) all shipped. This entry
+was stale. See `docs/DONE/BITB-054-translation-data-observability.md`.
 
-**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
-can't be resolved in the user's translation, **so that** a missing/incomplete translation never
-shows up as silently hallucinated scripture.
-
-**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
-grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
-manual SQL snippet, and the unresolved path is invisible.
-
-**Acceptance Criteria (summary — full story has detail):**
-
-- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
-- [ ] Startup/CI warning + metric when a supported language has no usable verse data
-- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
-
-**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
+**Full Story:** `docs/DONE/BITB-054-translation-data-observability.md`
 
 ---
 
@@ -1697,9 +1685,10 @@ log-scraping the bug slipped through twice, no metric distinguished "served with
 
 ---
 
-### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
+### ✅ BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `TYPO_TOLERANCE_GUIDANCE` shipped in all three system prompts in
+`api/chat/prompts.py`; this entry was stale, see the story file
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12
 
@@ -2119,9 +2108,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
+### ✅ BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `api/scripture/models.py` and `api/feedback/models.py` are fully
+`Mapped[]`/`DeclarativeBase`; zero `= Column(...)` usages remain repo-wide. This entry was stale.
 **Size:** L
 
 **As a** developer,
@@ -2314,9 +2304,11 @@ they show the pre-rename v1.0 UI — must be labeled as "then," not presented as
 
 ---
 
-### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
+### 🚧 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — backend intent routing + clarifying-question flow shipped
+(behind `chat_clarification_enabled`, default off); tappable chip UI (shared with BITB-080)
+and golden-set eval integration deferred, see story file
 **Size:** M (1–2 days, prompt work + eval)
 **Created:** 2026-07-25
 

@@ -1,10 +1,37 @@
 # BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #803)
 **Priority:** P2 (Medium) — correctness/observability; prevents silent ungrounded scripture
 **Size:** M (1-2 days)
 **Created:** 2026-06-19
 **Parent / related:** verse grounding (`api/chat/verse_grounding.py`), `scripts/load_bible.py`
+
+## Delivered
+
+Found already shipped via CHANGELOG.md ("per-translation data observability + honest
+unresolved citations (BITB-054) (#803)") while scoping a follow-up story — `docs/BACKLOG.md`
+and this file were never updated to match, so the story kept surfacing as unstarted. Verified
+directly against `main` on 2026-08-02:
+
+- **Diagnostic:** `ScriptureRepository.get_translation_coverage()` (`api/scripture/repository.py:902`)
+  - admin route `GET /api/v1/admin/translation-coverage` (`api/routes/admin.py:66`, probe-secret
+  gated).
+- **Startup/CI guard:** `_check_translation_coverage_at_startup()` (`api/main.py:66`, called from
+  the app lifespan) logs per-language warnings and increments the
+  `scripture.translation_data.missing` counter (`api/utils/metrics.py`).
+- **Configurable `unresolved` handling:** `grounding_unresolved_behavior: Literal["keep", "strip",
+  "notice"]` (`api/config.py`, default `"strip"`) — the story predicted a boolean
+  `grounding_strip_unresolved` flag; the actual implementation is the strictly more capable
+  three-valued version, implemented in `api/chat/verse_grounding.py` and wired in
+  `api/chat/service.py`. `strip` (not "fall back to another translation's text") was chosen as the
+  default — surfacing another language's canonical text inside a response in a different language
+  is a distinct honesty failure, not a fix for this one.
+- `reason=unresolved` is observable and asserted in `api/tests/test_chat_coverage.py`.
+
+Not separately re-verified in this pass: the AC's "across all 11 languages" clause for the
+`unresolved`-handling tests, and a real-DB (as opposed to mocked) test of
+`get_translation_coverage()`. Worth a small follow-up story if a gap is ever suspected there —
+not reopening this one speculatively.
 
 ## User Story
 
