@@ -1,6 +1,6 @@
 # BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
+**Status:** 🚧 In Progress (gaps #1–#5 shipped — #1 in PR #848, #2/#3/#4 in PR #845, #5 auto cert re-bind in the post-deploy HTTPS check; #6 open — Terraform/Azure infra work)
 **Priority:** P1 (High) — the monitoring we just added (BITB-064/065/066) produced a false "production
 down" alert while the site was healthy, and a routine deploy silently broke origin TLS. These gaps
 erode trust in the alerts and can turn a no-op deploy into an outage.
@@ -68,7 +68,7 @@ upload `frontend/test-results/` + `frontend/playwright-report/` as an artifact, 
 `$RUNNER_TEMP/detail.txt` (which `notify-telegram` already appends) pointing at the artifact + the
 "check the deploy" hypothesis.
 
-### 5. Routine deploys can break origin TLS (Cloudflare 525) — recurring
+### 5. Routine deploys can break origin TLS (Cloudflare 525) — recurring — ✅ Shipped
 
 A deploy failed post-check with `525 SSL Handshake Failed` on `api.voxquieta.org` (origin cert
 missing/unbound). This has recurred (the repo already ships a "Rollback: Emergency Cert Rebind"
@@ -79,6 +79,22 @@ replacement*, i.e. adding a monitoring secret can now trigger the exact replace�
 **Fix direction:** make the cert bind reliably re-run after any backend replacement (correct
 `depends_on`/trigger wiring so the rebind is not skipped), and/or decouple secret changes from full app
 replacement; add an automatic post-deploy rebind-and-retry rather than a manual runbook.
+
+**Shipped as:** the trigger half was already wired — `null_resource.backend_custom_domain` and
+`backend_ssl_cert_bind` key on `terraform_data.backend_secret_trigger.id`, so the *same* apply
+re-binds after a replacement. This pass adds the missing auto-remediation: `azure-deploy.yml`'s
+"Verify Custom Domain HTTPS" step now, on a 525/526 for either custom domain, re-adds the hostname
+(a replaced app loses it) and re-runs the cert lookup + `az containerapp hostname bind` for that
+domain's app, then re-checks up to 3× at 30s intervals before failing. A recovered domain logs a
+`::notice::`; a still-broken one fails with a message distinguishing "auto-remediation ran and did
+not fix it" from the original error and pointing at the `deployment/README.md` runbook. This also
+covers the frontend, whose `frontend_ssl_cert_bind` has no replacement trigger (the frontend app has
+no `replace_triggered_by`). Remediation only runs for a domain that is *already* TLS-broken, so a bug
+in it cannot regress a healthy domain — worst case is the identical loud failure as before. The
+criterion's "fails loudly *before* flipping traffic" branch is not satisfiable under
+`revision_mode = "Single"` (traffic flips on apply); this satisfies the "or auto-remediates" branch.
+The az invocations are copied from the Terraform provisioners they mirror and cannot be exercised
+against real Azure from CI.
 
 ### 6. Secret rotation is coupled to full app replacement
 
@@ -127,7 +143,7 @@ Telegram-token deploy step rather than inventing a new mechanism.
 - [x] `prod-chat-smoke.spec.ts` fails fast with a descriptive message on a stale/mismatched bundle
       (asserts the user bubble first), and its test-level timeout exceeds its assertion budgets.
 - [x] `prod-browser-smoke.yml` uploads a trace/report artifact and a `detail.txt` on failure.
-- [ ] A backend app replacement (incl. secret rotation) reliably re-binds the origin cert with no
+- [x] A backend app replacement (incl. secret rotation) reliably re-binds the origin cert with no
       manual runbook step; a deploy that would leave origin TLS broken fails loudly *before* flipping
       traffic, or auto-remediates.
 - [ ] (Investigate) probe-secret changes no longer force a full Container App replacement.
