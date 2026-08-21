@@ -1,7 +1,7 @@
 # Migration Best Practices & Guidelines
 
-**Version:** 1.1
-**Last Updated:** 2026-07-30
+**Version:** 1.2
+**Last Updated:** 2026-08-21
 **Owner:** Product & Engineering Team
 
 ---

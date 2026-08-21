@@ -15,13 +15,29 @@ pattern `test_deploy_workflow_migrations.py` already uses for the workflow
 YAML.
 """
 
+import re
 from pathlib import Path
+
+import yaml
 
 from scripture.database import get_migration_server_settings
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _ENV_PY_PATH = _REPO_ROOT / "api" / "alembic" / "env.py"
 _UTILS_PY_PATH = _REPO_ROOT / "scripts" / "migrations" / "utils.py"
+_WORKFLOW_PATH = _REPO_ROOT / ".github" / "workflows" / "azure-deploy.yml"
+
+
+def _guc_duration_to_minutes(value: str) -> float:
+    """Parse a Postgres GUC-style duration ('5s', '25min') into minutes.
+
+    Only the two unit suffixes this codebase actually uses are supported --
+    this is a regression guard, not a general GUC parser.
+    """
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)(s|min)", value)
+    assert match, f"unrecognized GUC duration format: {value!r}"
+    amount, unit = match.groups()
+    return float(amount) / 60 if unit == "s" else float(amount)
 
 
 def test_get_migration_server_settings_returns_expected_guc_keys():
@@ -79,3 +95,27 @@ def test_legacy_migration_utils_sets_server_settings():
     )
     assert "lock_timeout" in source
     assert "statement_timeout" in source
+
+
+def test_statement_timeout_is_strictly_below_the_job_timeout():
+    """The acceptance criterion this exists to guard: `statement_timeout` must
+    sit *below* `run-migrations`'s `timeout-minutes`, so the database gives up
+    and rolls back cleanly before the runner vanishes and orphans the
+    statement (BITB-097, defect 3). A value check, not just key presence --
+    someone lowering `timeout-minutes` (or raising `statement_timeout`) below
+    this margin must fail loudly here, not surface as a 15-minute stranded
+    lock during the next real outage."""
+    statement_timeout_minutes = _guc_duration_to_minutes(
+        get_migration_server_settings()["statement_timeout"]
+    )
+
+    workflow = yaml.safe_load(_WORKFLOW_PATH.read_text())
+    job_timeout_minutes = workflow["jobs"]["run-migrations"]["timeout-minutes"]
+
+    assert statement_timeout_minutes < job_timeout_minutes, (
+        f"statement_timeout ({statement_timeout_minutes} min) is not strictly "
+        f"below run-migrations' timeout-minutes ({job_timeout_minutes} min) -- "
+        "a stuck migration would have its CI runner vanish before Postgres "
+        "gives up, orphaning the statement under its lock instead of rolling "
+        "it back cleanly"
+    )
