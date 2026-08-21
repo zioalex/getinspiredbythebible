@@ -110,6 +110,16 @@ permissions:
   pull-requests: write
   issues: write
 
+# BITB-097: without this, every push queues another full run and none
+# supersedes its predecessor -- that's how runs pile up waiting on the
+# `production` approval gate. `cancel-in-progress` must stay `false`:
+# cancelling a *running* run mid-migration is the client-killed-DDL-survives
+# failure mode that BITB-096 hit. This only cancels superseded runs still
+# queued, never one already in progress.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   # Normalize commit SHA: workflow_run events use the triggering commit,
   # not the latest default-branch commit
@@ -794,10 +804,11 @@ jobs:
   # On workflow_run (main after tests): applies the plan artifact from tf-plan.
   # On workflow_dispatch (action=deploy): applies the plan artifact from tf-plan.
   deploy:
-    needs: [changes, build-backend, build-frontend, tf-plan]
+    needs: [changes, build-backend, build-frontend, tf-plan, run-migrations]
     if: >-
       always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' &&
-      needs.tf-plan.outputs.has_changes == 'true' && (github.event_name == 'workflow_run' ||
+      needs.tf-plan.outputs.has_changes == 'true' && (needs.run-migrations.result == 'success' ||
+      needs.run-migrations.result == 'skipped') && (github.event_name == 'workflow_run' ||
        (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     environment: production
@@ -1392,10 +1403,11 @@ jobs:
   # investigate and consider rolling back.
   functional-tests:
     name: Functional Tests (smoke)
-    needs: [deploy]
-    if: always() && needs.deploy.result == 'success'
+    needs: [deploy, run-migrations]
+    if: >-
+      always() && needs.deploy.result == 'success' && (needs.run-migrations.result == 'success' ||
+      needs.run-migrations.result == 'skipped')
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -1561,29 +1573,33 @@ jobs:
   # ---------------------------------------------------------------------------
   # Run Database Migrations (runs when migration scripts change or on deploy)
   # ---------------------------------------------------------------------------
-  # Applies both migration systems after a successful deploy:
+  # Applies both migration systems BEFORE `deploy` (BITB-097 -- see that job's
+  # `needs`/`if`, which now waits on this one):
   #   1. scripts/migrations/  -- legacy, frozen, idempotent (IF EXISTS / IF NOT
   #      EXISTS); kept alongside Alembic during the BITB-089 transition.
   #   2. api/alembic/versions/ -- the current system; `alembic upgrade head`.
   # Safe to re-run: both are no-ops against an up-to-date database.
   #
   # IMPORTANT: This job must be able to run independently when migration scripts
-  # change, even if deploy is skipped. The 'always()' function ensures this job
-  # evaluates even when deploy is skipped, and we check deploy didn't fail.
+  # change, even when nothing else in the graph needs to run. The 'always()'
+  # function ensures this job evaluates even if an upstream job was skipped.
   run-migrations:
-    needs: [changes, deploy]
+    needs: [changes]
     # Run when:
     # - migration scripts changed (always apply on migration changes), OR
     # - manual deploy triggered
     # Only on main/workflow_run — not on PRs (no DB access from PR branches)
-    # Conditions:
-    # 1. always() - evaluate even if deploy was skipped
+    #
+    # BITB-097: run-migrations now runs BEFORE deploy (see the `deploy` job's
+    # `needs`/`if`), not after it. The old application code runs against the
+    # new schema for the length of the deploy -- safe only because migrations
+    # are required to be backward-compatible (expand/contract; see
+    # docs/MIGRATION_GUIDELINES.md Rule #7). Conditions:
+    # 1. always() - evaluate even if a prior job in the chain was skipped
     # 2. Not a PR (no DB access from PR branches)
-    # 3. Deploy didn't fail (success or skipped is OK)
-    # 4. Migration scripts changed OR manual workflow_dispatch
+    # 3. Migration scripts changed OR manual workflow_dispatch
     if: >-
-      always() && github.event_name != 'pull_request' && (needs.deploy.result == 'success' || needs.deploy.result ==
-      'skipped') && (needs.changes.outputs.migration_scripts == 'true' ||
+      always() && github.event_name != 'pull_request' && (needs.changes.outputs.migration_scripts == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
