@@ -805,9 +805,8 @@ jobs:
     needs: [changes, build-backend, build-frontend, tf-plan, run-migrations]
     if: >-
       always() && github.event_name != 'pull_request' && needs.tf-plan.result == 'success' &&
-      needs.tf-plan.outputs.has_changes == 'true' &&
-      (needs.run-migrations.result == 'success' || needs.run-migrations.result == 'skipped') &&
-      (github.event_name == 'workflow_run' ||
+      needs.tf-plan.outputs.has_changes == 'true' && (needs.run-migrations.result == 'success' ||
+      needs.run-migrations.result == 'skipped') && (github.event_name == 'workflow_run' ||
        (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     environment: production
@@ -1281,10 +1280,9 @@ jobs:
     name: Functional Tests (smoke)
     needs: [deploy, run-migrations]
     if: >-
-      always() && needs.deploy.result == 'success' &&
-      (needs.run-migrations.result == 'success' || needs.run-migrations.result == 'skipped')
+      always() && needs.deploy.result == 'success' && (needs.run-migrations.result == 'success' ||
+      needs.run-migrations.result == 'skipped')
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -1476,8 +1474,7 @@ jobs:
     # 2. Not a PR (no DB access from PR branches)
     # 3. Migration scripts changed OR manual workflow_dispatch
     if: >-
-      always() && github.event_name != 'pull_request' &&
-      (needs.changes.outputs.migration_scripts == 'true' ||
+      always() && github.event_name != 'pull_request' && (needs.changes.outputs.migration_scripts == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
