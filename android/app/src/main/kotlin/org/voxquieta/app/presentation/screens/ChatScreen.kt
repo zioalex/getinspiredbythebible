@@ -368,16 +368,16 @@ fun ChatScreen(
                     if (uiState.messages.isEmpty()) {
                         item {
                             WelcomeBanner(
+                                // BITB-081: an example question always sends on the
+                                // first tap. No Turnstile-readiness gate here — the
+                                // TurnstileInterceptor already waits for a token,
+                                // fails open on timeout and retries once on 403.
                                 onPromptSelected = { prompt ->
-                                    // Tapping a sample question submits it directly.
-                                    // If Turnstile isn't ready yet, fall back to
-                                    // filling the input so the Send button still works.
-                                    if (uiState.isTurnstileReady) {
-                                        viewModel.sendMessage(prompt)
-                                        inputText = ""
-                                    } else {
-                                        inputText = prompt
-                                    }
+                                    onExamplePromptTapped(
+                                        prompt = prompt,
+                                        clearInput = { inputText = "" },
+                                        sendMessage = viewModel::sendMessage,
+                                    )
                                 },
                                 modifier = Modifier.padding(24.dp),
                             )

@@ -550,6 +550,58 @@ class ChatViewModelTest {
         assertTrue(viewModel.uiState.value.isTurnstileReady)
     }
 
+    // ── BITB-081: example prompts send on the first tap ───────────────────────
+
+    @Test
+    fun `sendMessage streams even when no turnstile token has arrived yet`() = runTest {
+        // Cold start: TurnstileManager holds no token and has not errored, so the
+        // screen-level readiness flag is false. The interceptor (not exercised
+        // here — the repository is mocked) is what absorbs the missing token.
+        assertFalse(viewModel.uiState.value.isTurnstileReady)
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Peace be with you", done = true),
+        )
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("I feel anxious and can't stop worrying")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val messages = viewModel.uiState.value.messages
+        assertTrue(
+            messages.any {
+                it.role == Message.Role.USER && it.content == "I feel anxious and can't stop worrying"
+            },
+        )
+        assertEquals(
+            "Peace be with you",
+            messages.last { it.role == Message.Role.ASSISTANT }.content,
+        )
+        verify(exactly = 1) { repository.chatStream(any()) }
+    }
+
+    @Test
+    fun `second tap while a send is in flight does not start a second conversation`() = runTest {
+        // A stream that never completes — mimics a tap whose response is still
+        // streaming when the user taps the same suggestion again.
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Partial…", done = false))
+            awaitCancellation()
+        }
+        coEvery { repository.createConversation(any(), any()) } returns stubConversation
+
+        viewModel.sendMessage("Same suggestion")
+        viewModel.sendMessage("Same suggestion") // isLoading is already true — dropped
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Exactly one user message + one assistant placeholder.
+        assertEquals(2, viewModel.uiState.value.messages.size)
+        verify(exactly = 1) { repository.chatStream(any()) }
+        coVerify(exactly = 1) { repository.createConversation(any(), any()) }
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
     // ── Translation tests ─────────────────────────────────────────────────────
 
     @Test
