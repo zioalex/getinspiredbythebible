@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 from feedback.models import Base as FeedbackBase
-from scripture.database import get_async_database_url
+from scripture.database import get_async_database_url, get_migration_server_settings
 from scripture.models import Base as ScriptureBase
 
 # this is the Alembic Config object, which provides access to values within
@@ -147,6 +147,10 @@ async def run_async_migrations() -> None:
     open past this single run.
     """
     url, connect_args = get_async_database_url()
+    # BITB-097: bound this one-shot migration connection from the database
+    # side (lock_timeout/statement_timeout) so a CI runner timeout can never
+    # kill the client while server-side DDL keeps its lock indefinitely.
+    connect_args = {**connect_args, "server_settings": get_migration_server_settings()}
     connectable = create_async_engine(
         url,
         poolclass=pool.NullPool,
