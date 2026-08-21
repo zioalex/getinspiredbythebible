@@ -17,7 +17,9 @@ run-name: >-
       - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
+      - "deployment/**"
       - ".github/workflows/test_update.yml"
+      - ".github/workflows/azure-deploy.yml"
   push:
     branches:
       - main
@@ -28,7 +30,9 @@ run-name: >-
       - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
+      - "deployment/**"
       - ".github/workflows/test_update.yml"
+      - ".github/workflows/azure-deploy.yml"
 
 jobs:
   # Backend API Tests
