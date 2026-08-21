@@ -70,7 +70,7 @@ integration-tested.
 - PR #637 — BITB-036 implementation (inline amber quote chip); origin of these
   test gaps
 - PR #677 — CJK regex tests + `\n` fix
-- `docs/BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md` — parent story
+- `docs/DONE/BITB-036-android-inline-amber-quote-chip.md` — parent story
 - `android/app/src/main/kotlin/…/ChatMessageItem.kt` — `applyQuoteHighlights`,
   `QUOTE_HIGHLIGHT_REGEX`, `enableSoftBreakAddsNewLine`
 - `frontend/src/components/ChatMessage.tsx → highlightQuotes()` — web reference
