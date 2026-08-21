@@ -1392,6 +1392,55 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
+
+**Status:** 🎯 Todo
+**Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
+Postgres admin role
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #968 (BITB-051 P4a), which adds the first automated recurring prod-database
+access path in this repo that is not a deploy
+
+**As** the operator of a single-maintainer production service, **I want** the nightly search-eval
+read against production to authenticate as a role that is *incapable* of writing, **so that** a bug,
+a dependency compromise, or a future edit to the harness cannot damage production data using admin
+rights it never needed.
+
+`eval-prod` is genuinely read-only in behaviour — but it connects with `TF_VAR_DB_ADMIN_USERNAME` /
+`TF_VAR_DB_ADMIN_PASSWORD`, the same credentials `run-migrations` uses to execute DDL, because no
+read-only role exists in this project today. "Read-only" is therefore a property of what the harness
+happens to execute, not of any grant.
+
+1. It authenticates as the **Postgres admin role**; nothing in the database prevents a write.
+2. **Nothing gates it** — no `environment:` anywhere in the workflow, unlike `deploy`/`run-migrations`.
+   It is unattended (nightly 04:23 UTC), `workflow_dispatch`-triggerable, and its secrets are bare
+   repo secrets readable by any workflow.
+3. It **widens the blast radius of a dependency compromise**: `pip install -r api/requirements.txt`,
+   then connect to prod as admin, nightly, with no human present.
+4. Reads are **indistinguishable from genuine admin activity** in Postgres logs.
+
+Not a leaked secret: the DSN-in-artifact path was checked and no leak exists (the eval never prints
+the URL; SQLAlchemy masks passwords). Not an argument against #968 — the fix is to give the harness a
+credential proportionate to what it does.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Terraform-provisioned `search_eval_ro` login role with `SELECT` on only the tables the harness reads
+- [ ] `default_transaction_read_only = on` applied, with a write *proven* to fail against a restored copy
+- [ ] `statement_timeout` / `idle_in_transaction_session_timeout` set on the role (BITB-097 precedent)
+- [ ] `eval-prod` uses `SEARCH_EVAL_DB_PASSWORD`; no `TF_VAR_DB_ADMIN_*` anywhere in `search-eval-full.yml`
+- [ ] The new secret is environment-scoped, with a decision recorded on whether it requires a reviewer
+- [ ] A test asserts `search-eval-full.yml` never references `TF_VAR_DB_ADMIN_*`
+- [ ] A nightly run completes green against the new role
+
+**Timing:** cheapest to do **before #968 merges**, so an ungated nightly admin path never exists on
+`main`. Filed as a follow-up per the maintainer's call.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-101-search-eval-prod-read-uses-admin-credentials.md`
+
+---
+
 ### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
 **Status:** 🎯 Todo
