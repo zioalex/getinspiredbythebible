@@ -12,6 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { pageMetadata } from "@/lib/seo";
 import { PLAY_STORE_URL } from "@/lib/testerLinks";
+import AppInstallCta from "@/components/AppInstallCta";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -77,29 +78,20 @@ export default async function AppStoryPage({
       <p className="text-gray-600 mb-4 leading-relaxed">{t("storyBody1")}</p>
       <p className="text-gray-600 mb-8 leading-relaxed">{t("storyBody2")}</p>
 
-      {/* Primary call to action — the official Google Play listing */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-12">
-        <img
-          src="/app-icon.png"
-          alt={t("iconAlt")}
-          width={64}
-          height={64}
-          className="w-16 h-16 rounded-2xl flex-shrink-0"
-        />
-        <div className="flex-1">
-          <p className="font-semibold text-primary-900">Vox Quieta</p>
-          <p className="text-sm text-gray-500">{t("ctaSub")}</p>
-        </div>
-        <a
-          href={PLAY_STORE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all whitespace-nowrap"
-        >
-          <Smartphone className="w-4 h-4" />
-          {t("ctaButton")}
-        </a>
-      </div>
+      {/* Primary call to action — Google Play on Android/desktop, iOS
+          "Add to Home Screen" instructions on iPhone. No App Store badge
+          here: there is no listing yet (BITB-088 adds one). The iOS/non-iOS
+          branch is detected client-side in AppInstallCta so this page stays
+          statically generated. */}
+      <AppInstallCta
+        iconAlt={t("iconAlt")}
+        ctaSub={t("ctaSub")}
+        ctaButton={t("ctaButton")}
+        iosCtaTitle={t("iosCtaTitle")}
+        iosCtaBody={t("iosCtaBody")}
+        iosCtaSub={t("iosCtaSub")}
+        playStoreUrl={PLAY_STORE_URL}
+      />
 
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         {t("featuresTitle")}
