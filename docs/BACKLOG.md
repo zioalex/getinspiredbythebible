@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-21
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1465,9 +1465,9 @@ Drop with `DROP INDEX CONCURRENTLY` inside an `autocommit_block()` — a plain `
 
 ---
 
-### 🎯 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
+### 🚧 BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — PR #1005 open, pending CI + review
 **Priority:** P1 — five defects, each independently capable of causing or hiding an outage
 **Size:** M
 **Prompted by:** the 2026-08-17 outage (BITB-096) and the 2026-08-18 deploy that never fired
@@ -1494,13 +1494,18 @@ migration was safe only because it was written defensively.
 
 **Acceptance Criteria (summary):**
 
-- [ ] `deploy` depends on `run-migrations`, plus the expand/contract rule that ordering requires
-      documented in `docs/MIGRATION_GUIDELINES.md`
-- [ ] `functional-tests` depends on both; `lock_timeout`/`statement_timeout` set at job or role
-      level, below `timeout-minutes`
-- [ ] `deployment/**` added to the trigger paths, proven by a Terraform-only change deploying
-- [ ] `concurrency` group with `cancel-in-progress: false` (true would cancel a live migration)
-- [ ] Stranded `waiting` runs cleared and a decision recorded on the approval gate
+- [x] `deploy` depends on `run-migrations`, plus the expand/contract rule that ordering requires
+      documented in `docs/MIGRATION_GUIDELINES.md` (PR #1005)
+- [x] `functional-tests` depends on both; `lock_timeout`/`statement_timeout` set at job or role
+      level, below `timeout-minutes` (PR #1005 — via code, not a `PGOPTIONS` env var: asyncpg
+      doesn't read it, see PR description)
+- [x] `deployment/**` and `azure-deploy.yml` itself added to `test_update.yml`'s trigger paths
+      (PR #1005); the end-to-end proof (a Terraform-only change actually deploying) is only
+      verifiable post-merge, not attempted in the PR
+- [x] `concurrency` group with `cancel-in-progress: false` (true would cancel a live migration)
+      (PR #1005)
+- [ ] Stranded `waiting` runs cleared and a decision recorded on the approval gate — deliberately
+      left to the operator; PR #1005 does not touch the approval gate or any pending approval
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-097-deploy-pipeline-cannot-be-trusted-with-migrations.md`
 

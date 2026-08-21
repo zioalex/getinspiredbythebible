@@ -70,6 +70,19 @@ def get_async_database_url() -> tuple[str, dict]:
     return url, connect_args
 
 
+def get_migration_server_settings() -> dict[str, str]:
+    """Session-level GUCs for one-shot migration connections (Alembic, legacy runner).
+
+    Bounds how long a migration can hold a lock or run a statement from the
+    database side, not the CI runner's side (BITB-097): a CI timeout kills the
+    client but leaves server-side DDL running under its lock until it either
+    finishes or the database itself gives up. Not applied to
+    `_connect_args`/the app's long-lived connection pool below -- a 5s
+    lock_timeout would misfire on legitimate app queries.
+    """
+    return {"lock_timeout": "5s", "statement_timeout": "25min"}
+
+
 # Get async URL and connection args
 _async_url, _connect_args = get_async_database_url()
 
