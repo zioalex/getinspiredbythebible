@@ -130,3 +130,109 @@ def test_legacy_migrations_still_run_alongside_alembic():
     assert [
         s for s in steps if "run_migrations.py" in (s.get("run") or "")
     ], "the legacy scripts/migrations runner no longer runs in run-migrations"
+
+
+# -----------------------------------------------------------------------------
+# BITB-097: deploy must not run before its migration.
+#
+# Before this story, `deploy: needs: [..., changes]` and
+# `run-migrations: needs: [changes, deploy]` -- new application code went
+# live *before* the migration it depended on. These tests assert the
+# inverted ordering directly off the parsed job graph, so a regression back
+# to "deploy first" fails loudly instead of waiting for another outage to
+# surface it.
+# -----------------------------------------------------------------------------
+
+
+def test_deploy_depends_on_run_migrations():
+    """`deploy` must wait for `run-migrations` to finish, not the reverse."""
+    jobs = _load_workflow()["jobs"]
+    assert "run-migrations" in jobs["deploy"]["needs"], (
+        "`deploy` does not list `run-migrations` in `needs` -- application code "
+        "could go live before its own migration runs (BITB-097)"
+    )
+
+
+def test_run_migrations_does_not_depend_on_deploy():
+    """The whole point of the BITB-097 inversion: a regression back to the old
+    `run-migrations: needs: [..., deploy]` order must fail this test."""
+    jobs = _load_workflow()["jobs"]
+    assert "deploy" not in jobs["run-migrations"]["needs"], (
+        "`run-migrations` still lists `deploy` in `needs` -- the pipeline has "
+        "regressed to migrating *after* the new code is already live (BITB-097)"
+    )
+
+
+def test_deploy_if_checks_run_migrations_result():
+    """`deploy`'s `if:` opens with `always()`, so without an explicit check on
+    `needs.run-migrations.result` it would proceed even after a *failed*
+    migration -- `always()` disables GitHub Actions' default
+    skip-on-failed-dependency behavior."""
+    jobs = _load_workflow()["jobs"]
+    condition = jobs["deploy"]["if"]
+    assert "needs.run-migrations.result" in condition, (
+        "`deploy`'s `if:` does not reference `needs.run-migrations.result` -- "
+        "combined with the leading `always()`, a failed migration would not "
+        "block deploy (BITB-097)"
+    )
+
+
+def test_functional_tests_depends_on_run_migrations():
+    """`functional-tests` must not race the migration it is meant to validate
+    against. Depending on `deploy` alone let it start while `run-migrations`
+    was still `waiting` on approval, testing a system mid-migration."""
+    jobs = _load_workflow()["jobs"]
+    needs = jobs["functional-tests"]["needs"]
+    assert "deploy" in needs and "run-migrations" in needs, (
+        f"`functional-tests` needs {needs!r}, expected both `deploy` and "
+        "`run-migrations` (BITB-097)"
+    )
+
+
+def test_functional_tests_if_checks_run_migrations_result():
+    jobs = _load_workflow()["jobs"]
+    condition = jobs["functional-tests"]["if"]
+    assert "needs.run-migrations.result" in condition, (
+        "`functional-tests`'s `if:` does not reference "
+        "`needs.run-migrations.result` -- it could still start before the "
+        "migration finishes (BITB-097)"
+    )
+
+
+def test_concurrency_group_prevents_run_pileup():
+    """No `concurrency` group meant every push queued another full run and none
+    superseded its predecessor -- 16 runs piled up in the `production`
+    approval queue by 2026-08-18. `cancel-in-progress` must stay `False`:
+    cancelling a *running* run mid-migration is the client-killed-DDL-survives
+    failure mode BITB-096 hit."""
+    workflow = _load_workflow()
+    concurrency = workflow.get("concurrency")
+    assert concurrency, "workflow has no top-level `concurrency` group (BITB-097)"
+    assert "group" in concurrency, "`concurrency` block has no `group` key"
+    assert concurrency.get("cancel-in-progress") is False, (
+        f"`concurrency.cancel-in-progress` is {concurrency.get('cancel-in-progress')!r}, "
+        "expected `False` -- `True` would cancel a running migration mid-DDL"
+    )
+
+
+def test_deploy_workflow_watches_deployment_and_itself_via_test_update():
+    """BITB-097 defect 4: `azure-deploy.yml` only fires via `workflow_run` off
+    `test_update.yml`, so `test_update.yml`'s own trigger paths gate whether a
+    Terraform-only or azure-deploy.yml-only merge ever reaches production. A
+    `deployment/main.tf`-only PR (#1002) merged 2026-08-18 and deployed
+    nothing because neither path was watched."""
+    test_update_path = _REPO_ROOT / ".github" / "workflows" / "test_update.yml"
+    test_update = yaml.safe_load(test_update_path.read_text())
+    triggers = test_update["on"]
+    for trigger_name in ("pull_request", "push"):
+        paths = triggers[trigger_name]["paths"]
+        assert "deployment/**" in paths, (
+            f"test_update.yml's `{trigger_name}.paths` does not watch "
+            "`deployment/**` -- a Terraform-only merge would never trigger "
+            "the test workflow, and therefore never emit the `workflow_run` "
+            "event azure-deploy.yml listens for (BITB-097)"
+        )
+        assert ".github/workflows/azure-deploy.yml" in paths, (
+            f"test_update.yml's `{trigger_name}.paths` does not watch "
+            "`.github/workflows/azure-deploy.yml` itself (BITB-097)"
+        )
