@@ -1383,6 +1383,144 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
+
+**Status:** 🎯 Todo
+**Priority:** P1 — without this, BITB-044 changes nothing in production
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which ships the population script with no automation
+
+**As** the operator, **I want** `verse_topics` populated automatically and kept populated as
+translations are added, **so that** topic boosting is backed by real data rather than a script
+someone has to remember to run.
+
+BITB-044 fixes the *capability* to populate, not the *fact* of population — its own remaining list
+says CI/deploy wiring is outstanding. On the day #970 merges, prod `verse_topics` is still empty and
+topic boosting is still the silent no-op that story was written to fix. Same failure shape as
+**BITB-089**: a correct, tested artefact that nothing ever executes.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Population runs automatically in the deploy/seed path (naturally `seed-database-post`; the
+      script is already idempotent, so attaching it to a frequently-run step is safe)
+- [ ] A newly seeded translation gets topic rows with no separate manual step
+- [ ] A drift check asserts non-empty `verse_topics` and in-band coverage per translation, and alarms
+- [ ] Blast radius decided and documented (recommended: alarm, do not fail the deploy)
+- [ ] Proven end to end: prod `verse_topics` non-empty for KJV and Luther 1912 at BITB-044's figures
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-105-verse-topics-never-populated-in-production.md`
+
+---
+
+### 🎯 BITB-103: The Golden Set Cannot Validate Topic Boosting
+
+**Status:** 🎯 Todo
+**Priority:** P1 — blocks BITB-044's three remaining acceptance criteria
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), whose remaining ACs all defer to a golden set that cannot carry
+them
+
+**As** the maintainer deciding whether to enable `topic_boosting_enabled`, **I want** a golden set
+that exercises all 13 topics and includes a neutral control, **so that** "topic-laden queries improve,
+neutral queries do not regress" is a measurement rather than a hope.
+
+Measured against the 58-case golden set and the 13 canonical topics in `api/chat/topics.py`:
+
+1. **`joy`, `patience`, `trust` have zero cases** — unmeasurable in either direction.
+2. **`strength` (7 cases) and `provision` (1) are not canonical topics** — 14% of the set is labelled
+   with vocabulary `detect_topics()` never produces.
+3. **`grief`, `hope`, `guidance` have one case each** — one ranking change swings P@5 from 0.0 to 1.0.
+4. **No neutral control group** — the "does not regress" half of the AC has no population, so a boost
+   that degrades plain lookups passes unnoticed.
+5. **Languages don't line up**: only 13 of 58 cases (22%) are in languages where tagging is supported
+   *and* corpus-validated; 20 (34%) are ru/zh/hi/ko, which the tagger skips entirely.
+6. **Nothing links a case to a topic** — `category`/`tags` are free text; the overlap is coincidental.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Cases carry a `topics` field validated against the canonical vocabulary
+- [ ] All 13 topics have ≥3 cases; `strength`/`provision` mapped or promoted, decision recorded
+- [ ] A labelled neutral subset (`topics: []`) exists, large enough to detect regression
+- [ ] `--validate` fails on missing topic coverage, a non-canonical topic, or an empty neutral subset
+- [ ] Untaggable-language caveat surfaced in the report so a flat delta isn't misread
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-103-golden-set-cannot-validate-topic-boosting.md`
+
+---
+
+### 🎯 BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
+
+**Status:** 🎯 Todo
+**Priority:** P1 — the payoff step; topic boosting has never been measured even once
+**Size:** S–M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which deliberately does not tune the factor or flip the flag
+
+**As** the maintainer, **I want** the harness to actually apply topic boosting and report an A/B,
+**so that** enabling the flag is backed by numbers rather than the assumption that a feature we built
+must be helping.
+
+`api/search_eval/runner.py` registers a `topic_boosted` config that logs a warning and falls back to
+unboosted search. That was right while `verse_topics` was empty; once data exists it becomes a config
+that reports *control* numbers under a *boosted* name.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
+- [ ] Empty `verse_topics` under a boosted config is a hard error, not a warning
+- [ ] A/B recorded for `hybrid` vs `topic_boosted`, split by topic-laden/neutral and language group
+- [ ] `topic_boost_factor` swept and the **curve** documented, not just the winner — a flat curve is
+      itself the finding
+- [ ] A recorded decision on prod enablement, including the legitimate option of leaving it off
+
+**Depends on:** BITB-103 (data to measure against) and BITB-105 (rows in the database). Run before
+either and the numbers look like a result without being one.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-104-unstub-topic-boosted-eval-config.md`
+
+---
+
+### 🎯 BITB-106: Corpus Tagging Is Validated for Two Languages and Impossible for Four
+
+**Status:** 🎯 Todo
+**Priority:** P2 — quality and scope honesty, not a correctness bug
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which validated tagging against real corpora for `en`/`de` only
+
+**As** the maintainer, **I want** to know corpus tagging behaves sanely in every language it claims
+to support — and to be explicit about those it does not — **so that** topic boosting is not quietly a
+two-language feature in an eleven-language product.
+
+| tier | languages | status |
+|---|---|---|
+| corpus-validated | `en`, `de` | 18.3% KJV / 12.3% Luther tagged, no topic above ~3.2% |
+| vocabulary exists, never run on a corpus | `it`, `es`, `fr`, `pt`, `ar` | `CORPUS_KEYWORD_DENYLIST` empty and **unverified** |
+| no vocabulary | `ru`, `zh`, `hi`, `ko` | skipped; 34% of the golden set |
+
+An over-firing keyword in an unvalidated language fails quietly: a topic matches a third of the
+corpus, the boost stops discriminating, search gets worse with no error. Arabic carries extra risk —
+it uses substring matching for attached clitics, the mechanism most likely to over-fire.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `it`/`es`/`fr`/`pt`/`ar` each run against a real corpus, per-topic coverage recorded
+- [ ] Denylist extended for any topic breaching the 25% guideline, or confirmed empty per language
+- [ ] Arabic substring matching specifically reviewed for over-firing
+- [ ] A recorded decision on `ru`/`zh`/`hi`/`ko`: vocabulary authored, or scope documented
+- [ ] A guard prevents a future keyword silently pushing a topic past the guideline
+
+**Deferred here:** LLM-assisted tagging (BITB-044's remaining list). Keyword seeding already tags
+18.3% of KJV — enough to measure whether boosting helps at all. Improving tag recall before
+establishing the boost is worth having would be optimising an unvalidated feature; revisit once
+BITB-104 has numbers.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-106-corpus-tagging-validated-for-two-of-eleven-languages.md`
+
+---
+
 ### 🎯 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
 **Status:** 🎯 Todo
