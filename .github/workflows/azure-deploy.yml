@@ -134,6 +134,8 @@ env:
   FRONTEND_APP_NAME: bible-app-frontend
   ACR_NAME: bibleappacrmb0172
   RESOURCE_GROUP: bible-app-rg
+  # azurerm_container_app_environment.main = "${var.project_name}-env" (main.tf:358)
+  CONTAINER_APP_ENV_NAME: bible-app-env
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
@@ -1192,52 +1194,175 @@ jobs:
             echo "Frontend URL: https://$FRONTEND_FQDN"
           fi
 
+      # BITB-067 gap #5: a Container App replacement (e.g. the OpenRouter key
+      # rotation that fires terraform_data.backend_secret_trigger) drops the
+      # imperative custom-domain + certificate binding and prod starts serving
+      # Cloudflare 525. Terraform re-binds in the same apply, but any other path
+      # that loses the binding needed the manual deployment/README.md >
+      # "Rollback: Emergency Cert Rebind" runbook. Now attempted automatically.
       - name: Verify Custom Domain HTTPS
+        env:
+          RG: ${{ env.RESOURCE_GROUP }}
+          CA_ENV: ${{ env.CONTAINER_APP_ENV_NAME }}
+          FRONTEND_APP: ${{ env.FRONTEND_APP_NAME }}
+          BACKEND_APP: ${{ env.BACKEND_APP_NAME }}
         run: |
           set -euo pipefail
           DOMAINS=("voxquieta.org" "api.voxquieta.org")
+          APPS=("$FRONTEND_APP" "$BACKEND_APP")
           FAILED=0
-          for DOMAIN in "${DOMAINS[@]}"; do
-            echo "Checking https://$DOMAIN ..."
-            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
-              --max-time 15 "https://$DOMAIN/health" 2>/dev/null || echo "000")
-            CF_RAY=$(curl -sI --max-time 15 "https://$DOMAIN/health" 2>/dev/null | grep -i 'cf-ray' || echo "")
 
-            case "$HTTP_CODE" in
+          # Probe one domain through Cloudflare. Echoes "<http_code>|<cf-ray>".
+          probe_domain() {
+            local domain="$1" code ray
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 15 "https://$domain/health" 2>/dev/null || echo "000")
+            ray=$(curl -sI --max-time 15 "https://$domain/health" 2>/dev/null \
+              | grep -i 'cf-ray' || echo "")
+            printf '%s|%s' "$code" "$ray"
+          }
+
+          # Classify one domain; prints one human-readable line.
+          # Exit: 0 = acceptable, 1 = origin TLS broken (a re-bind may fix it),
+          #       2 = broken in a way a cert re-bind cannot fix.
+          check_domain() {
+            local domain="$1" result code ray
+            result=$(probe_domain "$domain")
+            code="${result%%|*}"
+            ray="${result#*|}"
+            case "$code" in
               200)
-                if [ -z "$CF_RAY" ]; then
-                  echo "::error::$DOMAIN returned 200 but no cf-ray header — traffic is bypassing Cloudflare"
-                  FAILED=1
-                else
-                  echo "$DOMAIN OK — HTTP 200, $CF_RAY"
+                if [ -z "$ray" ]; then
+                  echo "$domain returned 200 but no cf-ray header — traffic is bypassing Cloudflare"
+                  return 2
                 fi
+                echo "$domain OK — HTTP 200, $ray"
                 ;;
               525)
-                echo "::error::$DOMAIN returned 525 (SSL Handshake Failed) — origin cert missing or not bound"
-                FAILED=1
+                echo "$domain returned 525 (SSL Handshake Failed) — origin cert missing or not bound"
+                return 1
                 ;;
               526)
-                echo "::error::$DOMAIN returned HTTP 526 (Invalid SSL Certificate) — origin cert chain is wrong"
-                FAILED=1
+                echo "$domain returned HTTP 526 (Invalid SSL Certificate) — origin cert chain is wrong"
+                return 1
                 ;;
               000)
-                echo "::error::$DOMAIN is unreachable (HTTP 000) — DNS or Cloudflare misconfigured"
-                FAILED=1
+                echo "$domain is unreachable (HTTP 000) — DNS or Cloudflare misconfigured"
+                return 2
                 ;;
               5*)
-                echo "::error::$DOMAIN returned HTTP $HTTP_CODE — origin error"
-                FAILED=1
+                echo "$domain returned HTTP $code — origin error"
+                return 2
                 ;;
               *)
-                if [ -z "$CF_RAY" ]; then
-                  echo "::error::$DOMAIN responded HTTP $HTTP_CODE with no cf-ray header"
-                  FAILED=1
-                else
-                  echo "$DOMAIN responded HTTP $HTTP_CODE (non-200 but reached Cloudflare), $CF_RAY"
+                if [ -z "$ray" ]; then
+                  echo "$domain responded HTTP $code with no cf-ray header"
+                  return 2
                 fi
+                echo "$domain responded HTTP $code (non-200 but reached Cloudflare), $ray"
                 ;;
             esac
+          }
+
+          # Re-run the cert lookup + hostname bind for one domain, mirroring
+          # null_resource.{frontend,backend}_ssl_cert_bind (deployment/main.tf
+          # :931 / :1015). Only ever called for an already-TLS-broken domain, so
+          # it cannot regress a healthy one. Non-zero = could not re-bind.
+          rebind_cert() {
+            local domain="$1" app="$2" parent query cert_id attached
+            # Wildcard SAN one level up, e.g. api.voxquieta.org -> *.voxquieta.org.
+            # For an apex domain this yields a harmless *.tld that matches nothing.
+            parent="*.${domain#*.}"
+            echo "Auto-remediation: re-binding origin cert for $domain on $app ..."
+
+            # A replaced app loses the hostname itself, so re-add it first
+            # (same guard as null_resource.backend_custom_domain, main.tf:875).
+            attached=$(az containerapp show --name "$app" --resource-group "$RG" \
+              --query "properties.configuration.ingress.customDomains[].name" \
+              -o tsv 2>/dev/null || true)
+            if ! echo "$attached" | grep -qx "$domain"; then
+              echo "  hostname $domain not attached to $app — adding it"
+              az containerapp hostname add --name "$app" --resource-group "$RG" \
+                --hostname "$domain" --output none \
+                || echo "  hostname add failed (may already exist) — continuing"
+            fi
+
+            query="[?contains(properties.subjectAlternativeNames, '$domain')"
+            query="$query || contains(properties.subjectAlternativeNames, '$parent')]"
+            query="$query | sort_by(@, &properties.expirationDate) | reverse(@) | [0].id"
+            cert_id=$(az containerapp env certificate list --name "$CA_ENV" \
+              --resource-group "$RG" --query "$query" -o tsv 2>/dev/null || true)
+
+            if [ -z "$cert_id" ]; then
+              echo "  no certificate in $CA_ENV has a SAN covering $domain or $parent"
+              az containerapp env certificate list --name "$CA_ENV" \
+                --resource-group "$RG" -o table \
+                --query "[].{name:name,SANs:properties.subjectAlternativeNames,expiry:properties.expirationDate}" \
+                || true
+              return 1
+            fi
+
+            echo "  binding certificate $cert_id"
+            az containerapp hostname bind --name "$app" --resource-group "$RG" \
+              --hostname "$domain" --certificate "$cert_id" \
+              --environment "$CA_ENV" --output none
+          }
+
+          for i in "${!DOMAINS[@]}"; do
+            DOMAIN="${DOMAINS[$i]}"
+            APP="${APPS[$i]}"
+            echo "Checking https://$DOMAIN ..."
+            MSG=""; STATUS=0
+            MSG=$(check_domain "$DOMAIN") || STATUS=$?
+
+            if [ "$STATUS" -eq 0 ]; then
+              echo "$MSG"
+              continue
+            fi
+            if [ "$STATUS" -eq 2 ]; then
+              echo "::error::$MSG"
+              FAILED=1
+              continue
+            fi
+
+            # Origin TLS broken — try one automatic re-bind before failing.
+            echo "::warning::$MSG — attempting an automatic origin-cert re-bind"
+            if ! rebind_cert "$DOMAIN" "$APP"; then
+              echo "::error::$MSG. Automatic cert re-bind could NOT be performed" \
+                "(see the az output above) — follow deployment/README.md >" \
+                "'Rollback: Emergency Cert Rebind' manually."
+              FAILED=1
+              continue
+            fi
+
+            # Same criteria as the first pass, deliberately: the re-check is a
+            # re-run of the identical check, never a laxer one.
+            RECOVERED=0
+            MSG2=""
+            for attempt in 1 2 3; do
+              echo "Re-checking $DOMAIN after re-bind (attempt $attempt/3, 30s wait) ..."
+              sleep 30
+              MSG2=""; STATUS2=0
+              MSG2=$(check_domain "$DOMAIN") || STATUS2=$?
+              if [ "$STATUS2" -eq 0 ]; then
+                RECOVERED=1
+                break
+              fi
+            done
+
+            if [ "$RECOVERED" -eq 1 ]; then
+              echo "$MSG2"
+              echo "::notice::$DOMAIN recovered after an automatic origin-cert re-bind" \
+                "(was: $MSG). The Container App lost its custom-domain binding —" \
+                "see BITB-067 gap #5."
+            else
+              echo "::error::$DOMAIN still broken after an automatic cert re-bind:" \
+                "$MSG2 (original: $MSG). Auto-remediation ran and did NOT fix it —" \
+                "follow deployment/README.md > 'Rollback: Emergency Cert Rebind' manually."
+              FAILED=1
+            fi
           done
+
           if [ "$FAILED" -ne 0 ]; then
             echo "::error::One or more domains failed the post-deploy SSL/health check"
             exit 1
