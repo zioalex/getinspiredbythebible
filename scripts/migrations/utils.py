@@ -62,4 +62,12 @@ def get_migration_connection_params(database_url: str) -> tuple[str, dict]:
                 ssl_context.verify_mode = ssl.CERT_NONE
             conn_kwargs["ssl"] = ssl_context
 
+    # BITB-097: bound this one-shot migration connection from the database
+    # side so a CI runner timeout can never kill the client while server-side
+    # DDL keeps its lock indefinitely. Mirrors
+    # api/scripture/database.py::get_migration_server_settings() -- kept as a
+    # plain inline dict here (this module is frozen/legacy, see
+    # docs/MIGRATION_GUIDELINES.md) rather than importing from `scripture`.
+    conn_kwargs["server_settings"] = {"lock_timeout": "5s", "statement_timeout": "25min"}
+
     return url, conn_kwargs
