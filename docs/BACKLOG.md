@@ -509,7 +509,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
+**Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
 **Size:** L (3-5 days, 5 small PRs)
 **Created:** 2026-06-16
 
@@ -519,12 +519,14 @@ that** I can validate whether query expansion / hybrid search actually help and 
 their weights instead of shipping search changes blind.
 
 **Why P1:** Directly unblocks BITB-043 validation — expansion is live but unmeasured.
-Delivered in 5 phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
+Delivered in phases: **P0** trim PR #727 to the hybrid flip ✅; **P1** metric +
 normalization core (`api/search_eval/`) ✅; **P2** 55+ case golden set (all 11
 languages) + `--validate` + non-blocking CI ✅; **P3** runner over real retrieval + A/B
-report/CLI ✅; **P4** full-corpus eval automated in CI (prod read-only + cached rebuild,
-Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embedding-3-small`
-(1536) everywhere** to match prod; per-PR CI is validate-only.
+report/CLI ✅; **P4a** `eval-prod` (prod read-only, no new secret) + `eval-smoke`
+automated in CI (manual + nightly) ✅; **P4b** `eval-corpus` full-corpus cached
+rebuild (Route B) — deferred, todo (see story file for why). Embeddings are
+**Azure `text-embedding-3-small` (1536) everywhere** to match prod; per-PR CI is
+validate-only.
 
 **Acceptance Criteria (summary — full story has detail):**
 
@@ -532,7 +534,8 @@ Azure embeddings, manual + nightly) — todo. Embeddings are **Azure `text-embed
 - [x] P1: `api/search_eval/` core (normalize + P@5/R@10/MRR + false-positive guard) with no-DB tests
 - [x] P2: 55+ multilingual golden set (11 languages) + loader + `--validate` + non-blocking CI
 - [x] P3: runner (`api/search_eval/runner.py`) + report/CLI (`--run`); manual prod-read-only A/B table documented in `docs/SEARCH_EVAL_HOWTO.md`
-- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure
+- [x] P4a: `eval-prod` + `eval-smoke` automated in CI (manual + nightly, `.github/workflows/search-eval-full.yml`)
+- [ ] P4b: `eval-corpus` full-corpus rebuild (Route B) — deferred
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
 
@@ -576,9 +579,10 @@ scope here.
 
 ---
 
-### 🎯 BITB-053: Ground Unquoted / Paraphrased Verse Citations
+### ✅ BITB-053: Ground Unquoted / Paraphrased Verse Citations
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (code, detect-only mode) — `_apply_paraphrase_grounding`/`_classify_paraphrase`
+shipped in `api/chat/verse_grounding.py`; this entry was stale, see the story file for rollout status
 **Size:** M (1-2 days)
 **Created:** 2026-06-19
 
@@ -601,27 +605,14 @@ fixed.
 
 ---
 
-### 🎯 BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
+### ✅ BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
 
-**Status:** 🎯 Todo
-**Size:** M (1-2 days)
-**Created:** 2026-06-19
+**Status:** ✅ Done (PR #803) — `get_translation_coverage()` + admin diagnostic route, startup
+coverage check + `scripture.translation_data.missing` metric, and configurable
+`grounding_unresolved_behavior` (`keep`/`strip`/`notice`, default `strip`) all shipped. This entry
+was stale. See `docs/DONE/BITB-054-translation-data-observability.md`.
 
-**As the** maintainer, **I want** to know — and the app to behave honestly — when a cited verse
-can't be resolved in the user's translation, **so that** a missing/incomplete translation never
-shows up as silently hallucinated scripture.
-
-**Why P2:** When a translation isn't loaded (or has no embeddings), search returns no context and
-grounding silently keeps the model's text (`reason=unresolved`). The only diagnostic today is a
-manual SQL snippet, and the unresolved path is invisible.
-
-**Acceptance Criteria (summary — full story has detail):**
-
-- [ ] Per-translation verse + embedding counts via a diagnostic (route or startup log)
-- [ ] Startup/CI warning + metric when a supported language has no usable verse data
-- [ ] Configurable handling of `unresolved` citations (fallback / strip / notify) with tests
-
-**Full Story:** `docs/BACKLOG_STORIES/BITB-054-translation-data-observability.md`
+**Full Story:** `docs/DONE/BITB-054-translation-data-observability.md`
 
 ---
 
@@ -1240,9 +1231,9 @@ asset, `ChangelogEntry` model, and `MarkdownText` dependency (no new library).
 > intro modal explaining why Vox Quieta exists, clarify-before-answering, the off-screen
 > web bottom bar, follow-up suggestion chips, and the Android example-tap fix.
 
-### 🎯 BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
+### ✅ BITB-075: Raise the Chat Message Limit to 500 Characters (Single Source of Truth)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #944 merged 2026-07-29)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25
 
@@ -1264,13 +1255,13 @@ without fixing the drift just moves the bug.
 - [ ] `GET /config` publishes `chat.max_message_length`; clients use it, constant is fallback only
 - [ ] "Message too long" error and the character counter show the *effective* limit
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-075-raise-message-limit-to-500.md`
+**Full Story:** `docs/DONE/BITB-075-raise-message-limit-to-500.md`
 
 ---
 
-### 🎯 BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
+### ✅ BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #945 merged 2026-07-29)
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25
 
@@ -1292,7 +1283,7 @@ unaffected.
 - [ ] Bottom region decrowded (collapsed contact form, one promo element at a time)
 - [ ] Playwright viewport regression test — a unit test cannot catch this
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-079-web-bottom-bar-always-offscreen.md`
+**Full Story:** `docs/DONE/BITB-079-web-bottom-bar-always-offscreen.md`
 
 ---
 
@@ -1697,9 +1688,10 @@ log-scraping the bug slipped through twice, no metric distinguished "served with
 
 ---
 
-### 🎯 BITB-045: Typo-Tolerant Queries with Clarification Fallback
+### ✅ BITB-045: Typo-Tolerant Queries with Clarification Fallback
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `TYPO_TOLERANCE_GUIDANCE` shipped in all three system prompts in
+`api/chat/prompts.py`; this entry was stale, see the story file
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12
 
@@ -1782,9 +1774,9 @@ selection-only story with an explicit button and web support.
 
 ---
 
-### 🎯 BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
+### ✅ BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #751 merged 2026-06-22)
 **Size:** S (< 1 hr)
 **Created:** 2026-06-12
 
@@ -1796,13 +1788,13 @@ the full response without manually dismissing it.
 - [ ] Keyboard collapses immediately after Send via `focusManager.clearFocus()`
 - [ ] Multi-line input (Enter = newline) unchanged; Stop icon while streaming unchanged
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-048-android-dismiss-keyboard-on-send.md`
+**Full Story:** `docs/DONE/BITB-048-android-dismiss-keyboard-on-send.md`
 
 ---
 
-### 🎯 BITB-049: Always Start with a Fresh Chat on App Launch (Android)
+### ✅ BITB-049: Always Start with a Fresh Chat on App Launch (Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #751 merged 2026-06-22)
 **Size:** S (< 1 hr)
 **Created:** 2026-06-12
 
@@ -1814,7 +1806,7 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 - [ ] App launch always lands on `chat/new`; drawer still lists/loads past conversations
 - [ ] `LastConversationPreferences` / `resolveResumeConversationId()` retained for a future toggle
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-049-android-fresh-chat-on-launch.md`
+**Full Story:** `docs/DONE/BITB-049-android-fresh-chat-on-launch.md`
 
 ---
 
@@ -1922,9 +1914,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
+### ✅ BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #637 merged 2026-05-29)
 **Size:** M (1-2 days)
 **Created:** 2026-05-26
 
@@ -1940,7 +1932,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - [ ] Soft-break rendering unchanged from current behaviour after library upgrade
 - [ ] All CI checks pass (Unit Tests, Compose UI Tests, Android Lint, Build Prod APK)
 
-**Full story:** [docs/BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md](BACKLOG_STORIES/BITB-036-android-inline-amber-quote-chip.md)
+**Full story:** [docs/DONE/BITB-036-android-inline-amber-quote-chip.md](DONE/BITB-036-android-inline-amber-quote-chip.md)
 
 **References:** PR #629 (deferred amber styling), PR #619 (verse bold links), `ChatMessage.tsx → highlightQuotes()`
 
@@ -1996,9 +1988,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-026: Android Settings UX Improvements
+### ✅ BITB-026: Android Settings UX Improvements
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #539 merged 2026-05-12)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-08
 
@@ -2017,7 +2009,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - [ ] In-chat translation chip still persists selection across restarts (no regression)
 - [ ] All existing preference unit tests pass
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-026-android-settings-improvements.md`
+**Full Story:** `docs/DONE/BITB-026-android-settings-improvements.md`
 
 ---
 
@@ -2120,9 +2112,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
+### ✅ BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `api/scripture/models.py` and `api/feedback/models.py` are fully
+`Mapped[]`/`DeclarativeBase`; zero `= Column(...)` usages remain repo-wide. This entry was stale.
 **Size:** L
 
 **As a** developer,
@@ -2186,9 +2179,9 @@ Developer Program Policy before shipping).
 
 ---
 
-### 🎯 BITB-076: "About" Page — Why Vox Quieta Exists
+### ✅ BITB-076: "About" Page — Why Vox Quieta Exists
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #939 merged 2026-07-27)
 **Size:** M (1–2 days, mostly copywriting + 11 locales)
 **Created:** 2026-07-25
 
@@ -2218,13 +2211,13 @@ Material* section): it is the origin story to adapt, not text to transcribe.
 - [ ] `About` namespace complete in all 11 `frontend/messages/*.json`; Arabic RTL correct
 - [ ] Linked from the footer **and** from the chat screen; added to `sitemap.ts` `PATHS`
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-076-about-page-motivation.md`
+**Full Story:** `docs/DONE/BITB-076-about-page-motivation.md`
 
 ---
 
-### 🎯 BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
+### ✅ BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #939 merged 2026-07-27)
 **Size:** S (< 4 hrs, after BITB-076)
 **Created:** 2026-07-25
 **Blocked by:** BITB-076
@@ -2246,13 +2239,13 @@ silent first-visit seeding (`WhatsNewModal.tsx:33-40`). A single versioned
 - [ ] No SSR/CSR hydration mismatch (see BITB-069); keyboard accessible
 - [ ] Bumping the version constant re-shows it — proven by a test
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-077-about-intro-modal.md`
+**Full Story:** `docs/DONE/BITB-077-about-intro-modal.md`
 
 ---
 
-### 🎯 BITB-082: Android — About Settings Row + First-Run Intro Fold-In
+### ✅ BITB-082: Android — About Settings Row + First-Run Intro Fold-In
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #941 merged 2026-07-29)
 **Size:** S (~1 day)
 **Created:** 2026-07-27
 
@@ -2279,13 +2272,13 @@ spotlight), floated as an alternative fold-in target, is still `Todo` — not av
 - [ ] All new strings in `values/strings.xml` + all 11 `values-*/strings.xml`, sourced from the
       same copy as web's `About.intro*` keys — not re-derived independently
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-082-android-about-settings-and-intro.md`
+**Full Story:** `docs/DONE/BITB-082-android-about-settings-and-intro.md`
 
 ---
 
-### 🎯 BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
+### ✅ BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #947 merged 2026-07-29)
 **Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
 **Created:** 2026-07-27
 
@@ -2311,13 +2304,15 @@ they show the pre-rename v1.0 UI — must be labeled as "then," not presented as
 - [ ] `notBody`'s safety-boundary language stays unambiguous — not softened
 - [ ] Applied across all 11 locales; `About.introBody` (BITB-077) rechecked for consistency
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-083-about-page-personal-voice-and-photos.md`
+**Full Story:** `docs/DONE/BITB-083-about-page-personal-voice-and-photos.md`
 
 ---
 
-### 🎯 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
+### 🚧 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — backend intent routing + clarifying-question flow shipped
+(behind `chat_clarification_enabled`, default off); tappable chip UI (shared with BITB-080)
+and golden-set eval integration deferred, see story file
 **Size:** M (1–2 days, prompt work + eval)
 **Created:** 2026-07-25
 
@@ -2372,9 +2367,9 @@ trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, 
 
 ---
 
-### 🎯 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
+### 🚧 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-102)
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
 
@@ -2390,16 +2385,47 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
 
 **Acceptance Criteria (summary):**
 
-- [ ] Valid installable manifest (192/512/maskable icons from `public/app-icon.png`) + apple-touch icons
-- [ ] `viewportFit: "cover"` set and every `env(safe-area-inset-*)` consumer re-checked against
-      non-zero insets, portrait + landscape, LTR **and** RTL
-- [ ] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
+- [x] Valid installable manifest (192/512/maskable icons from `public/app-icon.png`) + apple-touch icons
+- [x] `viewportFit: "cover"` set and every `env(safe-area-inset-*)` consumer re-checked against
+      non-zero insets, portrait + landscape, LTR **and** RTL (device/hardware verification of the
+      rendered result still outstanding — see PR)
+- [x] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
 - [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
-      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache
-- [ ] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
+      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **split into
+      BITB-102**, per this story's own guidance to carve Part C out if it threatens the timebox
+- [x] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
       11 locales; **no** App Store badge until BITB-088
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-084-iphone-ready-web-installable-pwa.md`
+**Follow-up:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md` (Part C)
+
+---
+
+### 🎯 BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+
+**Status:** 🎯 Todo
+**Size:** M (1 day)
+**Created:** 2026-08-07
+**Split from:** BITB-084 Part C
+
+**As an** iPhone or Android user who has installed Vox Quieta to their home screen, **I want** the
+app shell to load instantly and show a friendly message instead of a browser error when I have no
+connection, **so that** the installed app feels like an app, not a bookmark that breaks offline.
+
+**Why P2:** BITB-084 shipped installability (manifest, icons, safe areas) but no service worker —
+deliberately deferred rather than rushed, since BITB-084 itself flagged cache-versioning as "the
+single biggest risk in Part C." Deferring for correctness beats shipping same-day and risking an
+un-versioned service worker pinning users to a stale shell.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
+      browser error page
+- [ ] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
+- [ ] Scripture `GET` endpoints cached stale-while-revalidate
+- [ ] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md`
 
 ---
 

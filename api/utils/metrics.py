@@ -82,6 +82,16 @@ verse_grounding_paraphrase_detections_counter = meter.create_counter(
     unit="1",
 )  # attributes: language, bracketed (bool), applied (bool)
 
+# A first-turn message routed to a single clarifying question instead of a full
+# answer (BITB-078, behind chat_clarification_enabled). Makes the ask rate
+# observable so the rollout can be judged rather than guessed at — see the
+# story's Risks section on over-asking.
+chat_clarification_requested_counter = meter.create_counter(
+    name="chat.clarification.requested",
+    description="First-turn messages short-circuited into a single clarifying question",
+    unit="1",
+)  # attributes: language
+
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never
 # loaded) or zero embeddings (loaded but unsearchable) degrades silently —
