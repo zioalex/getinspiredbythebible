@@ -1,4 +1,4 @@
-# BITB-092: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+# BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
 
 **Status:** 🎯 Todo
 **Priority:** P2

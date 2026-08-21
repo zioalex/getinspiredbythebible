@@ -2365,7 +2365,7 @@ trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, 
 
 ### 🚧 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
 
-**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-092)
+**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-102)
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
 
@@ -2388,16 +2388,16 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
 - [x] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
 - [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
       carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **split into
-      BITB-092**, per this story's own guidance to carve Part C out if it threatens the timebox
+      BITB-102**, per this story's own guidance to carve Part C out if it threatens the timebox
 - [x] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
       11 locales; **no** App Store badge until BITB-088
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-084-iphone-ready-web-installable-pwa.md`
-**Follow-up:** `docs/BACKLOG_STORIES/BITB-092-pwa-offline-shell-service-worker.md` (Part C)
+**Follow-up:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md` (Part C)
 
 ---
 
-### 🎯 BITB-092: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+### 🎯 BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
 
 **Status:** 🎯 Todo
 **Size:** M (1 day)
@@ -2421,7 +2421,7 @@ un-versioned service worker pinning users to a stale shell.
 - [ ] Scripture `GET` endpoints cached stale-while-revalidate
 - [ ] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-092-pwa-offline-shell-service-worker.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md`
 
 ---
 
