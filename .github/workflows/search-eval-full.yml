@@ -1,0 +1,441 @@
+name: Search Eval — Full
+
+# BITB-051 P4a: nightly + manual live exercise of the retrieval-eval harness
+# (api/search_eval/, scripts/run_search_eval.py). Per-PR CI only ever runs
+# `--validate` (test_update.yml's search-eval-validate job) — no DB, no
+# secrets, works on forks. This workflow is where the harness actually talks
+# to real embeddings and real data, on a schedule nobody has to remember to
+# run by hand.
+#
+# Two routes:
+#   eval-prod  — read-only against the real production database + Azure
+#                OpenAI query embeddings. True prod numbers, no rebuild.
+#                Reuses the exact ARM-login / DB-connection-string pattern
+#                azure-deploy.yml already uses for migrations/seeding — no
+#                new DB secret is introduced.
+#   eval-smoke — loads 1 Corinthians into an ephemeral CI Postgres, Azure-
+#                embeds it, and runs `--run --smoke`. Proves the CLI/Azure
+#                plumbing end-to-end without ever touching prod. Scores are
+#                expected to be ~0 (the golden set's first 3 cases aren't in
+#                1 Corinthians) — this job is a plumbing check, not a
+#                relevance measurement.
+#
+# Route B (`eval-corpus`: full 11-translation rebuild in a cached pgvector,
+# for a reproducible-corpus A/B independent of prod drift) is intentionally
+# NOT implemented here — tracked as BITB-051 P4b. See the story file for why
+# it's deferred (GitHub Actions cache-eviction risk to unrelated per-PR
+# caches, unbounded first-run duration, and new cache-correctness surface
+# with no test coverage yet).
+#
+# Required repo secrets (all already provisioned for azure-deploy.yml):
+#   ARM_CLIENT_ID / ARM_CLIENT_SECRET / ARM_SUBSCRIPTION_ID / ARM_TENANT_ID
+#   TF_VAR_DB_ADMIN_USERNAME / TF_VAR_DB_ADMIN_PASSWORD / TF_VAR_DB_NAME
+#   AZURE_OPENAI_API_KEY
+#   TF_VAR_OPENROUTER_API_KEY (optional — enables the expansion_semantic leg
+#     of eval-prod; without it, eval-prod falls back to baseline_semantic only)
+# Required repo variables:
+#   AZURE_OPENAI_ENDPOINT
+#
+# Any of the above missing ⇒ the affected job is skipped with a clear notice
+# in the job summary, never failed. This workflow never runs on pull_request
+# and never gates merges.
+#
+# Manual run:
+#   Actions → Search Eval — Full → Run workflow
+#   route: both | prod | smoke (default: both)
+#   configs: comma-separated eval config names, default empty → the CLI's
+#            own default (baseline_semantic,expansion_semantic)
+#   language: optional golden-set language filter (e.g. it, de)
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    # 04:23 UTC daily — a free slot among the other scheduled workflows.
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+    inputs:
+      route:
+        description: "Which route(s) to run"
+        type: choice
+        options:
+          - both
+          - prod
+          - smoke
+        default: both
+      configs:
+        description: "Comma-separated eval config names (blank = CLI default)"
+        required: false
+        default: ""
+      language:
+        description: "Restrict to one golden-set language code (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: search-eval-full
+  cancel-in-progress: false
+
+env:
+  RESOURCE_GROUP: bible-app-rg
+  AZURE_EMBEDDING_DEPLOYMENT: text-embedding-3-small
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Preflight — decide which routes can actually run. The `secrets` context
+  # isn't usable in a job-level `if:`, so read it into step outputs here and
+  # gate downstream jobs on those outputs instead.
+  # ---------------------------------------------------------------------------
+  preflight:
+    name: Check configuration
+    runs-on: ubuntu-latest
+    outputs:
+      has_arm: ${{ steps.check.outputs.has_arm }}
+      has_db: ${{ steps.check.outputs.has_db }}
+      has_azure: ${{ steps.check.outputs.has_azure }}
+      has_llm: ${{ steps.check.outputs.has_llm }}
+    steps:
+      - name: Check required secrets/vars
+        id: check
+        env:
+          HAS_ARM: >-
+            ${{ secrets.ARM_CLIENT_ID != '' && secrets.ARM_CLIENT_SECRET != '' && secrets.ARM_SUBSCRIPTION_ID != '' &&
+            secrets.ARM_TENANT_ID != '' }}
+          HAS_DB: >-
+            ${{ secrets.TF_VAR_DB_ADMIN_USERNAME != '' && secrets.TF_VAR_DB_ADMIN_PASSWORD != '' &&
+            secrets.TF_VAR_DB_NAME != '' }}
+          HAS_AZURE: ${{ vars.AZURE_OPENAI_ENDPOINT != '' && secrets.AZURE_OPENAI_API_KEY != '' }}
+          HAS_LLM: ${{ secrets.TF_VAR_OPENROUTER_API_KEY != '' }}
+        run: |
+          echo "has_arm=${HAS_ARM}" >> "$GITHUB_OUTPUT"
+          echo "has_db=${HAS_DB}" >> "$GITHUB_OUTPUT"
+          echo "has_azure=${HAS_AZURE}" >> "$GITHUB_OUTPUT"
+          echo "has_llm=${HAS_LLM}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Search Eval — configuration"
+            echo ""
+            echo "| requirement | present | disables |"
+            echo "| --- | --- | --- |"
+            echo "| Azure login (ARM_*) | ${HAS_ARM} | eval-prod |"
+            echo "| Prod DB creds (TF_VAR_DB_*) | ${HAS_DB} | eval-prod |"
+            echo "| Azure OpenAI (endpoint + key) | ${HAS_AZURE} | eval-prod, eval-smoke |"
+            echo "| OpenRouter key (expansion LLM) | ${HAS_LLM} | expansion_semantic leg only |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$HAS_ARM" != "true" ] || [ "$HAS_DB" != "true" ]; then
+            echo "::notice::eval-prod will be skipped — Azure login or prod DB secrets are not configured."
+          fi
+          if [ "$HAS_AZURE" != "true" ]; then
+            echo "::notice::eval-prod and eval-smoke will both be skipped — Azure OpenAI is not configured."
+          fi
+          if [ "$HAS_LLM" != "true" ]; then
+            echo "::notice::eval-prod will run baseline_semantic only — no OpenRouter key configured."
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Route A — read-only eval against the real production database.
+  # ---------------------------------------------------------------------------
+  eval-prod:
+    name: eval-prod (Route A)
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db == 'true' &&
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'smoke')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r api/requirements.txt
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Get Database Connection String
+        id: db
+        run: |
+          DB_HOST=$(az postgres flexible-server list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[0].fullyQualifiedDomainName" -o tsv)
+          echo "db_host=$DB_HOST" >> "$GITHUB_OUTPUT"
+
+      - name: Run eval against prod (read-only)
+        id: run
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+          EMBEDDING_PROVIDER: azure_openai
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          HAS_LLM: ${{ needs.preflight.outputs.has_llm }}
+          OPENROUTER_API_KEY_IF_SET: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
+          INPUT_CONFIGS: ${{ github.event.inputs.configs }}
+          INPUT_LANGUAGE: ${{ github.event.inputs.language }}
+        run: |
+          set -o pipefail
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+
+          # Leave LLM_PROVIDER unset (rather than "") when no OpenRouter key is
+          # configured — Settings' llm_provider is a Literal type and an
+          # empty-string env value fails pydantic validation (crashing
+          # Settings() at import time) rather than being ignored.
+          if [ "$HAS_LLM" == "true" ]; then
+            export LLM_PROVIDER=openrouter
+            export OPENROUTER_API_KEY="$OPENROUTER_API_KEY_IF_SET"
+          fi
+
+          config_flag=()
+          if [ -n "$INPUT_CONFIGS" ]; then
+            config_flag=(--config "$INPUT_CONFIGS")
+          elif [ "$HAS_LLM" != "true" ]; then
+            # No LLM credentials and no manual override: stay on the semantic-
+            # only config so the run doesn't fail-open every expansion_semantic
+            # row as an error.
+            config_flag=(--config baseline_semantic)
+          fi
+
+          language_flag=()
+          if [ -n "$INPUT_LANGUAGE" ]; then
+            language_flag=(--language "$INPUT_LANGUAGE")
+          fi
+
+          set +e
+          python scripts/run_search_eval.py --run --json "${config_flag[@]}" "${language_flag[@]}" \
+            > eval-prod.json 2> eval-prod.log
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Summarize results
+        if: always()
+        run: |
+          {
+            echo "### eval-prod (Route A) results"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s eval-prod.json ] && jq -e . eval-prod.json > /dev/null 2>&1; then
+            {
+              echo "| config | P@5 | R@10 | MRR | FP@5 | n | errors |"
+              echo "| --- | --- | --- | --- | --- | --- | --- |"
+            } >> "$GITHUB_STEP_SUMMARY"
+            jq -r '
+              .aggregates[] |
+              "| " + (.config|tostring) + " | " + (.precision_at_5|tostring) +
+              " | " + (.recall_at_10|tostring) + " | " + (.mrr|tostring) +
+              " | " + (.total_false_positives_at_5|tostring) + " | " + (.n|tostring) +
+              " | " + (.n_errors|tostring) + " |"
+            ' eval-prod.json >> "$GITHUB_STEP_SUMMARY" \
+              || echo "(could not render aggregates table)" >> "$GITHUB_STEP_SUMMARY"
+
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "#### Per-language" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "| language | config | P@5 | R@10 | MRR | n |"
+              echo "| --- | --- | --- | --- | --- | --- |"
+            } >> "$GITHUB_STEP_SUMMARY"
+            jq -r '
+              .by_language | to_entries[] as $lang | $lang.value[] |
+              "| " + ($lang.key|tostring) + " | " + (.config|tostring) +
+              " | " + (.precision_at_5|tostring) + " | " + (.recall_at_10|tostring) +
+              " | " + (.mrr|tostring) + " | " + (.n|tostring) + " |"
+            ' eval-prod.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+            fp_total=$(jq '[.aggregates[].total_false_positives_at_5] | add // 0' eval-prod.json)
+            err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-prod.json)
+            if [ "$fp_total" != "0" ]; then
+              fp_msg="::warning::eval-prod: ${fp_total} false-positive hit(s) at k=5"
+              fp_msg="${fp_msg} — a query surfaced a verse flagged as irrelevant. Investigate."
+              echo "$fp_msg"
+            fi
+            if [ "$err_total" != "0" ]; then
+              err_msg="::warning::eval-prod: ${err_total} query error(s) — check eval-prod.log;"
+              err_msg="${err_msg} this can be a transient provider/rate-limit issue, not necessarily a regression."
+              echo "$err_msg"
+            fi
+          else
+            echo "No parseable JSON output — see eval-prod.log:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 40 eval-prod.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: search-eval-prod-${{ github.run_id }}
+          path: |
+            eval-prod.json
+            eval-prod.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail the job if the run itself failed
+        if: always() && steps.run.outputs.exit_code != '0'
+        run: |
+          exit_code="${{ steps.run.outputs.exit_code }}"
+          echo "::error::run_search_eval.py exited ${exit_code} — see eval-prod.log in the uploaded artifact."
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # eval-smoke — end-to-end plumbing proof against an ephemeral CI database.
+  # Never touches prod. Scores are expected to be ~0 (see header note).
+  # ---------------------------------------------------------------------------
+  eval-smoke:
+    name: eval-smoke
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'prod')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: bible
+          POSTGRES_PASSWORD: bible123 # pragma: allowlist secret
+          POSTGRES_DB: bibledb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r api/requirements.txt
+
+      - name: Load 1 Corinthians (CI subset)
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+        run: |
+          cd scripts
+          python load_bible.py --ci --dimensions 1536
+
+      - name: Generate Azure embeddings for the loaded subset
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+        run: |
+          cd scripts
+          python create_azure_embeddings.py
+
+      - name: Run smoke eval
+        id: run
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          EMBEDDING_PROVIDER: azure_openai
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+        run: |
+          set -o pipefail
+          set +e
+          python scripts/run_search_eval.py --run --smoke --json > eval-smoke.json 2> eval-smoke.log
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Summarize results
+        if: always()
+        run: |
+          {
+            echo "### eval-smoke results"
+            echo ""
+            echo "Plumbing check only — the corpus is 1 Corinthians alone, so the"
+            echo "golden set's first 3 cases (Matthew/Philippians/Proverbs refs)"
+            echo "cannot match. P@5/R@10/MRR of 0.00 here is expected, not a"
+            echo "regression; a non-zero exit code is the real failure signal."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit_code="${{ steps.run.outputs.exit_code }}"
+          if [ -s eval-smoke.json ] && jq -e . eval-smoke.json > /dev/null 2>&1; then
+            echo "Smoke run produced parseable JSON output (exit ${exit_code})." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No parseable JSON output — see eval-smoke.log:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 40 eval-smoke.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: search-eval-smoke-${{ github.run_id }}
+          path: |
+            eval-smoke.json
+            eval-smoke.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail the job if the run itself failed
+        if: always() && steps.run.outputs.exit_code != '0'
+        run: |
+          exit_code="${{ steps.run.outputs.exit_code }}"
+          echo "::error::run_search_eval.py --smoke exited ${exit_code} — see eval-smoke.log artifact."
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # Consolidated summary — always runs, never blocks anything downstream
+  # (there is nothing downstream; this workflow gates no merge).
+  # ---------------------------------------------------------------------------
+  eval-summary:
+    name: Summary
+    needs: [preflight, eval-prod, eval-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write final summary
+        run: |
+          {
+            echo "## Search Eval — Full run summary"
+            echo ""
+            echo "| route | result |"
+            echo "| --- | --- |"
+            echo "| eval-prod (Route A) | ${{ needs.eval-prod.result }} |"
+            echo "| eval-smoke | ${{ needs.eval-smoke.result }} |"
+            echo ""
+            echo "Route B (\`eval-corpus\` — full 11-translation rebuild in a cached"
+            echo "pgvector, for a reproducible-corpus A/B independent of prod drift)"
+            echo "is **not implemented** — tracked as BITB-051 P4b."
+            echo ""
+            echo "Result artifacts (JSON + log) are attached to this run, retained 30 days."
+          } >> "$GITHUB_STEP_SUMMARY"

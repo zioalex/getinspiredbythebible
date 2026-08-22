@@ -99,3 +99,57 @@ the corpus:
   only in the PR that added them, with the Android T2S table + `injectVerseLinks` shadow-string
   surgery as an explicit fast-follow — see
   `docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`.
+
+## `localized_book_map.json`
+
+The single source of truth for the localized-book-name → canonical-English-book-name map used by
+the client apps (BITB-059). `scripts/generate_localized_book_map.py` generates:
+
+- `android/app/src/main/kotlin/org/voxquieta/app/utils/LocalizedBookToEnglish.kt`
+- `frontend/src/lib/localizedBookMap.generated.ts`
+
+from this file. **Never hand-edit either generated file** — edit the JSON, run the generator, and
+commit all three files together:
+
+```sh
+python scripts/generate_localized_book_map.py
+```
+
+CI enforces this with `python scripts/generate_localized_book_map.py --check` (the
+"book-name maps stay generated" step in `.github/workflows/test_update.yml`, `backend-tests`
+job) — it fails if either generated file is hand-edited, or if the JSON changed without
+regenerating.
+
+Verified against this JSON:
+
+- `android/app/src/test/kotlin/org/voxquieta/app/utils/LocalizedBookToEnglishTest.kt`
+- `frontend/src/lib/localizedBookMap.parity.test.ts`
+- `api/tests/test_localized_book_map_registry_parity.py` (verifies against
+  `api/utils/translation_registry.py` — see below, this one holds a *separate* master
+  contradiction-free rather than generating from/into it)
+
+Because `--check` is byte-exact, it also depends on the JSON's key **order** — if the JSON is
+ever reordered (e.g. an editor "cleans up" the key order), regenerate and commit all three files
+in the same commit, or `--check` will report a spurious diff on the next CI run even though the
+content is unchanged.
+
+Three semantic notes from the Korean section of the map that generation drops (key order still
+preserves the original language grouping, but per-entry comments do not survive code
+generation):
+
+- `계시록` → `revelation` — short for `요한계시록`
+- `애가` → `lamentations` — short for `예레미야 애가`
+- `행전` → `acts` — short for `사도행전`
+
+## `localized_book_map_registry_gaps.json`
+
+`localized_book_map.json` (the client-bundle map, above) and `api/utils/translation_registry.py`
+(the backend's per-translation-code, case-preserving master) are two **independent masters** —
+neither generates the other, because the registry carries data (which translation code an alias
+belongs to, cased canonical forms) the flat lowercase JSON structurally cannot represent. Instead,
+`api/tests/test_localized_book_map_registry_parity.py` holds them **contradiction-free**: any key
+shared between the two must resolve to the same English book, and any key present on only one side
+must be listed here with a reviewed reason. A new one-sided key (e.g. a citation-form alias added
+to one side and not the other) fails that test until it is either propagated to the other side or
+added here — so a gap can't ship silently, and the allowlist can't rot once a gap is closed
+elsewhere (a stale entry also fails the test).
