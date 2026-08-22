@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 
 from utils.book_names import normalize_book_name
+from utils.chinese_script import normalize_traditional_to_simplified
 from utils.translation_registry import EXTRA_REVERSE_MAPPINGS, TRANSLATION_REGISTRY
 
 # All book names in all languages (for pattern matching).
@@ -396,7 +397,7 @@ def parse_verse_reference(text: str) -> VerseReference | None:
     Returns:
         VerseReference if found, None otherwise
     """
-    text = _normalize_arabic_text(text)
+    text = normalize_traditional_to_simplified(_normalize_arabic_text(text))
     match = _VERSE_PATTERN.search(text)
     if not match:
         return None
@@ -417,7 +418,7 @@ def extract_all_references(text: str) -> list[VerseReference]:
     Returns:
         List of all VerseReference objects found (deduplicated)
     """
-    text = _normalize_arabic_text(text)
+    text = normalize_traditional_to_simplified(_normalize_arabic_text(text))
     results: list[VerseReference] = []
     seen: set[str] = set()
 
@@ -514,7 +515,9 @@ def _find_adjacent_reference(
     """
     # After the quote: `"…" (John 3:16)` or quote-first `"…", come dice John 3:16`
     after = text[close_end : close_end + _ADJACENCY_WINDOW]
-    m = _VERSE_PATTERN.search(after.translate(_BRACKET_TO_SPACE))
+    m = _VERSE_PATTERN.search(
+        normalize_traditional_to_simplified(after).translate(_BRACKET_TO_SPACE)
+    )
     if m:
         gap = after[: m.start()]
         if all(ch in _ADJACENCY_SEPARATORS for ch in gap) or bool(_QUOTE_TRAIL_GAP.match(gap)):
@@ -526,7 +529,9 @@ def _find_adjacent_reference(
     start = max(0, open_pos - _ADJACENCY_WINDOW)
     before = text[start:open_pos]
     last = None
-    for mm in _VERSE_PATTERN.finditer(before.translate(_BRACKET_TO_SPACE)):
+    for mm in _VERSE_PATTERN.finditer(
+        normalize_traditional_to_simplified(before).translate(_BRACKET_TO_SPACE)
+    ):
         last = mm
     if last and _gap_is_adjacent(before[last.end() :]):
         ref = _match_to_verse_reference(last)
@@ -804,15 +809,24 @@ def _sentence_bounds(text: str, ref_start: int, ref_end: int) -> tuple[int, int]
 def extract_reference_mentions(text: str) -> list[ReferenceMention]:
     """Return every verse reference in *text* with its enclosing sentence window.
 
-    Uses the original text (no Arabic diacritic normalization) so that the
-    returned span offsets remain valid against *text*.  Pure — no DB calls.
-    Used by the unquoted-paraphrase grounding path in ``verse_grounding.py``.
+    Spans, ``sentence`` and ``content_text`` are all offsets/slices against the
+    *original* text (no Arabic diacritic normalization, Traditional Chinese
+    left as written), so they remain valid and stay in the user's script —
+    only the internal matching copy is normalized, and
+    normalize_traditional_to_simplified() is length-preserving so that
+    normalization can't shift offsets out from under the original. Pure — no
+    DB calls. Used by the unquoted-paraphrase grounding path in
+    ``verse_grounding.py``.
     """
     mentions: list[ReferenceMention] = []
     seen: set[str] = set()
-    # Translate brackets to spaces so the pattern fires on "(John 3:16)" etc.,
-    # but use offsets against the *original* text so spans stay correct.
-    search_text = text.translate(_BRACKET_TO_SPACE)
+    # Translate brackets to spaces (and Traditional Chinese to Simplified) so
+    # the pattern fires on "(John 3:16)" / "約翰福音 3:16" etc., but use offsets
+    # against the *original* text so spans — and the returned sentence/content
+    # text, which stays in whatever script the user wrote — remain correct.
+    # normalize_traditional_to_simplified() is length-preserving, so the
+    # translate() offsets line up with the untouched original.
+    search_text = normalize_traditional_to_simplified(text).translate(_BRACKET_TO_SPACE)
     for m in _VERSE_PATTERN.finditer(search_text):
         ref = _match_to_verse_reference(m)
         if ref is None:

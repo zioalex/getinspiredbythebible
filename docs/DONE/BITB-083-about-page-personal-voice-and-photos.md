@@ -1,6 +1,6 @@
 # BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #947 merged 2026-07-29)
 **Priority:** P2
 **Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
 **Created:** 2026-07-27
@@ -92,7 +92,7 @@ whoever picks this up otherwise.
    before the "why" argument starts.
 3. **Add a closing personal beat** before the "Get in touch" section, adapted from the post's
    "I'm just happy it exists... someone having a rough day can visit that URL and find
-   encouragement" — the sentence that's been sitting unused in BITF-076's own Source Material.
+   encouragement" — the sentence that's been sitting unused in BITB-076's own Source Material.
 4. **Add screenshots**, per the "then" (and optionally "then / now") treatment above:
    - Origin-era images fetched from `https://ai4you.sh/assets/images/bible-chatbot/bible-chatbot-welcome-screen.png`
      and `.../bible-chatbot-response-example.png` — confirm licensing/reuse with the author (it's
@@ -110,23 +110,23 @@ whoever picks this up otherwise.
 
 ## Acceptance Criteria
 
-- [ ] `About.todayBody` no longer reads as a feature/spec list; the capability facts (languages,
+- [x] `About.todayBody` no longer reads as a feature/spec list; the capability facts (languages,
       platforms, free) can still be present but are not the sentence's whole content.
-- [ ] The opening hook ("Have you ever had an idea...") gets its own sentence/paragraph, including
+- [x] The opening hook ("Have you ever had an idea...") gets its own sentence/paragraph, including
       the follow-up question the shipped copy currently drops.
-- [ ] A closing personal beat, adapted from "I'm just happy it exists... that's what matters,"
+- [x] A closing personal beat, adapted from "I'm just happy it exists... that's what matters,"
       appears before the "Get in touch" section.
-- [ ] At least one screenshot renders on the page, explicitly labeled if it's origin-era (not
+- [x] At least one screenshot renders on the page, explicitly labeled if it's origin-era (not
       presented as current-state UI).
-- [ ] `notBody`'s safety-boundary language is unchanged in meaning (wording tweaks for flow are
+- [x] `notBody`'s safety-boundary language is unchanged in meaning (wording tweaks for flow are
       fine; the boundaries themselves are not softened).
-- [ ] All copy changes applied across all 11 `frontend/messages/*.json` locales — not just `en`,
+- [x] All copy changes applied across all 11 `frontend/messages/*.json` locales — not just `en`,
       and not machine-retranslated without checking the existing translations' register still
       matches the more personal English source.
-- [ ] `About.introBody` reviewed against the rewritten page copy; updated if it now quotes
+- [x] `About.introBody` reviewed against the rewritten page copy; updated if it now quotes
       superseded phrasing.
-- [ ] Arabic (RTL) and CJK locales checked for layout with the added image(s).
-- [ ] Unique `metaDescription` per locale still holds if `heroLead`/`whyBody1` wording shifts (the
+- [x] Arabic (RTL) and CJK locales checked for layout with the added image(s).
+- [x] Unique `metaDescription` per locale still holds if `heroLead`/`whyBody1` wording shifts (the
       SEO audit's duplicate-title check, per BITB-076's own AC).
 
 ## Tests to Add / Update

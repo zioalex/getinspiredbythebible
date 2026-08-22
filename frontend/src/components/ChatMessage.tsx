@@ -16,6 +16,7 @@ import {
   parseVerseHref,
   VERSE_SCHEME,
 } from "@/lib/linkifyVerses";
+import { normalizeTraditionalToSimplified } from "@/lib/chineseScript";
 
 /** Recursively extract the plain-text content of a React node (e.g. link children). */
 function getNodeText(node: React.ReactNode): string {
@@ -80,8 +81,11 @@ export default function ChatMessage({
     const text = target.textContent || "";
 
     // Use shared pattern auto-generated from all known localized book names.
+    // Traditional Chinese book names normalize to Simplified for matching
+    // only (BITB-025) — no display text comes from this function, so a plain
+    // normalize (no shadow-string bookkeeping) is safe here.
     const versePattern = createVersePattern();
-    const match = text.match(versePattern);
+    const match = normalizeTraditionalToSimplified(text).match(versePattern);
 
     if (match) {
       const book = match[1].trim();
@@ -105,13 +109,20 @@ export default function ChatMessage({
     // Use shared pattern auto-generated from all known localized book names.
     // Always create a fresh global instance (mutable lastIndex state).
     const verseRefPattern = createVersePatternGlobal();
+    // Match against a Simplified-Chinese shadow copy (BITB-025) so a
+    // Traditional book name (e.g. "約翰福音") is recognised.
+    // normalizeTraditionalToSimplified is length-preserving, so match offsets
+    // stay valid against the original `text` sliced below — which is what
+    // gets displayed, so a Traditional-script user's own words are never
+    // silently rewritten to Simplified on screen.
+    const searchText = normalizeTraditionalToSimplified(text);
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
     let partKey = 0;
 
-    while ((match = verseRefPattern.exec(text)) !== null) {
+    while ((match = verseRefPattern.exec(searchText)) !== null) {
       const book = match[1].trim();
 
       // Only mark real Bible books.  The verse regex intentionally accepts any
@@ -138,8 +149,10 @@ export default function ChatMessage({
         parts.push(highlightQuotes(beforeText, key + partKey++));
       }
 
-      // Add the clickable verse reference
-      const fullMatch = match[0];
+      // Add the clickable verse reference — sliced from the ORIGINAL text
+      // (not match[0], which came from the Simplified searchText copy) so
+      // the displayed reference keeps the user's own script.
+      const fullMatch = text.slice(match.index, match.index + match[0].length);
       parts.push(
         <span
           key={`${key}-verse-${partKey++}`}
@@ -333,7 +346,13 @@ export default function ChatMessage({
                       );
                     }
                     const linkText = getNodeText(children);
-                    const match = linkText.match(createVersePattern());
+                    // Traditional Chinese normalizes for matching only
+                    // (BITB-025); `linkText` below (rendered as-is) keeps
+                    // whatever script the link text was actually written in.
+                    const match =
+                      normalizeTraditionalToSimplified(linkText).match(
+                        createVersePattern(),
+                      );
                     if (match && isKnownBook(match[1].trim())) {
                       return (
                         <span

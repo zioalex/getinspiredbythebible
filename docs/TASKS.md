@@ -124,7 +124,7 @@ Organized by priority and category. Each item includes effort estimate and impac
 - **Issue**: Uses `Column()` instead of SQLAlchemy 2.0 `Mapped[]` annotations,
   causing mypy suppressions across `scripture.*` and `routes.*`.
 - **Fix**: Migrate to `Mapped[]` annotations.
-- **Effort**: L | **Impact**: Medium | **Status**: Open
+- **Effort**: L | **Impact**: Medium | **Status**: Done (BITB-009, PR #984)
 - **Note**: Already tracked in `docs/TECHNICAL_DEBT.md`.
 
 ### 3.4 Magic Number: Similarity Threshold

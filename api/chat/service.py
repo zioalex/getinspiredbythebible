@@ -30,6 +30,7 @@ from utils.language import (
 )
 from utils.logging_config import get_logger
 from utils.metrics import (
+    chat_clarification_requested_counter,
     chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
     scripture_pipeline_errors_counter,
@@ -49,6 +50,7 @@ from utils.verse_parser import (
 )
 
 from .prompts import (
+    CLARIFICATION_PROMPT,
     OFF_TOPIC_PROMPT,
     build_search_context_prompt,
     detect_intent_prompt,
@@ -171,8 +173,8 @@ class ChatService:
         """
         Classify user intent with a fast LLM call.
 
-        Returns one of: COMFORT, GUIDANCE, CURIOSITY, VERSE_LOOKUP, OFF_TOPIC, GENERAL.
-        On any error, returns "GENERAL" (fail-open).
+        Returns one of: COMFORT, GUIDANCE, CURIOSITY, VERSE_LOOKUP, NEEDS_CLARIFICATION,
+        OFF_TOPIC, GENERAL. On any error, returns "GENERAL" (fail-open).
         """
         try:
             messages = [
@@ -186,7 +188,15 @@ class ChatService:
                 model_override=model_override,
             )
             intent = response.content.strip().upper().split()[0]
-            valid = {"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP", "OFF_TOPIC", "GENERAL"}
+            valid = {
+                "COMFORT",
+                "GUIDANCE",
+                "CURIOSITY",
+                "VERSE_LOOKUP",
+                "NEEDS_CLARIFICATION",
+                "OFF_TOPIC",
+                "GENERAL",
+            }
             if intent not in valid:
                 logger.warning("Unexpected intent classification: %s", intent)
                 return "GENERAL"
@@ -498,6 +508,24 @@ Keep it under 120 words."""
                 },
             )
 
+        # BITB-078: a first-turn message too vague to answer gets one clarifying
+        # question instead of a guessed full response.
+        if self._wants_clarification(
+            detected_intent,
+            is_verse_lookup,
+            safety.compassionate,
+            len(request.conversation_history),
+        ):
+            return await self._handle_needs_clarification(
+                request,
+                effective_language,
+                translation,
+                translation_info,
+                total_start,
+                model_override,
+                language_suggestion,
+            )
+
         # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
@@ -693,6 +721,74 @@ Keep it under 120 words."""
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
+        )
+
+    def _wants_clarification(
+        self,
+        detected_intent: str,
+        is_verse_lookup: bool,
+        compassionate: bool,
+        history_len: int,
+    ) -> bool:
+        """BITB-078 gate: whether to ask one clarifying question instead of answering.
+
+        Enforced here in code, not left to the classifier's judgement, per the
+        story's non-negotiable exclusions: never for a verse lookup (unambiguous
+        by construction), never when the safety pipeline flagged crisis support,
+        and never past the first turn of a conversation -- by the second turn the
+        prior exchange already supplies context, which also gives "at most one
+        clarifying question per conversation" for free without tracking any
+        extra state.
+        """
+        return (
+            settings.chat_clarification_enabled
+            and detected_intent == "NEEDS_CLARIFICATION"
+            and not is_verse_lookup
+            and not compassionate
+            and history_len == 0
+        )
+
+    async def _handle_needs_clarification(
+        self,
+        request: ChatRequest,
+        detected_language: str,
+        translation: str,
+        translation_info: dict | None,
+        total_start: float,
+        model_override: str | None = None,
+        language_suggestion: str | None = None,
+    ) -> "ChatResponse":
+        """Ask one gentle clarifying question, skipping scripture search entirely."""
+        logger.info("Message needs clarification, skipping scripture search")
+        messages = self._build_messages(
+            user_message=request.message,
+            history=request.conversation_history,
+            search_context="",
+            language_code=detected_language,
+            prompt_type="clarification",
+        )
+        response = await self.llm.chat(
+            messages=messages,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            model_override=model_override,
+        )
+        chat_clarification_requested_counter.add(1, {"language": detected_language})
+        message_id = str(uuid.uuid4())
+        total_duration = time.time() - total_start
+        logger.info(
+            "Clarifying question completed",
+            extra={"total_duration_seconds": f"{total_duration:.2f}"},
+        )
+        return ChatResponse(
+            message_id=message_id,
+            message=response.content,
+            scripture_context=None,
+            provider=response.provider,
+            model=response.model,
+            detected_translation=translation,
+            translation_info=translation_info,
+            language_suggestion=language_suggestion,
         )
 
     def _build_blocked_response(
@@ -1236,6 +1332,43 @@ Keep it under 120 words."""
         is_verse_lookup = is_verse_lookup_request(request.message)
         verse_refs, prayer_ref = extract_references(request.message)
 
+        # BITB-078: a first-turn message too vague to answer gets one clarifying
+        # question instead of a guessed full response, skipping scripture search.
+        if self._wants_clarification(
+            detected_intent,
+            is_verse_lookup,
+            safety.compassionate,
+            len(request.conversation_history),
+        ):
+            logger.info("Message needs clarification in stream, skipping scripture search")
+            yield {
+                "type": "metadata",
+                "message_id": message_id,
+                "scripture_context": None,
+                "provider": settings.llm_provider,
+                "model": settings.llm_model,
+                "detected_translation": translation,
+                "translation_info": translation_info,
+                "language_suggestion": language_suggestion,
+            }
+            messages = self._build_messages(
+                user_message=request.message,
+                history=request.conversation_history,
+                search_context="",
+                language_code=effective_language,
+                prompt_type="clarification",
+            )
+            async for token in self.llm.chat_stream(
+                messages=messages,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+                model_override=model_override,
+            ):
+                yield {"type": "content", "content": token}
+            chat_clarification_requested_counter.add(1, {"language": effective_language})
+            yield {"type": "completion", "verses_cited": []}
+            return
+
         # Step 1: Search for relevant scripture (timed via @timed_stage)
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
@@ -1440,7 +1573,8 @@ Keep it under 120 words."""
             history: Previous conversation messages
             search_context: Optional scripture context from search
             language_code: Detected language code for response language
-            prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic")
+            prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic",
+                "clarification")
             compassionate_mode: When True, appends COMPASSIONATE_RESPONSE_ADDENDUM to system prompt
 
         Returns:
@@ -1461,6 +1595,8 @@ Keep it under 120 words."""
         # Select appropriate system prompt based on request type
         if prompt_type == "off_topic":
             system_prompt = get_system_prompt(language_code) + "\n\n" + OFF_TOPIC_PROMPT
+        elif prompt_type == "clarification":
+            system_prompt = get_system_prompt(language_code) + "\n\n" + CLARIFICATION_PROMPT
         elif prompt_type == "verse_lookup":
             system_prompt = get_verse_lookup_prompt(language_code)
         elif prompt_type == "prayer_lookup":

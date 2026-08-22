@@ -1,9 +1,48 @@
 # BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — backend slice shipped, see "Delivered / Deferred" below
 **Priority:** P2
 **Size:** M (1–2 days, prompt work + eval)
 **Created:** 2026-07-25
+
+## Delivered / Deferred (this pass)
+
+Scoped down to a backend-only slice completable in one PR, splitting by risk the same way PR
+\#877/\#955 split BITB-062 — the chip UI and eval-harness pieces below touch other
+surfaces (frontend, Android, the retrieval-eval harness) that a repo-only agent pass can't
+validate end-to-end in a day.
+
+**Shipped:**
+
+- `NEEDS_CLARIFICATION` intent category (`detect_intent_prompt`, `api/chat/prompts.py`) with the
+  ask/don't-ask criteria from "Proposed Behaviour" #1 below, written into the classifier prompt.
+- Dedicated `CLARIFICATION_PROMPT` (acknowledge + one open question, <40 words, no verse
+  citation) wired through `_build_messages(prompt_type="clarification")`.
+- Routing in both `chat()` and `chat_stream()` (`api/chat/service.py`) that skips scripture
+  search entirely for a qualifying message — the `_wants_clarification()` gate.
+- The three non-negotiable exclusions enforced **in code**, not left to the classifier: never for
+  `VERSE_LOOKUP`, never when `compassionate_response_needed` is set, and never past the first
+  turn of a conversation (`len(conversation_history) == 0`) — which also gives "at most one
+  clarifying question per conversation" for free, without tracking any extra state.
+- `chat.clarification.requested` counter (language-tagged) and the existing intent-detection log
+  line now cover `NEEDS_CLARIFICATION` for free (it's just a new value in the same `valid` set).
+- Shipped **behind `chat_clarification_enabled` (default `False`)** per this story's own Risks
+  section — watch the ask rate before defaulting it on.
+- Tests: `api/tests/test_intent_detection.py` — prompt content, the gate's five exclusion paths
+  in isolation, `chat()`/`chat_stream()` flow (search skipped, one-question cap on turn 2),
+  `_build_messages` prompt-type dispatch.
+
+**Deferred (separate follow-up story):**
+
+- Tappable chip options (Proposed Behaviour #4) — shared UI mechanism with **BITB-080**; do both
+  chip UIs together once BITB-080 is scoped, rather than building the mechanism twice.
+- Golden-set eval additions (`docs/SEARCH_EVAL_HOWTO.md`, BITB-051) for vague-opening cases.
+- Explicit per-language assertions beyond the prompt's built-in "ask in the user's language"
+  instruction (en/it/de/es AC) — the mechanism is language-agnostic by construction (same as
+  `OFF_TOPIC_PROMPT`), but no test exercises a non-English clarifying reply yet.
+- Restructuring `SYSTEM_PROMPT_TEMPLATE`'s "## Your Role" step 2 (Proposed Behaviour #5) — not
+  needed for the new short-circuit path (it uses its own prompt), only for the old buried
+  instruction it doesn't replace; leaving that alone avoids touching the default-path prompt.
 
 ## User Story
 

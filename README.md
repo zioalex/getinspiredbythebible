@@ -406,7 +406,7 @@ pytest
 
 ### Technical Improvements
 
-- [ ] Refactor SQLAlchemy models to use `Mapped[]` type annotations (see [docs/TECHNICAL_DEBT.md](docs/TECHNICAL_DEBT.md))
+- [x] Refactor SQLAlchemy models to use `Mapped[]` type annotations (see [docs/TECHNICAL_DEBT.md](docs/TECHNICAL_DEBT.md))
 - [x] Add Vitest for frontend unit tests (186 tests across 17 suites)
 - [ ] Add Playwright/Cypress for E2E tests
 - [ ] Add code coverage reporting
