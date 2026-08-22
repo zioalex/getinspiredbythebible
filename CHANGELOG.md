@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.53.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.52.0...v1.53.0) (2026-08-22)
+
+### Features
+
+* **api:** ask one clarifying question on a vague first message (BITB-078) ([#956](https://github.com/zioalex/getinspiredbythebible/issues/956)) ([9c71ab6](https://github.com/zioalex/getinspiredbythebible/commit/9c71ab6681006ddae9b50fb586a0ab6565f28c0f))
+* **api:** emit server-side citation spans on the completion event (BITB-086) ([#985](https://github.com/zioalex/getinspiredbythebible/issues/985)) ([3d0f80b](https://github.com/zioalex/getinspiredbythebible/commit/3d0f80b589937530810e4b4c25eecd09c01d1a62))
+* **api:** seed verse_topics from the topic keyword map (BITB-044) ([#970](https://github.com/zioalex/getinspiredbythebible/issues/970)) ([d99c3ac](https://github.com/zioalex/getinspiredbythebible/commit/d99c3ac58feca992d108c37b1ba6a4b7effce284))
+* **ci:** automate search-eval prod + smoke runs (BITB-051 P4a) ([#968](https://github.com/zioalex/getinspiredbythebible/issues/968)) ([be311a5](https://github.com/zioalex/getinspiredbythebible/commit/be311a55939e0104696a7f055cc51f7dabf2e167))
+* **scripture:** recognize Traditional Chinese verse references (BITB-025) ([#982](https://github.com/zioalex/getinspiredbythebible/issues/982)) ([fce7c48](https://github.com/zioalex/getinspiredbythebible/commit/fce7c4817855cac2541a286b0ba05002668bfa20))
+* **web:** generate the localized book-name map instead of hand-maintaining it (BITB-059) ([#983](https://github.com/zioalex/getinspiredbythebible/issues/983)) ([38d71fa](https://github.com/zioalex/getinspiredbythebible/commit/38d71fa73730ddfc85a8b5ae8142e3e3624a24aa))
+* **web:** installable PWA manifest, iOS safe areas, and Add to Home Screen CTA (BITB-084) ([#969](https://github.com/zioalex/getinspiredbythebible/issues/969)) ([58b23d5](https://github.com/zioalex/getinspiredbythebible/commit/58b23d50cd88bba1c90a25595e73cea921b6a09a))
+
+### Bug Fixes
+
+* **android:** send example prompt on first tap regardless of Turnstile readiness (BITB-081) ([#957](https://github.com/zioalex/getinspiredbythebible/issues/957)) ([e84b56e](https://github.com/zioalex/getinspiredbythebible/commit/e84b56e5bc1c26aaa219a8f9f3776b080628a938))
+* **api:** remove stale mypy suppressions in scripture search routes (BITB-009) ([#984](https://github.com/zioalex/getinspiredbythebible/issues/984)) ([468417a](https://github.com/zioalex/getinspiredbythebible/commit/468417a2ab660aa94dd7571d1ae0f48d9a730b25))
+* **ci:** sequence deploy pipeline correctly around migrations (BITB-097) ([#1005](https://github.com/zioalex/getinspiredbythebible/issues/1005)) ([073b7f0](https://github.com/zioalex/getinspiredbythebible/commit/073b7f068bb8f5bbafc8950a147fd1f191d9c7b3))
+* **deploy:** auto-remediate origin cert binding on post-deploy 525/526 (BITB-067) ([#967](https://github.com/zioalex/getinspiredbythebible/issues/967)) ([2592386](https://github.com/zioalex/getinspiredbythebible/commit/259238657f07f13bf514a61fd3a4a3563542d895))
+
+### Documentation
+
+* **backlog:** file BITB-101 and the BITB-044 follow-up chain (BITB-103..106) ([#1007](https://github.com/zioalex/getinspiredbythebible/issues/1007)) ([eb00cd9](https://github.com/zioalex/getinspiredbythebible/commit/eb00cd94e6dc6b59f1474302ee1bc3314625b340))
+* **backlog:** file BITB-107..111 for gaps found across the open PRs ([#1008](https://github.com/zioalex/getinspiredbythebible/issues/1008)) ([e2e5145](https://github.com/zioalex/getinspiredbythebible/commit/e2e51450ec1aa6b970d5a465b21c3755e7c67e0d))
+
 ## [1.52.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.51.0...v1.52.0) (2026-08-20)
 
 ### Features
