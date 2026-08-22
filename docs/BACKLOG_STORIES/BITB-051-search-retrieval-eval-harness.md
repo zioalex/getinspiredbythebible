@@ -1,6 +1,6 @@
 # BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0–P3 landed; P4 todo)
+**Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
 **Priority:** P1 (High) — without it we cannot tell whether the now-enabled query
 expansion / hybrid search actually improve retrieval
 **Size:** L (3–5 days, delivered in 5 small PRs)
@@ -135,21 +135,53 @@ blocking `backend-tests` job.
   an unreachable DB was confirmed to fail-open per query yet still exit non-zero with
   a clear message (no traceback), and `--config`/`--language`/`--json` were exercised.
 
-### P4 — Full-corpus eval automated in CI (Routes A + B; manual + nightly) (todo)
+### P4a — `eval-prod` + `eval-smoke` automated in CI (manual + nightly) ✅ (landed)
 
-New `.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly
-`schedule`), Azure embeddings, results as job summary + uploaded artifact, non-gating:
+`.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly `schedule`
+at 04:23 UTC), Azure embeddings, results as job summary + uploaded artifact,
+non-gating (no `pull_request` trigger; nothing in `test_update.yml` depends on it):
 
-- **Route A (`eval-prod`):** `DATABASE_URL` from `PROD_DATABASE_URL` secret (read-only);
-  embed queries with Azure; retrieve from prod's vectors. True prod numbers, no rebuild.
-- **Route B (`eval-corpus`):** load all 11 translations + Azure-embed into pgvector,
-  cached via `actions/cache` (key = translations + model + script versions); full A/B.
-- **`eval-smoke`:** load 1 Corinthians + Azure-embed (~440 verses, cents); fast
-  end-to-end plumbing proof (replaces the old Ollama smoke).
-- Secrets: the read-only `PROD_DATABASE_URL` plus the `AZURE_OPENAI_*` endpoint /
-  key / deployment credentials; jobs no-op with a clear notice if absent.
-- **Done when:** dispatch produces an artifact + summary with the full-corpus A/B table
-  (Routes A + B + smoke); nightly runs unattended; per-PR CI unchanged.
+- **Route A (`eval-prod`):** no new secret — reuses the exact ARM-login +
+  `az postgres flexible-server list` + `TF_VAR_DB_ADMIN_*`/`TF_VAR_DB_NAME` pattern
+  `azure-deploy.yml` already uses for migrations/seeding, read-only, to build
+  `DATABASE_URL`; embeds queries with Azure; retrieves from prod's real vectors.
+  True prod numbers, no rebuild, zero writes. Falls back to `baseline_semantic`
+  only (skips the expansion leg) when no OpenRouter key is configured, so a
+  missing LLM credential doesn't show up as a wave of `n_errors`.
+- **`eval-smoke`:** loads 1 Corinthians into an ephemeral CI Postgres + Azure-embeds
+  it (~440 verses, cents), then runs `--run --smoke`; fast end-to-end plumbing
+  proof, never touches prod. Scores are expected to be ~0 (the golden set's first
+  3 cases aren't in 1 Corinthians) — documented as a plumbing check, not a
+  relevance measurement.
+- Preflight job reads secret/var presence into step outputs (the `secrets`
+  context isn't usable in a job-level `if:`) and gates each route independently;
+  missing config ⇒ job **skipped** with a `::notice::`, never failed.
+- **Done when:** manual `workflow_dispatch` produces an artifact + job-summary
+  table for both routes; nightly schedule runs unattended; per-PR CI unchanged.
+
+### P4b — `eval-corpus` full-corpus rebuild (Route B) (todo)
+
+Load all 11 translations + Azure-embed into pgvector, cached via `actions/cache`
+(key = translations + model + script versions), for a reproducible-corpus A/B
+that doesn't drift with prod's live data. **Deliberately not built alongside
+P4a** — the two are independent and P4a already delivers the story's headline
+("true prod numbers"). Reasons to keep this its own phase rather than land it
+blind on the first unattended run:
+
+- **Cache-eviction risk.** 11 translations ≈ ~340k verses × 1536 float4 ≈ ~2 GB
+  of vector data before index overhead. GitHub's per-repo Actions cache is 10 GB
+  and globally LRU-evicted — a nightly 2 GB cache could evict the `pip`/`gradle`/
+  `node` caches `test_update.yml` and the Android workflows depend on, which
+  would be an unrelated, non-obvious regression to per-PR CI.
+- **Unbounded first-run duration.** No existing evidence of full-corpus
+  embedding timing under a *cold* cache (the closest analog, `azure-deploy.yml`'s
+  `seed-database-post`, is normally incremental with almost nothing to do).
+- **New correctness surface with no test coverage yet:** cache-key design,
+  partial-cache poisoning (a half-embedded corpus restoring as "valid" and
+  silently scoring low), embedding-dimension drift.
+
+Track separately when picked up; `eval-prod` + `eval-smoke` already cover the
+"is the harness actually wired to real embeddings" need in the meantime.
 
 ## Acceptance Criteria
 
@@ -161,21 +193,23 @@ New `.github/workflows/search-eval-full.yml` (`workflow_dispatch` + nightly
 - [x] P3: runner over real retrieval + report/CLI; manual prod-read-only A/B table
       documented in `docs/SEARCH_EVAL_HOWTO.md` (not exercised against real prod
       data in this sandbox — no DB/Azure credentials available).
-- [ ] P4: manual + nightly full-corpus eval (Routes A & B + smoke) on Azure.
+- [x] P4a: manual + nightly `eval-prod` + `eval-smoke` on Azure
+      (`.github/workflows/search-eval-full.yml`).
+- [ ] P4b: `eval-corpus` full-corpus rebuild (Route B) — deferred, see above.
 - [ ] Retrospective once expansion/hybrid validated against the set (feeds BITB-043).
 
 ## Files / Config
 
 | Item | Location |
 |---|---|
-| Harness package | `api/search_eval/` (`normalize.py`, `metrics.py`, `models.py`, `loader.py`*, `runner.py`*, `report.py`*) |
-| Golden set | `api/search_eval/data/retrieval_golden_set.json`* |
-| CLI | `scripts/run_search_eval.py`* |
-| Tests | `api/tests/test_search_eval_metrics.py`, `…_dataset.py`* |
-| CI | `.github/workflows/test_update.yml` (validate)*, `search-eval-full.yml`* |
+| Harness package | `api/search_eval/` (`normalize.py`, `metrics.py`, `models.py`, `loader.py`, `runner.py`, `report.py`) |
+| Golden set | `api/search_eval/data/retrieval_golden_set.json` |
+| CLI | `scripts/run_search_eval.py` |
+| Tests | `api/tests/test_search_eval_metrics.py`, `…_dataset.py` |
+| CI | `.github/workflows/test_update.yml` (validate, per-PR), `search-eval-full.yml` (`eval-prod` + `eval-smoke`, manual + nightly) |
 | Reused utils | `utils/book_names.py`, `scripture/search.py`, `providers/factory.py`, `scripture/database.py` |
 
-Note: items marked with `*` above are future phases (P2–P4).
+Note: P4b (`eval-corpus` / Route B) is the only remaining unshipped item.
 
 ## Related
 

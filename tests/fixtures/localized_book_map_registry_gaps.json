@@ -1,0 +1,106 @@
+{
+  "description": "BITB-059 Phase 2 — keys that exist on exactly one side of the localized book-name contract between tests/fixtures/localized_book_map.json (the client-bundle map, consumed by web/Android) and api/utils/translation_registry.py's derived reverse map (the backend's per-translation-code master). api/tests/test_localized_book_map_registry_parity.py enforces that every one-sided key is listed here, and that no listed key has silently become shared (or vice versa) — so a new gap can't ship without a reviewed decision. Regenerate this fixture's key lists from a fresh diff (never hand-transcribe) whenever a test failure reports an unlisted key.",
+  "gaps": [
+    {
+      "direction": "registry_only",
+      "reason": "English abbreviations/short forms in ENGLISH_ALIASES (translation_registry.py) that have not yet been propagated to the client bundle map.",
+      "keys": [
+        "1 chr",
+        "1 cor",
+        "1 jn",
+        "1 kgs",
+        "1 pet",
+        "1 sam",
+        "1 thess",
+        "1 tim",
+        "2 chr",
+        "2 cor",
+        "2 jn",
+        "2 kgs",
+        "2 pet",
+        "2 sam",
+        "2 thess",
+        "2 tim",
+        "3 jn",
+        "cant",
+        "canticles",
+        "habacuc",
+        "revelations",
+        "song of songs",
+        "songs",
+        "sos"
+      ]
+    },
+    {
+      "direction": "registry_only",
+      "reason": "Localized book names that happen to be spelled identically to English (e.g. German/French 'Job', 'Joel', 'Amos') appear as identity entries in the registry's per-language reverse maps. Clients already recognise the plain English form via LOCALIZED_BOOK_TO_ENGLISH's value union (getKnownBooks()), so no separate client-map key is needed for these.",
+      "keys": [
+        "1 samuel",
+        "2 samuel",
+        "amos",
+        "daniel",
+        "esther",
+        "haggai",
+        "hosea",
+        "job",
+        "joel",
+        "lamentations",
+        "nahum"
+      ]
+    },
+    {
+      "direction": "registry_only",
+      "reason": "Russian dative-case citation forms in RUSSIAN_ALIASES not yet propagated to the client bundle map (Phase 2b).",
+      "keys": [
+        "1-е иоанну",
+        "1-е петру",
+        "2-е иоанну",
+        "2-е петру",
+        "3-е иоанну",
+        "ездры",
+        "иакову",
+        "иезекииль",
+        "иисуса навина",
+        "иуде",
+        "неемии",
+        "песнь песней",
+        "судей"
+      ]
+    },
+    {
+      "direction": "registry_only",
+      "reason": "Chinese source-feed artifacts in CHINESE_ALIASES (BOM-prefixed Simplified Genesis, canonical Traditional Revelation) that only the backend ingest path needs to recognise.",
+      "keys": ["啟示錄", "﻿创世记"]
+    },
+    {
+      "direction": "json_only",
+      "reason": "Russian genitive-case citation forms the client bundle recognises but RUSSIAN_CITATION_FORMS/RUSSIAN_ALIASES do not yet carry (Phase 2b — adding these widens verse_parser.py's ALL_BOOK_NAMES regex and needs its own review against scripts/audit_book_name_coverage.py).",
+      "keys": [
+        "аввакума",
+        "аггея",
+        "даниила",
+        "захарии",
+        "иезекиля",
+        "иоиля",
+        "ионы",
+        "иуды",
+        "малахии",
+        "михея",
+        "наума",
+        "осии",
+        "песни песней",
+        "софонии"
+      ]
+    },
+    {
+      "direction": "json_only",
+      "reason": "Alternate Russian dative-suffix citation forms the client bundle recognises but the registry does not (Phase 2b).",
+      "keys": ["1-е иоанна", "1-е петра", "2-е иоанна", "2-е петра", "2-я петра", "3-е иоанна"]
+    },
+    {
+      "direction": "json_only",
+      "reason": "Arabic numbered-book forms the client bundle recognises but ARABIC_CITATION_FORMS does not yet carry (Phase 2b).",
+      "keys": ["1 ملوك", "2 ملوك"]
+    }
+  ]
+}

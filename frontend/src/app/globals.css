@@ -61,6 +61,26 @@ body {
   }
 }
 
+/* Chat header sits under the iPhone notch/Dynamic Island once standalone
+   display mode draws edge-to-edge (viewportFit: "cover" + appleWebApp
+   statusBarStyle: "black-translucent" in [locale]/layout.tsx). */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .sticky.top-0 {
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
+  }
+}
+
+/* Landscape "ear" regions (notch/home-indicator side insets). These are
+   physical-viewport-relative per the CSS spec, not logical/direction-aware,
+   so this same rule is correct for both LTR and RTL (Arabic) without any
+   dir-conditional logic. */
+@supports (padding: env(safe-area-inset-left)) {
+  main.h-dvh {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 /* Splash screen phrase floating animation */
 @keyframes splash-float {
   0% {

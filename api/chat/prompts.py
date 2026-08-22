@@ -709,15 +709,42 @@ Categories:
 - GUIDANCE: seeking wisdom for a decision or life situation
 - CURIOSITY: asking a question about the Bible, theology, or faith
 - VERSE_LOOKUP: asking about a specific Bible verse or passage
+- NEEDS_CLARIFICATION: too short or vague to know what the person actually needs -- no \
+situation and no need named (e.g. "help", "I'm lost", "pray for me", "verse please"), or \
+genuinely ambiguous between materially different readings (e.g. "should I leave?" could mean \
+a job, a marriage, or a church). Do NOT choose this when the message already names a situation \
+AND a need (e.g. "my mother died last week, I can't pray"), or when it is a specific verse/\
+passage lookup.
 - OFF_TOPIC: clearly unrelated to faith, the Bible, or spiritual life \
 (e.g., travel, sports, cooking, games, programming, politics)
 - GENERAL: general conversation or unclear intent within a spiritual context
 
+When in doubt between NEEDS_CLARIFICATION and another category, choose the other category.
 When in doubt between OFF_TOPIC and another category, choose the other category.
 
 User message: "{user_message}"
 
 Respond with ONLY the category name, nothing else."""
+
+
+# BITB-078: appended to the base system prompt when intent routing short-circuits a
+# first-turn, under-determined message into a single clarifying question instead of a
+# full answer. Layered onto the normal persona voice (like OFF_TOPIC_PROMPT) rather than
+# replacing it, so the ask still sounds like the same companion, not a form.
+CLARIFICATION_PROMPT = """The user's opening message is too short or vague to know what they \
+actually need (for example "help", "I'm lost", "pray for me", or a bare emotion/event with no \
+indication of what kind of help is wanted).
+
+Do NOT offer scripture, guidance, or a full response yet. Instead:
+1. Acknowledge what they said, in one warm sentence
+2. Ask exactly ONE gentle, open question that would help you understand what they're facing \
+(for example what happened, or what kind of support they're looking for)
+3. Keep the whole reply under 40 words
+4. Do NOT quote or cite any Bible verse, and do NOT include a "<!-- VERSES: -->" comment
+5. Ask in the user's language (see the LANGUAGE RULE above)
+
+This is the first turn of a two-turn exchange -- once they answer, you will have enough to \
+respond fully, with scripture and guidance."""
 
 
 # ---------------------------------------------------------------------------
