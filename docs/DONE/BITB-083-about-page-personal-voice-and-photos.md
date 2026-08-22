@@ -110,23 +110,23 @@ whoever picks this up otherwise.
 
 ## Acceptance Criteria
 
-- [ ] `About.todayBody` no longer reads as a feature/spec list; the capability facts (languages,
+- [x] `About.todayBody` no longer reads as a feature/spec list; the capability facts (languages,
       platforms, free) can still be present but are not the sentence's whole content.
-- [ ] The opening hook ("Have you ever had an idea...") gets its own sentence/paragraph, including
+- [x] The opening hook ("Have you ever had an idea...") gets its own sentence/paragraph, including
       the follow-up question the shipped copy currently drops.
-- [ ] A closing personal beat, adapted from "I'm just happy it exists... that's what matters,"
+- [x] A closing personal beat, adapted from "I'm just happy it exists... that's what matters,"
       appears before the "Get in touch" section.
-- [ ] At least one screenshot renders on the page, explicitly labeled if it's origin-era (not
+- [x] At least one screenshot renders on the page, explicitly labeled if it's origin-era (not
       presented as current-state UI).
-- [ ] `notBody`'s safety-boundary language is unchanged in meaning (wording tweaks for flow are
+- [x] `notBody`'s safety-boundary language is unchanged in meaning (wording tweaks for flow are
       fine; the boundaries themselves are not softened).
-- [ ] All copy changes applied across all 11 `frontend/messages/*.json` locales — not just `en`,
+- [x] All copy changes applied across all 11 `frontend/messages/*.json` locales — not just `en`,
       and not machine-retranslated without checking the existing translations' register still
       matches the more personal English source.
-- [ ] `About.introBody` reviewed against the rewritten page copy; updated if it now quotes
+- [x] `About.introBody` reviewed against the rewritten page copy; updated if it now quotes
       superseded phrasing.
-- [ ] Arabic (RTL) and CJK locales checked for layout with the added image(s).
-- [ ] Unique `metaDescription` per locale still holds if `heroLead`/`whyBody1` wording shifts (the
+- [x] Arabic (RTL) and CJK locales checked for layout with the added image(s).
+- [x] Unique `metaDescription` per locale still holds if `heroLead`/`whyBody1` wording shifts (the
       SEO audit's duplicate-title check, per BITB-076's own AC).
 
 ## Tests to Add / Update
