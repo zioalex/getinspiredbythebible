@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""Generate the Android bundled localized book-name map from the canonical JSON (BITB-059).
+"""Generate the Android and web localized book-name maps from the canonical JSON (BITB-059).
 
 ``tests/fixtures/localized_book_map.json`` is the single source of truth for the
-localized-book-name -> canonical-English-book-name map. This script regenerates
-``android/app/src/main/kotlin/org/voxquieta/app/utils/LocalizedBookToEnglish.kt`` from it.
+localized-book-name -> canonical-English-book-name map. This script regenerates:
 
-Never hand-edit the generated .kt file: edit the JSON, then run this script.
+  - ``android/app/src/main/kotlin/org/voxquieta/app/utils/LocalizedBookToEnglish.kt``
+  - ``frontend/src/lib/localizedBookMap.generated.ts``
+
+from it. Never hand-edit either generated file: edit the JSON, then run this script.
 
     python scripts/generate_localized_book_map.py
 
---check   Regenerate in memory and diff against the committed .kt file. Exits 1 (and prints
-          a diff) if they differ — i.e. the .kt file was hand-edited or the JSON changed
-          without regenerating. Safe for CI; makes no changes on disk.
+--check   Regenerate both targets in memory and diff against the committed files. Exits 1
+          (and prints a diff for each mismatch) if any differ — i.e. a generated file was
+          hand-edited, or the JSON changed without regenerating. Safe for CI; makes no
+          changes on disk.
 
-Phase 1 (BITB-059) covers only the Android artifact. The web map
-(frontend/src/lib/verseExtraction.ts) stays hand-written for now, locked to this JSON by a
-parity test (frontend/src/lib/localizedBookMap.parity.test.ts) rather than generation — see
-the BITB-059 story's Scope Note for what Phase 2 defers.
+Phase 1 (BITB-059) covered the Android artifact. Phase 2 adds the web artifact. The
+backend's own map (``api/utils/translation_registry.py``) is a separate master — it carries
+per-translation-code, case-preserving data the flat lowercase JSON cannot represent — and is
+held contradiction-free with this JSON by
+``api/tests/test_localized_book_map_registry_parity.py`` rather than generation. See the
+BITB-059 story for what Phase 3 (the regex grammar) still defers.
 """
 
 from __future__ import annotations
@@ -42,8 +47,9 @@ _KT_PATH = (
     / "utils"
     / "LocalizedBookToEnglish.kt"
 )
+_TS_PATH = _REPO_ROOT / "frontend" / "src" / "lib" / "localizedBookMap.generated.ts"
 
-_HEADER = """package org.voxquieta.app.utils
+_KT_HEADER = """package org.voxquieta.app.utils
 
 /**
  * Bundled fallback map of localized Bible book names (lowercased) to their canonical
@@ -63,7 +69,29 @@ _HEADER = """package org.voxquieta.app.utils
 internal val LOCALIZED_BOOK_TO_ENGLISH: Map<String, String> = mapOf(
 """
 
-_FOOTER = ")\n"
+_KT_FOOTER = ")\n"
+
+_TS_HEADER = """/**
+ * Bundled fallback map of localized Bible book names (lowercased) to their canonical
+ * English book names (lowercased).
+ *
+ * Canonical source: tests/fixtures/localized_book_map.json (BITB-059). The Android copy
+ * (android/.../utils/LocalizedBookToEnglish.kt) is generated from the same file. The
+ * backend's own map (api/utils/translation_registry.py) is a separate master, held
+ * contradiction-free by api/tests/test_localized_book_map_registry_parity.py.
+ *
+ * Runtime API data from /api/v1/scripture/book-names is merged on top of — never
+ * replaces — this map, via updateBookNames() in verseExtraction.ts.
+ *
+ * @generated from tests/fixtures/localized_book_map.json by
+ * scripts/generate_localized_book_map.py — DO NOT EDIT individual entries by hand. Edit
+ * the JSON and re-run the generator.
+ */
+// prettier-ignore
+export const LOCALIZED_BOOK_TO_ENGLISH: Record<string, string> = {
+"""
+
+_TS_FOOTER = "};\n"
 
 
 def _load_book_map() -> dict[str, str]:
@@ -81,11 +109,32 @@ def _kt_string_literal(value: str) -> str:
 
 
 def render_kotlin(book_map: dict[str, str]) -> str:
-    lines = [_HEADER]
+    lines = [_KT_HEADER]
     for key, value in book_map.items():
         lines.append(f"    {_kt_string_literal(key)} to {_kt_string_literal(value)},\n")
-    lines.append(_FOOTER)
+    lines.append(_KT_FOOTER)
     return "".join(lines)
+
+
+def _ts_string_literal(value: str) -> str:
+    # json.dumps produces a valid TS/JS string literal for every key/value in the map;
+    # ensure_ascii=False keeps the non-Latin book names human-readable in the source.
+    return json.dumps(value, ensure_ascii=False)
+
+
+def render_typescript(book_map: dict[str, str]) -> str:
+    lines = [_TS_HEADER]
+    for key, value in book_map.items():
+        lines.append(f"  {_ts_string_literal(key)}: {_ts_string_literal(value)},\n")
+    lines.append(_TS_FOOTER)
+    return "".join(lines)
+
+
+# (output path, renderer, human label) — add a new target here for a future platform.
+_TARGETS = [
+    (_KT_PATH, render_kotlin, "LocalizedBookToEnglish.kt"),
+    (_TS_PATH, render_typescript, "localizedBookMap.generated.ts"),
+]
 
 
 def main() -> int:
@@ -93,35 +142,40 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Verify the committed .kt file matches the JSON; do not write anything.",
+        help="Verify the committed generated files match the JSON; do not write anything.",
     )
     args = parser.parse_args()
 
     book_map = _load_book_map()
-    generated = render_kotlin(book_map)
 
     if args.check:
-        current = _KT_PATH.read_text(encoding="utf-8") if _KT_PATH.exists() else ""
-        if current != generated:
-            diff = difflib.unified_diff(
-                current.splitlines(keepends=True),
-                generated.splitlines(keepends=True),
-                fromfile=str(_KT_PATH.relative_to(_REPO_ROOT)),
-                tofile="generated",
-            )
-            print(
-                "FAIL: LocalizedBookToEnglish.kt is out of sync with "
-                "tests/fixtures/localized_book_map.json.\n"
-                "Run `python scripts/generate_localized_book_map.py` and commit the result.\n",
-                file=sys.stderr,
-            )
-            sys.stderr.writelines(diff)
-            return 1
-        print("OK: LocalizedBookToEnglish.kt matches tests/fixtures/localized_book_map.json.")
-        return 0
+        failed = False
+        for path, render, label in _TARGETS:
+            generated = render(book_map)
+            current = path.read_text(encoding="utf-8") if path.exists() else ""
+            if current != generated:
+                failed = True
+                diff = difflib.unified_diff(
+                    current.splitlines(keepends=True),
+                    generated.splitlines(keepends=True),
+                    fromfile=str(path.relative_to(_REPO_ROOT)),
+                    tofile="generated",
+                )
+                print(
+                    f"FAIL: {label} is out of sync with "
+                    "tests/fixtures/localized_book_map.json.\n"
+                    "Run `python scripts/generate_localized_book_map.py` and commit the result.\n",
+                    file=sys.stderr,
+                )
+                sys.stderr.writelines(diff)
+            else:
+                print(f"OK: {label} matches tests/fixtures/localized_book_map.json.")
+        return 1 if failed else 0
 
-    _KT_PATH.write_text(generated, encoding="utf-8")
-    print(f"Wrote {len(book_map)} entries to {_KT_PATH.relative_to(_REPO_ROOT)}")
+    for path, render, label in _TARGETS:
+        generated = render(book_map)
+        path.write_text(generated, encoding="utf-8")
+        print(f"Wrote {len(book_map)} entries to {path.relative_to(_REPO_ROOT)}")
     return 0
 
 

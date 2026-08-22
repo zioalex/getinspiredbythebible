@@ -1383,6 +1383,348 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-107: `eval-smoke` Cannot Pass — the Plumbing Check Has Broken Plumbing
+
+**Status:** 🎯 Todo
+**Priority:** P1 — the route meant to be safe to run before the nightly touches prod is the one that fails
+**Size:** S–M
+**Created:** 2026-08-22
+**Prompted by:** run 32565015468, the first real `eval-smoke` after `AZURE_OPENAI_ENDPOINT` was configured
+
+With Azure credentials in place, `eval-smoke` got much further and still failed: 1 Corinthians
+loaded, **437 verses embedded**, eval ran — then all 6 query results errored (`"Connection error."`
+×5, then `"embedding circuit breaker open"`) and the CLI exited 1.
+
+1. **It's the embedding path, not the LLM path.** `baseline_semantic` uses no expansion and failed
+   identically; every result shows `"expansion_used": false`. A missing LLM credential is not the cause.
+2. **Ruled out:** client construction (`AsyncAzureOpenAI(...)` is character-identical to the seeding
+   script that embedded 437 verses seconds earlier against the same endpoint) and missing
+   endpoint/key (`factory.py` would have raised `ProviderError`). Root cause needs one debug run.
+3. **Second, independent defect:** `config.py` defaults `embedding_dimensions = 1024` and
+   `validate_embedding_dimensions()` **skips** azure_openai. The smoke job never sets
+   `EMBEDDING_DIMENSIONS`, but seeds the column at `vector(1536)`. Currently masked — fixing the
+   connection without this trades one failure for a more confusing one.
+4. **No `--config` guard**, unlike `eval-prod`: smoke runs the default A/B including
+   `expansion_semantic`, which needs an LLM that falls back to `ollama` with no server on the runner.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `route=smoke` completes green, with the summary showing the job **ran** (preflight skips report success)
+- [ ] `EMBEDDING_DIMENSIONS` set for the smoke job, matching the seeded column width
+- [ ] Smoke does not attempt the expansion leg without an LLM credential
+- [ ] `APIConnectionError` root cause identified and recorded, not worked around
+- [ ] Decision recorded on whether `validate_embedding_dimensions()` should cover azure_openai
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-107-eval-smoke-cannot-pass.md`
+
+---
+
+### 🎯 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L
+**Created:** 2026-08-22
+**Prompted by:** PR #983 (BITB-059), which ships Phases 1–2 and labels the rest "Phase 3"
+
+PR #983 solves the book-name half of BITB-059. Three of its ACs remain **Partial** or **not
+started**: the separator/range grammar is still duplicated across `versePatterns.ts`,
+`ChatMessageItem.kt` and `verse_parser.py`, so every citation fix still costs three hand-synchronised
+edits.
+
+The sharp end is audit item **E13**: a nested-quantifier connector branch at `versePatterns.ts:276`,
+never benchmarked against adversarial input, running **client-side on model output**. Nested
+quantifiers are the classic catastrophic-backtracking shape — this is a latent browser hang, not a
+tidiness concern. The story's own recommendation is a two-stage cheap-scan → strict-validator design.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `versePatterns.ts:276` benchmarked against adversarial input, results recorded
+- [ ] Two-stage scan+validate design, or a recorded benchmark showing the current form is safe
+- [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI
+- [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py`
+- [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md`
+
+---
+
+### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-08-22
+**Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side ACs
+
+`citations` currently ships to nobody: web and Android still linkify with their own regexes, so the
+contract's real-world correctness is untested — and BITB-087 (iOS) is scheduled to depend on a
+contract no client has exercised. The deferral was correct (PR #983 owns the same files), so this is
+unblocked the moment #983 merges.
+
+**Carry-forward gap:** BITB-086 documents that a fully-vocalized Arabic citation can appear in
+`verses_cited` but be absent from `citations` (stripping tashkeel would shift the offsets). The web
+consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
+per-message, or Arabic users silently lose links.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [ ] Byte-identical output vs. the regex path across the shared corpus
+- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [ ] A vocalized-Arabic message still renders links via the fallback
+
+**Depends on:** PR #983 merging.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-109-citation-spans-web-consumer.md`
+
+---
+
+### 🎯 BITB-110: Android Still Cannot Read Traditional Chinese Verse References
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-08-22
+**Prompted by:** PR #982 (BITB-025), whose Android AC is an explicit fast-follow
+
+Backend and frontend normalize Traditional → Simplified before verse parsing; Android does not, so
+`約翰福音 3:16` renders as plain text on Android while linking correctly on web.
+
+Small by design: PR #982 normalizes the **lookup candidate, never the stored set**, so the ~29-character
+table ports directly to Kotlin without fighting the generated Simplified-only book-name map. Display
+text keeps its original script; only the lookup key is normalized.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Traditional book names normalized in Android's client-side parsing
+- [ ] Mixed-script references (`創世记`) resolve; displayed text keeps its original script
+- [ ] Android tests cover Traditional, mixed-script and existing Simplified cases
+- [ ] Table generated (if BITB-108 lands) or hand-ported with a parity-ledger row naming its source
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-110-android-traditional-chinese-normalization.md`
+
+---
+
+### 🎯 BITB-111: Fifteen Story IDs Refer to More Than One Story
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-08-22
+**Prompted by:** the STEP 6 hygiene pass, and the BITB-092 collision caught in PR #969
+
+`AGENTS.md` requires sequential, unique story IDs. Fifteen currently name two or three unrelated
+stories: BITB-017, 018, 024, 027, 028, 037, 043, 050, 051, 052, 053, 054, 057, 068, 069.
+
+Not cosmetic: **PR #969 nearly shipped a sixteenth** (split BITB-084 Part C as "BITB-092" while a
+merged, ✅ Done BITB-092 already existed — renumbered to BITB-102 in review). A dedup pass cannot
+trust an ID: "is BITB-051 done?" has no answer. And status lies by aliasing — BITB-009 is marked ✅
+Done while four `# type: ignore` suppressions the same story requires removing are still on `main`,
+which is exactly what PR #984 fixes.
+
+Two related defects: **BITB-059 has no `BACKLOG.md` entry at all** (and #983 doesn't add one), and
+orphaned story files exist with no backlog section (e.g. `BITB-025-verse-linking-android.md`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Every `BITB-NNN` maps to exactly one story file; every story file has a `BACKLOG.md` entry
+- [ ] Cross-references updated everywhere, in-code comments included
+- [ ] **A CI check fails on a duplicate ID or a story file with no backlog entry** — the durable part
+- [ ] A renumbering table records old → new; BITB-009's status corrected
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-111-backlog-story-id-collisions.md`
+
+---
+
+### 🎯 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
+
+**Status:** 🎯 Todo
+**Priority:** P1 — without this, BITB-044 changes nothing in production
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which ships the population script with no automation
+
+**As** the operator, **I want** `verse_topics` populated automatically and kept populated as
+translations are added, **so that** topic boosting is backed by real data rather than a script
+someone has to remember to run.
+
+BITB-044 fixes the *capability* to populate, not the *fact* of population — its own remaining list
+says CI/deploy wiring is outstanding. On the day #970 merges, prod `verse_topics` is still empty and
+topic boosting is still the silent no-op that story was written to fix. Same failure shape as
+**BITB-089**: a correct, tested artefact that nothing ever executes.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Population runs automatically in the deploy/seed path (naturally `seed-database-post`; the
+      script is already idempotent, so attaching it to a frequently-run step is safe)
+- [ ] A newly seeded translation gets topic rows with no separate manual step
+- [ ] A drift check asserts non-empty `verse_topics` and in-band coverage per translation, and alarms
+- [ ] Blast radius decided and documented (recommended: alarm, do not fail the deploy)
+- [ ] Proven end to end: prod `verse_topics` non-empty for KJV and Luther 1912 at BITB-044's figures
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-105-verse-topics-never-populated-in-production.md`
+
+---
+
+### 🎯 BITB-103: The Golden Set Cannot Validate Topic Boosting
+
+**Status:** 🎯 Todo
+**Priority:** P1 — blocks BITB-044's three remaining acceptance criteria
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), whose remaining ACs all defer to a golden set that cannot carry
+them
+
+**As** the maintainer deciding whether to enable `topic_boosting_enabled`, **I want** a golden set
+that exercises all 13 topics and includes a neutral control, **so that** "topic-laden queries improve,
+neutral queries do not regress" is a measurement rather than a hope.
+
+Measured against the 58-case golden set and the 13 canonical topics in `api/chat/topics.py`:
+
+1. **`joy`, `patience`, `trust` have zero cases** — unmeasurable in either direction.
+2. **`strength` (7 cases) and `provision` (1) are not canonical topics** — 14% of the set is labelled
+   with vocabulary `detect_topics()` never produces.
+3. **`grief`, `hope`, `guidance` have one case each** — one ranking change swings P@5 from 0.0 to 1.0.
+4. **No neutral control group** — the "does not regress" half of the AC has no population, so a boost
+   that degrades plain lookups passes unnoticed.
+5. **Languages don't line up**: only 13 of 58 cases (22%) are in languages where tagging is supported
+   *and* corpus-validated; 20 (34%) are ru/zh/hi/ko, which the tagger skips entirely.
+6. **Nothing links a case to a topic** — `category`/`tags` are free text; the overlap is coincidental.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Cases carry a `topics` field validated against the canonical vocabulary
+- [ ] All 13 topics have ≥3 cases; `strength`/`provision` mapped or promoted, decision recorded
+- [ ] A labelled neutral subset (`topics: []`) exists, large enough to detect regression
+- [ ] `--validate` fails on missing topic coverage, a non-canonical topic, or an empty neutral subset
+- [ ] Untaggable-language caveat surfaced in the report so a flat delta isn't misread
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-103-golden-set-cannot-validate-topic-boosting.md`
+
+---
+
+### 🎯 BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
+
+**Status:** 🎯 Todo
+**Priority:** P1 — the payoff step; topic boosting has never been measured even once
+**Size:** S–M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which deliberately does not tune the factor or flip the flag
+
+**As** the maintainer, **I want** the harness to actually apply topic boosting and report an A/B,
+**so that** enabling the flag is backed by numbers rather than the assumption that a feature we built
+must be helping.
+
+`api/search_eval/runner.py` registers a `topic_boosted` config that logs a warning and falls back to
+unboosted search. That was right while `verse_topics` was empty; once data exists it becomes a config
+that reports *control* numbers under a *boosted* name.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
+- [ ] Empty `verse_topics` under a boosted config is a hard error, not a warning
+- [ ] A/B recorded for `hybrid` vs `topic_boosted`, split by topic-laden/neutral and language group
+- [ ] `topic_boost_factor` swept and the **curve** documented, not just the winner — a flat curve is
+      itself the finding
+- [ ] A recorded decision on prod enablement, including the legitimate option of leaving it off
+
+**Depends on:** BITB-103 (data to measure against) and BITB-105 (rows in the database). Run before
+either and the numbers look like a result without being one.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-104-unstub-topic-boosted-eval-config.md`
+
+---
+
+### 🎯 BITB-106: Corpus Tagging Is Validated for Two Languages and Impossible for Four
+
+**Status:** 🎯 Todo
+**Priority:** P2 — quality and scope honesty, not a correctness bug
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #970 (BITB-044), which validated tagging against real corpora for `en`/`de` only
+
+**As** the maintainer, **I want** to know corpus tagging behaves sanely in every language it claims
+to support — and to be explicit about those it does not — **so that** topic boosting is not quietly a
+two-language feature in an eleven-language product.
+
+| tier | languages | status |
+|---|---|---|
+| corpus-validated | `en`, `de` | 18.3% KJV / 12.3% Luther tagged, no topic above ~3.2% |
+| vocabulary exists, never run on a corpus | `it`, `es`, `fr`, `pt`, `ar` | `CORPUS_KEYWORD_DENYLIST` empty and **unverified** |
+| no vocabulary | `ru`, `zh`, `hi`, `ko` | skipped; 34% of the golden set |
+
+An over-firing keyword in an unvalidated language fails quietly: a topic matches a third of the
+corpus, the boost stops discriminating, search gets worse with no error. Arabic carries extra risk —
+it uses substring matching for attached clitics, the mechanism most likely to over-fire.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `it`/`es`/`fr`/`pt`/`ar` each run against a real corpus, per-topic coverage recorded
+- [ ] Denylist extended for any topic breaching the 25% guideline, or confirmed empty per language
+- [ ] Arabic substring matching specifically reviewed for over-firing
+- [ ] A recorded decision on `ru`/`zh`/`hi`/`ko`: vocabulary authored, or scope documented
+- [ ] A guard prevents a future keyword silently pushing a topic past the guideline
+
+**Deferred here:** LLM-assisted tagging (BITB-044's remaining list). Keyword seeding already tags
+18.3% of KJV — enough to measure whether boosting helps at all. Improving tag recall before
+establishing the boost is worth having would be optimising an unvalidated feature; revisit once
+BITB-104 has numbers.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-106-corpus-tagging-validated-for-two-of-eleven-languages.md`
+
+---
+
+### 🎯 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
+
+**Status:** 🎯 Todo
+**Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
+Postgres admin role
+**Size:** M
+**Created:** 2026-08-21
+**Prompted by:** PR #968 (BITB-051 P4a), which adds the first automated recurring prod-database
+access path in this repo that is not a deploy
+
+**As** the operator of a single-maintainer production service, **I want** the nightly search-eval
+read against production to authenticate as a role that is *incapable* of writing, **so that** a bug,
+a dependency compromise, or a future edit to the harness cannot damage production data using admin
+rights it never needed.
+
+`eval-prod` is genuinely read-only in behaviour — but it connects with `TF_VAR_DB_ADMIN_USERNAME` /
+`TF_VAR_DB_ADMIN_PASSWORD`, the same credentials `run-migrations` uses to execute DDL, because no
+read-only role exists in this project today. "Read-only" is therefore a property of what the harness
+happens to execute, not of any grant.
+
+1. It authenticates as the **Postgres admin role**; nothing in the database prevents a write.
+2. **Nothing gates it** — no `environment:` anywhere in the workflow, unlike `deploy`/`run-migrations`.
+   It is unattended (nightly 04:23 UTC), `workflow_dispatch`-triggerable, and its secrets are bare
+   repo secrets readable by any workflow.
+3. It **widens the blast radius of a dependency compromise**: `pip install -r api/requirements.txt`,
+   then connect to prod as admin, nightly, with no human present.
+4. Reads are **indistinguishable from genuine admin activity** in Postgres logs.
+
+Not a leaked secret: the DSN-in-artifact path was checked and no leak exists (the eval never prints
+the URL; SQLAlchemy masks passwords). Not an argument against #968 — the fix is to give the harness a
+credential proportionate to what it does.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Terraform-provisioned `search_eval_ro` login role with `SELECT` on only the tables the harness reads
+- [ ] `default_transaction_read_only = on` applied, with a write *proven* to fail against a restored copy
+- [ ] `statement_timeout` / `idle_in_transaction_session_timeout` set on the role (BITB-097 precedent)
+- [ ] `eval-prod` uses `SEARCH_EVAL_DB_PASSWORD`; no `TF_VAR_DB_ADMIN_*` anywhere in `search-eval-full.yml`
+- [ ] The new secret is environment-scoped, with a decision recorded on whether it requires a reviewer
+- [ ] A test asserts `search-eval-full.yml` never references `TF_VAR_DB_ADMIN_*`
+- [ ] A nightly run completes green against the new role
+
+**Timing:** cheapest to do **before #968 merges**, so an ungated nightly admin path never exists on
+`main`. Filed as a follow-up per the maintainer's call.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-101-search-eval-prod-read-uses-admin-credentials.md`
+
+---
+
 ### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
 **Status:** 🎯 Todo

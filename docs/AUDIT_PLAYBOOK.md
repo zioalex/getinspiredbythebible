@@ -68,7 +68,7 @@ This project maintains hand-synchronized logic across platforms. Every audit mus
 | Logic | Copies |
 |---|---|
 | Verse-reference regex | `frontend/src/lib/versePatterns.ts` · `android/.../ChatMessageItem.kt` · `api/utils/verse_parser.py` — cross-checked by the shared regression corpus `tests/fixtures/verse_reference_corpus.json` (BITB-059 AC#4) |
-| Localized book-name map | Canonical: `tests/fixtures/localized_book_map.json` (BITB-059 Phase 1). Generated: `android/.../utils/LocalizedBookToEnglish.kt` via `scripts/generate_localized_book_map.py --check` (CI-guarded). Locked-but-hand-written: `frontend/src/lib/verseExtraction.ts` (parity test, not yet generated — Phase 2). Not yet reconciled: `api/utils/translation_registry.py` (Phase 2). |
+| Localized book-name map | Canonical: `tests/fixtures/localized_book_map.json` (BITB-059). Generated: `android/.../utils/LocalizedBookToEnglish.kt` **and** `frontend/src/lib/localizedBookMap.generated.ts`, both via `scripts/generate_localized_book_map.py --check` (CI-guarded). Reconciled (not generated — see rationale in the story): `api/utils/translation_registry.py`, held contradiction-free by `api/tests/test_localized_book_map_registry_parity.py` against a reviewed, pinned gap allowlist (`tests/fixtures/localized_book_map_registry_gaps.json`). Still open: the regex grammar itself (Phase 3, see the row above) is not part of this generator. |
 | Session/message limits | `api/config.py` · `android/.../ChatViewModel.kt` (`MAX_INTERACTIONS`, `MAX_MESSAGE_LENGTH`) |
 | Error contracts | provider error strings ↔ route/client substring matches (backend routes, Android `mapExceptionToMessage`) |
 | UI strings | `frontend/messages/*.json` · `android/.../res/values-*/strings.xml` |
