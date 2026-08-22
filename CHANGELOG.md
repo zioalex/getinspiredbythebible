@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.53.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.52.0...v1.53.0) (2026-08-22)
 
-
 ### Features
 
 * **api:** ask one clarifying question on a vague first message (BITB-078) ([#956](https://github.com/zioalex/getinspiredbythebible/issues/956)) ([9c71ab6](https://github.com/zioalex/getinspiredbythebible/commit/9c71ab6681006ddae9b50fb586a0ab6565f28c0f))
@@ -15,14 +14,12 @@ All notable changes to this project will be documented in this file.
 * **web:** generate the localized book-name map instead of hand-maintaining it (BITB-059) ([#983](https://github.com/zioalex/getinspiredbythebible/issues/983)) ([38d71fa](https://github.com/zioalex/getinspiredbythebible/commit/38d71fa73730ddfc85a8b5ae8142e3e3624a24aa))
 * **web:** installable PWA manifest, iOS safe areas, and Add to Home Screen CTA (BITB-084) ([#969](https://github.com/zioalex/getinspiredbythebible/issues/969)) ([58b23d5](https://github.com/zioalex/getinspiredbythebible/commit/58b23d50cd88bba1c90a25595e73cea921b6a09a))
 
-
 ### Bug Fixes
 
 * **android:** send example prompt on first tap regardless of Turnstile readiness (BITB-081) ([#957](https://github.com/zioalex/getinspiredbythebible/issues/957)) ([e84b56e](https://github.com/zioalex/getinspiredbythebible/commit/e84b56e5bc1c26aaa219a8f9f3776b080628a938))
 * **api:** remove stale mypy suppressions in scripture search routes (BITB-009) ([#984](https://github.com/zioalex/getinspiredbythebible/issues/984)) ([468417a](https://github.com/zioalex/getinspiredbythebible/commit/468417a2ab660aa94dd7571d1ae0f48d9a730b25))
 * **ci:** sequence deploy pipeline correctly around migrations (BITB-097) ([#1005](https://github.com/zioalex/getinspiredbythebible/issues/1005)) ([073b7f0](https://github.com/zioalex/getinspiredbythebible/commit/073b7f068bb8f5bbafc8950a147fd1f191d9c7b3))
 * **deploy:** auto-remediate origin cert binding on post-deploy 525/526 (BITB-067) ([#967](https://github.com/zioalex/getinspiredbythebible/issues/967)) ([2592386](https://github.com/zioalex/getinspiredbythebible/commit/259238657f07f13bf514a61fd3a4a3563542d895))
-
 
 ### Documentation
 
