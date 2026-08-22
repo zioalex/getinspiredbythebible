@@ -227,6 +227,78 @@
       "origin": "Known cross-platform divergence (tracked by BITB-059): the two-word Russian book name 'Плач Иеремии' (Lamentations of Jeremiah) is resolved correctly by Python and web, but Android's default/dynamic regex only captures the second word ('Иеремии') when there is no connector word between them, which can resolve to Jeremiah instead of Lamentations depending on which book-name alternation wins. Left as a deliberate, tracked gap for this test-only PR — the fix belongs to the full BITB-059 unification.",
       "skip": ["android"],
       "skipReason": "BITB-059 — Android's default/dynamic regex may resolve multi-word Russian 'Плач Иеремии' to Jeremiah instead of Lamentations; tracked for the full-unification follow-up, not fixed here (test-only scope)."
+    },
+    {
+      "id": "zh_hant_john_3_16",
+      "input": "約翰福音 3:16",
+      "language": "zh-Hant",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names must resolve identically to simplified.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_hant_matthew_5_3",
+      "input": "馬太福音 5:3",
+      "language": "zh-Hant",
+      "expected": { "book": "matthew", "chapter": 5, "verseStart": 3, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names must resolve identically to simplified.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_hant_acts_2_38",
+      "input": "使徒行傳 2:38",
+      "language": "zh-Hant",
+      "expected": { "book": "acts", "chapter": 2, "verseStart": 38, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names must resolve identically to simplified.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_hant_1_chronicles_16_11",
+      "input": "歷代志上 16:11",
+      "language": "zh-Hant",
+      "expected": { "book": "1 chronicles", "chapter": 16, "verseStart": 11, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names must resolve identically to simplified.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_hant_romans_8_28",
+      "input": "羅馬書 8:28",
+      "language": "zh-Hant",
+      "expected": { "book": "romans", "chapter": 8, "verseStart": 28, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names must resolve identically to simplified.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_hant_guillemet_john",
+      "input": "《約翰福音》3:16",
+      "language": "zh-Hant",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-025 — traditional-script book names inside guillemets must also resolve.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_mixed_script_genesis",
+      "input": "創世记 1:1",
+      "language": "zh-Hant",
+      "expected": { "book": "genesis", "chapter": 1, "verseStart": 1, "verseEnd": null },
+      "origin": "BITB-025 — mixed-script input (Traditional 創 + already-Simplified 世记) must resolve; this is the concrete 'mixed-script' acceptance criterion.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
+    },
+    {
+      "id": "zh_mixed_script_ecclesiastes",
+      "input": "傳道书 3:1",
+      "language": "zh-Hant",
+      "expected": { "book": "ecclesiastes", "chapter": 3, "verseStart": 1, "verseEnd": null },
+      "origin": "BITB-025 — mixed-script input (Traditional 傳 + already-Simplified 道书) must resolve; this is the concrete 'mixed-script' acceptance criterion.",
+      "skip": ["android"],
+      "skipReason": "BITB-025 — Traditional-to-Simplified Chinese normalization shipped for the backend and web only in this PR; the Android T2S table + injectVerseLinks shadow-string surgery is an explicit fast-follow (see docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md)."
     }
   ]
 }

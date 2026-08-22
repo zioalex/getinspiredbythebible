@@ -16,6 +16,7 @@
 
 import { createVersePatternGlobal } from "./versePatterns";
 import { isKnownBook, normalizeDigits } from "./verseExtraction";
+import { normalizeTraditionalToSimplified } from "./chineseScript";
 
 /** URL scheme used for in-app verse links (mirrors Android's `verse://`). */
 export const VERSE_SCHEME = "verse://";
@@ -59,12 +60,18 @@ export function parseVerseHref(
  */
 function linkifyPlainSegment(text: string): string {
   const pattern = createVersePatternGlobal();
+  // Match against a Simplified-Chinese shadow copy (BITB-025) so a Traditional
+  // book name (e.g. "約翰福音") is recognised. normalizeTraditionalToSimplified
+  // is length-preserving, so match offsets stay valid against the original
+  // `text` below — which is what gets displayed, keeping a Traditional-script
+  // user's own words on screen instead of silently rewriting them.
+  const search = normalizeTraditionalToSimplified(text);
 
   let out = "";
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = pattern.exec(text)) !== null) {
+  while ((match = pattern.exec(search)) !== null) {
     const book = match[1].trim();
 
     // Reject non-books and rewind so a valid reference hidden inside a greedy
@@ -80,11 +87,13 @@ function linkifyPlainSegment(text: string): string {
     // keeps the reference exactly as written.
     const chapter = normalizeDigits(match[2]);
     const verse = normalizeDigits(match[3]);
-    // Keep the reference exactly as written for the display text (e.g. the
-    // German "13,1-2"), but encode a canonical target in the href.
     const href = `${VERSE_SCHEME}${encodeURIComponent(book)}/${chapter}/${verse}`;
     out += text.slice(lastIndex, match.index);
-    out += `[${match[0]}](${href})`;
+    // Keep the reference exactly as written in the ORIGINAL text (e.g. the
+    // German "13,1-2", or Traditional "約翰福音") for the display text, even
+    // though matching ran against the Simplified `search` copy.
+    const display = text.slice(match.index, match.index + match[0].length);
+    out += `[${display}](${href})`;
     lastIndex = match.index + match[0].length;
   }
 

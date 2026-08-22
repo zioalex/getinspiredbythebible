@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import {
   extractVerseReferences,
+  isKnownBook,
   isVerseReferenced,
   LOCALIZED_BOOK_TO_ENGLISH,
   updateBookNames,
@@ -408,6 +409,57 @@ describe("extractVerseReferences", () => {
   it("should extract 约伯纪 1:21 (纪 variant) as 'job 1:21'", () => {
     const refs = extractVerseReferences("约伯纪 1:21");
     expect(refs.has("job 1:21")).toBe(true);
+  });
+
+  // ── Chinese Traditional script (BITB-025) ────────────────────────────────
+
+  it("should extract Traditional '約翰福音 3:16' as 'john 3:16'", () => {
+    const refs = extractVerseReferences("約翰福音 3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.size).toBe(1);
+  });
+
+  it("should extract Traditional '馬太福音 5:3' as 'matthew 5:3'", () => {
+    const refs = extractVerseReferences("馬太福音 5:3");
+    expect(refs.has("matthew 5:3")).toBe(true);
+  });
+
+  it("should extract Traditional '使徒行傳 2:38' as 'acts 2:38'", () => {
+    const refs = extractVerseReferences("使徒行傳 2:38");
+    expect(refs.has("acts 2:38")).toBe(true);
+  });
+
+  it("should extract Traditional '歷代志上 16:11' as '1 chronicles 16:11'", () => {
+    const refs = extractVerseReferences("歷代志上 16:11");
+    expect(refs.has("1 chronicles 16:11")).toBe(true);
+  });
+
+  it("should extract Traditional inside guillemets '《約翰福音》3:16' as 'john 3:16'", () => {
+    const refs = extractVerseReferences("《約翰福音》3:16");
+    expect(refs.has("john 3:16")).toBe(true);
+  });
+
+  it("should extract mixed-script '創世记 1:1' (Traditional 創 + Simplified 世记) as 'genesis 1:1'", () => {
+    const refs = extractVerseReferences("創世记 1:1");
+    expect(refs.has("genesis 1:1")).toBe(true);
+  });
+
+  it("should extract mixed-script '傳道书 3:1' (Traditional 傳 + Simplified 道书) as 'ecclesiastes 3:1'", () => {
+    const refs = extractVerseReferences("傳道书 3:1");
+    expect(refs.has("ecclesiastes 3:1")).toBe(true);
+  });
+
+  it("should extract multiple Traditional-script references", () => {
+    const refs = extractVerseReferences("約翰福音 3:16和羅馬書 8:28");
+    expect(refs.has("john 3:16")).toBe(true);
+    expect(refs.has("romans 8:28")).toBe(true);
+    expect(refs.size).toBe(2);
+  });
+
+  it("isKnownBook accepts Traditional book names directly", () => {
+    expect(isKnownBook("約翰福音")).toBe(true);
+    expect(isKnownBook("馬太福音")).toBe(true);
+    expect(isKnownBook("創世记")).toBe(true); // mixed script
   });
 
   // ── Chinese Catholic (思高本) name variants ──────────────────────────────
