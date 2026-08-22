@@ -1,12 +1,47 @@
 # BITB-059: Unify the Verse-Reference Parser — One Spec, Three Generated Artifacts
 
-**Status:** 🚧 In Progress — Phase 1 (book-name map, Android leg) shipped; see Scope Note
+**Status:** 🚧 In Progress — Phase 1 (book-name map, Android leg) and Phase 2 (book-name map,
+web leg + registry reconciliation) shipped; see Scope Notes. Phase 3 (regex grammar) remains.
 **Priority:** P1 (High) — top-ranked finding of the 2026-07 adversarial audit (A1, CRITICAL); recurring cross-platform drift already shipping user-visible bugs
 **Size:** L (spec + generator + migration of three call sites; the existing giant test suites become the safety net)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — A1 (also E13, D8)
 
-## Scope Note (Phase 1, this PR)
+## Scope Note (Phase 2)
+
+This PR ships the **web** half of the book-name map (AC#1/#2 book-name-map half), plus the
+`translation_registry.py` reconciliation deferred from Phase 1:
+
+- `scripts/generate_localized_book_map.py` now generates
+  `frontend/src/lib/localizedBookMap.generated.ts` from the same
+  `tests/fixtures/localized_book_map.json`, alongside the Android `.kt` file — same
+  `--check` CI guard, extended to cover both targets under one step.
+- `frontend/src/lib/verseExtraction.ts` no longer hand-maintains the map; it imports and
+  re-exports `LOCALIZED_BOOK_TO_ENGLISH` from the generated module. The old literal was
+  verified byte-and-order-identical to the JSON before deletion, so this is a zero-semantic-diff
+  swap. `versePatterns.ts` now imports the generated module directly, which also removes the
+  `verseExtraction.ts` ⇄ `versePatterns.ts` circular-import pair that existed only to support the
+  hand-written literal.
+- `frontend/src/lib/localizedBookMap.parity.test.ts` now guards the generated file with the same
+  assertion set `LocalizedBookToEnglishTest.kt` makes on Android (66 distinct English books,
+  all-lowercase, and the reported-bug regression spot checks), not just raw equality.
+- **`api/utils/translation_registry.py` reconciliation:** the registry is **not** generated
+  from the JSON, and the JSON is **not** generated from the registry — the registry carries
+  per-translation-code, case-preserving data (which translation an alias belongs to, the cased
+  canonical form `get_localized_book_name()` renders) that the flat lowercase JSON structurally
+  cannot represent, and generating the JSON from the registry would silently change client
+  parsing behavior (+50/-22 keys) in the same PR that introduces web generation. Instead,
+  `api/tests/test_localized_book_map_registry_parity.py` holds the two **contradiction-free**:
+  0 value conflicts confirmed on the 710 shared keys, and the 72 one-sided keys are pinned in
+  `tests/fixtures/localized_book_map_registry_gaps.json` with a reviewed reason per group — a
+  *new* one-sided key (or a resolved one going stale) now fails CI instead of shipping silently.
+  Closing those 72 gaps (propagating aliases to the side that's missing them) is **Phase 2b**,
+  deferred — each one needs its own cross-platform parsing-impact review.
+
+**Explicitly still deferred (Phase 3):** the regex grammar itself (separator/range grammar,
+script-class alternations) — AC#5 and the audit's E13 nested-quantifier benchmark.
+
+## Scope Note (Phase 1)
 
 AC#4 (shared cross-platform regression corpus) already shipped in PR #906 before this PR —
 checked below.
@@ -73,12 +108,15 @@ repairs ("web + android"). Every future locale/citation fix pays this tax again.
 
 - [ ] A single source-of-truth spec (data file or generator module) defines: localized book-name →
       English map, separator/range grammar, and script-class alternations.
-      **Partial:** the book-name map half exists (`tests/fixtures/localized_book_map.json`);
-      the regex grammar half is Phase 3.
+      **Partial:** the book-name map half is complete (`tests/fixtures/localized_book_map.json`,
+      generating both Kotlin and TypeScript, reconciled with the Python registry via contract
+      test); the regex grammar half is Phase 3.
 - [ ] Build-time generation (or code-gen script committed with CI verification) produces the Kotlin,
       TypeScript, and Python artifacts; hand-editing a generated file fails CI.
-      **Partial:** Kotlin book-name map is generated + CI-guarded; TypeScript/Python artifacts
-      and the regex grammar are Phase 2/3.
+      **Partial:** Kotlin and TypeScript book-name maps are generated + CI-guarded. Python
+      (`api/utils/translation_registry.py`) is **not** generated — see the Phase 2 Scope Note for
+      why generation is the wrong model there — and is instead held contradiction-free by a
+      contract test. The regex grammar (all three platforms) is Phase 3.
 - [x] The Android parity test checks **content equivalence** against the generated map, not entry
       count. — done (book-name map; `LocalizedBookToEnglishTest`).
 - [x] A shared cross-platform test corpus (citation string → expected book/chapter/verse, including
