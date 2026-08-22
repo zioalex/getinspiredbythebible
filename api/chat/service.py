@@ -9,7 +9,7 @@ import asyncio
 import hashlib
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field, field_validator
@@ -42,6 +42,7 @@ from utils.metrics import (
 from utils.timing import format_timings, record_stage, timed_stage
 from utils.verse_parser import (
     extract_all_references,
+    extract_citation_spans,
     extract_inline_quotes,
     extract_references,
     is_verse_lookup_request,
@@ -1527,6 +1528,16 @@ Keep it under 120 words."""
             completion["corrections"] = [
                 {"reference": c.reference, "reason": c.reason} for c in corrections
             ]
+
+        # citations (BITB-086): where each verses_cited reference sits in the
+        # text the client actually renders. `corrected_message` is the same
+        # string as `full_response` unless grounding rewrote a quote, so this
+        # is always computed against the authoritative, final text — never
+        # against pre-correction content. Purely additive; older clients
+        # ignore the field and keep linkifying with their own regex.
+        completion["citations"] = [
+            asdict(span) for span in extract_citation_spans(corrected_message)
+        ]
 
         record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
         logger.info(

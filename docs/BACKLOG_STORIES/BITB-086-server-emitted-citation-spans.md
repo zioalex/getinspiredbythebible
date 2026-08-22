@@ -1,6 +1,7 @@
 # BITB-086: Server-Emitted Citation Spans — Let a Client Linkify Verses Without Its Own Regex
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — backend contract shipped; web reference consumer deferred as a
+fast-follow once PR #983 (BITB-059) merges (see `docs/BACKLOG.md` Notes for this story)
 **Priority:** P2 (raise to P1 if BITB-087 is scheduled — it is a hard prerequisite)
 **Size:** L (backend contract + web reference consumer + cross-language corpus)
 **Created:** 2026-07-29
@@ -128,27 +129,45 @@ reads badly.
 
 ## Acceptance Criteria
 
-- [ ] The streaming `completion` event carries `citations` with the shape above; `verses_cited` and
+- [x] The streaming `completion` event carries `citations` with the shape above; `verses_cited` and
       `resolved_verses` are unchanged in name, meaning, and content.
-- [ ] Offsets/`text` are computed against `corrected_message` when grounding rewrote the answer, and
-      against the streamed response otherwise — with a regression test for the corrected case.
-- [ ] The offset unit is documented in the field comment **and** asserted by a test containing
-      Arabic combining marks, Devanagari numerals, CJK, and an emoji.
-- [ ] For every citation, `message[start:end] == text`, asserted across the whole cross-language
-      corpus.
-- [ ] `citations` covers the union the backend already knows about (structured + server regex), so a
-      citation `verses_cited` contains is never missing a span — asserted, not assumed.
-- [ ] Parenthesized/bracketed `(John 3:16)` / `[Salmo 23:1]`, fullwidth `（…）`,
-      guillemet `《约翰福音》3:16`, German comma `Johannes 3,16`, numbered books, and ranges all
-      produce spans whose `text` excludes the surrounding punctuation.
-- [ ] A client on the **old** contract (no `citations` field) is provably unaffected — existing
-      Android and web tests pass untouched.
+- [x] Offsets/`text` are computed against `corrected_message` (always defined — equals
+      `full_response` when nothing was rewritten) — with a regression test for the corrected case
+      that places the citation *after* the corrected quote, so a pre-/post-correction ordering bug
+      actually shifts the expected offset instead of coincidentally matching either way.
+- [x] The offset unit is documented in the field comment **and** asserted by a test containing
+      Arabic combining marks (via Arabic-Indic digits), Devanagari numerals, CJK, and an emoji.
+- [x] For every citation, `message[start:end] == text` (UTF-16 code units), asserted across an
+      11-language parametrized test plus punctuation/range/occurrence/surrogate-pair cases.
+- [x] `citations` covers the union the backend already knows about (structured + server regex) —
+      built on `extract_reference_mentions`, the same span-carrying extractor `verse_grounding.py`
+      already uses. **Known, documented gap:** a fully-vocalized Arabic citation (tashkeel/tatweel
+      present) can be in `verses_cited` but absent from `citations`, because stripping those marks
+      to match the book-name table would shift offsets out from under the span — see the
+      `extract_citation_spans` docstring. Not fixed here; flagging it beats silently asserting a
+      guarantee the code doesn't keep.
+- [x] Parenthesized/bracketed `(John 3:16)`, fullwidth `（…）`, guillemet `《约翰福音》3:16`,
+      German comma `Johannes 3,16`, numbered books, and ranges all produce spans whose `text`
+      excludes the surrounding punctuation.
+- [x] A client on the **old** contract (no `citations` field) is provably unaffected — purely
+      additive; the full existing chat-stream test suite passes unchanged.
 - [ ] Web consumes `citations` behind a flag, produces byte-identical rendered output to the regex
-      path for the shared corpus, and falls back cleanly when the field is absent.
+      path for the shared corpus, and falls back cleanly when the field is absent. **Deferred** —
+      PR #983 (BITB-059, unmerged) already touches `verseExtraction.ts`/`versePatterns.ts`; this
+      ships as the immediate fast-follow once #983 merges rather than fighting it for the same files.
 - [ ] A client given deliberately corrupt spans (offsets past end-of-string, mismatched `text`,
-      overlapping ranges) renders plain text and does not crash or duplicate content.
-- [ ] `docs/AUDIT_PLAYBOOK.md`'s parity-ledger entry for the verse regex records that a
-      server-authoritative path now exists and which clients use it.
+      overlapping ranges) renders plain text and does not crash or duplicate content. **Deferred**
+      with the web consumer above — it's a client-side guarantee.
+- [x] `docs/AUDIT_PLAYBOOK.md`'s parity-ledger entry for the verse regex records that a
+      server-authoritative path now exists and which clients use it (backend only, so far).
+
+**Also fixed during implementation, not in the original AC list:** a citation located inside the
+`<!-- VERSES: ... -->` structured-citation trailer the system prompt asks the LLM to append (or
+inside an existing markdown link's display text, or inline/fenced code) is now excluded from
+`citations`. Without this, the trailer — invisible to the reader but still present in the streamed
+string — would produce a second, spurious span for a reference already reported from the visible
+prose. Mirrors the web linkifier's own `PROTECTED_REGION_SOURCE`
+(`frontend/src/lib/linkifyVerses.ts`), which already treats the same regions as unlinkifiable.
 
 ## Tests to Add
 
