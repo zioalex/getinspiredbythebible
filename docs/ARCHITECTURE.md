@@ -383,18 +383,20 @@ async def chat(
 
 ### 4.2 SQLAlchemy Models
 
-**Verse Model with Vector:**
+**Verse Model with Vector** (SQLAlchemy 2.0 `Mapped[]` syntax — see `scripture/models.py`):
 
 ```python
 class Verse(Base):
     __tablename__ = "verses"
 
-    id = Column(Integer, primary_key=True)
-    book_id = Column(Integer, ForeignKey("books.id"))
-    chapter_number = Column(Integer)
-    verse_number = Column(Integer)
-    text = Column(Text)
-    embedding = Column(Vector(1024))  # pgvector type (mxbai-embed-large)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id: Mapped[int] = mapped_column(Integer, ForeignKey("books.id"))
+    chapter_number: Mapped[int] = mapped_column(Integer)
+    verse_number: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[Optional[Vector]] = mapped_column(
+        Vector(settings.embedding_dimensions), nullable=True  # pgvector type (mxbai-embed-large)
+    )
 ```
 
 ### 4.3 Vector Search

@@ -2457,8 +2457,9 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 ### ✅ BITB-009: Refactor SQLAlchemy Models to 2.0 Syntax
 
 **Status:** ✅ Done — `api/scripture/models.py` and `api/feedback/models.py` are fully
-`Mapped[]`/`DeclarativeBase`; zero `= Column(...)` usages remain repo-wide. This entry was stale.
-**Size:** L
+`Mapped[]`/`DeclarativeBase`; zero `= Column(...)` usages remain repo-wide, and PR #984 removed
+the remaining `scripture/*`/`routes/*` mypy suppressions to close this stale story.
+**Size:** L (found already ~90% done by an earlier, undocumented PR; PR #984 closed the remainder)
 
 **As a** developer,
 **I want** SQLAlchemy models to use `Mapped[]` annotations,
@@ -2466,11 +2467,19 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] All models in `api/scripture/models.py` use `Mapped[]` syntax
-- [ ] MyPy suppressions removed from `scripture/*` and `routes/*`
-- [ ] All tests pass with no type errors
-- [ ] Database queries still work correctly
-- [ ] Documentation updated with new model syntax examples
+- [x] All models in `api/scripture/models.py` use `Mapped[]` syntax (already done pre-PR)
+- [x] MyPy suppressions removed from `scripture/*` and `routes/*` (4 lines in `routes/scripture.py`, unrelated to model typing — see below)
+- [x] All tests pass with no type errors
+- [x] Database queries still work correctly
+- [x] Documentation updated with new model syntax examples
+
+**Resolution note:** `scripture/models.py` and `feedback/models.py` were already fully
+`Mapped[]`/`mapped_column()` when this story was picked up, and the `pyproject.toml`
+mypy overrides the story references no longer exist. The only remaining suppressions in
+scope were `# type: ignore` on `db`/`embedding` params in `search_scripture` and
+`search_text` (`routes/scripture.py`), caused by FastAPI dependency params being
+defaulted to `None` after `Query(...)`-defaulted params — unrelated to model typing.
+Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_range`.
 
 **Tech Constraints:**
 
