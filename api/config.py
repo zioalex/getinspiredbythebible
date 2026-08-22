@@ -198,6 +198,14 @@ class Settings(BaseSettings):
     content_filter_intent_detection: bool = True  # Pre-LLM intent classification
     security_log_violations: bool = True  # Log security violations
 
+    # BITB-078: on a first-turn message too short/vague to know what the person
+    # needs, ask one clarifying question instead of generating a full answer on a
+    # guess. Off by default — ship dark, watch the chat.clarification.requested
+    # metric and the "NEEDS_CLARIFICATION" intent rate in logs, then enable once
+    # over-asking risk is confirmed low (a clarifying question on an already-clear
+    # message reads as the app not listening, which is worse than the status quo).
+    chat_clarification_enabled: bool = False
+
     # Verse grounding (post-generation scripture fidelity)
     verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
     # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any

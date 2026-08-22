@@ -40,6 +40,28 @@ export async function generateMetadata({
       default: homeTitle,
       template: `%s · ${SITE_NAME}`,
     },
+    icons: {
+      // `apple-touch-icon.png` lives in public/ rather than as a Next file
+      // convention (app/apple-icon.png), so it has to be declared here to
+      // get a <link rel="apple-touch-icon"> at all. But specifying any
+      // `icons` metadata — even just `apple` — makes Next stop merging in
+      // its own auto-generated icon.svg link (favicon.ico is the one
+      // exception; that keeps auto-emitting regardless). So icon.svg has to
+      // be re-declared by hand here too, or the crisp SVG favicon
+      // (app/icon.svg) silently disappears from <head>.
+      icon: [{ url: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+      apple: "/apple-touch-icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      // "black-translucent" is what makes iOS draw content edge-to-edge
+      // under the status bar in standalone mode — the exact case the
+      // safe-area-inset CSS in globals.css needs non-zero insets for.
+      // "default"/"black" keep a solid status bar and would make that top
+      // padding redundant/wrong, so don't use those.
+      statusBarStyle: "black-translucent",
+      title: SITE_NAME,
+    },
   };
 }
 
@@ -47,6 +69,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export function generateStaticParams() {
