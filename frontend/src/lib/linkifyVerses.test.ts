@@ -184,3 +184,52 @@ describe("parseVerseHref", () => {
     });
   });
 });
+
+describe("linkifyVerses — Traditional Chinese (BITB-025)", () => {
+  it("links a Traditional-script reference and keeps the Traditional display text", () => {
+    const out = linkifyVerses("約翰福音 3:16");
+    // Display text is the ORIGINAL Traditional characters, byte-identical —
+    // matching must not silently rewrite what the user wrote to Simplified.
+    expect(out).toContain("[約翰福音 3:16](verse://");
+    expect(out).not.toContain("约翰福音 3:16"); // Simplified must never appear in display text
+    const href = out.match(/\(verse:\/\/([^)]+)\)/)?.[1];
+    expect(parseVerseHref(`verse://${href}`)).toEqual({
+      book: "约翰福音", // href carries the Simplified form for lookup
+      chapter: 3,
+      verse: 16,
+    });
+  });
+
+  it("encodes the Simplified book name in the href even though display stays Traditional", () => {
+    const out = linkifyVerses("馬太福音 5:3");
+    expect(out).toContain("[馬太福音 5:3](verse://");
+    const href = out.match(/\(verse:\/\/([^)]+)\)/)?.[1];
+    expect(href).toBeDefined();
+    const parsed = parseVerseHref(`verse://${href}`);
+    expect(parsed?.book).toBe("马太福音");
+  });
+
+  it("handles mixed-script text (Traditional 創 + Simplified 世记)", () => {
+    const out = linkifyVerses("創世记 1:1");
+    expect(out).toContain("[創世记 1:1](verse://");
+    const href = out.match(/\(verse:\/\/([^)]+)\)/)?.[1];
+    expect(parseVerseHref(`verse://${href}`)?.book).toBe("创世记");
+  });
+
+  it("does not alter a pure-English input", () => {
+    const text = "See John 3:16 for context.";
+    expect(linkifyVerses(text)).toBe(
+      "See [John 3:16](verse://John/3/16) for context.",
+    );
+  });
+
+  it("links multiple Traditional references in the same segment, each keeping its own display text", () => {
+    const out = linkifyVerses("約翰福音 3:16 and 羅馬書 8:28");
+    expect(out).toContain("[約翰福音 3:16](verse://");
+    expect(out).toContain("[羅馬書 8:28](verse://");
+    const hrefs = [...out.matchAll(/\(verse:\/\/([^)]+)\)/g)].map(
+      (m) => parseVerseHref(`verse://${m[1]}`)?.book,
+    );
+    expect(hrefs).toEqual(["约翰福音", "罗马书"]);
+  });
+});

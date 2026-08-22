@@ -13,6 +13,7 @@ Supported translations: ita1927, schlachter, valera, ls1910, almeida,
 
 import unicodedata
 
+from utils.chinese_script import normalize_traditional_to_simplified
 from utils.translation_registry import (
     ENGLISH_TO_ARABIC,
     ENGLISH_TO_CHINESE,
@@ -168,6 +169,15 @@ def normalize_book_name(book_name: str) -> str:
     exact = LOCALIZED_TO_ENGLISH.get(book_name)
     if exact is not None:
         return exact
+
+    # Traditional Chinese retry (BITB-025): a book name written in Traditional
+    # characters (e.g. "約翰福音") has no entry above — the registry only
+    # stores Simplified forms — so try again against its Simplified form.
+    simplified = normalize_traditional_to_simplified(book_name)
+    if simplified != book_name:
+        exact = LOCALIZED_TO_ENGLISH.get(simplified)
+        if exact is not None:
+            return exact
 
     # Case- and diacritic-insensitive fallback (handles "salmi", "GENESIS",
     # "psalm", and accent-dropped forms like "Esaie" for "Ésaïe", etc.)

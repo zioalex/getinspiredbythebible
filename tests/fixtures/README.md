@@ -87,11 +87,18 @@ compare book/chapter/verseStart (web) or book/chapter/verseNumber (Android) and 
 A case is skipped on a platform when that platform has a **known, tracked** behavioral gap for
 it — not when a test is merely inconvenient to write. Every non-empty `skip` entry must be paired
 with a non-empty `skipReason` explaining *why* (ideally referencing a backlog story or PR), so a
-skip never silently rots into "nobody remembers why this is disabled." The one skip currently in
-the corpus (`known_divergence_android_russian_lamentations`, skipped for `"android"`) is a real,
-deliberate gap: Android's regex resolves a two-word Russian book name differently from Python and
-web. It is captured here on purpose so the follow-up unification work (BITB-059 AC #1–#3) has a
-concrete regression case to close, rather than being fixed ad hoc in this test-only PR.
+skip never silently rots into "nobody remembers why this is disabled." Two skips are currently in
+the corpus:
+
+- `known_divergence_android_russian_lamentations` (skipped for `"android"`) is a real, deliberate
+  gap: Android's regex resolves a two-word Russian book name differently from Python and web. It
+  is captured here on purpose so the follow-up unification work (BITB-059 AC #1–#3) has a concrete
+  regression case to close, rather than being fixed ad hoc in this test-only PR.
+- The eight `zh_hant_*` / `zh_mixed_script_*` cases (skipped for `"android"`) are BITB-025
+  (Traditional-to-Simplified Chinese normalization for verse parsing): shipped for Python and web
+  only in the PR that added them, with the Android T2S table + `injectVerseLinks` shadow-string
+  surgery as an explicit fast-follow — see
+  `docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`.
 
 ## `localized_book_map.json`
 
