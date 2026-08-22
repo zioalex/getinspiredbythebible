@@ -1383,6 +1383,161 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 
 ---
 
+### 🎯 BITB-107: `eval-smoke` Cannot Pass — the Plumbing Check Has Broken Plumbing
+
+**Status:** 🎯 Todo
+**Priority:** P1 — the route meant to be safe to run before the nightly touches prod is the one that fails
+**Size:** S–M
+**Created:** 2026-08-22
+**Prompted by:** run 32565015468, the first real `eval-smoke` after `AZURE_OPENAI_ENDPOINT` was configured
+
+With Azure credentials in place, `eval-smoke` got much further and still failed: 1 Corinthians
+loaded, **437 verses embedded**, eval ran — then all 6 query results errored (`"Connection error."`
+×5, then `"embedding circuit breaker open"`) and the CLI exited 1.
+
+1. **It's the embedding path, not the LLM path.** `baseline_semantic` uses no expansion and failed
+   identically; every result shows `"expansion_used": false`. A missing LLM credential is not the cause.
+2. **Ruled out:** client construction (`AsyncAzureOpenAI(...)` is character-identical to the seeding
+   script that embedded 437 verses seconds earlier against the same endpoint) and missing
+   endpoint/key (`factory.py` would have raised `ProviderError`). Root cause needs one debug run.
+3. **Second, independent defect:** `config.py` defaults `embedding_dimensions = 1024` and
+   `validate_embedding_dimensions()` **skips** azure_openai. The smoke job never sets
+   `EMBEDDING_DIMENSIONS`, but seeds the column at `vector(1536)`. Currently masked — fixing the
+   connection without this trades one failure for a more confusing one.
+4. **No `--config` guard**, unlike `eval-prod`: smoke runs the default A/B including
+   `expansion_semantic`, which needs an LLM that falls back to `ollama` with no server on the runner.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `route=smoke` completes green, with the summary showing the job **ran** (preflight skips report success)
+- [ ] `EMBEDDING_DIMENSIONS` set for the smoke job, matching the seeded column width
+- [ ] Smoke does not attempt the expansion leg without an LLM credential
+- [ ] `APIConnectionError` root cause identified and recorded, not worked around
+- [ ] Decision recorded on whether `validate_embedding_dimensions()` should cover azure_openai
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-107-eval-smoke-cannot-pass.md`
+
+---
+
+### 🎯 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L
+**Created:** 2026-08-22
+**Prompted by:** PR #983 (BITB-059), which ships Phases 1–2 and labels the rest "Phase 3"
+
+PR #983 solves the book-name half of BITB-059. Three of its ACs remain **Partial** or **not
+started**: the separator/range grammar is still duplicated across `versePatterns.ts`,
+`ChatMessageItem.kt` and `verse_parser.py`, so every citation fix still costs three hand-synchronised
+edits.
+
+The sharp end is audit item **E13**: a nested-quantifier connector branch at `versePatterns.ts:276`,
+never benchmarked against adversarial input, running **client-side on model output**. Nested
+quantifiers are the classic catastrophic-backtracking shape — this is a latent browser hang, not a
+tidiness concern. The story's own recommendation is a two-stage cheap-scan → strict-validator design.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `versePatterns.ts:276` benchmarked against adversarial input, results recorded
+- [ ] Two-stage scan+validate design, or a recorded benchmark showing the current form is safe
+- [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI
+- [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py`
+- [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md`
+
+---
+
+### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-08-22
+**Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side ACs
+
+`citations` currently ships to nobody: web and Android still linkify with their own regexes, so the
+contract's real-world correctness is untested — and BITB-087 (iOS) is scheduled to depend on a
+contract no client has exercised. The deferral was correct (PR #983 owns the same files), so this is
+unblocked the moment #983 merges.
+
+**Carry-forward gap:** BITB-086 documents that a fully-vocalized Arabic citation can appear in
+`verses_cited` but be absent from `citations` (stripping tashkeel would shift the offsets). The web
+consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
+per-message, or Arabic users silently lose links.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [ ] Byte-identical output vs. the regex path across the shared corpus
+- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [ ] A vocalized-Arabic message still renders links via the fallback
+
+**Depends on:** PR #983 merging.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-109-citation-spans-web-consumer.md`
+
+---
+
+### 🎯 BITB-110: Android Still Cannot Read Traditional Chinese Verse References
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-08-22
+**Prompted by:** PR #982 (BITB-025), whose Android AC is an explicit fast-follow
+
+Backend and frontend normalize Traditional → Simplified before verse parsing; Android does not, so
+`約翰福音 3:16` renders as plain text on Android while linking correctly on web.
+
+Small by design: PR #982 normalizes the **lookup candidate, never the stored set**, so the ~29-character
+table ports directly to Kotlin without fighting the generated Simplified-only book-name map. Display
+text keeps its original script; only the lookup key is normalized.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Traditional book names normalized in Android's client-side parsing
+- [ ] Mixed-script references (`創世记`) resolve; displayed text keeps its original script
+- [ ] Android tests cover Traditional, mixed-script and existing Simplified cases
+- [ ] Table generated (if BITB-108 lands) or hand-ported with a parity-ledger row naming its source
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-110-android-traditional-chinese-normalization.md`
+
+---
+
+### 🎯 BITB-111: Fifteen Story IDs Refer to More Than One Story
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-08-22
+**Prompted by:** the STEP 6 hygiene pass, and the BITB-092 collision caught in PR #969
+
+`AGENTS.md` requires sequential, unique story IDs. Fifteen currently name two or three unrelated
+stories: BITB-017, 018, 024, 027, 028, 037, 043, 050, 051, 052, 053, 054, 057, 068, 069.
+
+Not cosmetic: **PR #969 nearly shipped a sixteenth** (split BITB-084 Part C as "BITB-092" while a
+merged, ✅ Done BITB-092 already existed — renumbered to BITB-102 in review). A dedup pass cannot
+trust an ID: "is BITB-051 done?" has no answer. And status lies by aliasing — BITB-009 is marked ✅
+Done while four `# type: ignore` suppressions the same story requires removing are still on `main`,
+which is exactly what PR #984 fixes.
+
+Two related defects: **BITB-059 has no `BACKLOG.md` entry at all** (and #983 doesn't add one), and
+orphaned story files exist with no backlog section (e.g. `BITB-025-verse-linking-android.md`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Every `BITB-NNN` maps to exactly one story file; every story file has a `BACKLOG.md` entry
+- [ ] Cross-references updated everywhere, in-code comments included
+- [ ] **A CI check fails on a duplicate ID or a story file with no backlog entry** — the durable part
+- [ ] A renumbering table records old → new; BITB-009's status corrected
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-111-backlog-story-id-collisions.md`
+
+---
+
 ### 🎯 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
 **Status:** 🎯 Todo
