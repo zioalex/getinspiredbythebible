@@ -2999,11 +2999,28 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 ---
 
-### 🎯 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
+### 🚧 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — Backend + web shipped; Android is an explicit fast-follow (tracked by
+the `zh_hant_*` / `zh_mixed_script_*` cases in `tests/fixtures/verse_reference_corpus.json`,
+skipped for `"android"`)
 **Size:** M (1-2 days)
 **Created:** 2026-04-03
+
+**Note (ID collision):** this ID number is also used by the unrelated, already-Done
+`docs/BACKLOG_STORIES/BITB-025-verse-linking-android.md`. This story's full write-up is filed
+under a collision-safe filename instead:
+`docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`. Worth a renumbering
+pass at some point, out of scope here.
+
+**Approach actually shipped (overrides the "Proposed approach" below):** neither
+opencc/hanziconv, chinese-conv, nor ICU `Transliterator` — a single hand-derived,
+length-preserving 29-character lookup table (`api/utils/chinese_script.py`,
+`frontend/src/lib/chineseScript.ts`, kept in parity by
+`tests/fixtures/t2s_char_map.json`), applied *before* matching only — display text everywhere
+still shows the user's original script. See the full story for why: phrase-level converters
+aren't guaranteed length-preserving, which breaks every offset-returning caller in
+`verse_parser.py`.
 
 **As a** Chinese-speaking user (traditional script),
 **I want** verse references written in traditional Chinese characters (e.g. 約翰福音 3:16, 馬太福音 5:3) to be detected and linked,
@@ -3075,13 +3092,14 @@ text = t2s.transliterate(text)
 
 **Acceptance Criteria:**
 
-- [ ] Backend: Traditional Chinese book names are normalized to simplified before verse parsing
-- [ ] Frontend: Traditional Chinese book names are normalized before verse extraction
-- [ ] Android: Traditional Chinese book names are normalized in client-side regex
-- [ ] Mixed-script text handled correctly (e.g. partial traditional)
-- [ ] No regression on existing simplified Chinese tests
-- [ ] Minimal bundle size impact (frontend: prefer Option B if < 20 unique chars needed)
-- [ ] Performance: normalization adds < 1ms overhead per call
+- [x] Backend: Traditional Chinese book names are normalized to simplified before verse parsing
+- [x] Frontend: Traditional Chinese book names are normalized before verse extraction
+- [ ] Android: Traditional Chinese book names are normalized in client-side regex (fast-follow)
+- [x] Mixed-script text handled correctly (e.g. partial traditional)
+- [x] No regression on existing simplified Chinese tests
+- [x] Minimal bundle size impact — 29-character table (~600 bytes), not a library; the actual
+      count needed was 29, not the estimated "< 20"
+- [x] Performance: normalization adds < 1ms overhead per call (single `str.translate`/regex pass)
 
 **Tech Constraints:**
 
@@ -3093,6 +3111,8 @@ text = t2s.transliterate(text)
 
 - Simplified→Traditional conversion (output is always simplified)
 - Full CJK variant unification (only T2S needed for verse parsing)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`
 
 ---
 

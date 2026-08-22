@@ -5,6 +5,7 @@ import pytest
 from utils.verse_parser import (
     VerseReference,
     extract_all_references,
+    extract_reference_mentions,
     extract_references,
     find_prayer_reference,
     is_verse_lookup_request,
@@ -653,6 +654,99 @@ class TestParseVerseReferenceNonEnglish:
         result = parse_verse_reference("《出埃及纪》3:14")
         assert result is not None
         assert result.book == "Exodus"
+
+    # ── Chinese Traditional script (BITB-025) ────────────────────────────────
+    # LLMs and traditional-script users may write book names in Traditional
+    # characters even though the registry stores Simplified. normalize_
+    # traditional_to_simplified() converts before matching.
+
+    def test_chinese_traditional_john(self):
+        """Traditional '約翰福音 3:16' → John."""
+        result = parse_verse_reference("約翰福音 3:16")
+        assert result is not None
+        assert result.book == "John"
+        assert result.chapter == 3
+        assert result.verse_start == 16
+
+    def test_chinese_traditional_matthew(self):
+        """Traditional '馬太福音 5:3' → Matthew."""
+        result = parse_verse_reference("馬太福音 5:3")
+        assert result is not None
+        assert result.book == "Matthew"
+
+    def test_chinese_traditional_acts(self):
+        """Traditional '使徒行傳 2:38' → Acts."""
+        result = parse_verse_reference("使徒行傳 2:38")
+        assert result is not None
+        assert result.book == "Acts"
+
+    def test_chinese_traditional_1_chronicles(self):
+        """Traditional '歷代志上 16:11' → 1 Chronicles."""
+        result = parse_verse_reference("歷代志上 16:11")
+        assert result is not None
+        assert result.book == "1 Chronicles"
+
+    def test_chinese_traditional_romans(self):
+        """Traditional '羅馬書 8:28' → Romans."""
+        result = parse_verse_reference("羅馬書 8:28")
+        assert result is not None
+        assert result.book == "Romans"
+
+    def test_chinese_traditional_guillemet(self):
+        """Traditional inside guillemets: '《約翰福音》3:16' → John."""
+        result = parse_verse_reference("《約翰福音》3:16")
+        assert result is not None
+        assert result.book == "John"
+
+    def test_chinese_mixed_script_genesis(self):
+        """Mixed script (創 traditional + 世记 simplified) '創世记 1:1' → Genesis."""
+        result = parse_verse_reference("創世记 1:1")
+        assert result is not None
+        assert result.book == "Genesis"
+
+    def test_chinese_mixed_script_ecclesiastes(self):
+        """Mixed script (傳 traditional + 道书 simplified) '傳道书 3:1' → Ecclesiastes."""
+        result = parse_verse_reference("傳道书 3:1")
+        assert result is not None
+        assert result.book == "Ecclesiastes"
+
+    def test_chinese_traditional_extract_multiple(self):
+        """Extract multiple Traditional-script references."""
+        results = extract_all_references("約翰福音 3:16和羅馬書 8:28")
+        assert len(results) == 2
+        books = {r.book for r in results}
+        assert "John" in books
+        assert "Romans" in books
+
+    def test_chinese_traditional_revelation_still_resolves(self):
+        """Traditional '啟示錄 21:4' still resolves to Revelation post-normalization.
+
+        ENGLISH_TO_CHINESE["Revelation"] is itself "啟示錄" (Traditional, the
+        literal name in the getbible CUS feed). Once T2S normalization runs,
+        this becomes an unreachable regex alternative for that exact string —
+        the simplified "启示录" CHINESE_ALIASES entry is what actually matches
+        post-normalization. Assert both still resolve; this is a deliberate,
+        harmless side effect, not a regression.
+        """
+        result = parse_verse_reference("啟示錄 21:4")
+        assert result is not None
+        assert result.book == "Revelation"
+
+        result_simplified = parse_verse_reference("启示录 21:4")
+        assert result_simplified is not None
+        assert result_simplified.book == "Revelation"
+
+    def test_chinese_traditional_reference_mentions_preserve_original_script(self):
+        """extract_reference_mentions() keeps the sentence/content_text in the
+        user's original Traditional script — only matching is normalized."""
+        text = "約翰福音 3:16 說神愛世人。"
+        mentions = extract_reference_mentions(text)
+        assert len(mentions) == 1
+        mention = mentions[0]
+        assert mention.reference.book == "John"
+        ref_start, ref_end = mention.ref_span
+        assert text[ref_start:ref_end] == "約翰福音 3:16"
+        assert "約" in mention.sentence  # original Traditional character, not 约
 
     # ── Korean ────────────────────────────────────────────────────────────────
 
