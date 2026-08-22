@@ -26,7 +26,7 @@ const JOHN_3_16: Array<{ locale: string; book: string; text: string }> = [
   { locale: "hi", book: "यूहन्ना", text: "यूहन्ना 3:16" },
   { locale: "ru", book: "Иоанна", text: "Иоанна 3:16" },
   { locale: "zh", book: "约翰福音", text: "约翰福音 3:16" },
-  { locale: "zh-Hant", book: "約翰福音", text: "約翰福音 3:16" }, // BITB-025
+  { locale: "zh", book: "約翰福音", text: "約翰福音 3:16" }, // Traditional-script input (BITB-025)
   { locale: "ko", book: "요한복음", text: "요한복음 3:16" },
 ];
 
