@@ -2202,9 +2202,10 @@ what went wrong on a thumbs-down with a single-tap reason chip,
 
 ---
 
-### 🎯 BITB-044: Populate `verse_topics` to Activate Topic Boosting
+### 🚧 BITB-044: Populate `verse_topics` to Activate Topic Boosting
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — keyword-based population shipped; LLM tagging, golden-set
+tuning, and prod enablement remain. See `docs/BACKLOG_STORIES/BITB-044-populate-verse-topics.md`.
 **Size:** M (1-2 days)
 **Created:** 2026-06-07
 
