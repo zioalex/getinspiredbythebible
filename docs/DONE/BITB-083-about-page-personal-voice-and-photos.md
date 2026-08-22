@@ -1,6 +1,6 @@
 # BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #947 merged 2026-07-29)
 **Priority:** P2
 **Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
 **Created:** 2026-07-27
@@ -92,7 +92,7 @@ whoever picks this up otherwise.
    before the "why" argument starts.
 3. **Add a closing personal beat** before the "Get in touch" section, adapted from the post's
    "I'm just happy it exists... someone having a rough day can visit that URL and find
-   encouragement" — the sentence that's been sitting unused in BITF-076's own Source Material.
+   encouragement" — the sentence that's been sitting unused in BITB-076's own Source Material.
 4. **Add screenshots**, per the "then" (and optionally "then / now") treatment above:
    - Origin-era images fetched from `https://ai4you.sh/assets/images/bible-chatbot/bible-chatbot-welcome-screen.png`
      and `.../bible-chatbot-response-example.png` — confirm licensing/reuse with the author (it's
