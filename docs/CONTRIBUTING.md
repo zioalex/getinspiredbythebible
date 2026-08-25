@@ -59,6 +59,26 @@ tests in `frontend/src/app/[locale]/page.test.tsx`, which assert both entry
 points to `/tester` (the header pill and the welcome-screen card) still render —
 so a future overwrite fails CI instead of shipping.
 
+## Benchmark before you build on a performance claim
+
+If a story's justification is performance, the claim must carry a
+measurement at production scale (≥400,000 rows on `verses`, a real
+1536-dimension embedding column, comparable hardware) before a second PR
+builds on it. A dev-stack timing, or a reasoned argument about what the
+query planner "should" do, is not a measurement.
+
+**Cautionary example:** the August 2026 tsvector work (see the
+[2026-08-17 tsvector migration outage
+retrospective](RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md))
+assumed the main search path recomputed `to_tsvector` per row. That was
+false — the query was already served by the expression index
+`idx_verses_fts_simple`. Benchmarked afterwards at 403,856 rows, routing
+`search_verses_text` through the new side table was 37% slower (0.105ms ->
+0.144ms); only the `ts_rank` call sites won. The GIN index built on the
+assumption was dropped for having no reader, and a planned Phase 2 was
+cancelled outright. One hour of benchmarking after the fact could have been
+spent before the migration that caused 45 minutes of downtime.
+
 ## Commit message convention
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/).

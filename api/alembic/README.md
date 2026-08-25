@@ -43,6 +43,26 @@ under another name — set `ALEMBIC_TEST_ALLOW_HOST=1`. The check is against
 that exact value, so `ALEMBIC_TEST_ALLOW_HOST=0` leaves the guard armed
 rather than silently disabling it.
 
+## Before you write a revision
+
+Two rules in `../../docs/MIGRATION_GUIDELINES.md` are binding, not
+suggestions — both exist because of a specific production outage:
+
+- **Rule #7 (expand/contract).** `run-migrations` runs before `deploy`, so
+  every migration must be compatible with the app version currently serving
+  traffic. See `../../docs/MIGRATION_GUIDELINES.md` under "Critical Rules",
+  Rule #7.
+- **["Locking & scale (Alembic
+  revisions)"](../../docs/MIGRATION_GUIDELINES.md#locking--scale-alembic-revisions).**
+  State the lock level and duration at production scale, keep
+  table-rewriting DDL out of the CI path, set `SET LOCAL lock_timeout` /
+  `statement_timeout` in every revision, and use `CAST(x AS t)` rather than
+  `::` in raw SQL.
+
+`api/tests/test_alembic_migrations.py` enforces the `lock_timeout` rule
+mechanically for every new revision. The rest is enforced in review, backed
+by the migration checklist in the PR template.
+
 ## Three invariants
 
 1. **The `include_name` allowlist is intentional, not a bug.** Five tables —

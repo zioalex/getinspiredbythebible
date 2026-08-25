@@ -1,10 +1,19 @@
 # BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-25)
 **Priority:** P2 (P1 items live in BITB-097; this covers what remains after it)
 **Size:** S–M
 **Created:** 2026-08-19
 **Source:** `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
+
+**What shipped:** a new "Locking & scale (Alembic revisions)" section in
+`docs/MIGRATION_GUIDELINES.md` (cross-linked from `api/alembic/README.md`), a
+"Migration checklist" block in `.github/pull_request_template.md`, a
+DB-free AST check in `api/tests/test_alembic_migrations.py` that fails any
+new revision whose `upgrade()` doesn't reach a `lock_timeout` call (r0001–
+r0003 exempted as pre-existing), a "Benchmark before you build on a
+performance claim" section in `docs/CONTRIBUTING.md`, and a "Retrospectives"
+section in `docs/BACKLOG.md` linking the source retrospective.
 
 ## User Story
 
@@ -48,11 +57,11 @@ story owns the rest — the parts that live in docs, templates, and tests.
 
 ## Acceptance Criteria
 
-- [ ] MIGRATION_GUIDELINES section merged, cross-linked from `api/alembic/README.md`
-- [ ] PR template block added (conditional, short — not a form for non-migration PRs)
-- [ ] `test_alembic_migrations.py` fails a revision without `lock_timeout` (fixture-tested both ways)
-- [ ] CONTRIBUTING paragraph added
-- [ ] Retrospective linked from BACKLOG.md so it stays findable
+- [x] MIGRATION_GUIDELINES section merged, cross-linked from `api/alembic/README.md`
+- [x] PR template block added (conditional, short — not a form for non-migration PRs)
+- [x] `test_alembic_migrations.py` fails a revision without `lock_timeout` (fixture-tested both ways)
+- [x] CONTRIBUTING paragraph added
+- [x] Retrospective linked from BACKLOG.md so it stays findable
 
 ## Related
 

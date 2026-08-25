@@ -23,8 +23,23 @@ event loop` if invoked from inside pytest-asyncio's own loop.
 Skips automatically (does not fail) if Postgres is unreachable or the
 connected role lacks CREATEDB privilege -- mirrors the "skip if DB
 unreachable" pattern in `test_rate_limiter_integration.py`.
+
+As of BITB-100, this file holds two unrelated concerns. Everything above is
+the original DB-backed roundtrip test. Everything at the bottom of the file
+is a DB-free, source-text/AST check over the revision files themselves --
+it needs no fixture, no Postgres, and runs on every PR whether or not a
+database is available. It exists because the connection-level timeouts
+BITB-097 added (`get_migration_server_settings()` in
+`api/scripture/database.py`, wired into `env.py` and
+`scripts/migrations/utils.py`) are not a substitute for a per-revision
+`lock_timeout`: that mechanism only applies on the online `env.py` path, so
+`alembic upgrade --sql` or a hand-run `psql` migration gets none of it, and
+it does not force each author to actually choose a lock budget for their
+own revision. See docs/MIGRATION_GUIDELINES.md, "Locking & scale (Alembic
+revisions)".
 """
 
+import ast
 import os
 import subprocess
 import sys
@@ -38,6 +53,14 @@ import pytest
 from config import settings
 
 _API_DIR = Path(__file__).resolve().parents[1]
+_VERSIONS_DIR = _API_DIR / "alembic" / "versions"
+
+# Revisions that predate the BITB-100 lock_timeout rule. Frozen at BITB-100 --
+# r0001 is the baseline and runs against an empty database; r0002/r0003 are
+# COMMENT ON probes behind to_regclass guards. Nothing is ever added to this
+# set: a new revision without a lock_timeout is exactly what this test exists
+# to catch.
+_TIMEOUT_EXEMPT_REVISIONS = frozenset({"r0001", "r0002", "r0003"})
 
 # Opt-in env var for a deliberately non-default host (e.g. a docker-compose
 # service name other than the ones below) -- absent by default, so the guard
@@ -353,3 +376,193 @@ class TestHostSafetyGuard:
             settings, "database_url", "postgresql://ci-postgres.internal:5432/bibledb"
         )
         _require_local_database_or_skip()  # must not raise Skipped
+
+
+# ---------------------------------------------------------------------------
+# BITB-100: DB-free source-text/AST checks over the revision files.
+#
+# Nothing below this line touches a database or uses the fixtures above --
+# these run on every PR, with or without Postgres available.
+# ---------------------------------------------------------------------------
+
+
+def _revision_files() -> list[Path]:
+    """All revision files under api/alembic/versions/, sorted by filename.
+
+    Asserts non-empty: a glob that starts matching nothing (e.g. the
+    versions directory moves, or the naming convention changes) must fail
+    this test loudly rather than silently turning the parametrized test
+    below into a no-op that always "passes".
+    """
+    files = sorted(_VERSIONS_DIR.glob("r*.py"))
+    assert files, f"No revision files found under {_VERSIONS_DIR} -- glob pattern broken?"
+    return files
+
+
+def _revision_id(source: str) -> str:
+    """The module-level `revision: str = "..."` value from a revision file's source."""
+    tree = ast.parse(source)
+    for node in ast.iter_child_nodes(tree):
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "revision"
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return node.value.value
+    raise AssertionError(
+        "No module-level `revision: str = ...` assignment found -- every "
+        "Alembic revision file must declare one."
+    )
+
+
+def _upgrade_reaches_lock_timeout(source: str) -> bool:
+    """True if `upgrade()` -- or a top-level helper function it calls,
+    transitively -- contains the string "lock_timeout" in its own source.
+
+    Parses `source` with `ast` and collects every top-level `FunctionDef` by
+    name (asserting `upgrade` is among them), then walks the call graph
+    starting at `upgrade()`: for each function currently being examined,
+    `ast.walk` it for `Call` nodes whose `func` is a plain `Name` matching
+    another known top-level function, and enqueue that function too
+    (tracking visited names so recursion can't loop forever).
+
+    For every function reached this way, the check is a source-text search
+    within *that function's own source* (via `ast.get_source_segment`), not
+    the whole file. That's what makes this correctly find a `lock_timeout`
+    set inside a helper called from `upgrade()` -- r0004's actual shape --
+    while correctly rejecting a revision where `lock_timeout` only appears
+    inside `downgrade()`, which `upgrade()` never calls.
+    """
+    tree = ast.parse(source)
+    functions_by_name = {
+        node.name: node for node in ast.iter_child_nodes(tree) if isinstance(node, ast.FunctionDef)
+    }
+    assert "upgrade" in functions_by_name, "Revision has no top-level upgrade() function"
+
+    visited: set[str] = set()
+    queue = ["upgrade"]
+    while queue:
+        name = queue.pop()
+        if name in visited:
+            continue
+        visited.add(name)
+        fn = functions_by_name.get(name)
+        if fn is None:
+            continue
+
+        fn_source = ast.get_source_segment(source, fn) or ""
+        if "lock_timeout" in fn_source:
+            return True
+
+        for call_node in ast.walk(fn):
+            if (
+                isinstance(call_node, ast.Call)
+                and isinstance(call_node.func, ast.Name)
+                and call_node.func.id in functions_by_name
+                and call_node.func.id not in visited
+            ):
+                queue.append(call_node.func.id)
+
+    return False
+
+
+_REVISION_FILES = _revision_files()
+
+
+@pytest.mark.parametrize("revision_file", _REVISION_FILES, ids=[p.stem for p in _REVISION_FILES])
+def test_revision_upgrade_sets_lock_timeout(revision_file):
+    """Every revision not in `_TIMEOUT_EXEMPT_REVISIONS` must bound itself
+    with a `lock_timeout` reachable from `upgrade()`.
+
+    Pure source-text/AST check -- no database required, runs on every PR.
+    """
+    source = revision_file.read_text()
+    revision_id = _revision_id(source)
+
+    if revision_id in _TIMEOUT_EXEMPT_REVISIONS:
+        pytest.skip(
+            f"{revision_id} predates the BITB-100 lock_timeout rule and is in "
+            f"the frozen exemption list _TIMEOUT_EXEMPT_REVISIONS "
+            f"({sorted(_TIMEOUT_EXEMPT_REVISIONS)})."
+        )
+
+    assert _upgrade_reaches_lock_timeout(source), (
+        f"{revision_file.name}: upgrade() does not reach a `lock_timeout` call.\n\n"
+        "WHY THIS MATTERS: the 2026-08-17 tsvector migration outage (see "
+        "docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md) ran an "
+        "unbounded ALTER TABLE that held its lock for 45 minutes -- CI's own "
+        "`timeout-minutes` killed the client, not the server-side DDL, which kept "
+        "the lock working toward a COMMIT that could never arrive. Every revision "
+        "now has to bound itself from inside the database.\n\n"
+        "HOW TO FIX: copy the `_set_timeouts()` helper from "
+        "api/alembic/versions/r0004_add_verse_tsv_side_table.py (SET LOCAL "
+        "lock_timeout / statement_timeout) and call it from the top of "
+        "upgrade(). See docs/MIGRATION_GUIDELINES.md, "
+        "'Locking & scale (Alembic revisions)'."
+    )
+
+
+def test_timeout_exempt_revisions_still_exist():
+    """Guards against the exemption set silently becoming permanent if a
+    revision it names is renamed or removed -- every id in
+    `_TIMEOUT_EXEMPT_REVISIONS` must resolve to an actual file."""
+    revision_ids = {_revision_id(f.read_text()) for f in _REVISION_FILES}
+    missing = _TIMEOUT_EXEMPT_REVISIONS - revision_ids
+    assert not missing, (
+        f"_TIMEOUT_EXEMPT_REVISIONS references revision id(s) with no matching "
+        f"file under {_VERSIONS_DIR}: {sorted(missing)}. If a revision was "
+        "renamed or removed, update the exemption set to match."
+    )
+
+
+class TestUpgradeReachesLockTimeout:
+    """Unit tests for `_upgrade_reaches_lock_timeout` against inline source
+    strings -- no files, no database, no fixtures."""
+
+    def test_lock_timeout_set_directly_in_upgrade(self):
+        source = """
+def upgrade():
+    op.execute("SET LOCAL lock_timeout = '5s'")
+    op.execute("CREATE TABLE foo (id integer)")
+"""
+        assert _upgrade_reaches_lock_timeout(source) is True
+
+    def test_lock_timeout_set_in_helper_called_from_upgrade(self):
+        """Mirrors r0004's actual shape: a module-level helper does the
+        `SET LOCAL`, and `upgrade()` just calls it."""
+        source = """
+def _set_timeouts():
+    op.execute("SET LOCAL lock_timeout = '5s'")
+    op.execute("SET LOCAL statement_timeout = '10min'")
+
+
+def upgrade():
+    _set_timeouts()
+    op.execute("CREATE TABLE foo (id integer)")
+"""
+        assert _upgrade_reaches_lock_timeout(source) is True
+
+    def test_no_lock_timeout_anywhere(self):
+        source = """
+def upgrade():
+    op.execute("CREATE TABLE foo (id integer)")
+
+
+def downgrade():
+    op.execute("DROP TABLE foo")
+"""
+        assert _upgrade_reaches_lock_timeout(source) is False
+
+    def test_lock_timeout_only_in_downgrade_does_not_count(self):
+        source = """
+def upgrade():
+    op.execute("CREATE TABLE foo (id integer)")
+
+
+def downgrade():
+    op.execute("SET LOCAL lock_timeout = '5s'")
+    op.execute("DROP TABLE foo")
+"""
+        assert _upgrade_reaches_lock_timeout(source) is False
