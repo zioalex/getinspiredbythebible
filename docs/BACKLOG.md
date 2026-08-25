@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-08-21
+**Last Updated:** 2026-08-25
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -15,6 +15,19 @@ Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208,
 - **Priority:** P0 (Critical/Blocker), P1 (High), P2 (Medium), P3 (Low)
 - **Status:** 🎯 Todo, 🚧 In Progress, ✅ Done, ❌ Cancelled
 - **Size:** S (< 4 hrs), M (1-2 days), L (3-5 days), XL (1-2 weeks)
+
+---
+
+## Retrospectives
+
+Incident and project retrospectives live in `docs/RETROSPECTIVES/` and are
+the source of several stories below. Read the relevant one before
+re-litigating a settled rule.
+
+- [`2026-08-17-tsvector-migration-outage.md`](RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md)
+  — source of BITB-096, BITB-097, and BITB-100. Its process rules now live in
+  `docs/MIGRATION_GUIDELINES.md` ("Locking & scale (Alembic revisions)") and
+  `docs/CONTRIBUTING.md` ("Benchmark before you build on a performance claim").
 
 ---
 
