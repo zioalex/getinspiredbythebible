@@ -408,6 +408,7 @@ def _revision_id(source: str) -> str:
             and isinstance(node.target, ast.Name)
             and node.target.id == "revision"
             and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
         ):
             return node.value.value
     raise AssertionError(
