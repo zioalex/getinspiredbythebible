@@ -1,7 +1,7 @@
 # Migration Best Practices & Guidelines
 
-**Version:** 1.2
-**Last Updated:** 2026-08-21
+**Version:** 1.3
+**Last Updated:** 2026-08-25
 **Owner:** Product & Engineering Team
 
 ---
@@ -336,6 +336,139 @@ op.drop_column("verses", "txt")
 one outage mode — new code running before its migration exists — but
 introduces this one in its place if ignored. Expand/contract is what makes
 migrating first actually safe rather than just moving the risk around.
+Shape is only half of it: see "Locking & scale" below for what a migration
+is allowed to cost and what it must never do from CI.
+
+---
+
+## Locking & scale (Alembic revisions)
+
+This section comes out of the [2026-08-17 tsvector migration outage
+retrospective](RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md): a
+revision whose docstring claimed "low single-digit seconds — measured" took
+production down for 45 minutes. That number was real — it was just measured
+on a dev-stack `verses` table roughly 40x narrower than production (no
+1536-dimension embedding column) on unthrottled hardware. Rule #7 above
+governs a revision's *shape* (is it compatible with the app version already
+running); this section governs its *cost* (what it is allowed to do to a
+production-sized table). Both apply to every revision under
+`api/alembic/versions/`.
+
+### State the lock level and the duration at production scale — or say "unknown"
+
+Every revision's module docstring must name the lock level and the expected
+duration for each statement that touches an existing table, measured **at
+production scale** (≥400,000 rows on `verses`, a real 1536-dimension
+embedding column present, comparable hardware) — not a dev-stack table, not
+CI fixtures, not reasoning about what Postgres "should" do. "Unknown" is an
+acceptable, reviewable answer; a confident wrong number is what caused the
+outage. `r0004_add_verse_tsv_side_table.py` is the example to match for the
+right level of detail — it states the lock level and duration for every
+statement in `upgrade()`, including why the empty-table case is safe.
+
+### Table-rewriting DDL is banned from the CI pipeline
+
+None of the following may run through the normal `alembic upgrade head` path
+against `verses`, `passages`, or `verse_tsv`:
+
+- `ADD COLUMN ... GENERATED ALWAYS AS (...) STORED` — always rewrites the
+  table; there is no concurrent form.
+- Any `ALTER COLUMN ... TYPE ...`.
+- `CLUSTER`, `VACUUM FULL`, or `REINDEX` without `CONCURRENTLY`.
+- Plain `DROP INDEX` / `CREATE INDEX` on a hot table (`verses`, `passages`,
+  `verse_tsv`) — use `CONCURRENTLY` inside `op.get_context().autocommit_block()`
+  instead (see `api/alembic/README.md`).
+
+The ban is on the **lock type**, not the expected duration: a *queued*
+`ACCESS EXCLUSIVE` request blocks every reader behind it even before it is
+granted, so a DDL statement someone expects to be "fast" can still take the
+site down while it waits for the lock.
+
+If a rewrite is genuinely unavoidable, it does not go in an Alembic revision
+— it goes through this manual, off-peak procedure instead:
+
+1. Scale the database compute up first. The outage rewrite was still running
+   after 33 minutes on 2 vCPUs.
+2. Take a backup per
+   [`docs/HOW-TO-BACKUP-RESTORE-DATABASE.md`](HOW-TO-BACKUP-RESTORE-DATABASE.md).
+3. Run it off-peak, by hand, from `tmux` or another session that survives a
+   disconnect — never from a CI runner. `timeout-minutes` kills the client,
+   not the server-side DDL, which keeps holding its lock working toward a
+   `COMMIT` that can never arrive.
+4. Set `SET lock_timeout = '5s'; SET statement_timeout = '<budget>';` in the
+   session before running the DDL.
+5. Watch it via `pg_stat_activity` from a second session. If it needs to be
+   stopped, `pg_cancel_backend()` first, then `pg_terminate_backend()` if
+   that doesn't work.
+6. Expect storage auto-grow that Azure will not let you shrink back.
+   Confirm `storage_mb` is in Terraform's `ignore_changes` before you start.
+
+### Every revision sets its own server-side timeouts
+
+Every revision's `upgrade()` sets its own lock and statement timeouts, the
+way `r0004` does:
+
+```python
+def _set_timeouts() -> None:
+    op.execute("SET LOCAL lock_timeout = '5s'")
+    op.execute("SET LOCAL statement_timeout = '10min'")
+
+
+def upgrade() -> None:
+    _set_timeouts()
+    ...
+```
+
+`SET LOCAL` scopes to Alembic's own transaction only — it cannot leak into
+any other session.
+
+BITB-097 separately sets connection-level timeouts
+(`get_migration_server_settings()` in `api/scripture/database.py`, wired
+into `env.py` and `scripts/migrations/utils.py`). That is a **floor, not a
+substitute** for the per-revision `SET LOCAL`:
+
+- The online-only `env.py` path is what carries those connection settings.
+  `alembic upgrade --sql` or a hand-run `psql` migration gets none of them.
+- A session GUC is a default a statement can outlive; `SET LOCAL` is what
+  actually applies at DDL time, inside the migration's own transaction.
+- Writing the line forces the revision's author to actually pick a budget
+  instead of inheriting whatever the role happens to default to.
+
+`api/tests/test_alembic_migrations.py` enforces this mechanically: every new
+revision's `upgrade()` must reach a `lock_timeout` call.
+
+### New code and old schema must both work — keep schema off the hot ORM models
+
+This is a corollary of Rule #7. `text_tsv` being added directly to the
+`Verse` model meant `select(Verse)` emitted the column on every verse read —
+so the new app image couldn't serve a single verse until the migration
+finished. A 33-minute migration became a total outage because of one ORM
+attribute.
+
+The default pattern instead: put migration-dependent schema in a separate
+model/table (the `VerseTsv` pattern), with no `relationship()` back onto the
+hot model, and read it explicitly only where it's actually wanted. That way
+deploy order stops mattering — either app version works against either side
+of the migration.
+
+### `CAST(x AS t)` in raw SQL, never `::`
+
+**❌ WRONG:**
+
+```python
+op.execute("SELECT '' ::tsvector")
+```
+
+**✅ CORRECT:**
+
+```python
+op.execute("SELECT CAST('' AS tsvector)")
+```
+
+**Why?** `::` reads as a bind-parameter name to SQLAlchemy's `text()` and to
+asyncpg, and trips the asyncpg bind guard that was added after an earlier
+production breakage. `api/scripture/repository.py` already uses `CAST(...)`
+throughout raw SQL — match it.
 
 ---
 
@@ -955,6 +1088,8 @@ did. Covered by `api/tests/test_database_church_coverage.py::TestGetAsyncDatabas
   `.github/workflows/azure-deploy.yml` → `run-migrations` job
 - Alembic CI check (new schema changes): `.github/workflows/test_update.yml` → `alembic-migrations` job
 - Alembic usage: `api/alembic/README.md`
+- Retrospective behind the "Locking & scale" section:
+  `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 - Existing legacy migrations: `scripts/migrations/001_*.py`, `002_*.py`
 - asyncpg docs: <https://magicstack.github.io/asyncpg/current/>
 - PostgreSQL docs: <https://www.postgresql.org/docs/current/>
@@ -964,6 +1099,9 @@ did. Covered by `api/tests/test_database_church_coverage.py::TestGetAsyncDatabas
 
 **Version History:**
 
+- 1.3 (2026-08-25): BITB-100 — added the "Locking & scale (Alembic revisions)"
+  section adopting the five process rules from the 2026-08-17 outage
+  retrospective, plus the manual off-peak rewrite procedure.
 - 1.2 (2026-08-09): BITB-089 — the deploy pipeline now runs `alembic upgrade head`
   (`run-migrations` job watches `api/alembic/versions/**` and installs
   `api/requirements.txt`). Expanded the prod-adoption runbook into the three

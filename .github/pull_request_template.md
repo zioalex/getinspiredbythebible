@@ -20,6 +20,18 @@ Keep the PR small and focused on a single concern.
 - [ ] `make pre-commit` passes locally
 - [ ]
 
+## Migration checklist
+
+<!-- Only fill this in if this PR adds or changes an Alembic revision
+     (api/alembic/versions/**) -- delete the whole section otherwise.
+     See docs/MIGRATION_GUIDELINES.md, "Locking & scale (Alembic revisions)". -->
+
+- [ ] Docstring states lock level + duration at production scale (>=400k rows), or says "unknown"
+- [ ] No table-rewriting DDL in the CI path (`ADD COLUMN ... STORED`, `ALTER COLUMN ... TYPE`, plain `DROP INDEX`/`CREATE INDEX` on a hot table, etc.)
+- [ ] `SET LOCAL lock_timeout` / `statement_timeout` set inside the revision
+- [ ] Backward-compatible with the currently-deployed app (Rule #7, expand/contract)
+- [ ] `alembic downgrade -1` then `alembic upgrade head` run locally
+
 ## Notes
 
 <!-- Optional: scope cuts, follow-ups deferred to another PR, migration or
