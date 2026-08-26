@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-08-25
+**Last Updated:** 2026-08-26
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1689,9 +1689,10 @@ BITB-104 has numbers.
 
 ---
 
-### 🎯 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
+### 🚧 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — role, grants, and workflow swap implemented; role password creation +
+first green nightly run are an operator follow-up (see story file).
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M

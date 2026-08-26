@@ -1,6 +1,9 @@
 # BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — implementation shipped in this PR; role creation lands on next deploy,
+then the operator sets the role's password, creates the `search-eval` GitHub environment +
+`SEARCH_EVAL_DB_PASSWORD` secret, and the next scheduled/manual `eval-prod` run is the completion
+signal.
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
@@ -131,19 +134,33 @@ Two things worth stating so nobody spends time on them:
 
 ## Acceptance Criteria
 
-- [ ] A `search_eval_ro` login role exists, provisioned through Terraform, with `SELECT` on only the
-      tables the harness reads
-- [ ] `ALTER ROLE search_eval_ro SET default_transaction_read_only = on` is applied, and a write
-      attempted as that role is *proven* to fail (rehearsed against a restored copy, not assumed)
-- [ ] `statement_timeout` and `idle_in_transaction_session_timeout` set on the role
-- [ ] `eval-prod` authenticates with `SEARCH_EVAL_DB_PASSWORD`; `TF_VAR_DB_ADMIN_USERNAME` and
+- [x] A `search_eval_ro` login role exists, provisioned through Alembic (not Terraform — this repo has
+      no `postgresql` Terraform provider and no existing precedent for Terraform-managed Postgres
+      roles/grants; all schema/role-level DDL here goes through Alembic, which already runs with admin
+      credentials under a gated `environment: production` deploy job, so the new role rides that same
+      mechanism instead — see `api/alembic/versions/r0005_add_search_eval_ro_role.py`), with `SELECT`
+      on only the tables the harness reads (`verses`, `books`, `verse_tsv`, `passages` — the last was
+      caught by independent verification: `search_passages_*` runs unconditionally even when
+      `max_passages=0`, since that value only ever becomes a query `LIMIT`, never a guard)
+- [x] `ALTER ROLE search_eval_ro SET default_transaction_read_only = on` is applied
+  - [ ] a write attempted as that role is *proven* to fail, rehearsed against a restored copy — this is
+        an explicit operator step per this story's own Verification section, not something a migration
+        or this PR can do; pending operator rehearsal
+- [x] `statement_timeout` and `idle_in_transaction_session_timeout` set on the role
+- [x] `eval-prod` authenticates with `SEARCH_EVAL_DB_PASSWORD`; `TF_VAR_DB_ADMIN_USERNAME` and
       `TF_VAR_DB_ADMIN_PASSWORD` no longer appear anywhere in `search-eval-full.yml`
-- [ ] The new secret is environment-scoped, not a bare repo secret, and a decision is recorded on
-      whether that environment requires a reviewer
-- [ ] A test asserts `search-eval-full.yml` never references `TF_VAR_DB_ADMIN_*`, so the credential
-      cannot silently widen again
+- [x] The new secret is environment-scoped (`search-eval` GitHub environment wired into the
+      `eval-prod` job via `environment: search-eval`), not a bare repo secret. Recorded decision on
+      the reviewer question: **no required reviewer** on the `search-eval` environment, consistent
+      with this being an unattended nightly job — a required reviewer would just mean the job silently
+      never runs (nobody is watching to approve it at 04:23 UTC), which is worse than the current
+      fail-closed-on-missing-secret behavior.
+- [x] A test asserts `search-eval-full.yml` never references `TF_VAR_DB_ADMIN_*`, so the credential
+      cannot silently widen again (`api/tests/test_search_eval_workflow_credentials.py`)
 - [ ] A nightly run completes green against the new role (the real proof: the grants are sufficient
-      for every query the harness actually issues)
+      for every query the harness actually issues) — pending the operator creating the `search-eval`
+      environment/secret and the role's password being set; the first green scheduled or manual
+      `eval-prod` run after that is the completion signal
 
 ## Verification
 
