@@ -139,7 +139,9 @@ Two things worth stating so nobody spends time on them:
       roles/grants; all schema/role-level DDL here goes through Alembic, which already runs with admin
       credentials under a gated `environment: production` deploy job, so the new role rides that same
       mechanism instead — see `api/alembic/versions/r0005_add_search_eval_ro_role.py`), with `SELECT`
-      on only the tables the harness reads (`verses`, `books`, `verse_tsv`)
+      on only the tables the harness reads (`verses`, `books`, `verse_tsv`, `passages` — the last was
+      caught by independent verification: `search_passages_*` runs unconditionally even when
+      `max_passages=0`, since that value only ever becomes a query `LIMIT`, never a guard)
 - [x] `ALTER ROLE search_eval_ro SET default_transaction_read_only = on` is applied
   - [ ] a write attempted as that role is *proven* to fail, rehearsed against a restored copy — this is
         an explicit operator step per this story's own Verification section, not something a migration
