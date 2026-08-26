@@ -11,13 +11,23 @@ issues ``SELECT``s. That made "read-only" a property of what the harness
 happened to execute, not something the database enforced.
 
 This revision creates ``search_eval_ro``: a login role that can only read
-the three tables the harness actually queries (traced through
+the tables the harness actually queries (traced through
 ``api/search_eval/runner.py`` -> ``ScriptureSearchService.search()`` /
 ``search_hybrid()`` -> ``ScriptureRepository.search_verses_semantic()`` /
-``search_verses_hybrid()``: ``verses``, ``books`` via
-``selectinload(Verse.book)``, and ``verse_tsv`` via the hybrid path's
-``LEFT JOIN``), with ``default_transaction_read_only = on`` so a write
-attempt fails at the database, not by convention.
+``search_verses_hybrid()`` / ``search_passages_semantic()`` /
+``search_passages_hybrid()``: ``verses`` and ``passages``, ``books`` via
+``selectinload(Verse.book)`` / ``selectinload(Passage.book)``, and
+``verse_tsv`` via the hybrid path's ``LEFT JOIN``), with
+``default_transaction_read_only = on`` so a write attempt fails at the
+database, not by convention.
+
+``search_passages_*`` runs unconditionally alongside the verse search on
+every config, even when the caller passes ``max_passages=0`` (BITB-101
+verification caught this: ``max_passages`` only ever becomes a query
+``LIMIT``, never a guard that skips the query -- the candidate-pool CTE
+still executes and still needs ``SELECT`` on ``passages``, confirmed by
+reproducing a ``permission denied for table passages`` error against a
+grant list that omitted it).
 
 This project has no ``postgresql`` Terraform provider -- only ``azurerm``
 and ``random`` (see ``deployment/main.tf``) -- and no existing precedent
@@ -65,7 +75,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 ROLE_NAME = "search_eval_ro"
-READ_TABLES = ("verses", "books", "verse_tsv")
+READ_TABLES = ("verses", "books", "verse_tsv", "passages")
 
 
 def _set_timeouts() -> None:
