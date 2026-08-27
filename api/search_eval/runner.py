@@ -65,6 +65,41 @@ EVAL_CONFIGS: dict[str, EvalConfig] = {
 
 DEFAULT_AB: tuple[str, str] = ("baseline_semantic", "expansion_semantic")
 
+# BITB-107: openai's SDK exceptions (e.g. APIConnectionError) have a fixed,
+# uninformative __str__() -- "Connection error." regardless of what actually
+# went wrong. The real cause is chained onto __cause__/__context__ (e.g. an
+# httpx/h11 LocalProtocolError from an illegal header value), which bare
+# str(exc) discards. Cap how many links we walk and how long the resulting
+# string gets so one pathological chain can't blow up a log line or the JSON
+# report.
+_MAX_EXCEPTION_CHAIN_LINKS = 3
+_MAX_EXCEPTION_CHAIN_CHARS = 500
+
+
+def _describe_exception(exc: BaseException) -> str:
+    """Render ``exc`` plus up to ``_MAX_EXCEPTION_CHAIN_LINKS`` of its cause
+    chain as one string, e.g.
+    ``"APIConnectionError: Connection error. <- LocalProtocolError: ..."``.
+
+    Walks ``__cause__`` first (an explicit ``raise ... from ...``, which is
+    what the openai SDK and httpx use) and falls back to ``__context__`` (an
+    implicit chain from raising inside an ``except`` block) when there is no
+    explicit cause, so this works for both.
+    """
+    parts: list[str] = []
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and len(parts) < _MAX_EXCEPTION_CHAIN_LINKS:
+        if id(current) in seen:
+            break  # guard against a (pathological) reference cycle
+        seen.add(id(current))
+        parts.append(f"{type(current).__name__}: {current}")
+        current = current.__cause__ or current.__context__
+    description = " <- ".join(parts)
+    if len(description) > _MAX_EXCEPTION_CHAIN_CHARS:
+        description = description[: _MAX_EXCEPTION_CHAIN_CHARS - 1] + "…"
+    return description
+
 
 class Expander(Protocol):
     """Expands a query into a thematically related search query."""
@@ -187,9 +222,11 @@ async def run_query(
             expansion_latency_ms=expansion_latency_ms,
         )
     except Exception as exc:  # noqa: BLE001 - fail-open per query, log and continue
+        description = _describe_exception(exc)
         logger.warning(
             "search-eval query failed, scoring as zero (fail-open)",
-            extra={"case_id": case.id, "config": config.name, "error": str(exc)},
+            extra={"case_id": case.id, "config": config.name, "error": description},
+            exc_info=True,
         )
         return QueryResult(
             case_id=case.id,
@@ -200,7 +237,7 @@ async def run_query(
             recall_at_10=0.0,
             mrr=0.0,
             false_positives_at_5=0,
-            error=str(exc),
+            error=description,
         )
 
 
