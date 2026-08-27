@@ -207,6 +207,11 @@ jobs:
           AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          # BITB-107: must match the vector(1536) column this route reads from
+          # prod, and is required together with config.py's dimension
+          # validator now covering azure_openai (an unset/mismatched value
+          # fails Settings() at import time instead of at query time).
+          EMBEDDING_DIMENSIONS: "1536"
           HAS_LLM: ${{ needs.preflight.outputs.has_llm }}
           OPENROUTER_API_KEY_IF_SET: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           INPUT_CONFIGS: ${{ github.event.inputs.configs }}
@@ -373,6 +378,21 @@ jobs:
           cd scripts
           python create_azure_embeddings.py
 
+      - name: Probe the embedding provider (app stack)
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          EMBEDDING_PROVIDER: azure_openai
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          EMBEDDING_DIMENSIONS: "1536"
+        # BITB-107: intentionally NOT wrapped in `set +e` — this step exists
+        # so a real failure prints its actual exception chain straight into
+        # the console log (via search_eval's own exc_info=True logging and
+        # traceback.print_exception), instead of the eval run's fail-open
+        # per-query handling burying it in an artifact as "Connection error."
+        run: python scripts/run_search_eval.py --probe-embedding
+
       - name: Run smoke eval
         id: run
         env:
@@ -381,10 +401,37 @@ jobs:
           AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          # BITB-107: must match the vector(1536) column "Load 1 Corinthians"
+          # seeds below, and required now that config.py's dimension
+          # validator covers azure_openai.
+          EMBEDDING_DIMENSIONS: "1536"
+          INPUT_CONFIGS: ${{ github.event.inputs.configs }}
+          INPUT_LANGUAGE: ${{ github.event.inputs.language }}
         run: |
           set -o pipefail
+
+          # BITB-107: unlike eval-prod (which only falls back to
+          # baseline_semantic when no LLM credential is present), eval-smoke
+          # defaults to baseline_semantic UNCONDITIONALLY unless the workflow
+          # input explicitly names configs. Smoke's whole purpose is
+          # credential-light plumbing verification -- gating the default on
+          # HAS_LLM would leave it silently depending on a free OpenRouter
+          # model for the expansion_semantic leg (doubling runtime and adding
+          # flake) even though no LLM credential is required to run smoke at
+          # all. Still respects an explicit `configs` input.
+          config_flag=(--config baseline_semantic)
+          if [ -n "$INPUT_CONFIGS" ]; then
+            config_flag=(--config "$INPUT_CONFIGS")
+          fi
+
+          language_flag=()
+          if [ -n "$INPUT_LANGUAGE" ]; then
+            language_flag=(--language "$INPUT_LANGUAGE")
+          fi
+
           set +e
-          python scripts/run_search_eval.py --run --smoke --json > eval-smoke.json 2> eval-smoke.log
+          python scripts/run_search_eval.py --run --smoke --json "${config_flag[@]}" "${language_flag[@]}" \
+            > eval-smoke.json 2> eval-smoke.log
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
 
@@ -404,11 +451,39 @@ jobs:
           exit_code="${{ steps.run.outputs.exit_code }}"
           if [ -s eval-smoke.json ] && jq -e . eval-smoke.json > /dev/null 2>&1; then
             echo "Smoke run produced parseable JSON output (exit ${exit_code})." >> "$GITHUB_STEP_SUMMARY"
+
+            # BITB-107: "the CLI exited 0" is not sufficient on its own — a
+            # run where every query errored (fail-open, scored 0.00) used to
+            # exit 0 as long as it wasn't *every single* query. Make green
+            # actually mean green: a nonzero total n_errors, or zero verses
+            # retrieved across every query (this corpus is non-empty, so a
+            # healthy run always retrieves something even when it doesn't
+            # match the golden set's relevant refs), fails this step.
+            err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-smoke.json)
+            verses_total=$(jq '[.query_results[].retrieved | length] | add // 0' eval-smoke.json)
+            {
+              echo ""
+              echo "| total query errors | total verses retrieved |"
+              echo "| --- | --- |"
+              echo "| ${err_total} | ${verses_total} |"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$err_total" != "0" ]; then
+              echo "::error::eval-smoke: ${err_total} query error(s) — see eval-smoke.log artifact."
+              exit 1
+            fi
+            if [ "$verses_total" == "0" ]; then
+              echo "::error::eval-smoke: zero verses retrieved across every query — the embedding/search"
+              echo "::error::path is not actually returning results (BITB-107)."
+              exit 1
+            fi
           else
             echo "No parseable JSON output — see eval-smoke.log:" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             tail -n 40 eval-smoke.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::eval-smoke: no parseable JSON output — see eval-smoke.log artifact."
+            exit 1
           fi
 
       - name: Upload results artifact
