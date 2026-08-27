@@ -466,11 +466,19 @@ jobs:
 
             # BITB-107: "the CLI exited 0" is not sufficient on its own — a
             # run where every query errored (fail-open, scored 0.00) used to
-            # exit 0 as long as it wasn't *every single* query. Make green
-            # actually mean green: a nonzero total n_errors, or zero verses
-            # retrieved across every query (this corpus is non-empty, so a
-            # healthy run always retrieves something even when it doesn't
-            # match the golden set's relevant refs), fails this step.
+            # exit 0 as long as it wasn't *every single* query. A nonzero
+            # total n_errors is unambiguous plumbing breakage and fails this
+            # step. Zero verses retrieved is only a *warning*, not a
+            # failure -- live-verified (BITB-107): with the connection and
+            # translation defects both fixed, a fully healthy run against
+            # this corpus (1 Corinthians alone, similarity_threshold=0.35)
+            # can legitimately retrieve nothing for topically unrelated
+            # golden-set queries (anxiety/loneliness/finances) with zero
+            # errors, exactly as this job's own header comment always said
+            # it would ("scores are expected to be ~0 ... this job is a
+            # plumbing check, not a relevance measurement"). Treating that
+            # as a hard failure would make eval-smoke permanently red
+            # regardless of how healthy the plumbing actually is.
             err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-smoke.json)
             verses_total=$(jq '[.query_results[].retrieved | length] | add // 0' eval-smoke.json)
             {
@@ -485,9 +493,10 @@ jobs:
               exit 1
             fi
             if [ "$verses_total" == "0" ]; then
-              echo "::error::eval-smoke: zero verses retrieved across every query — the embedding/search"
-              echo "::error::path is not actually returning results (BITB-107)."
-              exit 1
+              warn_msg="::warning::eval-smoke: zero verses retrieved across every query."
+              warn_msg="${warn_msg} Zero errors, so plumbing is healthy -- this corpus/threshold"
+              warn_msg="${warn_msg} combination can legitimately match nothing (BITB-107)."
+              echo "$warn_msg"
             fi
           else
             echo "No parseable JSON output — see eval-smoke.log:" >> "$GITHUB_STEP_SUMMARY"

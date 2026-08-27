@@ -161,14 +161,33 @@ def test_probe_step_exists_before_the_eval_step():
     assert "set +e" not in probe_step["run"]
 
 
-def test_summarize_step_fails_on_nonzero_errors_or_zero_verses():
+def test_summarize_step_fails_on_nonzero_errors():
     """A green exit code alone is not sufficient (BITB-107 Verification note):
     a run where every query errored used to still exit 0. The summarize step
-    must inspect the JSON output and fail when n_errors is nonzero or when
-    zero verses were retrieved across every query."""
+    must inspect the JSON output and fail this step when total n_errors is
+    nonzero."""
     workflow = _load_workflow()
     step = _step(workflow["jobs"]["eval-smoke"], "Summarize results")
     script = step["run"]
     assert "n_errors" in script
-    assert "verses_total" in script or "retrieved" in script
+    assert 'if [ "$err_total" != "0" ]' in script
     assert "exit 1" in script
+
+
+def test_summarize_step_only_warns_on_zero_verses():
+    """Live-verified (BITB-107): with the connection and translation defects
+    both fixed, a fully healthy eval-smoke run can legitimately retrieve zero
+    verses (1 Corinthians alone, similarity_threshold=0.35, topically
+    unrelated golden-set queries) with zero errors -- exactly what this job's
+    own header comment always said would happen. Zero verses must be a
+    warning, not a step failure, or eval-smoke would be permanently red
+    regardless of how healthy the plumbing actually is."""
+    workflow = _load_workflow()
+    step = _step(workflow["jobs"]["eval-smoke"], "Summarize results")
+    script = step["run"]
+    assert "verses_total" in script
+    # The zero-verses branch must warn, not exit the step.
+    zero_verses_idx = script.index('if [ "$verses_total" == "0" ]')
+    branch = script[zero_verses_idx : zero_verses_idx + 400]
+    assert "::warning::" in branch
+    assert "exit 1" not in branch
