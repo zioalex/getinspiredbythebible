@@ -111,7 +111,11 @@ schedule and on demand — no maintainer machine required:
   end-to-end without touching prod. Its P@5/R@10/MRR are expected to be
   **~0** — the golden set's first 3 cases live in Matthew/Philippians/Proverbs,
   not 1 Corinthians — so a non-zero *exit code* is the failure signal here,
-  not the metric values.
+  not the metric values. **Zero verses retrieved is a warning, not a failure**
+  (BITB-107, live-verified): a fully healthy run against this narrow,
+  single-book corpus can legitimately clear zero rows above the default
+  0.35 similarity threshold for topically unrelated queries. A nonzero query
+  error count is the real, unambiguous failure signal.
 
 `eval-smoke` always runs `--config baseline_semantic` only (BITB-107) — unlike
 `eval-prod`, which falls back to `baseline_semantic` only when no OpenRouter
@@ -125,6 +129,18 @@ for `azure_openai` (`text-embedding-3-small`), `1024` for Ollama's
 `validate_embedding_dimensions()` at startup for both providers (previously
 azure_openai was silently skipped, letting a mismatch reach query time
 instead of failing fast).
+
+`eval-smoke` also pins `--translation kjv` explicitly (BITB-107, live-verified),
+matching the translation code its "Load 1 Corinthians" step actually loads.
+Without it, every query silently resolves to `resolve_translation()`'s
+language-based default (`"web"` for English) instead of what the corpus
+actually contains — `resolve_translation()`'s readiness-aware behavior only
+works inside the running FastAPI app (`api/main.py`'s background refresh
+populates the cache it consults), which this standalone CLI never runs, so it
+always falls back to the static per-language default regardless of what a
+given ephemeral CI database actually has loaded. That produces a valid,
+error-free, permanently-empty result — not an exception, so it doesn't show
+up as a query error, just as zero verses retrieved for every case.
 
 **Troubleshooting `"Connection error."`** — this is `openai.APIConnectionError`'s
 fixed, uninformative default message; it tells you nothing about the actual

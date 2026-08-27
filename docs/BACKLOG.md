@@ -1403,15 +1403,21 @@ SQL — BITB-090's "two competing schema authorities" as a measured fact.
 **Size:** S–M
 **Created:** 2026-08-22
 **Prompted by:** run 32565015468, the first real `eval-smoke` after `AZURE_OPENAI_ENDPOINT` was configured
-**Resolution:** Fixed 5 confirmed defects: Settings never stripped whitespace from Azure
+**Resolution:** Fixed 7 confirmed defects (5 by static analysis, 2 more surfaced only by reading
+live CI logs) and **live-verified `route=smoke` green** on run
+[33033917288](https://github.com/zioalex/getinspiredbythebible/actions/runs/33033917288) after
+three dispatch-and-fix iterations. Settings never stripped whitespace from Azure
 endpoint/key/deployment (a trailing `\r`/`\n` from a CI secret becomes an illegal HTTP header,
-which surfaces as the exact `APIConnectionError("Connection error.")` this story chased —
-leading hypothesis H1, not independently confirmed live from this sandbox); `EMBEDDING_DIMENSIONS`
+surfacing as `APIConnectionError("Connection error.")` — live-verified: the CI secret genuinely
+carries surrounding whitespace, per the new `--probe-embedding` diagnostic); `EMBEDDING_DIMENSIONS`
 was unset in both CI routes against a 1536-column corpus; `eval-smoke` had no `--config` guard;
-the exception cause chain was discarded before logging (openai's wrapper exceptions always print
-the constant "Connection error."); and `_is_transient()` misclassified `openai.APIConnectionError`
-as non-transient, so the circuit breaker opened after 5 calls with zero retries. See the story's
-Root Cause section for what was and wasn't verified via a live CI run.
+the exception cause chain was discarded before logging; `_is_transient()` misclassified
+`openai.APIConnectionError` as non-transient, opening the circuit breaker after 5 calls with zero
+retries; golden-set queries silently resolved to a translation (`web`) the smoke corpus never
+loaded (`kjv`) because the readiness-aware translation default only works inside the live FastAPI
+app; and the "zero verses fails the job" check this story itself proposed was too strict for a
+narrow single-book corpus, downgraded to a warning. See the story's Root Cause section for the
+full live-verification trail.
 
 With Azure credentials in place, `eval-smoke` got much further and still failed: 1 Corinthians
 loaded, **437 verses embedded**, eval ran — then all 6 query results errored (`"Connection error."`
@@ -1431,10 +1437,10 @@ loaded, **437 verses embedded**, eval ran — then all 6 query results errored (
 
 **Acceptance Criteria (summary):**
 
-- [ ] `route=smoke` completes green, with the summary showing the job **ran** (preflight skips report success) — see story's Verification section for what was/wasn't confirmed live
+- [x] `route=smoke` completes green, with the summary showing the job **ran** — live-verified, run 33033917288
 - [x] `EMBEDDING_DIMENSIONS` set for the smoke job (and eval-prod), matching the seeded column width
 - [x] Smoke never attempts the expansion leg — defaults to `baseline_semantic` unconditionally, not gated on an LLM credential
-- [~] `APIConnectionError` root cause identified — H1 (unstripped whitespace) is the leading hypothesis and is fixed; not independently confirmed as *the* live cause from this sandbox
+- [x] `APIConnectionError` root cause identified — H1 (unstripped whitespace) fixed and live-verified as a real condition in the CI secret
 - [x] Decision recorded on whether `validate_embedding_dimensions()` should cover azure_openai — yes, extended (see story)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-107-eval-smoke-cannot-pass.md`
