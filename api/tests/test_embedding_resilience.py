@@ -10,6 +10,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import httpx
+import openai
 import pytest
 
 from config import settings
@@ -122,6 +123,26 @@ async def test_non_transient_error_raises_without_retry():
         await provider.embed("hello")
 
     assert wrapped.embed.await_count == 1  # no retry for non-transient errors
+
+
+@pytest.mark.asyncio
+async def test_openai_api_connection_error_is_retried():
+    """BITB-107: openai.APIConnectionError (what AzureOpenAIEmbeddingProvider
+    raises on a real connection failure, e.g. an illegal header value from an
+    unstripped env var) must be retried like any other transient failure, not
+    raised immediately on the first attempt. Before the _is_transient fix,
+    this error carried neither an httpx exception type nor a status_code
+    attribute and was misclassified as non-transient."""
+    wrapped = _FakeProvider()
+    request = httpx.Request("POST", "https://example.openai.azure.com/embeddings")
+    wrapped.embed.side_effect = openai.APIConnectionError(request=request)
+    cfg = _make_settings(embedding_retry_max_attempts=3, embedding_breaker_failure_threshold=5)
+    provider = ResilientEmbeddingProvider(wrapped, cfg)
+
+    with pytest.raises(openai.APIConnectionError):
+        await provider.embed("hello")
+
+    assert wrapped.embed.await_count == 3  # all attempts used, i.e. it was retried
 
 
 @pytest.mark.asyncio
