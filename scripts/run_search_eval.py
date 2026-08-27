@@ -14,6 +14,15 @@ Usage
                        baseline_semantic,expansion_semantic). See
                        search_eval.runner.EVAL_CONFIGS for the full list.
 --language CODE        Restrict to one golden-set language (e.g. it, de).
+--translation CODE     Override which translation every query searches
+                       against (e.g. kjv), instead of each case's normal
+                       resolve_translation() default. For a corpus that
+                       only contains one translation (BITB-107's
+                       eval-smoke) -- resolve_translation()'s language-based
+                       default is readiness-aware only inside the running
+                       FastAPI app, so this standalone CLI would otherwise
+                       silently query a translation the corpus never loaded
+                       and always retrieve zero verses.
 --smoke                Run --run against only the first 3 cases — a fast
                        plumbing check, not a real measurement.
 --json                 Print machine-readable JSON instead of the text report.
@@ -187,7 +196,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
         cases = cases[:3]
 
     try:
-        run_result = asyncio.run(run_eval(cases, config_names))
+        run_result = asyncio.run(
+            run_eval(cases, config_names, translation_override=args.translation)
+        )
     except Exception as exc:  # noqa: BLE001 - surface a clean message, not a traceback
         print(f"ERROR: search-eval run failed — {exc}", file=sys.stderr)
         print(
@@ -243,6 +254,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--language", help="Restrict --run to one golden-set language code."
+    )
+    parser.add_argument(
+        "--translation",
+        help=(
+            "Override which translation every --run query searches against "
+            "(e.g. kjv), instead of each case's resolve_translation() default."
+        ),
     )
     parser.add_argument(
         "--smoke",

@@ -429,8 +429,20 @@ jobs:
             language_flag=(--language "$INPUT_LANGUAGE")
           fi
 
+          # BITB-107 (live-verified): resolve_translation()'s language-based
+          # default is readiness-aware only inside the running FastAPI app
+          # (api/main.py's background refresh populates that cache); this
+          # standalone CLI never populates it, so it falls back to each
+          # language's *static* configured default -- "web" for English --
+          # regardless of which translation this job actually loaded below
+          # ("kjv"). Without --translation, every query here always resolved
+          # to a translation with zero rows in this ephemeral DB: not an
+          # error, just an empty result, silently passing the exit-code gate
+          # with zero verses ever retrieved. The flag below pins every query
+          # to the translation this job actually seeds.
           set +e
-          python scripts/run_search_eval.py --run --smoke --json "${config_flag[@]}" "${language_flag[@]}" \
+          python scripts/run_search_eval.py --run --smoke --json --translation kjv \
+            "${config_flag[@]}" "${language_flag[@]}" \
             > eval-smoke.json 2> eval-smoke.log
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e

@@ -149,11 +149,25 @@ async def run_query(
     search_service: ScriptureSearchService,
     embed: EmbedFn,
     expander: Expander | None,
+    translation_override: str | None = None,
 ) -> QueryResult:
     """Run one golden-set case through ``config`` and score the retrieval.
 
     Fail-open: any exception is caught and returned as a zero-scored error
     result so one bad query never aborts the whole run.
+
+    ``translation_override``, when given, is used verbatim instead of calling
+    ``resolve_translation()`` (BITB-107). ``resolve_translation()``'s
+    language-based default is readiness-aware in the full app (skips a
+    translation that isn't fully loaded+embedded), but that readiness cache
+    is populated by ``api/main.py``'s background refresh, which never runs
+    in this standalone CLI/CI context -- so it silently falls back to each
+    language's *static* configured default (``"web"`` for English), which is
+    not necessarily the translation a given corpus actually contains. This
+    bit `eval-smoke` specifically: its ephemeral DB only ever loads `kjv`,
+    but every English golden-set query resolved to `web` and always matched
+    zero rows -- not an error, just an empty, always-zero result, so it
+    reached the exit-code gate as a passing run reporting nothing.
     """
     try:
         query_embedding = await embed(case.query)
@@ -178,7 +192,7 @@ async def run_query(
                 extra={"config": config.name},
             )
 
-        translation = resolve_translation(case.translation, case.language)
+        translation = translation_override or resolve_translation(case.translation, case.language)
 
         if config.use_hybrid:
             results = await search_service.search_hybrid(
@@ -248,10 +262,18 @@ async def run_config(
     search_service: ScriptureSearchService,
     embed: EmbedFn,
     expander: Expander | None,
+    translation_override: str | None = None,
 ) -> list[QueryResult]:
     """Run every case in ``cases`` through one config, in order."""
     return [
-        await run_query(case, config, search_service=search_service, embed=embed, expander=expander)
+        await run_query(
+            case,
+            config,
+            search_service=search_service,
+            embed=embed,
+            expander=expander,
+            translation_override=translation_override,
+        )
         for case in cases
     ]
 
@@ -263,6 +285,7 @@ async def run_eval(
     session=None,
     embedding_provider: EmbeddingProvider | None = None,
     llm_provider: LLMProvider | None = None,
+    translation_override: str | None = None,
 ) -> RunResult:
     """Run ``cases`` through every named config in ``config_names``.
 
@@ -270,6 +293,11 @@ async def run_eval(
     bootstraps them standalone (outside the FastAPI app), the same pattern
     ``scripts/migrations/run_migrations.py`` uses. Read-only — no commits are
     ever made on the session.
+
+    ``translation_override``: see ``run_query``'s docstring (BITB-107) — set
+    this for a corpus that only contains one translation (e.g. `eval-smoke`'s
+    single-book, single-translation CI seed) so every case queries that
+    translation instead of each case's/language's normal resolved default.
     """
     configs = [EVAL_CONFIGS[name] for name in config_names]
 
@@ -302,6 +330,7 @@ async def run_eval(
                     search_service=search_service,
                     embed=embed,
                     expander=expander,
+                    translation_override=translation_override,
                 )
             )
 

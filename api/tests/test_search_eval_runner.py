@@ -101,6 +101,41 @@ class TestDispatch:
         assert result.retrieved == ["John 3:16"]
 
     @pytest.mark.asyncio
+    async def test_translation_override_bypasses_resolve_translation(self):
+        """BITB-107 (live-verified against eval-smoke): resolve_translation()'s
+        readiness-aware language default silently resolves to a translation a
+        standalone-CLI corpus never loaded, always returning zero rows. When
+        translation_override is given, it must be used verbatim instead."""
+        service = _fake_search_service(semantic_refs=[])
+        await run_query(
+            _case(language="en"),
+            EVAL_CONFIGS["baseline_semantic"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+            translation_override="kjv",
+        )
+        _, kwargs = service.search.call_args
+        # Without the override, English resolves to "web" (see
+        # utils.language.LANGUAGE_TO_TRANSLATION) -- the override must win.
+        assert kwargs["translation"] == "kjv"
+
+    @pytest.mark.asyncio
+    async def test_no_translation_override_uses_resolve_translation(self):
+        """Without an override, behaviour is unchanged: English resolves to
+        the language default ("web"), not the override path."""
+        service = _fake_search_service(semantic_refs=[])
+        await run_query(
+            _case(language="en"),
+            EVAL_CONFIGS["baseline_semantic"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        _, kwargs = service.search.call_args
+        assert kwargs["translation"] == "web"
+
+    @pytest.mark.asyncio
     async def test_max_verses_at_least_ten(self):
         service = _fake_search_service(semantic_refs=[])
         await run_query(

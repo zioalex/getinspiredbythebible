@@ -75,6 +75,37 @@ def test_smoke_dimensions_match_the_seeded_column_width():
     )
 
 
+def test_smoke_pins_the_translation_it_actually_loaded():
+    """BITB-107 (live-verified): without --translation, every golden-set query
+    resolves to a language's *static* default translation (e.g. "web" for
+    English) rather than whatever this ephemeral job actually loaded/embedded
+    -- a corpus/query mismatch that always retrieves zero verses, silently,
+    with no error. --translation must be pinned to the same code the 'Load 1
+    Corinthians' step passes to load_bible.py, not hardcoded independently."""
+    workflow = _load_workflow()
+    smoke_job = workflow["jobs"]["eval-smoke"]
+
+    load_step = _step(smoke_job, "Load 1 Corinthians (CI subset)")
+    # load_bible.py defaults to "kjv" when --translation is not passed
+    # explicitly (see scripts/load_bible.py); support either form.
+    match = re.search(r"--translation\s+(\S+)", load_step["run"])
+    loaded_translation = match.group(1) if match else "kjv"
+
+    run_step = _step(smoke_job, "Run smoke eval")
+    # Search only the actual CLI invocation line, not surrounding comments
+    # (which also discuss --translation in prose).
+    invocation_line = next(
+        line for line in run_step["run"].splitlines() if "run_search_eval.py" in line
+    )
+    run_match = re.search(r"--translation\s+(\S+)", invocation_line)
+    assert run_match, "eval-smoke's run_search_eval.py invocation is missing --translation"
+    assert run_match.group(1) == loaded_translation, (
+        f"eval-smoke queries translation {run_match.group(1)!r} but the job "
+        f"loads {loaded_translation!r} -- every query would resolve to a "
+        "translation with zero rows and always retrieve nothing."
+    )
+
+
 def test_smoke_defaults_to_baseline_semantic_config():
     """Unlike eval-prod (which only falls back to baseline_semantic when no
     LLM credential is present), eval-smoke must default to baseline_semantic
