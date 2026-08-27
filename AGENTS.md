@@ -118,7 +118,9 @@ Critical variables:
 - `ANTHROPIC_API_KEY` - Required when LLM_PROVIDER=claude
 - `OPENROUTER_API_KEY` - Required when LLM_PROVIDER=openrouter
 - `EMBEDDING_PROVIDER` - `azure_openai` | `ollama`
-- `EMBEDDING_DIMENSIONS` - Vector dimensions (default 1536)
+- `EMBEDDING_DIMENSIONS` - Vector dimensions (default `1024`, Ollama mxbai-embed-large's size;
+  set to `1536` with `EMBEDDING_PROVIDER=azure_openai` + `text-embedding-3-small`/`ada-002`.
+  Enforced at Settings() startup for both providers, BITB-107)
 - `NEXT_PUBLIC_API_URL` - Backend URL for frontend
 
 ## Testing

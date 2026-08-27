@@ -113,6 +113,41 @@ schedule and on demand — no maintainer machine required:
   not 1 Corinthians — so a non-zero *exit code* is the failure signal here,
   not the metric values.
 
+`eval-smoke` always runs `--config baseline_semantic` only (BITB-107) — unlike
+`eval-prod`, which falls back to `baseline_semantic` only when no OpenRouter
+key is configured. Smoke's whole purpose is credential-light plumbing
+verification, so it never attempts the `expansion_semantic` leg (which needs
+an LLM provider) regardless of whether an LLM credential happens to be
+present; pass the workflow's `configs` input to override this deliberately
+for a manual run. `EMBEDDING_DIMENSIONS` must match the target corpus — `1536`
+for `azure_openai` (`text-embedding-3-small`), `1024` for Ollama's
+`mxbai-embed-large` — and is now enforced by `config.py`'s
+`validate_embedding_dimensions()` at startup for both providers (previously
+azure_openai was silently skipped, letting a mismatch reach query time
+instead of failing fast).
+
+**Troubleshooting `"Connection error."`** — this is `openai.APIConnectionError`'s
+fixed, uninformative default message; it tells you nothing about the actual
+cause. `eval-smoke` runs a dedicated `--probe-embedding` step (BITB-107)
+*before* the eval step specifically so a real failure prints its full
+exception chain into the console log instead of being buried in the JSON
+artifact as this one opaque string. To reproduce locally:
+
+```bash
+EMBEDDING_PROVIDER=azure_openai AZURE_OPENAI_ENDPOINT=... AZURE_OPENAI_API_KEY=... \
+  AZURE_EMBEDDING_DEPLOYMENT=... EMBEDDING_DIMENSIONS=1536 \
+  python scripts/run_search_eval.py --probe-embedding
+```
+
+It prints the resolved provider config (endpoint scheme+host only, never the
+full URL or key), makes one real `embed()` call through the app's actual
+cache+resilience-wrapped provider stack, and on failure prints
+`traceback.print_exception`'s full chain to stderr — including a cause like
+`httpx`/`h11`'s `LocalProtocolError` from an illegal header value, which is
+exactly what a trailing `\r`/`\n` surviving into `AZURE_OPENAI_API_KEY` (a
+Windows line-ending artifact) produces. `config.py` now strips whitespace
+from the Azure endpoint/key/deployment fields for this reason.
+
 Both routes run nightly (04:23 UTC) and via **Actions → Search Eval — Full →
 Run workflow** (`route: both | prod | smoke`, optional `configs` / `language`
 inputs). Results land as a `$GITHUB_STEP_SUMMARY` table and as a downloadable
