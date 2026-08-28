@@ -101,6 +101,41 @@ class TestDispatch:
         assert result.retrieved == ["John 3:16"]
 
     @pytest.mark.asyncio
+    async def test_translation_override_bypasses_resolve_translation(self):
+        """BITB-107 (live-verified against eval-smoke): resolve_translation()'s
+        readiness-aware language default silently resolves to a translation a
+        standalone-CLI corpus never loaded, always returning zero rows. When
+        translation_override is given, it must be used verbatim instead."""
+        service = _fake_search_service(semantic_refs=[])
+        await run_query(
+            _case(language="en"),
+            EVAL_CONFIGS["baseline_semantic"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+            translation_override="kjv",
+        )
+        _, kwargs = service.search.call_args
+        # Without the override, English resolves to "web" (see
+        # utils.language.LANGUAGE_TO_TRANSLATION) -- the override must win.
+        assert kwargs["translation"] == "kjv"
+
+    @pytest.mark.asyncio
+    async def test_no_translation_override_uses_resolve_translation(self):
+        """Without an override, behaviour is unchanged: English resolves to
+        the language default ("web"), not the override path."""
+        service = _fake_search_service(semantic_refs=[])
+        await run_query(
+            _case(language="en"),
+            EVAL_CONFIGS["baseline_semantic"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        _, kwargs = service.search.call_args
+        assert kwargs["translation"] == "web"
+
+    @pytest.mark.asyncio
     async def test_max_verses_at_least_ten(self):
         service = _fake_search_service(semantic_refs=[])
         await run_query(
@@ -190,11 +225,50 @@ class TestFailOpen:
             embed=_fake_embed,
             expander=None,
         )
-        assert result.error == "db unreachable"
+        # BITB-107: the recorded error is rendered via _describe_exception,
+        # which includes the exception's type name alongside its message
+        # (rather than bare str(exc)) so a chained cause is never silently
+        # dropped -- see test_error_records_full_exception_chain below.
+        assert result.error == "RuntimeError: db unreachable"
         assert result.precision_at_5 == 0.0
         assert result.recall_at_10 == 0.0
         assert result.mrr == 0.0
         assert result.retrieved == []
+
+    @pytest.mark.asyncio
+    async def test_error_records_full_exception_chain(self):
+        """BITB-107: openai.APIConnectionError's __str__() is a fixed,
+        uninformative constant ("Connection error.") -- the real cause lives
+        on __cause__/__context__, which bare str(exc) discarded. Guard
+        against that regression: the recorded error string must carry both
+        the outer and the inner exception's class name and message."""
+
+        class InnerError(Exception):
+            pass
+
+        class OuterError(Exception):
+            pass
+
+        async def raising_search(**kwargs):
+            try:
+                raise InnerError("illegal header value")
+            except InnerError as inner:
+                raise OuterError("Connection error.") from inner
+
+        service = _fake_search_service()
+        service.search = AsyncMock(side_effect=raising_search)
+        result = await run_query(
+            _case(),
+            EVAL_CONFIGS["baseline_semantic"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        assert result.error is not None
+        assert "OuterError" in result.error
+        assert "Connection error." in result.error
+        assert "InnerError" in result.error
+        assert "illegal header value" in result.error
 
     @pytest.mark.asyncio
     async def test_one_bad_case_does_not_abort_the_config_run(self):

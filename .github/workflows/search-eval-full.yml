@@ -49,8 +49,21 @@ name: Search Eval — Full
 # Creating that environment and setting SEARCH_EVAL_DB_PASSWORD's value is a
 # manual, one-time operator step — a workflow file cannot provision a
 # GitHub environment or generate/store a production credential. Until an
-# operator does that, eval-prod is skipped (see the preflight job below),
-# which is the fail-closed default.
+# operator does that, eval-prod is skipped (see the prod-secret-check job
+# below), which is the fail-closed default.
+#
+# Why SEARCH_EVAL_DB_PASSWORD is checked in its own job and not in preflight:
+# an environment-scoped secret is only in a job's `secrets` context when that
+# job itself declares `environment:`. The `preflight` job deliberately does
+# not (it gates eval-smoke too, and must never inherit the environment's
+# branch policy or any reviewer the operator later adds), so
+# `secrets.SEARCH_EVAL_DB_PASSWORD` reads as empty there — for a repo that
+# has the secret set exactly as it does for one that doesn't. Checking it
+# there made eval-prod unconditionally skip even once the operator had done
+# their part, which is what happened on every run between the environment
+# being created and this fix. The presence check therefore lives in
+# `prod-secret-check`, the one job scoped to the `search-eval` environment,
+# and eval-prod gates on its output.
 #
 # Any of the above missing ⇒ the affected job is skipped with a clear notice
 # in the job summary, never failed. This workflow never runs on pull_request
@@ -109,7 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_arm: ${{ steps.check.outputs.has_arm }}
-      has_db: ${{ steps.check.outputs.has_db }}
+      has_db_name: ${{ steps.check.outputs.has_db_name }}
       has_azure: ${{ steps.check.outputs.has_azure }}
       has_llm: ${{ steps.check.outputs.has_llm }}
     steps:
@@ -119,13 +132,15 @@ jobs:
           HAS_ARM: >-
             ${{ secrets.ARM_CLIENT_ID != '' && secrets.ARM_CLIENT_SECRET != '' && secrets.ARM_SUBSCRIPTION_ID != '' &&
             secrets.ARM_TENANT_ID != '' }}
-          HAS_DB: >-
-            ${{ secrets.SEARCH_EVAL_DB_PASSWORD != '' && secrets.TF_VAR_DB_NAME != '' }}
+          # Repo-scoped half of eval-prod's DB configuration only. The
+          # role's password is environment-scoped and therefore invisible
+          # here — prod-secret-check checks that (see the header note).
+          HAS_DB_NAME: ${{ secrets.TF_VAR_DB_NAME != '' }}
           HAS_AZURE: ${{ vars.AZURE_OPENAI_ENDPOINT != '' && secrets.AZURE_OPENAI_API_KEY != '' }}
           HAS_LLM: ${{ secrets.TF_VAR_OPENROUTER_API_KEY != '' }}
         run: |
           echo "has_arm=${HAS_ARM}" >> "$GITHUB_OUTPUT"
-          echo "has_db=${HAS_DB}" >> "$GITHUB_OUTPUT"
+          echo "has_db_name=${HAS_DB_NAME}" >> "$GITHUB_OUTPUT"
           echo "has_azure=${HAS_AZURE}" >> "$GITHUB_OUTPUT"
           echo "has_llm=${HAS_LLM}" >> "$GITHUB_OUTPUT"
 
@@ -135,13 +150,14 @@ jobs:
             echo "| requirement | present | disables |"
             echo "| --- | --- | --- |"
             echo "| Azure login (ARM_*) | ${HAS_ARM} | eval-prod |"
-            echo "| search_eval_ro DB password (SEARCH_EVAL_DB_PASSWORD) | ${HAS_DB} | eval-prod |"
+            echo "| Prod DB name (TF_VAR_DB_NAME) | ${HAS_DB_NAME} | eval-prod |"
+            echo "| search_eval_ro DB password | checked in prod-secret-check | eval-prod |"
             echo "| Azure OpenAI (endpoint + key) | ${HAS_AZURE} | eval-prod, eval-smoke |"
             echo "| OpenRouter key (expansion LLM) | ${HAS_LLM} | expansion_semantic leg only |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ "$HAS_ARM" != "true" ] || [ "$HAS_DB" != "true" ]; then
-            echo "::notice::eval-prod will be skipped — Azure login or prod DB secrets are not configured."
+          if [ "$HAS_ARM" != "true" ] || [ "$HAS_DB_NAME" != "true" ]; then
+            echo "::notice::eval-prod will be skipped — Azure login or the prod DB name is not configured."
           fi
           if [ "$HAS_AZURE" != "true" ]; then
             echo "::notice::eval-prod and eval-smoke will both be skipped — Azure OpenAI is not configured."
@@ -151,15 +167,61 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
+  # Route A's environment-secret gate. This job exists only because an
+  # environment-scoped secret is invisible to any job that does not declare
+  # the environment: it is `preflight`'s missing half, deliberately kept in a
+  # job of its own so that the `search-eval` environment's policies (branch
+  # restrictions, and any reviewer a future operator adds) apply to Route A
+  # alone and never hold up eval-smoke. It runs no checkout and touches
+  # nothing — it reads one boolean out of the `secrets` context.
+  # ---------------------------------------------------------------------------
+  prod-secret-check:
+    name: Check search-eval environment
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db_name == 'true' &&
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'smoke')
+    runs-on: ubuntu-latest
+    environment: search-eval
+    outputs:
+      has_db_password: ${{ steps.check.outputs.has_db_password }}
+    steps:
+      - name: Check the search_eval_ro password secret
+        id: check
+        env:
+          HAS_DB_PASSWORD: ${{ secrets.SEARCH_EVAL_DB_PASSWORD != '' }}
+        run: |
+          echo "has_db_password=${HAS_DB_PASSWORD}" >> "$GITHUB_OUTPUT"
+
+          if [ "$HAS_DB_PASSWORD" != "true" ]; then
+            {
+              echo "### Search Eval — eval-prod gate"
+              echo ""
+              echo "\`SEARCH_EVAL_DB_PASSWORD\` is not set in the \`search-eval\`"
+              echo "environment, so eval-prod is skipped (fail-closed)."
+              echo ""
+              echo "Set it to the \`search_eval_ro\` role's password —"
+              echo "Settings → Environments → search-eval → Environment secrets."
+              echo "The role itself is provisioned by"
+              echo "\`api/alembic/versions/r0005_add_search_eval_ro_role.py\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            msg="::notice::eval-prod will be skipped — SEARCH_EVAL_DB_PASSWORD"
+            msg="${msg} is not set in the search-eval environment."
+            echo "$msg"
+          fi
+
+  # ---------------------------------------------------------------------------
   # Route A — read-only eval against the real production database.
   # ---------------------------------------------------------------------------
   eval-prod:
     name: eval-prod (Route A)
-    needs: preflight
-    if: >-
-      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db == 'true' &&
-      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
-      'smoke')
+    needs: [preflight, prod-secret-check]
+    # Every other precondition (ARM login, DB name, Azure OpenAI, and the
+    # route/event selection) is already carried by prod-secret-check's own
+    # `if:` — when it is skipped this reads an empty output and skips too, so
+    # they are not repeated here.
+    if: needs.prod-secret-check.outputs.has_db_password == 'true' # pragma: allowlist secret
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: search-eval
@@ -207,6 +269,11 @@ jobs:
           AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          # BITB-107: must match the vector(1536) column this route reads from
+          # prod, and is required together with config.py's dimension
+          # validator now covering azure_openai (an unset/mismatched value
+          # fails Settings() at import time instead of at query time).
+          EMBEDDING_DIMENSIONS: "1536"
           HAS_LLM: ${{ needs.preflight.outputs.has_llm }}
           OPENROUTER_API_KEY_IF_SET: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           INPUT_CONFIGS: ${{ github.event.inputs.configs }}
@@ -373,6 +440,21 @@ jobs:
           cd scripts
           python create_azure_embeddings.py
 
+      - name: Probe the embedding provider (app stack)
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          EMBEDDING_PROVIDER: azure_openai
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          EMBEDDING_DIMENSIONS: "1536"
+        # BITB-107: intentionally NOT wrapped in `set +e` — this step exists
+        # so a real failure prints its actual exception chain straight into
+        # the console log (via search_eval's own exc_info=True logging and
+        # traceback.print_exception), instead of the eval run's fail-open
+        # per-query handling burying it in an artifact as "Connection error."
+        run: python scripts/run_search_eval.py --probe-embedding
+
       - name: Run smoke eval
         id: run
         env:
@@ -381,10 +463,49 @@ jobs:
           AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_EMBEDDING_DEPLOYMENT: ${{ env.AZURE_EMBEDDING_DEPLOYMENT }}
+          # BITB-107: must match the vector(1536) column "Load 1 Corinthians"
+          # seeds below, and required now that config.py's dimension
+          # validator covers azure_openai.
+          EMBEDDING_DIMENSIONS: "1536"
+          INPUT_CONFIGS: ${{ github.event.inputs.configs }}
+          INPUT_LANGUAGE: ${{ github.event.inputs.language }}
         run: |
           set -o pipefail
+
+          # BITB-107: unlike eval-prod (which only falls back to
+          # baseline_semantic when no LLM credential is present), eval-smoke
+          # defaults to baseline_semantic UNCONDITIONALLY unless the workflow
+          # input explicitly names configs. Smoke's whole purpose is
+          # credential-light plumbing verification -- gating the default on
+          # HAS_LLM would leave it silently depending on a free OpenRouter
+          # model for the expansion_semantic leg (doubling runtime and adding
+          # flake) even though no LLM credential is required to run smoke at
+          # all. Still respects an explicit `configs` input.
+          config_flag=(--config baseline_semantic)
+          if [ -n "$INPUT_CONFIGS" ]; then
+            config_flag=(--config "$INPUT_CONFIGS")
+          fi
+
+          language_flag=()
+          if [ -n "$INPUT_LANGUAGE" ]; then
+            language_flag=(--language "$INPUT_LANGUAGE")
+          fi
+
+          # BITB-107 (live-verified): resolve_translation()'s language-based
+          # default is readiness-aware only inside the running FastAPI app
+          # (api/main.py's background refresh populates that cache); this
+          # standalone CLI never populates it, so it falls back to each
+          # language's *static* configured default -- "web" for English --
+          # regardless of which translation this job actually loaded below
+          # ("kjv"). Without --translation, every query here always resolved
+          # to a translation with zero rows in this ephemeral DB: not an
+          # error, just an empty result, silently passing the exit-code gate
+          # with zero verses ever retrieved. The flag below pins every query
+          # to the translation this job actually seeds.
           set +e
-          python scripts/run_search_eval.py --run --smoke --json > eval-smoke.json 2> eval-smoke.log
+          python scripts/run_search_eval.py --run --smoke --json --translation kjv \
+            "${config_flag[@]}" "${language_flag[@]}" \
+            > eval-smoke.json 2> eval-smoke.log
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
 
@@ -404,11 +525,48 @@ jobs:
           exit_code="${{ steps.run.outputs.exit_code }}"
           if [ -s eval-smoke.json ] && jq -e . eval-smoke.json > /dev/null 2>&1; then
             echo "Smoke run produced parseable JSON output (exit ${exit_code})." >> "$GITHUB_STEP_SUMMARY"
+
+            # BITB-107: "the CLI exited 0" is not sufficient on its own — a
+            # run where every query errored (fail-open, scored 0.00) used to
+            # exit 0 as long as it wasn't *every single* query. A nonzero
+            # total n_errors is unambiguous plumbing breakage and fails this
+            # step. Zero verses retrieved is only a *warning*, not a
+            # failure -- live-verified (BITB-107): with the connection and
+            # translation defects both fixed, a fully healthy run against
+            # this corpus (1 Corinthians alone, similarity_threshold=0.35)
+            # can legitimately retrieve nothing for topically unrelated
+            # golden-set queries (anxiety/loneliness/finances) with zero
+            # errors, exactly as this job's own header comment always said
+            # it would ("scores are expected to be ~0 ... this job is a
+            # plumbing check, not a relevance measurement"). Treating that
+            # as a hard failure would make eval-smoke permanently red
+            # regardless of how healthy the plumbing actually is.
+            err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-smoke.json)
+            verses_total=$(jq '[.query_results[].retrieved | length] | add // 0' eval-smoke.json)
+            {
+              echo ""
+              echo "| total query errors | total verses retrieved |"
+              echo "| --- | --- |"
+              echo "| ${err_total} | ${verses_total} |"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$err_total" != "0" ]; then
+              echo "::error::eval-smoke: ${err_total} query error(s) — see eval-smoke.log artifact."
+              exit 1
+            fi
+            if [ "$verses_total" == "0" ]; then
+              warn_msg="::warning::eval-smoke: zero verses retrieved across every query."
+              warn_msg="${warn_msg} Zero errors, so plumbing is healthy -- this corpus/threshold"
+              warn_msg="${warn_msg} combination can legitimately match nothing (BITB-107)."
+              echo "$warn_msg"
+            fi
           else
             echo "No parseable JSON output — see eval-smoke.log:" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             tail -n 40 eval-smoke.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::eval-smoke: no parseable JSON output — see eval-smoke.log artifact."
+            exit 1
           fi
 
       - name: Upload results artifact
@@ -435,7 +593,7 @@ jobs:
   # ---------------------------------------------------------------------------
   eval-summary:
     name: Summary
-    needs: [preflight, eval-prod, eval-smoke]
+    needs: [preflight, prod-secret-check, eval-prod, eval-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -446,6 +604,7 @@ jobs:
             echo ""
             echo "| route | result |"
             echo "| --- | --- |"
+            echo "| eval-prod gate (search-eval environment) | ${{ needs.prod-secret-check.result }} |"
             echo "| eval-prod (Route A) | ${{ needs.eval-prod.result }} |"
             echo "| eval-smoke | ${{ needs.eval-smoke.result }} |"
             echo ""

@@ -102,16 +102,68 @@ produced automatically by the CI workflow below (**P4a**).
 `.github/workflows/search-eval-full.yml` runs this harness for real, on a
 schedule and on demand — no maintainer machine required:
 
-- **`eval-prod`** — read-only against the production database (DB connection
-  built the same way `azure-deploy.yml` does for migrations/seeding — no new
-  DB secret), Azure-embeds the golden set's queries, and retrieves from prod's
-  real vectors. True prod numbers, no rebuild, no writes.
+- **`eval-prod`** — read-only against the production database (host discovered
+  the same way `azure-deploy.yml` does; authenticated as the dedicated
+  read-only `search_eval_ro` role, not the deploy pipeline's admin credential
+  — BITB-101), Azure-embeds the golden set's queries, and retrieves from
+  prod's real vectors. True prod numbers, no rebuild, no writes.
 - **`eval-smoke`** — loads 1 Corinthians into an ephemeral CI Postgres,
   Azure-embeds it, and runs `--run --smoke`. Proves the CLI/Azure plumbing
   end-to-end without touching prod. Its P@5/R@10/MRR are expected to be
   **~0** — the golden set's first 3 cases live in Matthew/Philippians/Proverbs,
   not 1 Corinthians — so a non-zero *exit code* is the failure signal here,
-  not the metric values.
+  not the metric values. **Zero verses retrieved is a warning, not a failure**
+  (BITB-107, live-verified): a fully healthy run against this narrow,
+  single-book corpus can legitimately clear zero rows above the default
+  0.35 similarity threshold for topically unrelated queries. A nonzero query
+  error count is the real, unambiguous failure signal.
+
+`eval-smoke` always runs `--config baseline_semantic` only (BITB-107) — unlike
+`eval-prod`, which falls back to `baseline_semantic` only when no OpenRouter
+key is configured. Smoke's whole purpose is credential-light plumbing
+verification, so it never attempts the `expansion_semantic` leg (which needs
+an LLM provider) regardless of whether an LLM credential happens to be
+present; pass the workflow's `configs` input to override this deliberately
+for a manual run. `EMBEDDING_DIMENSIONS` must match the target corpus — `1536`
+for `azure_openai` (`text-embedding-3-small`), `1024` for Ollama's
+`mxbai-embed-large` — and is now enforced by `config.py`'s
+`validate_embedding_dimensions()` at startup for both providers (previously
+azure_openai was silently skipped, letting a mismatch reach query time
+instead of failing fast).
+
+`eval-smoke` also pins `--translation kjv` explicitly (BITB-107, live-verified),
+matching the translation code its "Load 1 Corinthians" step actually loads.
+Without it, every query silently resolves to `resolve_translation()`'s
+language-based default (`"web"` for English) instead of what the corpus
+actually contains — `resolve_translation()`'s readiness-aware behavior only
+works inside the running FastAPI app (`api/main.py`'s background refresh
+populates the cache it consults), which this standalone CLI never runs, so it
+always falls back to the static per-language default regardless of what a
+given ephemeral CI database actually has loaded. That produces a valid,
+error-free, permanently-empty result — not an exception, so it doesn't show
+up as a query error, just as zero verses retrieved for every case.
+
+**Troubleshooting `"Connection error."`** — this is `openai.APIConnectionError`'s
+fixed, uninformative default message; it tells you nothing about the actual
+cause. `eval-smoke` runs a dedicated `--probe-embedding` step (BITB-107)
+*before* the eval step specifically so a real failure prints its full
+exception chain into the console log instead of being buried in the JSON
+artifact as this one opaque string. To reproduce locally:
+
+```bash
+EMBEDDING_PROVIDER=azure_openai AZURE_OPENAI_ENDPOINT=... AZURE_OPENAI_API_KEY=... \
+  AZURE_EMBEDDING_DEPLOYMENT=... EMBEDDING_DIMENSIONS=1536 \
+  python scripts/run_search_eval.py --probe-embedding
+```
+
+It prints the resolved provider config (endpoint scheme+host only, never the
+full URL or key), makes one real `embed()` call through the app's actual
+cache+resilience-wrapped provider stack, and on failure prints
+`traceback.print_exception`'s full chain to stderr — including a cause like
+`httpx`/`h11`'s `LocalProtocolError` from an illegal header value, which is
+exactly what a trailing `\r`/`\n` surviving into `AZURE_OPENAI_API_KEY` (a
+Windows line-ending artifact) produces. `config.py` now strips whitespace
+from the Azure endpoint/key/deployment fields for this reason.
 
 Both routes run nightly (04:23 UTC) and via **Actions → Search Eval — Full →
 Run workflow** (`route: both | prod | smoke`, optional `configs` / `language`
@@ -119,6 +171,25 @@ inputs). Results land as a `$GITHUB_STEP_SUMMARY` table and as a downloadable
 JSON+log artifact (30-day retention). Missing secrets/vars make the affected
 job skip with a `::notice::` rather than fail — this workflow never runs on
 `pull_request` and never gates a merge.
+
+### When `eval-prod` shows up as *skipped*
+
+Its credential, `SEARCH_EVAL_DB_PASSWORD`, is scoped to the `search-eval`
+GitHub environment, and an environment-scoped secret is readable only from a
+job that declares that environment. The check therefore lives in its own
+`prod-secret-check` job ("Check search-eval environment") — read that job, not
+`preflight`, to find out why Route A did not run:
+
+| what you see | what it means |
+| --- | --- |
+| `prod-secret-check` **skipped** | a repo-level precondition failed — the `preflight` summary table names which (ARM login, `TF_VAR_DB_NAME`, Azure OpenAI), or the run was dispatched with `route: smoke` |
+| `prod-secret-check` **success**, `eval-prod` **skipped** | the environment exists but `SEARCH_EVAL_DB_PASSWORD` is unset in it — set it under Settings → Environments → search-eval → Environment secrets |
+| both **success** | Route A ran; its numbers are in the summary and the artifact |
+
+Checking that secret from `preflight` instead looks correct and is not: it
+reads as empty there whether or not the operator ever set it, which pins
+`eval-prod` to *always* skipped. `preflight` also gates `eval-smoke`, which
+needs no prod credential, so it deliberately stays outside the environment.
 
 **Not yet built:** a third route (`eval-corpus`, tracked as **P4b**) that
 rebuilds all 11 translations from scratch into a cached pgvector instance, for

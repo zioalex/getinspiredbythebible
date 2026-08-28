@@ -295,6 +295,106 @@ def test_ollama_dimension_validation_still_enforced_after_azure_fix():
     assert "1024" in error_msg
 
 
+def test_azure_openai_known_deployment_dimension_mismatch_raises():
+    """BITB-107: a recognized Azure deployment name must match its native size.
+
+    text-embedding-3-small is 1536-dimensional; requesting 1024 (the Ollama
+    default) is the exact mismatch that produced a silent 1024/1536 corpus
+    mismatch before this validator covered azure_openai.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            _env_file=None,
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+            embedding_provider="azure_openai",
+            azure_embedding_deployment="text-embedding-3-small",
+            embedding_dimensions=1024,
+            azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+            azure_openai_api_key="test-key",  # pragma: allowlist secret
+        )
+    error_msg = str(exc_info.value)
+    assert "Embedding dimensions mismatch" in error_msg
+    assert "text-embedding-3-small" in error_msg
+    assert "1536" in error_msg
+    assert "EMBEDDING_DIMENSIONS" in error_msg
+
+
+def test_azure_openai_known_deployment_correct_dimension_passes():
+    """text-embedding-3-small + 1536 is the correct pairing and must pass."""
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+        embedding_provider="azure_openai",
+        azure_embedding_deployment="text-embedding-3-small",
+        embedding_dimensions=1536,
+        azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+        azure_openai_api_key="test-key",  # pragma: allowlist secret
+    )
+    assert settings.embedding_dimensions == 1536
+
+
+def test_azure_openai_unknown_deployment_skips_validation():
+    """A custom/renamed deployment name is an escape hatch: we don't know its
+    native size, so validation is skipped rather than guessing wrong."""
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+        embedding_provider="azure_openai",
+        azure_embedding_deployment="my-custom-deployment",
+        embedding_dimensions=1024,
+        azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+        azure_openai_api_key="test-key",  # pragma: allowlist secret
+    )
+    assert settings.embedding_dimensions == 1024
+    assert settings.azure_embedding_deployment == "my-custom-deployment"
+
+
+def test_azure_credential_whitespace_is_stripped():
+    """BITB-107: a trailing \\r/\\n on the endpoint or key (Windows line endings
+    in a CI secret/var) must be stripped, not passed through to the HTTP client."""
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+        embedding_provider="azure_openai",
+        embedding_dimensions=1536,
+        azure_openai_endpoint="  https://eastus.api.cognitive.microsoft.com/\r\n",
+        azure_openai_api_key="\ttest-key\r\n",  # pragma: allowlist secret
+    )
+    assert settings.azure_openai_endpoint == "https://eastus.api.cognitive.microsoft.com/"
+    assert settings.azure_openai_api_key == "test-key"  # pragma: allowlist secret
+
+
+def test_azure_deployment_whitespace_is_stripped():
+    """A whitespace-padded AZURE_EMBEDDING_DEPLOYMENT must still resolve to a
+    known entry in the dimension table (BITB-107)."""
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+        embedding_provider="azure_openai",
+        azure_embedding_deployment=" text-embedding-3-small\r\n",
+        embedding_dimensions=1536,
+        azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+        azure_openai_api_key="test-key",  # pragma: allowlist secret
+    )
+    assert settings.azure_embedding_deployment == "text-embedding-3-small"
+
+
+def test_azure_all_whitespace_api_key_treated_as_missing():
+    """An all-whitespace AZURE_OPENAI_API_KEY (e.g. a secret that is just a
+    stray \\r\\n) must normalize to None and trip the existing "required when
+    embedding_provider=azure_openai" error, not silently reach the SDK."""
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            _env_file=None,
+            database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
+            embedding_provider="azure_openai",
+            azure_openai_endpoint="https://eastus.api.cognitive.microsoft.com/",
+            azure_openai_api_key="   \r\n",  # pragma: allowlist secret
+        )
+    error_msg = str(exc_info.value)
+    assert "azure_openai_endpoint and azure_openai_api_key are required" in error_msg
+
+
 def test_turnstile_requires_keys_when_enabled():
     """Test that turnstile_enabled=true requires secret_key and site_key."""
     # Missing both keys

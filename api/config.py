@@ -325,6 +325,38 @@ class Settings(BaseSettings):
             )
         return v
 
+    # BITB-107: scripts/create_azure_embeddings.py (L237-240) strips whitespace
+    # from these same three env vars before constructing its Azure client, with
+    # a comment noting Windows line-ending (\r\n) issues. Settings did not do
+    # the same stripping — a trailing \r/\n surviving into an env var becomes
+    # part of the HTTP header value httpx/h11 sends to Azure, which is illegal
+    # and gets rejected at *send* time, surfacing as a bare
+    # openai.APIConnectionError("Connection error.") with no status code and
+    # no hint of the real cause. Stripping here covers every Settings()
+    # construction path, not just the raw-client scripts.
+    @field_validator("azure_openai_endpoint", "azure_openai_api_key", mode="before")
+    @classmethod
+    def strip_azure_credential_whitespace(cls, v: str | None) -> str | None:
+        """Strip whitespace from the Azure endpoint/key; blank-after-strip -> None.
+
+        These two fields are optional (str | None); normalizing an
+        all-whitespace value to None lets validate_embedding_provider_keys'
+        "required when embedding_provider=azure_openai" error fire cleanly
+        instead of an empty string silently reaching the Azure SDK.
+        """
+        if not isinstance(v, str):
+            return v
+        stripped = v.strip()
+        return stripped or None
+
+    @field_validator("azure_embedding_deployment", mode="before")
+    @classmethod
+    def strip_azure_deployment_whitespace(cls, v: str) -> str:
+        """Strip whitespace from the Azure deployment name. See BITB-107 note above."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     @model_validator(mode="after")
     def validate_hnsw_ef_search(self) -> "Settings":
         """hnsw.ef_search must be >= the ANN candidate pool, else recall is silently capped."""
@@ -375,17 +407,40 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_embedding_dimensions(self) -> "Settings":
-        """Validate embedding dimensions match the model requirements.
+        """Validate embedding dimensions match the model/deployment requirements.
 
-        Only validates Ollama local models (mxbai-embed-large, nomic-embed-text).
-        Azure OpenAI uses a separate deployment name (azure_embedding_deployment) and
-        its own dimensions (e.g. 1536 for text-embedding-3-small), so we skip this
-        check when embedding_provider=azure_openai.
+        Two independent checks, because embedding_provider=azure_openai uses a
+        different name field (azure_embedding_deployment) than the other
+        providers (embedding_model):
+
+        - Ollama local models (mxbai-embed-large, nomic-embed-text) have fixed
+          dimensions, checked against embedding_model below.
+        - Azure OpenAI (BITB-107) is checked against a small table of known
+          Azure embedding deployments' native dimensions, keyed by
+          azure_embedding_deployment. This must stay a *separate* check keyed
+          off a *different* field rather than folding into dimension_map below:
+          embedding_model's default ('mxbai-embed-large') is Ollama-oriented and
+          irrelevant to Azure — consulting it for azure_openai would raise a
+          bogus "requires 1024 dimensions" error on a perfectly valid Azure
+          config (see test_azure_openai_production_boot_config). An
+          unrecognized/custom deployment name skips validation — same escape
+          hatch as the Ollama unknown-model branch below: we can't know a
+          custom deployment's native size, so we don't guess.
         """
         if self.embedding_provider == "azure_openai":
-            # Azure OpenAI uses azure_embedding_deployment, not embedding_model.
-            # The embedding_model field is irrelevant when azure_openai is the provider,
-            # so dimension validation is skipped.
+            azure_dimension_map = {
+                "text-embedding-3-small": 1536,
+                "text-embedding-3-large": 3072,
+                "text-embedding-ada-002": 1536,
+            }
+            expected = azure_dimension_map.get(self.azure_embedding_deployment)
+            if expected is not None and self.embedding_dimensions != expected:
+                raise ValueError(
+                    f"Embedding dimensions mismatch: Azure deployment "
+                    f"{self.azure_embedding_deployment!r} is {expected} dimensions, but "
+                    f"config has embedding_dimensions={self.embedding_dimensions}. Set the "
+                    "EMBEDDING_DIMENSIONS environment variable to match the deployment."
+                )
             return self
         dimension_map = {
             "mxbai-embed-large": 1024,

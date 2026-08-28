@@ -1,9 +1,9 @@
 # BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🚧 In Progress — implementation shipped in this PR; role creation lands on next deploy,
-then the operator sets the role's password, creates the `search-eval` GitHub environment +
-`SEARCH_EVAL_DB_PASSWORD` secret, and the next scheduled/manual `eval-prod` run is the completion
-signal.
+**Status:** 🚧 In Progress — implementation shipped; role created; the operator has since created
+the `search-eval` environment and set `SEARCH_EVAL_DB_PASSWORD`. That surfaced a defect in this
+story's own gating (see *Post-delivery defect* below), fixed in PR #1018 alongside BITB-107; the next
+scheduled/manual `eval-prod` run after that merges is the completion signal.
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
@@ -157,10 +157,57 @@ Two things worth stating so nobody spends time on them:
       fail-closed-on-missing-secret behavior.
 - [x] A test asserts `search-eval-full.yml` never references `TF_VAR_DB_ADMIN_*`, so the credential
       cannot silently widen again (`api/tests/test_search_eval_workflow_credentials.py`)
+- [x] The environment-scoped secret is checked from a job that can actually read it
+      (`prod-secret-check`), so the fail-closed default is not fail-always — see *Post-delivery
+      defect* below; guarded by
+      `test_preflight_does_not_check_the_environment_scoped_secret`
 - [ ] A nightly run completes green against the new role (the real proof: the grants are sufficient
-      for every query the harness actually issues) — pending the operator creating the `search-eval`
-      environment/secret and the role's password being set; the first green scheduled or manual
-      `eval-prod` run after that is the completion signal
+      for every query the harness actually issues) — the operator has now created the environment and
+      set the secret, and PR #1018 carries both remaining pieces (the gating fix above and BITB-107's
+      `EMBEDDING_DIMENSIONS=1536` for `eval-prod`). The first green scheduled or manual `eval-prod`
+      run after that PR merges is the completion signal
+
+## Post-delivery defect: the environment secret was checked from a job that cannot see it
+
+Found 2026-08-28, after the operator completed their part of this story.
+
+`eval-prod` still skipped on every run — including run
+[33207972265](https://github.com/zioalex/getinspiredbythebible/actions/runs/33207972265), whose
+`preflight` job reported `HAS_DB: false` with the secret correctly set. The cause is the interaction
+between the two halves of this story's own design:
+
+- the secret is **environment-scoped** (`search-eval`), which is the security property this story
+  exists to establish; and
+- its presence was checked in **`preflight`**, a job with no `environment:` declaration.
+
+An environment-scoped secret is only present in a job's `secrets` context when that job itself
+declares the environment. In `preflight`, `secrets.SEARCH_EVAL_DB_PASSWORD` is therefore *always* the
+empty string — identically so on a correctly-configured repo and on one where nothing was ever
+provisioned. The gate could only ever evaluate `has_db=false`, so the "skip until the operator sets
+the secret" fail-closed default was really "skip forever". Nothing in the run said so: the notice
+("Azure login or prod DB secrets are not configured") was indistinguishable from the pre-provisioning
+state it was written for, and the job summary's own configuration table reported the same `false` it
+had reported all along.
+
+The fix keeps the environment scoping and moves the check to a job that can see it. A new
+`prod-secret-check` job — scoped to `search-eval`, no checkout, one boolean — publishes
+`has_db_password`, and `eval-prod` gates on that. `preflight` keeps only the repo-scoped half
+(`TF_VAR_DB_NAME`, now reported as its own row so a genuinely missing DB name is distinguishable from
+a missing password) and stays out of the environment, so `eval-smoke` — which needs no prod
+credential at all — never inherits the environment's branch policy or any reviewer a future operator
+adds. That last point is why the check is a separate job rather than an `environment:` line on
+`preflight`: the reviewer question this story recorded as the operator's call stays the operator's
+call, without it silently becoming a gate on the credential-light route too.
+
+Guarded by four tests in `api/tests/test_search_eval_workflow_credentials.py`, the one that matters
+being `test_preflight_does_not_check_the_environment_scoped_secret` — the mistake is invisible in
+review (the expression is valid, the secret name is spelled correctly, and the job goes green), so
+only a test that knows *which job* may read the secret can keep it from returning.
+
+Note for the first green run: this fix only un-skips `eval-prod`. Making it *pass* needs
+`EMBEDDING_DIMENSIONS=1536` on that job as well — prod's embedding column is `vector(1536)` while
+`config.py` defaults to 1024 — which is BITB-107's change, carried in the same PR (#1018). The two
+are independent defects that happen to sit on the same job, and the nightly needs both.
 
 ## Verification
 
