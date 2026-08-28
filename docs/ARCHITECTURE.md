@@ -211,7 +211,7 @@ class Settings(BaseSettings):
 | `LLM_MODEL` | `llama3:8b` | Model identifier |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `EMBEDDING_MODEL` | `mxbai-embed-large` | Model for vector generation (multilingual) |
-| `EMBEDDING_DIMENSIONS` | `1024` | Vector size (must match model) |
+| `EMBEDDING_DIMENSIONS` | `1024` | Vector size (must match model/deployment — `1536` with `EMBEDDING_PROVIDER=azure_openai` and `text-embedding-3-small`/`text-embedding-ada-002`, `3072` with `text-embedding-3-large`; enforced at Settings() startup for both Ollama and Azure deployments, BITB-107) |
 | `DATABASE_URL` | PostgreSQL connection string | Database connection |
 | `ANTHROPIC_API_KEY` | None | For Claude provider |
 

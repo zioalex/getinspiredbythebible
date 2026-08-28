@@ -14,6 +14,7 @@ import asyncio
 import random
 
 import httpx
+import openai
 
 from config import Settings
 from utils.circuit_breaker import CircuitBreaker, CircuitOpenError
@@ -35,12 +36,24 @@ def _is_transient(exc: Exception) -> bool:
     Mirrors the classification openrouter.py uses for its own retry/fallback
     decisions: timeouts, connection failures, and HTTP 429/5xx are treated as
     transient; everything else (4xx client errors, programming errors) is not.
+
+    BITB-107: openai.APIConnectionError (raised by AzureOpenAIEmbeddingProvider
+    when the underlying httpx send fails, e.g. a DNS blip or an illegal header
+    value) and its subclass openai.APITimeoutError carry neither an httpx
+    exception type nor a status_code attribute — they were previously
+    misclassified as non-transient here and raised immediately with zero
+    retries, which is how a single connection blip could exhaust the circuit
+    breaker (default threshold 5) in exactly 5 calls with no retry ever
+    happening.
     """
     if isinstance(exc, asyncio.TimeoutError | httpx.TimeoutException | httpx.ConnectError):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code
         return status == 429 or status >= 500
+    if isinstance(exc, openai.APIConnectionError):
+        # Also covers openai.APITimeoutError (a subclass of APIConnectionError).
+        return True
     # openai SDK errors (used by AzureOpenAIEmbeddingProvider) carry a
     # status_code attribute without necessarily being httpx exceptions.
     status_code = getattr(exc, "status_code", None)
