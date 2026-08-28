@@ -280,7 +280,21 @@ jobs:
           INPUT_LANGUAGE: ${{ github.event.inputs.language }}
         run: |
           set -o pipefail
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+
+          # Percent-encode the credential before interpolating it into a DSN.
+          # `api/scripture/database.py` builds its engine at *import* time, so
+          # a password containing any of :/?#[]@%& makes the URL unparseable
+          # and the CLI dies during import — before a single query, with the
+          # traceback going only to eval-prod.log. The role's password is
+          # generated and pasted in by an operator (BITB-101), so it is exactly
+          # the kind of value that has a `/` or `#` in it. Encoding is a no-op
+          # for an alphanumeric password.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          # The encoded form is a different string from the secret GitHub
+          # masks, so register it as a mask of its own before it can reach a
+          # log line.
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
 
           # Leave LLM_PROVIDER unset (rather than "") when no OpenRouter key is
           # configured — Settings' llm_provider is a Literal type and an
@@ -381,7 +395,21 @@ jobs:
         if: always() && steps.run.outputs.exit_code != '0'
         run: |
           exit_code="${{ steps.run.outputs.exit_code }}"
-          echo "::error::run_search_eval.py exited ${exit_code} — see eval-prod.log in the uploaded artifact."
+
+          # Print the failure to the console, not only to the artifact and the
+          # job summary. A run whose only diagnosis is a zip file cannot be
+          # read from a phone, from the API, or by anything automated — which
+          # is what made run 33212723774's one-second import crash opaque.
+          # Secrets are masked in this output the same as anywhere else.
+          {
+            echo "::group::eval-prod.log (tail)"
+            tail -n 60 eval-prod.log 2>/dev/null || echo "(eval-prod.log is empty or missing)"
+            echo "::endgroup::"
+          } >&2
+
+          msg="::error::run_search_eval.py exited ${exit_code} — tail of"
+          msg="${msg} eval-prod.log is above; full log in the artifact."
+          echo "$msg"
           exit 1
 
   # ---------------------------------------------------------------------------
