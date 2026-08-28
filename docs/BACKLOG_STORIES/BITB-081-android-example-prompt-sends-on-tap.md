@@ -1,6 +1,8 @@
 # BITB-081: Android — Tapping an Example Question Must Always Send It on the First Tap
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #957, merged 2026-08-21) — status marker was left stale; corrected 2026-08-28.
+`onExamplePromptTapped` in `ChatScreen` drops the Turnstile-readiness gate, covered by
+`ExamplePromptTapTest` and `WelcomeBannerComposeTest`.
 **Priority:** P1
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25

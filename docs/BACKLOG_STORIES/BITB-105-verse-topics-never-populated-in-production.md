@@ -1,6 +1,7 @@
 # BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — implementation shipped; AC5 (production rows observed) pending the first
+post-merge deploy, see "Post-merge verification" below
 **Priority:** P1 — without this, BITB-044 changes nothing in production; the feature stays the exact
 silent no-op that story was written to fix
 **Size:** M (mostly pipeline wiring, plus one drift check)
@@ -62,18 +63,40 @@ production" are different claims, and only the second one matters.
 
 ## Acceptance Criteria
 
-- [ ] `verse_topics` population runs automatically as part of the deploy/seed path, without a human
+- [x] `verse_topics` population runs automatically as part of the deploy/seed path, without a human
       remembering the runbook
-- [ ] A newly seeded translation in a supported language gets topic rows without a separate manual
+- [x] A newly seeded translation in a supported language gets topic rows without a separate manual
       step
-- [ ] A check asserts non-empty `verse_topics` and in-band coverage per supported translation, and
+- [x] A check asserts non-empty `verse_topics` and in-band coverage per supported translation, and
       alarms when it is violated
-- [ ] A tagging failure's blast radius is decided and documented (recommended: alarm, do not fail the
+- [x] A tagging failure's blast radius is decided and documented (recommended: alarm, do not fail the
       deploy)
 - [ ] Proven end to end: production `verse_topics` is non-empty for at least KJV and Luther 1912, at
-      coverage consistent with BITB-044's measured figures
-- [ ] `docs/HOW-TO-POPULATE-VERSE-TOPICS.md` updated to describe the automated path, with the manual
+      coverage consistent with BITB-044's measured figures — **open**, see "Post-merge verification"
+- [x] `docs/HOW-TO-POPULATE-VERSE-TOPICS.md` updated to describe the automated path, with the manual
       invocation retained for backfills and one-offs
+
+## Decision: blast radius (AC4)
+
+A `verse_topics` tagging failure alarms and does not fail the deploy: topic rows feed only a ranking
+boost that is itself behind `topic_boosting_enabled`, so an untagged corpus degrades ranking quality
+but never correctness or availability. Both the population and coverage-check steps run
+`continue-on-error: true`, violations surface as `::warning::` annotations plus a step-summary table,
+and `check_verse_topic_coverage.py` exits 0 on violation unless run with `--strict`.
+
+## Post-merge verification (AC5)
+
+AC5 cannot be satisfied from the implementing branch: it needs a production database the sandbox
+cannot reach, and rows only appear once the deploy pipeline actually runs. Ship with the criterion
+explicitly open and verify it on the first post-merge deploy:
+
+1. Merge → the `bible_scripts` filter fires on `scripts/populate_verse_topics.py` →
+   `seed-database-post` runs both new steps.
+2. In that run, read the **Verse Topic Coverage Check** step summary table: `kjv` and `luther1912`
+   must be `ok`, at roughly 18.3% / 12.3%.
+3. Independent confirmation: `SELECT COUNT(*) FROM verse_topics;` against production, plus the
+   per-translation query in `docs/HOW-TO-POPULATE-VERSE-TOPICS.md`.
+4. Only then tick AC5 and set this story to Done here and in `docs/BACKLOG.md`.
 
 ## Verification
 

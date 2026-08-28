@@ -40,7 +40,87 @@ adds pairs that aren't already there — running it twice inserts 0 new rows
 the second time. Use `--replace` to delete and re-seed a translation's rows
 first (e.g. after editing `TOPIC_KEYWORD_MAP` or `CORPUS_KEYWORD_DENYLIST`).
 
-## Usage
+## Automated population in CI (BITB-105)
+
+The deploy pipeline runs this for you. `.github/workflows/azure-deploy.yml`'s
+`seed-database-post` job has a **Populate Verse Topics** step that invokes
+`scripts/populate_verse_topics.py` with no `--translation` filter, so every
+supported-language translation is (re-)tagged on each seeding run. That is
+safe and self-healing precisely because of the idempotency above: a plain
+re-run backfills anything a previous run or a single-translation dispatch
+missed, and inserts nothing where rows already exist.
+
+It fires on the same trigger as seeding itself — a change matching the
+`bible_scripts` path filter (which includes `scripts/translations.py`, so
+adding a translation tags it in the same run) or a manual `workflow_dispatch`
+with `skip_database_seed=false`.
+
+Two placement details that matter:
+
+- The step runs **before** `Generate Embeddings`. That step has no
+  `continue-on-error`, so anything downstream of it is skipped when Azure
+  OpenAI misbehaves — tagging placed after it would be silently skipped by an
+  unrelated outage, which is the original BITB-105 bug all over again.
+- The job installs `pydantic`/`pydantic-settings` for this step. Both topic
+  scripts import `api/chat/topics.py`, which pulls in `config.Settings`;
+  without those packages the step dies at import time.
+
+The population step does not touch the migration window — it is downstream of
+`run-migrations` and `deploy` (BITB-097 ordering).
+
+## Coverage check (drift and emptiness alarm)
+
+`scripts/check_verse_topic_coverage.py` runs immediately after population (and
+with `if: always()`, so it still reports when population failed or never ran).
+It reads `verse_topics` **back out of the database** rather than trusting the
+population run's own tally — a check built on that tally would pass even if
+every insert silently did nothing, which is the exact failure class here.
+
+Per supported-language translation it reports one of six statuses:
+
+| Status | Alarms | Meaning |
+|---|---|---|
+| `ok` | no | Coverage inside the band |
+| `empty` | **yes** | Verses loaded, zero topic rows — the BITB-105 condition |
+| `below_floor` | **yes** | Coverage under the floor (default 5%) |
+| `above_ceiling` | **yes** | Coverage over the ceiling (default 60%) |
+| `small_sample` | no | Under 1,000 verses — the percentage isn't meaningful yet |
+| `no_verses` | no | Translation not seeded; the existing verse-count gate owns this |
+
+**Thresholds.** BITB-044 measured 18.3% (KJV/en) and 12.3% (Luther 1912/de).
+The 5% floor sits well below both on purpose: five of the seven supported
+languages have never been validated against a real corpus (BITB-106), so the
+floor exists to catch zero and near-total collapse, not to police quality.
+The 60% ceiling is a *different* metric from the per-topic 25% denylist
+guideline above — overall coverage stacks 13 topics, so ~18% overall is
+consistent with no single topic above ~3.2%.
+
+**Exit code.** 0 even when it alarms, unless `--strict`. This is the recorded
+blast-radius decision: a tagging failure degrades ranking quality behind a
+feature flag, never correctness or availability, so it alarms and does not
+fail the deploy. Violations surface as GitHub `::warning::` annotations plus a
+per-translation table in the job step summary.
+
+### Negative rehearsal
+
+An emptiness check nobody has seen fire is not yet known to work. To prove the
+whole path — query, classify, annotate, exit code — actually fires:
+
+```bash
+# Force every translation to violate the floor.
+python scripts/check_verse_topic_coverage.py --floor 100 --strict   # expect: warnings + exit 1
+python scripts/check_verse_topic_coverage.py --floor 100            # expect: same warnings, exit 0
+```
+
+`api/tests/test_verse_topic_coverage_check.py` is the automated equivalent: it
+asserts the zero-rows case alarms, that alarms render as `::warning::` lines,
+and that the default exit code stays 0 — all over synthetic counts, no
+database needed.
+
+## Manual usage (backfills and one-offs)
+
+The pipeline runs this for you on every seed (above); the manual invocation
+stays for backfills, `--replace` re-tags, and dry-run tuning.
 
 ```bash
 export DATABASE_URL="postgresql+asyncpg://user:pass@host/db?ssl=require"  # pragma: allowlist secret
@@ -110,9 +190,18 @@ comment recording the observed count, then re-run with `--replace`.
   `topic_boost_factor`.
 - **Enabling `topic_boosting_enabled` in production** — do this only after
   the golden-set validation above.
-- **CI/deploy wiring** (e.g. running this automatically alongside the
-  existing `seed-database` matrix job) — this is a manual/on-demand script
-  for now.
+- **Keyword-map edits do not re-trigger tagging.** `api/chat/topics.py` and
+  `api/chat/topic_tagging.py` are deliberately *not* in the `bible_scripts`
+  path filter: a plain re-run is additive and cannot retract rows for a
+  keyword you just denylisted, so auto-triggering on a map edit would produce
+  a half-applied re-tag that looks like it worked. A map edit needs a manual
+  `--replace` run for now.
+- **Per-language coverage floors.** The check uses a single 5% floor because
+  five of the seven supported languages are unmeasured; tighten it under
+  BITB-106.
+- **A scheduled coverage check independent of deploys.** Today the alarm only
+  fires when a seed runs, so a truncation or a bad restore stays invisible
+  until the next `bible_scripts` change.
 - A `source` provenance column on `verse_topics` so `--replace` doesn't
   discard rows from a future non-keyword tagging pass — tracked separately;
   not needed while keyword-seeding is the only source.
