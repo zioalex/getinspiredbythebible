@@ -190,6 +190,14 @@ jobs:
               - 'scripts/create_azure_embeddings.py'
               - 'scripts/translations.py'
               - 'scripts/init.sql'
+              # BITB-105: without these, a fix to the tagging pipeline would
+              # sit in the repo until some unrelated bible_scripts change
+              # happened to deploy it -- the BITB-089 shape, one level up.
+              # Cheap to add: load_bible.py skips already-loaded translations
+              # without --force, so the seed matrix short-circuits and only
+              # seed-database-post's new steps do real work.
+              - 'scripts/populate_verse_topics.py'
+              - 'scripts/check_verse_topic_coverage.py'
             deployment:
               - 'deployment/**'
 
@@ -1885,7 +1893,10 @@ jobs:
        (github.event_name == 'workflow_dispatch' && inputs.skip_database_seed == false))
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 60
+    # BITB-105: bumped 60 -> 75. Population scans ~31k verses per
+    # supported-language translation (en, it, de, es, fr, pt, ar) and now
+    # runs inside this job's budget alongside embeddings.
+    timeout-minutes: 75
 
     steps:
       - name: Checkout code
@@ -1902,7 +1913,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install httpx asyncpg sqlalchemy openai psycopg2-binary
+          # pydantic/pydantic-settings: populate_verse_topics.py and
+          # check_verse_topic_coverage.py import api/chat/topics.py, which
+          # pulls in utils.logging_config -> config.Settings. Without these
+          # the topic steps below die at import time -- i.e. the automation
+          # this story adds would itself be a silent no-op (BITB-105).
+          pip install httpx asyncpg sqlalchemy openai psycopg2-binary pydantic==2.13.4 pydantic-settings==2.15.0
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -1922,6 +1938,57 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "[0].fullyQualifiedDomainName" -o tsv)
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+
+      # BITB-105: verse_topics stayed empty in production because
+      # populate_verse_topics.py (BITB-044) was a manual script that nothing
+      # ever ran. Deliberately placed BEFORE "Generate Embeddings": that step
+      # has no continue-on-error, so a bad Azure OpenAI key or quota wall
+      # would skip everything after it -- silently reinstating this exact
+      # bug. No --translation filter: the script is idempotent
+      # ((verse_id, topic_id) PK + ON CONFLICT DO NOTHING), so running it
+      # across every supported-language translation backfills anything a
+      # previous run or a single-translation dispatch missed.
+      - name: Populate Verse Topics
+        # Blast radius (BITB-105): topic rows feed a ranking boost that is
+        # itself behind topic_boosting_enabled. A tagging failure degrades
+        # ranking quality, never correctness or availability -- it alarms,
+        # it does not fail the deploy.
+        continue-on-error: true
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          set +e
+          python scripts/populate_verse_topics.py
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::verse_topics population failed (exit ${status}) -- topic boosting"\
+                 "will run on stale or missing rows. Remedy: docs/HOW-TO-POPULATE-VERSE-TOPICS.md"
+          fi
+          exit "$status"
+
+      - name: Verse Topic Coverage Check
+        # Runs even when population above failed: an empty or collapsed
+        # verse_topics is exactly the condition BITB-105 exists to make
+        # visible, whether the cause was a run that failed or a run that
+        # never happened.
+        if: always()
+        continue-on-error: true
+        env:
+          DB_USER: ${{ secrets.TF_VAR_DB_ADMIN_USERNAME }}
+          DB_PASS: ${{ secrets.TF_VAR_DB_ADMIN_PASSWORD }}
+          DB_HOST: ${{ steps.db.outputs.db_host }}
+          DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
+        run: |
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # Exits 0 even when it alarms (BITB-105 decision: alarm, do not
+          # fail the deploy). --strict makes violations fatal; used for the
+          # documented negative rehearsal.
+          python scripts/check_verse_topic_coverage.py
 
       - name: Generate Embeddings
         if: inputs.skip_embeddings != true
