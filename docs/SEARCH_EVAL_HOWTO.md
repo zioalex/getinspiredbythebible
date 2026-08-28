@@ -102,10 +102,11 @@ produced automatically by the CI workflow below (**P4a**).
 `.github/workflows/search-eval-full.yml` runs this harness for real, on a
 schedule and on demand — no maintainer machine required:
 
-- **`eval-prod`** — read-only against the production database (DB connection
-  built the same way `azure-deploy.yml` does for migrations/seeding — no new
-  DB secret), Azure-embeds the golden set's queries, and retrieves from prod's
-  real vectors. True prod numbers, no rebuild, no writes.
+- **`eval-prod`** — read-only against the production database (host discovered
+  the same way `azure-deploy.yml` does; authenticated as the dedicated
+  read-only `search_eval_ro` role, not the deploy pipeline's admin credential
+  — BITB-101), Azure-embeds the golden set's queries, and retrieves from
+  prod's real vectors. True prod numbers, no rebuild, no writes.
 - **`eval-smoke`** — loads 1 Corinthians into an ephemeral CI Postgres,
   Azure-embeds it, and runs `--run --smoke`. Proves the CLI/Azure plumbing
   end-to-end without touching prod. Its P@5/R@10/MRR are expected to be
@@ -170,6 +171,25 @@ inputs). Results land as a `$GITHUB_STEP_SUMMARY` table and as a downloadable
 JSON+log artifact (30-day retention). Missing secrets/vars make the affected
 job skip with a `::notice::` rather than fail — this workflow never runs on
 `pull_request` and never gates a merge.
+
+### When `eval-prod` shows up as *skipped*
+
+Its credential, `SEARCH_EVAL_DB_PASSWORD`, is scoped to the `search-eval`
+GitHub environment, and an environment-scoped secret is readable only from a
+job that declares that environment. The check therefore lives in its own
+`prod-secret-check` job ("Check search-eval environment") — read that job, not
+`preflight`, to find out why Route A did not run:
+
+| what you see | what it means |
+| --- | --- |
+| `prod-secret-check` **skipped** | a repo-level precondition failed — the `preflight` summary table names which (ARM login, `TF_VAR_DB_NAME`, Azure OpenAI), or the run was dispatched with `route: smoke` |
+| `prod-secret-check` **success**, `eval-prod` **skipped** | the environment exists but `SEARCH_EVAL_DB_PASSWORD` is unset in it — set it under Settings → Environments → search-eval → Environment secrets |
+| both **success** | Route A ran; its numbers are in the summary and the artifact |
+
+Checking that secret from `preflight` instead looks correct and is not: it
+reads as empty there whether or not the operator ever set it, which pins
+`eval-prod` to *always* skipped. `preflight` also gates `eval-smoke`, which
+needs no prod credential, so it deliberately stays outside the environment.
 
 **Not yet built:** a third route (`eval-corpus`, tracked as **P4b**) that
 rebuilds all 11 translations from scratch into a cached pgvector instance, for

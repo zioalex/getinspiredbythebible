@@ -49,8 +49,21 @@ name: Search Eval — Full
 # Creating that environment and setting SEARCH_EVAL_DB_PASSWORD's value is a
 # manual, one-time operator step — a workflow file cannot provision a
 # GitHub environment or generate/store a production credential. Until an
-# operator does that, eval-prod is skipped (see the preflight job below),
-# which is the fail-closed default.
+# operator does that, eval-prod is skipped (see the prod-secret-check job
+# below), which is the fail-closed default.
+#
+# Why SEARCH_EVAL_DB_PASSWORD is checked in its own job and not in preflight:
+# an environment-scoped secret is only in a job's `secrets` context when that
+# job itself declares `environment:`. The `preflight` job deliberately does
+# not (it gates eval-smoke too, and must never inherit the environment's
+# branch policy or any reviewer the operator later adds), so
+# `secrets.SEARCH_EVAL_DB_PASSWORD` reads as empty there — for a repo that
+# has the secret set exactly as it does for one that doesn't. Checking it
+# there made eval-prod unconditionally skip even once the operator had done
+# their part, which is what happened on every run between the environment
+# being created and this fix. The presence check therefore lives in
+# `prod-secret-check`, the one job scoped to the `search-eval` environment,
+# and eval-prod gates on its output.
 #
 # Any of the above missing ⇒ the affected job is skipped with a clear notice
 # in the job summary, never failed. This workflow never runs on pull_request
@@ -109,7 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_arm: ${{ steps.check.outputs.has_arm }}
-      has_db: ${{ steps.check.outputs.has_db }}
+      has_db_name: ${{ steps.check.outputs.has_db_name }}
       has_azure: ${{ steps.check.outputs.has_azure }}
       has_llm: ${{ steps.check.outputs.has_llm }}
     steps:
@@ -119,13 +132,15 @@ jobs:
           HAS_ARM: >-
             ${{ secrets.ARM_CLIENT_ID != '' && secrets.ARM_CLIENT_SECRET != '' && secrets.ARM_SUBSCRIPTION_ID != '' &&
             secrets.ARM_TENANT_ID != '' }}
-          HAS_DB: >-
-            ${{ secrets.SEARCH_EVAL_DB_PASSWORD != '' && secrets.TF_VAR_DB_NAME != '' }}
+          # Repo-scoped half of eval-prod's DB configuration only. The
+          # role's password is environment-scoped and therefore invisible
+          # here — prod-secret-check checks that (see the header note).
+          HAS_DB_NAME: ${{ secrets.TF_VAR_DB_NAME != '' }}
           HAS_AZURE: ${{ vars.AZURE_OPENAI_ENDPOINT != '' && secrets.AZURE_OPENAI_API_KEY != '' }}
           HAS_LLM: ${{ secrets.TF_VAR_OPENROUTER_API_KEY != '' }}
         run: |
           echo "has_arm=${HAS_ARM}" >> "$GITHUB_OUTPUT"
-          echo "has_db=${HAS_DB}" >> "$GITHUB_OUTPUT"
+          echo "has_db_name=${HAS_DB_NAME}" >> "$GITHUB_OUTPUT"
           echo "has_azure=${HAS_AZURE}" >> "$GITHUB_OUTPUT"
           echo "has_llm=${HAS_LLM}" >> "$GITHUB_OUTPUT"
 
@@ -135,13 +150,14 @@ jobs:
             echo "| requirement | present | disables |"
             echo "| --- | --- | --- |"
             echo "| Azure login (ARM_*) | ${HAS_ARM} | eval-prod |"
-            echo "| search_eval_ro DB password (SEARCH_EVAL_DB_PASSWORD) | ${HAS_DB} | eval-prod |"
+            echo "| Prod DB name (TF_VAR_DB_NAME) | ${HAS_DB_NAME} | eval-prod |"
+            echo "| search_eval_ro DB password | checked in prod-secret-check | eval-prod |"
             echo "| Azure OpenAI (endpoint + key) | ${HAS_AZURE} | eval-prod, eval-smoke |"
             echo "| OpenRouter key (expansion LLM) | ${HAS_LLM} | expansion_semantic leg only |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ "$HAS_ARM" != "true" ] || [ "$HAS_DB" != "true" ]; then
-            echo "::notice::eval-prod will be skipped — Azure login or prod DB secrets are not configured."
+          if [ "$HAS_ARM" != "true" ] || [ "$HAS_DB_NAME" != "true" ]; then
+            echo "::notice::eval-prod will be skipped — Azure login or the prod DB name is not configured."
           fi
           if [ "$HAS_AZURE" != "true" ]; then
             echo "::notice::eval-prod and eval-smoke will both be skipped — Azure OpenAI is not configured."
@@ -151,15 +167,61 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
+  # Route A's environment-secret gate. This job exists only because an
+  # environment-scoped secret is invisible to any job that does not declare
+  # the environment: it is `preflight`'s missing half, deliberately kept in a
+  # job of its own so that the `search-eval` environment's policies (branch
+  # restrictions, and any reviewer a future operator adds) apply to Route A
+  # alone and never hold up eval-smoke. It runs no checkout and touches
+  # nothing — it reads one boolean out of the `secrets` context.
+  # ---------------------------------------------------------------------------
+  prod-secret-check:
+    name: Check search-eval environment
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db_name == 'true' &&
+      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
+      'smoke')
+    runs-on: ubuntu-latest
+    environment: search-eval
+    outputs:
+      has_db_password: ${{ steps.check.outputs.has_db_password }}
+    steps:
+      - name: Check the search_eval_ro password secret
+        id: check
+        env:
+          HAS_DB_PASSWORD: ${{ secrets.SEARCH_EVAL_DB_PASSWORD != '' }}
+        run: |
+          echo "has_db_password=${HAS_DB_PASSWORD}" >> "$GITHUB_OUTPUT"
+
+          if [ "$HAS_DB_PASSWORD" != "true" ]; then
+            {
+              echo "### Search Eval — eval-prod gate"
+              echo ""
+              echo "\`SEARCH_EVAL_DB_PASSWORD\` is not set in the \`search-eval\`"
+              echo "environment, so eval-prod is skipped (fail-closed)."
+              echo ""
+              echo "Set it to the \`search_eval_ro\` role's password —"
+              echo "Settings → Environments → search-eval → Environment secrets."
+              echo "The role itself is provisioned by"
+              echo "\`api/alembic/versions/r0005_add_search_eval_ro_role.py\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            msg="::notice::eval-prod will be skipped — SEARCH_EVAL_DB_PASSWORD"
+            msg="${msg} is not set in the search-eval environment."
+            echo "$msg"
+          fi
+
+  # ---------------------------------------------------------------------------
   # Route A — read-only eval against the real production database.
   # ---------------------------------------------------------------------------
   eval-prod:
     name: eval-prod (Route A)
-    needs: preflight
-    if: >-
-      needs.preflight.outputs.has_arm == 'true' && needs.preflight.outputs.has_db == 'true' &&
-      needs.preflight.outputs.has_azure == 'true' && (github.event_name == 'schedule' || github.event.inputs.route !=
-      'smoke')
+    needs: [preflight, prod-secret-check]
+    # Every other precondition (ARM login, DB name, Azure OpenAI, and the
+    # route/event selection) is already carried by prod-secret-check's own
+    # `if:` — when it is skipped this reads an empty output and skips too, so
+    # they are not repeated here.
+    if: needs.prod-secret-check.outputs.has_db_password == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: search-eval
@@ -531,7 +593,7 @@ jobs:
   # ---------------------------------------------------------------------------
   eval-summary:
     name: Summary
-    needs: [preflight, eval-prod, eval-smoke]
+    needs: [preflight, prod-secret-check, eval-prod, eval-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -542,6 +604,7 @@ jobs:
             echo ""
             echo "| route | result |"
             echo "| --- | --- |"
+            echo "| eval-prod gate (search-eval environment) | ${{ needs.prod-secret-check.result }} |"
             echo "| eval-prod (Route A) | ${{ needs.eval-prod.result }} |"
             echo "| eval-smoke | ${{ needs.eval-smoke.result }} |"
             echo ""

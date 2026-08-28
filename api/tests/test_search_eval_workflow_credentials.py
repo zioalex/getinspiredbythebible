@@ -77,3 +77,101 @@ def test_eval_prod_job_is_environment_scoped():
         "SEARCH_EVAL_DB_PASSWORD would be a bare repo secret readable by "
         "any workflow in the repo (BITB-101)"
     )
+
+
+# ---------------------------------------------------------------------------
+# The environment-scoped secret must be read from a job that declares the
+# environment (BITB-101 follow-up).
+#
+# Scoping SEARCH_EVAL_DB_PASSWORD to the `search-eval` environment is the
+# whole point of the story above -- but it also means the secret is simply
+# absent from the `secrets` context of any job that does not declare
+# `environment: search-eval`. The original preflight job checked it anyway,
+# so `has_db` was `false` on a correctly-configured repo exactly as it was on
+# an unconfigured one, and eval-prod skipped on every scheduled run even
+# after the operator created the environment and set the secret (observed on
+# run 33207972265). The fail-closed default silently became fail-always.
+#
+# These tests pin the shape that avoids it: the presence check lives in a job
+# that is environment-scoped, and preflight -- which also gates eval-smoke --
+# stays out of the environment.
+# ---------------------------------------------------------------------------
+
+
+def _job_yaml(name: str) -> str:
+    """The raw text of one job block, for assertions the parsed YAML can't
+    make (`secrets.X` references live inside expression strings)."""
+    text = _workflow_text()
+    start = text.index(f"\n  {name}:\n")
+    rest = text[start + 1 :]
+    lines = rest.splitlines(keepends=True)
+    body = [lines[0]]
+    for line in lines[1:]:
+        # A new job starts at exactly two spaces of indentation.
+        if line.strip() and not line.startswith("    ") and not line.startswith("  #"):
+            break
+        body.append(line)
+    return "".join(body)
+
+
+def test_preflight_does_not_check_the_environment_scoped_secret():
+    """preflight has no `environment:`, so `secrets.SEARCH_EVAL_DB_PASSWORD`
+    is always empty there. Reading it would re-create the always-skip bug."""
+    workflow = _load_workflow()
+    preflight = workflow["jobs"]["preflight"]
+    assert "environment" not in preflight, (
+        "preflight declares an environment -- it gates eval-smoke as well as "
+        "eval-prod, so it must not inherit the search-eval environment's "
+        "branch policy or any reviewer added to it"
+    )
+    assert "SEARCH_EVAL_DB_PASSWORD" not in _job_yaml("preflight"), (
+        "preflight reads SEARCH_EVAL_DB_PASSWORD, but an environment-scoped "
+        "secret is invisible to a job that does not declare the environment: "
+        "the check always yields 'false' and eval-prod is skipped even when "
+        "the operator has set the secret correctly"
+    )
+
+
+def test_the_db_password_check_lives_in_an_environment_scoped_job():
+    workflow = _load_workflow()
+    gate = workflow["jobs"]["prod-secret-check"]
+    assert gate.get("environment") == "search-eval", (
+        f"prod-secret-check's `environment` is {gate.get('environment')!r}, "
+        "expected 'search-eval' -- otherwise it cannot see the secret it "
+        "exists to check"
+    )
+    assert "SEARCH_EVAL_DB_PASSWORD" in _job_yaml("prod-secret-check"), (
+        "prod-secret-check does not read SEARCH_EVAL_DB_PASSWORD -- nothing "
+        "gates eval-prod on the secret actually being set"
+    )
+    outputs = gate.get("outputs", {})
+    msg = "prod-secret-check must publish has_db_password for eval-prod to gate on"
+    assert "has_db_password" in outputs, msg
+
+
+def test_eval_prod_gates_on_the_environment_scoped_check():
+    workflow = _load_workflow()
+    eval_prod = workflow["jobs"]["eval-prod"]
+    assert "prod-secret-check" in eval_prod["needs"], (
+        "eval-prod does not depend on prod-secret-check, so nothing carries "
+        "the DB-password precondition"
+    )
+    assert "needs.prod-secret-check.outputs.has_db_password" in eval_prod["if"], (
+        f"eval-prod's `if` is {eval_prod['if']!r}, expected it to gate on "
+        "needs.prod-secret-check.outputs.has_db_password"
+    )
+
+
+def test_eval_smoke_is_not_gated_behind_the_environment():
+    """eval-smoke needs no prod credential at all. Making it wait on an
+    environment-scoped job would let a future environment reviewer or branch
+    policy block the one route that is meant to run anywhere."""
+    workflow = _load_workflow()
+    eval_smoke = workflow["jobs"]["eval-smoke"]
+    needs = eval_smoke["needs"]
+    needs = [needs] if isinstance(needs, str) else needs
+    assert "prod-secret-check" not in needs, (
+        "eval-smoke depends on prod-secret-check -- the credential-light "
+        "route must not inherit the search-eval environment's gating"
+    )
+    assert eval_smoke.get("environment") is None

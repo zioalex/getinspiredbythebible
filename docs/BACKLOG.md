@@ -1706,8 +1706,11 @@ BITB-104 has numbers.
 
 ### 🚧 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🚧 In Progress — role, grants, and workflow swap implemented; role password creation +
-first green nightly run are an operator follow-up (see story file).
+**Status:** 🚧 In Progress — role, grants, and workflow swap implemented; the operator has created
+the `search-eval` environment and secret, which exposed a gating defect (the environment-scoped
+secret was checked from `preflight`, a job that cannot see it, so `eval-prod` skipped forever) —
+fixed by moving the check into an environment-scoped `prod-secret-check` job. First green nightly
+run is still the completion signal (see story file).
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M
