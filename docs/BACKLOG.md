@@ -1705,13 +1705,16 @@ BITB-104 has numbers.
 
 ---
 
-### 🚧 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
+### ✅ BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🚧 In Progress — role, grants, and workflow swap implemented; the operator has created
-the `search-eval` environment and secret, which exposed a gating defect (the environment-scoped
-secret was checked from `preflight`, a job that cannot see it, so `eval-prod` skipped forever) —
-fixed by moving the check into an environment-scoped `prod-secret-check` job. First green nightly
-run is still the completion signal (see story file).
+**Status:** ✅ Done — role, grants, and workflow swap implemented; the operator created the
+`search-eval` environment and secret, which exposed two post-delivery defects: the environment-scoped
+secret was checked from `preflight`, a job that cannot see it (so `eval-prod` skipped forever), and
+the credential was interpolated into the DSN unencoded (so the CLI died at import in 1.5s once the
+job did run). Both fixed. `eval-prod` is live-verified green as `search_eval_ro` against production —
+[run 33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692), 0 query
+errors, 0 false positives. The operator's write-rehearsal against a restored copy remains open (see
+story file).
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M
