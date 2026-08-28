@@ -1,6 +1,11 @@
 # BITB-043: Validate & Enable Phase-1 Search Improvements
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — marker was stale; corrected 2026-08-28. The **rollout half is done**:
+`query_expansion_enabled` and `hybrid_search_enabled` both default `True` in `api/config.py`, with
+weights 0.7/0.3. The **validation half is still open** and now lives in **BITB-051** (the retrieval
+eval harness + golden set) — the golden set this story's AC1 describes was never built here;
+`api/search_eval/data/retrieval_golden_set.json` is BITB-051's. Metrics-vs-baseline and the
+`docs/DONE/` retrospective remain unticked.
 **Priority:** P1 (High) — high-ROI relevance fix; code already merged, just gated off
 **Size:** M (1-2 days)
 **Created:** 2026-06-07

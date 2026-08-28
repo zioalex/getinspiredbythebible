@@ -1,6 +1,8 @@
 # BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — story-file marker was left stale (docs/BACKLOG.md already had it as Done);
+corrected 2026-08-28. `WhatsNewBottomSheet.kt` + `shouldShowWhatsNew` version-code gate are wired
+into `MainActivity.kt`, covered by `WhatsNewTest` and `ChangelogEntryTest`.
 **Priority:** P1 (High) — users miss new features after silent auto-updates
 **Size:** S (< 1 day)
 **Created:** 2026-07-01

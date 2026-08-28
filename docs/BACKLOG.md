@@ -1300,9 +1300,9 @@ unaffected.
 
 ---
 
-### 🎯 BITB-081: Android — Tapping an Example Question Must Send on the First Tap
+### ✅ BITB-081: Android — Tapping an Example Question Must Send on the First Tap
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #957, merged 2026-08-21) — marker was left stale; corrected 2026-08-28
 **Size:** S (< 4 hrs)
 **Created:** 2026-07-25
 
@@ -1551,9 +1551,10 @@ orphaned story files exist with no backlog section (e.g. `BITB-025-verse-linking
 
 ---
 
-### 🎯 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
+### 🚧 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — automation + coverage alarm shipped; AC5 (production rows observed)
+pending the first post-merge deploy
 **Priority:** P1 — without this, BITB-044 changes nothing in production
 **Size:** M
 **Created:** 2026-08-21

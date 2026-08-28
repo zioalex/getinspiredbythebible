@@ -1,6 +1,13 @@
 # BITB-097: The Deploy Pipeline Cannot Be Trusted With Migrations
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — marker was stale; corrected 2026-08-28. Defects **1, 2, 4 and 5 shipped**
+in PR #1005 (`deploy` needs `run-migrations`; `functional-tests` needs both; `deployment/**` and
+`azure-deploy.yml` added to `test_update.yml`'s trigger paths; `concurrency` group with
+`cancel-in-progress: false`), with `api/tests/test_deploy_workflow_migrations.py` guarding them.
+**Defect 3 is still open**: no job-level `PGOPTIONS` (`lock_timeout`/`statement_timeout`) on
+`run-migrations` — only per-revision `SET LOCAL` in r0004/r0005 and the legacy runner's
+`server_settings`, which is exactly the "depends on every future author remembering" gap this defect
+described. The approval-gate decision (defect 5, second half) also remains the operator's call.
 **Priority:** P1 — five defects, each independently capable of causing or hiding an outage
 **Size:** M (mostly workflow YAML; one decision about the approval gate is the operator's)
 **Created:** 2026-08-18
