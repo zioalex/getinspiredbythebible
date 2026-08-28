@@ -221,7 +221,7 @@ jobs:
     # route/event selection) is already carried by prod-secret-check's own
     # `if:` — when it is skipped this reads an empty output and skips too, so
     # they are not repeated here.
-    if: needs.prod-secret-check.outputs.has_db_password == 'true'
+    if: needs.prod-secret-check.outputs.has_db_password == 'true' # pragma: allowlist secret
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: search-eval
