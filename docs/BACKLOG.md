@@ -1705,13 +1705,16 @@ BITB-104 has numbers.
 
 ---
 
-### 🚧 BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
+### ✅ BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🚧 In Progress — role, grants, and workflow swap implemented; the operator has created
-the `search-eval` environment and secret, which exposed a gating defect (the environment-scoped
-secret was checked from `preflight`, a job that cannot see it, so `eval-prod` skipped forever) —
-fixed by moving the check into an environment-scoped `prod-secret-check` job. First green nightly
-run is still the completion signal (see story file).
+**Status:** ✅ Done — role, grants, and workflow swap implemented; the operator created the
+`search-eval` environment and secret, which exposed two post-delivery defects: the environment-scoped
+secret was checked from `preflight`, a job that cannot see it (so `eval-prod` skipped forever), and
+the credential was interpolated into the DSN unencoded (so the CLI died at import in 1.5s once the
+job did run). Both fixed. `eval-prod` is live-verified green as `search_eval_ro` against production —
+[run 33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692), 0 query
+errors, 0 false positives. The operator's write-rehearsal against a restored copy remains open (see
+story file).
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M
@@ -1755,6 +1758,49 @@ credential proportionate to what it does.
 `main`. Filed as a follow-up per the maintainer's call.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-101-search-eval-prod-read-uses-admin-credentials.md`
+
+---
+
+### 🎯 BITB-112: Every Database URL in This Repo Assumes the Password Is URL-Safe
+
+**Status:** 🎯 Todo
+**Priority:** P1 — the same defect already took `eval-prod` down once, and one of the remaining sites
+is the running production app's own connection string
+**Size:** S–M
+**Created:** 2026-08-28
+**Prompted by:** BITB-101's first non-skipped `eval-prod` run
+([33212723774](https://github.com/zioalex/getinspiredbythebible/actions/runs/33212723774)), fixed for
+that one job in PR #1020
+
+A Postgres DSN is a URL, so `postgresql://user:password@host/db` only means what it looks like while <!-- pragma: allowlist secret -->
+the password contains no character that is structural in a URL. Any of `:/?#[]@%&` does not error —
+it silently repoints the URL (`p@ss/w0rd#x` makes the host `ss`). `eval-prod` hit this on
+2026-08-28 and died at import in 1.5s, because `api/scripture/database.py` builds its engine at
+module scope.
+
+Every other site still interpolates raw:
+
+| site | what it feeds | blast radius |
+| --- | --- | --- |
+| `deployment/main.tf:93` | the **running app's** `DATABASE_URL` | the API cannot reach its database — a production outage |
+| `.github/workflows/azure-deploy.yml` (×7) | migrations, seeding, drift checks | the deploy fails, including the one you would run to fix the credential |
+
+`main.tf:390` hands the same value to the server's `administrator_password`, which takes it
+literally — so server and app disagree exactly when the password is interesting, and
+`variables.tf:69-76` constrains only its length. Nothing has broken yet only because the current
+password happens to be URL-safe: a property of one generated value, not of the system. The next
+rotation is the trigger, and rotations happen during incident response.
+
+**Acceptance Criteria:**
+
+- [ ] No `DATABASE_URL` in `.github/workflows/` interpolates an unencoded password
+- [ ] `main.tf:93` encodes; `main.tf:390` provably still passes the literal value, commented at both
+- [ ] A test fails if a raw-password DSN is reintroduced in any workflow
+- [ ] A decision recorded on a charset `validation` block, and on moving `psql` steps to `PGPASSWORD`
+- [ ] Rehearsed against a password containing `@`, `/`, and `#` — inspection is weak evidence for a
+      failure mode that is silent misdirection rather than an error
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-112-unencoded-db-password-in-every-dsn.md`
 
 ---
 

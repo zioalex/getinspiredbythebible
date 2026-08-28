@@ -175,3 +175,58 @@ def test_eval_smoke_is_not_gated_behind_the_environment():
         "route must not inherit the search-eval environment's gating"
     )
     assert eval_smoke.get("environment") is None
+
+
+# ---------------------------------------------------------------------------
+# The credential has to survive being put into a URL (BITB-101 follow-up).
+#
+# `api/scripture/database.py` builds its engine at import time, so eval-prod's
+# DSN is parsed before the CLI runs a single query. Interpolating a raw
+# password into that string means any of :/?#[]@%& in it silently repoints the
+# URL (a `/` moves the host, a `#` truncates it) or makes it unparseable --
+# the job then dies during import, roughly a second in, with the traceback
+# going only to eval-prod.log inside a zip. The password is generated and
+# pasted in by an operator, so assuming it is URL-safe is assuming something
+# nobody promised.
+# ---------------------------------------------------------------------------
+
+
+def _eval_prod_run_step() -> dict:
+    workflow = _load_workflow()
+    for step in workflow["jobs"]["eval-prod"]["steps"]:
+        if step.get("id") == "run":
+            return step
+    raise AssertionError("eval-prod has no step with id 'run'")
+
+
+def test_eval_prod_percent_encodes_the_db_password_into_the_dsn():
+    script = _eval_prod_run_step()["run"]
+    dsn_lines = [ln for ln in script.splitlines() if "DATABASE_URL=" in ln]
+    assert dsn_lines, "eval-prod's run step no longer builds a DATABASE_URL"
+    for line in dsn_lines:
+        assert "${DB_PASS}" not in line and "$DB_PASS@" not in line, (
+            f"eval-prod interpolates the raw password into the DSN ({line.strip()!r}) "
+            "-- a password containing :/?#[]@%& mis-parses or crashes at import"
+        )
+    encode_msg = "eval-prod does not percent-encode DB_PASS before building the DSN"
+    assert "urllib.parse.quote" in script, encode_msg
+    assert "::add-mask::" in script, (
+        "the percent-encoded password is a different string from the secret "
+        "GitHub masks, so it must be registered with ::add-mask:: before it "
+        "can reach a log line"
+    )
+
+
+def test_eval_prod_prints_its_failure_to_the_console():
+    """A failure whose only copy is inside an uploaded zip cannot be read from
+    the API, from a phone, or by anything automated -- which is what made run
+    33212723774's import crash opaque."""
+    workflow = _load_workflow()
+    steps = workflow["jobs"]["eval-prod"]["steps"]
+    fail_steps = [s for s in steps if "Fail the job" in s.get("name", "")]
+    assert fail_steps, "eval-prod has no failure step"
+    script = fail_steps[0]["run"]
+    assert "eval-prod.log" in script and "tail" in script, (
+        "eval-prod's failure step does not print any of eval-prod.log to the "
+        "console -- the diagnosis stays locked in the artifact"
+    )

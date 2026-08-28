@@ -1,9 +1,12 @@
 # BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** 🚧 In Progress — implementation shipped; role created; the operator has since created
-the `search-eval` environment and set `SEARCH_EVAL_DB_PASSWORD`. That surfaced a defect in this
-story's own gating (see *Post-delivery defect* below), fixed in PR #1018 alongside BITB-107; the next
-scheduled/manual `eval-prod` run after that merges is the completion signal.
+**Status:** ✅ Done — implementation shipped; role created; the operator created the `search-eval`
+environment and set `SEARCH_EVAL_DB_PASSWORD`. Two post-delivery defects then had to be fixed before
+Route A could run at all (see *Post-delivery defect* and *Second post-delivery defect* below).
+`eval-prod` is **live-verified green** against the real production database as `search_eval_ro` —
+[run 33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692),
+6m38s, 0 query errors, 0 false positives — which is this story's completion signal. The remaining
+open item is the operator's own write-rehearsal against a restored copy.
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
@@ -161,11 +164,13 @@ Two things worth stating so nobody spends time on them:
       (`prod-secret-check`), so the fail-closed default is not fail-always — see *Post-delivery
       defect* below; guarded by
       `test_preflight_does_not_check_the_environment_scoped_secret`
-- [ ] A nightly run completes green against the new role (the real proof: the grants are sufficient
-      for every query the harness actually issues) — the operator has now created the environment and
-      set the secret, and PR #1018 carries both remaining pieces (the gating fix above and BITB-107's
-      `EMBEDDING_DIMENSIONS=1536` for `eval-prod`). The first green scheduled or manual `eval-prod`
-      run after that PR merges is the completion signal
+- [x] A run completes green against the new role (the real proof: the grants are sufficient for
+      every query the harness actually issues) — [run
+      33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692),
+      dispatched manually with `route: prod`, 6m38s, exit 0, **0 query errors and 0
+      false-positives-at-5** across the full golden set. Zero `n_errors` is the part that proves the
+      grants: every query reached `verses`/`books`/`verse_tsv`/`passages` and came back, so no
+      `SELECT` the harness issues is missing from the role
 
 ## Post-delivery defect: the environment secret was checked from a job that cannot see it
 
@@ -204,10 +209,46 @@ being `test_preflight_does_not_check_the_environment_scoped_secret` — the mist
 review (the expression is valid, the secret name is spelled correctly, and the job goes green), so
 only a test that knows *which job* may read the secret can keep it from returning.
 
-Note for the first green run: this fix only un-skips `eval-prod`. Making it *pass* needs
-`EMBEDDING_DIMENSIONS=1536` on that job as well — prod's embedding column is `vector(1536)` while
-`config.py` defaults to 1024 — which is BITB-107's change, carried in the same PR (#1018). The two
-are independent defects that happen to sit on the same job, and the nightly needs both.
+Note for the first green run: this fix only un-skipped `eval-prod`. Making it *pass* also needed
+`EMBEDDING_DIMENSIONS=1536` on that job — prod's embedding column is `vector(1536)` while
+`config.py` defaults to 1024 — which is BITB-107's change, carried in the same PR (#1018), and one
+more defect that only became visible once the job actually ran, below.
+
+## Second post-delivery defect: the credential was interpolated into a DSN unencoded
+
+Found 2026-08-28, from the first run in which `eval-prod` was no longer skipped
+([33212723774](https://github.com/zioalex/getinspiredbythebible/actions/runs/33212723774)).
+
+The job reached the eval and exited 1 after **1.5 seconds** — faster than any Azure or Postgres
+round-trip, so nothing had been attempted yet. `DB_HOST` had resolved correctly, and the smoke route
+on the same commit was green, which ruled out credentials, Azure config, and the dimension
+validator. What is left before I/O is import, and `api/scripture/database.py` calls
+`create_async_engine()` at module scope: the DSN is parsed at import.
+
+That DSN was built by raw interpolation —
+`postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require` — and the
+`search_eval_ro` password is generated and pasted in by an operator, so nothing constrains it to
+URL-safe characters. Any of `:/?#[]@%&` in it silently repoints or breaks the URL:
+
+| password | host the URL actually names |
+| --- | --- |
+| `plainAlnum123` | `db.example.com` |
+| `p@ss/w0rd#x` | `ss` |
+| `Str0ng!Pass+With/Slash=` | `search_eval_ro` |
+
+The fix percent-encodes `DB_PASS` before it enters the DSN, and registers the encoded form with
+`::add-mask::` — GitHub masks the secret's literal value, not its percent-encoded variant, and the
+two are different strings. Encoding is a no-op for an alphanumeric password, so the change is
+correct independently of which character was to blame.
+
+The second half of the fix is why this took a live dispatch to find at all: `eval-prod`'s failure
+detail existed **only** inside the uploaded artifact and the job summary, with the console carrying
+one line pointing at the zip. That cannot be read from the API, from a phone, or by anything
+automated. BITB-107 fixed exactly this for `eval-smoke` and left `eval-prod` as it was; the failure
+step now tails `eval-prod.log` to the console, secrets masked as everywhere else.
+
+Both guarded in `api/tests/test_search_eval_workflow_credentials.py`: the DSN may never interpolate
+a raw `DB_PASS`, and the failure step must print some of `eval-prod.log` to the console.
 
 ## Verification
 
