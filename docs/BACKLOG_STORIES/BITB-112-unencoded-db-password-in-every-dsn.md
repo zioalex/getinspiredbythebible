@@ -20,7 +20,7 @@ fix it.
 
 ## Problem
 
-A Postgres DSN is a URL. `postgresql://user:password@host:5432/db` only means what it looks like if
+A Postgres DSN is a URL. `postgresql://user:password@host:5432/db` only means what it looks like if <!-- pragma: allowlist secret -->
 the password contains no character that is structural in a URL. Any of `:/?#[]@%&` silently changes
 what the URL names — it does not error, it points somewhere else:
 

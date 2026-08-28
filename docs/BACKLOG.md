@@ -1772,7 +1772,7 @@ is the running production app's own connection string
 ([33212723774](https://github.com/zioalex/getinspiredbythebible/actions/runs/33212723774)), fixed for
 that one job in PR #1020
 
-A Postgres DSN is a URL, so `postgresql://user:password@host/db` only means what it looks like while
+A Postgres DSN is a URL, so `postgresql://user:password@host/db` only means what it looks like while <!-- pragma: allowlist secret -->
 the password contains no character that is structural in a URL. Any of `:/?#[]@%&` does not error —
 it silently repoints the URL (`p@ss/w0rd#x` makes the host `ss`). `eval-prod` hit this on
 2026-08-28 and died at import in 1.5s, because `api/scripture/database.py` builds its engine at
