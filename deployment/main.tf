@@ -90,7 +90,12 @@ locals {
         value = local.cors_origins_value
       }
       "DATABASE_URL" = {
-        value = "postgresql://${var.db_admin_username}:${var.db_admin_password}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
+        # BITB-112: urlencode() the password here -- this builds a DSN, and a
+        # password containing any of :/?#[]@%& silently repoints or breaks a
+        # URL instead of erroring (the app would get a working connection to
+        # the wrong host, or none at all). See administrator_password below
+        # for why that site does the opposite.
+        value = "postgresql://${var.db_admin_username}:${urlencode(var.db_admin_password)}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
       }
       "DEBUG" = {
         value = tostring(var.debug_mode)
@@ -382,11 +387,16 @@ resource "azurerm_container_registry" "main" {
 # -----------------------------------------------------------------------------
 
 resource "azurerm_postgresql_flexible_server" "main" {
-  name                   = "${local.name_prefix}-db-${local.resource_suffix}"
-  resource_group_name    = azurerm_resource_group.main.name
-  location               = local.db_location # Can differ from main location
-  version                = "16"
-  administrator_login    = var.db_admin_username
+  name                = "${local.name_prefix}-db-${local.resource_suffix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = local.db_location # Can differ from main location
+  version             = "16"
+  administrator_login = var.db_admin_username
+  # BITB-112: literal value, deliberately NOT urlencode()'d -- this is the
+  # server's own credential store, not a URL. It must match the raw password
+  # exactly, or authentication fails for the (correctly URL-encoded)
+  # DATABASE_URL above the moment the password contains a URL-structural
+  # character. The two sites are meant to differ.
   administrator_password = var.db_admin_password
 
   # Burstable B2s - 2 vCores / 4 GB RAM (~$33/month all-in). Upgraded from B1ms

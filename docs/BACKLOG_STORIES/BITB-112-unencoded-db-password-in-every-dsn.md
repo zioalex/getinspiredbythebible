@@ -1,6 +1,9 @@
 # BITB-112: Every Database URL in This Repo Assumes the Password Is URL-Safe
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — all nine sites (eight in `azure-deploy.yml`, one in `main.tf`) now
+percent-encode the password, `administrator_password` is left literal on purpose (commented at both
+sites), and a guard test (`api/tests/test_azure_deploy_workflow_credentials.py`) fails on a future
+raw-password DSN. The one AC this PR cannot close is the live rehearsal — see *Verification* below.
 **Priority:** P1 — the same defect already took `eval-prod` down once, and one of the remaining
 sites is the running production app's own connection string
 **Size:** S–M (mechanical fix at ~10 sites + a charset guard + tests; the care is in not breaking a
@@ -80,14 +83,36 @@ response, which is the worst possible moment to discover that the deploy path is
 
 ## Acceptance Criteria
 
-- [ ] No `DATABASE_URL` anywhere in `.github/workflows/` interpolates an unencoded password
-- [ ] `deployment/main.tf:93` percent-encodes the password; `main.tf:390` provably still passes the
-      literal value, with a comment at both sites explaining why they differ
-- [ ] A test fails if a future edit reintroduces a raw-password DSN in any workflow
-- [ ] A recorded decision on whether `db_admin_password` also gets a charset `validation` block, and
-      on whether the `psql` steps move to `PGPASSWORD` instead of a URL
+- [x] No `DATABASE_URL` anywhere in `.github/workflows/` interpolates an unencoded password — all
+      eight sites in `azure-deploy.yml` (legacy migrations, Alembic migrations, two Translation
+      Status checks, Load Bible Data, Populate Verse Topics, Verse Topic Coverage Check, Generate
+      Embeddings) now compute `DB_PASS_ENC` via `urllib.parse.quote(..., safe="")`, `::add-mask::`
+      it, and interpolate `DB_PASS_ENC` instead of `DB_PASS`
+- [x] `deployment/main.tf:93` (now inside the `DATABASE_URL` env-var block) percent-encodes the
+      password via `urlencode(var.db_admin_password)`; `administrator_password` provably still
+      passes the literal value, with a comment at both sites explaining why they differ
+- [x] A test fails if a future edit reintroduces a raw-password DSN in any workflow —
+      `api/tests/test_azure_deploy_workflow_credentials.py`, parsing every `run:` step in
+      `azure-deploy.yml` plus a text check on `main.tf`'s two sites
+- [x] Decision recorded (see *Decision* below): no charset `validation` block; no `psql` steps to
+      move — none of these sites shell out to `psql` in the first place
 - [ ] Rehearsed, not assumed: a deploy (or at minimum the migration job) runs green against a
-      password containing `@`, `/`, and `#` — this is the only evidence that actually settles it
+      password containing `@`, `/`, and `#` — **left open**, see *Verification*
+
+## Decision
+
+**No charset `validation` block on `db_admin_password`.** Per the story's own reasoning: encoding
+is strictly more general than a character-set restriction, and every site that builds a URL from
+the password now encodes it. A validation block would only add a constraint a generator must obey
+for zero additional safety.
+
+**No `psql` steps to move to `PGPASSWORD`.** All nine DSN sites this story touches feed a Python
+process (`asyncpg`/SQLAlchemy via `scripts/*.py`, `alembic`, or Terraform's own `DATABASE_URL` env
+var) — none of them shell out to `psql` directly, so there is no URL-vs-`PGPASSWORD` choice to make
+at these sites. The one script in the repo that *does* call `psql` directly,
+`scripts/db-backup-restore.sh`, already uses `PGPASSWORD` and documents why (`PGPASSWORD for the
+password rather than putting it in the URL`) — this story's fix keeps that split (URL sites encode;
+the one `psql` site stays on `PGPASSWORD`) rather than converging on one form everywhere.
 
 ## Verification
 
@@ -96,8 +121,26 @@ a raw-interpolation site looks correct and works fine right up until the day it 
 is a rehearsal against a password containing the structural characters — ideally against a restored
 copy or a scratch Flexible Server instance, not production.
 
-A cheap intermediate check: `python -c "from urllib.parse import urlparse; print(urlparse(URL).hostname)"`
-on the assembled DSN with a hostile password substituted, which is how the table above was produced.
+A cheap intermediate check, run locally against the encoding logic these sites now share:
+
+```
+$ python3 -c "
+from urllib.parse import quote, urlparse
+pw = quote('Str0ng!Pass+With/Slash=@#', safe='')
+url = f'postgresql://user:{pw}@db.example.com:5432/bibleapp?sslmode=require'
+print(urlparse(url).hostname, urlparse(url).password)
+"
+db.example.com Str0ng!Pass+With/Slash=@#
+```
+
+confirms the encode/decode round-trips correctly for a password containing every structural
+character called out above. **This is not the same as the AC's rehearsal**, which requires an
+actual deploy or migration run against Azure with a password of this shape — that needs production
+credentials and a live Container Apps / Flexible Server environment this session does not have
+access to. Left as the one open item, in the same shape as BITB-097's "clear the stranded gate
+runs" AC: real, but an operator action rather than a code change. Recorded here so the next session
+picking up this story (or the operator during a credential rotation) knows exactly what proof is
+still missing.
 
 ## Related
 

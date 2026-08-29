@@ -1761,9 +1761,14 @@ credential proportionate to what it does.
 
 ---
 
-### 🎯 BITB-112: Every Database URL in This Repo Assumes the Password Is URL-Safe
+### 🚧 BITB-112: Every Database URL in This Repo Assumes the Password Is URL-Safe
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — all nine sites (eight in `azure-deploy.yml`, one in `main.tf`) now
+percent-encode the password, `administrator_password` stays literal on purpose (commented at both
+sites), and a guard test fails on a future raw-password DSN. The live-rehearsal AC (a real deploy
+against a hostile-character password) is left to the operator — needs production Azure access this
+session does not have. See the full story for the recorded decision on the charset-validation and
+`PGPASSWORD` questions.
 **Priority:** P1 — the same defect already took `eval-prod` down once, and one of the remaining sites
 is the running production app's own connection string
 **Size:** S–M
@@ -1797,8 +1802,13 @@ rotation is the trigger, and rotations happen during incident response.
 - [ ] `main.tf:93` encodes; `main.tf:390` provably still passes the literal value, commented at both
 - [ ] A test fails if a raw-password DSN is reintroduced in any workflow
 - [ ] A decision recorded on a charset `validation` block, and on moving `psql` steps to `PGPASSWORD`
+- [x] No `DATABASE_URL` anywhere in `.github/workflows/` interpolates an unencoded password
+- [x] `main.tf` encodes the app's `DATABASE_URL`; `administrator_password` provably still passes
+      the literal value, commented at both sites
+- [x] A test fails if a raw-password DSN is reintroduced (`api/tests/test_azure_deploy_workflow_credentials.py`)
+- [x] Decision recorded: no charset `validation` block; no `psql` steps to move (none exist here)
 - [ ] Rehearsed against a password containing `@`, `/`, and `#` — inspection is weak evidence for a
-      failure mode that is silent misdirection rather than an error
+      failure mode that is silent misdirection rather than an error; needs a real deploy, left open
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-112-unencoded-db-password-in-every-dsn.md`
 
