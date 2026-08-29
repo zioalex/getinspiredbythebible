@@ -191,3 +191,57 @@ def test_summarize_step_only_warns_on_zero_verses():
     branch = script[zero_verses_idx : zero_verses_idx + 400]
     assert "::warning::" in branch
     assert "exit 1" not in branch
+
+
+# ---------------------------------------------------------------------------
+# Route A's own version of the same blind spot (found on run 33213383692).
+#
+# BITB-107 gave eval-smoke a verses-retrieved count, because "exit 0 with no
+# errors" turned out to say nothing about whether the eval had actually
+# retrieved anything. eval-prod never got that count: its only checks are
+# false positives and query errors, and a run that retrieves nothing scores
+# zero on both -- identical to a flawless run, and reported as green with
+# every metric 0.00.
+#
+# The asymmetry with smoke is deliberate. Smoke reads 1 Corinthians alone, so
+# matching nothing is legitimate and only warns. Route A reads the whole
+# production corpus, where zero retrieval means the measurement is broken --
+# most likely translation resolution, since no golden-set case pins a
+# translation and the readiness-aware default only works inside the app.
+# ---------------------------------------------------------------------------
+
+
+def _eval_prod_summary_step() -> dict:
+    return _step(_load_workflow()["jobs"]["eval-prod"], "Summarize results")
+
+
+def test_eval_prod_counts_the_verses_it_retrieved():
+    run = _eval_prod_summary_step()["run"]
+    assert "query_results[].retrieved" in run, (
+        "eval-prod does not count retrieved verses -- without it, a run that "
+        "retrieved nothing is indistinguishable from a perfect one (no "
+        "errors, no false positives, exit 0, all metrics 0.00)"
+    )
+
+
+def test_eval_prod_fails_when_it_retrieved_nothing():
+    run = _eval_prod_summary_step()["run"]
+    assert "verses_total" in run and re.search(
+        r'if \[ "\$verses_total" = "0" \]', run
+    ), "eval-prod has no zero-retrieval check"
+    zero_branch = run.split('if [ "$verses_total" = "0" ]', 1)[1]
+    assert "::error::" in zero_branch and "exit 1" in zero_branch, (
+        "a zero-retrieval eval-prod run does not fail -- publishing 0.00 as "
+        "though it were a measurement is worse than publishing nothing"
+    )
+
+
+def test_eval_prod_puts_its_results_on_the_console():
+    """A number that exists only in $GITHUB_STEP_SUMMARY and an artifact
+    cannot be read from the API, from a phone, or by anything automated --
+    which is why 'green but empty' took a re-dispatch to see."""
+    run = _eval_prod_summary_step()["run"]
+    assert 'tee -a "$GITHUB_STEP_SUMMARY"' in run, (
+        "eval-prod's results are redirected only into the job summary; tee "
+        "them so the console keeps a copy"
+    )
