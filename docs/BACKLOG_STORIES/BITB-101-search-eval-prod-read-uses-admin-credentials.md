@@ -4,9 +4,10 @@
 environment and set `SEARCH_EVAL_DB_PASSWORD`. Two post-delivery defects then had to be fixed before
 Route A could run at all (see *Post-delivery defect* and *Second post-delivery defect* below).
 `eval-prod` is **live-verified green** against the real production database as `search_eval_ro` —
-[run 33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692),
-6m38s, 0 query errors, 0 false positives — which is this story's completion signal. The remaining
-open item is the operator's own write-rehearsal against a restored copy.
+[run 33259347514](https://github.com/zioalex/getinspiredbythebible/actions/runs/33259347514):
+116 queries scored, **1089 verses retrieved**, 0 query errors, 0 false positives. That is this
+story's completion signal. The remaining open item is the operator's own write-rehearsal against a
+restored copy.
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
@@ -166,11 +167,12 @@ Two things worth stating so nobody spends time on them:
       `test_preflight_does_not_check_the_environment_scoped_secret`
 - [x] A run completes green against the new role (the real proof: the grants are sufficient for
       every query the harness actually issues) — [run
-      33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692),
-      dispatched manually with `route: prod`, 6m38s, exit 0, **0 query errors and 0
-      false-positives-at-5** across the full golden set. Zero `n_errors` is the part that proves the
-      grants: every query reached `verses`/`books`/`verse_tsv`/`passages` and came back, so no
-      `SELECT` the harness issues is missing from the role
+      33259347514](https://github.com/zioalex/getinspiredbythebible/actions/runs/33259347514),
+      dispatched manually with `route: prod`, exit 0, **116 queries scored, 1089 verses retrieved,
+      0 query errors, 0 false-positives-at-5** across the full golden set.
+      **1089 retrieved verses is what proves the grants**, not the zero error count: rows came back
+      out of `verses`/`books`/`verse_tsv`/`passages`, so no `SELECT` the harness issues is missing
+      from the role.
 
 ## Post-delivery defect: the environment secret was checked from a job that cannot see it
 
@@ -249,6 +251,23 @@ step now tails `eval-prod.log` to the console, secrets masked as everywhere else
 
 Both guarded in `api/tests/test_search_eval_workflow_credentials.py`: the DSN may never interpolate
 a raw `DB_PASS`, and the failure step must print some of `eval-prod.log` to the console.
+
+## Correction: what run 33213383692 actually showed
+
+This story originally recorded run
+[33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692) as the
+completion signal, citing "0 query errors, 0 false positives" as proof that the role's grants were
+sufficient. Both numbers were real. They were also the *only* two columns the job's summary was
+reading correctly: it asked jq for `.precision_at_5`/`.recall_at_10`/`.mrr`/`.n`, while
+`ConfigAggregate` emits `mean_precision_at_5`/`mean_recall_at_10`/`mean_mrr`/`n_cases`. jq renders a
+missing key as `null`, so every metric in that run reported nothing, and a run that had in fact
+retrieved 1088 verses was indistinguishable from one that retrieved none.
+
+The reasoning error is worth keeping written down, because it is the same one the workflow made:
+**zero errors is not evidence that anything was read.** A run that retrieves nothing also reports
+zero errors and zero false positives, and scores 0.00 on every metric. What establishes the grants
+is the retrieved-verse count — rows actually came back out of `verses`, `books`, `verse_tsv` and
+`passages`. Route A now counts and prints that number, and fails when it is zero.
 
 ## Verification
 

@@ -1712,9 +1712,9 @@ BITB-104 has numbers.
 secret was checked from `preflight`, a job that cannot see it (so `eval-prod` skipped forever), and
 the credential was interpolated into the DSN unencoded (so the CLI died at import in 1.5s once the
 job did run). Both fixed. `eval-prod` is live-verified green as `search_eval_ro` against production —
-[run 33213383692](https://github.com/zioalex/getinspiredbythebible/actions/runs/33213383692), 0 query
-errors, 0 false positives. The operator's write-rehearsal against a restored copy remains open (see
-story file).
+[run 33259347514](https://github.com/zioalex/getinspiredbythebible/actions/runs/33259347514): 116
+queries scored, 1089 verses retrieved, 0 query errors, 0 false positives. The operator's
+write-rehearsal against a restored copy remains open (see story file).
 **Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
 Postgres admin role
 **Size:** M
