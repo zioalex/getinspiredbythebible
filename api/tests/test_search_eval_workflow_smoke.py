@@ -261,7 +261,13 @@ def _config_aggregate_fields() -> set[str]:
     tree = ast.parse(source)
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == "ConfigAggregate":
-            return {item.target.id for item in node.body if isinstance(item, ast.AnnAssign)}
+            # `AnnAssign.target` is Name | Attribute | Subscript; only a plain
+            # `Name` is a field declaration, and only it carries `.id`.
+            return {
+                item.target.id
+                for item in node.body
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
+            }
     raise AssertionError("ConfigAggregate not found in search_eval/report.py")
 
 
