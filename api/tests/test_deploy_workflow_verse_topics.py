@@ -45,15 +45,30 @@ def _seed_post_steps() -> list[dict]:
     return _load_workflow()["jobs"]["seed-database-post"]["steps"]
 
 
+def _is_preflight(step: dict) -> bool:
+    """The start-up check invokes both scripts with `--help`, so it matches a
+    plain path search without being the step that does the work. Everything
+    below means "the step that actually runs this script", so it is excluded
+    there and looked up explicitly by the test that is about it."""
+    return "--help" in (step.get("run") or "")
+
+
 def _step_index_containing(needle: str) -> int:
     for index, step in enumerate(_seed_post_steps()):
-        if needle in (step.get("run") or ""):
+        if needle in (step.get("run") or "") and not _is_preflight(step):
             return index
     raise AssertionError(f"no step in seed-database-post runs {needle!r}")
 
 
 def _step_containing(needle: str) -> dict:
     return _seed_post_steps()[_step_index_containing(needle)]
+
+
+def _preflight_index() -> int:
+    for index, step in enumerate(_seed_post_steps()):
+        if _is_preflight(step):
+            return index
+    raise AssertionError("seed-database-post has no `--help` start-up check")
 
 
 def test_seed_database_post_populates_verse_topics():
@@ -97,13 +112,61 @@ def test_coverage_check_cannot_fail_the_deploy():
     assert _step_containing(_COVERAGE_SCRIPT)["continue-on-error"] is True
 
 
-def test_seed_post_installs_the_topic_scripts_dependencies():
-    """Both topic scripts import api/chat/topics.py, which pulls in
-    config.Settings (pydantic-settings). Drop this from the install line and
-    the steps die at import -- automation that is itself a silent no-op."""
+def test_seed_post_installs_dependencies_from_the_manifest():
+    """The original version of this guard asserted that `pydantic-settings`
+    appeared in a hand-curated install line -- and passed, while both scripts
+    were dying on `ModuleNotFoundError: No module named 'anthropic'` (run
+    33213487365). A test that mirrors the author's guess at the import closure
+    cannot catch the guess being wrong.
+
+    The closure is genuinely non-obvious: `chat.topics` is a module of keyword
+    lists, but importing it runs `api/chat/__init__.py`, which eagerly imports
+    .service -> providers -> providers.claude -> `import anthropic`. So the
+    property worth pinning is not which package names appear, it is that the
+    install comes from the manifest that already tracks them."""
     install_steps = [s for s in _seed_post_steps() if "pip install" in (s.get("run") or "")]
     assert install_steps, "seed-database-post has no pip install step"
-    assert any("pydantic-settings" in step["run"] for step in install_steps)
+    assert any("-r api/requirements.txt" in step["run"] for step in install_steps), (
+        "seed-database-post installs a hand-curated dependency list instead of "
+        "api/requirements.txt -- the topic scripts import the whole api "
+        "package's provider stack, so any curated list re-derives an import "
+        "closure by hand and silently drifts out of date"
+    )
+
+
+def test_seed_post_verifies_the_topic_scripts_can_start():
+    """Both topic steps are continue-on-error, so a script that cannot even
+    start is invisible in the deploy's status. Something in this job has to
+    draw the line between "the automation could not run" (a deploy failure)
+    and "the automation ran and found a problem" (an alarm) -- otherwise the
+    first is silently reported as the second, which is how a missing
+    dependency shipped twice."""
+    index = _preflight_index()
+    step = _seed_post_steps()[index]
+    run = step.get("run") or ""
+
+    for script in (_POPULATE_SCRIPT, _COVERAGE_SCRIPT):
+        assert script in run, f"the start-up check does not cover {script}"
+
+    assert step.get("continue-on-error") is not True, (
+        "the start-up check is continue-on-error -- it is the one thing in "
+        "this job that must be able to fail the deploy"
+    )
+    assert index < _step_index_containing(
+        _POPULATE_SCRIPT
+    ), "the start-up check runs after the step it is meant to protect"
+
+
+def test_coverage_check_annotates_a_malfunction():
+    """`check_verse_topic_coverage.py` exits 0 when it alarms, so a non-zero
+    exit means the check could not run at all. With continue-on-error and no
+    annotation that was completely silent: a red step nobody looks at, inside
+    a green deploy."""
+    run = _step_containing(_COVERAGE_SCRIPT)["run"]
+    assert "::warning::" in run, (
+        "a coverage-check malfunction produces no annotation -- it exits "
+        "non-zero only when it could not run, and continue-on-error hides that"
+    )
 
 
 def test_translation_registry_change_triggers_the_seed_path():

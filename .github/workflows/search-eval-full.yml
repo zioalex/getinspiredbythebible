@@ -335,18 +335,22 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ -s eval-prod.json ] && jq -e . eval-prod.json > /dev/null 2>&1; then
+            # Written once, then teed: the job summary keeps the rendered
+            # tables, and the console keeps a copy. A result that exists only
+            # in $GITHUB_STEP_SUMMARY and an artifact cannot be read from the
+            # API, from a phone, or by anything automated — the same gap that
+            # made this job's failures opaque, on the success path.
             {
               echo "| config | P@5 | R@10 | MRR | FP@5 | n | errors |"
               echo "| --- | --- | --- | --- | --- | --- | --- |"
-            } >> "$GITHUB_STEP_SUMMARY"
-            jq -r '
-              .aggregates[] |
-              "| " + (.config|tostring) + " | " + (.precision_at_5|tostring) +
-              " | " + (.recall_at_10|tostring) + " | " + (.mrr|tostring) +
-              " | " + (.total_false_positives_at_5|tostring) + " | " + (.n|tostring) +
-              " | " + (.n_errors|tostring) + " |"
-            ' eval-prod.json >> "$GITHUB_STEP_SUMMARY" \
-              || echo "(could not render aggregates table)" >> "$GITHUB_STEP_SUMMARY"
+              jq -r '
+                .aggregates[] |
+                "| " + (.config|tostring) + " | " + (.mean_precision_at_5|tostring) +
+                " | " + (.mean_recall_at_10|tostring) + " | " + (.mean_mrr|tostring) +
+                " | " + (.total_false_positives_at_5|tostring) + " | " + (.n_cases|tostring) +
+                " | " + (.n_errors|tostring) + " |"
+              ' eval-prod.json || echo "(could not render aggregates table)"
+            } | tee -a "$GITHUB_STEP_SUMMARY"
 
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "#### Per-language" >> "$GITHUB_STEP_SUMMARY"
@@ -357,12 +361,22 @@ jobs:
             jq -r '
               .by_language | to_entries[] as $lang | $lang.value[] |
               "| " + ($lang.key|tostring) + " | " + (.config|tostring) +
-              " | " + (.precision_at_5|tostring) + " | " + (.recall_at_10|tostring) +
-              " | " + (.mrr|tostring) + " | " + (.n|tostring) + " |"
+              " | " + (.mean_precision_at_5|tostring) + " | " + (.mean_recall_at_10|tostring) +
+              " | " + (.mean_mrr|tostring) + " | " + (.n_cases|tostring) + " |"
             ' eval-prod.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
             fp_total=$(jq '[.aggregates[].total_false_positives_at_5] | add // 0' eval-prod.json)
             err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-prod.json)
+            n_total=$(jq '[.aggregates[].n_cases] | add // 0' eval-prod.json)
+            verses_total=$(jq '[.query_results[].retrieved | length] | add // 0' eval-prod.json)
+
+            # The headline numbers, on the console as well as the summary.
+            {
+              echo ""
+              echo "| queries scored | verses retrieved | query errors | false positives @5 |"
+              echo "| --- | --- | --- | --- |"
+              echo "| ${n_total} | ${verses_total} | ${err_total} | ${fp_total} |"
+            } | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$fp_total" != "0" ]; then
               fp_msg="::warning::eval-prod: ${fp_total} false-positive hit(s) at k=5"
               fp_msg="${fp_msg} — a query surfaced a verse flagged as irrelevant. Investigate."
@@ -372,6 +386,28 @@ jobs:
               err_msg="::warning::eval-prod: ${err_total} query error(s) — check eval-prod.log;"
               err_msg="${err_msg} this can be a transient provider/rate-limit issue, not necessarily a regression."
               echo "$err_msg"
+            fi
+
+            # A run that retrieves nothing is indistinguishable from a perfect
+            # one by every check above: no errors, no false positives, exit 0,
+            # and P@5/R@10/MRR all 0.00 — which is how run 33213383692 was
+            # reported as green with no numbers in it. eval-smoke has counted
+            # verses since BITB-107; Route A never did.
+            #
+            # Unlike smoke — whose corpus is 1 Corinthians alone, so matching
+            # nothing is legitimate — this route reads the full production
+            # corpus. Zero verses across every golden-set query is a broken
+            # measurement (translation resolution, similarity_threshold, or an
+            # empty column), not a low score, so it fails rather than warns:
+            # publishing 0.00 as if it were a measurement is worse than
+            # publishing nothing.
+            if [ "$verses_total" = "0" ]; then
+              zero_msg="::error::eval-prod: zero verses retrieved across all ${n_total} scored queries."
+              zero_msg="${zero_msg} Every metric in this run is 0.00 by construction, not by measurement."
+              zero_msg="${zero_msg} Check translation resolution first — golden-set cases pin no translation,"
+              zero_msg="${zero_msg} so each resolves to its language's static default outside the app (BITB-107)."
+              echo "$zero_msg"
+              exit 1
             fi
           else
             echo "No parseable JSON output — see eval-prod.log:" >> "$GITHUB_STEP_SUMMARY"

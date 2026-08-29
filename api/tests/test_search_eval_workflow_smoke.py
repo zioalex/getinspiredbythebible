@@ -191,3 +191,108 @@ def test_summarize_step_only_warns_on_zero_verses():
     branch = script[zero_verses_idx : zero_verses_idx + 400]
     assert "::warning::" in branch
     assert "exit 1" not in branch
+
+
+# ---------------------------------------------------------------------------
+# Route A's own version of the same blind spot (found on run 33213383692).
+#
+# BITB-107 gave eval-smoke a verses-retrieved count, because "exit 0 with no
+# errors" turned out to say nothing about whether the eval had actually
+# retrieved anything. eval-prod never got that count: its only checks are
+# false positives and query errors, and a run that retrieves nothing scores
+# zero on both -- identical to a flawless run, and reported as green with
+# every metric 0.00.
+#
+# The asymmetry with smoke is deliberate. Smoke reads 1 Corinthians alone, so
+# matching nothing is legitimate and only warns. Route A reads the whole
+# production corpus, where zero retrieval means the measurement is broken --
+# most likely translation resolution, since no golden-set case pins a
+# translation and the readiness-aware default only works inside the app.
+# ---------------------------------------------------------------------------
+
+
+def _eval_prod_summary_step() -> dict:
+    return _step(_load_workflow()["jobs"]["eval-prod"], "Summarize results")
+
+
+def test_eval_prod_counts_the_verses_it_retrieved():
+    run = _eval_prod_summary_step()["run"]
+    assert "query_results[].retrieved" in run, (
+        "eval-prod does not count retrieved verses -- without it, a run that "
+        "retrieved nothing is indistinguishable from a perfect one (no "
+        "errors, no false positives, exit 0, all metrics 0.00)"
+    )
+
+
+def test_eval_prod_fails_when_it_retrieved_nothing():
+    run = _eval_prod_summary_step()["run"]
+    assert "verses_total" in run and re.search(
+        r'if \[ "\$verses_total" = "0" \]', run
+    ), "eval-prod has no zero-retrieval check"
+    zero_branch = run.split('if [ "$verses_total" = "0" ]', 1)[1]
+    assert "::error::" in zero_branch and "exit 1" in zero_branch, (
+        "a zero-retrieval eval-prod run does not fail -- publishing 0.00 as "
+        "though it were a measurement is worse than publishing nothing"
+    )
+
+
+def test_eval_prod_puts_its_results_on_the_console():
+    """A number that exists only in $GITHUB_STEP_SUMMARY and an artifact
+    cannot be read from the API, from a phone, or by anything automated --
+    which is why 'green but empty' took a re-dispatch to see."""
+    run = _eval_prod_summary_step()["run"]
+    assert 'tee -a "$GITHUB_STEP_SUMMARY"' in run, (
+        "eval-prod's results are redirected only into the job summary; tee "
+        "them so the console keeps a copy"
+    )
+
+
+def _config_aggregate_fields() -> set[str]:
+    """Field names of `search_eval.report.ConfigAggregate`, read from source.
+
+    Deliberately AST-parsed rather than imported: `report.py` imports
+    `runner.py`, which pulls in the chat service and the whole provider stack,
+    so importing it here would make this guard depend on the LLM SDKs being
+    installed.
+    """
+    import ast
+
+    source = (_REPO_ROOT / "api" / "search_eval" / "report.py").read_text()
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "ConfigAggregate":
+            # `AnnAssign.target` is Name | Attribute | Subscript; only a plain
+            # `Name` is a field declaration, and only it carries `.id`.
+            return {
+                item.target.id
+                for item in node.body
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
+            }
+    raise AssertionError("ConfigAggregate not found in search_eval/report.py")
+
+
+def test_eval_prod_reads_fields_that_actually_exist_in_the_report():
+    """jq returns `null` for a key that is not there, so a renamed or guessed
+    field renders a table of `null`s and reports nothing -- with the job still
+    green. That is exactly what run 33258934248 printed: P@5/R@10/MRR/n all
+    `null`, while 1088 verses had in fact been retrieved. The workflow asked
+    for `.precision_at_5`/`.recall_at_10`/`.mrr`/`.n`; the dataclass has
+    `mean_precision_at_5`/`mean_recall_at_10`/`mean_mrr`/`n_cases`.
+
+    Pin the two together: every field the summary reads off an aggregate must
+    be one the report actually emits."""
+    run = _eval_prod_summary_step()["run"]
+    schema = _config_aggregate_fields()
+
+    # Fields read inside the jq programs, e.g. `(.mean_mrr|tostring)`.
+    read = set(re.findall(r"\.([a-z_][a-z0-9_]*)\s*\|\s*tostring", run))
+    # Fields read in the totals, e.g. `[.aggregates[].n_cases]`.
+    read |= set(re.findall(r"\.aggregates\[\]\.([a-z_][a-z0-9_]*)", run))
+    read.discard("key")  # `$lang.key` is the language code, not an aggregate field
+
+    unknown = read - schema
+    assert not unknown, (
+        f"eval-prod's summary reads {sorted(unknown)} off an aggregate, but "
+        f"ConfigAggregate only has {sorted(schema)} -- jq renders a missing "
+        "key as null, so those columns report nothing while the job stays green"
+    )

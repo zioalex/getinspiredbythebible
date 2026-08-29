@@ -1933,12 +1933,37 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # pydantic/pydantic-settings: populate_verse_topics.py and
-          # check_verse_topic_coverage.py import api/chat/topics.py, which
-          # pulls in utils.logging_config -> config.Settings. Without these
-          # the topic steps below die at import time -- i.e. the automation
-          # this story adds would itself be a silent no-op (BITB-105).
-          pip install httpx asyncpg sqlalchemy openai psycopg2-binary pydantic==2.13.4 pydantic-settings==2.15.0
+          # This was a hand-curated list of what the topic scripts were
+          # believed to import, and it was already wrong: both scripts import
+          # chat.topics / chat.topic_tagging, and `api/chat/__init__.py`
+          # eagerly imports .service -> providers -> providers.claude ->
+          # `import anthropic`. Importing a module of keyword lists therefore
+          # drags in the entire LLM provider stack, so both steps below died
+          # with ModuleNotFoundError while the deploy stayed green (run
+          # 33213487365) -- the "automation that is itself a silent no-op"
+          # BITB-105 exists to prevent, reintroduced by its own install line.
+          #
+          # Install what the api package actually declares rather than
+          # re-deriving its import closure by hand; setup-python above already
+          # keys its pip cache on this exact file.
+          pip install -r api/requirements.txt
+
+      # Both topic steps below are `continue-on-error` by design -- a tagging
+      # failure alarms, it never blocks a deploy (BITB-105). That decision
+      # also means a script which cannot even *start* is invisible in the
+      # deploy's status, which is how a missing `anthropic` shipped twice.
+      # This step draws the line the continue-on-error steps cannot: whether
+      # the automation is able to run at all is a deploy failure, while what
+      # it finds once running is only ever an alarm.
+      #
+      # `--help` executes each script's real module-level imports and then
+      # exits 0 inside argparse, before any database work -- so this catches a
+      # missing dependency without duplicating, and re-guessing, the list of
+      # what they import.
+      - name: Verify the topic scripts can start
+        run: |
+          python scripts/populate_verse_topics.py --help > /dev/null
+          python scripts/check_verse_topic_coverage.py --help > /dev/null
 
       - name: Login to Azure
         uses: azure/login@v3
@@ -2014,7 +2039,21 @@ jobs:
           # Exits 0 even when it alarms (BITB-105 decision: alarm, do not
           # fail the deploy). --strict makes violations fatal; used for the
           # documented negative rehearsal.
+          #
+          # A non-zero exit therefore never means "coverage is bad" -- it
+          # means the check itself could not run. Combined with
+          # continue-on-error that was completely silent: a red step, no
+          # annotation, a green deploy. Annotate it, keeping the step
+          # non-blocking.
+          set +e
           python scripts/check_verse_topic_coverage.py
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::verse_topic coverage check could not run (exit ${status})"\
+                 "-- this is a malfunction, not a coverage alarm; coverage alarms exit 0."
+          fi
+          exit "$status"
 
       - name: Generate Embeddings
         if: inputs.skip_embeddings != true
