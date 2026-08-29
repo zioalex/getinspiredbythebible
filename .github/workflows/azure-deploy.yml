@@ -1663,7 +1663,16 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: percent-encode before interpolating into a DSN. A
+          # Postgres DSN is a URL, so a password containing any of
+          # :/?#[]@%& silently repoints or truncates it instead of erroring
+          # (the exact failure that took down eval-prod, PR #1020). The
+          # encoded form is a different string from the secret GitHub masks,
+          # so it needs its own ::add-mask:: before it can reach a log line.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS_ENC}"
+          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts/migrations
           python run_migrations.py
 
@@ -1690,7 +1699,11 @@ jobs:
           # `alembic current | tail` would be masked by tail's exit 0 and
           # misreported as "database not stamped".
           set -o pipefail
-          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see the "Run legacy migrations" step above for why.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS_ENC}"
+          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd api
           echo "=== alembic current (before) ==="
           CURRENT="$(alembic current | tail -n1 | tr -d '[:space:]')"
@@ -1844,7 +1857,11 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: percent-encode before interpolating into a DSN (see
+          # "Run legacy migrations" above for the failure mode this guards).
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
           python load_bible.py --status
 
@@ -1862,7 +1879,10 @@ jobs:
             exit 0
           fi
 
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see "Run legacy migrations" above.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
 
           FORCE_FLAG=""
@@ -1985,7 +2005,10 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see "Run legacy migrations" above.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           set +e
           python scripts/populate_verse_topics.py
           status=$?
@@ -2009,7 +2032,10 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see "Run legacy migrations" above.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           # Exits 0 even when it alarms (BITB-105 decision: alarm, do not
           # fail the deploy). --strict makes violations fatal; used for the
           # documented negative rehearsal.
@@ -2047,7 +2073,10 @@ jobs:
             exit 0
           fi
 
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see "Run legacy migrations" above.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
           echo "Generating embeddings with Azure OpenAI..."
           python create_azure_embeddings.py
@@ -2065,7 +2094,10 @@ jobs:
           DB_HOST: ${{ steps.db.outputs.db_host }}
           DB_NAME: ${{ secrets.TF_VAR_DB_NAME }}
         run: |
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          # BITB-112: see "Run legacy migrations" above.
+          DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
+          echo "::add-mask::${DB_PASS_ENC}"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
           cd scripts
           python load_bible.py --status
           # Fail the job if no verses were loaded at all
