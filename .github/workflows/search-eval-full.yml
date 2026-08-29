@@ -345,9 +345,9 @@ jobs:
               echo "| --- | --- | --- | --- | --- | --- | --- |"
               jq -r '
                 .aggregates[] |
-                "| " + (.config|tostring) + " | " + (.precision_at_5|tostring) +
-                " | " + (.recall_at_10|tostring) + " | " + (.mrr|tostring) +
-                " | " + (.total_false_positives_at_5|tostring) + " | " + (.n|tostring) +
+                "| " + (.config|tostring) + " | " + (.mean_precision_at_5|tostring) +
+                " | " + (.mean_recall_at_10|tostring) + " | " + (.mean_mrr|tostring) +
+                " | " + (.total_false_positives_at_5|tostring) + " | " + (.n_cases|tostring) +
                 " | " + (.n_errors|tostring) + " |"
               ' eval-prod.json || echo "(could not render aggregates table)"
             } | tee -a "$GITHUB_STEP_SUMMARY"
@@ -361,13 +361,13 @@ jobs:
             jq -r '
               .by_language | to_entries[] as $lang | $lang.value[] |
               "| " + ($lang.key|tostring) + " | " + (.config|tostring) +
-              " | " + (.precision_at_5|tostring) + " | " + (.recall_at_10|tostring) +
-              " | " + (.mrr|tostring) + " | " + (.n|tostring) + " |"
+              " | " + (.mean_precision_at_5|tostring) + " | " + (.mean_recall_at_10|tostring) +
+              " | " + (.mean_mrr|tostring) + " | " + (.n_cases|tostring) + " |"
             ' eval-prod.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
             fp_total=$(jq '[.aggregates[].total_false_positives_at_5] | add // 0' eval-prod.json)
             err_total=$(jq '[.aggregates[].n_errors] | add // 0' eval-prod.json)
-            n_total=$(jq '[.aggregates[].n] | add // 0' eval-prod.json)
+            n_total=$(jq '[.aggregates[].n_cases] | add // 0' eval-prod.json)
             verses_total=$(jq '[.query_results[].retrieved | length] | add // 0' eval-prod.json)
 
             # The headline numbers, on the console as well as the summary.

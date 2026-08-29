@@ -245,3 +245,48 @@ def test_eval_prod_puts_its_results_on_the_console():
         "eval-prod's results are redirected only into the job summary; tee "
         "them so the console keeps a copy"
     )
+
+
+def _config_aggregate_fields() -> set[str]:
+    """Field names of `search_eval.report.ConfigAggregate`, read from source.
+
+    Deliberately AST-parsed rather than imported: `report.py` imports
+    `runner.py`, which pulls in the chat service and the whole provider stack,
+    so importing it here would make this guard depend on the LLM SDKs being
+    installed.
+    """
+    import ast
+
+    source = (_REPO_ROOT / "api" / "search_eval" / "report.py").read_text()
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "ConfigAggregate":
+            return {item.target.id for item in node.body if isinstance(item, ast.AnnAssign)}
+    raise AssertionError("ConfigAggregate not found in search_eval/report.py")
+
+
+def test_eval_prod_reads_fields_that_actually_exist_in_the_report():
+    """jq returns `null` for a key that is not there, so a renamed or guessed
+    field renders a table of `null`s and reports nothing -- with the job still
+    green. That is exactly what run 33258934248 printed: P@5/R@10/MRR/n all
+    `null`, while 1088 verses had in fact been retrieved. The workflow asked
+    for `.precision_at_5`/`.recall_at_10`/`.mrr`/`.n`; the dataclass has
+    `mean_precision_at_5`/`mean_recall_at_10`/`mean_mrr`/`n_cases`.
+
+    Pin the two together: every field the summary reads off an aggregate must
+    be one the report actually emits."""
+    run = _eval_prod_summary_step()["run"]
+    schema = _config_aggregate_fields()
+
+    # Fields read inside the jq programs, e.g. `(.mean_mrr|tostring)`.
+    read = set(re.findall(r"\.([a-z_][a-z0-9_]*)\s*\|\s*tostring", run))
+    # Fields read in the totals, e.g. `[.aggregates[].n_cases]`.
+    read |= set(re.findall(r"\.aggregates\[\]\.([a-z_][a-z0-9_]*)", run))
+    read.discard("key")  # `$lang.key` is the language code, not an aggregate field
+
+    unknown = read - schema
+    assert not unknown, (
+        f"eval-prod's summary reads {sorted(unknown)} off an aggregate, but "
+        f"ConfigAggregate only has {sorted(schema)} -- jq renders a missing "
+        "key as null, so those columns report nothing while the job stays green"
+    )
