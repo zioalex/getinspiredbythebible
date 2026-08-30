@@ -9,7 +9,15 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 
+from chat.topics import SUPPORTED_TOPIC_LANGUAGES
+
 from .runner import QueryResult, RunResult
+
+_UNTAGGABLE_FOOTNOTE = (
+    "* topic tagging not supported for this language "
+    "(scripts/populate_verse_topics.py skips it) — a flat delta here means "
+    '"not taggable", not "boosting doesn\'t help" (BITB-103).'
+)
 
 
 @dataclass
@@ -86,7 +94,13 @@ def format_table(aggregates: list[ConfigAggregate]) -> str:
 
 
 def format_language_breakdown(by_lang: dict[str, list[ConfigAggregate]]) -> str:
-    """Render a per-language P@5/R@10/MRR breakdown, one row per language."""
+    """Render a per-language P@5/R@10/MRR breakdown, one row per language.
+
+    Rows for a language the topic tagger doesn't support are marked with a
+    trailing ``*`` and the report carries a footnote explaining it (BITB-103)
+    — otherwise a flat zero-delta on e.g. ru/zh/hi/ko silently reads as
+    "topic boosting doesn't help" rather than "this language can't be tagged".
+    """
     if not by_lang:
         return ""
     configs = [agg.config for agg in next(iter(by_lang.values()))]
@@ -94,6 +108,7 @@ def format_language_breakdown(by_lang: dict[str, list[ConfigAggregate]]) -> str:
         "Per-language (P@5 / R@10 / MRR):",
         f"{'lang':<6} " + " ".join(f"{c:<22}" for c in configs),
     ]
+    untaggable_present = False
     for lang, aggregates in by_lang.items():
         cells = " ".join(
             f"{agg.mean_precision_at_5:.2f}/{agg.mean_recall_at_10:.2f}/{agg.mean_mrr:.2f}".ljust(
@@ -101,7 +116,13 @@ def format_language_breakdown(by_lang: dict[str, list[ConfigAggregate]]) -> str:
             )
             for agg in aggregates
         )
-        lines.append(f"{lang:<6} {cells}")
+        marker = ""
+        if lang not in SUPPORTED_TOPIC_LANGUAGES:
+            marker = "*"
+            untaggable_present = True
+        lines.append(f"{lang + marker:<6} {cells}")
+    if untaggable_present:
+        lines.append(_UNTAGGABLE_FOOTNOTE)
     return "\n".join(lines)
 
 
@@ -133,12 +154,15 @@ def format_report(run: RunResult) -> str:
 
 def to_json(run: RunResult) -> str:
     """Render the run as machine-readable JSON (for --json)."""
+    by_language = aggregate_by_language(run.query_results)
+    untaggable = sorted(set(by_language) - set(SUPPORTED_TOPIC_LANGUAGES))
     payload = {
         "configs": run.configs,
         "aggregates": [asdict(agg) for agg in aggregate(run.query_results)],
-        "by_language": {
-            lang: [asdict(agg) for agg in aggs]
-            for lang, aggs in aggregate_by_language(run.query_results).items()
+        "by_language": {lang: [asdict(agg) for agg in aggs] for lang, aggs in by_language.items()},
+        "topic_tagging": {
+            "tagger_languages": sorted(SUPPORTED_TOPIC_LANGUAGES),
+            "untaggable_languages_in_run": untaggable,
         },
         "query_results": [asdict(r) for r in run.query_results],
     }

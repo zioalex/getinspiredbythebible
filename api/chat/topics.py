@@ -991,6 +991,17 @@ TOPIC_KEYWORDS_BY_LANGUAGE: dict[str, dict[str, list[str]]] = {
 SUPPORTED_TOPIC_LANGUAGES: tuple[str, ...] = ("en", "it", "de", "es", "fr", "pt", "ar")
 
 
+def canonical_topics() -> frozenset[str]:
+    """Return the canonical topic-id vocabulary (BITB-103).
+
+    Single source of truth for anything that needs to validate a topic id
+    against "the 13 topics this app knows about" — e.g. the golden-set
+    schema (``search_eval.models.GoldenCase.topics``) — without duplicating
+    this list by hand.
+    """
+    return frozenset(TOPIC_KEYWORDS_BY_LANGUAGE)
+
+
 def _flatten(by_language: dict[str, dict[str, list[str]]]) -> dict[str, list[str]]:
     """Flatten the per-language keyword map into the legacy topic -> keywords shape.
 

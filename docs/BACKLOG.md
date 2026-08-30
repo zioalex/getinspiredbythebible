@@ -1597,9 +1597,10 @@ topic boosting is still the silent no-op that story was written to fix. Same fai
 
 ---
 
-### 🎯 BITB-103: The Golden Set Cannot Validate Topic Boosting
+### ✅ BITB-103: The Golden Set Cannot Validate Topic Boosting
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — `topics` field + coverage enforcement shipped; all 13 canonical topics now
+have ≥3 labelled and ≥2 taggable cases, plus a 10-case neutral control subset (84 cases total)
 **Priority:** P1 — blocks BITB-044's three remaining acceptance criteria
 **Size:** M
 **Created:** 2026-08-21
@@ -1624,11 +1625,11 @@ Measured against the 58-case golden set and the 13 canonical topics in `api/chat
 
 **Acceptance Criteria (summary):**
 
-- [ ] Cases carry a `topics` field validated against the canonical vocabulary
-- [ ] All 13 topics have ≥3 cases; `strength`/`provision` mapped or promoted, decision recorded
-- [ ] A labelled neutral subset (`topics: []`) exists, large enough to detect regression
-- [ ] `--validate` fails on missing topic coverage, a non-canonical topic, or an empty neutral subset
-- [ ] Untaggable-language caveat surfaced in the report so a flat delta isn't misread
+- [x] Cases carry a `topics` field validated against the canonical vocabulary
+- [x] All 13 topics have ≥3 cases; `strength`/`provision` mapped or promoted, decision recorded
+- [x] A labelled neutral subset (`topics: []`) exists, large enough to detect regression
+- [x] `--validate` fails on missing topic coverage, a non-canonical topic, or an empty neutral subset
+- [x] Untaggable-language caveat surfaced in the report so a flat delta isn't misread
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-103-golden-set-cannot-validate-topic-boosting.md`
 
