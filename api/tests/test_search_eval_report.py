@@ -114,6 +114,20 @@ class TestFormatLanguageBreakdown:
     def test_empty_is_empty_string(self):
         assert format_language_breakdown({}) == ""
 
+    def test_untaggable_language_marked_with_footnote(self):
+        """BITB-103: ru/zh/hi/ko can't be topic-tagged; a flat delta there
+        must read as "not taggable", not "boosting doesn't help"."""
+        by_lang = aggregate_by_language([_qr(language="en"), _qr(language="ru")])
+        breakdown = format_language_breakdown(by_lang)
+        assert "ru*" in breakdown
+        assert "en*" not in breakdown
+        assert "BITB-103" in breakdown
+
+    def test_no_footnote_when_all_languages_taggable(self):
+        by_lang = aggregate_by_language([_qr(language="en"), _qr(language="it")])
+        breakdown = format_language_breakdown(by_lang)
+        assert "BITB-103" not in breakdown
+
 
 class TestFormatReport:
     def test_healthy_guard_line(self):
@@ -153,3 +167,12 @@ class TestToJson:
         assert "en" in payload["by_language"]
         assert len(payload["query_results"]) == 1
         assert payload["query_results"][0]["case_id"] == "c1"
+
+    def test_topic_tagging_block_names_untaggable_languages(self):
+        run = RunResult(
+            configs=["a"],
+            query_results=[_qr(config="a", language="en"), _qr(config="a", language="ru")],
+        )
+        payload = json.loads(to_json(run))
+        assert "en" in payload["topic_tagging"]["tagger_languages"]
+        assert payload["topic_tagging"]["untaggable_languages_in_run"] == ["ru"]

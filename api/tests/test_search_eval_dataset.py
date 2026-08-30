@@ -11,11 +11,22 @@ from collections import Counter
 
 import pytest
 
-from search_eval.loader import load_golden_set, supported_languages
+from chat.topics import canonical_topics
+from search_eval.loader import (
+    MIN_CASES_PER_TOPIC,
+    MIN_NEUTRAL_CASES,
+    MIN_TAGGABLE_CASES_PER_TOPIC,
+    load_golden_set,
+    neutral_cases,
+    supported_languages,
+    topic_coverage,
+    topic_tagger_coverage,
+)
 from search_eval.models import GoldenCase
 from search_eval.normalize import normalize_reference
 
 SUPPORTED_LANGUAGES = sorted(supported_languages())
+CANONICAL_TOPICS = sorted(canonical_topics())
 MIN_CASES = 55
 MIN_PER_LANGUAGE = 5
 
@@ -102,3 +113,50 @@ def test_loader_tag_filter() -> None:
     tagged = load_golden_set(tags=["trust"])
     assert all("trust" in c.tags for c in tagged)
     assert len(tagged) >= 1
+
+
+class TestTopicCoverage:
+    """BITB-103: the golden set must actually exercise topic boosting."""
+
+    def test_every_case_declares_topics_field(self, golden_cases: list[GoldenCase]) -> None:
+        # topics defaults to [] on the model, so this can't catch a missing
+        # key on its own — load_golden_set() enforces that at the raw-dict
+        # level instead (a case without the key raises ValueError on load,
+        # which this fixture would have already surfaced as a test error).
+        assert all(isinstance(c.topics, list) for c in golden_cases)
+
+    def test_all_topics_are_canonical(self, golden_cases: list[GoldenCase]) -> None:
+        bad: list[tuple[str, str]] = []
+        for case in golden_cases:
+            for topic in case.topics:
+                if topic not in CANONICAL_TOPICS:
+                    bad.append((case.id, topic))
+        assert not bad, f"non-canonical topics: {bad}"
+
+    @pytest.mark.parametrize("topic", CANONICAL_TOPICS)
+    def test_minimum_labelled_cases_per_topic(
+        self, golden_cases: list[GoldenCase], topic: str
+    ) -> None:
+        coverage = topic_coverage(golden_cases)
+        assert coverage[topic] >= MIN_CASES_PER_TOPIC, (
+            f"topic '{topic}' has only {coverage[topic]} labelled case(s), "
+            f"need >= {MIN_CASES_PER_TOPIC}"
+        )
+
+    @pytest.mark.parametrize("topic", CANONICAL_TOPICS)
+    def test_minimum_taggable_cases_per_topic(
+        self, golden_cases: list[GoldenCase], topic: str
+    ) -> None:
+        """A topic with plenty of labelled cases but zero the tagger detects
+        is exactly as unmeasurable as a topic with zero cases (BITB-103)."""
+        coverage = topic_tagger_coverage(golden_cases)
+        assert coverage[topic] >= MIN_TAGGABLE_CASES_PER_TOPIC, (
+            f"topic '{topic}' has only {coverage[topic]} case(s) the keyword "
+            f"tagger actually detects, need >= {MIN_TAGGABLE_CASES_PER_TOPIC}"
+        )
+
+    def test_neutral_subset_exists(self, golden_cases: list[GoldenCase]) -> None:
+        neutral = neutral_cases(golden_cases)
+        assert (
+            len(neutral) >= MIN_NEUTRAL_CASES
+        ), f"only {len(neutral)} neutral (topics: []) case(s), need >= {MIN_NEUTRAL_CASES}"

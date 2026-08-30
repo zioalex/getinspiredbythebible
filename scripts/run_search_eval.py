@@ -63,7 +63,11 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     from search_eval.loader import (
         coverage_summary,
         load_golden_set,
+        neutral_cases,
         supported_languages,
+        topic_coverage,
+        topic_tagger_coverage,
+        validate_topic_coverage,
     )
 
     path = Path(args.path) if args.path else None
@@ -85,6 +89,22 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     for lang in sorted(summary):
         print(f"  {lang}: {summary[lang]} cases")
 
+    untaggable_langs = sorted(set(summary) - {"en", "it", "de", "es", "fr", "pt", "ar"})
+    untaggable_count = sum(summary.get(lang, 0) for lang in untaggable_langs)
+    if untaggable_langs:
+        print(
+            f"  note: topic tagging covers en,it,de,es,fr,pt,ar — "
+            f"{untaggable_count} case(s) in {','.join(untaggable_langs)} cannot "
+            f"exercise topic boosting (BITB-103)"
+        )
+
+    labelled = topic_coverage(cases)
+    taggable = topic_tagger_coverage(cases)
+    print(f"\nTopic coverage ({len(labelled)} canonical topics):")
+    for topic in sorted(labelled):
+        print(f"  {topic:12s} {labelled[topic]:3d} labelled / {taggable[topic]:3d} taggable")
+    print(f"  neutral (topics: [])  {len(neutral_cases(cases))} cases")
+
     ids = [c.id for c in cases]
     duplicates = [id_ for id_ in ids if ids.count(id_) > 1]
     if duplicates:
@@ -99,13 +119,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     for case in cases:
         if not case.relevant_refs:
             failures.append(f"{case.id}: no relevant_refs")
+    failures.extend(validate_topic_coverage(cases))
 
     if failures:
         for msg in failures:
             print(f"FAIL: {msg}", file=sys.stderr)
         return 1
 
-    print("OK — golden set is valid.")
+    print("\nOK — golden set is valid.")
     return 0
 
 

@@ -1,6 +1,6 @@
 # BITB-103: The Golden Set Cannot Validate Topic Boosting
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P1 — blocks BITB-044's three remaining acceptance criteria; without it, "did topic
 boosting help?" is not a question the harness can answer
 **Size:** M (golden-set authoring, not code)
@@ -96,17 +96,66 @@ exist today is coincidental, not enforced.
    non-empty. The failure mode here is silent drift between two files nobody diffs together, and a
    test is what keeps it loud.
 
+## Decisions
+
+**Derivation rule for the existing 58 cases' `topics` field:** for each case, take the union of
+{its `category`, if it's a canonical topic name} ∪ {any of its `tags` that are canonical topic
+names}. This is mechanical and reviewable — see the exact per-case output baked into
+`api/search_eval/data/retrieval_golden_set.json`.
+
+**`strength` → `["patience"]`.** All 7 `category: "strength"` cases carry the tag `perseverance`,
+which is a literal `patience` keyword in every one of its 6 Latin-script languages
+(`TOPIC_KEYWORDS_BY_LANGUAGE["patience"]`), and every one of them cites `Isaiah 40:31` ("they that
+**wait** upon the LORD shall renew their strength"). Considered and rejected: promoting `strength`
+to a new canonical topic — `TOPIC_KEYWORDS_BY_LANGUAGE` also drives production tagging
+(`scripts/populate_verse_topics.py`), so a new canonical topic means authoring keyword vocabulary
+in 7 languages and a corpus-validation pass (BITB-106), which is a different, larger story.
+
+**`provision` (en-003) → `["anxiety", "trust"]`, not `trust` alone.** The query ("I'm worried about
+money and finances") is one `detect_topics()` actually classifies as `anxiety` (via "worried");
+labelling it `trust` only would make the one thing the tagger agrees on invisible. `trust` stays
+because the real theme — trusting God for provision — is genuine even though this exact phrasing
+doesn't trigger it.
+
+**Label coverage vs. boost-exercising ("taggable") coverage are different metrics, and both are
+enforced.** Deriving `topics` from `category`/`tags` satisfies "every topic has ≥3 cases" on paper,
+but leaves `trust` (16 labelled cases, almost all via the `trust` tag on anxiety/fear queries) and
+`patience` (12 labelled, mostly via the `strength` mapping) at **zero** cases the keyword tagger
+actually detects from the query text alone — exactly as unmeasurable as `joy` was at zero cases.
+16 new cases (`en-009`..`en-019`, `de-006`..`de-010`) were authored specifically so every canonical
+topic clears **both** a ≥3 labelled-case bar and a ≥2 real-detection ("taggable") bar — see
+`api/search_eval/loader.py`'s `topic_coverage()` / `topic_tagger_coverage()` and
+`docs/SEARCH_EVAL_HOWTO.md`'s "Golden-set schema and the `topics` field" section.
+
+**Neutral control subset:** 10 cases (`en-020`..`en-027`, `de-011`, `de-012`), all confirmed to
+return `[]` from `detect_topics()`, against a CI floor of 6 (so removing one case doesn't instantly
+redden the pipeline).
+
+**New-case language policy:** English (19 new cases) and German (7 new cases) only — the two
+tagger-supported languages the story's own audit calls "corpus-validated" (as opposed to
+`it/es/fr/pt/ar`, tagged but pending BITB-106's corpus validation, or `ru/zh/hi/ko`, which the
+tagger skips outright). Every new German case reuses vocabulary verbatim from
+`TOPIC_KEYWORDS_BY_LANGUAGE`, substituted into the sentence frame of an existing, already-reviewed
+German case, to keep translation risk near zero.
+
+**Verification method:** every proposed query was run through a byte-for-byte reimplementation of
+`detect_topics()`'s flatten+substring logic (there is no shortcut around actually running it — the
+existing 58 cases hid two silent substring artifacts, "fe" ["faith", ES] matching inside English
+"feel"/"suffering" and "futur" ["future", FR] matching inside English/Italian/Portuguese "future"/
+"futuro", that a plain read of the query text would not catch). Every proposed Bible reference was
+checked against `data/bible/kjv.json`.
+
 ## Acceptance Criteria
 
-- [ ] Golden-set cases carry a `topics` field validated against the canonical vocabulary in
+- [x] Golden-set cases carry a `topics` field validated against the canonical vocabulary in
       `api/chat/topics.py`
-- [ ] All 13 canonical topics have ≥3 cases; `joy`, `patience`, `trust` no longer at zero
-- [ ] `strength` and `provision` are either mapped to canonical topics or promoted to canonical
+- [x] All 13 canonical topics have ≥3 cases; `joy`, `patience`, `trust` no longer at zero
+- [x] `strength` and `provision` are either mapped to canonical topics or promoted to canonical
       topics, with the decision recorded
-- [ ] A labelled neutral subset (`topics: []`) exists and is large enough to detect a regression
-- [ ] `--validate` fails if any canonical topic falls below the case threshold, if a case names a
+- [x] A labelled neutral subset (`topics: []`) exists and is large enough to detect a regression
+- [x] `--validate` fails if any canonical topic falls below the case threshold, if a case names a
       non-canonical topic, or if the neutral subset is empty
-- [ ] The per-language caveat is documented in the report output, so a flat delta on ru/zh/hi/ko
+- [x] The per-language caveat is documented in the report output, so a flat delta on ru/zh/hi/ko
       reads as "not taggable" rather than "boosting doesn't work"
 
 ## Verification

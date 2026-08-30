@@ -3,532 +3,1687 @@
     "id": "en-001",
     "query": "I'm anxious about the future",
     "language": "en",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "Proverbs 3:5-6"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "Proverbs 3:5-6"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["anxiety", "trust", "future"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "anxiety",
+      "trust",
+      "future"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "en-002",
     "query": "I feel alone and abandoned",
     "language": "en",
-    "relevant_refs": ["Psalm 23", "Joshua 1:9", "John 14:18"],
+    "relevant_refs": [
+      "Psalm 23",
+      "Joshua 1:9",
+      "John 14:18"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "en-003",
     "query": "I'm worried about money and finances",
     "language": "en",
-    "relevant_refs": ["Matthew 6:25-34", "Philippians 4:19", "Luke 12:22-31"],
+    "relevant_refs": [
+      "Matthew 6:25-34",
+      "Philippians 4:19",
+      "Luke 12:22-31"
+    ],
     "irrelevant_refs": [],
     "category": "provision",
-    "tags": ["worry", "money", "provision"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "worry",
+      "money",
+      "provision"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "en-004",
     "query": "I can't forgive someone who hurt me",
     "language": "en",
-    "relevant_refs": ["Matthew 6:14-15", "Colossians 3:13", "Luke 17:3-4"],
+    "relevant_refs": [
+      "Matthew 6:14-15",
+      "Colossians 3:13",
+      "Luke 17:3-4"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "reconciliation", "mercy"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "forgiveness",
+      "reconciliation",
+      "mercy"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "en-005",
     "query": "I need forgiveness for what I have done",
     "language": "en",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Isaiah 43:25"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Isaiah 43:25"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "en-006",
     "query": "I'm grieving the loss of someone I love",
     "language": "en",
-    "relevant_refs": ["Psalm 34:18", "Matthew 5:4", "Revelation 21:4"],
+    "relevant_refs": [
+      "Psalm 34:18",
+      "Matthew 5:4",
+      "Revelation 21:4"
+    ],
     "irrelevant_refs": [],
     "category": "grief",
-    "tags": ["grief", "comfort", "loss"]
+    "tags": [
+      "grief",
+      "comfort",
+      "loss"
+    ],
+    "topics": [
+      "grief"
+    ]
   },
   {
     "id": "en-007",
     "query": "What does the Bible say about love?",
     "language": "en",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "en-008",
     "query": "I need strength to get through this difficult time",
     "language": "en",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "it-001",
     "query": "Sono frustrato",
     "language": "it",
-    "relevant_refs": ["James 1:19-20", "Proverbs 14:29", "Ephesians 4:26"],
-    "irrelevant_refs": ["Job 21:27"],
+    "relevant_refs": [
+      "James 1:19-20",
+      "Proverbs 14:29",
+      "Ephesians 4:26"
+    ],
+    "irrelevant_refs": [
+      "Job 21:27"
+    ],
     "category": "anger",
-    "tags": ["frustration", "anger", "patience"],
-    "notes": "Seeded from query_expansion_test_cases.json. Job 21:27 is the incident guard — must NOT surface for this frustration query (absorbed from PR #727)."
+    "tags": [
+      "frustration",
+      "anger",
+      "patience"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json. Job 21:27 is the incident guard — must NOT surface for this frustration query (absorbed from PR #727).",
+    "topics": [
+      "anger",
+      "patience"
+    ]
   },
   {
     "id": "it-002",
     "query": "Mi sento solo e abbandonato",
     "language": "it",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Isaiah 41:10"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Isaiah 41:10"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "it-003",
     "query": "Ho paura del futuro",
     "language": "it",
-    "relevant_refs": ["Isaiah 41:10", "Jeremiah 29:11", "Matthew 6:34"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "Jeremiah 29:11",
+      "Matthew 6:34"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "trust", "future"]
+    "tags": [
+      "fear",
+      "trust",
+      "future"
+    ],
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "it-004",
     "query": "Ho bisogno di perdono per quello che ho fatto",
     "language": "it",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Luke 15:11-32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Luke 15:11-32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "it-005",
     "query": "Come trovare la pace interiore?",
     "language": "it",
-    "relevant_refs": ["John 14:27", "Philippians 4:7", "Isaiah 26:3"],
+    "relevant_refs": [
+      "John 14:27",
+      "Philippians 4:7",
+      "Isaiah 26:3"
+    ],
     "irrelevant_refs": [],
     "category": "peace",
-    "tags": ["peace", "rest", "God's peace"]
+    "tags": [
+      "peace",
+      "rest",
+      "God's peace"
+    ],
+    "topics": [
+      "peace"
+    ]
   },
   {
     "id": "de-001",
     "query": "Ich fühle mich hoffnungslos",
     "language": "de",
-    "relevant_refs": ["Romans 15:13", "Lamentations 3:22-23", "Psalm 42"],
+    "relevant_refs": [
+      "Romans 15:13",
+      "Lamentations 3:22-23",
+      "Psalm 42"
+    ],
     "irrelevant_refs": [],
     "category": "hope",
-    "tags": ["hopelessness", "despair", "hope"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "hopelessness",
+      "despair",
+      "hope"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "hope"
+    ]
   },
   {
     "id": "de-002",
     "query": "Ich bin allein und fühle mich verlassen",
     "language": "de",
-    "relevant_refs": ["Psalm 23", "Matthew 28:20", "Joshua 1:9"],
+    "relevant_refs": [
+      "Psalm 23",
+      "Matthew 28:20",
+      "Joshua 1:9"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "de-003",
     "query": "Was sagt die Bibel über Vergebung?",
     "language": "de",
-    "relevant_refs": ["1 John 1:9", "Ephesians 4:32", "Matthew 6:14-15"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Ephesians 4:32",
+      "Matthew 6:14-15"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "grace", "mercy"]
+    "tags": [
+      "forgiveness",
+      "grace",
+      "mercy"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "de-004",
     "query": "Ich brauche Kraft für diese schwere Zeit",
     "language": "de",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "de-005",
     "query": "Ich mache mir viele Sorgen",
     "language": "de",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "1 Peter 5:7"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "1 Peter 5:7"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["worry", "anxiety", "trust"]
+    "tags": [
+      "worry",
+      "anxiety",
+      "trust"
+    ],
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "es-001",
     "query": "Me siento perdido en la vida",
     "language": "es",
-    "relevant_refs": ["Proverbs 3:5-6", "Jeremiah 29:11", "Psalm 119:105"],
+    "relevant_refs": [
+      "Proverbs 3:5-6",
+      "Jeremiah 29:11",
+      "Psalm 119:105"
+    ],
     "irrelevant_refs": [],
     "category": "guidance",
-    "tags": ["lost", "direction", "purpose"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "lost",
+      "direction",
+      "purpose"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "guidance"
+    ]
   },
   {
     "id": "es-002",
     "query": "Estoy muy ansioso y preocupado",
     "language": "es",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "1 Peter 5:7"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "1 Peter 5:7"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["anxiety", "worry", "trust"]
+    "tags": [
+      "anxiety",
+      "worry",
+      "trust"
+    ],
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "es-003",
     "query": "Necesito el perdón de Dios",
     "language": "es",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Luke 15:11-32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Luke 15:11-32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "es-004",
     "query": "Me siento muy solo",
     "language": "es",
-    "relevant_refs": ["Psalm 23", "Isaiah 41:10", "John 14:18"],
+    "relevant_refs": [
+      "Psalm 23",
+      "Isaiah 41:10",
+      "John 14:18"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "es-005",
     "query": "¿Qué dice la Biblia sobre el amor?",
     "language": "es",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "fr-001",
     "query": "Je souffre de solitude",
     "language": "fr",
-    "relevant_refs": ["Psalm 68:6", "John 14:18", "Isaiah 41:10"],
+    "relevant_refs": [
+      "Psalm 68:6",
+      "John 14:18",
+      "Isaiah 41:10"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "fr-002",
     "query": "J'ai peur de l'avenir",
     "language": "fr",
-    "relevant_refs": ["Isaiah 41:10", "Matthew 6:34", "Jeremiah 29:11"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "Matthew 6:34",
+      "Jeremiah 29:11"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "trust", "future"]
+    "tags": [
+      "fear",
+      "trust",
+      "future"
+    ],
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "fr-003",
     "query": "Je suis en colère et je ne sais pas quoi faire",
     "language": "fr",
-    "relevant_refs": ["James 1:19", "Ephesians 4:26", "Proverbs 29:11"],
+    "relevant_refs": [
+      "James 1:19",
+      "Ephesians 4:26",
+      "Proverbs 29:11"
+    ],
     "irrelevant_refs": [],
     "category": "anger",
-    "tags": ["anger", "self-control", "peace"]
+    "tags": [
+      "anger",
+      "self-control",
+      "peace"
+    ],
+    "topics": [
+      "anger",
+      "peace"
+    ]
   },
   {
     "id": "fr-004",
     "query": "Comment trouver la paix intérieure?",
     "language": "fr",
-    "relevant_refs": ["John 14:27", "Philippians 4:7", "Isaiah 26:3"],
+    "relevant_refs": [
+      "John 14:27",
+      "Philippians 4:7",
+      "Isaiah 26:3"
+    ],
     "irrelevant_refs": [],
     "category": "peace",
-    "tags": ["peace", "rest", "God's peace"]
+    "tags": [
+      "peace",
+      "rest",
+      "God's peace"
+    ],
+    "topics": [
+      "peace"
+    ]
   },
   {
     "id": "fr-005",
     "query": "J'ai besoin du pardon de Dieu",
     "language": "fr",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Ephesians 4:32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Ephesians 4:32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "grace", "mercy"]
+    "tags": [
+      "forgiveness",
+      "grace",
+      "mercy"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "pt-001",
     "query": "Estou com medo do futuro",
     "language": "pt",
-    "relevant_refs": ["Isaiah 41:10", "2 Timothy 1:7", "Psalm 27:1"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "2 Timothy 1:7",
+      "Psalm 27:1"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "courage", "trust"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "fear",
+      "courage",
+      "trust"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "pt-002",
     "query": "Me sinto muito sozinho",
     "language": "pt",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Matthew 28:20"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Matthew 28:20"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "pt-003",
     "query": "Preciso de força para superar esse momento difícil",
     "language": "pt",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "pt-004",
     "query": "O que a Bíblia diz sobre o amor?",
     "language": "pt",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "pt-005",
     "query": "Estou ansioso e preocupado com tudo",
     "language": "pt",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "1 Peter 5:7"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "1 Peter 5:7"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["anxiety", "worry", "trust"]
+    "tags": [
+      "anxiety",
+      "worry",
+      "trust"
+    ],
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "ar-001",
     "query": "أشعر بالغضب الشديد",
     "language": "ar",
-    "relevant_refs": ["Proverbs 29:11", "James 1:19", "Ephesians 4:26"],
+    "relevant_refs": [
+      "Proverbs 29:11",
+      "James 1:19",
+      "Ephesians 4:26"
+    ],
     "irrelevant_refs": [],
     "category": "anger",
-    "tags": ["anger", "self-control", "patience"],
-    "notes": "Seeded from query_expansion_test_cases.json"
+    "tags": [
+      "anger",
+      "self-control",
+      "patience"
+    ],
+    "notes": "Seeded from query_expansion_test_cases.json",
+    "topics": [
+      "anger",
+      "patience"
+    ]
   },
   {
     "id": "ar-002",
     "query": "أشعر بالوحدة الشديدة",
     "language": "ar",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Isaiah 41:10"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Isaiah 41:10"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "ar-003",
     "query": "أحتاج إلى القوة في هذه الأوقات الصعبة",
     "language": "ar",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "ar-004",
     "query": "ماذا تقول الكتاب المقدس عن الحب؟",
     "language": "ar",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "ar-005",
     "query": "أخشى المستقبل ولا أعرف ما سيحدث",
     "language": "ar",
-    "relevant_refs": ["Isaiah 41:10", "Jeremiah 29:11", "Matthew 6:34"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "Jeremiah 29:11",
+      "Matthew 6:34"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "trust", "future"]
+    "tags": [
+      "fear",
+      "trust",
+      "future"
+    ],
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "ru-001",
     "query": "Я чувствую себя одиноким и брошенным",
     "language": "ru",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Matthew 28:20"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Matthew 28:20"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "ru-002",
     "query": "Я боюсь будущего и не знаю, что делать",
     "language": "ru",
-    "relevant_refs": ["Isaiah 41:10", "Jeremiah 29:11", "Matthew 6:34"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "Jeremiah 29:11",
+      "Matthew 6:34"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "trust", "future"]
+    "tags": [
+      "fear",
+      "trust",
+      "future"
+    ],
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "ru-003",
     "query": "Мне нужна сила, чтобы пройти через это испытание",
     "language": "ru",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "ru-004",
     "query": "Я злюсь и не могу успокоиться",
     "language": "ru",
-    "relevant_refs": ["James 1:19", "Ephesians 4:26", "Proverbs 29:11"],
+    "relevant_refs": [
+      "James 1:19",
+      "Ephesians 4:26",
+      "Proverbs 29:11"
+    ],
     "irrelevant_refs": [],
     "category": "anger",
-    "tags": ["anger", "self-control", "peace"]
+    "tags": [
+      "anger",
+      "self-control",
+      "peace"
+    ],
+    "topics": [
+      "anger",
+      "peace"
+    ]
   },
   {
     "id": "ru-005",
     "query": "Мне нужно прощение за мои грехи",
     "language": "ru",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Ephesians 4:32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Ephesians 4:32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "zh-001",
     "query": "我感到非常焦虑和担心",
     "language": "zh",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "1 Peter 5:7"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "1 Peter 5:7"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["anxiety", "worry", "trust"]
+    "tags": [
+      "anxiety",
+      "worry",
+      "trust"
+    ],
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "zh-002",
     "query": "我感到非常孤独和孤立",
     "language": "zh",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Isaiah 41:10"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Isaiah 41:10"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "zh-003",
     "query": "我需要力量度过这段艰难时期",
     "language": "zh",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "zh-004",
     "query": "圣经如何谈论爱？",
     "language": "zh",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "zh-005",
     "query": "我很生气，不知道如何控制情绪",
     "language": "zh",
-    "relevant_refs": ["James 1:19", "Ephesians 4:26", "Proverbs 29:11"],
+    "relevant_refs": [
+      "James 1:19",
+      "Ephesians 4:26",
+      "Proverbs 29:11"
+    ],
     "irrelevant_refs": [],
     "category": "anger",
-    "tags": ["anger", "self-control", "peace"]
+    "tags": [
+      "anger",
+      "self-control",
+      "peace"
+    ],
+    "topics": [
+      "anger",
+      "peace"
+    ]
   },
   {
     "id": "hi-001",
     "query": "मुझे बहुत डर लग रहा है",
     "language": "hi",
-    "relevant_refs": ["Isaiah 41:10", "2 Timothy 1:7", "Psalm 27:1"],
+    "relevant_refs": [
+      "Isaiah 41:10",
+      "2 Timothy 1:7",
+      "Psalm 27:1"
+    ],
     "irrelevant_refs": [],
     "category": "fear",
-    "tags": ["fear", "courage", "trust"]
+    "tags": [
+      "fear",
+      "courage",
+      "trust"
+    ],
+    "topics": [
+      "fear",
+      "trust"
+    ]
   },
   {
     "id": "hi-002",
     "query": "मैं बहुत अकेला महसूस कर रहा हूं",
     "language": "hi",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Joshua 1:9"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Joshua 1:9"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "hi-003",
     "query": "मुझे अपने पापों के लिए माफी चाहिए",
     "language": "hi",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Luke 15:11-32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Luke 15:11-32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "hi-004",
     "query": "मुझे शांति और सुकून चाहिए",
     "language": "hi",
-    "relevant_refs": ["John 14:27", "Philippians 4:7", "Isaiah 26:3"],
+    "relevant_refs": [
+      "John 14:27",
+      "Philippians 4:7",
+      "Isaiah 26:3"
+    ],
     "irrelevant_refs": [],
     "category": "peace",
-    "tags": ["peace", "rest", "God's peace"]
+    "tags": [
+      "peace",
+      "rest",
+      "God's peace"
+    ],
+    "topics": [
+      "peace"
+    ]
   },
   {
     "id": "hi-005",
     "query": "बाइबल प्यार के बारे में क्या कहती है?",
     "language": "hi",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
   },
   {
     "id": "ko-001",
     "query": "불안하고 걱정이 많습니다",
     "language": "ko",
-    "relevant_refs": ["Matthew 6:34", "Philippians 4:6-7", "1 Peter 5:7"],
+    "relevant_refs": [
+      "Matthew 6:34",
+      "Philippians 4:6-7",
+      "1 Peter 5:7"
+    ],
     "irrelevant_refs": [],
     "category": "anxiety",
-    "tags": ["anxiety", "worry", "trust"]
+    "tags": [
+      "anxiety",
+      "worry",
+      "trust"
+    ],
+    "topics": [
+      "anxiety",
+      "trust"
+    ]
   },
   {
     "id": "ko-002",
     "query": "너무 외롭고 혼자인 것 같습니다",
     "language": "ko",
-    "relevant_refs": ["Psalm 23", "John 14:18", "Isaiah 41:10"],
+    "relevant_refs": [
+      "Psalm 23",
+      "John 14:18",
+      "Isaiah 41:10"
+    ],
     "irrelevant_refs": [],
     "category": "loneliness",
-    "tags": ["loneliness", "presence", "comfort"]
+    "tags": [
+      "loneliness",
+      "presence",
+      "comfort"
+    ],
+    "topics": [
+      "loneliness"
+    ]
   },
   {
     "id": "ko-003",
     "query": "용서받고 싶습니다",
     "language": "ko",
-    "relevant_refs": ["1 John 1:9", "Psalm 103:12", "Ephesians 4:32"],
+    "relevant_refs": [
+      "1 John 1:9",
+      "Psalm 103:12",
+      "Ephesians 4:32"
+    ],
     "irrelevant_refs": [],
     "category": "forgiveness",
-    "tags": ["forgiveness", "repentance", "grace"]
+    "tags": [
+      "forgiveness",
+      "repentance",
+      "grace"
+    ],
+    "topics": [
+      "forgiveness"
+    ]
   },
   {
     "id": "ko-004",
     "query": "힘든 시간을 이겨낼 힘이 필요합니다",
     "language": "ko",
-    "relevant_refs": ["Isaiah 40:31", "Philippians 4:13", "Psalm 46:1"],
+    "relevant_refs": [
+      "Isaiah 40:31",
+      "Philippians 4:13",
+      "Psalm 46:1"
+    ],
     "irrelevant_refs": [],
     "category": "strength",
-    "tags": ["strength", "perseverance", "faith"]
+    "tags": [
+      "strength",
+      "perseverance",
+      "faith"
+    ],
+    "topics": [
+      "patience"
+    ]
   },
   {
     "id": "ko-005",
     "query": "사랑에 대해 성경은 무엇을 말합니까?",
     "language": "ko",
-    "relevant_refs": ["1 Corinthians 13:4-7", "John 3:16", "Romans 8:38-39"],
+    "relevant_refs": [
+      "1 Corinthians 13:4-7",
+      "John 3:16",
+      "Romans 8:38-39"
+    ],
     "irrelevant_refs": [],
     "category": "love",
-    "tags": ["love", "grace", "God's love"]
+    "tags": [
+      "love",
+      "grace",
+      "God's love"
+    ],
+    "topics": [
+      "love"
+    ]
+  },
+  {
+    "id": "en-009",
+    "query": "How can I find joy in the middle of hardship?",
+    "language": "en",
+    "relevant_refs": [
+      "Habakkuk 3:17-18",
+      "Psalm 30:5",
+      "John 15:11"
+    ],
+    "irrelevant_refs": [],
+    "category": "joy",
+    "tags": [
+      "joy",
+      "gladness",
+      "hardship"
+    ],
+    "topics": [
+      "joy"
+    ],
+    "notes": "Added for BITB-103 (joy had 0 golden-set cases). detect_topics() -> ['joy']."
+  },
+  {
+    "id": "en-010",
+    "query": "I want to thank God for his blessings",
+    "language": "en",
+    "relevant_refs": [
+      "Psalm 100:4",
+      "1 Thessalonians 5:16-18",
+      "Psalm 103:1-5"
+    ],
+    "irrelevant_refs": [],
+    "category": "joy",
+    "tags": [
+      "joy",
+      "gratitude",
+      "blessing"
+    ],
+    "topics": [
+      "joy"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['joy'] (via 'blessings')."
+  },
+  {
+    "id": "de-006",
+    "query": "Was sagt die Bibel über Freude?",
+    "language": "de",
+    "relevant_refs": [
+      "Philippians 4:4",
+      "John 15:11",
+      "Galatians 5:22"
+    ],
+    "irrelevant_refs": [],
+    "category": "joy",
+    "tags": [
+      "joy",
+      "freude",
+      "praise"
+    ],
+    "topics": [
+      "joy"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['joy']."
+  },
+  {
+    "id": "en-011",
+    "query": "I am heartbroken and full of sorrow",
+    "language": "en",
+    "relevant_refs": [
+      "Psalm 147:3",
+      "Psalm 34:18",
+      "Isaiah 43:2"
+    ],
+    "irrelevant_refs": [],
+    "category": "grief",
+    "tags": [
+      "grief",
+      "sorrow",
+      "heartbreak"
+    ],
+    "topics": [
+      "grief"
+    ],
+    "notes": "Added for BITB-103 (grief had only 1 case, en-006). detect_topics() -> ['grief']."
+  },
+  {
+    "id": "de-007",
+    "query": "Ich trauere um einen geliebten Menschen",
+    "language": "de",
+    "relevant_refs": [
+      "Matthew 5:4",
+      "Revelation 21:4",
+      "Psalm 147:3"
+    ],
+    "irrelevant_refs": [],
+    "category": "grief",
+    "tags": [
+      "grief",
+      "loss",
+      "comfort"
+    ],
+    "topics": [
+      "grief"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['love', 'grief'] — the 'love' hit is a keyword-substring artifact from 'geliebten' (loved one), not a second theme; ground-truth topics is ['grief'] only."
+  },
+  {
+    "id": "en-012",
+    "query": "Is there a promise that God has a future for me?",
+    "language": "en",
+    "relevant_refs": [
+      "Jeremiah 29:11",
+      "Proverbs 23:18",
+      "Romans 8:28"
+    ],
+    "irrelevant_refs": [],
+    "category": "hope",
+    "tags": [
+      "hope",
+      "future",
+      "promise"
+    ],
+    "topics": [
+      "hope"
+    ],
+    "notes": "Added for BITB-103 (hope had only 1 case, de-001). detect_topics() -> ['hope']."
+  },
+  {
+    "id": "de-008",
+    "query": "Ich fühle mich hoffnungslos wegen meiner Zukunft",
+    "language": "de",
+    "relevant_refs": [
+      "Romans 15:13",
+      "Lamentations 3:21-23",
+      "Psalm 42:5"
+    ],
+    "irrelevant_refs": [],
+    "category": "hope",
+    "tags": [
+      "hope",
+      "despair",
+      "future"
+    ],
+    "topics": [
+      "hope"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['hope', 'guidance'] — the 'guidance' hit is a keyword-substring artifact ('weg' inside 'wegen'), not a second theme; ground-truth topics is ['hope'] only."
+  },
+  {
+    "id": "en-013",
+    "query": "I have a big decision to make and need wisdom",
+    "language": "en",
+    "relevant_refs": [
+      "James 1:5",
+      "Proverbs 3:5-6",
+      "Psalm 32:8"
+    ],
+    "irrelevant_refs": [],
+    "category": "guidance",
+    "tags": [
+      "guidance",
+      "wisdom",
+      "decision"
+    ],
+    "topics": [
+      "guidance"
+    ],
+    "notes": "Added for BITB-103 (guidance had only 1 case, es-001). detect_topics() -> ['guidance']."
+  },
+  {
+    "id": "en-014",
+    "query": "I do not know which path God wants me to take",
+    "language": "en",
+    "relevant_refs": [
+      "Psalm 119:105",
+      "Proverbs 16:9",
+      "Isaiah 30:21"
+    ],
+    "irrelevant_refs": [],
+    "category": "guidance",
+    "tags": [
+      "guidance",
+      "direction",
+      "path"
+    ],
+    "topics": [
+      "guidance"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['guidance']."
+  },
+  {
+    "id": "en-015",
+    "query": "I am waiting on God and running out of patience",
+    "language": "en",
+    "relevant_refs": [
+      "Psalm 27:14",
+      "Lamentations 3:25-26",
+      "James 5:7-8"
+    ],
+    "irrelevant_refs": [],
+    "category": "patience",
+    "tags": [
+      "patience",
+      "waiting",
+      "perseverance"
+    ],
+    "topics": [
+      "patience"
+    ],
+    "notes": "Added for BITB-103 — patience had 9 *labelled* cases (7 from the strength->patience mapping + 2 tag matches) but 0 the tagger actually detects; this case closes that gap. detect_topics() -> ['patience']."
+  },
+  {
+    "id": "en-016",
+    "query": "How do I endure suffering without giving up?",
+    "language": "en",
+    "relevant_refs": [
+      "Romans 5:3-4",
+      "Galatians 6:9",
+      "Hebrews 12:1"
+    ],
+    "irrelevant_refs": [],
+    "category": "patience",
+    "tags": [
+      "patience",
+      "endurance",
+      "suffering"
+    ],
+    "topics": [
+      "patience"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['trust', 'patience'] — the 'trust' hit is a keyword-substring artifact ('fe' inside 'suffering'), not a second theme; ground-truth topics is ['patience'] only."
+  },
+  {
+    "id": "de-009",
+    "query": "Ich brauche Geduld für diese schwere Zeit",
+    "language": "de",
+    "relevant_refs": [
+      "James 5:7-8",
+      "Romans 12:12",
+      "Galatians 6:9"
+    ],
+    "irrelevant_refs": [],
+    "category": "patience",
+    "tags": [
+      "patience",
+      "geduld",
+      "perseverance"
+    ],
+    "topics": [
+      "patience"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['patience']."
+  },
+  {
+    "id": "en-017",
+    "query": "How do I trust God when nothing makes sense?",
+    "language": "en",
+    "relevant_refs": [
+      "Proverbs 3:5-6",
+      "Psalm 56:3",
+      "Isaiah 26:3-4"
+    ],
+    "irrelevant_refs": [],
+    "category": "trust",
+    "tags": [
+      "trust",
+      "faith",
+      "confusion"
+    ],
+    "topics": [
+      "trust"
+    ],
+    "notes": "Added for BITB-103 — trust had 16 *labelled* cases (mostly via the 'trust' tag on anxiety/fear queries) but only 1 the tagger actually detects (en-002, via the 'fe' substring artifact); this case closes that gap. detect_topics() -> ['trust']."
+  },
+  {
+    "id": "en-018",
+    "query": "I am struggling to have faith and rely on God",
+    "language": "en",
+    "relevant_refs": [
+      "Hebrews 11:1",
+      "Mark 9:24",
+      "Psalm 37:5"
+    ],
+    "irrelevant_refs": [],
+    "category": "trust",
+    "tags": [
+      "trust",
+      "faith",
+      "reliance"
+    ],
+    "topics": [
+      "trust"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['trust']."
+  },
+  {
+    "id": "de-010",
+    "query": "Ich möchte lernen, Gott zu vertrauen",
+    "language": "de",
+    "relevant_refs": [
+      "Proverbs 3:5-6",
+      "Hebrews 11:1",
+      "Isaiah 26:3-4"
+    ],
+    "irrelevant_refs": [],
+    "category": "trust",
+    "tags": [
+      "trust",
+      "vertrauen",
+      "faith"
+    ],
+    "topics": [
+      "trust"
+    ],
+    "notes": "Added for BITB-103. detect_topics() -> ['trust']."
+  },
+  {
+    "id": "en-019",
+    "query": "How do I find calm when my mind will not stop racing?",
+    "language": "en",
+    "relevant_refs": [
+      "Isaiah 26:3",
+      "Philippians 4:6-7",
+      "John 14:27"
+    ],
+    "irrelevant_refs": [],
+    "category": "peace",
+    "tags": [
+      "peace",
+      "calm",
+      "anxiety"
+    ],
+    "topics": [
+      "peace"
+    ],
+    "notes": "Added for BITB-103 (peace had only 2 taggable cases, it-005/fr-004). detect_topics() -> ['peace']."
+  },
+  {
+    "id": "en-020",
+    "query": "What does John 3:16 say?",
+    "language": "en",
+    "relevant_refs": [
+      "John 3:16"
+    ],
+    "irrelevant_refs": [],
+    "category": "reference_lookup",
+    "tags": [
+      "neutral",
+      "reference"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103) — a plain reference lookup. detect_topics() -> []."
+  },
+  {
+    "id": "en-021",
+    "query": "Show me Genesis 1:1",
+    "language": "en",
+    "relevant_refs": [
+      "Genesis 1:1"
+    ],
+    "irrelevant_refs": [],
+    "category": "reference_lookup",
+    "tags": [
+      "neutral",
+      "reference"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-022",
+    "query": "Explain the parable of the sower",
+    "language": "en",
+    "relevant_refs": [
+      "Matthew 13:3-9"
+    ],
+    "irrelevant_refs": [],
+    "category": "narrative",
+    "tags": [
+      "neutral",
+      "parable"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-023",
+    "query": "What happened at Pentecost?",
+    "language": "en",
+    "relevant_refs": [
+      "Acts 2:1-4"
+    ],
+    "irrelevant_refs": [],
+    "category": "narrative",
+    "tags": [
+      "neutral",
+      "history"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-024",
+    "query": "Tell me about the Ten Commandments",
+    "language": "en",
+    "relevant_refs": [
+      "Exodus 20:1-3"
+    ],
+    "irrelevant_refs": [],
+    "category": "factual",
+    "tags": [
+      "neutral",
+      "law"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-025",
+    "query": "What is the story of David and Goliath?",
+    "language": "en",
+    "relevant_refs": [
+      "1 Samuel 17:45-47"
+    ],
+    "irrelevant_refs": [],
+    "category": "narrative",
+    "tags": [
+      "neutral",
+      "history"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-026",
+    "query": "Who were the twelve apostles?",
+    "language": "en",
+    "relevant_refs": [
+      "Matthew 10:2-4"
+    ],
+    "irrelevant_refs": [],
+    "category": "reference_lookup",
+    "tags": [
+      "neutral",
+      "factual"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "en-027",
+    "query": "Where is the story of Noah's ark?",
+    "language": "en",
+    "relevant_refs": [
+      "Genesis 6:9",
+      "Genesis 6:14"
+    ],
+    "irrelevant_refs": [],
+    "category": "narrative",
+    "tags": [
+      "neutral",
+      "history"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "de-011",
+    "query": "Was steht in Johannes 3,16?",
+    "language": "de",
+    "relevant_refs": [
+      "John 3:16"
+    ],
+    "irrelevant_refs": [],
+    "category": "reference_lookup",
+    "tags": [
+      "neutral",
+      "reference"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
+  },
+  {
+    "id": "de-012",
+    "query": "Wer hat den Römerbrief geschrieben?",
+    "language": "de",
+    "relevant_refs": [
+      "Romans 1:1"
+    ],
+    "irrelevant_refs": [],
+    "category": "factual",
+    "tags": [
+      "neutral",
+      "authorship"
+    ],
+    "topics": [],
+    "notes": "Neutral control case (BITB-103). detect_topics() -> []."
   }
 ]

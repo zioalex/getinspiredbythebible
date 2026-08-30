@@ -75,10 +75,62 @@ Joel/Malachi chapter splits, etc.). Read per-language scores with this in
 mind; closing the underlying reference-normalization gaps is tracked in
 **BITB-052**.
 
+**Topic-tagging caveat (BITB-103):** the keyword-based topic tagger
+(`api/chat/topics.py`) only supports `en, it, de, es, fr, pt, ar`.
+`ru, zh, hi, ko` golden-set cases are tagged with a trailing `*` in the
+per-language breakdown and a footnote — a flat (zero-delta) result for those
+languages means **"not taggable"**, not "topic boosting doesn't help". The
+same caveat applies to `--validate`'s printed coverage summary.
+
 **`topic_boosted` is a documented no-op** until **BITB-044** populates
 `verse_topics` — the runner logs a warning and falls back to plain hybrid
 search, so its numbers are expected to equal `hybrid`'s. Don't read anything
 into `topic_boosted` results until BITB-044 ships.
+
+## Golden-set schema and the `topics` field (BITB-103)
+
+Every case in `api/search_eval/data/retrieval_golden_set.json` must carry a
+`topics` field: a list of zero or more canonical topic ids (the top-level
+keys of `TOPIC_KEYWORDS_BY_LANGUAGE` in `api/chat/topics.py` — anger,
+anxiety, fear, forgiveness, grief, guidance, hope, joy, loneliness, love,
+patience, peace, trust). An **empty list is the explicit marker for a
+neutral, non-thematic case** (a plain reference lookup, a factual/narrative
+question) — it is not an oversight to leave it empty, it's the control group
+that lets an eval detect a boosting-induced regression on ordinary queries.
+
+`category`/`tags` stay free-text, human-facing labels (unchanged by this
+story) — `topics` is the machine-checked link `--validate` and the dataset
+test suite (`api/tests/test_search_eval_dataset.py::TestTopicCoverage`)
+actually enforce: every canonical topic needs **≥3 labelled cases**
+(`topics` names it) **and ≥2 taggable cases** (a case in a tagger-supported
+language where `detect_topics(query)` actually returns that topic too) — a
+topic with plenty of labelled cases the tagger never produces is exactly as
+unmeasurable as one with zero cases. The neutral subset needs **≥6 cases**.
+
+**When adding a new case:** before committing it, run its query through
+`detect_topics()` and record the result in the case's `notes` field —
+substring artifacts are common and easy to miss by eye (e.g. Spanish `"fe"`
+["faith"] fires inside English *"I **fe**el alone"* and *"suffering"*;
+German `"weg"` ["way"] fires inside *"weg**en**"* ["because of"]). A tagger
+hit that isn't the query's real theme doesn't need to be added to `topics`
+(ground truth), but it's worth a one-line note so the next reader isn't
+surprised by the reported coverage counts.
+
+**Deciding where a non-canonical category maps** (the `strength`/`provision`
+precedent): `strength` (7 cases, all tagged `perseverance`/`faith`) maps to
+`patience` — `perseverance` is a literal `patience` keyword in every one of
+its 6 Latin-script languages, and `Isaiah 40:31` ("they that **wait** upon
+the LORD shall renew their strength") is used by every one of those cases.
+`provision` (1 case, "worried about money and finances") maps to
+`["anxiety", "trust"]` — `anxiety` because `detect_topics()` genuinely fires
+it (the word "worried"), `trust` because the theme (trusting God to provide)
+is real even though the tagger doesn't catch it from this phrasing. Adding
+`strength`/`provision` as new *canonical* topics instead was considered and
+rejected: `TOPIC_KEYWORDS_BY_LANGUAGE` is also the source for
+`scripts/populate_verse_topics.py`'s production tagging, so a new canonical
+topic means authoring keyword vocabulary in 7 languages and re-validating it
+against the corpus (BITB-106) — a different, larger story than "the golden
+set can't measure the topics that already exist".
 
 ## Satisfying the story's "Done when" bullet
 
