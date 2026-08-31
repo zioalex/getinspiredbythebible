@@ -1,11 +1,49 @@
 # BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — ReDoS safety (AC1–2 below) closed **on web only**; grammar-unification
+ACs split to [BITB-113](BITB-113-verse-parser-grammar-unification.md); the identical finding on
+Android split to [BITB-114](BITB-114-android-verse-parser-redos.md)
 **Priority:** P2 — the book-name half of BITB-059 is solved; the regex-grammar half still costs a
 three-platform repair for every citation fix, and carries an unbenchmarked ReDoS surface
 **Size:** L
 **Created:** 2026-08-22
 **Prompted by:** PR #983 (BITB-059), which ships Phases 1–2 and labels the rest "Phase 3"
+
+## Resolution of the ReDoS half (2026-08-31)
+
+The connector branch (`[\p{L}\p{M}]{2,}(?:\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\s+[\p{L}\p{M}]+)+`)
+was benchmarked with an adversarial input of repeated `" of aa"` segments run through the *full*
+compiled pattern (`createVersePatternGlobal()`), not the branch in isolation — restart-driven scanning
+at every string offset turns out to matter as much as the nested quantifier itself:
+
+| input length | time (unbounded `+`) |
+|---|---|
+| 4,803 chars | 5ms |
+| 19,203 chars | 87ms |
+| 76,803 chars | 1,280ms |
+| 307,203 chars | 21,988ms |
+
+That is a genuine main-thread freeze on a plausible input size (a long pasted genealogy or an
+LLM response repeating a connector word), not a contrived exponential case. Fix: bound the
+connector-branch repetition to `{1,3}` — no entry in `localizedBookMap.generated.ts` needs more
+than one connector repeat (checked: zero book names contain two connector words in sequence), so
+`{1,3}` leaves headroom while making the branch's worst case O(1) instead of unbounded. Re-benchmarked
+after the fix: a 1.2M-char adversarial input matches in under 50ms. A direct test (not just the
+timing benchmark) confirms the cap is actually enforced: a synthetic 4-connector chain
+("Xylo of Zorp of Quix of Wobble of Nix 3:16") can no longer match starting from its first word the
+way the unbounded pattern did — the fixed pattern instead starts the match one word later, capped at
+3 repeats.
+
+This is the "recorded negative result" alternative AC2 allows for, applied precisely: the *current
+form* (bounded) is demonstrated safe by benchmark, rather than replacing it with the two-stage
+scan+validate design the story originally proposed. The two-stage design remains a reasonable
+future direction if the grammar is rewritten for BITB-113's unification work, but is not required to
+close the safety gap.
+
+**Scope note:** this resolution covers `frontend/src/lib/versePatterns.ts` (web) only. The identical
+unbounded connector construct exists in `ChatMessageItem.kt` and `VersesPanel.kt` on Android — found
+during this fix's independent verification pass and tracked separately as
+[BITB-114](BITB-114-android-verse-parser-redos.md) rather than silently left undone.
 
 ## User Story
 
@@ -63,15 +101,17 @@ a tidiness concern.
 
 ## Acceptance Criteria
 
-- [ ] `versePatterns.ts:276` benchmarked against adversarial input, results recorded
-- [ ] The connector branch is a two-stage scan+validate design, or the benchmark demonstrably shows
-      the current form is safe (a recorded negative result closes this too)
+- [x] `versePatterns.ts` connector branch benchmarked against adversarial input, results recorded
+      (see Resolution above)
+- [x] The connector branch is a two-stage scan+validate design, or the benchmark demonstrably shows
+      the current form is safe (a recorded negative result closes this too) — closed via a bounded
+      quantifier, benchmark-verified
 - [ ] Separator/range grammar and script-class alternations come from one source, generated for
-      TypeScript and Kotlin, with hand-editing failing CI
+      TypeScript and Kotlin, with hand-editing failing CI — **split to BITB-113**
 - [ ] Python's relationship to that source is decided and enforced — generated, or contract-tested
-      like `translation_registry.py`
-- [ ] The shared cross-platform corpus (PR #906) stays green across all three implementations
-- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
+      like `translation_registry.py` — **split to BITB-113**
+- [ ] The shared cross-platform corpus (PR #906) stays green across all three implementations — **split to BITB-113**
+- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator — **split to BITB-113**
 
 ## Verification
 

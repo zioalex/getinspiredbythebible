@@ -246,6 +246,13 @@ function buildPatternSource(): string {
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
   //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
+  // The connector-repeat group below is bounded to {1,3} (not +) to close a ReDoS
+  // finding (BITB-108 / audit item E13): the unbounded form let backtracking blow up
+  // superlinearly on adversarial input (~22s on a 300KB adversarial string vs. sub-ms
+  // for real input). {1,3} is safe because no known book name in
+  // localizedBookMap.generated.ts needs more than one connector repeat — see
+  // docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md for the
+  // full benchmark writeup.
   // Bracket support:
   //   Chinese guillemets: \u300A (《) / \u300B (》)
   //   Korean corner brackets: \u300C (「) / \u300D (」) / \u300E (『) / \u300F (』)
@@ -266,7 +273,7 @@ function buildPatternSource(): string {
   // instead of silently truncating a range down to its start verse.
   _cachedPatternSource =
     `(?:(?<!\\p{L})|(?<=\\p{Script=Han})|(?<=\\p{Script=Hangul})|(?<=\\p{Script=Devanagari})|(?<=[\u300A\u300C\u300E]))(${multiWordPart}` +
-    `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+)+` +
+    `[\\p{L}\\p{M}]{2,}(?:\\s+(?:of|dei|des|der|van|de|af|dos|da|del|के|ال)\\s+[\\p{L}\\p{M}]+){1,3}` +
     `|\\d+(?:\\.|-(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]{1,2})?\\s*(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}]){2,}(?:\\s+(?:(?![\\p{Script=Han}\\p{Script=Hangul}\\p{Script=Devanagari}])[\\p{L}\\p{M}])+)*` +
     `|${cjkPart}` +
     `${hangulPart}` +
