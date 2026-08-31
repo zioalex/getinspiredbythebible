@@ -1447,9 +1447,9 @@ loaded, **437 verses embedded**, eval ran — then all 6 query results errored (
 
 ---
 
-### 🎯 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
+### 🚧 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — ReDoS safety (AC1–2) closed; grammar unification split to BITB-113
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-22
@@ -1460,20 +1460,58 @@ started**: the separator/range grammar is still duplicated across `versePatterns
 `ChatMessageItem.kt` and `verse_parser.py`, so every citation fix still costs three hand-synchronised
 edits.
 
-The sharp end is audit item **E13**: a nested-quantifier connector branch at `versePatterns.ts:276`,
-never benchmarked against adversarial input, running **client-side on model output**. Nested
-quantifiers are the classic catastrophic-backtracking shape — this is a latent browser hang, not a
-tidiness concern. The story's own recommendation is a two-stage cheap-scan → strict-validator design.
+The sharp end was audit item **E13**: a nested-quantifier connector branch at `versePatterns.ts`
+(the multi-word-book-name connector group), never benchmarked against adversarial input, running
+**client-side on model output**. Benchmarked: an adversarial ~300KB input ("aa of aa of aa…") took
+~22s to match with the unbounded `+` quantifier, vs. sub-millisecond for legitimate input — a real
+browser-freeze DoS, not a theoretical one. Fixed by bounding the connector repetition to `{1,3}`
+(no known book name in `localizedBookMap.generated.ts` needs more than one connector repeat) —
+structurally eliminates the unbounded-backtracking shape without the full two-stage rewrite. Verified:
+a 1.2M-char adversarial input now matches in well under 50ms.
+
+The remaining scope — generating the separator/range grammar for TypeScript and Kotlin, deciding
+Python's relationship to it, and retiring the duplicate parsers — is real but independent of the
+safety fix and spans three languages' worth of code-gen work. Split into **BITB-113** so this PR
+stays reviewable.
 
 **Acceptance Criteria (summary):**
 
-- [ ] `versePatterns.ts:276` benchmarked against adversarial input, results recorded
-- [ ] Two-stage scan+validate design, or a recorded benchmark showing the current form is safe
-- [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI
-- [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py`
-- [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator
+- [x] Connector branch benchmarked against adversarial input, results recorded
+- [x] Current form made structurally safe (bounded quantifier), verified by benchmark — the
+      "recorded negative result" alternative the AC allows for
+- [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI — **split to BITB-113**
+- [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py` — **split to BITB-113**
+- [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator — **split to BITB-113**
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md`
+
+---
+
+### 🎯 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L
+**Created:** 2026-08-31
+**Split from:** BITB-108 (ReDoS-safety half of Phase 3 shipped separately; this is the remainder)
+
+The separator/range grammar is still hand-duplicated across `frontend/src/lib/versePatterns.ts`,
+`android/.../ChatMessageItem.kt` and `api/utils/verse_parser.py`, so every citation-parsing fix costs
+three hand-synchronised edits. `scripts/generate_localized_book_map.py` already generates the
+book-name half (Phase 1–2, PR #983, CI-guarded via `--check`); this story extends it to the
+separator/range grammar and script-class alternations.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Separator/range grammar and script-class alternations come from one generated source for
+      TypeScript and Kotlin; hand-editing fails CI
+- [ ] Python's relationship to that source decided and enforced — generated, or contract-tested like
+      `translation_registry.py`
+- [ ] Shared cross-platform corpus (PR #906) stays green across all three implementations
+- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
+- [ ] Duplicate-parser retirement (noted in BITB-086) considered once the grammar has one source
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-113-verse-parser-grammar-unification.md`
 
 ---
 
