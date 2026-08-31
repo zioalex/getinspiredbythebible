@@ -1,7 +1,8 @@
 # BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🚧 In Progress — ReDoS safety (AC1–2 below) closed; grammar-unification ACs split to
-[BITB-113](BITB-113-verse-parser-grammar-unification.md)
+**Status:** 🚧 In Progress — ReDoS safety (AC1–2 below) closed **on web only**; grammar-unification
+ACs split to [BITB-113](BITB-113-verse-parser-grammar-unification.md); the identical finding on
+Android split to [BITB-114](BITB-114-android-verse-parser-redos.md)
 **Priority:** P2 — the book-name half of BITB-059 is solved; the regex-grammar half still costs a
 three-platform repair for every citation fix, and carries an unbenchmarked ReDoS surface
 **Size:** L
@@ -27,13 +28,22 @@ LLM response repeating a connector word), not a contrived exponential case. Fix:
 connector-branch repetition to `{1,3}` — no entry in `localizedBookMap.generated.ts` needs more
 than one connector repeat (checked: zero book names contain two connector words in sequence), so
 `{1,3}` leaves headroom while making the branch's worst case O(1) instead of unbounded. Re-benchmarked
-after the fix: a 1.2M-char adversarial input matches in under 50ms.
+after the fix: a 1.2M-char adversarial input matches in under 50ms. A direct test (not just the
+timing benchmark) confirms the cap is actually enforced: a synthetic 4-connector chain
+("Xylo of Zorp of Quix of Wobble of Nix 3:16") can no longer match starting from its first word the
+way the unbounded pattern did — the fixed pattern instead starts the match one word later, capped at
+3 repeats.
 
 This is the "recorded negative result" alternative AC2 allows for, applied precisely: the *current
 form* (bounded) is demonstrated safe by benchmark, rather than replacing it with the two-stage
 scan+validate design the story originally proposed. The two-stage design remains a reasonable
 future direction if the grammar is rewritten for BITB-113's unification work, but is not required to
 close the safety gap.
+
+**Scope note:** this resolution covers `frontend/src/lib/versePatterns.ts` (web) only. The identical
+unbounded connector construct exists in `ChatMessageItem.kt` and `VersesPanel.kt` on Android — found
+during this fix's independent verification pass and tracked separately as
+[BITB-114](BITB-114-android-verse-parser-redos.md) rather than silently left undone.
 
 ## User Story
 

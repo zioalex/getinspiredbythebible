@@ -41,10 +41,59 @@ describe("versePatterns ReDoS regression", () => {
       // ms; with the old unbounded `+` it took ~22s on a 300KB input, so a
       // generous 500ms budget still clearly catches a regression.
       expect(elapsed).toBeLessThan(500);
-      // Sanity: matches is always an array (matchAll never throws on no match).
-      expect(Array.isArray(matches)).toBe(true);
+      // matches.length is intentionally not asserted: this input has no
+      // trailing chapter:verse digits, so it never matches at all (0 results)
+      // — that's expected and irrelevant here. Only the timing matters; see
+      // the "connector-repeat cap is enforced" suite below for assertions on
+      // what the connector branch actually captures.
+      void matches;
     },
   );
+});
+
+// ── Connector-repeat cap is actually enforced ──────────────────────────────
+//
+// The two suites above don't, on their own, prove the {1,3} bound is what's
+// doing the work: every "legitimate" example above resolves via the
+// multi-word book-name alternation (getMultiWordAlternation()), which is
+// tried before the connector branch and matches regardless of the bound —
+// deleting the connector branch entirely still passes those. This suite
+// exercises the connector branch directly with synthetic (non-book) chained
+// phrases, so it fails if the bound is ever widened back to `+`.
+//
+// Empirically confirmed while writing this test: on the pre-fix (unbounded
+// `+`) pattern, a 4-connector chain like "Xylo of Zorp of Quix of Wobble of
+// Nix 3:16" captures the full 5-word phrase as the book name. On the fixed
+// ({1,3}) pattern, the same input can't start its match at "Xylo" (that
+// would need a 4th connector repeat), so the regex engine instead starts the
+// match one word later, capturing "Zorp of Quix of Wobble of Nix" (still
+// within the {1,3} cap) — silently dropping "Xylo of" rather than including
+// it. That shift in *where the match starts* is the bound in action.
+
+describe("connector-repeat cap ({1,3}) is enforced, not just documented", () => {
+  it("matches 1-3 chained connector words as a single book capture", () => {
+    const re = createVersePattern();
+    expect(re.exec("Xylo of Zorp 3:16")?.[1]).toBe("Xylo of Zorp");
+    expect(re.exec("Xylo of Zorp of Quix 3:16")?.[1]).toBe("Xylo of Zorp of Quix");
+    expect(re.exec("Xylo of Zorp of Quix of Wobble 3:16")?.[1]).toBe(
+      "Xylo of Zorp of Quix of Wobble",
+    );
+  });
+
+  it("refuses a 4th connector repeat from the same start, instead of matching it unbounded", () => {
+    const re = createVersePattern();
+    const match = re.exec("Xylo of Zorp of Quix of Wobble of Nix 3:16");
+    // Not null, not undefined — some later branch/start-position still finds
+    // a valid (shorter) reference in this string.
+    expect(match).not.toBeNull();
+    // The captured book name must NOT be the full 5-word chain: that would
+    // only be possible with an unbounded connector-repeat group.
+    expect(match?.[1]).not.toBe("Xylo of Zorp of Quix of Wobble of Nix");
+    // What it actually captures instead: the match starts one word later,
+    // using exactly 3 connector repeats (the cap) from "Zorp" instead of 4
+    // from "Xylo".
+    expect(match?.[1]).toBe("Zorp of Quix of Wobble of Nix");
+  });
 });
 
 // ── Legitimate multi-connector-locale regression ───────────────────────────

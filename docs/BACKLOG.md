@@ -1449,7 +1449,8 @@ loaded, **437 verses embedded**, eval ran — then all 6 query results errored (
 
 ### 🚧 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🚧 In Progress — ReDoS safety (AC1–2) closed; grammar unification split to BITB-113
+**Status:** 🚧 In Progress — ReDoS safety closed **on web only** (AC1–2); grammar unification split
+to BITB-113; the same finding on Android split to BITB-114
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-22
@@ -1464,10 +1465,17 @@ The sharp end was audit item **E13**: a nested-quantifier connector branch at `v
 (the multi-word-book-name connector group), never benchmarked against adversarial input, running
 **client-side on model output**. Benchmarked: an adversarial ~300KB input ("aa of aa of aa…") took
 ~22s to match with the unbounded `+` quantifier, vs. sub-millisecond for legitimate input — a real
-browser-freeze DoS, not a theoretical one. Fixed by bounding the connector repetition to `{1,3}`
-(no known book name in `localizedBookMap.generated.ts` needs more than one connector repeat) —
-structurally eliminates the unbounded-backtracking shape without the full two-stage rewrite. Verified:
-a 1.2M-char adversarial input now matches in well under 50ms.
+browser-freeze DoS, not a theoretical one. Fixed **on the web frontend** by bounding the connector
+repetition to `{1,3}` (no known book name in `localizedBookMap.generated.ts` needs more than one
+connector repeat) — structurally eliminates the unbounded-backtracking shape without the full
+two-stage rewrite. Verified: a 1.2M-char adversarial input now matches in well under 50ms, and a
+direct test confirms the cap is enforced (a 4th connector repeat is refused, not silently allowed).
+
+**The identical construct is still unbounded on Android** (`ChatMessageItem.kt`'s `BOOK_NAME` and
+`VersesPanel.kt`'s `CITED_BOOK_NAME`, both matched against the same untrusted chat-message text, on
+Java's equally-vulnerable backtracking engine) — found during this fix's independent verification
+pass and tracked separately as **BITB-114** rather than silently left undone. `verse_parser.py`
+(backend) has no equivalent connector alternation and is not affected.
 
 The remaining scope — generating the separator/range grammar for TypeScript and Kotlin, deciding
 Python's relationship to it, and retiring the duplicate parsers — is real but independent of the
@@ -1476,14 +1484,42 @@ stays reviewable.
 
 **Acceptance Criteria (summary):**
 
-- [x] Connector branch benchmarked against adversarial input, results recorded
-- [x] Current form made structurally safe (bounded quantifier), verified by benchmark — the
-      "recorded negative result" alternative the AC allows for
+- [x] Connector branch benchmarked against adversarial input, results recorded (web)
+- [x] Current form made structurally safe (bounded quantifier) on web, verified by benchmark and a
+      direct enforcement test — the "recorded negative result" alternative the AC allows for
+- [ ] Same fix applied to Android — **split to BITB-114**
 - [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI — **split to BITB-113**
 - [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py` — **split to BITB-113**
 - [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator — **split to BITB-113**
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md`
+
+---
+
+### 🎯 BITB-114: Close the Same ReDoS Gap on Android (`ChatMessageItem.kt` / `VersesPanel.kt`)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-08-31
+**Found by:** independent Verify pass on BITB-108 (the web-side fix for the same issue)
+
+BITB-108 fixed a benchmarked ReDoS gap in the web frontend's multi-word book-name connector regex
+branch. The identical unbounded construct exists in two Android files, matched against the same kind
+of untrusted chat-message text, on Java's equally-vulnerable backtracking regex engine:
+`ChatMessageItem.kt:113` (`BOOK_NAME`) and `VersesPanel.kt:54` (`CITED_BOOK_NAME`). Audit item E13
+already named the Android re-implementation in scope; BITB-108 closed only web to stay reviewable in
+one PR.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both Android connector groups bounded (not unbounded `*`/`+`), same approach as BITB-108
+- [ ] Adversarial-input benchmark recorded before and after, same rigor as BITB-108
+- [ ] Regression tests proving both the bound doesn't break real book names and the cap is actually
+      enforced (mirrors `versePatterns.redos.test.ts`'s two-part structure)
+- [ ] `docs/BACKLOG.md`'s BITB-108 entry updated to reflect closure on both platforms
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-114-android-verse-parser-redos.md`
 
 ---
 
