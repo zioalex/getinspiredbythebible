@@ -74,7 +74,9 @@ describe("connector-repeat cap ({1,3}) is enforced, not just documented", () => 
   it("matches 1-3 chained connector words as a single book capture", () => {
     const re = createVersePattern();
     expect(re.exec("Xylo of Zorp 3:16")?.[1]).toBe("Xylo of Zorp");
-    expect(re.exec("Xylo of Zorp of Quix 3:16")?.[1]).toBe("Xylo of Zorp of Quix");
+    expect(re.exec("Xylo of Zorp of Quix 3:16")?.[1]).toBe(
+      "Xylo of Zorp of Quix",
+    );
     expect(re.exec("Xylo of Zorp of Quix of Wobble 3:16")?.[1]).toBe(
       "Xylo of Zorp of Quix of Wobble",
     );
