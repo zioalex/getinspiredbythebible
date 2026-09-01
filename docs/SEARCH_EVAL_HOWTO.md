@@ -112,7 +112,7 @@ available — see BITB-115.
 
 | `topic_boost_factor` | P@5 | R@10 | MRR | FP@5 |
 |---|---|---|---|---|
-| _pending first `eval-prod` run_ | | | | |
+| *pending first `eval-prod` run* | | | | |
 
 ## Golden-set schema and the `topics` field (BITB-103)
 
