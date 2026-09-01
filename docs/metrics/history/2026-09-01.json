@@ -1,0 +1,4756 @@
+{
+ "schema": 1,
+ "generated": "2026-09-01",
+ "range": {
+  "first": "2026-01-18",
+  "last": "2026-09-01"
+ },
+ "launch_date": "2026-05-02",
+ "totals": {
+  "units": 810,
+  "release_prs": 92,
+  "prs_seen": 871,
+  "max_pr": 1028,
+  "calendar_days": 227,
+  "active_days": 176,
+  "added_code": 178325,
+  "deleted_code": 25058,
+  "net_code": 153267,
+  "churn_ratio": 0.141,
+  "fix_per_feat": 1.68,
+  "releases": 93,
+  "hotfix_releases": 29,
+  "reverts": 2,
+  "regression_fixes": 193,
+  "regression_fixes_same_scope": 75,
+  "fix_chain_count": 33
+ },
+ "types": {
+  "fix": 295,
+  "feat": 176,
+  "build": 138,
+  "docs": 65,
+  "ci": 53,
+  "other": 43,
+  "test": 18,
+  "chore": 8,
+  "refactor": 7,
+  "perf": 6,
+  "revert": 1
+ },
+ "weekly": [
+  {
+   "week": "2026-01-12",
+   "units": {
+    "feat": 2,
+    "other": 1,
+    "build": 1
+   },
+   "added_code": 10175,
+   "deleted_code": 4889,
+   "added_docs": 3890,
+   "deleted_docs": 309,
+   "active_days": 1
+  },
+  {
+   "week": "2026-01-19",
+   "units": {
+    "fix": 7,
+    "other": 5,
+    "docs": 1,
+    "ci": 2,
+    "build": 16
+   },
+   "added_code": 1577,
+   "deleted_code": 198,
+   "added_docs": 643,
+   "deleted_docs": 26,
+   "active_days": 4
+  },
+  {
+   "week": "2026-01-26",
+   "units": {
+    "other": 7,
+    "fix": 10,
+    "docs": 3
+   },
+   "added_code": 14986,
+   "deleted_code": 754,
+   "added_docs": 3404,
+   "deleted_docs": 75,
+   "active_days": 6
+  },
+  {
+   "week": "2026-02-02",
+   "units": {
+    "fix": 16,
+    "docs": 1,
+    "feat": 8,
+    "other": 2,
+    "build": 2,
+    "refactor": 1
+   },
+   "added_code": 3182,
+   "deleted_code": 1211,
+   "added_docs": 117,
+   "deleted_docs": 26,
+   "active_days": 7
+  },
+  {
+   "week": "2026-02-09",
+   "units": {
+    "feat": 5,
+    "fix": 6,
+    "other": 1
+   },
+   "added_code": 5544,
+   "deleted_code": 1414,
+   "added_docs": 358,
+   "deleted_docs": 13,
+   "active_days": 5
+  },
+  {
+   "week": "2026-02-16",
+   "units": {
+    "fix": 17,
+    "build": 14,
+    "test": 3,
+    "docs": 8,
+    "feat": 7,
+    "other": 2,
+    "refactor": 2
+   },
+   "added_code": 13578,
+   "deleted_code": 458,
+   "added_docs": 2892,
+   "deleted_docs": 14,
+   "active_days": 6
+  },
+  {
+   "week": "2026-02-23",
+   "units": {
+    "fix": 11,
+    "docs": 1,
+    "feat": 3,
+    "ci": 1,
+    "build": 3,
+    "perf": 1
+   },
+   "added_code": 2134,
+   "deleted_code": 286,
+   "added_docs": 2710,
+   "deleted_docs": 88,
+   "active_days": 2
+  },
+  {
+   "week": "2026-03-02",
+   "units": {
+    "feat": 14,
+    "fix": 23,
+    "refactor": 1,
+    "ci": 5,
+    "build": 8,
+    "test": 2,
+    "chore": 1,
+    "docs": 4
+   },
+   "added_code": 10620,
+   "deleted_code": 1362,
+   "added_docs": 1130,
+   "deleted_docs": 615,
+   "active_days": 6
+  },
+  {
+   "week": "2026-03-09",
+   "units": {
+    "fix": 23,
+    "perf": 1,
+    "refactor": 2,
+    "test": 3,
+    "ci": 5,
+    "build": 7,
+    "docs": 1,
+    "feat": 23
+   },
+   "added_code": 17923,
+   "deleted_code": 2569,
+   "added_docs": 949,
+   "deleted_docs": 3,
+   "active_days": 7
+  },
+  {
+   "week": "2026-03-16",
+   "units": {
+    "feat": 5,
+    "build": 5,
+    "fix": 6,
+    "chore": 1
+   },
+   "added_code": 2891,
+   "deleted_code": 212,
+   "added_docs": 128,
+   "deleted_docs": 80,
+   "active_days": 6
+  },
+  {
+   "week": "2026-03-23",
+   "units": {
+    "fix": 5,
+    "other": 7,
+    "feat": 4
+   },
+   "added_code": 4332,
+   "deleted_code": 560,
+   "added_docs": 0,
+   "deleted_docs": 0,
+   "active_days": 4
+  },
+  {
+   "week": "2026-03-30",
+   "units": {
+    "other": 2,
+    "ci": 1,
+    "chore": 1,
+    "fix": 4,
+    "feat": 2,
+    "docs": 1
+   },
+   "added_code": 3049,
+   "deleted_code": 226,
+   "added_docs": 405,
+   "deleted_docs": 54,
+   "active_days": 6
+  },
+  {
+   "week": "2026-04-06",
+   "units": {
+    "feat": 1,
+    "build": 6,
+    "ci": 2,
+    "fix": 4,
+    "other": 1,
+    "test": 1
+   },
+   "added_code": 1205,
+   "deleted_code": 137,
+   "added_docs": 15,
+   "deleted_docs": 8,
+   "active_days": 3
+  },
+  {
+   "week": "2026-04-13",
+   "units": {
+    "feat": 1,
+    "fix": 6
+   },
+   "added_code": 1255,
+   "deleted_code": 692,
+   "added_docs": 158,
+   "deleted_docs": 37,
+   "active_days": 6
+  },
+  {
+   "week": "2026-04-20",
+   "units": {
+    "fix": 5,
+    "other": 3,
+    "build": 3,
+    "docs": 1,
+    "feat": 1
+   },
+   "added_code": 1251,
+   "deleted_code": 24,
+   "added_docs": 2803,
+   "deleted_docs": 30,
+   "active_days": 4
+  },
+  {
+   "week": "2026-04-27",
+   "units": {
+    "fix": 23,
+    "other": 5,
+    "docs": 1,
+    "feat": 4
+   },
+   "added_code": 3333,
+   "deleted_code": 480,
+   "added_docs": 10959,
+   "deleted_docs": 341,
+   "active_days": 6
+  },
+  {
+   "week": "2026-05-04",
+   "units": {
+    "other": 4,
+    "fix": 15,
+    "revert": 1,
+    "ci": 4,
+    "feat": 5,
+    "chore": 1,
+    "docs": 4
+   },
+   "added_code": 3666,
+   "deleted_code": 446,
+   "added_docs": 880,
+   "deleted_docs": 63,
+   "active_days": 7
+  },
+  {
+   "week": "2026-05-11",
+   "units": {
+    "fix": 15,
+    "feat": 7,
+    "ci": 9,
+    "docs": 4,
+    "build": 3,
+    "other": 3,
+    "test": 1,
+    "chore": 1
+   },
+   "added_code": 2760,
+   "deleted_code": 466,
+   "added_docs": 2916,
+   "deleted_docs": 25,
+   "active_days": 7
+  },
+  {
+   "week": "2026-05-18",
+   "units": {
+    "fix": 8,
+    "build": 7,
+    "feat": 8,
+    "ci": 2,
+    "chore": 1
+   },
+   "added_code": 2011,
+   "deleted_code": 199,
+   "added_docs": 496,
+   "deleted_docs": 24,
+   "active_days": 6
+  },
+  {
+   "week": "2026-05-25",
+   "units": {
+    "feat": 11,
+    "refactor": 1,
+    "ci": 3,
+    "build": 8,
+    "docs": 3,
+    "fix": 6
+   },
+   "added_code": 4992,
+   "deleted_code": 1426,
+   "added_docs": 1214,
+   "deleted_docs": 67,
+   "active_days": 6
+  },
+  {
+   "week": "2026-06-01",
+   "units": {
+    "feat": 3,
+    "chore": 1,
+    "fix": 10,
+    "test": 3,
+    "docs": 3
+   },
+   "added_code": 3971,
+   "deleted_code": 1875,
+   "added_docs": 1001,
+   "deleted_docs": 177,
+   "active_days": 6
+  },
+  {
+   "week": "2026-06-08",
+   "units": {
+    "feat": 8,
+    "docs": 2,
+    "fix": 11,
+    "test": 1,
+    "ci": 1
+   },
+   "added_code": 3845,
+   "deleted_code": 385,
+   "added_docs": 1702,
+   "deleted_docs": 223,
+   "active_days": 7
+  },
+  {
+   "week": "2026-06-15",
+   "units": {
+    "feat": 3,
+    "fix": 5,
+    "docs": 2,
+    "perf": 1
+   },
+   "added_code": 2896,
+   "deleted_code": 169,
+   "added_docs": 1312,
+   "deleted_docs": 18,
+   "active_days": 5
+  },
+  {
+   "week": "2026-06-22",
+   "units": {
+    "fix": 4,
+    "feat": 4,
+    "perf": 2
+   },
+   "added_code": 2010,
+   "deleted_code": 188,
+   "added_docs": 300,
+   "deleted_docs": 6,
+   "active_days": 6
+  },
+  {
+   "week": "2026-06-29",
+   "units": {
+    "fix": 12,
+    "feat": 12,
+    "docs": 1,
+    "build": 9,
+    "ci": 1
+   },
+   "added_code": 14497,
+   "deleted_code": 625,
+   "added_docs": 2270,
+   "deleted_docs": 91,
+   "active_days": 6
+  },
+  {
+   "week": "2026-07-06",
+   "units": {
+    "build": 9,
+    "feat": 6,
+    "fix": 6,
+    "ci": 6,
+    "test": 1,
+    "docs": 3
+   },
+   "added_code": 4126,
+   "deleted_code": 379,
+   "added_docs": 2244,
+   "deleted_docs": 239,
+   "active_days": 6
+  },
+  {
+   "week": "2026-07-13",
+   "units": {
+    "build": 4,
+    "ci": 2,
+    "feat": 4,
+    "fix": 10,
+    "docs": 4,
+    "test": 2
+   },
+   "added_code": 6370,
+   "deleted_code": 428,
+   "added_docs": 1022,
+   "deleted_docs": 62,
+   "active_days": 6
+  },
+  {
+   "week": "2026-07-20",
+   "units": {
+    "build": 4,
+    "feat": 7,
+    "chore": 1,
+    "fix": 9,
+    "docs": 6,
+    "ci": 3
+   },
+   "added_code": 13009,
+   "deleted_code": 561,
+   "added_docs": 3296,
+   "deleted_docs": 310,
+   "active_days": 5
+  },
+  {
+   "week": "2026-07-27",
+   "units": {
+    "build": 4,
+    "ci": 3,
+    "feat": 4,
+    "docs": 4,
+    "fix": 3
+   },
+   "added_code": 4299,
+   "deleted_code": 152,
+   "added_docs": 2493,
+   "deleted_docs": 53,
+   "active_days": 4
+  },
+  {
+   "week": "2026-08-03",
+   "units": {
+    "build": 7,
+    "docs": 1,
+    "fix": 1
+   },
+   "added_code": 353,
+   "deleted_code": 11,
+   "added_docs": 266,
+   "deleted_docs": 9,
+   "active_days": 2
+  },
+  {
+   "week": "2026-08-10",
+   "units": {
+    "feat": 3,
+    "build": 2,
+    "fix": 2,
+    "docs": 2
+   },
+   "added_code": 847,
+   "deleted_code": 45,
+   "added_docs": 619,
+   "deleted_docs": 46,
+   "active_days": 4
+  },
+  {
+   "week": "2026-08-17",
+   "units": {
+    "feat": 9,
+    "test": 1,
+    "build": 7,
+    "ci": 2,
+    "fix": 6,
+    "perf": 1,
+    "docs": 3
+   },
+   "added_code": 7184,
+   "deleted_code": 2009,
+   "added_docs": 3458,
+   "deleted_docs": 330,
+   "active_days": 6
+  },
+  {
+   "week": "2026-08-24",
+   "units": {
+    "build": 6,
+    "docs": 1,
+    "fix": 5,
+    "feat": 2
+   },
+   "added_code": 4298,
+   "deleted_code": 216,
+   "added_docs": 1167,
+   "deleted_docs": 140,
+   "active_days": 6
+  },
+  {
+   "week": "2026-08-31",
+   "units": {
+    "fix": 1,
+    "ci": 1,
+    "build": 3
+   },
+   "added_code": 156,
+   "deleted_code": 6,
+   "added_docs": 266,
+   "deleted_docs": 19,
+   "active_days": 2
+  }
+ ],
+ "monthly_fix_feat": [
+  {
+   "month": "2026-01",
+   "fix": 17,
+   "feat": 2
+  },
+  {
+   "month": "2026-02",
+   "fix": 50,
+   "feat": 23
+  },
+  {
+   "month": "2026-03",
+   "fix": 58,
+   "feat": 46
+  },
+  {
+   "month": "2026-04",
+   "fix": 37,
+   "feat": 5
+  },
+  {
+   "month": "2026-05",
+   "fix": 48,
+   "feat": 35
+  },
+  {
+   "month": "2026-06",
+   "fix": 31,
+   "feat": 18
+  },
+  {
+   "month": "2026-07",
+   "fix": 39,
+   "feat": 33
+  },
+  {
+   "month": "2026-08",
+   "fix": 15,
+   "feat": 14
+  },
+  {
+   "month": "2026-09",
+   "fix": 0,
+   "feat": 0
+  }
+ ],
+ "scopes": [
+  {
+   "scope": "android",
+   "total": 120,
+   "feat": 43,
+   "fix": 63,
+   "test": 6,
+   "docs": 2,
+   "revert": 1,
+   "chore": 1,
+   "build": 3,
+   "ci": 1
+  },
+  {
+   "scope": "deps-backend",
+   "total": 59,
+   "build": 59
+  },
+  {
+   "scope": "api",
+   "total": 47,
+   "fix": 19,
+   "feat": 23,
+   "perf": 3,
+   "test": 2
+  },
+  {
+   "scope": "deps-frontend",
+   "total": 37,
+   "build": 37
+  },
+  {
+   "scope": "deps",
+   "total": 36,
+   "ci": 35,
+   "fix": 1
+  },
+  {
+   "scope": "frontend",
+   "total": 29,
+   "fix": 20,
+   "feat": 6,
+   "chore": 1,
+   "test": 1,
+   "ci": 1
+  },
+  {
+   "scope": "ci",
+   "total": 28,
+   "fix": 21,
+   "feat": 6,
+   "test": 1
+  },
+  {
+   "scope": "backlog",
+   "total": 27,
+   "docs": 27
+  },
+  {
+   "scope": "web",
+   "total": 12,
+   "fix": 5,
+   "feat": 7
+  },
+  {
+   "scope": "ops",
+   "total": 9,
+   "fix": 7,
+   "feat": 1,
+   "docs": 1
+  },
+  {
+   "scope": "security",
+   "total": 8,
+   "docs": 3,
+   "fix": 5
+  },
+  {
+   "scope": "deploy",
+   "total": 7,
+   "fix": 7
+  },
+  {
+   "scope": "agents",
+   "total": 6,
+   "feat": 1,
+   "refactor": 1,
+   "chore": 1,
+   "docs": 3
+  },
+  {
+   "scope": "db",
+   "total": 6,
+   "feat": 4,
+   "fix": 2
+  },
+  {
+   "scope": "migrations",
+   "total": 5,
+   "feat": 1,
+   "fix": 3,
+   "docs": 1
+  },
+  {
+   "scope": "chat",
+   "total": 5,
+   "fix": 3,
+   "feat": 1,
+   "refactor": 1
+  },
+  {
+   "scope": "android-publish",
+   "total": 5,
+   "fix": 3,
+   "ci": 2
+  },
+  {
+   "scope": "monitoring",
+   "total": 5,
+   "feat": 3,
+   "fix": 2
+  },
+  {
+   "scope": "content-safety",
+   "total": 4,
+   "feat": 1,
+   "fix": 2,
+   "test": 1
+  },
+  {
+   "scope": "metrics",
+   "total": 4,
+   "feat": 3,
+   "test": 1
+  },
+  {
+   "scope": "translations",
+   "total": 4,
+   "fix": 2,
+   "feat": 2
+  },
+  {
+   "scope": "release",
+   "total": 4,
+   "docs": 2,
+   "fix": 1,
+   "ci": 1
+  },
+  {
+   "scope": "seo",
+   "total": 4,
+   "feat": 4
+  },
+  {
+   "scope": "config",
+   "total": 3,
+   "fix": 1,
+   "feat": 1,
+   "chore": 1
+  },
+  {
+   "scope": "scripts",
+   "total": 3,
+   "fix": 3
+  },
+  {
+   "scope": "verse-links",
+   "total": 3,
+   "fix": 3
+  },
+  {
+   "scope": "search-eval",
+   "total": 3,
+   "feat": 3
+  },
+  {
+   "scope": "dev-env",
+   "total": 3,
+   "fix": 2,
+   "build": 1
+  },
+  {
+   "scope": "verse-parser",
+   "total": 3,
+   "test": 1,
+   "fix": 1,
+   "feat": 1
+  },
+  {
+   "scope": "deps-docker",
+   "total": 2,
+   "build": 2
+  }
+ ],
+ "fix_chains": [
+  {
+   "scope": "android",
+   "count": 34,
+   "start": "2026-04-27",
+   "end": "2026-05-20",
+   "prs": [
+    439,
+    452,
+    453,
+    454,
+    457,
+    458,
+    455,
+    459,
+    460,
+    463,
+    461,
+    468,
+    469,
+    472,
+    485,
+    487,
+    488,
+    489,
+    490,
+    500,
+    501,
+    505,
+    509,
+    530,
+    540,
+    543,
+    548,
+    555,
+    559,
+    567,
+    572,
+    590,
+    598,
+    599
+   ],
+   "subjects": [
+    "wait briefly for Turnstile token on POST requests",
+    "resolve all lintRelease errors and warnings",
+    "harden ProGuard/R8 rules for release builds",
+    "correct language count in changelog and trim screenshots to 8",
+    "inline field validation for contact and church-finder forms",
+    "eliminate theme flash on cold start by reading initial mode synchronously",
+    "remove dead 192.168.0.0 cleartext exception from network_security_config",
+    "raise splash duration to 700 ms and dismiss early when backend responds",
+    "pin Google/Android/AndroidX artifacts to google() Maven to prevent 403 flakiness",
+    "set touched only on submit, not on every keystroke",
+    "lint hardening, plurals i18n, schema export + docs worktree pattern",
+    "Church Finder 403 \u2014 pre-warm Turnstile globally + consume tokens in the interceptor",
+    "fix version grep in publish workflow, improve signing config, document Play Store process",
+    "change applicationId to org.voxquieta",
+    "override attachBaseContext so language selection actually changes UI strings",
+    "provide LocalResources so language picker actually changes UI strings",
+    "live language swap via Compose, no Activity recreate",
+    "remove AD_ID permission auto-merged by Play Services",
+    "exclude play-services-ads-identifier from firebase-analytics",
+    "declare AD_ID usage for Firebase Analytics",
+    "provide LocalResources so language picker actually swaps strings",
+    "make debug APK always installable alongside release",
+    "eliminate NetworkOnMainThreadException and HTTP 403 in chatStream",
+    "auto-detect language when user has not set an explicit preference",
+    "show submitting/success/error feedback in diagnostic report sheet",
+    "re-throw CancellationException in all coroutine catch blocks",
+    "rename post-send dismiss button from Cancel to Done (BITB-033)",
+    "show \"Bible Version\" on translation chip instead of \"Auto\"",
+    "allow partial text selection in assistant messages",
+    "wrap message persistence in NonCancellable context (#565)",
+    "correct app branding with golden bible icon and rays (#569)",
+    "fix analytics over-counting and locale-revert-to-English bugs",
+    "restore Compose test tier isolation (BITB-034)",
+    "show the raster PNG launcher icon on all API levels"
+   ]
+  },
+  {
+   "scope": "android",
+   "count": 12,
+   "start": "2026-03-07",
+   "end": "2026-03-28",
+   "prs": [
+    252,
+    298,
+    295,
+    303,
+    304,
+    313,
+    341,
+    346,
+    345,
+    347,
+    361,
+    369
+   ],
+   "subjects": [
+    "make debug BASE_URL configurable via -PbaseUrl",
+    "locale UI switching, remove ignored language field from API (#4)",
+    "refresh Turnstile token after each message",
+    "fix 3 real-device crashes \u2014 JsonDecodingException, nested-scroll BottomSheet, Settings nav",
+    "use LocalConfiguration instead of LocalContext for locale override",
+    "re-enable strict lint with abortOnError=true and baseline-continue CI strategy",
+    "call TurnstileManager.onTokenConsumed() after contact form submission",
+    "correct Bible translation picker endpoint and add retry",
+    "reset session ID when starting a new conversation",
+    "fix chapter view deserialization, Unicode verse reference linking, and bottom sheet UX",
+    "display verse references by extracting verses from SSE metadata event",
+    "display share and feedback buttons in a single horizontal Row"
+   ]
+  },
+  {
+   "scope": "android",
+   "count": 10,
+   "start": "2026-05-30",
+   "end": "2026-06-22",
+   "prs": [
+    648,
+    661,
+    689,
+    692,
+    694,
+    722,
+    740,
+    743,
+    750,
+    751
+   ],
+   "subjects": [
+    "resolve localized verse taps and stop quote truncation",
+    "render changelog body as markdown so links are tappable",
+    "preserve chat on device rotation (BITB-039)",
+    "float feedback rethink panel as a popover over the thumbs",
+    "localized book name in verse-detail header (BITB-040)",
+    "chapter load timeout + hide placeholder verse text (BITB-041)",
+    "prevent white screen when resuming app from background",
+    "make user-query text selection readable in both themes",
+    "show email-specific error on contact 422 and require email (BITB-051)",
+    "dismiss keyboard on send and always start fresh chat (BITB-048/049)"
+   ]
+  },
+  {
+   "scope": "ops",
+   "count": 6,
+   "start": "2026-04-26",
+   "end": "2026-04-30",
+   "prs": [
+    435,
+    436,
+    462,
+    464,
+    465,
+    466
+   ],
+   "subjects": [
+    "add actions/checkout to prod-monitor health and log-scan jobs",
+    "rename `sample` column in log-scan KQL to avoid keyword collision",
+    "strengthen prod monitor \u2014 search probe, frontend probe, re-alerts",
+    "fix prod-monitor false positives",
+    "KQL log-scan: replace invalid !matches with positive level filter",
+    "remove stray (?i) flag from KQL level-filter regex (SYN0002)"
+   ]
+  },
+  {
+   "scope": "ci",
+   "count": 5,
+   "start": "2026-03-04",
+   "end": "2026-03-08",
+   "prs": [
+    224,
+    225,
+    231,
+    232,
+    264
+   ],
+   "subjects": [
+    "run DB migrations automatically in deploy pipeline",
+    "allow migrations to run when deploy is skipped",
+    "use PIPESTATUS[0] to capture terraform plan exit code through pipe",
+    "disable terraform wrapper to preserve -detailed-exitcode exit code",
+    "remove matrix context from job-level if, use shell early-exit instead"
+   ]
+  },
+  {
+   "scope": "frontend",
+   "count": 5,
+   "start": "2026-03-09",
+   "end": "2026-03-10",
+   "prs": [
+    285,
+    287,
+    289,
+    290,
+    294
+   ],
+   "subjects": [
+    "correct verse-link regex for Russian multi-word book names",
+    "add cross-language verse reference matching for Russian, Chinese, Korean",
+    "restore missing next-intl/@swc/helpers in package-lock.json",
+    "restore next-intl/@swc/helpers in package-lock.json after deps bumps",
+    "build localized verse reference from parts, not string replacement"
+   ]
+  },
+  {
+   "scope": "frontend",
+   "count": 5,
+   "start": "2026-05-07",
+   "end": "2026-05-23",
+   "prs": [
+    498,
+    508,
+    521,
+    577,
+    607
+   ],
+   "subjects": [
+    "repair /[locale]/privacy, /[locale]/terms, and changelog pages",
+    "complete smart auto-scroll \u2014 reset on send + i18n scroll button",
+    "default verse panel to Referenced filter",
+    "pass UI locale to chat API so AI responds in selected language",
+    "prevent horizontal overflow on narrow mobile viewports"
+   ]
+  },
+  {
+   "scope": "frontend",
+   "count": 5,
+   "start": "2026-06-02",
+   "end": "2026-06-13",
+   "prs": [
+    674,
+    699,
+    709,
+    721,
+    739
+   ],
+   "subjects": [
+    "restore emphasized tester CTA lost in homepage refactor",
+    "patch 3 moderate dependabot advisories",
+    "show effective Bible translation in header selector (BITB-029)",
+    "surface chat stream stalls & empty responses instead of failing silently",
+    "resolve high-severity esbuild/vite audit advisories"
+   ]
+  },
+  {
+   "scope": "api",
+   "count": 4,
+   "start": "2026-07-03",
+   "end": "2026-07-10",
+   "prs": [
+    811,
+    815,
+    824,
+    843
+   ],
+   "subjects": [
+    "prevent weekly digest crash on missing session analytics",
+    "repair weekly report 500 and harden its workflow",
+    "resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel)",
+    "raise typed error for exhausted LLM providers (BITB-063)"
+   ]
+  },
+  {
+   "scope": "api",
+   "count": 4,
+   "start": "2026-07-21",
+   "end": "2026-07-31",
+   "prs": [
+    920,
+    928,
+    944,
+    953
+   ],
+   "subjects": [
+    "stop .dockerignore from excluding the reports/ package",
+    "split dev/prod Python requirements (BITB-073)",
+    "raise chat message limit to 500 and publish via /config (BITB-075)",
+    "emit the verseless-response SLI on the non-stream chat path (BITB-055)"
+   ]
+  },
+  {
+   "scope": "ci",
+   "count": 4,
+   "start": "2026-08-21",
+   "end": "2026-08-29",
+   "prs": [
+    1005,
+    1018,
+    1020,
+    1022
+   ],
+   "subjects": [
+    "sequence deploy pipeline correctly around migrations (BITB-097)",
+    "make both search-eval routes actually run (BITB-107 + BITB-101)",
+    "encode eval-prod's DB password and surface its failure log (BITB-101)",
+    "report what the search-eval and verse_topics jobs actually did"
+   ]
+  },
+  {
+   "scope": "security",
+   "count": 3,
+   "start": "2026-07-17",
+   "end": "2026-07-19",
+   "prs": [
+    840,
+    866,
+    877
+   ],
+   "subjects": [
+    "close content-safety fail-open gaps in the abuse-control stack (BITB-061)",
+    "shared Postgres rate limiter across replicas (BITB-061)",
+    "route public semantic search through the index-friendly candidate-pool pattern (BITB-062)"
+   ]
+  },
+  {
+   "scope": "api",
+   "count": 3,
+   "start": "2026-06-05",
+   "end": "2026-06-10",
+   "prs": [
+    682,
+    700,
+    712
+   ],
+   "subjects": [
+    "require verbatim scripture quotation, never paraphrase (BITB-038)",
+    "verse/chapter query timeout, error handling & monitoring (BITB-041)",
+    "strengthen verse placeholder guard + add repo-layer timeout tests (BITB-041)"
+   ]
+  },
+  {
+   "scope": "api",
+   "count": 3,
+   "start": "2026-06-19",
+   "end": "2026-06-20",
+   "prs": [
+    759,
+    764,
+    768
+   ],
+   "subjects": [
+    "parse parenthesized verse references so grounding resolves them",
+    "remove misplaced # nosec that broke all scripture search SQL",
+    "bind embedding via CAST() so asyncpg accepts the vector cast in scripture search"
+   ]
+  },
+  {
+   "scope": "ci",
+   "count": 3,
+   "start": "2026-05-07",
+   "end": "2026-05-07",
+   "prs": [
+    495,
+    496,
+    497
+   ],
+   "subjects": [
+    "escape ${{...}} in android-debug.yml comment",
+    "use processReleaseManifest in debug workflow",
+    "skip processReleaseGoogleServices in debug workflow"
+   ]
+  },
+  {
+   "scope": "ci",
+   "count": 3,
+   "start": "2026-05-15",
+   "end": "2026-05-23",
+   "prs": [
+    560,
+    570,
+    601
+   ],
+   "subjects": [
+    "poll Android CI status in verify-ci-green to handle race",
+    "filter Android CI runs by .path, not .name",
+    "disable header-max-length to allow Dependabot long PR titles"
+   ]
+  },
+  {
+   "scope": "migrations",
+   "count": 3,
+   "start": "2026-03-06",
+   "end": "2026-03-09",
+   "prs": [
+    245,
+    247,
+    281
+   ],
+   "subjects": [
+    "comment out live SQL queries in 003_tune_postgresql_config",
+    "handle reference-only SQL files with no executable statements",
+    "add real-time observability to migration runner"
+   ]
+  },
+  {
+   "scope": "frontend",
+   "count": 3,
+   "start": "2026-07-23",
+   "end": "2026-07-29",
+   "prs": [
+    917,
+    930,
+    945
+   ],
+   "subjects": [
+    "seed splash state deterministically to avoid SSR/CSR hydration mismatch",
+    "show email-specific error on contact form 422 (BITB-052)",
+    "make chat page footer links reachable (BITB-079)"
+   ]
+  },
+  {
+   "scope": "verse-links",
+   "count": 3,
+   "start": "2026-07-01",
+   "end": "2026-07-02",
+   "prs": [
+    801,
+    804,
+    806
+   ],
+   "subjects": [
+    "recover references hidden by greedy over-matches (web + android)",
+    "accept comma chapter-verse separator (de/fr/it citations)",
+    "link references everywhere via string-level linkify (web)"
+   ]
+  },
+  {
+   "scope": "ci",
+   "count": 2,
+   "start": "2026-04-19",
+   "end": "2026-04-25",
+   "prs": [
+    421,
+    430
+   ],
+   "subjects": [
+    "normalize PFX to modern PKCS12 format before az cert upload",
+    "verify deployment against /health/live instead of gated /health"
+   ]
+  }
+ ],
+ "regressions": [
+  {
+   "fix_pr": 5,
+   "fix": "fix/regex-infinite-loop",
+   "fix_date": "2026-01-20",
+   "feat_pr": null,
+   "feat": "Add chapter modal and enhance verse referencing in chat",
+   "feat_date": "2026-01-18",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 10,
+   "fix": "fix/stricter-version-pinning",
+   "fix_date": "2026-01-21",
+   "feat_pr": null,
+   "feat": "Initial Bible chat app implementation",
+   "feat_date": "2026-01-18",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 12,
+   "fix": "fix/api-import-sorting",
+   "fix_date": "2026-01-21",
+   "feat_pr": null,
+   "feat": "Add chapter modal and enhance verse referencing in chat",
+   "feat_date": "2026-01-18",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 8,
+   "fix": "fix/sync-nextjs-eslint-versions",
+   "fix_date": "2026-01-21",
+   "feat_pr": null,
+   "feat": "Initial Bible chat app implementation",
+   "feat_date": "2026-01-18",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 34,
+   "fix": "fix/integration-tests-with-ollama",
+   "fix_date": "2026-01-21",
+   "feat_pr": null,
+   "feat": "Initial Bible chat app implementation",
+   "feat_date": "2026-01-18",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 36,
+   "fix": "fix/frontend-regex-recursion-and-tests",
+   "fix_date": "2026-01-22",
+   "feat_pr": null,
+   "feat": "Add chapter modal and enhance verse referencing in chat",
+   "feat_date": "2026-01-18",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 91,
+   "fix": "fix/remove-fallback-url",
+   "fix_date": "2026-02-05",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 94,
+   "fix": "fix/deploy-partial-builds",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 96,
+   "fix": "fix/improve-load-bible-output",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 97,
+   "fix": "fix/improve-load-bible-output",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 98,
+   "fix": "fix/skip-build-flag",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 100,
+   "fix": "fix/skip-build-use-deployed-images",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 101,
+   "fix": "fix/seed-database-condition",
+   "fix_date": "2026-02-06",
+   "feat_pr": 92,
+   "feat": "feat/manual-deploy-workflow",
+   "feat_date": "2026-02-05",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 102,
+   "fix": "fix/skip-deploy-for-dependabot",
+   "fix_date": "2026-02-07",
+   "feat_pr": 111,
+   "feat": "feat/gate-deploy-on-test-success",
+   "feat_date": "2026-02-07",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 112,
+   "fix": "fix/paths-filter-base-sha",
+   "fix_date": "2026-02-07",
+   "feat_pr": 111,
+   "feat": "feat/gate-deploy-on-test-success",
+   "feat_date": "2026-02-07",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 113,
+   "fix": "fix/warmup-timeout-and-scale-cooldown",
+   "fix_date": "2026-02-08",
+   "feat_pr": 115,
+   "feat": "feat/application-insights-monitoring",
+   "feat_date": "2026-02-08",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 123,
+   "fix": "fix/appinsights-fastapi-instrumentation",
+   "fix_date": "2026-02-09",
+   "feat_pr": 115,
+   "feat": "feat/application-insights-monitoring",
+   "feat_date": "2026-02-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 127,
+   "fix": "fix/turnstile-site-key",
+   "fix_date": "2026-02-14",
+   "feat_pr": 126,
+   "feat": "feat/turnstile-terraform-plan-deploy",
+   "feat_date": "2026-02-12",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 128,
+   "fix": "fix/turnstile-token-reuse",
+   "fix_date": "2026-02-14",
+   "feat_pr": 110,
+   "feat": "feat/backend-prewarm-on-load",
+   "feat_date": "2026-02-07",
+   "days": 7,
+   "match": "files"
+  },
+  {
+   "fix_pr": 131,
+   "fix": "fix/mobile-overflow",
+   "fix_date": "2026-02-14",
+   "feat_pr": 130,
+   "feat": "feat/mobile-responsive",
+   "feat_date": "2026-02-14",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 132,
+   "fix": "fix/mobile-overflow-clipping",
+   "fix_date": "2026-02-14",
+   "feat_pr": 130,
+   "feat": "feat/mobile-responsive",
+   "feat_date": "2026-02-14",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 125,
+   "fix": "fix/appinsights-availability-logging",
+   "fix_date": "2026-02-16",
+   "feat_pr": 126,
+   "feat": "feat/turnstile-terraform-plan-deploy",
+   "feat_date": "2026-02-12",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 136,
+   "fix": "fix/deploy-image-tag-race",
+   "fix_date": "2026-02-17",
+   "feat_pr": 126,
+   "feat": "feat/turnstile-terraform-plan-deploy",
+   "feat_date": "2026-02-12",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 140,
+   "fix": "fix/frontend-deps-batch",
+   "fix_date": "2026-02-17",
+   "feat_pr": 133,
+   "feat": "feat/i18n",
+   "feat_date": "2026-02-15",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 141,
+   "fix": "fix/backend-startup-timeout",
+   "fix_date": "2026-02-19",
+   "feat_pr": 133,
+   "feat": "feat/i18n",
+   "feat_date": "2026-02-15",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 146,
+   "fix": "fix/upgrade-eslint-vitest-security",
+   "fix_date": "2026-02-20",
+   "feat_pr": 106,
+   "feat": "feat/golden-set-foundation",
+   "feat_date": "2026-02-17",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 148,
+   "fix": "Clean up setTimeout in ChapterModal to prevent unhandled error",
+   "fix_date": "2026-02-20",
+   "feat_pr": 133,
+   "feat": "feat/i18n",
+   "feat_date": "2026-02-15",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 147,
+   "fix": "Add dynamic run-name to all CI workflows",
+   "fix_date": "2026-02-20",
+   "feat_pr": 106,
+   "feat": "feat/golden-set-foundation",
+   "feat_date": "2026-02-17",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 151,
+   "fix": "Add Arabic to LANGUAGE_NAMES so responses come in Arabic",
+   "fix_date": "2026-02-20",
+   "feat_pr": 149,
+   "feat": "Add Spanish, French, Portuguese, Arabic Bible translation support",
+   "feat_date": "2026-02-20",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 150,
+   "fix": "app insights initialization, flushing, and missing metrics",
+   "fix_date": "2026-02-20",
+   "feat_pr": 144,
+   "feat": "Add usage tracking with persistent sessions and custom metrics",
+   "feat_date": "2026-02-20",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 157,
+   "fix": "Multilanguage support for Spanish, French, Portuguese, Arabic",
+   "fix_date": "2026-02-21",
+   "feat_pr": 156,
+   "feat": "Android app scaffold \u2014 MVVM + Clean Architecture + Compose",
+   "feat_date": "2026-02-21",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 160,
+   "fix": "Redesign smoke tests as e2e (frontend) + functional API (backend)",
+   "fix_date": "2026-02-21",
+   "feat_pr": 156,
+   "feat": "Android app scaffold \u2014 MVVM + Clean Architecture + Compose",
+   "feat_date": "2026-02-21",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 161,
+   "fix": "Upgrade azure-monitor-opentelemetry to restore App Insights metrics",
+   "fix_date": "2026-02-21",
+   "feat_pr": 144,
+   "feat": "Add usage tracking with persistent sessions and custom metrics",
+   "feat_date": "2026-02-20",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 166,
+   "fix": "Migrate SQLAlchemy models to Mapped[] annotations",
+   "fix_date": "2026-02-22",
+   "feat_pr": 144,
+   "feat": "Add usage tracking with persistent sessions and custom metrics",
+   "feat_date": "2026-02-20",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 171,
+   "fix": "Disable example sentences until Turnstile is ready",
+   "fix_date": "2026-02-23",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 186,
+   "fix": "Use pre-computed versesCited field for verse filtering reliability",
+   "fix_date": "2026-02-24",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 195,
+   "fix": "smart auto-scroll during AI streaming (BITB-014b)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 194,
+   "fix": "Default right pane to Referenced verses (BITB-014d)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 193,
+   "fix": "reposition FAB from bottom-24 to top-20 to avoid input overlap",
+   "fix_date": "2026-02-24",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 197,
+   "fix": "Strengthen language instruction in system prompts (BITB-015)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 182,
+   "feat": "Streaming UI + HNSW Indexes (BITB-013 Quick Wins)",
+   "feat_date": "2026-02-23",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 198,
+   "fix": "Close HTTP clients on application shutdown (TASKS.md #1.1)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 149,
+   "feat": "Add Spanish, French, Portuguese, Arabic Bible translation support",
+   "feat_date": "2026-02-20",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 199,
+   "fix": "Fail-fast validation for critical config on startup (TASKS.md #1.3)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 149,
+   "feat": "Add Spanish, French, Portuguese, Arabic Bible translation support",
+   "feat_date": "2026-02-20",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 201,
+   "fix": "Make Python dependency vulnerability checks blocking (TASKS.md #2.3)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 106,
+   "feat": "feat/golden-set-foundation",
+   "feat_date": "2026-02-17",
+   "days": 7,
+   "match": "files"
+  },
+  {
+   "fix_pr": 202,
+   "fix": "Add React ErrorBoundary for graceful error handling (TASKS.md #7.1)",
+   "fix_date": "2026-02-24",
+   "feat_pr": 152,
+   "feat": "Add Spanish, French, Portuguese, Arabic to frontend language switcher (#149)",
+   "feat_date": "2026-02-20",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 219,
+   "fix": "skip Ollama dimension validation for azure_openai embedding provider",
+   "fix_date": "2026-03-04",
+   "feat_pr": 208,
+   "feat": "multi-language context-aware content safety filter (BITB-017)",
+   "feat_date": "2026-03-04",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 233,
+   "fix": "replace OpenAI Moderation with Llama Guard 3 via OpenRouter (BITB-021)",
+   "fix_date": "2026-03-05",
+   "feat_pr": 229,
+   "feat": "replace broad keyword filter with OpenAI Moderation API",
+   "feat_date": "2026-03-05",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 236,
+   "fix": "replace auto-router plugin with native models array + provider preferences",
+   "fix_date": "2026-03-06",
+   "feat_pr": 250,
+   "feat": "add session lifetime limit of 10 messages (BITB-023)",
+   "feat_date": "2026-03-06",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 237,
+   "fix": "make keyword_only mode truly skip OpenAI Moderation",
+   "fix_date": "2026-03-06",
+   "feat_pr": 250,
+   "feat": "add session lifetime limit of 10 messages (BITB-023)",
+   "feat_date": "2026-03-06",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 240,
+   "fix": "scope workbook to Application Insights to fix No data panels",
+   "fix_date": "2026-03-06",
+   "feat_pr": 250,
+   "feat": "add session lifetime limit of 10 messages (BITB-023)",
+   "feat_date": "2026-03-06",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 245,
+   "fix": "comment out live SQL queries in 003_tune_postgresql_config",
+   "fix_date": "2026-03-06",
+   "feat_pr": 242,
+   "feat": "add schema_migrations tracking table and migration runner",
+   "feat_date": "2026-03-06",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 247,
+   "fix": "handle reference-only SQL files with no executable statements",
+   "fix_date": "2026-03-06",
+   "feat_pr": 242,
+   "feat": "add schema_migrations tracking table and migration runner",
+   "feat_date": "2026-03-06",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 252,
+   "fix": "make debug BASE_URL configurable via -PbaseUrl",
+   "fix_date": "2026-03-07",
+   "feat_pr": 249,
+   "feat": "fix prod URL and add Cloudflare Turnstile integration",
+   "feat_date": "2026-03-06",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 254,
+   "fix": "build APK pointing to production backend",
+   "fix_date": "2026-03-07",
+   "feat_pr": 188,
+   "feat": "Add correlation ID middleware for request tracing",
+   "feat_date": "2026-03-03",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 253,
+   "fix": "rotate sessionId on new session to unblock users after 10-message limit (BITB-024)",
+   "fix_date": "2026-03-08",
+   "feat_pr": 258,
+   "feat": "BITB-024 \u2014 Add Phase 2 language support (Russian, Chinese, Hindi, Korean)",
+   "feat_date": "2026-03-08",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 262,
+   "fix": "correct Russian Synodal book name forms in RUSSIAN_BOOK_NAMES",
+   "fix_date": "2026-03-08",
+   "feat_pr": 261,
+   "feat": "add Phase 2 translation configs to scripts/translations.py and init.sql",
+   "feat_date": "2026-03-08",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 264,
+   "fix": "remove matrix context from job-level if, use shell early-exit instead",
+   "fix_date": "2026-03-08",
+   "feat_pr": 263,
+   "feat": "parallelise seed-database with matrix + add 30-min timeout",
+   "feat_date": "2026-03-08",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 277,
+   "fix": "correct book names for Chinese CUS, Korean KRV, and Russian Synodal",
+   "fix_date": "2026-03-09",
+   "feat_pr": 261,
+   "feat": "add Phase 2 translation configs to scripts/translations.py and init.sql",
+   "feat_date": "2026-03-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 278,
+   "fix": "make venv target robust against missing pip and wrong ownership",
+   "fix_date": "2026-03-09",
+   "feat_pr": 242,
+   "feat": "add schema_migrations tracking table and migration runner",
+   "feat_date": "2026-03-06",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 281,
+   "fix": "add real-time observability to migration runner",
+   "fix_date": "2026-03-09",
+   "feat_pr": 263,
+   "feat": "parallelise seed-database with matrix + add 30-min timeout",
+   "feat_date": "2026-03-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 282,
+   "fix": "downgrade deuterocanonical book skips from warning to info",
+   "fix_date": "2026-03-09",
+   "feat_pr": 261,
+   "feat": "add Phase 2 translation configs to scripts/translations.py and init.sql",
+   "feat_date": "2026-03-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 293,
+   "fix": "eliminate phantom drift and spurious CI annotation",
+   "fix_date": "2026-03-10",
+   "feat_pr": 263,
+   "feat": "parallelise seed-database with matrix + add 30-min timeout",
+   "feat_date": "2026-03-08",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 298,
+   "fix": "locale UI switching, remove ignored language field from API (#4)",
+   "fix_date": "2026-03-10",
+   "feat_pr": 297,
+   "feat": "add suggested example prompts to welcome screen",
+   "feat_date": "2026-03-10",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 295,
+   "fix": "refresh Turnstile token after each message",
+   "fix_date": "2026-03-10",
+   "feat_pr": 297,
+   "feat": "add suggested example prompts to welcome screen",
+   "feat_date": "2026-03-10",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 303,
+   "fix": "fix 3 real-device crashes \u2014 JsonDecodingException, nested-scroll BottomSheet, Settings nav",
+   "fix_date": "2026-03-12",
+   "feat_pr": 302,
+   "feat": "Take a Break session limit, debug log export, and compile CI check",
+   "feat_date": "2026-03-12",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 304,
+   "fix": "use LocalConfiguration instead of LocalContext for locale override",
+   "fix_date": "2026-03-12",
+   "feat_pr": 302,
+   "feat": "Take a Break session limit, debug log export, and compile CI check",
+   "feat_date": "2026-03-12",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 200,
+   "fix": "Increase database backup retention to 35 days",
+   "fix_date": "2026-03-13",
+   "feat_pr": 250,
+   "feat": "add session lifetime limit of 10 messages (BITB-023)",
+   "feat_date": "2026-03-06",
+   "days": 7,
+   "match": "files"
+  },
+  {
+   "fix_pr": 313,
+   "fix": "re-enable strict lint with abortOnError=true and baseline-continue CI strategy",
+   "fix_date": "2026-03-13",
+   "feat_pr": 315,
+   "feat": "GAP-003 \u2014 thumbs up/down feedback on assistant messages",
+   "feat_date": "2026-03-13",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 326,
+   "fix": "fix/language-option-redeclaration",
+   "fix_date": "2026-03-15",
+   "feat_pr": 330,
+   "feat": "feat/splash-screen",
+   "feat_date": "2026-03-15",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 327,
+   "fix": "fix/ci-instrumented-tests-and-precommit-python",
+   "fix_date": "2026-03-15",
+   "feat_pr": 330,
+   "feat": "feat/splash-screen",
+   "feat_date": "2026-03-15",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 340,
+   "fix": "fix/android-ci-apk-build",
+   "fix_date": "2026-03-18",
+   "feat_pr": 331,
+   "feat": "add Firebase Crashlytics and Firebase Analytics",
+   "feat_date": "2026-03-17",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 341,
+   "fix": "call TurnstileManager.onTokenConsumed() after contact form submission",
+   "fix_date": "2026-03-19",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 346,
+   "fix": "correct Bible translation picker endpoint and add retry",
+   "fix_date": "2026-03-20",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 345,
+   "fix": "reset session ID when starting a new conversation",
+   "fix_date": "2026-03-20",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 347,
+   "fix": "fix chapter view deserialization, Unicode verse reference linking, and bottom sheet UX",
+   "fix_date": "2026-03-21",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 361,
+   "fix": "display verse references by extracting verses from SSE metadata event",
+   "fix_date": "2026-03-23",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 4,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 360,
+   "fix": "crash when opening contact form in Settings",
+   "fix_date": "2026-03-23",
+   "feat_pr": 342,
+   "feat": "release-readiness \u2014 rename Debug\u2192Support, add About + Privacy Policy",
+   "feat_date": "2026-03-19",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 366,
+   "fix": "resolve Italian psalm verse loading, wrong translation, and empty Referenced panel",
+   "fix_date": "2026-03-27",
+   "feat_pr": 368,
+   "feat": "show all related verses by default instead of referenced-only",
+   "feat_date": "2026-03-27",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 369,
+   "fix": "display share and feedback buttons in a single horizontal Row",
+   "fix_date": "2026-03-28",
+   "feat_pr": 373,
+   "feat": "include user question in share text, matching web app",
+   "feat_date": "2026-03-28",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 402,
+   "fix": "normalize non-Latin verse.book to English in isVerseReferenced",
+   "fix_date": "2026-04-07",
+   "feat_pr": 391,
+   "feat": "improve verse detection for Korean, Hindi, Arabic, and Russian",
+   "feat_date": "2026-04-06",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 403,
+   "fix": "Hindi edge cases \u2014 alt spelling + greedy numbered-prefix",
+   "fix_date": "2026-04-11",
+   "feat_pr": 391,
+   "feat": "improve verse detection for Korean, Hindi, Arabic, and Russian",
+   "feat_date": "2026-04-06",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 408,
+   "fix": "harden infrastructure to surface errors instead of hiding them",
+   "fix_date": "2026-04-14",
+   "feat_pr": 409,
+   "feat": "migrate branding from Bible Inspiration to Vox Quieta",
+   "feat_date": "2026-04-13",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 417,
+   "fix": "apply all Dependabot dependency updates",
+   "fix_date": "2026-04-15",
+   "feat_pr": 409,
+   "feat": "migrate branding from Bible Inspiration to Vox Quieta",
+   "feat_date": "2026-04-13",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 419,
+   "fix": "correct scroll-to-bottom FAB and add offline banner",
+   "fix_date": "2026-04-16",
+   "feat_pr": 409,
+   "feat": "migrate branding from Bible Inspiration to Vox Quieta",
+   "feat_date": "2026-04-13",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 418,
+   "fix": "surface session-limit as assistant message and block input proactively",
+   "fix_date": "2026-04-16",
+   "feat_pr": 409,
+   "feat": "migrate branding from Bible Inspiration to Vox Quieta",
+   "feat_date": "2026-04-13",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 421,
+   "fix": "normalize PFX to modern PKCS12 format before az cert upload",
+   "fix_date": "2026-04-19",
+   "feat_pr": 409,
+   "feat": "migrate branding from Bible Inspiration to Vox Quieta",
+   "feat_date": "2026-04-13",
+   "days": 6,
+   "match": "files"
+  },
+  {
+   "fix_pr": 430,
+   "fix": "verify deployment against /health/live instead of gated /health",
+   "fix_date": "2026-04-25",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 434,
+   "fix": "drop backend-config import from frontend e2e test",
+   "fix_date": "2026-04-25",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 435,
+   "fix": "add actions/checkout to prod-monitor health and log-scan jobs",
+   "fix_date": "2026-04-26",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 436,
+   "fix": "rename `sample` column in log-scan KQL to avoid keyword collision",
+   "fix_date": "2026-04-26",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 438,
+   "fix": "bind Cloudflare cert to api.voxquieta.org and fail loudly on SSL drift",
+   "fix_date": "2026-04-27",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 440,
+   "fix": "derive cert_hash from base64 secret to keep it deterministic",
+   "fix_date": "2026-04-27",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 451,
+   "fix": "empty Turnstile build-arg must fall back to /config + wire site key in deploy",
+   "fix_date": "2026-04-29",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 462,
+   "fix": "strengthen prod monitor \u2014 search probe, frontend probe, re-alerts",
+   "fix_date": "2026-04-30",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 464,
+   "fix": "fix prod-monitor false positives",
+   "fix_date": "2026-04-30",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 465,
+   "fix": "KQL log-scan: replace invalid !matches with positive level filter",
+   "fix_date": "2026-04-30",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 466,
+   "fix": "remove stray (?i) flag from KQL level-filter regex (SYN0002)",
+   "fix_date": "2026-04-30",
+   "feat_pr": 433,
+   "feat": "add monitor_probe_secret bypass for synthetic probes",
+   "feat_date": "2026-04-25",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 472,
+   "fix": "change applicationId to org.voxquieta",
+   "fix_date": "2026-05-02",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 485,
+   "fix": "override attachBaseContext so language selection actually changes UI strings",
+   "fix_date": "2026-05-04",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 487,
+   "fix": "provide LocalResources so language picker actually changes UI strings",
+   "fix_date": "2026-05-05",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 488,
+   "fix": "live language swap via Compose, no Activity recreate",
+   "fix_date": "2026-05-06",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 4,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 489,
+   "fix": "remove AD_ID permission auto-merged by Play Services",
+   "fix_date": "2026-05-06",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 4,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 490,
+   "fix": "exclude play-services-ads-identifier from firebase-analytics",
+   "fix_date": "2026-05-07",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 495,
+   "fix": "escape ${{...}} in android-debug.yml comment",
+   "fix_date": "2026-05-07",
+   "feat_pr": 470,
+   "feat": "automate releases with release-please + enforce conventional commits",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 496,
+   "fix": "use processReleaseManifest in debug workflow",
+   "fix_date": "2026-05-07",
+   "feat_pr": 470,
+   "feat": "automate releases with release-please + enforce conventional commits",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 497,
+   "fix": "skip processReleaseGoogleServices in debug workflow",
+   "fix_date": "2026-05-07",
+   "feat_pr": 470,
+   "feat": "automate releases with release-please + enforce conventional commits",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 498,
+   "fix": "repair /[locale]/privacy, /[locale]/terms, and changelog pages",
+   "fix_date": "2026-05-07",
+   "feat_pr": 474,
+   "feat": "add changelog page and what's-new modal",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 500,
+   "fix": "declare AD_ID usage for Firebase Analytics",
+   "fix_date": "2026-05-07",
+   "feat_pr": 473,
+   "feat": "link privacy and terms to hosted web pages",
+   "feat_date": "2026-05-02",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 501,
+   "fix": "provide LocalResources so language picker actually swaps strings",
+   "fix_date": "2026-05-08",
+   "feat_pr": 504,
+   "feat": "add BITB-026 story for Settings UX improvements",
+   "feat_date": "2026-05-08",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 508,
+   "fix": "complete smart auto-scroll \u2014 reset on send + i18n scroll button",
+   "fix_date": "2026-05-09",
+   "feat_pr": 474,
+   "feat": "add changelog page and what's-new modal",
+   "feat_date": "2026-05-02",
+   "days": 7,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 505,
+   "fix": "make debug APK always installable alongside release",
+   "fix_date": "2026-05-09",
+   "feat_pr": 504,
+   "feat": "add BITB-026 story for Settings UX improvements",
+   "feat_date": "2026-05-08",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 509,
+   "fix": "eliminate NetworkOnMainThreadException and HTTP 403 in chatStream",
+   "fix_date": "2026-05-09",
+   "feat_pr": 504,
+   "feat": "add BITB-026 story for Settings UX improvements",
+   "feat_date": "2026-05-08",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 530,
+   "fix": "auto-detect language when user has not set an explicit preference",
+   "fix_date": "2026-05-11",
+   "feat_pr": 531,
+   "feat": "bug-report email flow for \"Send Diagnostic Report\"",
+   "feat_date": "2026-05-11",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 540,
+   "fix": "show submitting/success/error feedback in diagnostic report sheet",
+   "fix_date": "2026-05-12",
+   "feat_pr": 539,
+   "feat": "redesign Settings UX (BITB-026)",
+   "feat_date": "2026-05-12",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 543,
+   "fix": "re-throw CancellationException in all coroutine catch blocks",
+   "fix_date": "2026-05-13",
+   "feat_pr": 546,
+   "feat": "in-app What's New / Changelog screen (BITB-031)",
+   "feat_date": "2026-05-13",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 548,
+   "fix": "rename post-send dismiss button from Cancel to Done (BITB-033)",
+   "fix_date": "2026-05-14",
+   "feat_pr": 546,
+   "feat": "in-app What's New / Changelog screen (BITB-031)",
+   "feat_date": "2026-05-13",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 551,
+   "fix": "compact Bible version selector and default verses to Cited",
+   "fix_date": "2026-05-15",
+   "feat_pr": 557,
+   "feat": "BITB-035 interruptible streaming + multi-line input (web + Android)",
+   "feat_date": "2026-05-15",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 555,
+   "fix": "show \"Bible Version\" on translation chip instead of \"Auto\"",
+   "fix_date": "2026-05-15",
+   "feat_pr": 557,
+   "feat": "BITB-035 interruptible streaming + multi-line input (web + Android)",
+   "feat_date": "2026-05-15",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 559,
+   "fix": "allow partial text selection in assistant messages",
+   "fix_date": "2026-05-15",
+   "feat_pr": 546,
+   "feat": "in-app What's New / Changelog screen (BITB-031)",
+   "feat_date": "2026-05-13",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 567,
+   "fix": "wrap message persistence in NonCancellable context (#565)",
+   "fix_date": "2026-05-16",
+   "feat_pr": 546,
+   "feat": "in-app What's New / Changelog screen (BITB-031)",
+   "feat_date": "2026-05-13",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 572,
+   "fix": "correct app branding with golden bible icon and rays (#569)",
+   "fix_date": "2026-05-16",
+   "feat_pr": 546,
+   "feat": "in-app What's New / Changelog screen (BITB-031)",
+   "feat_date": "2026-05-13",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 577,
+   "fix": "pass UI locale to chat API so AI responds in selected language",
+   "fix_date": "2026-05-17",
+   "feat_pr": 557,
+   "feat": "BITB-035 interruptible streaming + multi-line input (web + Android)",
+   "feat_date": "2026-05-15",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 585,
+   "fix": "auto-detect message language instead of forcing UI locale",
+   "fix_date": "2026-05-18",
+   "feat_pr": 557,
+   "feat": "BITB-035 interruptible streaming + multi-line input (web + Android)",
+   "feat_date": "2026-05-15",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 590,
+   "fix": "fix analytics over-counting and locale-revert-to-English bugs",
+   "fix_date": "2026-05-19",
+   "feat_pr": 593,
+   "feat": "warm notification when defenses block a message",
+   "feat_date": "2026-05-19",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 598,
+   "fix": "restore Compose test tier isolation (BITB-034)",
+   "fix_date": "2026-05-20",
+   "feat_pr": 591,
+   "feat": "add Robolectric/Compose UI test tier (BITB-034)",
+   "feat_date": "2026-05-19",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 599,
+   "fix": "show the raster PNG launcher icon on all API levels",
+   "fix_date": "2026-05-20",
+   "feat_pr": 591,
+   "feat": "add Robolectric/Compose UI test tier (BITB-034)",
+   "feat_date": "2026-05-19",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 607,
+   "fix": "prevent horizontal overflow on narrow mobile viewports",
+   "fix_date": "2026-05-23",
+   "feat_pr": 593,
+   "feat": "warm notification when defenses block a message",
+   "feat_date": "2026-05-19",
+   "days": 4,
+   "match": "files"
+  },
+  {
+   "fix_pr": 603,
+   "fix": "route contact form and diagnostic emails to support@voxquieta.org",
+   "fix_date": "2026-05-23",
+   "feat_pr": 597,
+   "feat": "blocked-sample exporter + pg_cron TTL purge",
+   "feat_date": "2026-05-20",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 640,
+   "fix": "enforce consistent language responses across all prompts",
+   "fix_date": "2026-05-30",
+   "feat_pr": 634,
+   "feat": "emit language_suggestion in chat API (language-mismatch Slice 1)",
+   "feat_date": "2026-05-27",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 645,
+   "fix": "show every verse of a cited range in the references panel",
+   "fix_date": "2026-05-30",
+   "feat_pr": 635,
+   "feat": "language-mismatch switch suggestion banner (Slice 2)",
+   "feat_date": "2026-05-29",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 648,
+   "fix": "resolve localized verse taps and stop quote truncation",
+   "fix_date": "2026-05-30",
+   "feat_pr": 637,
+   "feat": "inline amber quote chip for quoted scripture (BITB-036)",
+   "feat_date": "2026-05-30",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 650,
+   "fix": "always show cited verse cards in the References panel (BITB-037)",
+   "fix_date": "2026-05-31",
+   "feat_pr": 656,
+   "feat": "add Android beta tester recruitment page and multi-track publish",
+   "feat_date": "2026-05-31",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 654,
+   "fix": "populate Cited tab on follow-up turns (resolve cited verses on backend)",
+   "fix_date": "2026-05-31",
+   "feat_pr": 656,
+   "feat": "add Android beta tester recruitment page and multi-track publish",
+   "feat_date": "2026-05-31",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 661,
+   "fix": "render changelog body as markdown so links are tappable",
+   "fix_date": "2026-06-01",
+   "feat_pr": 651,
+   "feat": "show cited verse text inline and harden verse links",
+   "feat_date": "2026-05-31",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 674,
+   "fix": "restore emphasized tester CTA lost in homepage refactor",
+   "fix_date": "2026-06-02",
+   "feat_pr": 657,
+   "feat": "server-render homepage hero to fix zero-word crawler output",
+   "feat_date": "2026-06-02",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 673,
+   "fix": "split ANDROID_EXTRA_TRACKS on commas only",
+   "fix_date": "2026-06-02",
+   "feat_pr": 656,
+   "feat": "add Android beta tester recruitment page and multi-track publish",
+   "feat_date": "2026-05-31",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 682,
+   "fix": "require verbatim scripture quotation, never paraphrase (BITB-038)",
+   "fix_date": "2026-06-05",
+   "feat_pr": 651,
+   "feat": "show cited verse text inline and harden verse links",
+   "feat_date": "2026-05-31",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 688,
+   "fix": "add Gemfile and use bundle exec to fix missing multi_json gem",
+   "fix_date": "2026-06-06",
+   "feat_pr": 656,
+   "feat": "add Android beta tester recruitment page and multi-track publish",
+   "feat_date": "2026-05-31",
+   "days": 6,
+   "match": "files"
+  },
+  {
+   "fix_pr": 689,
+   "fix": "preserve chat on device rotation (BITB-039)",
+   "fix_date": "2026-06-06",
+   "feat_pr": 685,
+   "feat": "inline feedback rethink window + maintainer notice (BITB-042)",
+   "feat_date": "2026-06-06",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 692,
+   "fix": "float feedback rethink panel as a popover over the thumbs",
+   "fix_date": "2026-06-06",
+   "feat_pr": 685,
+   "feat": "inline feedback rethink window + maintainer notice (BITB-042)",
+   "feat_date": "2026-06-06",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 691,
+   "fix": "consistent, language-correct Bible version when opening a verse (web + Android)",
+   "fix_date": "2026-06-06",
+   "feat_pr": 685,
+   "feat": "inline feedback rethink window + maintainer notice (BITB-042)",
+   "feat_date": "2026-06-06",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 694,
+   "fix": "localized book name in verse-detail header (BITB-040)",
+   "fix_date": "2026-06-06",
+   "feat_pr": 685,
+   "feat": "inline feedback rethink window + maintainer notice (BITB-042)",
+   "feat_date": "2026-06-06",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 696,
+   "fix": "show comment field in one panel; pause countdown on focus",
+   "fix_date": "2026-06-07",
+   "feat_pr": 685,
+   "feat": "inline feedback rethink window + maintainer notice (BITB-042)",
+   "feat_date": "2026-06-06",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 699,
+   "fix": "patch 3 moderate dependabot advisories",
+   "fix_date": "2026-06-09",
+   "feat_pr": 657,
+   "feat": "server-render homepage hero to fix zero-word crawler output",
+   "feat_date": "2026-06-02",
+   "days": 7,
+   "match": "files"
+  },
+  {
+   "fix_pr": 709,
+   "fix": "show effective Bible translation in header selector (BITB-029)",
+   "fix_date": "2026-06-09",
+   "feat_pr": 702,
+   "feat": "require contact email and make negative feedback actionable (BITB-043)",
+   "feat_date": "2026-06-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 700,
+   "fix": "verse/chapter query timeout, error handling & monitoring (BITB-041)",
+   "fix_date": "2026-06-09",
+   "feat_pr": 702,
+   "feat": "require contact email and make negative feedback actionable (BITB-043)",
+   "feat_date": "2026-06-08",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 712,
+   "fix": "strengthen verse placeholder guard + add repo-layer timeout tests (BITB-041)",
+   "fix_date": "2026-06-10",
+   "feat_pr": 702,
+   "feat": "require contact email and make negative feedback actionable (BITB-043)",
+   "feat_date": "2026-06-08",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 719,
+   "fix": "make 10-interaction session limit durable on Android and backend",
+   "fix_date": "2026-06-10",
+   "feat_pr": 701,
+   "feat": "add weekly activity digest email and dashboard backlog story",
+   "feat_date": "2026-06-08",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 721,
+   "fix": "surface chat stream stalls & empty responses instead of failing silently",
+   "fix_date": "2026-06-10",
+   "feat_pr": 702,
+   "feat": "require contact email and make negative feedback actionable (BITB-043)",
+   "feat_date": "2026-06-08",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 722,
+   "fix": "chapter load timeout + hide placeholder verse text (BITB-041)",
+   "fix_date": "2026-06-11",
+   "feat_pr": 713,
+   "feat": "make user question text selectable for copy",
+   "feat_date": "2026-06-10",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 725,
+   "fix": "clear 'message too long' handling + raise limit to 300 (web + Android + API)",
+   "fix_date": "2026-06-11",
+   "feat_pr": 711,
+   "feat": "submit sample question directly on tap",
+   "feat_date": "2026-06-09",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 740,
+   "fix": "prevent white screen when resuming app from background",
+   "fix_date": "2026-06-13",
+   "feat_pr": 737,
+   "feat": "language-mismatch switch suggestion banner (BITB-040 slice 3)",
+   "feat_date": "2026-06-13",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 743,
+   "fix": "make user-query text selection readable in both themes",
+   "fix_date": "2026-06-14",
+   "feat_pr": 737,
+   "feat": "language-mismatch switch suggestion banner (BITB-040 slice 3)",
+   "feat_date": "2026-06-13",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 755,
+   "fix": "ground inline verse quotes against the real Bible text",
+   "fix_date": "2026-06-18",
+   "feat_pr": 727,
+   "feat": "enable hybrid search by default + form-data security fix (BITB-043)",
+   "feat_date": "2026-06-16",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 750,
+   "fix": "show email-specific error on contact 422 and require email (BITB-051)",
+   "fix_date": "2026-06-19",
+   "feat_pr": 737,
+   "feat": "language-mismatch switch suggestion banner (BITB-040 slice 3)",
+   "feat_date": "2026-06-13",
+   "days": 6,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 759,
+   "fix": "parse parenthesized verse references so grounding resolves them",
+   "fix_date": "2026-06-19",
+   "feat_pr": 745,
+   "feat": "retrieval-eval core + harness stories (BITB-051 P1)",
+   "feat_date": "2026-06-16",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 764,
+   "fix": "remove misplaced # nosec that broke all scripture search SQL",
+   "fix_date": "2026-06-20",
+   "feat_pr": 745,
+   "feat": "retrieval-eval core + harness stories (BITB-051 P1)",
+   "feat_date": "2026-06-16",
+   "days": 4,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 768,
+   "fix": "bind embedding via CAST() so asyncpg accepts the vector cast in scripture search",
+   "fix_date": "2026-06-20",
+   "feat_pr": 745,
+   "feat": "retrieval-eval core + harness stories (BITB-051 P1)",
+   "feat_date": "2026-06-16",
+   "days": 4,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 796,
+   "fix": "stop readiness-probe flapping; bound + observe upstream dependencies",
+   "fix_date": "2026-06-30",
+   "feat_pr": 789,
+   "feat": "move hnsw.ef_search tuning from migration to connection pool",
+   "feat_date": "2026-06-27",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 811,
+   "fix": "prevent weekly digest crash on missing session analytics",
+   "fix_date": "2026-07-03",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 815,
+   "fix": "repair weekly report 500 and harden its workflow",
+   "fix_date": "2026-07-04",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 814,
+   "fix": "stop email service from blocking the event loop",
+   "fix_date": "2026-07-04",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 822,
+   "fix": "harden parser, slim snapshots, detect moved hotspots",
+   "fix_date": "2026-07-05",
+   "feat_pr": 817,
+   "feat": "audit trend framework \u2014 tools/audit-metrics with report, dashboard and workflow",
+   "feat_date": "2026-07-04",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 821,
+   "fix": "make Turnstile fail closed on persistent errors (BITB-061)",
+   "fix_date": "2026-07-05",
+   "feat_pr": 785,
+   "feat": "ground unquoted/paraphrased verse citations (ships in detect-only mode)",
+   "feat_date": "2026-07-05",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 824,
+   "fix": "resolve _IncludedRouter 500 on CORS preflight (FastAPI 0.137 vs OTel)",
+   "fix_date": "2026-07-05",
+   "feat_pr": 803,
+   "feat": "per-translation data observability + honest unresolved citations (BITB-054)",
+   "feat_date": "2026-07-03",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 842,
+   "fix": "rebind custom domain + origin cert when the backend app is replaced",
+   "fix_date": "2026-07-07",
+   "feat_pr": 839,
+   "feat": "browser smoke test + backend/frontend error alerting (BITB-064/065/066)",
+   "feat_date": "2026-07-07",
+   "days": 0,
+   "match": "files"
+  },
+  {
+   "fix_pr": 845,
+   "fix": "deploy & smoke-monitor reliability \u2014 cert re-bind + smoke-test hardening (BITB-067)",
+   "fix_date": "2026-07-08",
+   "feat_pr": 839,
+   "feat": "browser smoke test + backend/frontend error alerting (BITB-064/065/066)",
+   "feat_date": "2026-07-07",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 844,
+   "fix": "16 KB page-size support \u2014 AGP 8.7 + graphics-path pin + CI gate",
+   "fix_date": "2026-07-08",
+   "feat_pr": 783,
+   "feat": "negative-feedback reason chips (BITB-042)",
+   "feat_date": "2026-07-03",
+   "days": 5,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 843,
+   "fix": "raise typed error for exhausted LLM providers (BITB-063)",
+   "fix_date": "2026-07-10",
+   "feat_pr": 787,
+   "feat": "add Luther 1912 and Elberfelder 1871 German Bible translations (BITB-046)",
+   "feat_date": "2026-07-10",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 861,
+   "fix": "make local dev and local-prod environments actually startable",
+   "fix_date": "2026-07-12",
+   "feat_pr": 851,
+   "feat": "auto-derive seed matrix and add Luther 1912 (German)",
+   "feat_date": "2026-07-10",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 840,
+   "fix": "close content-safety fail-open gaps in the abuse-control stack (BITB-061)",
+   "fix_date": "2026-07-17",
+   "feat_pr": 880,
+   "feat": "inline the failing sample + RequestIds in Telegram alerts",
+   "feat_date": "2026-07-16",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 891,
+   "fix": "grant deploy SP roleAssignments/write on the Log Analytics workspace",
+   "fix_date": "2026-07-17",
+   "feat_pr": 880,
+   "feat": "inline the failing sample + RequestIds in Telegram alerts",
+   "feat_date": "2026-07-16",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 898,
+   "fix": "stop paging llama-guard-primary-failure-rate on baseline noise",
+   "fix_date": "2026-07-18",
+   "feat_pr": 880,
+   "feat": "inline the failing sample + RequestIds in Telegram alerts",
+   "feat_date": "2026-07-16",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 897,
+   "fix": "stop paging Sev1 backend-5xx-rate on expected 4xx",
+   "fix_date": "2026-07-18",
+   "feat_pr": 880,
+   "feat": "inline the failing sample + RequestIds in Telegram alerts",
+   "feat_date": "2026-07-16",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 907,
+   "fix": "apply BITB-061 migrations to local/CI Postgres, add fail-closed alert",
+   "fix_date": "2026-07-19",
+   "feat_pr": 880,
+   "feat": "inline the failing sample + RequestIds in Telegram alerts",
+   "feat_date": "2026-07-16",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 878,
+   "fix": "prevent FOREIGN KEY crash when saving a message for a deleted conversation",
+   "fix_date": "2026-07-19",
+   "feat_pr": 879,
+   "feat": "show \"What's New\" bottom sheet on first launch after update (BITB-058)",
+   "feat_date": "2026-07-16",
+   "days": 3,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 919,
+   "fix": "remove staleness gate blocking in-app update prompts",
+   "fix_date": "2026-07-22",
+   "feat_pr": 879,
+   "feat": "show \"What's New\" bottom sheet on first launch after update (BITB-058)",
+   "feat_date": "2026-07-16",
+   "days": 6,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 903,
+   "fix": "recognize \u0930\u094b\u092e\u093f\u092f\u094b alias and preserve full verse ranges",
+   "fix_date": "2026-07-23",
+   "feat_pr": 926,
+   "feat": "generate Android book-name map from single JSON source (BITB-059 Phase 1)",
+   "feat_date": "2026-07-23",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 917,
+   "fix": "seed splash state deterministically to avoid SSR/CSR hydration mismatch",
+   "fix_date": "2026-07-23",
+   "feat_pr": 915,
+   "feat": "add official app story page and demote beta CTA",
+   "feat_date": "2026-07-21",
+   "days": 2,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 930,
+   "fix": "show email-specific error on contact form 422 (BITB-052)",
+   "fix_date": "2026-07-25",
+   "feat_pr": 921,
+   "feat": "add language/Bible-version/community entries to the hamburger menu",
+   "feat_date": "2026-07-22",
+   "days": 3,
+   "match": "files"
+  },
+  {
+   "fix_pr": 928,
+   "fix": "split dev/prod Python requirements (BITB-073)",
+   "fix_date": "2026-07-26",
+   "feat_pr": 929,
+   "feat": "propagate request ID into SQL queries as a comment (BITB-008)",
+   "feat_date": "2026-07-25",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 944,
+   "fix": "raise chat message limit to 500 and publish via /config (BITB-075)",
+   "fix_date": "2026-07-29",
+   "feat_pr": 939,
+   "feat": "add About page and one-time intro modal (BITB-076, BITB-077)",
+   "feat_date": "2026-07-27",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 945,
+   "fix": "make chat page footer links reachable (BITB-079)",
+   "fix_date": "2026-07-29",
+   "feat_pr": 939,
+   "feat": "add About page and one-time intro modal (BITB-076, BITB-077)",
+   "feat_date": "2026-07-27",
+   "days": 2,
+   "match": "files"
+  },
+  {
+   "fix_pr": 953,
+   "fix": "emit the verseless-response SLI on the non-stream chat path (BITB-055)",
+   "fix_date": "2026-07-31",
+   "feat_pr": 948,
+   "feat": "add Alembic migration framework (BITB-004)",
+   "feat_date": "2026-07-31",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 981,
+   "fix": "restore the Alembic rehearsal targets lost when #975 merged",
+   "fix_date": "2026-08-15",
+   "feat_pr": 974,
+   "feat": "deploy Alembic migrations from the pipeline (BITB-089)",
+   "feat_date": "2026-08-10",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 986,
+   "fix": "make a failed rehearsal connection say what to do",
+   "fix_date": "2026-08-15",
+   "feat_pr": 974,
+   "feat": "deploy Alembic migrations from the pipeline (BITB-089)",
+   "feat_date": "2026-08-10",
+   "days": 5,
+   "match": "files"
+  },
+  {
+   "fix_pr": 1001,
+   "fix": "persist the verse tsvector in a side table, not a rewrite (BITB-096)",
+   "fix_date": "2026-08-18",
+   "feat_pr": 955,
+   "feat": "add persisted generated tsvector column on verses (BITB-062)",
+   "feat_date": "2026-08-17",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 1005,
+   "fix": "sequence deploy pipeline correctly around migrations (BITB-097)",
+   "fix_date": "2026-08-21",
+   "feat_pr": 968,
+   "feat": "automate search-eval prod + smoke runs (BITB-051 P4a)",
+   "feat_date": "2026-08-21",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 984,
+   "fix": "remove stale mypy suppressions in scripture search routes (BITB-009)",
+   "fix_date": "2026-08-22",
+   "feat_pr": 985,
+   "feat": "emit server-side citation spans on the completion event (BITB-086)",
+   "feat_date": "2026-08-22",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 1017,
+   "fix": "read-only Postgres role for the nightly search-eval harness (BITB-101)",
+   "fix_date": "2026-08-27",
+   "feat_pr": 968,
+   "feat": "automate search-eval prod + smoke runs (BITB-051 P4a)",
+   "feat_date": "2026-08-21",
+   "days": 6,
+   "match": "files"
+  },
+  {
+   "fix_pr": 1018,
+   "fix": "make both search-eval routes actually run (BITB-107 + BITB-101)",
+   "fix_date": "2026-08-28",
+   "feat_pr": 1019,
+   "feat": "populate verse_topics on every seed and alarm when coverage collapses (BITB-105)",
+   "feat_date": "2026-08-28",
+   "days": 0,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 1020,
+   "fix": "encode eval-prod's DB password and surface its failure log (BITB-101)",
+   "fix_date": "2026-08-29",
+   "feat_pr": 1019,
+   "feat": "populate verse_topics on every seed and alarm when coverage collapses (BITB-105)",
+   "feat_date": "2026-08-28",
+   "days": 1,
+   "match": "scope"
+  },
+  {
+   "fix_pr": 1021,
+   "fix": "percent-encode the DB password at every DSN site (BITB-112)",
+   "fix_date": "2026-08-29",
+   "feat_pr": 1019,
+   "feat": "populate verse_topics on every seed and alarm when coverage collapses (BITB-105)",
+   "feat_date": "2026-08-28",
+   "days": 1,
+   "match": "files"
+  },
+  {
+   "fix_pr": 1022,
+   "fix": "report what the search-eval and verse_topics jobs actually did",
+   "fix_date": "2026-08-29",
+   "feat_pr": 1019,
+   "feat": "populate verse_topics on every seed and alarm when coverage collapses (BITB-105)",
+   "feat_date": "2026-08-28",
+   "days": 1,
+   "match": "scope"
+  }
+ ],
+ "hotspots": [
+  {
+   "path": ".github/workflows/azure-deploy.yml",
+   "changes": 87
+  },
+  {
+   "path": "frontend/package.json",
+   "changes": 65
+  },
+  {
+   "path": "api/config.py",
+   "changes": 55
+  },
+  {
+   "path": "android/app/src/main/res/values/strings.xml",
+   "changes": 48
+  },
+  {
+   "path": "android/app/src/main/res/values-it/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": "android/app/src/main/res/values-pt/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": "android/app/src/main/res/values-fr/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": "android/app/src/main/res/values-es/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": "android/app/src/main/res/values-ar/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": "android/app/src/main/res/values-de/strings.xml",
+   "changes": 44
+  },
+  {
+   "path": ".github/workflows/android-ci.yml",
+   "changes": 43
+  },
+  {
+   "path": "frontend/src/lib/api.ts",
+   "changes": 41
+  },
+  {
+   "path": "api/chat/service.py",
+   "changes": 40
+  },
+  {
+   "path": "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt",
+   "changes": 38
+  },
+  {
+   "path": ".github/workflows/test_update.yml",
+   "changes": 35
+  },
+  {
+   "path": "android/app/src/main/res/values-zh/strings.xml",
+   "changes": 35
+  },
+  {
+   "path": "android/app/src/main/res/values-ko/strings.xml",
+   "changes": 35
+  },
+  {
+   "path": "android/app/src/main/res/values-hi/strings.xml",
+   "changes": 35
+  },
+  {
+   "path": "android/app/src/main/res/values-ru/strings.xml",
+   "changes": 35
+  },
+  {
+   "path": "frontend/messages/it.json",
+   "changes": 34
+  },
+  {
+   "path": "frontend/messages/en.json",
+   "changes": 34
+  },
+  {
+   "path": "frontend/src/app/[locale]/page.tsx",
+   "changes": 34
+  },
+  {
+   "path": "frontend/messages/de.json",
+   "changes": 34
+  },
+  {
+   "path": "deployment/main.tf",
+   "changes": 33
+  },
+  {
+   "path": "frontend/messages/pt.json",
+   "changes": 33
+  }
+ ],
+ "releases": [
+  {
+   "version": "0.1.0",
+   "date": "2026-05-03",
+   "level": "minor",
+   "sections": {
+    "Features": 5
+   },
+   "tagged_at": "2026-05-02T13:13:49+02:00",
+   "hours_since_prev": null
+  },
+  {
+   "version": "0.2.0",
+   "date": "2026-05-10",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Bug Fixes": 15,
+    "Reverts": 1,
+    "Documentation": 3
+   },
+   "tagged_at": "2026-05-10T16:42:12+02:00",
+   "hours_since_prev": 195.5
+  },
+  {
+   "version": "0.3.0",
+   "date": "2026-05-10",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-10T17:12:50+02:00",
+   "hours_since_prev": 0.5
+  },
+  {
+   "version": "0.4.0",
+   "date": "2026-05-10",
+   "level": "minor",
+   "sections": {
+    "Documentation": 1
+   },
+   "tagged_at": "2026-05-10T17:32:49+02:00",
+   "hours_since_prev": 0.3
+  },
+  {
+   "version": "0.5.0",
+   "date": "2026-05-10",
+   "level": "minor",
+   "sections": {},
+   "tagged_at": "2026-05-10T17:53:48+02:00",
+   "hours_since_prev": 0.3
+  },
+  {
+   "version": "0.6.0",
+   "date": "2026-05-10",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-10T19:12:55+02:00",
+   "hours_since_prev": 1.3
+  },
+  {
+   "version": "0.7.0",
+   "date": "2026-05-11",
+   "level": "minor",
+   "sections": {},
+   "tagged_at": "2026-05-11T08:25:20+02:00",
+   "hours_since_prev": 13.2
+  },
+  {
+   "version": "0.8.0",
+   "date": "2026-05-12",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-05-12T08:46:06+02:00",
+   "hours_since_prev": 24.3
+  },
+  {
+   "version": "0.9.0",
+   "date": "2026-05-12",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-12T21:06:13+02:00",
+   "hours_since_prev": 12.3
+  },
+  {
+   "version": "1.5.0",
+   "date": "2026-05-13",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-14T17:03:22+02:00",
+   "hours_since_prev": 44.0
+  },
+  {
+   "version": "1.5.1",
+   "date": "2026-05-14",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-05-15T00:38:50+02:00",
+   "hours_since_prev": 7.6
+  },
+  {
+   "version": "1.6.0",
+   "date": "2026-05-15",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-05-15T22:12:36+02:00",
+   "hours_since_prev": 21.6
+  },
+  {
+   "version": "1.6.1",
+   "date": "2026-05-15",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-15T23:46:27+02:00",
+   "hours_since_prev": 1.6
+  },
+  {
+   "version": "1.6.2",
+   "date": "2026-05-16",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-05-16T12:30:52+02:00",
+   "hours_since_prev": 12.7
+  },
+  {
+   "version": "1.6.3",
+   "date": "2026-05-16",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-05-16T14:04:39+02:00",
+   "hours_since_prev": 1.6
+  },
+  {
+   "version": "1.6.4",
+   "date": "2026-05-16",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-16T21:37:42+02:00",
+   "hours_since_prev": 7.6
+  },
+  {
+   "version": "1.6.5",
+   "date": "2026-05-17",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-17T14:33:45+02:00",
+   "hours_since_prev": 16.9
+  },
+  {
+   "version": "1.6.6",
+   "date": "2026-05-17",
+   "level": "patch",
+   "sections": {
+    "Documentation": 1
+   },
+   "tagged_at": "2026-05-17T15:00:51+02:00",
+   "hours_since_prev": 0.5
+  },
+  {
+   "version": "1.7.0",
+   "date": "2026-05-17",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-17T18:35:00+02:00",
+   "hours_since_prev": 3.6
+  },
+  {
+   "version": "1.8.0",
+   "date": "2026-05-17",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-17T19:02:55+02:00",
+   "hours_since_prev": 0.5
+  },
+  {
+   "version": "1.9.0",
+   "date": "2026-05-19",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-05-20T00:04:29+02:00",
+   "hours_since_prev": 53.0
+  },
+  {
+   "version": "1.10.0",
+   "date": "2026-05-20",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-05-20T22:43:44+02:00",
+   "hours_since_prev": 22.7
+  },
+  {
+   "version": "1.11.0",
+   "date": "2026-05-22",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-22T16:16:46+02:00",
+   "hours_since_prev": 41.6
+  },
+  {
+   "version": "1.12.0",
+   "date": "2026-05-24",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-05-24T02:25:39+02:00",
+   "hours_since_prev": 34.1
+  },
+  {
+   "version": "1.13.0",
+   "date": "2026-05-24",
+   "level": "minor",
+   "sections": {
+    "Features": 2
+   },
+   "tagged_at": "2026-05-25T00:41:32+02:00",
+   "hours_since_prev": 22.3
+  },
+  {
+   "version": "1.14.0",
+   "date": "2026-05-25",
+   "level": "minor",
+   "sections": {
+    "Features": 2
+   },
+   "tagged_at": "2026-05-25T22:24:09+02:00",
+   "hours_since_prev": 21.7
+  },
+  {
+   "version": "1.15.0",
+   "date": "2026-05-26",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-05-26T22:13:38+02:00",
+   "hours_since_prev": 23.8
+  },
+  {
+   "version": "1.16.0",
+   "date": "2026-05-27",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-05-27T22:12:09+02:00",
+   "hours_since_prev": 24.0
+  },
+  {
+   "version": "1.17.0",
+   "date": "2026-05-29",
+   "level": "minor",
+   "sections": {
+    "Features": 2
+   },
+   "tagged_at": "2026-05-29T21:21:00+02:00",
+   "hours_since_prev": 47.1
+  },
+  {
+   "version": "1.18.0",
+   "date": "2026-05-29",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-30T01:35:22+02:00",
+   "hours_since_prev": 4.2
+  },
+  {
+   "version": "1.18.1",
+   "date": "2026-05-30",
+   "level": "patch",
+   "sections": {
+    "Documentation": 2
+   },
+   "tagged_at": "2026-05-30T10:27:51+02:00",
+   "hours_since_prev": 8.9
+  },
+  {
+   "version": "1.18.2",
+   "date": "2026-05-30",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-05-30T17:25:50+02:00",
+   "hours_since_prev": 7.0
+  },
+  {
+   "version": "1.18.3",
+   "date": "2026-05-30",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-30T22:53:45+02:00",
+   "hours_since_prev": 5.5
+  },
+  {
+   "version": "1.19.0",
+   "date": "2026-05-31",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-31T17:35:39+02:00",
+   "hours_since_prev": 18.7
+  },
+  {
+   "version": "1.20.0",
+   "date": "2026-05-31",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-05-31T23:06:45+02:00",
+   "hours_since_prev": 5.5
+  },
+  {
+   "version": "1.21.0",
+   "date": "2026-06-02",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-06-02T20:31:49+02:00",
+   "hours_since_prev": 45.4
+  },
+  {
+   "version": "1.21.1",
+   "date": "2026-06-05",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-06-05T22:52:45+02:00",
+   "hours_since_prev": 74.3
+  },
+  {
+   "version": "1.21.2",
+   "date": "2026-06-06",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-06-06T04:24:14+02:00",
+   "hours_since_prev": 5.5
+  },
+  {
+   "version": "1.22.0",
+   "date": "2026-06-06",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-06-06T04:43:43+02:00",
+   "hours_since_prev": 0.3
+  },
+  {
+   "version": "1.22.1",
+   "date": "2026-06-06",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 4
+   },
+   "tagged_at": "2026-06-06T21:48:57+02:00",
+   "hours_since_prev": 17.1
+  },
+  {
+   "version": "1.22.2",
+   "date": "2026-06-07",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-07T23:33:25+02:00",
+   "hours_since_prev": 25.7
+  },
+  {
+   "version": "1.23.0",
+   "date": "2026-06-08",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-06-08T21:22:59+02:00",
+   "hours_since_prev": 21.8
+  },
+  {
+   "version": "1.24.0",
+   "date": "2026-06-09",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-06-09T21:47:30+02:00",
+   "hours_since_prev": 24.4
+  },
+  {
+   "version": "1.25.0",
+   "date": "2026-06-10",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-10T19:12:30+02:00",
+   "hours_since_prev": 21.4
+  },
+  {
+   "version": "1.25.1",
+   "date": "2026-06-10",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-06-11T07:36:37+02:00",
+   "hours_since_prev": 12.4
+  },
+  {
+   "version": "1.25.2",
+   "date": "2026-06-11",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-06-12T23:37:41+02:00",
+   "hours_since_prev": 40.0
+  },
+  {
+   "version": "1.26.0",
+   "date": "2026-06-13",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 2,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-06-14T00:42:31+02:00",
+   "hours_since_prev": 25.1
+  },
+  {
+   "version": "1.27.0",
+   "date": "2026-06-14",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-14T23:21:43+02:00",
+   "hours_since_prev": 22.7
+  },
+  {
+   "version": "1.28.0",
+   "date": "2026-06-16",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-06-16T23:40:18+02:00",
+   "hours_since_prev": 48.3
+  },
+  {
+   "version": "1.29.0",
+   "date": "2026-06-18",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-18T23:07:51+02:00",
+   "hours_since_prev": 47.5
+  },
+  {
+   "version": "1.29.1",
+   "date": "2026-06-19",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-19T21:54:50+02:00",
+   "hours_since_prev": 22.8
+  },
+  {
+   "version": "1.29.2",
+   "date": "2026-06-19",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-19T22:37:48+02:00",
+   "hours_since_prev": 0.7
+  },
+  {
+   "version": "1.29.3",
+   "date": "2026-06-20",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-20T13:08:11+02:00",
+   "hours_since_prev": 14.5
+  },
+  {
+   "version": "1.29.4",
+   "date": "2026-06-20",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-06-20T19:18:37+02:00",
+   "hours_since_prev": 6.2
+  },
+  {
+   "version": "1.30.0",
+   "date": "2026-06-20",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-06-21T14:38:01+02:00",
+   "hours_since_prev": 19.3
+  },
+  {
+   "version": "1.30.1",
+   "date": "2026-06-21",
+   "level": "patch",
+   "sections": {
+    "Performance Improvements": 1
+   },
+   "tagged_at": "2026-06-21T21:37:28+02:00",
+   "hours_since_prev": 7.0
+  },
+  {
+   "version": "1.31.0",
+   "date": "2026-06-22",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-06-22T23:04:33+02:00",
+   "hours_since_prev": 25.5
+  },
+  {
+   "version": "1.31.1",
+   "date": "2026-06-23",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-06-23T11:39:15+02:00",
+   "hours_since_prev": 12.6
+  },
+  {
+   "version": "1.32.0",
+   "date": "2026-06-23",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Performance Improvements": 1
+   },
+   "tagged_at": "2026-06-25T07:55:31+02:00",
+   "hours_since_prev": 44.3
+  },
+  {
+   "version": "1.32.1",
+   "date": "2026-06-25",
+   "level": "patch",
+   "sections": {
+    "Performance Improvements": 1
+   },
+   "tagged_at": "2026-06-26T00:07:47+02:00",
+   "hours_since_prev": 16.2
+  },
+  {
+   "version": "1.33.0",
+   "date": "2026-06-26",
+   "level": "minor",
+   "sections": {
+    "Features": 2
+   },
+   "tagged_at": "2026-06-27T01:38:12+02:00",
+   "hours_since_prev": 25.5
+  },
+  {
+   "version": "1.33.1",
+   "date": "2026-06-30",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-06-30T23:38:58+02:00",
+   "hours_since_prev": 94.0
+  },
+  {
+   "version": "1.34.0",
+   "date": "2026-07-01",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-07-01T13:09:33+02:00",
+   "hours_since_prev": 13.5
+  },
+  {
+   "version": "1.34.1",
+   "date": "2026-07-01",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-01T21:27:12+02:00",
+   "hours_since_prev": 8.3
+  },
+  {
+   "version": "1.34.2",
+   "date": "2026-07-01",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-01T22:48:04+02:00",
+   "hours_since_prev": 1.3
+  },
+  {
+   "version": "1.34.3",
+   "date": "2026-07-02",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-02T09:14:23+02:00",
+   "hours_since_prev": 10.4
+  },
+  {
+   "version": "1.34.4",
+   "date": "2026-07-02",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-02T21:31:06+02:00",
+   "hours_since_prev": 12.3
+  },
+  {
+   "version": "1.35.0",
+   "date": "2026-07-03",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-03T18:45:28+02:00",
+   "hours_since_prev": 21.2
+  },
+  {
+   "version": "1.36.0",
+   "date": "2026-07-03",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-03T20:40:41+02:00",
+   "hours_since_prev": 1.9
+  },
+  {
+   "version": "1.37.0",
+   "date": "2026-07-04",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-04T12:48:18+02:00",
+   "hours_since_prev": 16.1
+  },
+  {
+   "version": "1.38.0",
+   "date": "2026-07-04",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-07-04T16:33:51+02:00",
+   "hours_since_prev": 3.8
+  },
+  {
+   "version": "1.39.0",
+   "date": "2026-07-05",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Bug Fixes": 3
+   },
+   "tagged_at": "2026-07-05T17:25:39+02:00",
+   "hours_since_prev": 24.9
+  },
+  {
+   "version": "1.39.1",
+   "date": "2026-07-05",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-05T19:37:28+02:00",
+   "hours_since_prev": 2.2
+  },
+  {
+   "version": "1.40.0",
+   "date": "2026-07-07",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-07T22:33:09+02:00",
+   "hours_since_prev": 50.9
+  },
+  {
+   "version": "1.40.1",
+   "date": "2026-07-08",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-08T22:02:49+02:00",
+   "hours_since_prev": 23.5
+  },
+  {
+   "version": "1.41.0",
+   "date": "2026-07-10",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-10T14:37:11+02:00",
+   "hours_since_prev": 40.6
+  },
+  {
+   "version": "1.42.0",
+   "date": "2026-07-10",
+   "level": "minor",
+   "sections": {
+    "Features": 1
+   },
+   "tagged_at": "2026-07-10T17:45:36+02:00",
+   "hours_since_prev": 3.1
+  },
+  {
+   "version": "1.42.1",
+   "date": "2026-07-10",
+   "level": "patch",
+   "sections": {
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-11T00:23:01+02:00",
+   "hours_since_prev": 6.6
+  },
+  {
+   "version": "1.43.0",
+   "date": "2026-07-11",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-07-11T15:55:58+02:00",
+   "hours_since_prev": 15.5
+  },
+  {
+   "version": "1.44.0",
+   "date": "2026-07-12",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-12T15:06:11+02:00",
+   "hours_since_prev": 23.2
+  },
+  {
+   "version": "1.45.0",
+   "date": "2026-07-16",
+   "level": "minor",
+   "sections": {
+    "Features": 2
+   },
+   "tagged_at": "2026-07-16T09:32:36+02:00",
+   "hours_since_prev": 90.4
+  },
+  {
+   "version": "1.45.1",
+   "date": "2026-07-17",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1
+   },
+   "tagged_at": "2026-07-17T13:04:06+02:00",
+   "hours_since_prev": 27.5
+  },
+  {
+   "version": "1.46.0",
+   "date": "2026-07-17",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-17T21:06:47+02:00",
+   "hours_since_prev": 8.0
+  },
+  {
+   "version": "1.46.1",
+   "date": "2026-07-17",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 1,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-17T22:38:34+02:00",
+   "hours_since_prev": 1.5
+  },
+  {
+   "version": "1.46.2",
+   "date": "2026-07-18",
+   "level": "patch",
+   "sections": {
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-18T14:37:36+02:00",
+   "hours_since_prev": 16.0
+  },
+  {
+   "version": "1.47.0",
+   "date": "2026-07-21",
+   "level": "minor",
+   "sections": {
+    "Features": 3,
+    "Bug Fixes": 6,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-21T23:49:02+02:00",
+   "hours_since_prev": 81.2
+  },
+  {
+   "version": "1.48.0",
+   "date": "2026-07-22",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 2
+   },
+   "tagged_at": "2026-07-22T09:30:14+02:00",
+   "hours_since_prev": 9.7
+  },
+  {
+   "version": "1.49.0",
+   "date": "2026-07-27",
+   "level": "minor",
+   "sections": {
+    "Features": 5,
+    "Bug Fixes": 6,
+    "Documentation": 6
+   },
+   "tagged_at": "2026-07-27T22:08:49+02:00",
+   "hours_since_prev": 132.6
+  },
+  {
+   "version": "1.50.0",
+   "date": "2026-07-29",
+   "level": "minor",
+   "sections": {
+    "Features": 2,
+    "Bug Fixes": 2,
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-29T23:20:05+02:00",
+   "hours_since_prev": 49.2
+  },
+  {
+   "version": "1.50.1",
+   "date": "2026-07-30",
+   "level": "patch",
+   "sections": {
+    "Documentation": 1
+   },
+   "tagged_at": "2026-07-31T01:30:08+02:00",
+   "hours_since_prev": 26.2
+  },
+  {
+   "version": "1.51.0",
+   "date": "2026-07-31",
+   "level": "minor",
+   "sections": {
+    "Features": 1,
+    "Bug Fixes": 1,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-07-31T12:29:11+02:00",
+   "hours_since_prev": 11.0
+  },
+  {
+   "version": "1.52.0",
+   "date": "2026-08-20",
+   "level": "minor",
+   "sections": {
+    "Features": 5,
+    "Bug Fixes": 5,
+    "Performance Improvements": 1,
+    "Documentation": 4
+   },
+   "tagged_at": "2026-08-21T08:40:01+02:00",
+   "hours_since_prev": 500.2
+  },
+  {
+   "version": "1.53.0",
+   "date": "2026-08-22",
+   "level": "minor",
+   "sections": {
+    "Features": 7,
+    "Bug Fixes": 4,
+    "Documentation": 2
+   },
+   "tagged_at": "2026-08-22T22:03:57+02:00",
+   "hours_since_prev": 37.4
+  }
+ ],
+ "hotfixes": [
+  {
+   "version": "1.5.1",
+   "date": "2026-05-14",
+   "hours_since_prev": 7.6
+  },
+  {
+   "version": "1.6.1",
+   "date": "2026-05-15",
+   "hours_since_prev": 1.6
+  },
+  {
+   "version": "1.6.2",
+   "date": "2026-05-16",
+   "hours_since_prev": 12.7
+  },
+  {
+   "version": "1.6.3",
+   "date": "2026-05-16",
+   "hours_since_prev": 1.6
+  },
+  {
+   "version": "1.6.4",
+   "date": "2026-05-16",
+   "hours_since_prev": 7.6
+  },
+  {
+   "version": "1.6.5",
+   "date": "2026-05-17",
+   "hours_since_prev": 16.9
+  },
+  {
+   "version": "1.6.6",
+   "date": "2026-05-17",
+   "hours_since_prev": 0.5
+  },
+  {
+   "version": "1.18.1",
+   "date": "2026-05-30",
+   "hours_since_prev": 8.9
+  },
+  {
+   "version": "1.18.2",
+   "date": "2026-05-30",
+   "hours_since_prev": 7.0
+  },
+  {
+   "version": "1.18.3",
+   "date": "2026-05-30",
+   "hours_since_prev": 5.5
+  },
+  {
+   "version": "1.21.2",
+   "date": "2026-06-06",
+   "hours_since_prev": 5.5
+  },
+  {
+   "version": "1.22.1",
+   "date": "2026-06-06",
+   "hours_since_prev": 17.1
+  },
+  {
+   "version": "1.25.1",
+   "date": "2026-06-10",
+   "hours_since_prev": 12.4
+  },
+  {
+   "version": "1.29.1",
+   "date": "2026-06-19",
+   "hours_since_prev": 22.8
+  },
+  {
+   "version": "1.29.2",
+   "date": "2026-06-19",
+   "hours_since_prev": 0.7
+  },
+  {
+   "version": "1.29.3",
+   "date": "2026-06-20",
+   "hours_since_prev": 14.5
+  },
+  {
+   "version": "1.29.4",
+   "date": "2026-06-20",
+   "hours_since_prev": 6.2
+  },
+  {
+   "version": "1.30.1",
+   "date": "2026-06-21",
+   "hours_since_prev": 7.0
+  },
+  {
+   "version": "1.31.1",
+   "date": "2026-06-23",
+   "hours_since_prev": 12.6
+  },
+  {
+   "version": "1.32.1",
+   "date": "2026-06-25",
+   "hours_since_prev": 16.2
+  },
+  {
+   "version": "1.34.1",
+   "date": "2026-07-01",
+   "hours_since_prev": 8.3
+  },
+  {
+   "version": "1.34.2",
+   "date": "2026-07-01",
+   "hours_since_prev": 1.3
+  },
+  {
+   "version": "1.34.3",
+   "date": "2026-07-02",
+   "hours_since_prev": 10.4
+  },
+  {
+   "version": "1.34.4",
+   "date": "2026-07-02",
+   "hours_since_prev": 12.3
+  },
+  {
+   "version": "1.39.1",
+   "date": "2026-07-05",
+   "hours_since_prev": 2.2
+  },
+  {
+   "version": "1.40.1",
+   "date": "2026-07-08",
+   "hours_since_prev": 23.5
+  },
+  {
+   "version": "1.42.1",
+   "date": "2026-07-10",
+   "hours_since_prev": 6.6
+  },
+  {
+   "version": "1.46.1",
+   "date": "2026-07-17",
+   "hours_since_prev": 1.5
+  },
+  {
+   "version": "1.46.2",
+   "date": "2026-07-18",
+   "hours_since_prev": 16.0
+  }
+ ],
+ "reverts": [
+  {
+   "pr": 321,
+   "date": "2026-03-14",
+   "desc": "revert DB backup retention to 7 days and disable geo-redundant backup"
+  },
+  {
+   "pr": 491,
+   "date": "2026-05-07",
+   "desc": "restore manifest + build.gradle.kts to pre-AD_ID-fix state"
+  }
+ ],
+ "phases": {
+  "pre_launch": {
+   "units": 396,
+   "days": 104,
+   "active_days": 77,
+   "units_per_active_day": 5.14,
+   "feat": 76,
+   "fix": 164,
+   "fix_per_feat": 2.16,
+   "added_code": 95585,
+   "deleted_code": 15378
+  },
+  "post_launch": {
+   "units": 414,
+   "days": 123,
+   "active_days": 97,
+   "units_per_active_day": 4.27,
+   "feat": 100,
+   "fix": 131,
+   "fix_per_feat": 1.31,
+   "added_code": 82740,
+   "deleted_code": 9680
+  }
+ },
+ "attribution": {
+  "note": "Per-commit Co-Authored-By trailers across all commits (branch commits included; release/dependabot bot commits counted separately). Absence of a trailer does not prove no AI was involved \u2014 early history under-reports.",
+  "total_commits": 1268,
+  "bot_commits": 165,
+  "attributed_ai_commits": 721,
+  "families": [
+   "Claude Opus",
+   "Claude Sonnet",
+   "Claude (other)",
+   "GitHub Copilot",
+   "Android Dev alias",
+   "human/unattributed"
+  ],
+  "by_label": [
+   {
+    "label": "human/unattributed",
+    "commits": 382,
+    "fix": 111,
+    "feat": 52
+   },
+   {
+    "label": "Claude (unversioned)",
+    "commits": 367,
+    "fix": 149,
+    "feat": 102
+   },
+   {
+    "label": "Claude Opus 4.5",
+    "commits": 168,
+    "fix": 69,
+    "feat": 42
+   },
+   {
+    "label": "Android Dev alias",
+    "commits": 57,
+    "fix": 26,
+    "feat": 21
+   },
+   {
+    "label": "Claude Opus 4.6",
+    "commits": 56,
+    "fix": 30,
+    "feat": 11
+   },
+   {
+    "label": "GitHub Copilot",
+    "commits": 24,
+    "fix": 16,
+    "feat": 1
+   },
+   {
+    "label": "Claude Sonnet 5",
+    "commits": 22,
+    "fix": 9,
+    "feat": 5
+   },
+   {
+    "label": "Claude Sonnet 4.6",
+    "commits": 11,
+    "fix": 4,
+    "feat": 3
+   },
+   {
+    "label": "Claude Sonnet 4.5",
+    "commits": 9,
+    "fix": 0,
+    "feat": 0
+   },
+   {
+    "label": "Claude Opus 5",
+    "commits": 3,
+    "fix": 0,
+    "feat": 0
+   },
+   {
+    "label": "Claude Fable 5",
+    "commits": 3,
+    "fix": 0,
+    "feat": 0
+   },
+   {
+    "label": "Claude (moonshotai/kimi-k2.5)",
+    "commits": 1,
+    "fix": 0,
+    "feat": 1
+   }
+  ],
+  "monthly": [
+   {
+    "month": "2026-01",
+    "Claude Opus": 127,
+    "Claude Sonnet": 9,
+    "Claude (other)": 3,
+    "GitHub Copilot": 0,
+    "Android Dev alias": 0,
+    "human/unattributed": 126
+   },
+   {
+    "month": "2026-02",
+    "Claude Opus": 97,
+    "Claude Sonnet": 11,
+    "Claude (other)": 0,
+    "GitHub Copilot": 0,
+    "Android Dev alias": 0,
+    "human/unattributed": 120
+   },
+   {
+    "month": "2026-03",
+    "Claude Opus": 0,
+    "Claude Sonnet": 0,
+    "Claude (other)": 21,
+    "GitHub Copilot": 1,
+    "Android Dev alias": 55,
+    "human/unattributed": 102
+   },
+   {
+    "month": "2026-04",
+    "Claude Opus": 0,
+    "Claude Sonnet": 0,
+    "Claude (other)": 36,
+    "GitHub Copilot": 17,
+    "Android Dev alias": 0,
+    "human/unattributed": 1
+   },
+   {
+    "month": "2026-05",
+    "Claude Opus": 0,
+    "Claude Sonnet": 0,
+    "Claude (other)": 122,
+    "GitHub Copilot": 4,
+    "Android Dev alias": 2,
+    "human/unattributed": 8
+   },
+   {
+    "month": "2026-06",
+    "Claude Opus": 0,
+    "Claude Sonnet": 0,
+    "Claude (other)": 65,
+    "GitHub Copilot": 0,
+    "Android Dev alias": 0,
+    "human/unattributed": 0
+   },
+   {
+    "month": "2026-07",
+    "Claude Opus": 3,
+    "Claude Sonnet": 22,
+    "Claude (other)": 81,
+    "GitHub Copilot": 1,
+    "Android Dev alias": 0,
+    "human/unattributed": 19
+   },
+   {
+    "month": "2026-08",
+    "Claude Opus": 0,
+    "Claude Sonnet": 0,
+    "Claude (other)": 43,
+    "GitHub Copilot": 1,
+    "Android Dev alias": 0,
+    "human/unattributed": 6
+   }
+  ]
+ },
+ "harnesses": [
+  {
+   "name": "Claude Code",
+   "evidence": "AGENTS.md context file; Plan\u2192Build\u2192Verify relay across models; Claude Co-Authored-By trailers",
+   "models": [
+    "Claude Opus (plan + verify)",
+    "Claude Sonnet (build)"
+   ]
+  },
+  {
+   "name": "opencode",
+   "evidence": "opencode.json multi-agent config (orchestrator + specialist subagents)",
+   "models": [
+    "github-copilot/claude-opus-4.6",
+    "opencode/minimax-m2.5-free",
+    "openrouter/qwen/qwen3-coder",
+    "qwen3.5:cloud",
+    "qwen3:30b-a3b",
+    "qwen3:8b-16k"
+   ]
+  },
+  {
+   "name": "GitHub Copilot coding agent",
+   "evidence": "24 commits co-authored by Copilot / copilot-swe-agent[bot]",
+   "models": []
+  }
+ ],
+ "milestones": [
+  {
+   "date": "2026-01-20",
+   "mode": "first",
+   "event": "Structured agent context file introduced (CLAUDE.md \u2192 AGENTS.md)",
+   "markers": [
+    "CLAUDE.md",
+    "AGENTS.md"
+   ]
+  },
+  {
+   "date": "2026-03-03",
+   "mode": "first",
+   "event": "opencode multi-agent harness introduced",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-05-02",
+   "mode": "first",
+   "event": "Conventional commits enforced + release-please automation",
+   "markers": [
+    "release-please-config.json"
+   ]
+  },
+  {
+   "date": "2026-05-24",
+   "mode": "last",
+   "event": "opencode config last touched (harness parked)",
+   "markers": [
+    "opencode.json"
+   ]
+  },
+  {
+   "date": "2026-06-08",
+   "mode": "first",
+   "event": "Plan\u2192Build\u2192Verify relay codified as the default workflow",
+   "markers": [
+    ".claude/commands/plan-build-verify.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Adversarial risk audit: playbook, /risk-audit command, baseline report",
+   "markers": [
+    ".claude/commands/risk-audit.md",
+    "docs/AUDIT_PLAYBOOK.md"
+   ]
+  },
+  {
+   "date": "2026-07-03",
+   "mode": "first",
+   "event": "Self-measuring productivity metrics tooling added",
+   "markers": [
+    "tools/repo-metrics/analyze.py"
+   ]
+  }
+ ],
+ "snapshot": {
+  "components": {
+   "android": {
+    "files": 234,
+    "loc": 27966,
+    "test_files": 53,
+    "test_loc": 10165
+   },
+   "api": {
+    "files": 199,
+    "loc": 58481,
+    "test_files": 95,
+    "test_loc": 33936
+   },
+   "ci": {
+    "files": 26,
+    "loc": 6920,
+    "test_files": 1,
+    "test_loc": 612
+   },
+   "data": {
+    "files": 7,
+    "loc": 0,
+    "test_files": 0,
+    "test_loc": 0
+   },
+   "docs": {
+    "files": 237,
+    "loc": 59742,
+    "test_files": 0,
+    "test_loc": 0
+   },
+   "frontend": {
+    "files": 180,
+    "loc": 38646,
+    "test_files": 56,
+    "test_loc": 10954
+   },
+   "infra": {
+    "files": 26,
+    "loc": 7700,
+    "test_files": 0,
+    "test_loc": 0
+   },
+   "root": {
+    "files": 29,
+    "loc": 4300,
+    "test_files": 5,
+    "test_loc": 1336
+   },
+   "scripts": {
+    "files": 49,
+    "loc": 9586,
+    "test_files": 4,
+    "test_loc": 861
+   },
+   "tools": {
+    "files": 8,
+    "loc": 2779,
+    "test_files": 1,
+    "test_loc": 96
+   }
+  },
+  "cruft": [
+   "frontend/src/components/ChapterModal.test.tsx.backup",
+   "scripts/load_bible.py.backup"
+  ],
+  "docs_loc": 53862,
+  "tracked_files": 995
+ }
+}
