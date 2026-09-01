@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Protocol
 
 from chat.service import ChatService
+from chat.topics import detect_topics
 from config import settings
 from providers import EmbeddingProvider, LLMProvider
 from providers.factory import create_embedding_provider, create_llm_provider
@@ -47,12 +48,17 @@ class EvalConfig:
     semantic_weight: float = settings.hybrid_search_semantic_weight
     keyword_weight: float = settings.hybrid_search_keyword_weight
     max_verses: int = max(settings.max_context_verses, 10)
+    topic_boost_factor: float = settings.topic_boost_factor
 
 
-# Named registry consumed by the CLI's --config flag. ``topic_boosted`` is a
-# documented no-op (falls back to plain hybrid search + a warning) until
-# BITB-044 populates verse_topics — kept here so the CLI can name it and the
-# report can explain why its numbers equal ``hybrid``'s.
+# Named registry consumed by the CLI's --config flag. ``topic_boosted`` runs
+# the real boosted ranking path (``search_hybrid_boosted`` /
+# ``search_boosted``, the ``verse_topics`` LEFT JOIN) — boost topics come
+# from ``detect_topics(query)``, the same keyword tagger production uses, so
+# a query the tagger doesn't tag is unboosted by design, exactly like prod.
+# Requires a populated ``verse_topics`` (``scripts/populate_verse_topics.py``)
+# or the run hard-errors (BITB-104) rather than reporting unboosted numbers
+# under a boosted name.
 EVAL_CONFIGS: dict[str, EvalConfig] = {
     "baseline_semantic": EvalConfig("baseline_semantic", use_hybrid=False, use_expansion=False),
     "expansion_semantic": EvalConfig("expansion_semantic", use_hybrid=False, use_expansion=True),
@@ -64,6 +70,16 @@ EVAL_CONFIGS: dict[str, EvalConfig] = {
 }
 
 DEFAULT_AB: tuple[str, str] = ("baseline_semantic", "expansion_semantic")
+
+
+class EmptyVerseTopicsError(RuntimeError):
+    """Raised when a topic-boosted config is run against a corpus whose
+    ``verse_topics`` table is empty (BITB-104).
+
+    Replacing one silent fallback (the old no-op) with another would miss
+    the point of this story, so this is a hard error, not a warning.
+    """
+
 
 # BITB-107: openai's SDK exceptions (e.g. APIConnectionError) have a fixed,
 # uninformative __str__() -- "Connection error." regardless of what actually
@@ -132,6 +148,9 @@ class QueryResult:
     expansion_used: bool = False
     expansion_latency_ms: float | None = None
     error: str | None = None
+    boost_topics: list[str] = field(default_factory=list)
+    topic_boost_applied: bool = False
+    topic_boost_factor: float | None = None
 
 
 @dataclass
@@ -185,16 +204,28 @@ async def run_query(
                 extra_embeddings = [await embed(expanded)]
                 expansion_used = True
 
-        if config.use_topic_boost:
-            logger.warning(
-                "topic_boosted eval config is a no-op until BITB-044 populates "
-                "verse_topics; falling back to non-boosted search",
-                extra={"config": config.name},
-            )
-
         translation = translation_override or resolve_translation(case.translation, case.language)
 
-        if config.use_hybrid:
+        boost_topics: list[str] = []
+        if config.use_topic_boost:
+            boost_topics = detect_topics(case.query)
+        topic_boost_applied = bool(boost_topics)
+
+        if config.use_hybrid and topic_boost_applied:
+            results = await search_service.search_hybrid_boosted(
+                query=case.query,
+                boost_topics=boost_topics,
+                max_verses=config.max_verses,
+                max_passages=0,
+                similarity_threshold=config.similarity_threshold,
+                translation=translation,
+                semantic_weight=config.semantic_weight,
+                keyword_weight=config.keyword_weight,
+                topic_boost_factor=config.topic_boost_factor,
+                extra_embeddings=extra_embeddings,
+                query_embedding=query_embedding,
+            )
+        elif config.use_hybrid:
             results = await search_service.search_hybrid(
                 query=case.query,
                 max_verses=config.max_verses,
@@ -203,6 +234,18 @@ async def run_query(
                 translation=translation,
                 semantic_weight=config.semantic_weight,
                 keyword_weight=config.keyword_weight,
+                extra_embeddings=extra_embeddings,
+                query_embedding=query_embedding,
+            )
+        elif topic_boost_applied:
+            results = await search_service.search_boosted(
+                query=case.query,
+                boost_topics=boost_topics,
+                max_verses=config.max_verses,
+                max_passages=0,
+                similarity_threshold=config.similarity_threshold,
+                translation=translation,
+                topic_boost_factor=config.topic_boost_factor,
                 extra_embeddings=extra_embeddings,
                 query_embedding=query_embedding,
             )
@@ -234,6 +277,9 @@ async def run_query(
             false_positives_at_5=false_positives_at_k(retrieved_keys, irrelevant, 5),
             expansion_used=expansion_used,
             expansion_latency_ms=expansion_latency_ms,
+            boost_topics=boost_topics,
+            topic_boost_applied=topic_boost_applied,
+            topic_boost_factor=config.topic_boost_factor if config.use_topic_boost else None,
         )
     except Exception as exc:  # noqa: BLE001 - fail-open per query, log and continue
         description = _describe_exception(exc)
@@ -264,7 +310,21 @@ async def run_config(
     expander: Expander | None,
     translation_override: str | None = None,
 ) -> list[QueryResult]:
-    """Run every case in ``cases`` through one config, in order."""
+    """Run every case in ``cases`` through one config, in order.
+
+    Raises ``EmptyVerseTopicsError`` before running any case when ``config``
+    is topic-boosted and ``verse_topics`` is empty for the corpus under eval
+    — a corpus-wide fact checked once here, deliberately outside
+    ``run_query``'s per-query fail-open ``try/except``, so it aborts the
+    whole run instead of being swallowed and scored as zero (BITB-104).
+    """
+    if config.use_topic_boost and not await search_service.has_verse_topics(translation_override):
+        scope = f" for translation {translation_override!r}" if translation_override else ""
+        raise EmptyVerseTopicsError(
+            f"config {config.name!r} applies topic boosting, but verse_topics is empty{scope} — "
+            "run scripts/populate_verse_topics.py against this corpus first. Refusing to report "
+            "unboosted numbers under a boosted config name."
+        )
     return [
         await run_query(
             case,
@@ -278,6 +338,32 @@ async def run_config(
     ]
 
 
+def resolve_configs(
+    config_names: Sequence[str],
+    topic_boost_factors: Sequence[float] | None = None,
+) -> list[EvalConfig]:
+    """Look up ``config_names`` in ``EVAL_CONFIGS``.
+
+    When ``topic_boost_factors`` is given, each topic-boosted config is
+    expanded into one copy per factor (``EvalConfig`` is frozen, so
+    ``dataclasses.replace`` is used), named ``f"{name}@{factor:g}"`` — one
+    run then produces one report row per point on the sweep curve (BITB-104).
+    Non-boosted configs are never duplicated, since a boost factor doesn't
+    apply to them.
+    """
+    resolved: list[EvalConfig] = []
+    for name in config_names:
+        config = EVAL_CONFIGS[name]
+        if topic_boost_factors and config.use_topic_boost:
+            for factor in topic_boost_factors:
+                resolved.append(
+                    replace(config, name=f"{name}@{factor:g}", topic_boost_factor=factor)
+                )
+        else:
+            resolved.append(config)
+    return resolved
+
+
 async def run_eval(
     cases: list[GoldenCase],
     config_names: Sequence[str],
@@ -286,6 +372,7 @@ async def run_eval(
     embedding_provider: EmbeddingProvider | None = None,
     llm_provider: LLMProvider | None = None,
     translation_override: str | None = None,
+    topic_boost_factors: Sequence[float] | None = None,
 ) -> RunResult:
     """Run ``cases`` through every named config in ``config_names``.
 
@@ -298,8 +385,11 @@ async def run_eval(
     this for a corpus that only contains one translation (e.g. `eval-smoke`'s
     single-book, single-translation CI seed) so every case queries that
     translation instead of each case's/language's normal resolved default.
+
+    ``topic_boost_factors``: sweep ``topic_boost_factor`` across these values
+    for any topic-boosted config in ``config_names`` (see ``resolve_configs``).
     """
-    configs = [EVAL_CONFIGS[name] for name in config_names]
+    configs = resolve_configs(config_names, topic_boost_factors)
 
     owns_session = session is None
     if session is None:

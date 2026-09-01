@@ -480,6 +480,13 @@ class ScriptureRepository:
         Applies multiplicative boost: final_score = base_score * (1 + factor * matching_topic_count)
         Supports hierarchical topics: child topic also matches parent topic name.
 
+        BITB-104: ``topic_boost_factor`` is explicitly ``CAST(... AS double precision)`` in the SQL
+        below because it is multiplied against ``matching_topic_count`` (a ``COUNT()``, bigint) and
+        appears nowhere else in the query — Postgres's untyped-parameter resolution infers the bind's
+        type from that one usage and picks ``bigint`` to match, so asyncpg silently truncated 0.2 to
+        0 and every boosted score before this fix was identical to its unboosted score. Confirmed by
+        integration test against real Postgres+asyncpg, not just read from the SQL.
+
         Args:
             query_embedding: The embedding vector of the search query
             boost_topics: List of topic names to boost (matched against topics.name)
@@ -535,7 +542,9 @@ class ScriptureRepository:
                 -- Verses with matching topics
                 SELECT
                     tm.id,
-                    tm.base_score * (1 + (:topic_boost_factor * tm.matching_topic_count)) AS final_score
+                    tm.base_score
+                    * (1 + (CAST(:topic_boost_factor AS double precision) * tm.matching_topic_count))
+                    AS final_score
                 FROM topic_matches tm
                 UNION ALL
                 -- Verses without any matching topics (no boost)
@@ -599,6 +608,10 @@ class ScriptureRepository:
         from ``verse_tsv`` via a ``LEFT JOIN`` rather than recomputing it per candidate
         row (BITB-096). See that method for the measurements and for why the join is
         outer.
+
+        BITB-104: see ``search_verses_semantic_boosted``'s docstring for why
+        ``topic_boost_factor`` is explicitly cast to ``double precision`` below —
+        the same asyncpg parameter-type-inference truncation applies here.
         """
         # Normalize weights
         total_weight = semantic_weight + keyword_weight
@@ -677,7 +690,9 @@ class ScriptureRepository:
             all_verses AS (
                 SELECT
                     tm.id,
-                    tm.hybrid_score * (1 + (:topic_boost_factor * tm.matching_topic_count)) AS final_score
+                    tm.hybrid_score
+                    * (1 + (CAST(:topic_boost_factor AS double precision) * tm.matching_topic_count))
+                    AS final_score
                 FROM topic_matches tm
                 UNION ALL
                 SELECT
@@ -903,6 +918,25 @@ class ScriptureRepository:
             .limit(limit)
         )
         return [(row.Topic, row.similarity) for row in result.all()]
+
+    async def has_verse_topics(self, translation: str | None = None) -> bool:
+        """True when at least one ``verse_topics`` row exists.
+
+        A ``LIMIT 1`` probe, not a count: the question the topic-boosted eval
+        config needs answered is "is the junction table populated at all",
+        and prod's table is hundreds of thousands of rows (BITB-104).
+        """
+        if translation:
+            sql = """
+                SELECT 1 FROM verse_topics vt
+                JOIN verses v ON v.id = vt.verse_id
+                WHERE v.translation = :translation
+                LIMIT 1
+            """
+            result = await self.session.execute(text(sql), {"translation": translation})
+        else:
+            result = await self.session.execute(text("SELECT 1 FROM verse_topics LIMIT 1"))
+        return result.first() is not None
 
     # ==================== Stats ====================
 

@@ -75,6 +75,10 @@ name: Search Eval — Full
 #   configs: comma-separated eval config names, default empty → the CLI's
 #            own default (baseline_semantic,expansion_semantic)
 #   language: optional golden-set language filter (e.g. it, de)
+#   topic_boost_factor: comma-separated topic_boost_factor sweep values
+#            (BITB-104, e.g. "0.0,0.1,0.2,0.4"), blank = CLI default.
+#            Only meaningful with configs including topic_boosted; requires
+#            eval-prod (verse_topics is never populated on eval-smoke).
 
 # yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
 "on":
@@ -97,6 +101,10 @@ name: Search Eval — Full
         default: ""
       language:
         description: "Restrict to one golden-set language code (blank = all)"
+        required: false
+        default: ""
+      topic_boost_factor:
+        description: "Comma-separated topic_boost_factor sweep values (BITB-104, blank = CLI default)"
         required: false
         default: ""
 
@@ -278,6 +286,7 @@ jobs:
           OPENROUTER_API_KEY_IF_SET: ${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
           INPUT_CONFIGS: ${{ github.event.inputs.configs }}
           INPUT_LANGUAGE: ${{ github.event.inputs.language }}
+          INPUT_TOPIC_BOOST_FACTOR: ${{ github.event.inputs.topic_boost_factor }}
         run: |
           set -o pipefail
 
@@ -320,8 +329,14 @@ jobs:
             language_flag=(--language "$INPUT_LANGUAGE")
           fi
 
+          topic_boost_factor_flag=()
+          if [ -n "$INPUT_TOPIC_BOOST_FACTOR" ]; then
+            topic_boost_factor_flag=(--topic-boost-factor "$INPUT_TOPIC_BOOST_FACTOR")
+          fi
+
           set +e
           python scripts/run_search_eval.py --run --json "${config_flag[@]}" "${language_flag[@]}" \
+            "${topic_boost_factor_flag[@]}" \
             > eval-prod.json 2> eval-prod.log
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e

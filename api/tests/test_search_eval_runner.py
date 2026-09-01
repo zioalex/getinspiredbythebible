@@ -14,12 +14,16 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from chat.topics import detect_topics
+from config import settings
 from scripture.search import SearchResults, VerseResult
 from search_eval.models import GoldenCase
 from search_eval.runner import (
     EVAL_CONFIGS,
     ChatServiceExpander,
+    EmptyVerseTopicsError,
     EvalConfig,
+    resolve_configs,
     run_config,
     run_query,
 )
@@ -31,8 +35,11 @@ def _verse(reference: str) -> VerseResult:
     )
 
 
-def _fake_search_service(*, hybrid_refs=None, semantic_refs=None):
-    """A fake exposing only .search / .search_hybrid, recording call kwargs."""
+def _fake_search_service(
+    *, hybrid_refs=None, semantic_refs=None, boosted_refs=None, has_verse_topics=True
+):
+    """A fake exposing .search/.search_hybrid/.search_boosted/.search_hybrid_boosted
+    and .has_verse_topics, recording call kwargs."""
     service = AsyncMock()
     service.search = AsyncMock(
         return_value=SearchResults(
@@ -44,6 +51,17 @@ def _fake_search_service(*, hybrid_refs=None, semantic_refs=None):
             query="q", verses=[_verse(r) for r in (hybrid_refs or [])], passages=[]
         )
     )
+    service.search_boosted = AsyncMock(
+        return_value=SearchResults(
+            query="q", verses=[_verse(r) for r in (boosted_refs or [])], passages=[]
+        )
+    )
+    service.search_hybrid_boosted = AsyncMock(
+        return_value=SearchResults(
+            query="q", verses=[_verse(r) for r in (boosted_refs or [])], passages=[]
+        )
+    )
+    service.has_verse_topics = AsyncMock(return_value=has_verse_topics)
     return service
 
 
@@ -199,18 +217,180 @@ class TestExpansion:
 
 class TestTopicBoosted:
     @pytest.mark.asyncio
-    async def test_topic_boosted_falls_back_to_hybrid_and_warns(self, caplog):
-        service = _fake_search_service(hybrid_refs=["John 3:16"])
+    async def test_topic_boosted_calls_hybrid_boosted_with_detected_topics(self):
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
         result = await run_query(
-            _case(),
+            _case(query="I'm anxious"),
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        service.search_hybrid_boosted.assert_awaited_once()
+        service.search_hybrid.assert_not_awaited()
+        _, kwargs = service.search_hybrid_boosted.call_args
+        assert kwargs["boost_topics"] == detect_topics("I'm anxious") == ["anxiety"]
+        assert kwargs["topic_boost_factor"] == settings.topic_boost_factor
+        assert kwargs["max_passages"] == 0
+        assert result.retrieved == ["Psalm 23:1"]
+        assert result.topic_boost_applied is True
+        assert result.boost_topics == ["anxiety"]
+
+    @pytest.mark.asyncio
+    async def test_boosted_ranking_differs_from_unboosted(self):
+        """AC: a boosted query ranks a topically-tagged verse differently from
+        the unboosted query (the failure this story closes: a boosted config
+        silently reporting the same numbers as unboosted)."""
+        case = _case(query="I'm anxious", relevant_refs=["Psalm 23:1"])
+        hybrid_service = _fake_search_service(hybrid_refs=["Genesis 1:1", "Psalm 23:1"])
+        boosted_service = _fake_search_service(boosted_refs=["Psalm 23:1", "Genesis 1:1"])
+
+        hybrid_result = await run_query(
+            case,
+            EVAL_CONFIGS["hybrid"],
+            search_service=hybrid_service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        boosted_result = await run_query(
+            case,
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=boosted_service,
+            embed=_fake_embed,
+            expander=None,
+        )
+
+        assert hybrid_result.retrieved != boosted_result.retrieved
+        assert hybrid_result.mrr == pytest.approx(0.5)
+        assert boosted_result.mrr == pytest.approx(1.0)
+
+    @pytest.mark.asyncio
+    async def test_no_op_warning_is_gone(self, caplog):
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
+        await run_query(
+            _case(query="I'm anxious"),
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        assert not any(
+            "no-op" in record.message or "falls back to non-boosted" in record.message
+            for record in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_untagged_query_falls_back_to_plain_hybrid(self):
+        query = "What does Genesis chapter one verse one say"
+        assert detect_topics(query) == []
+        service = _fake_search_service(hybrid_refs=["Genesis 1:1"])
+        result = await run_query(
+            _case(query=query),
             EVAL_CONFIGS["topic_boosted"],
             search_service=service,
             embed=_fake_embed,
             expander=None,
         )
         service.search_hybrid.assert_awaited_once()
-        assert result.retrieved == ["John 3:16"]
-        assert any("topic_boosted" in record.message for record in caplog.records)
+        service.search_hybrid_boosted.assert_not_awaited()
+        assert result.topic_boost_applied is False
+        assert result.error is None
+
+    @pytest.mark.asyncio
+    async def test_semantic_topic_boost_calls_search_boosted(self):
+        config = EvalConfig(
+            "semantic_boosted", use_hybrid=False, use_expansion=False, use_topic_boost=True
+        )
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
+        result = await run_query(
+            _case(query="I'm anxious"),
+            config,
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        service.search_boosted.assert_awaited_once()
+        service.search.assert_not_awaited()
+        assert result.retrieved == ["Psalm 23:1"]
+
+    @pytest.mark.asyncio
+    async def test_empty_verse_topics_raises_before_any_query(self):
+        service = _fake_search_service(has_verse_topics=False)
+        with pytest.raises(EmptyVerseTopicsError, match="populate_verse_topics"):
+            await run_config(
+                [_case(query="I'm anxious")],
+                EVAL_CONFIGS["topic_boosted"],
+                search_service=service,
+                embed=_fake_embed,
+                expander=None,
+            )
+        service.search_hybrid_boosted.assert_not_awaited()
+        service.search_hybrid.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_empty_verse_topics_is_ignored_for_unboosted_configs(self):
+        service = _fake_search_service(hybrid_refs=["John 3:16"], has_verse_topics=False)
+        results = await run_config(
+            [_case()],
+            EVAL_CONFIGS["hybrid"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        assert len(results) == 1
+        assert results[0].error is None
+        service.has_verse_topics.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_verse_topics_probe_runs_once_per_config(self):
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
+        cases = [_case(id=f"c{i}", query="I'm anxious") for i in range(3)]
+        await run_config(
+            cases,
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        assert service.has_verse_topics.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_verse_topics_probe_uses_translation_override(self):
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
+        await run_config(
+            [_case(query="I'm anxious")],
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+            translation_override="kjv",
+        )
+        service.has_verse_topics.assert_awaited_once_with("kjv")
+
+
+class TestTopicBoostSweep:
+    def test_no_factors_is_identity(self):
+        configs = resolve_configs(["hybrid", "topic_boosted"])
+        assert [c.name for c in configs] == ["hybrid", "topic_boosted"]
+        assert configs[1].topic_boost_factor == settings.topic_boost_factor
+
+    def test_sweep_expands_boosted_config_per_factor(self):
+        configs = resolve_configs(["topic_boosted"], topic_boost_factors=[0.0, 0.2, 0.5])
+        assert [c.name for c in configs] == [
+            "topic_boosted@0",
+            "topic_boosted@0.2",
+            "topic_boosted@0.5",
+        ]
+        assert [c.topic_boost_factor for c in configs] == [0.0, 0.2, 0.5]
+        base = EVAL_CONFIGS["topic_boosted"]
+        for c in configs:
+            assert c.use_hybrid == base.use_hybrid
+            assert c.use_topic_boost == base.use_topic_boost
+
+    def test_sweep_never_duplicates_non_boosted_configs(self):
+        configs = resolve_configs(["hybrid", "topic_boosted"], topic_boost_factors=[0.1, 0.3])
+        names = [c.name for c in configs]
+        assert names == ["hybrid", "topic_boosted@0.1", "topic_boosted@0.3"]
 
 
 class TestFailOpen:
@@ -319,3 +499,4 @@ class TestEvalConfigs:
         assert isinstance(config, EvalConfig)
         assert config.use_topic_boost is True
         assert config.use_hybrid is True
+        assert config.topic_boost_factor == settings.topic_boost_factor

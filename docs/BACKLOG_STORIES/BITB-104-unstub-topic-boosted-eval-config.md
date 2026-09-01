@@ -1,11 +1,34 @@
 # BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — the harness landed and now applies real boosting; the A/B numbers,
+factor-sweep curve, and the `topic_boosting_enabled` decision itself are tracked separately as
+**BITB-115** (they need prod DB + Azure credentials this sandboxed environment does not have)
 **Priority:** P1 — the payoff step; until this runs, topic boosting has never been measured even once
 **Size:** S–M (the code change is small; the judgement about enabling is the work)
 **Created:** 2026-08-21
 **Prompted by:** PR #970 (BITB-044), which deliberately does not tune `topic_boost_factor` or flip
 `topic_boosting_enabled`
+
+## What This PR Does / Does Not Do
+
+**Does:** removes the no-op fallback so `use_topic_boost` drives the real `search_hybrid_boosted()`
+/ `search_boosted()` path (boost topics from `detect_topics(query)`, matching production exactly);
+makes an empty `verse_topics` under a boosted config a hard error (`EmptyVerseTopicsError`) instead
+of a silent warn-and-continue; makes `topic_boost_factor` sweepable per-config via
+`--topic-boost-factor` (CLI) and a matching `search-eval-full.yml` workflow input; and along the
+way, found and fixed a real bug in the already-merged boosted SQL from BITB-044
+(`search_verses_semantic_boosted` / `search_verses_hybrid_boosted` in `api/scripture/repository.py`):
+`topic_boost_factor` was multiplied against a `COUNT()` (bigint) with no other numeric context in
+the query, so Postgres's untyped-parameter resolution inferred a `bigint` bind type and asyncpg
+silently truncated every factor between 0 and 1 — including the 0.2 default — to `0`. The boost had
+never actually applied, even before this story's stub. This is confirmed and regression-tested
+against real Postgres+asyncpg (`api/tests/test_hybrid_search_integration.py`), not just read from
+the SQL.
+
+**Does not:** run the eval against real Postgres + Azure (this sandbox has neither), record A/B or
+sweep numbers, or decide `topic_boosting_enabled`. `docs/SEARCH_EVAL_HOWTO.md` already documents
+that the live numbers can only come from a maintainer or the `search-eval-full.yml` CI workflow
+against `eval-prod` — that follow-through, once numbers exist, is **BITB-115**.
 
 ## User Story
 
@@ -57,15 +80,15 @@ gets a plausible-looking number that is actually the control.
 
 ## Acceptance Criteria
 
-- [ ] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
-- [ ] An empty `verse_topics` under a boosted config is a hard error, not a warning
+- [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
+- [x] An empty `verse_topics` under a boosted config is a hard error, not a warning
 - [ ] A/B results recorded for `hybrid` vs `topic_boosted`, broken out by topic-laden vs neutral and
-      by the three language groups
-- [ ] `topic_boost_factor` swept, the curve documented (not just the chosen value), and the choice
-      justified in `docs/SEARCH_EVAL_HOWTO.md`
+      by the three language groups — **BITB-115**
+- [x] `topic_boost_factor` sweep mechanism (CLI + workflow input) — the curve itself, and the choice
+      justified in `docs/SEARCH_EVAL_HOWTO.md`, is **BITB-115** (no numbers exist yet)
 - [ ] A recorded decision on `topic_boosting_enabled` in prod, with the numbers behind it — including
-      the option of leaving it off
-- [ ] The registry comment in `runner.py` no longer describes the config as a no-op
+      the option of leaving it off — **BITB-115**
+- [x] The registry comment in `runner.py` no longer describes the config as a no-op
 
 ## Dependencies
 

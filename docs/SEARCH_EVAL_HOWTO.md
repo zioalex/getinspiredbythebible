@@ -45,6 +45,12 @@ python scripts/run_search_eval.py --run --config hybrid,hybrid_expansion --langu
 
 # Machine-readable output
 python scripts/run_search_eval.py --run --json
+
+# A/B: unboosted vs boosted (needs a populated verse_topics — see below)
+python scripts/run_search_eval.py --run --config hybrid,topic_boosted
+
+# Factor sweep — one report row per point on the curve
+python scripts/run_search_eval.py --run --config topic_boosted --topic-boost-factor 0.0,0.1,0.2,0.4,0.8
 ```
 
 Available config names (`search_eval.runner.EVAL_CONFIGS`):
@@ -55,7 +61,7 @@ Available config names (`search_eval.runner.EVAL_CONFIGS`):
 | `expansion_semantic` | `search()` | yes |
 | `hybrid` | `search_hybrid()` | no |
 | `hybrid_expansion` | `search_hybrid()` | yes |
-| `topic_boosted` | `search_hybrid()` (boosting is a **no-op**, see below) | no |
+| `topic_boosted` | `search_hybrid_boosted()` (`verse_topics` LEFT JOIN, factor from the config/`--topic-boost-factor`) | no |
 
 Default `--config` is the A/B pair `baseline_semantic,expansion_semantic`.
 
@@ -82,10 +88,31 @@ per-language breakdown and a footnote — a flat (zero-delta) result for those
 languages means **"not taggable"**, not "topic boosting doesn't help". The
 same caveat applies to `--validate`'s printed coverage summary.
 
-**`topic_boosted` is a documented no-op** until **BITB-044** populates
-`verse_topics` — the runner logs a warning and falls back to plain hybrid
-search, so its numbers are expected to equal `hybrid`'s. Don't read anything
-into `topic_boosted` results until BITB-044 ships.
+**Topic boosting (BITB-104):** `topic_boosted` applies the real boost —
+`search_hybrid_boosted()`'s `verse_topics` LEFT JOIN, weighted by
+`topic_boost_factor` (per-config, sweepable with `--topic-boost-factor`).
+Boost topics for each query come from `detect_topics(query)`, the same
+keyword tagger production uses — a query the tagger doesn't tag is
+unboosted *by design*, matching production behavior exactly. This means the
+BITB-103 untaggable-language caveat above still governs how to read a flat
+`ru/zh/hi/ko` delta: "not taggable", not "boosting doesn't help".
+
+**Prerequisite:** `verse_topics` must be populated for the corpus under eval
+(`scripts/populate_verse_topics.py`) or the run **hard-errors** instead of
+reporting unboosted numbers under a boosted config name — the failure this
+story exists to close. `eval-smoke`'s ephemeral corpus does not run
+`populate_verse_topics.py`, so passing `configs: topic_boosted` to the smoke
+route is expected to hard-error; that is the guard working, not a break.
+
+`topic_boost_factor` sweep results — pending the first `eval-prod` run with
+`configs: hybrid,topic_boosted` (see the P4a section below). No numbers are
+recorded here yet; a maintainer with prod-read-only DB access runs the sweep
+and records the curve and the `topic_boosting_enabled` decision once
+available — see BITB-115.
+
+| `topic_boost_factor` | P@5 | R@10 | MRR | FP@5 |
+|---|---|---|---|---|
+| _pending first `eval-prod` run_ | | | | |
 
 ## Golden-set schema and the `topics` field (BITB-103)
 
@@ -169,6 +196,13 @@ schedule and on demand — no maintainer machine required:
   single-book corpus can legitimately clear zero rows above the default
   0.35 similarity threshold for topically unrelated queries. A nonzero query
   error count is the real, unambiguous failure signal.
+
+**Running the topic-boost A/B and sweep (BITB-104):** trigger
+**Actions → Search Eval — Full → Run workflow** with `configs:
+hybrid,topic_boosted` against `eval-prod` (the only route with a populated
+`verse_topics`) to get real numbers. `eval-smoke`'s ephemeral corpus never
+runs `scripts/populate_verse_topics.py`, so passing `configs: topic_boosted`
+to it hard-errors by design (see above) — don't add `topic_boosted` there.
 
 `eval-smoke` always runs `--config baseline_semantic` only (BITB-107) — unlike
 `eval-prod`, which falls back to `baseline_semantic` only when no OpenRouter
