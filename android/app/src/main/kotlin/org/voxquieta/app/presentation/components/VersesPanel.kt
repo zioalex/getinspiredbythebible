@@ -50,9 +50,14 @@ import org.voxquieta.app.utils.normalizeTraditionalToSimplified
  *   Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ") + book + chapter:verse
  *   Alt 2 — book (no prefix) + chapter:verse
  */
+// The connector-repeat group is bounded to {0,3} (BITB-114, mirroring the web fix in
+// BITB-108/versePatterns.ts): unbounded `*` here let adversarial input (long chains of
+// connector words) drive superlinear-time regex backtracking. No real supported book name
+// needs more than one connector (e.g. "Song of Solomon" — see LocalizedBookToEnglish.kt);
+// {0,3} keeps 3x headroom while eliminating the unbounded blowup.
 private val CITED_BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*)*"
+        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*){0,3}"
 
 private val CITED_VERSE_REF_REGEX = Regex(
     "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
