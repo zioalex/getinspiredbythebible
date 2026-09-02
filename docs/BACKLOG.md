@@ -1570,6 +1570,31 @@ claimed scope — see the story file's "Residual Risk" section.
 
 ---
 
+### 🎯 BITB-116: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
+
+**Status:** 🎯 Todo
+**Priority:** P3 — benchmarked and currently within budget; not an active incident, but the same
+ReDoS shape BITB-108/BITB-114 closed elsewhere
+**Size:** S
+**Created:** 2026-09-02
+**Found by:** BITB-114, flagged as residual rather than folded in
+
+BITB-114 bounded the connector-repeat group in `BOOK_NAME`/`CITED_BOOK_NAME` to `{0,3}`. A second,
+separate unbounded group survives in `ChatMessageItem.kt`'s Alt-1 (numbered-prefix) branch —
+`(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, needed for 3-word Arabic numbered-book names like "1 أخبار الأيام".
+It was exercised by BITB-114's adversarial tests and stayed within budget, but was never
+independently bounded or benchmarked in isolation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Alt-1's trailing group bounded (not unbounded `*`), bound justified against real data
+- [ ] Dedicated adversarial-input benchmark for this specific group, before and after
+- [ ] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-116-android-verse-parser-alt1-redos-residual.md`
+
+---
+
 ### 🎯 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
 **Status:** 🎯 Todo
