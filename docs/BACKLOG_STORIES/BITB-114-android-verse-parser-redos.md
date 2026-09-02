@@ -49,6 +49,7 @@ Bound justification: scanning `android/app/src/main/kotlin/org/voxquieta/app/uti
 eliminating the unbounded blowup, matching the web fix's approach.
 
 Changed:
+
 - `ChatMessageItem.kt::BOOK_NAME` — connector group `)*` → `){0,3}`.
 - `VersesPanel.kt::CITED_BOOK_NAME` — connector group `)*` → `){0,3}`.
 - New test `android/app/src/test/kotlin/org/voxquieta/app/components/VerseRefRedosTest.kt`, mirroring
