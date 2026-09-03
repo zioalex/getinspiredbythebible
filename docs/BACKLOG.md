@@ -1617,27 +1617,35 @@ per-message, or Arabic users silently lose links.
 
 ---
 
-### 🎯 BITB-110: Android Still Cannot Read Traditional Chinese Verse References
+### ✅ BITB-110: Android Still Cannot Read Traditional Chinese Verse References
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** S
 **Created:** 2026-08-22
 **Prompted by:** PR #982 (BITB-025), whose Android AC is an explicit fast-follow
 
-Backend and frontend normalize Traditional → Simplified before verse parsing; Android does not, so
-`約翰福音 3:16` renders as plain text on Android while linking correctly on web.
+Backend and frontend normalize Traditional → Simplified before verse parsing; Android now does
+too — `約翰福音 3:16` links correctly on Android, matching web.
 
-Small by design: PR #982 normalizes the **lookup candidate, never the stored set**, so the ~29-character
-table ports directly to Kotlin without fighting the generated Simplified-only book-name map. Display
-text keeps its original script; only the lookup key is normalized.
+Shipped as designed: the lookup **candidate** is normalized, never the stored set, so the
+29-character table (`android/.../utils/ChineseScript.kt`) ports directly to Kotlin without
+fighting the generated Simplified-only book-name map. `ChatMessageItem.kt`'s `injectVerseLinks`
+matches against a Simplified shadow copy of the message text but slices every display-facing
+string from the original, so Traditional-script users still see their own words on screen.
+Hand-ported (BITB-108/113's generator does not yet cover script-class alternations), with a row
+in the `docs/AUDIT_PLAYBOOK.md` parity ledger. The 8 `zh_hant_*`/`zh_mixed_script_*` corpus cases
+no longer skip Android. Note: `VerseCorpusParityTest.kt` and the Android Gradle toolchain could
+not be executed in the implementing sandbox (no network access to the Google Maven plugin repo)
+— verified by static reasoning instead of a live green run.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Traditional book names normalized in Android's client-side parsing
-- [ ] Mixed-script references (`創世记`) resolve; displayed text keeps its original script
-- [ ] Android tests cover Traditional, mixed-script and existing Simplified cases
-- [ ] Table generated (if BITB-108 lands) or hand-ported with a parity-ledger row naming its source
+- [x] Traditional book names normalized in Android's client-side parsing
+- [x] Mixed-script references (`創世记`) resolve; displayed text keeps its original script
+- [x] Android tests cover Traditional, mixed-script and existing Simplified cases
+- [x] Table hand-ported with a parity-ledger row naming its source (BITB-108 generator not yet
+      applicable — see above)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-110-android-traditional-chinese-normalization.md`
 

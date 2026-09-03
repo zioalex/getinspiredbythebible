@@ -197,6 +197,38 @@ class VersesPanelTest {
     }
 
     @Test
+    fun `referencedVerses matches Traditional Chinese book name via the Simplified-keyed API map (BITB-110)`() {
+        // The regex-extracted rawBook is Traditional ("約翰福音"); localizedToEnglish is
+        // keyed Simplified only ("约翰福音"), as the backend always returns it. A direct lookup
+        // misses, so referencedVerses must retry the normalized (Simplified) form to resolve
+        // "John" and match verse.book.
+        val john316 = verse("John", 3, 16)
+        val messages = listOf(assistantMsg("約翰福音 3:16是著名的经文。"))
+
+        val result = referencedVerses(
+            listOf(john316),
+            messages,
+            localizedToEnglish = mapOf("约翰福音" to "John"),
+        )
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `referencedVerses matches mixed-script Chinese book name (Traditional 創 plus Simplified 世记, BITB-110)`() {
+        val genesis11 = verse("Genesis", 1, 1)
+        val messages = listOf(assistantMsg("創世记 1:1是起始。"))
+
+        val result = referencedVerses(
+            listOf(genesis11),
+            messages,
+            localizedToEnglish = mapOf("创世记" to "Genesis"),
+        )
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
     fun `referencedVerses matches Korean book name when verse book matches`() {
         val verse = verse("요한복음", 3, 16)
         val messages = listOf(assistantMsg("요한복음 3:16은 유명한 구절입니다."))

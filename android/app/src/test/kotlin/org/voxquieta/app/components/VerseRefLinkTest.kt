@@ -522,6 +522,91 @@ class VerseRefLinkTest {
         assertFalse("should NOT match surrounding text", result.contains("[请阅读约翰福音"))
     }
 
+    // ── Traditional Chinese (BITB-110) ──────────────────────────────────────
+    // Traditional-script book names must resolve identically to Simplified, while the
+    // DISPLAYED text keeps the reference exactly as written (Traditional characters on
+    // screen) -- only the internal lookup is normalized to Simplified. Inputs/expectations
+    // below are pulled directly from the shared tests/fixtures/verse_reference_corpus.json
+    // cases (zh_hant_* / zh_mixed_script_*) so this file, VerseCorpusParityTest, the frontend,
+    // and the backend all assert the same behaviour for the same inputs.
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese 約翰福音 (zh_hant_john_3_16)`() {
+        val input = "約翰福音 3:16"
+        val result = injectVerseLinks(input)
+        // Displayed text stays Traditional -- the user's own script, not silently Simplified.
+        assertTrue("should link 約翰福音 3:16 in its original script", result.contains("[約翰福音 3:16]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("john", link!!.book.lowercase())
+        assertEquals(3, link.chapter)
+        assertEquals(16, link.verseNumber)
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese 馬太福音 (zh_hant_matthew_5_3)`() {
+        val input = "馬太福音 5:3"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[馬太福音 5:3]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("matthew", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese 使徒行傳 (zh_hant_acts_2_38)`() {
+        val input = "使徒行傳 2:38"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[使徒行傳 2:38]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("acts", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese 歷代志上 (zh_hant_1_chronicles_16_11)`() {
+        val input = "歷代志上 16:11"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[歷代志上 16:11]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("1 chronicles", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese 羅馬書 (zh_hant_romans_8_28)`() {
+        val input = "羅馬書 8:28"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[羅馬書 8:28]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("romans", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps Traditional Chinese guillemet reference (zh_hant_guillemet_john)`() {
+        val input = "《約翰福音》3:16"
+        val result = injectVerseLinks(input)
+        assertTrue("should link 約翰福音 3:16 (guillemets stripped)", result.contains("[約翰福音 3:16]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("john", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps mixed-script 創世记 -- Traditional 創 plus Simplified 世记 (zh_mixed_script_genesis)`() {
+        val input = "創世记 1:1"
+        val result = injectVerseLinks(input)
+        // Mixed input is displayed byte-for-byte as written -- neither fully Traditional nor
+        // fully Simplified, exactly as the user/LLM typed it.
+        assertTrue(result.contains("[創世记 1:1]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("genesis", link!!.book.lowercase())
+    }
+
+    @Test
+    fun `injectVerseLinks wraps mixed-script 傳道书 -- Traditional 傳 plus Simplified 道书 (zh_mixed_script_ecclesiastes)`() {
+        val input = "傳道书 3:1"
+        val result = injectVerseLinks(input)
+        assertTrue(result.contains("[傳道书 3:1]"))
+        val link = parseVerseLink(Regex("""verse://[^)\]\s]+""").find(result)!!.value, null)
+        assertEquals("ecclesiastes", link!!.book.lowercase())
+    }
+
     // ── Non-English book names: Korean (Hangul) ─────────────────────────────
 
     @Test
