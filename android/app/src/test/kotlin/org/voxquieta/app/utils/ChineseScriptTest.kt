@@ -43,7 +43,7 @@ class ChineseScriptTest {
     // ── Fixture parity ──────────────────────────────────────────────────────────
 
     @Test
-    fun `TRADITIONAL_TO_SIMPLIFIED matches tests:fixtures:t2s_char_map json exactly`() {
+    fun `TRADITIONAL_TO_SIMPLIFIED matches the t2s_char_map json fixture exactly`() {
         val fixture = loadFixture()
         val actual = TRADITIONAL_TO_SIMPLIFIED.entries.associate { (k, v) -> k.toString() to v.toString() }
 

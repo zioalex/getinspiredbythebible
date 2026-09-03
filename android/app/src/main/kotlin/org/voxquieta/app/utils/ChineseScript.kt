@@ -63,17 +63,12 @@ val TRADITIONAL_TO_SIMPLIFIED: Map<Char, Char> = mapOf(
  * table characters — safe to call unconditionally on non-Chinese text.
  */
 fun normalizeTraditionalToSimplified(text: String): String {
-    if (text.isEmpty()) return text
-    var changed = false
+    // Every chat message render calls this, so the common case (no Traditional characters at
+    // all) must not pay for a StringBuilder allocation it doesn't need.
+    if (text.isEmpty() || text.none { it in TRADITIONAL_TO_SIMPLIFIED }) return text
     val out = StringBuilder(text.length)
     for (ch in text) {
-        val mapped = TRADITIONAL_TO_SIMPLIFIED[ch]
-        if (mapped != null) {
-            out.append(mapped)
-            changed = true
-        } else {
-            out.append(ch)
-        }
+        out.append(TRADITIONAL_TO_SIMPLIFIED[ch] ?: ch)
     }
-    return if (changed) out.toString() else text
+    return out.toString()
 }
