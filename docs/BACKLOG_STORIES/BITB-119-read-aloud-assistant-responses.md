@@ -1,10 +1,10 @@
-# BITB-115: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+# BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
 **Status:** 🎯 Todo
 **Priority:** P2 — new capability, not a defect; sequence after the cost decision below is made
 **Size:** L (M per platform + a shared text-normalization layer; see Cost of Implementation)
 **Created:** 2026-09-04
-**Prompted by:** product request — "speak loudly the Vox Quieta response". Paired with BITB-116
+**Prompted by:** product request — "speak loudly the Vox Quieta response". Paired with BITB-120
 (voice input); the two are deliberately separate stories because they share no code, no vendor
 decision, and no legal footprint.
 
@@ -194,7 +194,7 @@ than a disembodied reading. Test those on hardware, not in an emulator.
 
 ## Related
 
-- **BITB-116** — voice input (the other half of the request); separate vendor, permission and legal
+- **BITB-120** — voice input (the other half of the request); separate vendor, permission and legal
   footprint, deliberately not merged with this
 - **BITB-087** — iOS chat parity; inherits the normalization rules
 - **BITB-059 / BITB-108 / BITB-113 / BITB-114** — the verse-parser duplication family; the precedent

@@ -1,12 +1,12 @@
-# BITB-116: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+# BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
 
 **Status:** 🎯 Todo
-**Priority:** P2 — new capability; heavier legal and store footprint than BITB-115, so sequence it
+**Priority:** P2 — new capability; heavier legal and store footprint than BITB-119, so sequence it
 after that one even though the two were requested together
 **Size:** L (M on web, M–L on Android because of the runtime permission and Play Data Safety work)
 **Created:** 2026-09-04
 **Prompted by:** product request — "input the user question via voice". The other half, speaking the
-answer, is BITB-115.
+answer, is BITB-119.
 
 ## User Story
 
@@ -171,7 +171,7 @@ Assuming Option 1:
 
 ## Dependencies
 
-None technically. **Sequence after BITB-115** — it delivers the paired capability with none of the
+None technically. **Sequence after BITB-119** — it delivers the paired capability with none of the
 permission, store or privacy-policy cost, so it validates appetite for voice features cheaply first.
 
 ## Verification
@@ -183,7 +183,7 @@ there. Accuracy is the demo; the refusal paths are the product.
 
 ## Related
 
-- **BITB-115** — speak the answer; the other half of the same request, no shared code
+- **BITB-119** — speak the answer; the other half of the same request, no shared code
 - **BITB-087** — iOS chat parity; inherits the recognizer and its usage strings
 - **BITB-024** — session interaction limit; unaffected, a spoken question is an ordinary message
 - `frontend/src/app/[locale]/ChatIsland.tsx`,

@@ -2177,14 +2177,14 @@ manual-only Hindi/Luther data) still always win when present.
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 >
-> **Voice batch (2026-09-04) → BITB-115, BITB-116.** Two halves of one product request —
+> **Voice batch (2026-09-04) → BITB-119, BITB-120.** Two halves of one product request —
 > speak the answer, and ask by voice. Split because they share no code, no vendor decision
 > and no legal footprint. Both carry a cost evaluation (on-device vs cloud) that must be
 > settled before implementation starts.
 
 ---
 
-### 🎯 BITB-115: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -2213,14 +2213,14 @@ BITB-059/108/113/114 family for what the alternative looks like).
 - [ ] Speakable-text rules specified once, cases in the shared fixture corpus, both clients asserted
 - [ ] 11 locales, feature flag, telemetry (Android), tests with a mocked synthesizer, changelog
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-read-aloud-assistant-responses.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
 
 ---
 
-### 🎯 BITB-116: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+### 🎯 BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
 
 **Status:** 🎯 Todo
-**Priority:** P2 — sequence after BITB-115; heavier legal and store footprint
+**Priority:** P2 — sequence after BITB-119; heavier legal and store footprint
 **Size:** L (M web, M–L Android)
 **Created:** 2026-09-04
 **Prompted by:** product request — "input the user question via voice"
@@ -2247,7 +2247,7 @@ not a new ability. Web has no such fallback.
 - [ ] Privacy policy (11 locales) names the third-party recognizer; Play Data Safety updated
 - [ ] 11 locales, feature flag, telemetry (Android), tests incl. the refusal paths, changelog
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-116-ask-by-voice-speech-input.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-120-ask-by-voice-speech-input.md`
 
 ### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
