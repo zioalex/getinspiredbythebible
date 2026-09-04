@@ -566,3 +566,29 @@ def downgrade():
     op.execute("DROP TABLE foo")
 """
         assert _upgrade_reaches_lock_timeout(source) is False
+
+
+def test_app_code_never_calls_create_all():
+    """BITB-090: Alembic is the only schema authority.
+
+    A `metadata.create_all` anywhere in the app source re-creates the
+    two-authorities bug this story removed: a table could appear in the
+    database on next boot with no revision and no `alembic_version` change.
+    Pure source-text check -- no database required, runs on every PR.
+
+    `api/tests/` and `api/alembic/versions/` are exempt: test fixtures that
+    build an isolated throwaway schema (e.g. `test_weekly_report_integration.py`)
+    are not a competing authority over the app's real schema, and Alembic's own
+    baseline revision necessarily calls `create_all`-equivalent DDL by hand.
+    """
+    offenders = []
+    for path in _API_DIR.rglob("*.py"):
+        if _API_DIR / "tests" in path.parents or _API_DIR / "alembic" in path.parents:
+            continue
+        if "metadata.create_all" in path.read_text():
+            offenders.append(str(path.relative_to(_API_DIR)))
+
+    assert not offenders, (
+        f"metadata.create_all() found outside api/tests/ and api/alembic/: {offenders}\n"
+        "Schema creation is Alembic's job (BITB-090) -- add a revision instead."
+    )

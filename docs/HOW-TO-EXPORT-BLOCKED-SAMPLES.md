@@ -53,8 +53,8 @@ BLOCKED_SAMPLE_RETENTION_DAYS=30        # default 30
 BLOCKED_SAMPLE_MAX_CHARS=500            # default 500
 ```
 
-The table is created automatically by `init_db()` on first startup once
-the model is registered (no migration step required).
+The table is created by Alembic revision `r0001` (BITB-090: schema creation
+is Alembic's job, not the app's) — run `alembic upgrade head` if it's missing.
 
 ## Exporting rows
 

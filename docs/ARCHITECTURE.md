@@ -179,8 +179,8 @@ User Message → Frontend → API Router → ChatService
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Handles startup (DB init) and shutdown (cleanup)."""
-    await init_db()
+    """Handles startup (DB connectivity check) and shutdown (cleanup)."""
+    await check_db_connection()  # fails fast; schema is Alembic's job (BITB-090)
     yield
     await close_db()
 ```

@@ -198,18 +198,19 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 
-async def init_db():
-    """Initialize database tables."""
-    from feedback.models import Base as FeedbackBase
+async def check_db_connection() -> None:
+    """Fail fast if the database is unreachable at startup.
 
-    from .models import Base as ScriptureBase
-
-    async with engine.begin() as conn:
-        # Create pgvector extension
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        # Create all tables from both models
-        await conn.run_sync(ScriptureBase.metadata.create_all)
-        await conn.run_sync(FeedbackBase.metadata.create_all)
+    Schema creation is Alembic's job (BITB-090): ``alembic upgrade head``, run
+    by the deploy pipeline (``.github/workflows/azure-deploy.yml``) and by
+    ``scripts/init-db.sh`` locally. This function used to be ``init_db()``,
+    which also called ``create_all()`` and ``CREATE EXTENSION vector`` --
+    both are now owned by Alembic revision ``r0001``. Raises on failure so the
+    caller can crash-loop instead of serving traffic against a dead database
+    (docs/audits/2026-07-adversarial-audit.md, finding E7).
+    """
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
 
 
 async def close_db():

@@ -8,7 +8,7 @@
 	db-server-url db-rehearse-alembic db-delete-server \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
-	alembic-roundtrip \
+	alembic-roundtrip db-upgrade \
 	repo-metrics audit-metrics \
 	check-env-production \
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
@@ -199,6 +199,12 @@ alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrad
 	@echo "$(YELLOW)alembic upgrade head$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
 	@echo "$(GREEN)✓ Alembic roundtrip complete$(NC)"
+
+db-upgrade: install-deps ## Apply Alembic migrations to $DATABASE_URL (safe: upgrade only, no downgrade -- BITB-090)
+	@echo "$(BLUE)Running alembic upgrade head...$(NC)"
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@cd api && $(CURDIR)/$(PYTHON) -m alembic current
+	@echo "$(GREEN)✓ Database schema is up to date$(NC)"
 
 # ==================== Android ====================
 

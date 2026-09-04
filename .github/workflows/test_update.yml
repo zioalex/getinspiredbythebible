@@ -105,13 +105,26 @@ jobs:
           cd api
           mypy . --ignore-missing-imports --no-strict-optional
 
+      - name: Migrate the test database (BITB-090 — create_all no longer builds it)
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          LLM_PROVIDER: ollama
+          OLLAMA_HOST: http://localhost:11434
+          EMBEDDING_PROVIDER: ollama
+          EMBEDDING_MODEL: mxbai-embed-large
+          EMBEDDING_DIMENSIONS: 1024
+        run: |
+          cd api
+          alembic upgrade head
+
       - name: Run pytest
         env:
           DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
           LLM_PROVIDER: ollama
           OLLAMA_HOST: http://localhost:11434
-          # BITB-061: this job's Postgres service has no migrations applied, so
-          # the shared rate-limit tables don't exist. Route-level tests that
+          # BITB-061: the shared rate-limit tables are legacy non-ORM tables
+          # (scripts/migrations/009), not owned by Alembic, so they still don't
+          # exist even after the migration step above. Route-level tests that
           # exercise require_rate_limit() would otherwise hit real DB errors
           # until the circuit breaker trips and fails closed for the rest of
           # the session. test_rate_limiter*.py exercise the postgres backend
@@ -197,6 +210,30 @@ jobs:
           alembic upgrade head
           echo "=== alembic history ==="
           alembic history --verbose
+
+      - name: Boot the app against the Alembic-only schema (BITB-090)
+        env:
+          DATABASE_URL: postgresql://bible:bible123@localhost:5432/bibledb # pragma: allowlist secret
+          EMBEDDING_PROVIDER: ollama
+          EMBEDDING_MODEL: mxbai-embed-large
+          EMBEDDING_DIMENSIONS: 1024
+          LLM_PROVIDER: ollama
+          OLLAMA_HOST: http://localhost:11434
+          RATE_LIMIT_BACKEND: memory
+        run: |
+          cd api
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+
+          import main
+
+          # The context manager runs lifespan(), so check_db_connection() runs for
+          # real against a database built by nothing but `alembic upgrade head`.
+          with TestClient(main.app) as client:
+              response = client.get("/health/live")
+              assert response.status_code == 200, response.text
+          print("App booted against a database built only by alembic upgrade head")
+          PY
 
   # Frontend Tests
   frontend-tests:

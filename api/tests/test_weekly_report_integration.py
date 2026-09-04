@@ -67,6 +67,12 @@ async def reporting_session():
     }
     engine = create_async_engine(url, poolclass=NullPool, connect_args=schema_connect_args)
 
+    # BITB-090 removed create_all() as *the app's* schema authority, but this fixture
+    # isn't that: it builds two tables inside a throwaway `zz_weekly_report_itest`
+    # schema specifically so it deliberately lacks `sessions` (the report's "no
+    # session data" path needs that absence). Alembic targets the public schema
+    # only, so it cannot stand in here without duplicating the tables it doesn't
+    # want. No competing authority over the app's real schema is created.
     async with engine.begin() as conn:
         await conn.run_sync(
             Base.metadata.create_all,

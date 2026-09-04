@@ -3027,9 +3027,9 @@ this the backend would double-report the same reference as a second, spurious sp
 
 ---
 
-### 🎯 BITB-090: Remove `init_db()` / `create_all()` Once Alembic Owns the Schema
+### ✅ BITB-090: Remove `init_db()` / `create_all()` Once Alembic Owns the Schema
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-04)
 **Size:** S
 **Depends on:** BITB-089 — **hard** dependency, must not be done first
 
@@ -3043,12 +3043,14 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 
 **Acceptance Criteria (summary):**
 
-- [ ] `create_all()` removed; everything else `init_db()` does is preserved or its removal justified
-- [ ] Fresh local DB fully usable via `alembic upgrade head` alone — verified from empty
-- [ ] Test fixtures no longer depend on `create_all`; suite passes from an empty database
-- [ ] CI job that starts empty, runs only `alembic upgrade head`, and boots the app
-- [ ] Startup no longer silently swallows a schema-setup failure
-      (`docs/audits/2026-07-adversarial-audit.md:174`) — or a follow-up is filed
+- [x] `create_all()` removed; everything else `init_db()` does is preserved or its removal justified
+      (`init_db()` replaced by `check_db_connection()`, a plain connectivity ping)
+- [x] Fresh local DB fully usable via `alembic upgrade head` alone — verified from empty
+- [x] Test fixtures no longer depend on `create_all`; suite passes from an empty database
+- [x] CI job that starts empty, runs only `alembic upgrade head`, and boots the app
+      (`alembic-migrations` job, "Boot the app against the Alembic-only schema" step)
+- [x] Startup no longer silently swallows a schema-setup failure
+      (`docs/audits/2026-07-adversarial-audit.md:174`) — now re-raises and crash-loops
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-090-remove-create-all-once-alembic-owns-schema.md`
 

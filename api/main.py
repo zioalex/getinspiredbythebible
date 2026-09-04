@@ -48,7 +48,7 @@ from routes import (  # noqa: E402
     health_router,
     scripture_router,
 )
-from scripture import check_translation_coverage, close_db, init_db  # noqa: E402
+from scripture import check_db_connection, check_translation_coverage, close_db  # noqa: E402
 from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
 from utils.metrics import (  # noqa: E402
@@ -196,12 +196,16 @@ async def lifespan(app: FastAPI):
         },
     )
 
-    # Initialize database
+    # Fail fast if the database is unreachable: a replica that boots without a
+    # DB passes liveness, receives traffic, and 500s every request. Crash-looping
+    # instead lets Container Apps hold the deployment and roll back the revision.
+    # (docs/audits/2026-07-adversarial-audit.md, finding E7)
     try:
-        await init_db()
-        logger.info("Database initialized successfully")
+        await check_db_connection()
+        logger.info("Database connection verified")
     except Exception as e:
-        logger.error("Database initialization failed", extra={"error": str(e)})
+        logger.error("Database connection failed at startup", extra={"error": str(e)})
+        raise
 
     await _check_translation_coverage_at_startup()
     await _warm_ready_translations()
