@@ -1,6 +1,6 @@
 # BITB-085: Decide the iOS Delivery Approach — Committed Decision Record + Apple Prerequisites
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (decision recorded in `docs/ios/delivery-approach.md` 2026-09-04; Turnstile device proof + Apple account pending)
 **Priority:** P2
 **Size:** S–M (1 day of analysis + the account/tooling setup it unblocks)
 **Created:** 2026-07-29

@@ -216,7 +216,7 @@ Features and ideas worth considering but not yet prioritized:
 
 ### Platform Expansion
 
-- **iOS App**: Native iOS app with same features as Android
+- **iOS App**: native SwiftUI gated on BITB-086 — see `docs/ios/delivery-approach.md` (BITB-085 decision; BITB-087 build, BITB-088 release)
 - **Desktop App**: Electron or Tauri app for Windows/Mac/Linux
 - **Browser Extension**: Quick scripture lookup from any webpage
 - **API for Third Parties**: Public API for scripture search

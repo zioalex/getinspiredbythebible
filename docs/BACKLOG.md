@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-04 (BITB-085 decision recorded)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3020,9 +3020,9 @@ un-versioned service worker pinning users to a stale shell.
 
 ---
 
-### 🎯 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
+### 🚧 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (decision `docs/ios/delivery-approach.md` committed 2026-09-04: native SwiftUI gated on BITB-086; Turnstile device proof + Apple account pending)
 **Size:** S–M (1 day of analysis + the setup it unblocks)
 **Created:** 2026-07-29
 
