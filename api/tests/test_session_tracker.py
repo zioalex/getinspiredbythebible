@@ -47,14 +47,38 @@ async def test_track_session_builds_upsert_with_bind_params():
 
 
 @pytest.mark.asyncio
-async def test_track_session_mobile_false_when_no_user_agent():
+async def test_track_session_mobile_is_null_when_no_user_agent():
+    """No UA must not assert "not mobile".
+
+    `mobile` is bound as NULL so COALESCE(:mobile, sessions.is_mobile) keeps a
+    previously detected mobile flag; a concrete False would overwrite it.
+    """
     db = MagicMock()
     db.execute = AsyncMock()
 
     await track_session(db, session_token="tok-456", user_agent=None, language="fr")
 
+    query, params = db.execute.call_args.args
+    assert params["mobile"] is None
+    # The insert branch still needs a non-NULL value for the NOT-NULL-ish default.
+    assert "COALESCE(:mobile, FALSE)" in str(query)
+
+
+@pytest.mark.asyncio
+async def test_track_session_flags_android_app_user_agent_as_mobile():
+    """The Android app's own UA (UserAgentInterceptor) must count as mobile."""
+    db = MagicMock()
+    db.execute = AsyncMock()
+
+    await track_session(
+        db,
+        session_token="tok-android",
+        user_agent="VoxQuieta/1.8.0 (Android 14; Pixel 7)",
+        language="de",
+    )
+
     _, params = db.execute.call_args.args
-    assert params["mobile"] is False
+    assert params["mobile"] is True
 
 
 @pytest.mark.asyncio
@@ -78,6 +102,12 @@ async def test_track_session_swallows_execute_exception_and_logs_warning():
         ("Mozilla/5.0 (iPad; CPU OS 17_0)", True),
         ("SomeApp/1.0 Mobile", True),
         ("MOZILLA/5.0 (IPHONE)", True),
+        # The Android app's own User-Agent, set by UserAgentInterceptor.
+        ("VoxQuieta/1.8.0 (Android 14; Pixel 7)", True),
+        # App installs predating that interceptor send OkHttp's default UA;
+        # they are still Android traffic, not web traffic.
+        ("okhttp/4.12.0", True),
+        ("Dalvik/2.1.0 (Linux; U; Android 13; SM-G991B Build/TP1A)", True),
         ("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", False),
         ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", False),
     ],

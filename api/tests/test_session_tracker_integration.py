@@ -133,11 +133,32 @@ async def test_track_session_upserts_existing_row_increments_count(sessions_tabl
     assert row.message_count == 2
     assert row.language == "en"
     assert row.user_agent == "Mozilla/5.0 (iPhone)"
-    # is_mobile is NOT retained: track_session computes it as a concrete
-    # bool (`_detect_mobile(user_agent) if user_agent else False`) before it
-    # ever reaches SQL, so :mobile is always False (never NULL) when
-    # user_agent is absent -- COALESCE(:mobile, sessions.is_mobile) then
-    # resolves to that False, overwriting the previous True. Unlike
-    # language/user_agent, a missing UA on a later visit silently flips
-    # is_mobile back to False rather than preserving the earlier detection.
-    assert row.is_mobile is False
+    # is_mobile is retained the same way: track_session binds :mobile as NULL
+    # when user_agent is absent, so COALESCE(:mobile, sessions.is_mobile)
+    # preserves the earlier detection instead of flipping an established
+    # mobile session back to web.
+    assert row.is_mobile is True
+
+
+@pytest.mark.asyncio
+async def test_track_session_records_android_app_as_mobile(sessions_table):
+    """The Android app's own User-Agent must land as a mobile session.
+
+    Regression guard for the weekly digest reporting zero Android users: the
+    app used to send OkHttp's default UA, which stored is_mobile = false and
+    made every Android session count as web.
+    """
+    session = sessions_table
+    token = f"{_TOKEN_PREFIX}android"
+
+    await track_session(
+        session,
+        session_token=token,
+        user_agent="VoxQuieta/1.8.0 (Android 14; Pixel 7)",
+        language="de",
+    )
+    await session.commit()
+
+    row = await _fetch(session, token)
+    assert row.is_mobile is True
+    assert row.language == "de"
