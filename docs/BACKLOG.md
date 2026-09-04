@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-09-04
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -194,6 +194,40 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-115: Bible Version Sticks to the Old Language After a Language Switch
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S–M
+**Created:** 2026-09-04
+**Reported by:** product owner, from real usage
+
+**As** a reader who switches the app to another language, **I want** the Bible version to follow me
+to that language's default version, **so that** the verses I am shown are in the language I just
+asked to read in.
+
+**Root cause:** the version preference is persisted globally, not per language. Both switch paths —
+the inline language banner (`ChatIsland.tsx:866`) and the top-bar picker
+(`LanguageSwitcher.tsx:27`, verified to be affected too) — only call `router.replace(pathname,
+{ locale })`. The remount re-reads the same `localStorage["preferredTranslation"]`, so the next
+message sends the old language's `preferred_translation` together with the new `language`, and
+`resolve_translation` (correctly) honours the explicit preference instead of falling through to
+`LANGUAGE_TRANSLATIONS`. Android repeats the defect in `ChatViewModel.setLocale`. Reproduced 2026-09-04.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Version preference scoped per locale on web; a switch (either path) falls back to the new
+      language's default, while a choice made in a language is remembered on return to it
+- [ ] Legacy bare `preferredTranslation` migrated to its own language or discarded, never reapplied
+      to a different one
+- [ ] Version chip reflects the new language immediately after the switch
+- [ ] Same behaviour on Android (banner + Settings picker); `TranslationDto` carries `language_code`
+- [ ] Regression tests on both platforms covering both switch paths; no backend change
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-115-bible-version-not-reset-on-language-switch.md`
+
+---
 
 ### ✅ BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
