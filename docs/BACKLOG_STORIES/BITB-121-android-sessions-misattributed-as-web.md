@@ -1,4 +1,4 @@
-# BITB-115: Android Sessions Are Counted as Web in the Weekly Report
+# BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
 **Status:** 🚧 In Progress — code fix on `claude/android-users-weekly-report-wt1pdm` (commit `c81b6e3`), no PR yet; historical backfill and the body-`language` fallback not started
 **Priority:** P1

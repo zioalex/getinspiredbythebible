@@ -2170,7 +2170,7 @@ manual-only Hindi/Luther data) still always win when present.
 
 ---
 
-### 🚧 BITB-115: Android Sessions Are Counted as Web in the Weekly Report
+### 🚧 BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
 **Status:** 🚧 In Progress — code fix on `claude/android-users-weekly-report-wt1pdm` (commit `c81b6e3`),
 no PR yet; historical backfill and the body-`language` fallback not started
@@ -2209,7 +2209,7 @@ breakage, and because `sessions.user_agent` was retained, the historical damage 
 - [ ] `make android-test` green in CI — `UserAgentInterceptorTest` has never been compiled
 - [ ] API deployed **before** the app release, then one digest observed with a non-zero mobile count
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-android-sessions-misattributed-as-web.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-121-android-sessions-misattributed-as-web.md`
 
 ---
 
