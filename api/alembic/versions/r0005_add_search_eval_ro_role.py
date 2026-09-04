@@ -134,4 +134,22 @@ def downgrade() -> None:
     op.execute(f"ALTER ROLE {ROLE_NAME} RESET default_transaction_read_only")
     op.execute(f"ALTER ROLE {ROLE_NAME} RESET statement_timeout")
     op.execute(f"ALTER ROLE {ROLE_NAME} RESET idle_in_transaction_session_timeout")
-    op.execute(f"DROP ROLE IF EXISTS {ROLE_NAME}")
+
+    # `search_eval_ro` is a role, which is cluster-wide, not database-scoped.
+    # (BITB-090 surfaced this: once something else in the same test run
+    # applies this revision to a sibling database on the same Postgres
+    # server, this database's downgrade has revoked everything *it* granted,
+    # but the role still holds privileges on that sibling database -- and
+    # `DROP ROLE` refuses cluster-wide when any privilege remains anywhere.)
+    # Swallow exactly that case: leaving the role in place for whoever still
+    # needs it is correct, not a downgrade failure.
+    op.execute(f"""
+        DO $$
+        BEGIN
+            DROP ROLE IF EXISTS {ROLE_NAME};
+        EXCEPTION
+            WHEN dependent_objects_still_exist THEN
+                RAISE NOTICE '{ROLE_NAME} still has privileges on another database; leaving the role in place';
+        END
+        $$
+        """)
