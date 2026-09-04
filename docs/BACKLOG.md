@@ -2177,6 +2177,38 @@ manual-only Hindi/Luther data) still always win when present.
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
+### 🎯 BITB-115: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, backend + web + Android + 11 locales)
+**Created:** 2026-09-04
+
+**As a** user in the middle of a fruitful conversation about scripture, **I want** the message
+limit to bend to how I am actually using the app — more room when I am genuinely exploring, and
+no loss of what we were just talking about when I hit it, **so that** a reflective nudge does not
+read as "you are done now".
+
+The cap BITB-024 shipped is a **lifetime** total of 10 per `session_id` (no time window at all;
+`rate_limit_session_max_requests`). It is already soft — "Start New Session" rotates the id and
+resets the counter — but rotation **wipes the conversation**, so it protects nothing and annoys
+exactly the users who are most engaged. Proposal: split the pastoral nudge from the cost guard —
+raise the threshold, offer *Continue this conversation* (rotate the id, keep the thread) next to
+*Start fresh*, interpolate the count into copy (the literal "10" is hardcoded in 11 web locales
+plus Android `strings.xml`, so today a bump makes the copy lie), and add a per-IP daily cap as the
+real ceiling that rotation cannot reset.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Threshold data-driven: a week of `rate_limit_lifetime` violations justifies the new default
+- [ ] Limit genuinely tunable — no literal "10" left in any locale, count interpolated everywhere
+- [ ] "Continue this conversation" preserves the thread and the next message returns 200
+- [ ] Clients read the limit from the server (header/config), never a client-side constant
+- [ ] New per-IP daily cap, distinct error code and non-pastoral message, unaffected by rotation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-115-flexible-session-message-limit.md`
+
+---
+
 ### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
 **Status:** ✅ Done (PR #917, pending merge)
