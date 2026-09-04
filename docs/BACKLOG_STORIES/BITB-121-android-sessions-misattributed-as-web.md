@@ -1,6 +1,6 @@
 # BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
-**Status:** 🚧 In Progress — code fix on `claude/android-users-weekly-report-wt1pdm` (commit `c81b6e3`), no PR yet; historical backfill and the body-`language` fallback not started
+**Status:** 🚧 In Progress — code fix in PR #1038 (branch `claude/android-users-weekly-report-wt1pdm`, commit `6132d01`), CI green, awaiting review; historical backfill and the body-`language` fallback not started
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-04
@@ -52,7 +52,7 @@ Report line: **3 web / 1 mobile → 1 web / 3 mobile.**
 
 ## Fix
 
-**Shipped on the branch (commit `c81b6e3`):**
+**Shipped in PR #1038 (commit `6132d01`):**
 
 1. **`UserAgentInterceptor`** (`android/.../data/remote/interceptors/UserAgentInterceptor.kt`),
    wired through `ApiClient.kt` and `NetworkModule.kt`: stamps
@@ -68,7 +68,8 @@ Report line: **3 web / 1 mobile → 1 web / 3 mobile.**
    `COALESCE(:mobile, FALSE)`. The integration test now asserts retention instead of documenting the
    bug.
 
-**Not started — the remaining work this story tracks:**
+**The rest of the work this story tracks** (item 6 has since been closed by CI; 4 and 5 are
+still not started):
 
 4. **Prefer the request body's `language` over the `Accept-Language` header** in
    `api/routes/chat.py` (both the `chat` and `chat_stream` handlers), falling back to the header.
@@ -85,11 +86,12 @@ Report line: **3 web / 1 mobile → 1 web / 3 mobile.**
    comparisons stay distorted and every past digest remains wrong.
    **Known limit, worth stating plainly:** historical `language` is **not** recoverable — it was
    never stored for these sessions. Item 4 fixes it going forward only.
-6. **Verify the Android unit tests actually compile and pass.** `UserAgentInterceptorTest` was
-   written but never run: the environment the fix was authored in blocks `dl.google.com`, so the
-   Android SDK could not be installed and Gradle could not configure the module. CI's Android job is
-   the first thing to compile it. Do not treat this story as done on the strength of the backend
-   tests alone.
+6. ~~**Verify the Android unit tests actually compile and pass.**~~ **Done.**
+   `UserAgentInterceptorTest` was written but never run locally: the environment the fix was
+   authored in blocks `dl.google.com`, so the Android SDK could not be installed and Gradle could
+   not configure the module. PR #1038's CI was the first thing to compile it —
+   `:app:compileDebugUnitTestKotlin` and `:app:testDebugUnitTest` both pass, on the original head
+   and again after the rebase onto current `main`.
 
 ## Acceptance Criteria
 
@@ -104,7 +106,7 @@ Report line: **3 web / 1 mobile → 1 web / 3 mobile.**
       the streaming and non-streaming paths, with tests
 - [ ] Alembic revision backfills `is_mobile` for historical sessions from the stored `user_agent`;
       rerunnable, and its effect on the last few weeks' numbers recorded in the PR
-- [ ] `make android-test` green in CI (`UserAgentInterceptorTest` compiles and passes)
+- [x] `make android-test` green in CI (`UserAgentInterceptorTest` compiles and passes)
 - [ ] PR opened, merged, API deployed **before** the app release (deploy order matters — see below)
 - [ ] One digest observed post-deploy showing a non-zero mobile count, to confirm end to end
 
