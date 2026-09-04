@@ -2176,6 +2176,78 @@ manual-only Hindi/Luther data) still always win when present.
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+>
+> **Voice batch (2026-09-04) → BITB-115, BITB-116.** Two halves of one product request —
+> speak the answer, and ask by voice. Split because they share no code, no vendor decision
+> and no legal footprint. Both carry a cost evaluation (on-device vs cloud) that must be
+> settled before implementation starts.
+
+---
+
+### 🎯 BITB-115: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L (M per platform + a shared text-normalization layer)
+**Created:** 2026-09-04
+**Prompted by:** product request — "speak loudly the Vox Quieta response"
+
+A **Listen** control in the existing assistant-message action row (`ChatMessage.tsx:242`,
+`ChatMessageItem.kt:726-785`) for hands-free, eyes-free listening — distinct from screen-reader
+support, which already exists. **Recommended approach: platform speech synthesis on the device**
+(`window.speechSynthesis`, `android.speech.tts.TextToSpeech`) — no dependency, no permission, no
+backend change, **€0 runtime cost**, and nothing leaves the device. Cloud neural TTS (~$15–16 per
+1M characters ≈ $0.016 per answer, plus cache, abuse surface, vendor and an 11-locale privacy-policy
+update) is deliberately deferred to a later story justified by measured listen-rate demand. The cost
+that is easy to underestimate is the markdown → speakable-text normalization, which must be
+specified once and shared across clients rather than re-implemented per platform (see the
+BITB-059/108/113/114 family for what the alternative looks like).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Listen control on both platforms; no audio or message text sent to any backend
+- [ ] Control hidden when no voice exists for the message's language (Android: also handles missing
+      language data)
+- [ ] One utterance at a time; playback stops on navigation; long answers chunked past the Chrome
+      ~15 s cutoff and the Android per-utterance cap
+- [ ] Speakable-text rules specified once, cases in the shared fixture corpus, both clients asserted
+- [ ] 11 locales, feature flag, telemetry (Android), tests with a mocked synthesizer, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-115-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-116: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2 — sequence after BITB-115; heavier legal and store footprint
+**Size:** L (M web, M–L Android)
+**Created:** 2026-09-04
+**Prompted by:** product request — "input the user question via voice"
+
+A microphone control next to the chat input, filling the field with a transcript the user reviews
+before sending. **Recommended approach: platform recognizers** (`webkitSpeechRecognition`,
+`android.speech.SpeechRecognizer`) — **€0 runtime cost**, no backend change. Two facts drive the
+cost: recognition is **not** on-device in the general case (Chrome and Android API 26–30 send audio
+to the browser/device vendor, `minSdk = 26` vs on-device from API 31), so a privacy-policy update in
+eleven locales is required *even for this option*; and Android needs `RECORD_AUDIO`, which changes
+the Play listing, the Data Safety declaration and the review profile of every release afterwards.
+Cloud STT through our own backend is cheap per minute (~$1.50–6 per 1 000 questions) but means
+owning users' voice recordings — deferred as a separate decision. Note the honest baseline: Android
+users can already dictate via the keyboard mic; this story buys discoverability and locale control,
+not a new ability. Web has no such fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Mic control on both platforms; hidden where unsupported (Firefox); no audio uploaded to our
+      backend
+- [ ] Recognition language follows the app locale; interim results editable; never auto-sends; 500-char
+      cap enforced
+- [ ] `RECORD_AUDIO` rationale plus denied / permanently-denied paths that leave the app usable
+- [ ] Privacy policy (11 locales) names the third-party recognizer; Play Data Safety updated
+- [ ] 11 locales, feature flag, telemetry (Android), tests incl. the refusal paths, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-116-ask-by-voice-speech-input.md`
 
 ### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
