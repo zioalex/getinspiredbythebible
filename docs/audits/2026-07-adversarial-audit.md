@@ -167,13 +167,14 @@ This project ships, works, and is visibly loved. It is also a **three-platform p
 - **[FAILURE SCENARIO]:** DAU/MAU dashboards report a fraction of real usage; product decisions get made on data that excludes essentially all production traffic.
 - **[REFACTOR ACTION]:** Track on stream completion (the `completion` chunk already exists as the hook point), in its own short-lived session.
 
-### E7 — Boot-anyway startup
+### E7 — Boot-anyway startup — ✅ RESOLVED (BITB-090, 2026-09-04)
 
 - **[SEVERITY]:** MEDIUM
 - **[RISK PROFILE]:** Reliability
 - **[THE ROOT CAUSE]:** `api/main.py:127–132` — `init_db()` failure at startup is caught and logged; the app boots anyway and 500s on first DB use.
 - **[FAILURE SCENARIO]:** A bad DB credential rollout produces a container that passes "is the process up" checks, gets traffic, and fails every request — instead of crash-looping where the orchestrator would catch, hold, and roll back the deploy.
 - **[REFACTOR ACTION]:** Let startup die on DB init failure (Container Apps revisions handle the rollback), or wire the failure into `/health/ready` so the replica never receives traffic.
+- **[RESOLUTION]:** `api/main.py`'s lifespan now re-raises on a failed `check_db_connection()` instead of logging and continuing, so a dead database crash-loops the revision.
 
 ### E8 — Unguarded `localStorage` writes
 

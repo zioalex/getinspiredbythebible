@@ -393,7 +393,7 @@ class TestMainApp:
 
     def test_root_endpoint(self):
         with (
-            patch("main.init_db", new_callable=AsyncMock),
+            patch("main.check_db_connection", new_callable=AsyncMock),
             patch("main.close_db", new_callable=AsyncMock),
         ):
             from main import app
@@ -409,7 +409,7 @@ class TestMainApp:
 
     def test_config_endpoint(self):
         with (
-            patch("main.init_db", new_callable=AsyncMock),
+            patch("main.check_db_connection", new_callable=AsyncMock),
             patch("main.close_db", new_callable=AsyncMock),
         ):
             from main import app
@@ -430,7 +430,7 @@ class TestMainApp:
 
     def test_provider_error_handler(self):
         with (
-            patch("main.init_db", new_callable=AsyncMock),
+            patch("main.check_db_connection", new_callable=AsyncMock),
             patch("main.close_db", new_callable=AsyncMock),
         ):
             from main import app
@@ -482,29 +482,35 @@ class TestMainLifespan:
         mock_app = MagicMock()
 
         with (
-            patch("main.init_db", new_callable=AsyncMock) as mock_init,
+            patch("main.check_db_connection", new_callable=AsyncMock) as mock_check,
             patch("main.close_db", new_callable=AsyncMock) as mock_close,
         ):
             async with lifespan(mock_app):
-                mock_init.assert_awaited_once()
+                mock_check.assert_awaited_once()
 
             mock_close.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_lifespan_db_init_failure(self):
+    async def test_lifespan_raises_when_database_unreachable(self):
+        """BITB-090: startup must crash-loop, not swallow, a dead database (audit E7)."""
         from main import lifespan
 
         mock_app = MagicMock()
 
         with (
-            patch("main.init_db", new_callable=AsyncMock, side_effect=Exception("DB error")),
+            patch(
+                "main.check_db_connection",
+                new_callable=AsyncMock,
+                side_effect=Exception("DB error"),
+            ),
             patch("main.close_db", new_callable=AsyncMock) as mock_close,
         ):
-            # Should not raise - logs the error and continues
-            async with lifespan(mock_app):
-                pass
+            with pytest.raises(Exception, match="DB error"):
+                async with lifespan(mock_app):
+                    pass
 
-            mock_close.assert_awaited_once()
+            # Startup raised before `yield`, so shutdown never runs.
+            mock_close.assert_not_awaited()
 
 
 def _session_factory_mock(session=None):

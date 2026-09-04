@@ -1,6 +1,6 @@
 # BITB-090: Remove `init_db()` / `create_all()` Once Alembic Owns the Schema
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-04)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-07-31
@@ -46,14 +46,28 @@ the same pass rather than carrying it forward.
 
 ## Acceptance Criteria
 
-- [ ] BITB-089 shipped and Alembic has applied at least one real revision to production
-- [ ] `create_all()` calls removed from `api/scripture/database.py`
-- [ ] Everything else `init_db()` does is preserved (or its removal justified explicitly)
-- [ ] A fresh local database is fully usable via `alembic upgrade head` — verified from empty
-- [ ] Test fixtures no longer depend on `create_all`; the suite passes from an empty database
-- [ ] `docs/LOCAL_DEVELOPMENT.md` updated with the new "first run" step
-- [ ] CI proves it: a job that starts empty, runs only `alembic upgrade head`, and boots the app
-- [ ] Startup no longer silently swallows a schema-setup failure (or a follow-up story is filed)
+- [x] BITB-089 shipped and Alembic has applied at least one real revision to production
+- [x] `create_all()` calls removed from `api/scripture/database.py`
+- [x] Everything else `init_db()` does is preserved (or its removal justified explicitly) — the
+      only other behavior was the pgvector `CREATE EXTENSION` (now owned by `r0001`) and a
+      pool-warming connection (preserved as the connectivity check `check_db_connection()`)
+- [x] A fresh local database is fully usable via `alembic upgrade head` — verified from empty
+- [x] Test fixtures no longer depend on `create_all`; the suite passes from an empty database
+- [x] `docs/LOCAL_DEVELOPMENT.md` updated with the new "first run" step
+- [x] CI proves it: a job that starts empty, runs only `alembic upgrade head`, and boots the app
+- [x] Startup no longer silently swallows a schema-setup failure — `main.py` now re-raises so a
+      dead database crash-loops the revision instead of serving traffic (audit finding E7 resolved)
+
+## Resolution
+
+`init_db()` was replaced with `check_db_connection()`, a plain `SELECT 1` ping. The pgvector
+extension it used to create is already owned by revision `r0001`; nothing else in the function
+needed preserving beyond opening the first pool connection. `api/main.py`'s lifespan now re-raises
+on failure instead of logging and continuing. CI's `alembic-migrations` job gained a final step
+that boots the FastAPI app (`TestClient` + `GET /health/live`) against a database that has had
+nothing but `alembic upgrade head` run against it, and `backend-tests` now runs
+`alembic upgrade head` before pytest so the integration suite runs against the real migrated
+schema instead of a hand-rolled copy.
 
 ## Out of Scope
 

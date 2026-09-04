@@ -34,9 +34,12 @@ make docker-down        # stop
 First-run behavior:
 
 - Ollama pulls its models (`mistral:7b`, `mxbai-embed-large`) — 5–10 min.
-- The `db-init` one-shot container loads the KJV Bible and generates
-  embeddings automatically (`docker compose logs -f db-init` to follow).
-  It exits and skips itself on subsequent starts.
+- The `db-init` one-shot container runs `alembic upgrade head` and loads the
+  KJV Bible and embeddings (`docker compose logs -f db-init` to follow). It
+  exits and skips itself on subsequent starts. Schema comes only from
+  Alembic + `scripts/init.sql` — the API container never creates tables at
+  startup (BITB-090); it just checks the connection and fails fast if the
+  database isn't there.
 
 Endpoints: frontend <http://localhost:3000>, API <http://localhost:8000>
 (docs at `/docs`, liveness at `/health/live`).
@@ -156,6 +159,8 @@ make setup-dev                     # venv + deps + pre-commit hooks
 source .venv/bin/activate
 
 # API (set DATABASE_URL to a running Postgres, e.g. the docker one on :5432)
+# First run: build the schema — the app no longer creates tables itself (BITB-090).
+cd api && alembic upgrade head
 cd api && uvicorn main:app --reload
 
 # Frontend
@@ -179,6 +184,12 @@ cd frontend && npm run dev
 - **`external volume "ollama_data" not found`** — you ran docker compose
   directly instead of via make; run `docker volume create ollama_data` once
   (or `make docker-up-dev`, which does it for you).
+- **API container exits immediately with a DB connection error** — this is
+  intentional (BITB-090 / audit finding E7): the app fails fast at startup
+  instead of booting degraded. Check `DATABASE_URL`, and for the
+  local-→-prod modes make sure your IP is on the firewall (`make az-pg-add-ip`).
+- **`relation "verses" does not exist` (or similar)** — the database has no
+  schema yet; run `cd api && alembic upgrade head` (or `make db-upgrade`).
 - **Health checks** — liveness `GET /health/live`, readiness
   `GET /health/ready`, full diagnostics `GET /health` (localhost only).
 - **Sanity checks** — `make functional-test` (main stack) or

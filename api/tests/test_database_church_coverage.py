@@ -2,7 +2,7 @@
 Tests for scripture/database.py and routes/church.py.
 
 Coverage targets:
-- scripture/database.py: get_async_database_url, get_db_session, init_db, close_db
+- scripture/database.py: get_async_database_url, get_db_session, check_db_connection, close_db
 - routes/church.py: search_churches, _normalize_churches
 """
 
@@ -203,12 +203,12 @@ class TestGetDbSession:
             mock_session.close.assert_awaited_once()
 
 
-class TestInitDb:
-    """Tests for init_db()."""
+class TestCheckDbConnection:
+    """Tests for check_db_connection() (BITB-090)."""
 
     @pytest.mark.asyncio
-    async def test_init_db_creates_tables(self):
-        from scripture.database import init_db
+    async def test_check_db_connection_pings_database(self):
+        from scripture.database import check_db_connection
 
         mock_conn = AsyncMock()
         mock_conn.execute = AsyncMock()
@@ -219,13 +219,27 @@ class TestInitDb:
         mock_engine_ctx.__aexit__ = AsyncMock(return_value=False)
 
         with patch("scripture.database.engine") as mock_engine:
-            mock_engine.begin.return_value = mock_engine_ctx
+            mock_engine.connect.return_value = mock_engine_ctx
 
-            await init_db()
+            await check_db_connection()
 
-            # Should create pgvector extension and tables
+            # Should only ping the connection -- schema creation is Alembic's job now
             mock_conn.execute.assert_awaited_once()
-            assert mock_conn.run_sync.await_count == 2  # Scripture + Feedback tables
+            mock_conn.run_sync.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_check_db_connection_propagates_failure(self):
+        from scripture.database import check_db_connection
+
+        mock_engine_ctx = AsyncMock()
+        mock_engine_ctx.__aenter__ = AsyncMock(side_effect=ConnectionError("db unreachable"))
+        mock_engine_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("scripture.database.engine") as mock_engine:
+            mock_engine.connect.return_value = mock_engine_ctx
+
+            with pytest.raises(ConnectionError, match="db unreachable"):
+                await check_db_connection()
 
 
 class TestCloseDb:

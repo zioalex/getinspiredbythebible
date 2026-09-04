@@ -16,9 +16,10 @@ Two production-breaking SQL bugs shipped because every other test mocks
 These tests run all four raw-SQL builders against a real pgvector database with a
 couple of seeded rows, so an execution-level regression fails *before merge*.
 
-Skips automatically when no Postgres is reachable (e.g. local runs without a DB).
-CI's ``backend-tests`` job provides a ``pgvector/pgvector`` service container with
-``DATABASE_URL`` set, so these run on every PR.
+Skips automatically when no Postgres is reachable (e.g. local runs without a DB) or when
+the reachable database has no Alembic schema applied yet. CI's ``backend-tests`` job
+provides a ``pgvector/pgvector`` service container, runs ``alembic upgrade head``
+against it (BITB-090), and sets ``DATABASE_URL``, so these run on every PR.
 
 The embedding dimension is taken from ``settings.embedding_dimensions`` (1024 for
 the local Ollama model, 1536 for Azure ``text-embedding-3-small`` in production),
@@ -33,7 +34,7 @@ from sqlalchemy.pool import NullPool
 
 from config import settings
 from scripture.database import get_async_database_url
-from scripture.models import Base, Book, Chapter, Passage, Topic, Translation, Verse
+from scripture.models import Book, Chapter, Passage, Topic, Translation, Verse
 from scripture.repository import ScriptureRepository
 
 # Sentinel identifiers so the rolled-back seed never collides with real data.
@@ -61,42 +62,28 @@ async def seeded_repo():
 
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-            await conn.run_sync(Base.metadata.create_all)
+            # BITB-090: schema creation is Alembic's job now, not this fixture's.
+            # `verse_tsv` and its sync trigger come from r0004 -- require the real
+            # migrated schema rather than hand-rolling a copy that can drift from it
+            # (which is exactly what `test_verse_tsv_trigger_matches_the_indexed_expression`
+            # below now verifies against the genuine article).
+            present = await conn.scalar(text("SELECT to_regclass('public.verse_tsv')"))
+            if present is None:
+                await engine.dispose()
+                pytest.skip(
+                    "Test database has no Alembic schema. Run `cd api && alembic "
+                    "upgrade head` (or `make db-upgrade`) first -- BITB-090 removed "
+                    "the create_all() that used to build it here."
+                )
             # verse_topics is a raw-migration junction table (migration 004), not an
-            # ORM model, so create_all does not make it. The boosted builders LEFT
-            # JOIN it, so it must exist for them to run.
+            # ORM model, so Alembic's ORM-model tables don't include it here either.
+            # The boosted builders LEFT JOIN it, so it must exist for them to run.
             await conn.execute(
                 text(
                     "CREATE TABLE IF NOT EXISTS verse_topics ("
                     "verse_id INTEGER REFERENCES verses(id) ON DELETE CASCADE, "
                     "topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE, "
                     "PRIMARY KEY (verse_id, topic_id))"
-                )
-            )
-            # `verse_tsv` itself is an ORM model, so create_all makes the table --
-            # but the trigger that keeps it in sync lives only in Alembic r0004,
-            # and create_all knows nothing about triggers. Without it the seeded
-            # verse would have no tsvector row and every FTS assertion below
-            # would pass or fail for the wrong reason. Kept character-identical
-            # to r0004; `test_verse_tsv_trigger_matches_the_indexed_expression`
-            # is what catches the two drifting apart.
-            await conn.execute(
-                text(
-                    "CREATE OR REPLACE FUNCTION verse_tsv_sync() RETURNS trigger AS $$ "
-                    "BEGIN "
-                    "INSERT INTO verse_tsv (verse_id, text_tsv) "
-                    "VALUES (NEW.id, to_tsvector('simple', NEW.text)) "
-                    "ON CONFLICT (verse_id) DO UPDATE SET text_tsv = EXCLUDED.text_tsv; "
-                    "RETURN NEW; "
-                    "END; $$ LANGUAGE plpgsql"
-                )
-            )
-            await conn.execute(text("DROP TRIGGER IF EXISTS verses_tsv_sync ON verses"))
-            await conn.execute(
-                text(
-                    "CREATE TRIGGER verses_tsv_sync AFTER INSERT OR UPDATE OF text ON verses "
-                    "FOR EACH ROW EXECUTE FUNCTION verse_tsv_sync()"
                 )
             )
     except Exception as exc:  # connection refused, auth failure, etc.
