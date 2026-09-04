@@ -2170,6 +2170,49 @@ manual-only Hindi/Luther data) still always win when present.
 
 ---
 
+### 🚧 BITB-115: Android Sessions Are Counted as Web in the Weekly Report
+
+**Status:** 🚧 In Progress — code fix on `claude/android-users-weekly-report-wt1pdm` (commit `c81b6e3`),
+no PR yet; historical backfill and the body-`language` fallback not started
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-04
+**Found by:** product owner reading the weekly digest — "I don't see any Android user in the report"
+
+**As a** product owner deciding where to invest,
+**I want** the weekly digest to report Android and web traffic separately and correctly,
+**so that** I am not reading zero Android adoption from a report that simply cannot see the app.
+
+The digest showed all traffic as "Web sessions" and zero mobile. The report was correct; the data
+was not. `weekly_report.py` splits on `sessions.is_mobile`, which `session_tracker._detect_mobile`
+derives **only** from the `User-Agent` — and the Android app sent none, so every request arrived as
+OkHttp's default `okhttp/4.12.0` and was filed as web. Two second-order defects surfaced with it:
+Android was invisible in "Top languages" as well (no `Accept-Language` either, so `language` was
+`NULL`), and the upsert's `COALESCE(:mobile, sessions.is_mobile)` was dead code, so any later
+UA-less request flipped an established mobile session back to web.
+
+**Why P1:** it is an ongoing decision-quality defect on the report the product is steered by, and
+it silently understates the platform the team is actively investing in. Not P0 — no user-facing
+breakage, and because `sessions.user_agent` was retained, the historical damage is backfillable.
+
+**Acceptance Criteria (summary):**
+
+- [x] Android requests carry an app-identifying `User-Agent` containing the literal `Android`
+- [x] Installs already in the field (OkHttp default UA) attributed to mobile with no app release
+- [x] A UA-less follow-up no longer flips an established mobile session back to web
+- [x] Backend unit + integration tests cover all three paths; the test that *documented* the
+      `COALESCE` bug now asserts correct behaviour
+- [ ] `chat.py` prefers `ChatRequest.language` (already sent by the app, never read) over
+      `Accept-Language` — fixes language attribution for every existing install, no app release
+- [ ] Alembic revision backfills `is_mobile` from stored `user_agent`; effect on recent weeks
+      recorded in the PR (historical `language` is **not** recoverable — it was never stored)
+- [ ] `make android-test` green in CI — `UserAgentInterceptorTest` has never been compiled
+- [ ] API deployed **before** the app release, then one digest observed with a non-zero mobile count
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-115-android-sessions-misattributed-as-web.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
