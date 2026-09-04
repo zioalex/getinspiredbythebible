@@ -1,4 +1,4 @@
-# BITB-115: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
+# BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
 **Status:** 🎯 Todo
 

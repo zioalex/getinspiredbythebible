@@ -2177,7 +2177,7 @@ manual-only Hindi/Luther data) still always win when present.
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
-### 🎯 BITB-115: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
+### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
 **Status:** 🎯 Todo
 **Size:** M (1–2 days, backend + web + Android + 11 locales)
@@ -2205,7 +2205,7 @@ real ceiling that rotation cannot reset.
 - [ ] Clients read the limit from the server (header/config), never a client-side constant
 - [ ] New per-IP daily cap, distinct error code and non-pastoral message, unaffected by rotation
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-flexible-session-message-limit.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-118-flexible-session-message-limit.md`
 
 ---
 
