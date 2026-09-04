@@ -1570,7 +1570,7 @@ claimed scope — see the story file's "Residual Risk" section.
 
 ---
 
-### 🎯 BITB-116: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
+### 🎯 BITB-117: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
 
 **Status:** 🎯 Todo
 **Priority:** P3 — benchmarked and currently within budget; not an active incident, but the same
@@ -1591,7 +1591,7 @@ independently bounded or benchmarked in isolation.
 - [ ] Dedicated adversarial-input benchmark for this specific group, before and after
 - [ ] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-116-android-verse-parser-alt1-redos-residual.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-117-android-verse-parser-alt1-redos-residual.md`
 
 ---
 

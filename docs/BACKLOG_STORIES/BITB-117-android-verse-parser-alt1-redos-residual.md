@@ -1,4 +1,4 @@
-# BITB-116: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
+# BITB-117: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
 
 **Status:** 🎯 Todo
 **Priority:** P3 — benchmarked and currently within budget; not an active incident, but the same

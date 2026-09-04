@@ -90,7 +90,7 @@ is corroborating evidence the fix has the right shape, not a substitute for it.
   the ambiguity degree of the overall pattern but does not eliminate this second group. It was
   benchmarked as part of the adversarial-input tests above (an Alt-1-shaped adversarial vector is
   included in `VerseRefRedosTest`) and stayed within budget, but it is called out here rather than
-  claiming full closure — filed as **BITB-116** rather than assumed covered by BITB-114.
+  claiming full closure — filed as **BITB-117** rather than assumed covered by BITB-114.
 - `VersesPanel.kt`'s `CITED_BOOK_NAME` connector list omits `के`/`ال` (present in `BOOK_NAME`'s
   list) — a pre-existing web/Android divergence, left alone here and noted for BITB-113
   (grammar unification), not fixed as part of this safety story.
@@ -100,6 +100,6 @@ is corroborating evidence the fix has the right shape, not a substitute for it.
 - **BITB-108** — closed the same finding on web (`frontend/src/lib/versePatterns.ts`); this is its
   Android counterpart, deliberately split out rather than bundled
 - **BITB-113** — separate, unrelated follow-up (grammar unification/DRY, not safety)
-- **BITB-116** — the Alt-1 residual risk noted above, split out as its own story
+- **BITB-117** — the Alt-1 residual risk noted above, split out as its own story
 - `android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt`,
   `android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VersesPanel.kt`
