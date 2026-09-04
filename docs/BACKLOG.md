@@ -1746,7 +1746,7 @@ Measured against the 58-case golden set and the 13 canonical topics in `api/chat
 ### 🚧 BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
 
 **Status:** 🚧 In Progress — harness landed; A/B numbers, sweep curve, and the enablement decision
-are tracked separately as BITB-115 (need prod DB + Azure credentials this sandbox does not have)
+are tracked separately as BITB-116 (need prod DB + Azure credentials this sandbox does not have)
 **Priority:** P1 — the payoff step; topic boosting has never been measured even once
 **Size:** S–M
 **Created:** 2026-08-21
@@ -1776,11 +1776,11 @@ real Postgres+asyncpg, not just read from the SQL.
 - [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
 - [x] Empty `verse_topics` under a boosted config is a hard error, not a warning
 - [ ] A/B recorded for `hybrid` vs `topic_boosted`, split by topic-laden/neutral and language group
-      — **BITB-115**, needs an `eval-prod` run this sandbox cannot execute
+      — **BITB-116**, needs an `eval-prod` run this sandbox cannot execute
 - [x] `topic_boost_factor` sweep is wired (CLI flag + workflow input); the **curve** itself is
-      **BITB-115** — a flat curve would be itself the finding, but there are no numbers yet
+      **BITB-116** — a flat curve would be itself the finding, but there are no numbers yet
 - [ ] A recorded decision on prod enablement, including the legitimate option of leaving it off —
-      **BITB-115**
+      **BITB-116**
 
 **Depends on:** BITB-103 (data to measure against) and BITB-105 (rows in the database). Run before
 either and the numbers look like a result without being one.
@@ -1789,7 +1789,7 @@ either and the numbers look like a result without being one.
 
 ---
 
-### 🎯 BITB-115: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
+### 🎯 BITB-116: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -1811,7 +1811,7 @@ and factor-sweep numbers, **so that** topic boosting ships (or stays off) on evi
 
 **Depends on:** BITB-104 (merged first).
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-topic-boosting-enabled-decision.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-116-topic-boosting-enabled-decision.md`
 
 ---
 

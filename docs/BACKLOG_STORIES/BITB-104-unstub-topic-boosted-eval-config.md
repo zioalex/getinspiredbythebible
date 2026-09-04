@@ -2,7 +2,7 @@
 
 **Status:** 🚧 In Progress — the harness landed and now applies real boosting; the A/B numbers,
 factor-sweep curve, and the `topic_boosting_enabled` decision itself are tracked separately as
-**BITB-115** (they need prod DB + Azure credentials this sandboxed environment does not have)
+**BITB-116** (they need prod DB + Azure credentials this sandboxed environment does not have)
 **Priority:** P1 — the payoff step; until this runs, topic boosting has never been measured even once
 **Size:** S–M (the code change is small; the judgement about enabling is the work)
 **Created:** 2026-08-21
@@ -28,7 +28,7 @@ the SQL.
 **Does not:** run the eval against real Postgres + Azure (this sandbox has neither), record A/B or
 sweep numbers, or decide `topic_boosting_enabled`. `docs/SEARCH_EVAL_HOWTO.md` already documents
 that the live numbers can only come from a maintainer or the `search-eval-full.yml` CI workflow
-against `eval-prod` — that follow-through, once numbers exist, is **BITB-115**.
+against `eval-prod` — that follow-through, once numbers exist, is **BITB-116**.
 
 ## User Story
 
@@ -83,11 +83,11 @@ gets a plausible-looking number that is actually the control.
 - [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
 - [x] An empty `verse_topics` under a boosted config is a hard error, not a warning
 - [ ] A/B results recorded for `hybrid` vs `topic_boosted`, broken out by topic-laden vs neutral and
-      by the three language groups — **BITB-115**
+      by the three language groups — **BITB-116**
 - [x] `topic_boost_factor` sweep mechanism (CLI + workflow input) — the curve itself, and the choice
-      justified in `docs/SEARCH_EVAL_HOWTO.md`, is **BITB-115** (no numbers exist yet)
+      justified in `docs/SEARCH_EVAL_HOWTO.md`, is **BITB-116** (no numbers exist yet)
 - [ ] A recorded decision on `topic_boosting_enabled` in prod, with the numbers behind it — including
-      the option of leaving it off — **BITB-115**
+      the option of leaving it off — **BITB-116**
 - [x] The registry comment in `runner.py` no longer describes the config as a no-op
 
 ## Dependencies

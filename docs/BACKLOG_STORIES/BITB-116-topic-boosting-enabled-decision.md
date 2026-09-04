@@ -1,4 +1,4 @@
-# BITB-115: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
+# BITB-116: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
 
 **Status:** 🎯 Todo
 **Priority:** P2

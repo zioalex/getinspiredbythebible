@@ -108,7 +108,7 @@ route is expected to hard-error; that is the guard working, not a break.
 `configs: hybrid,topic_boosted` (see the P4a section below). No numbers are
 recorded here yet; a maintainer with prod-read-only DB access runs the sweep
 and records the curve and the `topic_boosting_enabled` decision once
-available — see BITB-115.
+available — see BITB-116.
 
 | `topic_boost_factor` | P@5 | R@10 | MRR | FP@5 |
 |---|---|---|---|---|
