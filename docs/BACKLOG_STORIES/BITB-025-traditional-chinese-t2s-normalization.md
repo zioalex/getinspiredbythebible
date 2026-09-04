@@ -1,6 +1,6 @@
 # BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 
-**Status:** 🚧 In Progress — Backend + web shipped; Android is an explicit fast-follow
+**Status:** ✅ Done — Backend + web shipped here; Android fast-follow shipped by BITB-110
 **Priority:** P3
 **Size:** M (1-2 days)
 **Created:** 2026-04-03
@@ -78,25 +78,28 @@ derived from the real book-name data is 29. Still far smaller than a 50KB npm pa
   regex runs against a normalized copy for matching/book-validation, while the *displayed* text and
   the `lastIndex` bookkeeping are sliced from the original string.
 
-## Deferred: Android
+## Android fast-follow (shipped by BITB-110)
 
 `injectVerseLinks` (`ChatMessageItem.kt`) has a 6-group two-alternative regex, a manual rewind
 loop, and — unlike the web version — it *reconstructs* the display string as
 `"$book $chapter$sep$verse"` rather than re-slicing the original match, so preserving Traditional
-display text there means pulling the original book substring out of the match's capture-group
-ranges per alternative. It's also the one platform whose parity test
-(`VerseCorpusParityTest.kt`) cannot be run locally (no Android SDK in this environment) — shipping
-that surgery unverified was judged higher-risk than shipping it as a small, explicitly-tracked
-fast-follow. The eight `zh_hant_*` / `zh_mixed_script_*` corpus cases carry
-`"skip": ["android"]` for exactly this reason; removing that skip (plus adding the Kotlin table
-and the display-preserving rewrite to `injectVerseLinks`, and the equivalent T2S retry to
-`BookNameNormalizer.kt`) is the fast-follow.
+display text there meant pulling the original book substring out of the match's capture-group
+ranges per alternative, keyed off the *shadow* (Simplified) match's own offsets. It's also the
+one platform whose parity test (`VerseCorpusParityTest.kt`) could not be run locally in the
+BITB-110 sandbox either (no Android SDK available) — see that story for the verification caveat.
+The eight `zh_hant_*` / `zh_mixed_script_*` corpus cases no longer carry `"skip": ["android"]`;
+`android/.../utils/ChineseScript.kt` (the ported table), the display-preserving rewrite to
+`injectVerseLinks`, and the equivalent T2S retry to `BookNameNormalizer.kt`'s `isKnownBook` and
+`VersesPanel.kt`'s `referencedVerses` are what closed the gap. See BITB-110 for the full detail.
 
 ## Acceptance Criteria
 
 - [x] Backend: Traditional Chinese book names are normalized to simplified before verse parsing
 - [x] Frontend: Traditional Chinese book names are normalized before verse extraction
-- [ ] Android: Traditional Chinese book names are normalized in client-side regex (fast-follow)
+- [x] Android: Traditional Chinese book names are normalized in client-side regex (fast-follow —
+      shipped by BITB-110: `android/.../utils/ChineseScript.kt`, `BookNameNormalizer.kt`'s
+      `isKnownBook`, `ChatMessageItem.kt`'s `injectVerseLinks` shadow-string surgery, and
+      `VersesPanel.kt`'s `referencedVerses`)
 - [x] Mixed-script text handled correctly (e.g. `創世记` — Traditional 創 + already-Simplified 世记)
 - [x] No regression on existing simplified Chinese tests (full backend + frontend suites green)
 - [x] Minimal bundle size impact — a 29-character table, not a library
