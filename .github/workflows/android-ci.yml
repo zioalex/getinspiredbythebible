@@ -400,9 +400,9 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/pr-release.keystore
-          KEYSTORE_PASSWORD: pr-build-only
+          KEYSTORE_PASSWORD: pr-build-only # pragma: allowlist secret
           KEY_ALIAS: pr-build
-          KEY_PASSWORD: pr-build-only
+          KEY_PASSWORD: pr-build-only # pragma: allowlist secret
         run: |
           keytool -genkeypair -noprompt \
             -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" \
