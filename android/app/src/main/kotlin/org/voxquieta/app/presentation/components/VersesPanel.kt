@@ -98,7 +98,7 @@ internal fun referencedVerses(
     // Fallback: client-side regex extraction for older messages without versesCited.
     val combinedText = assistantMessages.joinToString(" ") { it.content }
     val citedRefs = CITED_VERSE_REF_REGEX.findAll(combinedText)
-        .map {
+        .flatMap {
             // Alt 1 (numbered prefix) fills groups 1-3; Alt 2 fills groups 4-6.
             val rawBook: String
             val chapter: String
@@ -114,11 +114,14 @@ internal fun referencedVerses(
             }
             // Uses both the runtime API map and its bundled offline fallback. Traditional Chinese
             // is normalized to Simplified before the fallback lookup.
-            val book = normalizeBookName(
+            val canonicalBook = normalizeBookName(
                 normalizeTraditionalToSimplified(rawBook),
                 localizedToEnglish,
             )
-            "$book $chapter:$verse".lowercase()
+            sequenceOf(
+                "$rawBook $chapter:$verse".lowercase(),
+                "$canonicalBook $chapter:$verse".lowercase(),
+            )
         }
         .toHashSet()
     return allVerses.filter { verse ->
