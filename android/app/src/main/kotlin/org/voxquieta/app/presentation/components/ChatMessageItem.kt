@@ -109,10 +109,15 @@ internal data class PendingVerseLink(
 // by the isKnownBook() allowlist gate + rewind loop in injectVerseLinks (mirrors the web).
 // Continuation chars include \p{M} (combining marks) for Hindi/Arabic diacritics.
 // Connector words include Western (of, de, des, …), Hindi (के), and Arabic article (ال).
+// The connector-repeat group is bounded to {0,3} (BITB-114, mirroring the web fix in
+// BITB-108/versePatterns.ts): unbounded `*` here let adversarial input (long chains of
+// connector words) drive superlinear-time regex backtracking. No real supported book name
+// needs more than one connector (e.g. "Song of Solomon", "Cantico dei Cantici" — see
+// LocalizedBookToEnglish.kt); {0,3} keeps 3x headroom while eliminating the unbounded blowup.
 private val BOOK_NAME =
     "[\\p{L}][\\p{L}\\p{M}\\d]*" +
         "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af|के|ال)" +
-        "\\s+[\\p{L}][\\p{L}\\p{M}\\d]*)*"
+        "\\s+[\\p{L}][\\p{L}\\p{M}\\d]*){0,3}"
 
 // Two alternatives joined by '|' so that numbered-prefix books require chapter:verse
 // while un-numbered books also support chapter-only references (e.g. "Psalm 23").
