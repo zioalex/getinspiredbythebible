@@ -27,6 +27,11 @@ spec:
         name: ai-credentials
         key: api-key
       env: OPENCODE_API_KEY
+    - name: github-copilot
+      secretRef:
+        name: github-copilot-auth
+        key: token
+      env: GITHUB_TOKEN
   config:
     agent:
       orchestrator:
