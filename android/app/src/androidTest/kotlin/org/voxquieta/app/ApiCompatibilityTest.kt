@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
 class ApiCompatibilityTest {
     @Test
     fun productionTlsHandshakeAndHealthCheckSucceed() {
-        val connection = URL(URL(BuildConfig.BASE_URL), "health/live")
+        val connection = URL("https://api.voxquieta.org/health/live")
             .openConnection() as HttpsURLConnection
         connection.connectTimeout = 15_000
         connection.readTimeout = 15_000
