@@ -1554,9 +1554,9 @@ while eliminating the unbounded-backtracking shape. New test `VerseRefRedosTest.
 `versePatterns.redos.test.ts`: adversarial-input timing, connector-cap enforcement against synthetic
 non-book chains, and regression coverage for real multi-word names.
 
-A residual, separate unbounded group in `ChatMessageItem.kt`'s Alt-1 branch (for 3-word Arabic
-numbered-book names) was benchmarked but deliberately left open rather than folded into this fix's
-claimed scope — see the story file's "Residual Risk" section.
+Residual, separate unbounded trailing-word groups in both Android Alt-1 branches (including support
+for 3-word Arabic numbered-book names) have dedicated timing guards but remain open rather than
+folded into this fix's claimed scope — see the story file's "Residual Risk" section.
 
 **Acceptance Criteria (summary):**
 
@@ -1570,24 +1570,24 @@ claimed scope — see the story file's "Residual Risk" section.
 
 ---
 
-### 🎯 BITB-117: Bound the Remaining Unbounded Group in ChatMessageItem's Alt-1 Numbered-Prefix Branch
+### 🎯 BITB-117: Bound the Remaining Unbounded Android Alt-1 Numbered-Prefix Groups
 
 **Status:** 🎯 Todo
-**Priority:** P3 — benchmarked and currently within budget; not an active incident, but the same
-ReDoS shape BITB-108/BITB-114 closed elsewhere
+**Priority:** P3 — no active incident, but the same ReDoS shape BITB-108/BITB-114 closed elsewhere
 **Size:** S
 **Created:** 2026-09-02
 **Found by:** BITB-114, flagged as residual rather than folded in
 
-BITB-114 bounded the connector-repeat group in `BOOK_NAME`/`CITED_BOOK_NAME` to `{0,3}`. A second,
-separate unbounded group survives in `ChatMessageItem.kt`'s Alt-1 (numbered-prefix) branch —
-`(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, needed for 3-word Arabic numbered-book names like "1 أخبار الأيام".
-It was exercised by BITB-114's adversarial tests and stayed within budget, but was never
-independently bounded or benchmarked in isolation.
+BITB-114 bounded the connector-repeat group in `BOOK_NAME`/`CITED_BOOK_NAME` to `{0,3}`. Separate
+unbounded trailing-word groups survive in the Alt-1 (numbered-prefix) branches in both
+`ChatMessageItem.kt` and `VersesPanel.kt`. They support numbered multi-word names such as Arabic
+"1 أخبار الأيام". Dedicated numbered-prefix adversarial tests now enforce a 500ms budget, with the
+authoritative JVM result left to CI because this development environment has no JDK. The groups were
+not bounded or benchmarked across input sizes in isolation.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Alt-1's trailing group bounded (not unbounded `*`), bound justified against real data
+- [ ] Both Alt-1 trailing groups bounded (not unbounded `*`), bounds justified against real data
 - [ ] Dedicated adversarial-input benchmark for this specific group, before and after
 - [ ] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
 

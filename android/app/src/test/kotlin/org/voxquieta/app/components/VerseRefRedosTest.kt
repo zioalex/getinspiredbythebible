@@ -75,6 +75,27 @@ class VerseRefRedosTest {
         assertTrue("expected < 500ms, was ${elapsed}ms", elapsed < 500)
     }
 
+    @Test(timeout = 5000)
+    fun `ChatMessageItem numbered-prefix branch handles adversarial trailing words within budget`() {
+        // The leading "1 " forces Alt 1. Its trailing-word repeat is tracked separately by
+        // BITB-117; this guard records its current behavior rather than claiming it is bounded.
+        val input = "1 Aa" + " Aa".repeat(500) + "!"
+        val elapsed = measureTimeMillis {
+            DEFAULT_VERSE_REF_REGEX.findAll(input).count()
+        }
+        assertTrue("expected < 500ms, was ${elapsed}ms", elapsed < 500)
+    }
+
+    @Test(timeout = 5000)
+    fun `VersesPanel numbered-prefix branch handles adversarial trailing words within budget`() {
+        val input = "1 Aa" + " Aa".repeat(500) + "!"
+        val messages = listOf(Message(id = "1", role = Message.Role.ASSISTANT, content = input))
+        val elapsed = measureTimeMillis {
+            referencedVerses(allVerses = emptyList(), messages = messages)
+        }
+        assertTrue("expected < 500ms, was ${elapsed}ms", elapsed < 500)
+    }
+
     // ── Connector-repeat cap ({0,3}) is enforced, not just documented ───────
     //
     // These don't, on their own, prove the bound is doing the work if tested only against
@@ -144,5 +165,44 @@ class VerseRefRedosTest {
             content = "Song of Solomon 1:1 is beautiful",
         )
         assertTrue(referencedVerses(listOf(verse), listOf(message)).contains(verse))
+    }
+
+    @Test
+    fun `injectVerseLinks preserves supported multilingual connector book names`() {
+        val references = listOf(
+            "Cantico dei Cantici 2:1",
+            "Cantique des Cantiques 2:1",
+            "Cântico dos Cânticos 2:1",
+            "प्रेरितों के काम 2:1",
+        )
+
+        references.forEach { reference ->
+            assertTrue(
+                "expected $reference to be linked",
+                injectVerseLinks(reference).contains("[$reference]"),
+            )
+        }
+    }
+
+    @Test
+    fun `referencedVerses preserves supported multilingual connector book names`() {
+        val cases = listOf(
+            Triple("Cantico dei Cantici", "Song of Solomon", "Italian"),
+            Triple("Cantique des Cantiques", "Song of Solomon", "French"),
+            Triple("Cântico dos Cânticos", "Song of Solomon", "Portuguese"),
+        )
+
+        cases.forEach { (localizedBook, canonicalBook, language) ->
+            val verse = Verse(book = canonicalBook, chapter = 2, verse = 1, text = "")
+            val message = Message(
+                id = language,
+                role = Message.Role.ASSISTANT,
+                content = "$localizedBook 2:1",
+            )
+            assertTrue(
+                "expected $language connector book to remain referenced",
+                referencedVerses(listOf(verse), listOf(message)).contains(verse),
+            )
+        }
     }
 }

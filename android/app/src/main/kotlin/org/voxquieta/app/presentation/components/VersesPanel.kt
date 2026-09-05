@@ -31,6 +31,7 @@ import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
+import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
 
 /**
@@ -72,10 +73,8 @@ private val CITED_VERSE_REF_REGEX = Regex(
  * Prefers server-provided [Message.versesCited] (dual-source: LLM structured output + backend
  * regex) when available, falling back to client-side regex extraction for older messages.
  *
- * @param localizedToEnglish Optional map of localized book names to English names (from the
- *   API).  When provided, book names extracted from the regex match are normalized to English
- *   before comparing with [Verse.book], fixing the bug where Arabic/Hindi/Russian book names
- *   extracted from chat text don't match the English [Verse.book] field.
+ * @param localizedToEnglish Optional runtime map of localized book names to English names (from
+ *   the API). The bundled map remains available when this map is empty or misses a name.
  */
 internal fun referencedVerses(
     allVerses: List<Verse>,
@@ -113,24 +112,23 @@ internal fun referencedVerses(
                 chapter = it.groupValues[5]
                 verse = it.groupValues[6]
             }
-            // Normalize localized book name to English when the map contains a match.
-            // Traditional Chinese retry (BITB-110): the CITED_BOOK_NAME first-char class
-            // ([\p{Lu}\p{Lo}]) does not exclude Han characters, so a Traditional reference (e.g.
-            // "約翰福音") is already a regex match candidate here -- the only gap is that
-            // localizedToEnglish is keyed Simplified-only. Retry the Simplified form before
-            // falling back to the raw name unchanged. Mirrors BookNameNormalizer.isKnownBook.
-            val book = localizedToEnglish[rawBook]
-                ?: localizedToEnglish[normalizeTraditionalToSimplified(rawBook)]
-                ?: rawBook
-            "$book $chapter:$verse"
+            // Uses both the runtime API map and its bundled offline fallback. Traditional Chinese
+            // is normalized to Simplified before the fallback lookup.
+            val book = normalizeBookName(
+                normalizeTraditionalToSimplified(rawBook),
+                localizedToEnglish,
+            )
+            "$book $chapter:$verse".lowercase()
         }
         .toHashSet()
     return allVerses.filter { verse ->
         // Match if the base reference (book chapter:verse) appears — ignore range suffix.
         // Check both the English book name and the localized book name so that non-English
         // conversations (e.g. Italian "Salmi 60:1") correctly surface in the Referenced tab.
-        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}"
-        val localizedBaseRef = verse.localizedBook?.let { "${it} ${verse.chapter}:${verse.verse}" }
+        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
+        val localizedBaseRef = verse.localizedBook?.let {
+            "${it} ${verse.chapter}:${verse.verse}".lowercase()
+        }
         citedRefs.any { cited ->
             cited.startsWith(baseRef) ||
                 (localizedBaseRef != null && cited.startsWith(localizedBaseRef))
@@ -249,9 +247,8 @@ internal fun VersesPanelContent(
  * @param messages             Full message list (used to determine which verses are referenced).
  * @param chapterSheetState    Current state of the chapter-detail sheet.
  * @param preferredTranslation The user's preferred Bible translation code, or null.
- * @param localizedToEnglish   Map from localized book names to English names (from the API).
- *                             Used to normalize book names extracted from non-English chat text
- *                             before comparing with [Verse.book].
+ * @param localizedToEnglish   Runtime map from localized book names to English names (from the API),
+ *                             layered over the bundled fallback map.
  * @param onLoadChapter        Callback to open the chapter-detail sheet.
  * @param onDismissSheet       Callback to clear the chapter-detail sheet state.
  * @param onDismiss            Callback to close this panel.

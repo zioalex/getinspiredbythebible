@@ -57,11 +57,12 @@ Changed:
   `DEFAULT_VERSE_REF_REGEX`, `buildVerseRefRegex`'s generic fallback path, and `referencedVerses`),
   connector-cap enforcement against synthetic non-book chains (proving the match starts one word
   later rather than capturing an unbounded chain — same rewind behavior as the web test), and
-  regression coverage for real multi-word book names ("Song of Solomon") still matching after the
-  bound.
+  regression coverage for real connector book names in English, Italian, French, Portuguese, and
+  Hindi still matching after the bound. `VersesPanel` covers the Western connector set it supports;
+  its Hindi/Arabic grammar gap remains BITB-113 scope.
 
-Benchmark: this sandbox has no Android SDK, so the exact JVM/Java-regex numbers must come from CI
-(`android-ci.yml` / `android-compose-tests.yml` running `testDebugUnitTest`) rather than this write-up.
+Benchmark: this development environment has no JDK, so the exact JVM/Java-regex numbers must come
+from CI (`android-ci.yml` running `testDebugUnitTest`) rather than this write-up.
 As a same-shape cross-check, re-implementing both the unbounded and `{0,3}`-bounded patterns against
 Python's Unicode-aware `regex` engine (not the JVM, but the same backtracking-NFA shape) on the
 adversarial input from the test (`"aa" + " of aa".repeat(20000) + "!"`) showed the expected profile:
@@ -84,13 +85,12 @@ is corroborating evidence the fix has the right shape, not a substitute for it.
 
 ## Residual Risk (not closed by this story)
 
-- `ChatMessageItem.kt`'s Alt-1 branch has a *second*, separate unbounded group,
-  `(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, applied directly after `$BOOK_NAME` (needed for 3-word Arabic
-  numbered-book names like "1 أخبار الأيام"). Bounding the connector group inside `BOOK_NAME` lowers
-  the ambiguity degree of the overall pattern but does not eliminate this second group. It was
-  benchmarked as part of the adversarial-input tests above (an Alt-1-shaped adversarial vector is
-  included in `VerseRefRedosTest`) and stayed within budget, but it is called out here rather than
-  claiming full closure — filed as **BITB-117** rather than assumed covered by BITB-114.
+- Both Alt-1 branches retain a separate unbounded trailing-word group: `ChatMessageItem.kt` uses
+  `(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, while `VersesPanel.kt` uses
+  `(?:\s+[\p{Lu}\p{Lo}][\p{L}\d]+)*`. They support numbered multi-word names, including Arabic
+  "1 أخبار الأيام". `VerseRefRedosTest` now includes dedicated numbered-prefix adversarial vectors
+  with a 500ms budget, but their JVM result must come from CI. The groups remain unbounded and are
+  filed as **BITB-117**.
 - `VersesPanel.kt`'s `CITED_BOOK_NAME` connector list omits `के`/`ال` (present in `BOOK_NAME`'s
   list) — a pre-existing web/Android divergence, left alone here and noted for BITB-113
   (grammar unification), not fixed as part of this safety story.
