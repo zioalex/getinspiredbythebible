@@ -12,6 +12,7 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 from chat import ChatRequest, ChatResponse, ChatService
 from providers import AllModelsExhaustedError, EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
+from utils.language import SUPPORTED_LANGUAGES
 from utils.logging_config import get_logger
 from utils.metrics import (
     chat_messages_counter,
@@ -30,6 +31,17 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 # Default hint for clients when the provider didn't supply one (e.g. no
 # Retry-After header on the upstream rate-limit response).
 UPSTREAM_RETRY_AFTER_SECONDS = 30
+
+
+def _session_language(body_language: str | None, accept_language: str | None) -> str | None:
+    """Return the first supported base language, preferring the request body."""
+    for candidate in (body_language, accept_language):
+        if not candidate:
+            continue
+        language = candidate.split(",", 1)[0].strip().lower().replace("_", "-").split("-", 1)[0]
+        if language in SUPPORTED_LANGUAGES:
+            return language
+    return None
 
 
 @router.post(
@@ -69,8 +81,7 @@ async def chat(
 
         # Track session (fire-and-forget, errors logged internally)
         user_agent = http_request.headers.get("user-agent")
-        accept_lang = http_request.headers.get("accept-language", "")
-        language = accept_lang.split(",")[0].split("-")[0] if accept_lang else None
+        language = _session_language(request.language, http_request.headers.get("accept-language"))
         await track_session(db, request.session_id, user_agent=user_agent, language=language)
 
         return response
@@ -122,10 +133,9 @@ async def chat_stream(
     if request.session_id:
         chat_sessions_counter.add(1, {"session_token": request.session_id})
 
-    # Header-derived session attributes (mirrors the non-streaming `chat` handler).
+    # Session attributes (mirrors the non-streaming `chat` handler).
     user_agent = http_request.headers.get("user-agent")
-    accept_lang = http_request.headers.get("accept-language", "")
-    language = accept_lang.split(",")[0].split("-")[0] if accept_lang else None
+    language = _session_language(request.language, http_request.headers.get("accept-language"))
 
     service = ChatService(db, llm, embedding)
 

@@ -17,13 +17,13 @@ import org.junit.Test
 
 /**
  * The backend classifies a session as mobile purely from the `User-Agent`
- * header (api/utils/session_tracker.py) and picks the session language from
- * `Accept-Language`. OkHttp sets neither on its own, which is why the weekly
- * digest reported every Android user as a web user.
+ * header (api/utils/session_tracker.py). `Accept-Language` is a fallback for
+ * requests without an explicit body language. OkHttp sets neither identifying
+ * value on its own.
  */
 class UserAgentInterceptorTest {
 
-    private val userAgent = "VoxQuieta/1.8.0 (Android 14; Pixel 7)"
+    private val userAgent = "VoxQuieta/1.8.0 (Android 14)"
 
     @Test
     fun `stamps the app User-Agent on outgoing requests`() {
@@ -88,14 +88,20 @@ class UserAgentInterceptorTest {
     }
 
     @Test
+    fun `generated User-Agent identifies Android without device model`() {
+        assertEquals(
+            "VoxQuieta/1.8.0 (Android 14)",
+            UserAgentInterceptor.buildUserAgent("1.8.0", "14"),
+        )
+    }
+
+    @Test
     fun `strips non-ASCII characters that OkHttp would reject in a header`() {
-        // Build.MODEL is vendor-supplied free text; an accented or emoji model
-        // name must not make every request throw.
         val sanitized = UserAgentInterceptor.sanitizeHeaderValue(
-            "VoxQuieta/1.8.0 (Android 14; Xiaomi Redmi Nöte 🚀)",
+            "VoxQuieta/1.8.0-ß (Android 14)",
         )
 
-        assertEquals("VoxQuieta/1.8.0 (Android 14; Xiaomi Redmi Nte )", sanitized)
+        assertEquals("VoxQuieta/1.8.0- (Android 14)", sanitized)
         val interceptor = UserAgentInterceptor(sanitized) { "en" }
         assertEquals(
             sanitized,

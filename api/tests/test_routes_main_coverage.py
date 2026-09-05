@@ -891,6 +891,21 @@ class TestChatRoutes:
         mock_req.headers = {"user-agent": "test-agent", "accept-language": "en-US"}
         return mock_req
 
+    @pytest.mark.parametrize(
+        "body_language,accept_language,expected",
+        [
+            (" DE-de ", "en-US", "de"),
+            ("unsupported", "IT_it,it;q=0.9", "it"),
+            ("  ", "xx-ZZ", None),
+        ],
+    )
+    def test_session_language_normalizes_supported_candidates(
+        self, body_language, accept_language, expected
+    ):
+        from routes.chat import _session_language
+
+        assert _session_language(body_language, accept_language) == expected
+
     @pytest.mark.asyncio
     async def test_chat_success(self):
         from chat.service import ChatRequest, ChatResponse
@@ -901,7 +916,9 @@ class TestChatRoutes:
         mock_embedding = AsyncMock()
         mock_http = self._mock_http_request()
 
-        request = ChatRequest(message="I need encouragement")
+        request = ChatRequest(
+            message="I need encouragement", session_id="sess-123", language="de-DE"
+        )
 
         expected_response = ChatResponse(
             message_id="test-id",
@@ -912,7 +929,7 @@ class TestChatRoutes:
 
         with (
             patch("routes.chat.ChatService") as mock_service_cls,
-            patch("routes.chat.track_session", new_callable=AsyncMock),
+            patch("routes.chat.track_session", new_callable=AsyncMock) as mock_track,
         ):
             mock_service = AsyncMock()
             mock_service.chat = AsyncMock(return_value=expected_response)
@@ -921,6 +938,9 @@ class TestChatRoutes:
             result = await chat(request, mock_http, mock_db, mock_llm, mock_embedding)
 
         assert result.message == "God loves you!"
+        mock_track.assert_awaited_once_with(
+            mock_db, "sess-123", user_agent="test-agent", language="de"
+        )
 
     @pytest.mark.asyncio
     async def test_chat_rate_limit_error(self):
@@ -1104,7 +1124,7 @@ class TestChatStreamRoute:
         mock_embedding = AsyncMock()
         mock_http = self._mock_http_request()
 
-        request = ChatRequest(message="Hello", session_id="sess-123")
+        request = ChatRequest(message="Hello", session_id="sess-123", language="it-IT")
 
         with (
             patch("routes.chat.ChatService") as mock_service_cls,
@@ -1123,7 +1143,7 @@ class TestChatStreamRoute:
 
         assert any("[DONE]" in chunk for chunk in chunks)
         mock_track.assert_awaited_once_with(
-            mock_db, "sess-123", user_agent="test-agent", language="en"
+            mock_db, "sess-123", user_agent="test-agent", language="it"
         )
 
 

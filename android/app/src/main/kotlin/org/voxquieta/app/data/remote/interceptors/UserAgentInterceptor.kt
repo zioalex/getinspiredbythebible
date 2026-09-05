@@ -10,10 +10,9 @@ import java.util.Locale
  * active UI language as `Accept-Language`.
  *
  * Without this OkHttp sends its own default `User-Agent: okhttp/<version>` and
- * no `Accept-Language` at all. The backend derives session analytics from those
- * two headers (`api/utils/session_tracker.py`), so every Android session was
- * stored with `is_mobile = false` and `language = NULL` — which is why the
- * weekly digest attributed all Android traffic to the web app.
+ * no `Accept-Language` at all. The identifying UA lets the backend classify
+ * updated app sessions; the language header is a fallback for requests that do
+ * not carry the app's explicit language in their body.
  *
  * [userAgent] and [languageProvider] are injected so unit tests never touch the
  * Android framework statics.
@@ -36,24 +35,25 @@ class UserAgentInterceptor(
 
     companion object {
         /**
-         * Builds the app's User-Agent, e.g. `VoxQuieta/1.8.0 (Android 14; Pixel 7)`.
+         * Builds the app's User-Agent, e.g. `VoxQuieta/1.8.0 (Android 14)`.
          *
          * The literal "Android" is what the backend's mobile detection keys on,
          * so keep it in the string.
          */
         fun defaultUserAgent(versionName: String): String {
             val release = Build.VERSION.RELEASE?.takeIf { it.isNotBlank() } ?: "unknown"
-            val model = Build.MODEL?.takeIf { it.isNotBlank() } ?: "unknown"
+            return buildUserAgent(versionName, release)
+        }
+
+        internal fun buildUserAgent(versionName: String, androidRelease: String): String {
             val version = versionName.takeIf { it.isNotBlank() } ?: "unknown"
-            return sanitizeHeaderValue(
-                "VoxQuieta/$version (Android $release; $model)",
-            )
+            val release = androidRelease.takeIf { it.isNotBlank() } ?: "unknown"
+            return sanitizeHeaderValue("VoxQuieta/$version (Android $release)")
         }
 
         /**
          * OkHttp rejects header values containing anything outside printable
-         * ASCII, and [Build.MODEL] is vendor-supplied free text that can carry
-         * accents or emoji. Drop those characters rather than crash the request.
+         * ASCII. Drop those characters rather than crash the request.
          */
         internal fun sanitizeHeaderValue(value: String): String =
             value.filter { it in ' '..'~' }.trim()

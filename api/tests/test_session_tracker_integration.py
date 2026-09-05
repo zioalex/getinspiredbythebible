@@ -154,7 +154,7 @@ async def test_track_session_records_android_app_as_mobile(sessions_table):
     await track_session(
         session,
         session_token=token,
-        user_agent="VoxQuieta/1.8.0 (Android 14; Pixel 7)",
+        user_agent="VoxQuieta/1.8.0 (Android 14)",
         language="de",
     )
     await session.commit()

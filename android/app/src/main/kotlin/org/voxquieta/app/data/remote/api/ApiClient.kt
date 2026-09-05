@@ -32,8 +32,8 @@ object ApiClient {
 
         val clientBuilder = OkHttpClient.Builder()
             // Identify the client before anything else runs: without it OkHttp
-            // sends "User-Agent: okhttp/<version>" and the backend files every
-            // Android session as a web one in the weekly digest.
+            // sends "User-Agent: okhttp/<version>", which does not identify the
+            // request as Android app traffic for session reporting.
             .apply { userAgentInterceptor?.let { addInterceptor(it) } }
             .addInterceptor(loggingInterceptor)
             // Streaming responses can take a while — generous read timeout.

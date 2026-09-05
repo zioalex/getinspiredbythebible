@@ -16,14 +16,13 @@ logger = get_logger(__name__)
 #
 # Mobile *browsers* announce themselves with "mobile"/"android"/"iphone"/"ipad".
 # The Vox Quieta Android app is not a browser: it sends the UA built by
-# `UserAgentInterceptor` ("VoxQuieta/<version> (Android <release>; <model>)"),
+# `UserAgentInterceptor` ("VoxQuieta/<version> (Android <release>)"),
 # which matches "android".
 #
-# "okhttp" and "dalvik" are matched as well so that app installs predating that
-# interceptor — which send OkHttp's default "okhttp/<version>" and would
-# otherwise be filed as web sessions — are still attributed to mobile. The
-# Android app is the only OkHttp/Dalvik client of this API.
-MOBILE_UA_MARKERS = ("mobile", "android", "iphone", "ipad", "okhttp", "dalvik")
+# Dalvik is Android's runtime and is therefore also a reliable mobile marker.
+# A bare "okhttp/<version>" is not: OkHttp is a generic JVM client and does not
+# identify either Android or the Vox Quieta app.
+MOBILE_UA_MARKERS = ("mobile", "android", "iphone", "ipad", "dalvik")
 
 
 async def track_session(
@@ -41,12 +40,15 @@ async def track_session(
     if not session_token:
         return
 
-    # None (not False) when the request carries no User-Agent, so that the
+    normalized_user_agent = user_agent.strip() if user_agent else None
+    normalized_user_agent = normalized_user_agent or None
+
+    # None (not False) when the request carries no meaningful User-Agent, so that the
     # upsert's COALESCE(:mobile, sessions.is_mobile) keeps whatever was
     # detected on an earlier request instead of silently flipping an
     # established mobile session back to web. On insert the column default
     # (FALSE) applies.
-    is_mobile = _detect_mobile(user_agent) if user_agent else None
+    is_mobile = _detect_mobile(normalized_user_agent) if normalized_user_agent else None
 
     try:
         await db.execute(
@@ -63,7 +65,7 @@ async def track_session(
             {
                 "token": session_token,
                 "lang": language,
-                "ua": user_agent,
+                "ua": normalized_user_agent,
                 "mobile": is_mobile,
             },
         )
