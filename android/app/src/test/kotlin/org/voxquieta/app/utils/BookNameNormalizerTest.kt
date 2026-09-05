@@ -157,4 +157,25 @@ class BookNameNormalizerTest {
     fun `isKnownBook also honours runtime API names`() {
         assertEquals(true, isKnownBook("Matthäus", map))
     }
+
+    // ── isKnownBook Traditional Chinese retry (BITB-110) ────────────────────────
+
+    @Test
+    fun `isKnownBook recognizes Traditional Chinese book names via the bundled map`() {
+        assertEquals(true, isKnownBook("約翰福音")) // John, Traditional
+        assertEquals(true, isKnownBook("馬太福音")) // Matthew, Traditional
+        assertEquals(true, isKnownBook("創世記")) // Genesis, fully Traditional
+    }
+
+    @Test
+    fun `isKnownBook recognizes mixed-script Traditional plus Simplified book names`() {
+        assertEquals(true, isKnownBook("創世记")) // Traditional 創 + already-Simplified 世记
+        assertEquals(true, isKnownBook("傳道书")) // Traditional 傳 + already-Simplified 道书
+    }
+
+    @Test
+    fun `isKnownBook recognizes Traditional Chinese book names via the runtime API map`() {
+        val chineseMap = mapOf("约翰福音" to "John")
+        assertEquals(true, isKnownBook("約翰福音", chineseMap))
+    }
 }

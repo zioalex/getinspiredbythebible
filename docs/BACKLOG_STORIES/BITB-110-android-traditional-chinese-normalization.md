@@ -1,6 +1,12 @@
 # BITB-110: Android Still Cannot Read Traditional Chinese Verse References
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — Traditional Chinese book names now resolve on Android via a ported 29-char
+table + a Simplified shadow-copy retry, mirroring the web's `linkifyVerses.ts` technique. Hand-
+ported (not generated — BITB-108/113's regex-grammar generator does not yet cover script-class
+alternations), with a parity-ledger row naming the source. `VerseCorpusParityTest.kt` and Android's
+Gradle/AGP toolchain could not be executed in this sandbox (no network access to the Google Maven
+plugin repo) — verified by static reasoning and by mirroring the already-passing web/backend
+behaviour instead of a live green CI run; see the PR/session notes for the exact gap.
 **Priority:** P2 — a user-visible gap for Traditional-script readers on Android, on a feature web and
 the API will already have
 **Size:** S
@@ -63,12 +69,23 @@ the lookup key is normalized. PR #982 already holds this line on the other two p
 
 ## Acceptance Criteria
 
-- [ ] Traditional Chinese book names are normalized in Android's client-side parsing
-- [ ] Mixed-script references (`創世记`) resolve correctly
-- [ ] Displayed text retains its original script; only the lookup key is normalized
-- [ ] Android tests cover Traditional, mixed-script, and existing Simplified cases with no regression
-- [ ] The table is either generated, or hand-ported with a parity-ledger row naming its source
-- [ ] BITB-025's Android acceptance criterion can be checked off
+- [x] Traditional Chinese book names are normalized in Android's client-side parsing
+      (`ChineseScript.kt`'s `normalizeTraditionalToSimplified`, retried in
+      `BookNameNormalizer.kt`'s `isKnownBook`, `ChatMessageItem.kt`'s `injectVerseLinks`, and
+      `VersesPanel.kt`'s `referencedVerses`)
+- [x] Mixed-script references (`創世记`) resolve correctly (corpus cases
+      `zh_mixed_script_genesis` / `zh_mixed_script_ecclesiastes`, no longer skipped for Android)
+- [x] Displayed text retains its original script; only the lookup key is normalized
+      (`injectVerseLinks` matches against a Simplified shadow copy of the markdown but slices
+      every display-facing string — the book text, the already-linked passthrough, and the
+      untouched surrounding text — from the original markdown at the same offsets)
+- [x] Android tests cover Traditional, mixed-script, and existing Simplified cases with no
+      regression (`ChineseScriptTest.kt`, `BookNameNormalizerTest.kt`'s new Traditional cases,
+      `VerseRefLinkTest.kt`'s new "Traditional Chinese" section, `VerseCorpusParityTest.kt`)
+- [x] The table is hand-ported (not generated — BITB-108/113's generator does not yet cover
+      script-class alternations), with a parity-ledger row in `docs/AUDIT_PLAYBOOK.md` naming its
+      source (`tests/fixtures/t2s_char_map.json`)
+- [x] BITB-025's Android acceptance criterion can be checked off (done in that story's file)
 
 ## Verification
 

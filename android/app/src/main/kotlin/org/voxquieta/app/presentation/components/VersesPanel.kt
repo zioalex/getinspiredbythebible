@@ -31,6 +31,7 @@ import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
+import org.voxquieta.app.utils.normalizeTraditionalToSimplified
 
 /**
  * Regex used to find verse references that are explicitly cited in a message body.
@@ -108,7 +109,14 @@ internal fun referencedVerses(
                 verse = it.groupValues[6]
             }
             // Normalize localized book name to English when the map contains a match.
-            val book = localizedToEnglish[rawBook] ?: rawBook
+            // Traditional Chinese retry (BITB-110): the CITED_BOOK_NAME first-char class
+            // ([\p{Lu}\p{Lo}]) does not exclude Han characters, so a Traditional reference (e.g.
+            // "約翰福音") is already a regex match candidate here -- the only gap is that
+            // localizedToEnglish is keyed Simplified-only. Retry the Simplified form before
+            // falling back to the raw name unchanged. Mirrors BookNameNormalizer.isKnownBook.
+            val book = localizedToEnglish[rawBook]
+                ?: localizedToEnglish[normalizeTraditionalToSimplified(rawBook)]
+                ?: rawBook
             "$book $chapter:$verse"
         }
         .toHashSet()

@@ -62,6 +62,7 @@ import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
+import org.voxquieta.app.utils.normalizeTraditionalToSimplified
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.net.URLDecoder
@@ -297,6 +298,15 @@ internal fun injectVerseLinks(
     // Allowlist computed once and reused for every candidate (see knownBooks docs).
     val known = knownBooks(localizedToEnglish)
 
+    // Match against a Simplified-Chinese shadow copy (BITB-110, mirroring the web's
+    // linkifyVerses.ts) so a Traditional book name (e.g. "約翰福音") is recognised: the
+    // book-name alternation `buildVerseRefRegex` builds from server/bundled names, and the
+    // `known` allowlist above, are both Simplified-only. normalizeTraditionalToSimplified is
+    // length-preserving, so every match/group range found below stays a valid offset into the
+    // ORIGINAL `markdown` too -- which is what every display-facing slice below reads from,
+    // keeping a Traditional-script user's own words on screen instead of silently rewriting them.
+    val search = normalizeTraditionalToSimplified(markdown)
+
     // Manual scan (instead of Regex.replace) so we can rewind on a rejected match. The verse
     // regex deliberately accepts any "Word digit:digit" shape and is case-agnostic at the book
     // position, so a greedy alternative can swallow the words *before* a real reference
@@ -307,23 +317,29 @@ internal fun injectVerseLinks(
     var appendedUpTo = 0 // markdown copied into `out` up to here (exclusive)
     var searchStart = 0
     while (true) {
-        val result = verseRefRegex.find(markdown, searchStart) ?: break
+        val result = verseRefRegex.find(search, searchStart) ?: break
         val g = result.groupValues
 
-        // Alt 1 (numbered prefix) populates groups 1-3; Alt 2 populates groups 4-6.
-        val book: String
+        // Alt 1 (numbered prefix) populates groups 1-3; Alt 2 populates groups 4-6. `shadowBook`
+        // comes from the Simplified `search` copy (used for lookups below); `bookRange` is that
+        // same capture group's offsets, valid into `markdown` too (length-preserving), used to
+        // recover the ORIGINAL (possibly Traditional) display text for the book.
+        val shadowBook: String
+        val bookRange: IntRange
         val chapter: String
         val verse: String
         if (g[1].isNotEmpty()) {
-            book = g[1]; chapter = g[2]; verse = g[3]
+            shadowBook = g[1]; bookRange = result.groups[1]!!.range
+            chapter = g[2]; verse = g[3]
         } else {
-            book = g[4]; chapter = g[5]; verse = g[6]
+            shadowBook = g[4]; bookRange = result.groups[4]!!.range
+            chapter = g[5]; verse = g[6]
         }
 
         // Reject anything that is not a real Bible book, then rewind so a valid reference
         // hidden inside a greedy over-match is still recovered. `searchStart` strictly
         // increases, so this cannot loop forever.
-        if (book.trim().lowercase() !in known) {
+        if (shadowBook.trim().lowercase() !in known) {
             searchStart = result.range.first + 1
             continue
         }
@@ -332,22 +348,31 @@ internal fun injectVerseLinks(
         out.append(markdown, appendedUpTo, result.range.first)
 
         // If the match is immediately preceded by '[', it is already the display text of a
-        // markdown link -- leave it unchanged to avoid double-wrapping.
+        // markdown link -- leave it unchanged to avoid double-wrapping. Sliced from the
+        // ORIGINAL markdown (not `result.value`, which is a substring of the Simplified `search`
+        // copy) so a Traditional-script reference already inside a link is not silently rewritten.
         val before = if (result.range.first > 0) markdown[result.range.first - 1] else ' '
         if (before == '[') {
-            out.append(result.value)
+            out.append(markdown, result.range.first, result.range.last + 1)
         } else {
-            val linkBook = resolveLinkBook(book, chapter, verse, verses, localizedToEnglish)
+            // Display-facing book text: sliced from the ORIGINAL markdown at the shadow match's
+            // own offsets, so it shows exactly what the LLM/user wrote (Traditional or
+            // Simplified) even though `shadowBook` (always Simplified) is what drove the
+            // isKnownBook/resolveLinkBook lookups.
+            val book = markdown.substring(bookRange.first, bookRange.last + 1)
+            val linkBook = resolveLinkBook(shadowBook, chapter, verse, verses, localizedToEnglish)
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
             // Preserve the chapter/verse separator the source used (":" or ",") so a German /
             // French / Italian citation like "Römer 13,1" is not rewritten to "13:1". The
             // verse:// target below uses numeric path segments only, so it is unaffected.
+            // Digits are ASCII in both `search` and `markdown` (T2S only touches Han characters),
+            // so checking either copy is equivalent.
             val sep = if (Regex("\\d,\\d").containsMatchIn(result.value)) "," else ":"
             val display = if (verse.isNotEmpty()) "$book $chapter$sep$verse" else "$book $chapter"
             val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
             // Carry the localized book token in the URL so parseVerseLink can set it on
-            // PendingVerseLink without discarding the name the LLM used.
-            val localizedParam = if (book != linkBook) {
+            // PendingVerseLink without discarding the name the LLM used -- in its original script.
+            val localizedParam = if (shadowBook != linkBook) {
                 "?localizedBook=${URLEncoder.encode(book, "UTF-8")}"
             } else {
                 ""

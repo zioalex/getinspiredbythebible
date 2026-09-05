@@ -91,6 +91,13 @@ fun knownBooks(localizedToEnglish: Map<String, String>): Set<String> {
  * accepts any "Word digit:digit" shape (to stay language- and case-agnostic), so this check
  * is what prevents prose ("Trost der Hoffnung 5:5"), clock times ("um 14:30"), and words
  * swallowed by a connector ("you of Psalm") from being linked. Mirrors the web `isKnownBook`.
+ *
+ * Traditional Chinese retry (BITB-110): [knownBooks] only stores Simplified forms, so a
+ * Traditional-script name (e.g. "約翰福音") needs its Simplified form tried too. Normalize the
+ * candidate, never the set — mirrors verseExtraction.ts's `isKnownBook`.
  */
-fun isKnownBook(book: String, localizedToEnglish: Map<String, String> = emptyMap()): Boolean =
-    book.trim().lowercase() in knownBooks(localizedToEnglish)
+fun isKnownBook(book: String, localizedToEnglish: Map<String, String> = emptyMap()): Boolean {
+    val key = book.trim().lowercase()
+    val known = knownBooks(localizedToEnglish)
+    return key in known || normalizeTraditionalToSimplified(key) in known
+}
