@@ -33,6 +33,11 @@ Usage
                        On failure, prints the full exception chain to stderr
                        so a CI console log carries a real diagnosis instead
                        of the openai SDK's uninformative "Connection error."
+--topic-boost-factor    Comma-separated topic_boost_factor value(s) to sweep
+                       for a topic-boosted --config (e.g. "0.0,0.1,0.2,0.4");
+                       each produces its own report row. Requires
+                       verse_topics to be populated, or the run hard-errors
+                       (BITB-104) — see docs/SEARCH_EVAL_HOWTO.md.
 
 P4 (full-corpus, nightly/manual CI on Azure) is tracked separately —
 see docs/SEARCH_EVAL_HOWTO.md.
@@ -42,11 +47,14 @@ Example
     python scripts/run_search_eval.py --validate
     python scripts/run_search_eval.py --run --smoke
     DATABASE_URL=... python scripts/run_search_eval.py --run --config hybrid,hybrid_expansion --language it
+    DATABASE_URL=... python scripts/run_search_eval.py --run --config topic_boosted \\
+        --topic-boost-factor 0.0,0.1,0.2,0.4,0.8
 """
 
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -181,13 +189,56 @@ def _cmd_probe_embedding(args: argparse.Namespace) -> int:
     return 0 if matches else 1
 
 
+def _parse_topic_boost_factors(
+    raw: str | None, config_names: list[str], eval_configs: dict
+) -> tuple[list[float] | None, str | None]:
+    """Parse ``--topic-boost-factor`` into a float list, or an error message.
+
+    Returns ``(factors, None)`` on success (``factors`` is ``None`` when
+    ``raw`` is empty) or ``(None, error_message)`` on failure. Split out of
+    ``_cmd_run`` to keep that function's branching within the repo's
+    cyclomatic-complexity lint budget (C901).
+    """
+    if raw is None:
+        return None, None
+    if not any(eval_configs[name].use_topic_boost for name in config_names):
+        return (
+            None,
+            "--topic-boost-factor requires a topic-boosted --config (e.g. topic_boosted).",
+        )
+    try:
+        factors = [float(v.strip()) for v in raw.split(",") if v.strip()]
+    except ValueError:
+        return None, f"--topic-boost-factor values must be numbers, got {raw!r}"
+    if not factors:
+        return None, "--topic-boost-factor requires at least one value"
+    non_finite = [f for f in factors if not math.isfinite(f)]
+    if non_finite:
+        return None, f"--topic-boost-factor values must be finite, got {non_finite}"
+    negative = [f for f in factors if f < 0]
+    if negative:
+        return None, f"--topic-boost-factor values must be >= 0, got {negative}"
+    duplicates = sorted({f for f in factors if factors.count(f) > 1})
+    if duplicates:
+        return (
+            None,
+            f"--topic-boost-factor values must not contain duplicates, got {duplicates}",
+        )
+    return factors, None
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """Run the golden set through the real search pipeline and print a report."""
     import asyncio
 
     from search_eval.loader import load_golden_set
     from search_eval.report import format_report, to_json
-    from search_eval.runner import DEFAULT_AB, EVAL_CONFIGS, run_eval
+    from search_eval.runner import (
+        DEFAULT_AB,
+        EVAL_CONFIGS,
+        EmptyVerseTopicsError,
+        run_eval,
+    )
 
     if args.config:
         config_names = [name.strip() for name in args.config.split(",") if name.strip()]
@@ -201,10 +252,15 @@ def _cmd_run(args: argparse.Namespace) -> int:
     else:
         config_names = list(DEFAULT_AB)
 
+    topic_boost_factors, error = _parse_topic_boost_factors(
+        args.topic_boost_factor, config_names, EVAL_CONFIGS
+    )
+    if error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
     try:
-        cases = load_golden_set(
-            Path(args.path) if args.path else None, language=args.language
-        )
+        cases = load_golden_set(Path(args.path) if args.path else None, language=args.language)
     except (FileNotFoundError, ValueError) as exc:
         print(f"ERROR: failed to load golden set — {exc}", file=sys.stderr)
         return 1
@@ -218,8 +274,21 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     try:
         run_result = asyncio.run(
-            run_eval(cases, config_names, translation_override=args.translation)
+            run_eval(
+                cases,
+                config_names,
+                translation_override=args.translation,
+                topic_boost_factors=topic_boost_factors,
+            )
         )
+    except EmptyVerseTopicsError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        print(
+            "Hint: populate verse_topics for this corpus first — "
+            "see scripts/populate_verse_topics.py and docs/HOW-TO-POPULATE-VERSE-TOPICS.md.",
+            file=sys.stderr,
+        )
+        return 1
     except Exception as exc:  # noqa: BLE001 - surface a clean message, not a traceback
         print(f"ERROR: search-eval run failed — {exc}", file=sys.stderr)
         print(
@@ -273,9 +342,7 @@ def main() -> int:
         "--config",
         help="Comma-separated eval config names (default: baseline_semantic,expansion_semantic).",
     )
-    parser.add_argument(
-        "--language", help="Restrict --run to one golden-set language code."
-    )
+    parser.add_argument("--language", help="Restrict --run to one golden-set language code.")
     parser.add_argument(
         "--translation",
         help=(
@@ -288,13 +355,19 @@ def main() -> int:
         action="store_true",
         help="With --run, use only the first 3 cases — a fast plumbing check.",
     )
-    parser.add_argument(
-        "--json", action="store_true", help="With --run, print JSON output."
-    )
+    parser.add_argument("--json", action="store_true", help="With --run, print JSON output.")
     parser.add_argument(
         "--probe-embedding",
         action="store_true",
         help="Diagnose the configured embedding provider with one embed() call (no DB required).",
+    )
+    parser.add_argument(
+        "--topic-boost-factor",
+        help=(
+            "Comma-separated topic_boost_factor value(s) to sweep for a "
+            "topic-boosted --config (e.g. 0.0,0.1,0.2,0.4); each produces its "
+            "own report row. Requires verse_topics to be populated."
+        ),
     )
 
     args = parser.parse_args()

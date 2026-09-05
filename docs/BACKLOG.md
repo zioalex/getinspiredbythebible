@@ -1789,9 +1789,10 @@ Measured against the 58-case golden set and the 13 canonical topics in `api/chat
 
 ---
 
-### 🎯 BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
+### ✅ BITB-104: Un-stub the `topic_boosted` Eval Config
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — harness delivered; A/B numbers, sweep curve, and the enablement decision are
+owned separately by BITB-116 because they require prod DB + Azure credentials
 **Priority:** P1 — the payoff step; topic boosting has never been measured even once
 **Size:** S–M
 **Created:** 2026-08-21
@@ -1805,19 +1806,57 @@ must be helping.
 unboosted search. That was right while `verse_topics` was empty; once data exists it becomes a config
 that reports *control* numbers under a *boosted* name.
 
+**What shipped:** `use_topic_boost` now drives the real `search_hybrid_boosted()`/`search_boosted()`
+path, boost topics come from `detect_topics(query)` (production parity), an empty `verse_topics` under
+a boosted config is a hard error (`EmptyVerseTopicsError`), and `topic_boost_factor` is sweepable via
+`--topic-boost-factor` / the `search-eval-full.yml` workflow input. Along the way this also found and
+fixed a real bug in the already-merged boosted SQL (`search_verses_semantic_boosted` /
+`search_verses_hybrid_boosted`, BITB-044): `topic_boost_factor` was multiplied against a `COUNT()`
+(bigint) with no other numeric context in the query, so Postgres inferred a `bigint` bind type and
+asyncpg silently truncated every factor between 0 and 1 — including the 0.2 default — to `0`, meaning
+the boost was a complete no-op even before this story's stub. Confirmed and regression-tested against
+real Postgres+asyncpg, not just read from the SQL.
+
 **Acceptance Criteria (summary):**
 
-- [ ] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
-- [ ] Empty `verse_topics` under a boosted config is a hard error, not a warning
-- [ ] A/B recorded for `hybrid` vs `topic_boosted`, split by topic-laden/neutral and language group
-- [ ] `topic_boost_factor` swept and the **curve** documented, not just the winner — a flat curve is
-      itself the finding
-- [ ] A recorded decision on prod enablement, including the legitimate option of leaving it off
+- [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
+- [x] Every resolved, topic-bearing translation fails preflight when its `verse_topics` rows are empty
+- [x] The read-only eval role can select the topic tables used by preflight and boosted ranking
+- [x] `topic_boost_factor` sweep is wired and rejects empty, non-finite, or duplicate factor lists
+
+The live A/B, sweep curve, and prod enablement decision are acceptance criteria of **BITB-116**, not
+open work under this completed story.
 
 **Depends on:** BITB-103 (data to measure against) and BITB-105 (rows in the database). Run before
 either and the numbers look like a result without being one.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-104-unstub-topic-boosted-eval-config.md`
+**Full Story:** `docs/DONE/BITB-104-unstub-topic-boosted-eval-config.md`
+
+---
+
+### 🎯 BITB-116: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S — reading a report and flipping a flag; the numbers are the work, not the code
+**Created:** 2026-09-01
+**Prompted by:** BITB-104, which built the measuring harness but could not run it (no prod DB/Azure
+credentials in a sandboxed dev environment)
+
+**As** the maintainer, **I want** a recorded decision on `topic_boosting_enabled` backed by real A/B
+and factor-sweep numbers, **so that** topic boosting ships (or stays off) on evidence.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `eval-prod` run with `configs: hybrid,topic_boosted` and a `topic_boost_factor` sweep
+- [ ] Sweep curve recorded in `docs/SEARCH_EVAL_HOWTO.md`, replacing the "pending" placeholder
+- [ ] Written decision on `topic_boosting_enabled` with the numbers behind it — "leave it off" is a
+      legitimate outcome
+- [ ] If enabling: a follow-up PR flips the flag (deploy change, not just a code change)
+
+**Depends on:** BITB-104 (merged first).
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-116-topic-boosting-enabled-decision.md`
 
 ---
 

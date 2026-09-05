@@ -126,6 +126,27 @@ def format_language_breakdown(by_lang: dict[str, list[ConfigAggregate]]) -> str:
     return "\n".join(lines)
 
 
+def _topic_boost_summary(results: list[QueryResult]) -> list[str]:
+    """One line per boosted config: how many queries the tagger actually
+    boosted (BITB-104). Without this, a boosted run where the tagger fired on
+    nothing produces a flat delta that reads exactly like "boosting doesn't
+    help" — the same misreading the untaggable-language footnote guards
+    against for BITB-103.
+    """
+    by_config: dict[str, list[QueryResult]] = {}
+    for r in results:
+        if r.topic_boost_factor is not None:
+            by_config.setdefault(r.config, []).append(r)
+    lines = []
+    for name, rows in by_config.items():
+        boosted = sum(1 for r in rows if r.topic_boost_applied)
+        lines.append(
+            f"{name}: {boosted} of {len(rows)} queries had detected topics "
+            f"(factor {rows[0].topic_boost_factor:g})"
+        )
+    return lines
+
+
 def format_report(run: RunResult) -> str:
     """Render the full human-readable report: table + per-language + guards."""
     aggregates = aggregate(run.query_results)
@@ -144,6 +165,10 @@ def format_report(run: RunResult) -> str:
 
     guard_status = "healthy (0)" if total_fp == 0 else f"{total_fp} false positive(s) — investigate"
     sections.append(f"False-positive guard: {guard_status}")
+
+    boost_lines = _topic_boost_summary(run.query_results)
+    if boost_lines:
+        sections.append("\nTopic boost coverage:\n" + "\n".join(boost_lines))
 
     if total_errors:
         noun = "query" if total_errors == 1 else "queries"

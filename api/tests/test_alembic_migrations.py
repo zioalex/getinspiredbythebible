@@ -257,6 +257,26 @@ def _alembic_version_rows(database_url: str) -> list[str]:
         conn.close()
 
 
+def _role_can_select(database_url: str, table: str) -> bool:
+    parsed = urlparse(database_url)
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        user=parsed.username,
+        password=parsed.password,
+        dbname=parsed.path.lstrip("/"),
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT has_table_privilege('search_eval_ro', %s, 'SELECT')",
+                (table,),
+            )
+            return bool(cur.fetchone()[0])
+    finally:
+        conn.close()
+
+
 _ORM_BACKED_TABLES = {
     "translations",
     "books",
@@ -320,6 +340,35 @@ def test_alembic_check_reports_no_drift(throwaway_database_url):
     # `alembic check` exits non-zero (raising CalledProcessError, since
     # _run_alembic uses check=True) if it detects pending model changes.
     _run_alembic("check", database_url=throwaway_database_url)
+
+
+def test_search_eval_topic_grants_upgrade_and_downgrade(throwaway_database_url):
+    _run_alembic("upgrade", "r0005", database_url=throwaway_database_url)
+    parsed = urlparse(throwaway_database_url)
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        user=parsed.username,
+        password=parsed.password,
+        dbname=parsed.path.lstrip("/"),
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CREATE TABLE verse_topics (verse_id integer REFERENCES verses(id), "
+                "topic_id integer REFERENCES topics(id), PRIMARY KEY (verse_id, topic_id))"
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    _run_alembic("upgrade", "head", database_url=throwaway_database_url)
+    assert _role_can_select(throwaway_database_url, "topics")
+    assert _role_can_select(throwaway_database_url, "verse_topics")
+
+    _run_alembic("downgrade", "r0005", database_url=throwaway_database_url)
+    assert not _role_can_select(throwaway_database_url, "topics")
+    assert not _role_can_select(throwaway_database_url, "verse_topics")
 
 
 class TestHostSafetyGuard:
