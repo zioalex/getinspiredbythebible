@@ -342,6 +342,8 @@ jobs:
 
       - name: Install, launch, and test production TLS
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          TEST_CLASS: -Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86
@@ -353,7 +355,6 @@ jobs:
           script: |
             ./gradlew installDebug --no-daemon -PbaseUrl=https://api.voxquieta.org/
             adb shell am start -W -n org.voxquieta.debug/org.voxquieta.app.MainActivity
-            TEST_CLASS="-Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest"
             ./gradlew connectedDebugAndroidTest --no-daemon -PbaseUrl=https://api.voxquieta.org/ "$TEST_CLASS"
           working-directory: android
 
