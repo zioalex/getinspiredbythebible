@@ -353,7 +353,8 @@ jobs:
           script: |
             ./gradlew installDebug --no-daemon -PbaseUrl=https://api.voxquieta.org/
             adb shell am start -W -n org.voxquieta.debug/org.voxquieta.app.MainActivity
-            ./gradlew connectedDebugAndroidTest --no-daemon -PbaseUrl=https://api.voxquieta.org/ -Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest
+            TEST_CLASS="-Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest"
+            ./gradlew connectedDebugAndroidTest --no-daemon -PbaseUrl=https://api.voxquieta.org/ "$TEST_CLASS"
           working-directory: android
 
   # ---------------------------------------------------------------------------
