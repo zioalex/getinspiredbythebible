@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.54.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.53.0...v1.54.0) (2026-09-05)
 
-
 ### Features
 
 * **android:** normalize Traditional Chinese book names in verse parsing (BITB-110) ([#1034](https://github.com/zioalex/getinspiredbythebible/issues/1034)) ([3c3f0c6](https://github.com/zioalex/getinspiredbythebible/commit/3c3f0c6535f49bb6182d1814e3185b63e9f33070))
@@ -12,7 +11,6 @@ All notable changes to this project will be documented in this file.
 * **ci:** populate verse_topics on every seed and alarm when coverage collapses (BITB-105) ([#1019](https://github.com/zioalex/getinspiredbythebible/issues/1019)) ([66f0814](https://github.com/zioalex/getinspiredbythebible/commit/66f08144273f4b605b1fc5a5a6c37e9e99b32d36))
 * **search-eval:** make the golden set validate topic boosting (BITB-103) ([#1023](https://github.com/zioalex/getinspiredbythebible/issues/1023)) ([5ca9f89](https://github.com/zioalex/getinspiredbythebible/commit/5ca9f89d2dac3ba053ecc1bccd925b512229f311))
 * **search-eval:** un-stub topic_boosted eval config and fix boost truncation bug (BITB-104) ([#1032](https://github.com/zioalex/getinspiredbythebible/issues/1032)) ([2d4ed40](https://github.com/zioalex/getinspiredbythebible/commit/2d4ed40f1a89e374e36dbe711b819a1451776945))
-
 
 ### Bug Fixes
 
@@ -25,7 +23,6 @@ All notable changes to this project will be documented in this file.
 * **db:** read-only Postgres role for the nightly search-eval harness (BITB-101) ([#1017](https://github.com/zioalex/getinspiredbythebible/issues/1017)) ([78b3101](https://github.com/zioalex/getinspiredbythebible/commit/78b31011a0dcaef8c4dc2d5f9d18bd2736fc847c))
 * **deploy:** percent-encode the DB password at every DSN site (BITB-112) ([#1021](https://github.com/zioalex/getinspiredbythebible/issues/1021)) ([f4328a9](https://github.com/zioalex/getinspiredbythebible/commit/f4328a9ff4396631e24466df3c3f2592ced3ffcf))
 * **frontend:** bound verse-parser connector regex to close ReDoS gap (BITB-108) ([#1024](https://github.com/zioalex/getinspiredbythebible/issues/1024)) ([12129b6](https://github.com/zioalex/getinspiredbythebible/commit/12129b6a104547fa6297f64f651e5e43cd2863a3))
-
 
 ### Documentation
 
