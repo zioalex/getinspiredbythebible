@@ -39,7 +39,14 @@ Built by `build_weekly_report` (`api/reports/weekly_report.py`):
 | --- | --- | --- |
 | Feedback | `feedback` | totals, positive/negative ratio, recent negative comments, week-over-week delta |
 | Contact | `contact_submissions` | totals grouped by subject |
-| Engagement | `sessions` | active/new sessions, messages, web vs. mobile split, top languages, week-over-week delta |
+| Engagement | `sessions` | active/new sessions, messages, UA-derived web vs. mobile-device split, top languages, week-over-week delta |
+
+“Mobile” is not synonymous with “Android app.” It includes mobile browsers
+and clients that explicitly identify Android or Dalvik. The Android app's
+`VoxQuieta/<version> (Android <release>)` UA is included, but a bare
+`okhttp/<version>` UA is not classified as mobile because it does not identify
+an operating system or app. Use `sessions.user_agent` directly for an
+Android-app-only adoption query.
 
 If the `sessions` table (or one of its analytics columns) is missing, the
 digest degrades gracefully to zero engagement stats instead of failing — see

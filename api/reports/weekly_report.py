@@ -6,6 +6,12 @@ Pure, independently testable: queries the backend Postgres DB for the last
 renders a plain-text + HTML email body. Both the web app and the Android app
 hit the same API, so this DB-only view already covers both clients.
 
+The web/mobile-device split comes from ``sessions.is_mobile``, which is derived
+from the request's User-Agent by ``utils.session_tracker``. It is not an
+Android-app adoption split: mobile browsers and explicit Android/Dalvik clients
+share the mobile bucket, while a generic ``okhttp`` UA is not enough to infer a
+platform. Keep the Android app's ``UserAgentInterceptor`` and detection in sync.
+
 Firebase/GA4 Android engagement (screen views, verse taps, retention) is
 deliberately out of scope here — it needs a separate Google Analytics Data API
 integration.
