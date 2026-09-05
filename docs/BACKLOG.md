@@ -2328,7 +2328,7 @@ attributed to Android or broadly backfilled.
 
 ### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress (PR #1042)
 **Priority:** P2
 **Size:** M (1-2 days)
 **Created:** 2026-09-05

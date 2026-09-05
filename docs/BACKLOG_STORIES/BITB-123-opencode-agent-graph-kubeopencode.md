@@ -1,7 +1,7 @@
 # BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
 
 **Priority:** P2 (Medium)
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress (PR #1042 opened 2026-09-05)
 **Size:** M (1-2 days)
 **Created:** 2026-09-05
 
