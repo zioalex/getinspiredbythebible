@@ -1,10 +1,10 @@
-# BITB-087: iOS App v1 — SwiftUI Chat Parity, TestFlight-Ready
+# BITB-087: iOS App v1 — Provisional SwiftUI Chat Parity, TestFlight-Ready
 
-**Status:** 🎯 Todo (blocked on BITB-085; BITB-086 is a hard prerequisite)
+**Status:** ⏸️ Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
 **Priority:** P3
-**Size:** XL (2+ weeks; re-estimate after BITB-085 picks the approach)
+**Size:** Provisional XL (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
 **Created:** 2026-07-29
-**Part of:** the iOS delivery plan — Stage 3 of BITB-084 → BITB-085 → BITB-086 → **BITB-087** → BITB-088.
+**Part of:** the iOS delivery plan — Stage 4 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → **BITB-087** → BITB-088.
 
 ## User Story
 
@@ -79,7 +79,8 @@ Notes that matter:
   longer (8s vs 5s), retry **exactly once**; fail open on timeout so the server's 403 surfaces
   instead of a hung UI. BITB-085 must already have proved a WKWebView can obtain a token — if it
   cannot, stop and revisit the approach rather than shipping an app whose every POST 403s.
-- **No verse regex.** Citations come from BITB-086's `citations` spans; locate them by literal
+- **No verse regex.** Citations come from BITB-086's `citations` spans after BITB-109 proves the
+  contract in the web client; locate them by literal
   `text` + `occurrence` substring search rather than offset arithmetic (Swift `String` indexing
   makes offsets awkward, and the contract is designed to allow this). Degrade to plain text when the
   field is absent. **A hand-written `NSRegularExpression` citation grammar is a rejected design** —
@@ -197,6 +198,7 @@ tests in a **separate** Gradle task — see `android/COMPOSE_TESTS.md`):
 ## Related
 
 - **BITB-086** — the citation contract that keeps a fourth parser out of this codebase.
+- **BITB-109** — the hard prerequisite that proves the contract's parity and failure behavior.
 - **BITB-085** — the approach decision and the Turnstile feasibility proof this story assumes.
 - **BITB-088** — the release pipeline that takes this to the App Store.
 - **BITB-012** — the Android-to-production precedent for how this repo ships a store app.

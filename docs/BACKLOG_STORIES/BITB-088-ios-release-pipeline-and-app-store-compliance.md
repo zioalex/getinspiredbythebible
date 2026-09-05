@@ -4,7 +4,7 @@
 **Priority:** P3
 **Size:** L (3–5 days, plus App Review latency outside our control)
 **Created:** 2026-07-29
-**Part of:** the iOS delivery plan — Stage 4 of BITB-084 → BITB-085 → BITB-086 → BITB-087 → **BITB-088**.
+**Part of:** the iOS delivery plan — Stage 5 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → BITB-087 → **BITB-088**.
 
 ## User Story
 
