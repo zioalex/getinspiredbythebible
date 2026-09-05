@@ -73,8 +73,8 @@ DEFAULT_AB: tuple[str, str] = ("baseline_semantic", "expansion_semantic")
 
 
 class EmptyVerseTopicsError(RuntimeError):
-    """Raised when a topic-boosted config is run against a corpus whose
-    ``verse_topics`` table is empty (BITB-104).
+    """Raised when a topic-boosted config is run against a translation whose
+    ``verse_topics`` rows are empty (BITB-104).
 
     Replacing one silent fallback (the old no-op) with another would miss
     the point of this story, so this is a hard error, not a warning.
@@ -279,7 +279,7 @@ async def run_query(
             expansion_latency_ms=expansion_latency_ms,
             boost_topics=boost_topics,
             topic_boost_applied=topic_boost_applied,
-            topic_boost_factor=config.topic_boost_factor if config.use_topic_boost else None,
+            topic_boost_factor=(config.topic_boost_factor if config.use_topic_boost else None),
         )
     except Exception as exc:  # noqa: BLE001 - fail-open per query, log and continue
         description = _describe_exception(exc)
@@ -313,18 +313,28 @@ async def run_config(
     """Run every case in ``cases`` through one config, in order.
 
     Raises ``EmptyVerseTopicsError`` before running any case when ``config``
-    is topic-boosted and ``verse_topics`` is empty for the corpus under eval
-    — a corpus-wide fact checked once here, deliberately outside
+    is topic-boosted and ``verse_topics`` is empty for any resolved translation
+    used by a topic-bearing case. Each translation is checked once, deliberately outside
     ``run_query``'s per-query fail-open ``try/except``, so it aborts the
     whole run instead of being swallowed and scored as zero (BITB-104).
     """
-    if config.use_topic_boost and not await search_service.has_verse_topics(translation_override):
-        scope = f" for translation {translation_override!r}" if translation_override else ""
-        raise EmptyVerseTopicsError(
-            f"config {config.name!r} applies topic boosting, but verse_topics is empty{scope} — "
-            "run scripts/populate_verse_topics.py against this corpus first. Refusing to report "
-            "unboosted numbers under a boosted config name."
-        )
+    if config.use_topic_boost:
+        translations = {
+            translation_override or resolve_translation(case.translation, case.language)
+            for case in cases
+            if detect_topics(case.query)
+        }
+        missing = [
+            translation
+            for translation in sorted(translations)
+            if not await search_service.has_verse_topics(translation)
+        ]
+        if missing:
+            raise EmptyVerseTopicsError(
+                f"config {config.name!r} applies topic boosting, but verse_topics is empty for "
+                f"translation(s) {missing} — run scripts/populate_verse_topics.py against each "
+                "corpus first. Refusing to report unboosted numbers under a boosted config name."
+            )
     return [
         await run_query(
             case,

@@ -6,7 +6,8 @@ authenticated against production Postgres with `TF_VAR_DB_ADMIN_USERNAME` /
 uses to run DDL -- even though this job only ever issues `SELECT`s, runs
 unattended on a nightly schedule, and had no approval gate. The fix swaps
 it to a dedicated `search_eval_ro` role (provisioned by
-`api/alembic/versions/r0005_add_search_eval_ro_role.py`, with
+`api/alembic/versions/r0005_add_search_eval_ro_role.py` plus r0006's topic
+table grants, with
 `default_transaction_read_only = on` enforced by the database itself)
 authenticated via the environment-scoped `SEARCH_EVAL_DB_PASSWORD` secret.
 

@@ -54,6 +54,7 @@ Example
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -198,17 +199,31 @@ def _parse_topic_boost_factors(
     ``_cmd_run`` to keep that function's branching within the repo's
     cyclomatic-complexity lint budget (C901).
     """
-    if not raw:
+    if raw is None:
         return None, None
     if not any(eval_configs[name].use_topic_boost for name in config_names):
-        return None, "--topic-boost-factor requires a topic-boosted --config (e.g. topic_boosted)."
+        return (
+            None,
+            "--topic-boost-factor requires a topic-boosted --config (e.g. topic_boosted).",
+        )
     try:
         factors = [float(v.strip()) for v in raw.split(",") if v.strip()]
     except ValueError:
         return None, f"--topic-boost-factor values must be numbers, got {raw!r}"
+    if not factors:
+        return None, "--topic-boost-factor requires at least one value"
+    non_finite = [f for f in factors if not math.isfinite(f)]
+    if non_finite:
+        return None, f"--topic-boost-factor values must be finite, got {non_finite}"
     negative = [f for f in factors if f < 0]
     if negative:
         return None, f"--topic-boost-factor values must be >= 0, got {negative}"
+    duplicates = sorted({f for f in factors if factors.count(f) > 1})
+    if duplicates:
+        return (
+            None,
+            f"--topic-boost-factor values must not contain duplicates, got {duplicates}",
+        )
     return factors, None
 
 
@@ -218,7 +233,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     from search_eval.loader import load_golden_set
     from search_eval.report import format_report, to_json
-    from search_eval.runner import DEFAULT_AB, EVAL_CONFIGS, EmptyVerseTopicsError, run_eval
+    from search_eval.runner import (
+        DEFAULT_AB,
+        EVAL_CONFIGS,
+        EmptyVerseTopicsError,
+        run_eval,
+    )
 
     if args.config:
         config_names = [name.strip() for name in args.config.split(",") if name.strip()]

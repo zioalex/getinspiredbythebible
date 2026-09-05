@@ -198,11 +198,12 @@ schedule and on demand — no maintainer machine required:
   error count is the real, unambiguous failure signal.
 
 **Running the topic-boost A/B and sweep (BITB-104):** trigger
-**Actions → Search Eval — Full → Run workflow** with `configs:
-hybrid,topic_boosted` against `eval-prod` (the only route with a populated
-`verse_topics`) to get real numbers. `eval-smoke`'s ephemeral corpus never
+**Actions → Search Eval — Full → Run workflow** with `route: prod` and
+`configs: hybrid,topic_boosted`. `route: both` and `route: smoke` are
+incompatible with this config because `eval-smoke`'s ephemeral corpus never
 runs `scripts/populate_verse_topics.py`, so passing `configs: topic_boosted`
-to it hard-errors by design (see above) — don't add `topic_boosted` there.
+to it hard-errors by design (see above). Selecting `route: prod` is required,
+not merely an optimization that skips an irrelevant smoke leg.
 
 `eval-smoke` always runs `--config baseline_semantic` only (BITB-107) — unlike
 `eval-prod`, which falls back to `baseline_semantic` only when no OpenRouter

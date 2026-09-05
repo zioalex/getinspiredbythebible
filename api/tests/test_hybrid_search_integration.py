@@ -421,6 +421,28 @@ async def test_verse_topics_boost_actually_changes_the_score(seeded_repo):
     assert boosted_score == pytest.approx(unboosted_score * 1.2)
 
 
+async def test_semantic_topic_boost_uses_fractional_factor(seeded_repo):
+    """The semantic builder must preserve 0.2 instead of binding it as bigint 0."""
+    session = seeded_repo.session
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    topic_id = await _topic_id(session, _TOPIC_NAME)
+    await _link_verse_topic(session, verse.id, topic_id)
+
+    unboosted_rows = await seeded_repo.search_verses_semantic_boosted(
+        query_embedding=_seed_vector(),
+        boost_topics=["faith"],
+        translation=_TRANSLATION,
+    )
+    boosted_rows = await seeded_repo.search_verses_semantic_boosted(
+        query_embedding=_seed_vector(),
+        boost_topics=[_TOPIC_NAME],
+        translation=_TRANSLATION,
+    )
+
+    assert unboosted_rows and boosted_rows
+    assert boosted_rows[0][1] == pytest.approx(unboosted_rows[0][1] * 1.2)
+
+
 async def test_topic_boost_factor_changes_the_score(seeded_repo):
     """The sweep is real, not decorative: two different factors against the
     same matching topic must produce the ``(1 + f)`` ratio, not the same

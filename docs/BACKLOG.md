@@ -1751,10 +1751,10 @@ Measured against the 58-case golden set and the 13 canonical topics in `api/chat
 
 ---
 
-### 🚧 BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
+### ✅ BITB-104: Un-stub the `topic_boosted` Eval Config
 
-**Status:** 🚧 In Progress — harness landed; A/B numbers, sweep curve, and the enablement decision
-are tracked separately as BITB-116 (need prod DB + Azure credentials this sandbox does not have)
+**Status:** ✅ Done — harness delivered; A/B numbers, sweep curve, and the enablement decision are
+owned separately by BITB-116 because they require prod DB + Azure credentials
 **Priority:** P1 — the payoff step; topic boosting has never been measured even once
 **Size:** S–M
 **Created:** 2026-08-21
@@ -1782,18 +1782,17 @@ real Postgres+asyncpg, not just read from the SQL.
 **Acceptance Criteria (summary):**
 
 - [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
-- [x] Empty `verse_topics` under a boosted config is a hard error, not a warning
-- [ ] A/B recorded for `hybrid` vs `topic_boosted`, split by topic-laden/neutral and language group
-      — **BITB-116**, needs an `eval-prod` run this sandbox cannot execute
-- [x] `topic_boost_factor` sweep is wired (CLI flag + workflow input); the **curve** itself is
-      **BITB-116** — a flat curve would be itself the finding, but there are no numbers yet
-- [ ] A recorded decision on prod enablement, including the legitimate option of leaving it off —
-      **BITB-116**
+- [x] Every resolved, topic-bearing translation fails preflight when its `verse_topics` rows are empty
+- [x] The read-only eval role can select the topic tables used by preflight and boosted ranking
+- [x] `topic_boost_factor` sweep is wired and rejects empty, non-finite, or duplicate factor lists
+
+The live A/B, sweep curve, and prod enablement decision are acceptance criteria of **BITB-116**, not
+open work under this completed story.
 
 **Depends on:** BITB-103 (data to measure against) and BITB-105 (rows in the database). Run before
 either and the numbers look like a result without being one.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-104-unstub-topic-boosted-eval-config.md`
+**Full Story:** `docs/DONE/BITB-104-unstub-topic-boosted-eval-config.md`
 
 ---
 

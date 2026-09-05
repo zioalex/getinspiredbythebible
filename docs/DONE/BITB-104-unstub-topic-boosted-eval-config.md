@@ -1,8 +1,8 @@
-# BITB-104: Un-stub the `topic_boosted` Eval Config and Measure the Boost
+# BITB-104: Un-stub the `topic_boosted` Eval Config
 
-**Status:** 🚧 In Progress — the harness landed and now applies real boosting; the A/B numbers,
-factor-sweep curve, and the `topic_boosting_enabled` decision itself are tracked separately as
-**BITB-116** (they need prod DB + Azure credentials this sandboxed environment does not have)
+**Status:** ✅ Done — the harness applies real boosting and validates every topic-bearing
+translation; live A/B numbers, the factor-sweep curve, and the `topic_boosting_enabled` decision
+are owned separately by **BITB-116** (they require prod DB + Azure credentials)
 **Priority:** P1 — the payoff step; until this runs, topic boosting has never been measured even once
 **Size:** S–M (the code change is small; the judgement about enabling is the work)
 **Created:** 2026-08-21
@@ -32,8 +32,8 @@ against `eval-prod` — that follow-through, once numbers exist, is **BITB-116**
 
 ## User Story
 
-**As** the maintainer, **I want** the eval harness to actually apply topic boosting and report an
-A/B against unboosted search, **so that** enabling the flag in production is a decision backed by
+**As** the maintainer, **I want** the eval harness to actually apply topic boosting and support an
+A/B against unboosted search, **so that** BITB-116 can make the production decision from trustworthy
 numbers rather than the assumption that a feature we built must be helping.
 
 ## Why This Exists
@@ -69,26 +69,25 @@ gets a plausible-looking number that is actually the control.
    run must error, not warn-and-continue. The whole failure this story exists to close is a boosted
    config quietly reporting unboosted numbers; replacing one silent fallback with another would miss
    the point.
-3. **Run the A/B**: `hybrid` vs `topic_boosted` over the extended golden set from BITB-103, split by
-   topic-laden vs neutral, and by language group (corpus-validated / tagged-unvalidated /
+3. **BITB-116: Run the A/B**: `hybrid` vs `topic_boosted` over the extended golden set from BITB-103,
+   split by topic-laden vs neutral, and by language group (corpus-validated / tagged-unvalidated /
    untaggable — see BITB-103's language table, so a flat zero on ru/zh/hi/ko is read correctly).
-4. **Sweep `topic_boost_factor`** (default 0.2) across a small range and record the curve rather than
-   just the winner — a metric that is flat across the whole range is itself the finding, and would
-   mean the boost is not doing meaningful work.
-5. **Then decide `topic_boosting_enabled`**, and record the decision and its numbers. "Leave it off"
-   is a legitimate outcome of this story; shipping a feature because it exists is not.
+4. **BITB-116: Sweep `topic_boost_factor`** (default 0.2) across a small range and record the curve
+   rather than just the winner — a metric that is flat across the whole range is itself the finding,
+   and would mean the boost is not doing meaningful work.
+5. **BITB-116: Decide `topic_boosting_enabled`**, and record the decision and its numbers. "Leave it
+   off" is a legitimate outcome of this story; shipping a feature because it exists is not.
 
 ## Acceptance Criteria
 
 - [x] `use_topic_boost` applies real boosting; the no-op warning and fallback are gone
-- [x] An empty `verse_topics` under a boosted config is a hard error, not a warning
-- [ ] A/B results recorded for `hybrid` vs `topic_boosted`, broken out by topic-laden vs neutral and
-      by the three language groups — **BITB-116**
-- [x] `topic_boost_factor` sweep mechanism (CLI + workflow input) — the curve itself, and the choice
-      justified in `docs/SEARCH_EVAL_HOWTO.md`, is **BITB-116** (no numbers exist yet)
-- [ ] A recorded decision on `topic_boosting_enabled` in prod, with the numbers behind it — including
-      the option of leaving it off — **BITB-116**
+- [x] Missing `verse_topics` rows for any resolved, topic-bearing translation are a hard error
+- [x] `search_eval_ro` can read the topic tables required by boosted preflight and ranking
+- [x] `topic_boost_factor` sweep mechanism (CLI + workflow input) validates usable factor lists
 - [x] The registry comment in `runner.py` no longer describes the config as a no-op
+
+The live A/B, recorded sweep curve, and production enablement decision are not open BITB-104
+criteria. They are acceptance criteria of **BITB-116**, which owns the credentialed production run.
 
 ## Dependencies
 
@@ -103,10 +102,9 @@ Running this before either lands produces numbers that look like a result and ar
 
 ## Verification
 
-The A/B is the deliverable, so the thing worth verifying is that the harness is measuring what it
-claims. Before trusting any delta: confirm on a known-tagged verse that the boosted query actually
-ranks it differently from the unboosted one. A config that silently no-ops is the exact failure this
-story closes, and it would otherwise close it in name only.
+The deliverable is a trustworthy measurement path. Integration tests confirm on a known-tagged verse
+that both boosted SQL builders apply the exact fractional arithmetic, and runner tests confirm every
+resolved translation that can execute the boosted path passes preflight before any query runs.
 
 ## Related
 

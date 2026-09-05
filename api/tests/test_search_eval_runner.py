@@ -10,7 +10,7 @@ docs/SEARCH_EVAL_HOWTO.md) or lands via P4 CI, not this test file.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 
@@ -299,7 +299,10 @@ class TestTopicBoosted:
     @pytest.mark.asyncio
     async def test_semantic_topic_boost_calls_search_boosted(self):
         config = EvalConfig(
-            "semantic_boosted", use_hybrid=False, use_expansion=False, use_topic_boost=True
+            "semantic_boosted",
+            use_hybrid=False,
+            use_expansion=False,
+            use_topic_boost=True,
         )
         service = _fake_search_service(boosted_refs=["Psalm 23:1"])
         result = await run_query(
@@ -353,6 +356,7 @@ class TestTopicBoosted:
             expander=None,
         )
         assert service.has_verse_topics.await_count == 1
+        service.has_verse_topics.assert_awaited_once_with("web")
 
     @pytest.mark.asyncio
     async def test_verse_topics_probe_uses_translation_override(self):
@@ -366,6 +370,43 @@ class TestTopicBoosted:
             translation_override="kjv",
         )
         service.has_verse_topics.assert_awaited_once_with("kjv")
+
+    @pytest.mark.asyncio
+    async def test_verse_topics_probe_checks_every_topic_bearing_translation(self):
+        service = _fake_search_service(boosted_refs=["Psalm 23:1"])
+        service.has_verse_topics.side_effect = lambda translation: translation != "ita1927"
+        cases = [
+            _case(id="en", query="I'm anxious", language="en"),
+            _case(id="it", query="Sono ansioso", language="it"),
+            _case(id="neutral", query="What does John 3:16 say", language="de"),
+        ]
+
+        with pytest.raises(EmptyVerseTopicsError, match="ita1927"):
+            await run_config(
+                cases,
+                EVAL_CONFIGS["topic_boosted"],
+                search_service=service,
+                embed=_fake_embed,
+                expander=None,
+            )
+
+        assert service.has_verse_topics.await_args_list == [
+            call("ita1927"),
+            call("web"),
+        ]
+        service.search_hybrid_boosted.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_verse_topics_probe_skips_neutral_case_translations(self):
+        service = _fake_search_service(hybrid_refs=["John 3:16"], has_verse_topics=False)
+        await run_config(
+            [_case(query="What does John 3:16 say", language="de")],
+            EVAL_CONFIGS["topic_boosted"],
+            search_service=service,
+            embed=_fake_embed,
+            expander=None,
+        )
+        service.has_verse_topics.assert_not_awaited()
 
 
 class TestTopicBoostSweep:
