@@ -353,9 +353,7 @@ jobs:
           script: |
             ./gradlew installDebug --no-daemon -PbaseUrl=https://api.voxquieta.org/
             adb shell am start -W -n org.voxquieta.debug/org.voxquieta.app.MainActivity
-            ./gradlew connectedDebugAndroidTest --no-daemon \
-              -PbaseUrl=https://api.voxquieta.org/ \
-              -Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest
+            ./gradlew connectedDebugAndroidTest --no-daemon -PbaseUrl=https://api.voxquieta.org/ -Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest
           working-directory: android
 
   # ---------------------------------------------------------------------------
@@ -397,7 +395,7 @@ jobs:
         working-directory: android
 
       - name: Build PR release AAB with ephemeral signing key
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/pr-release.keystore
           KEYSTORE_PASSWORD: pr-build-only # pragma: allowlist secret
@@ -417,7 +415,7 @@ jobs:
         working-directory: android
 
       - name: Verify release AAB and merged manifest metadata
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: |
           set -euo pipefail
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
@@ -439,7 +437,7 @@ jobs:
           grep -q 'android:networkSecurityConfig="@xml/network_security_config"' "$MANIFEST"
 
       - name: Upload PR release AAB
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: android-pr-release-aab
