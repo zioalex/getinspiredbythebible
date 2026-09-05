@@ -370,3 +370,117 @@ async def test_verse_tsv_cascades_on_verse_delete(seeded_repo):
         )
     ).scalar_one()
     assert delete_action == "c", "verse_tsv.verse_id must be ON DELETE CASCADE"
+
+
+# ── BITB-104: real topic-boost arithmetic against a real verse_topics row ──
+# The fixture creates the `verse_topics` table but seeds no row into it, so
+# every test above exercises only the "no matching topic" branch of the
+# boosted builders. These insert one real junction row so the multiplicative
+# boost itself -- not just that the query runs -- is proven against Postgres.
+
+
+async def _topic_id(session, name: str) -> int:
+    return (
+        await session.execute(text("SELECT id FROM topics WHERE name = :name"), {"name": name})
+    ).scalar_one()
+
+
+async def _link_verse_topic(session, verse_id: int, topic_id: int) -> None:
+    await session.execute(
+        text("INSERT INTO verse_topics (verse_id, topic_id) VALUES (:v, :t)"),
+        {"v": verse_id, "t": topic_id},
+    )
+
+
+async def test_verse_topics_boost_actually_changes_the_score(seeded_repo):
+    """A matching topic must multiply the score by exactly ``1 + factor``
+    (factor=0.2 default, one matching topic) -- the arithmetic this story's
+    hard-error guard exists to make trustworthy once verse_topics is real."""
+    session = seeded_repo.session
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    topic_id = await _topic_id(session, _TOPIC_NAME)
+    await _link_verse_topic(session, verse.id, topic_id)
+
+    unboosted_rows = await seeded_repo.search_verses_hybrid_boosted(
+        query_text="loved the world",
+        query_embedding=_seed_vector(),
+        boost_topics=["faith"],  # no matching topic -> unboosted branch
+        translation=_TRANSLATION,
+    )
+    boosted_rows = await seeded_repo.search_verses_hybrid_boosted(
+        query_text="loved the world",
+        query_embedding=_seed_vector(),
+        boost_topics=[_TOPIC_NAME],
+        translation=_TRANSLATION,
+    )
+
+    assert unboosted_rows and boosted_rows
+    unboosted_score = unboosted_rows[0][1]
+    boosted_score = boosted_rows[0][1]
+    assert boosted_score > unboosted_score
+    assert boosted_score == pytest.approx(unboosted_score * 1.2)
+
+
+async def test_semantic_topic_boost_uses_fractional_factor(seeded_repo):
+    """The semantic builder must preserve 0.2 instead of binding it as bigint 0."""
+    session = seeded_repo.session
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    topic_id = await _topic_id(session, _TOPIC_NAME)
+    await _link_verse_topic(session, verse.id, topic_id)
+
+    unboosted_rows = await seeded_repo.search_verses_semantic_boosted(
+        query_embedding=_seed_vector(),
+        boost_topics=["faith"],
+        translation=_TRANSLATION,
+    )
+    boosted_rows = await seeded_repo.search_verses_semantic_boosted(
+        query_embedding=_seed_vector(),
+        boost_topics=[_TOPIC_NAME],
+        translation=_TRANSLATION,
+    )
+
+    assert unboosted_rows and boosted_rows
+    assert boosted_rows[0][1] == pytest.approx(unboosted_rows[0][1] * 1.2)
+
+
+async def test_topic_boost_factor_changes_the_score(seeded_repo):
+    """The sweep is real, not decorative: two different factors against the
+    same matching topic must produce the ``(1 + f)`` ratio, not the same
+    number twice."""
+    session = seeded_repo.session
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    topic_id = await _topic_id(session, _TOPIC_NAME)
+    await _link_verse_topic(session, verse.id, topic_id)
+
+    low_rows = await seeded_repo.search_verses_hybrid_boosted(
+        query_text="loved the world",
+        query_embedding=_seed_vector(),
+        boost_topics=[_TOPIC_NAME],
+        topic_boost_factor=0.2,
+        translation=_TRANSLATION,
+    )
+    high_rows = await seeded_repo.search_verses_hybrid_boosted(
+        query_text="loved the world",
+        query_embedding=_seed_vector(),
+        boost_topics=[_TOPIC_NAME],
+        topic_boost_factor=0.5,
+        translation=_TRANSLATION,
+    )
+
+    assert low_rows and high_rows
+    low_score = low_rows[0][1]
+    high_score = high_rows[0][1]
+    assert high_score > low_score
+    assert high_score == pytest.approx(low_score / 1.2 * 1.5)
+
+
+async def test_has_verse_topics_executes_against_real_db(seeded_repo):
+    assert await seeded_repo.has_verse_topics() is False
+
+    verse = await seeded_repo.get_verse(_BOOK_NAME, 3, 16, translation=_TRANSLATION)
+    topic_id = await _topic_id(seeded_repo.session, _TOPIC_NAME)
+    await _link_verse_topic(seeded_repo.session, verse.id, topic_id)
+
+    assert await seeded_repo.has_verse_topics() is True
+    assert await seeded_repo.has_verse_topics(translation=_TRANSLATION) is True
+    assert await seeded_repo.has_verse_topics(translation="zzother") is False

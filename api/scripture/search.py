@@ -444,6 +444,10 @@ class ScriptureSearchService:
 
         return SearchResults(query=query, verses=verses, passages=passages)
 
+    async def has_verse_topics(self, translation: str | None = None) -> bool:
+        """True when ``verse_topics`` has at least one row (BITB-104)."""
+        return await self.repo.has_verse_topics(translation)
+
     async def get_verse(
         self, book: str, chapter: int, verse: int, translation: str | None = None
     ) -> VerseResult | None:
