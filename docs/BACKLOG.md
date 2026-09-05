@@ -2177,6 +2177,40 @@ manual-only Hindi/Luther data) still always win when present.
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
 
+### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
+
+**Status:** 🎯 Todo
+**Size:** M (1–2 days, backend + web + Android + 11 locales)
+**Created:** 2026-09-04
+
+**As a** user in the middle of a fruitful conversation about scripture, **I want** the message
+limit to bend to how I am actually using the app — more room when I am genuinely exploring, and
+no loss of what we were just talking about when I hit it, **so that** a reflective nudge does not
+read as "you are done now".
+
+The cap BITB-024 shipped is a total of 10 per `session_id` (`rate_limit_session_max_requests`). It
+has no rolling request window, but it is not literally lifetime: the in-memory backend expires idle
+counters from the configurable 3,600-second TTL, while production Postgres uses an hourly
+`pg_cron` purge with a hardcoded one-hour horizon, so deletion occurs on the first hourly run after
+the counter becomes eligible. It is already soft — "Start New Session" rotates the id and resets
+the counter — but rotation **wipes the conversation**, so it protects nothing and annoys exactly
+the users who are most engaged. Proposal: split the pastoral nudge from the cost guard, preserve
+the thread on continue, interpolate the hardcoded copy, instrument outcomes before selecting a
+threshold, and consider an IP ceiling only after trusted-ingress and shared-NAT analysis.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Instrumentation deployed and validated before threshold/NAT data selects either limit
+- [ ] Limit genuinely tunable — no literal "10" left in any locale, count interpolated everywhere
+- [ ] "Continue this conversation" preserves the thread and the next message returns 200
+- [ ] Clients read the limit from the server (header/config), never a client-side constant
+- [ ] Trusted proxy chain precedes any IP cap; shared-IP false positives are measured and mitigated
+- [ ] Config scope covers API, Terraform/env manifest, web/Android clients, usage and security docs
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-118-flexible-session-message-limit.md`
+
+---
+
 ### ✅ BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
 **Status:** ✅ Done (PR #917, pending merge)
