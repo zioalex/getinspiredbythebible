@@ -2176,6 +2176,87 @@ manual-only Hindi/Luther data) still always win when present.
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+>
+> **Voice batch (2026-09-04) → BITB-119, BITB-120.** Two halves of one product request —
+> speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
+> but are split because output and microphone input have independent APIs, permissions, data
+> flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L (M per platform + a shared text-normalization layer)
+**Created:** 2026-09-04
+**Prompted by:** product request — "speak loudly the Vox Quieta response"
+
+A **Listen** control in the existing assistant-message action row (`ChatMessage.tsx:242`,
+`ChatMessageItem.kt:726-785`) for hands-free, eyes-free listening — distinct from screen-reader
+support, which already exists. **Recommended approach: platform speech synthesis on the device**
+(`window.speechSynthesis`, `android.speech.tts.TextToSpeech`) — no dependency, no permission, no
+audio endpoint, **€0 runtime cost**, and nothing leaves the device: web requires
+`SpeechSynthesisVoice.localService`, Android rejects `Voice.isNetworkConnectionRequired`. The
+remote flag does require backend settings + `GET /config` and both config consumers. Cloud neural
+TTS (plus cache, abuse surface, vendor and an 11-locale privacy-policy update) is deliberately
+deferred to a later story with dated pricing sources and measured listen-rate demand. The cost
+that is easy to underestimate is the markdown → speakable-text normalization, which must be
+specified once and shared across clients rather than re-implemented per platform (see the
+BITB-059/108/113/114 family for what the alternative looks like).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Listen control on both platforms; no audio or message text sent to any backend
+- [ ] Local-only voices enforced through `localService` / `isNetworkConnectionRequired`, offline-tested
+- [ ] Control hidden when no voice exists for the message's language (Android: also handles missing
+      language data)
+- [ ] One utterance at a time; playback stops on navigation; long answers chunked past the Chrome
+      ~15 s cutoff and the Android per-utterance cap
+- [ ] Speakable-text rules specified once, cases in the shared fixture corpus, both clients asserted
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2 — sequence after BITB-119; heavier legal and store footprint
+**Size:** L (M web, M–L Android)
+**Created:** 2026-09-04
+**Prompted by:** product request — "input the user question via voice"
+
+A microphone control next to the chat input, filling the field with a transcript the user reviews
+before sending. **Recommended approach: platform recognizers** (`webkitSpeechRecognition`,
+`android.speech.SpeechRecognizer`) — **€0 runtime cost** and no transcription endpoint; the remote
+flag adds backend configuration only. Two facts drive the cost: recognition is **not** on-device in
+the general case (Chrome and Android API 26–30 send audio
+to the browser/device vendor, `minSdk = 26` vs on-device from API 31), so a privacy-policy update in
+eleven locales is required *even for this option*; and Android needs `RECORD_AUDIO`, which changes
+the Play listing, the Data Safety declaration and the review profile of every release afterwards.
+Android also needs a `RecognitionService` package-visibility query and an explicit ladder:
+on-device when actually available on API 31+, otherwise an available network-capable service with
+disclosure, otherwise hide the control. A remote flag requires backend settings + `GET /config` and
+both config consumers. Cloud STT through our own backend means owning users' voice recordings and
+is deferred to a separate decision with dated pricing sources. Android users can already dictate
+via the keyboard mic; this story buys discoverability and locale control, not a new ability.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Mic control on both platforms; hidden where unsupported (Firefox); no audio uploaded to our
+      backend
+- [ ] Recognition language follows the app locale; interim results editable; never auto-sends; 500-char
+      cap enforced
+- [ ] `RECORD_AUDIO` rationale plus denied / permanently-denied paths that leave the app usable
+- [ ] Android `RecognitionService` query + on-device/service/unsupported capability ladder tested
+- [ ] Privacy policy (11 locales) names the third-party recognizer; Play Data Safety updated
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, refusal tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-120-ask-by-voice-speech-input.md`
+
+---
 
 ### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
