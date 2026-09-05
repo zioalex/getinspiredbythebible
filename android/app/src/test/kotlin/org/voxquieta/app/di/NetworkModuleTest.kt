@@ -15,9 +15,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.voxquieta.app.data.remote.interceptors.TurnstileInterceptor
 
+/**
+ * Robolectric-backed so [Build.MODEL] returns a real (non-null) value and the
+ * "model is not leaked in the User-Agent" assertion below actually bites.
+ *
+ * [Config.sdk] pinned to 34 to match every other Robolectric test here:
+ * Robolectric 4.14.1 bundles API-34 jars, so inheriting the manifest's
+ * targetSdk 36 makes DefaultSdkPicker throw. [Config.application] is the plain
+ * [android.app.Application] to keep Hilt out of unit-test scope — this exercises
+ * [NetworkModule]'s provider function directly, not the DI graph.
+ */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class NetworkModuleTest {
 
     @Test
