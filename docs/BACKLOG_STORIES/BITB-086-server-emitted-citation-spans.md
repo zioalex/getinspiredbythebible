@@ -5,7 +5,7 @@ fast-follow once PR #983 (BITB-059) merges (see `docs/BACKLOG.md` Notes for this
 **Priority:** P2 (raise to P1 if BITB-087 is scheduled — it is a hard prerequisite)
 **Size:** L (backend contract + web reference consumer + cross-language corpus)
 **Created:** 2026-07-29
-**Part of:** the iOS delivery plan — Stage 2 of BITB-084 → BITB-085 → **BITB-086** → BITB-087 → BITB-088.
+**Part of:** the iOS delivery plan — Stage 2 of BITB-084 → BITB-085 → **BITB-086** → BITB-109 → BITB-087 → BITB-088.
 **Unblocks:** BITB-087 (a native iOS client that ships **no** verse regex of its own).
 
 ## User Story

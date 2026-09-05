@@ -925,7 +925,7 @@ Load Balancer
 | Conversation persistence | High | Low |
 | Multiple translations | Medium | Medium |
 | Audio Bible | Medium | High |
-| Mobile app (React Native) | High | High |
+| iOS platform expansion (delivery approach provisional; see `docs/ios/delivery-approach.md`) | Low | High |
 | Reading plans | Low | Medium |
 | Community features | Low | High |
 

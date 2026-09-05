@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-04 (BITB-085 decision recorded)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1594,7 +1594,7 @@ separator/range grammar and script-class alternations.
 **Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side ACs
 
 `citations` currently ships to nobody: web and Android still linkify with their own regexes, so the
-contract's real-world correctness is untested — and BITB-087 (iOS) is scheduled to depend on a
+contract's real-world correctness is untested — and BITB-087 (iOS) is planned to depend on a
 contract no client has exercised. The deferral was correct (PR #983 owns the same files), so this is
 unblocked the moment #983 merges.
 
@@ -2216,6 +2216,87 @@ attributed to Android or broadly backfilled.
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+>
+> **Voice batch (2026-09-04) → BITB-119, BITB-120.** Two halves of one product request —
+> speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
+> but are split because output and microphone input have independent APIs, permissions, data
+> flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L (M per platform + a shared text-normalization layer)
+**Created:** 2026-09-04
+**Prompted by:** product request — "speak loudly the Vox Quieta response"
+
+A **Listen** control in the existing assistant-message action row (`ChatMessage.tsx:242`,
+`ChatMessageItem.kt:726-785`) for hands-free, eyes-free listening — distinct from screen-reader
+support, which already exists. **Recommended approach: platform speech synthesis on the device**
+(`window.speechSynthesis`, `android.speech.tts.TextToSpeech`) — no dependency, no permission, no
+audio endpoint, **€0 runtime cost**, and nothing leaves the device: web requires
+`SpeechSynthesisVoice.localService`, Android rejects `Voice.isNetworkConnectionRequired`. The
+remote flag does require backend settings + `GET /config` and both config consumers. Cloud neural
+TTS (plus cache, abuse surface, vendor and an 11-locale privacy-policy update) is deliberately
+deferred to a later story with dated pricing sources and measured listen-rate demand. The cost
+that is easy to underestimate is the markdown → speakable-text normalization, which must be
+specified once and shared across clients rather than re-implemented per platform (see the
+BITB-059/108/113/114 family for what the alternative looks like).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Listen control on both platforms; no audio or message text sent to any backend
+- [ ] Local-only voices enforced through `localService` / `isNetworkConnectionRequired`, offline-tested
+- [ ] Control hidden when no voice exists for the message's language (Android: also handles missing
+      language data)
+- [ ] One utterance at a time; playback stops on navigation; long answers chunked past the Chrome
+      ~15 s cutoff and the Android per-utterance cap
+- [ ] Speakable-text rules specified once, cases in the shared fixture corpus, both clients asserted
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2 — sequence after BITB-119; heavier legal and store footprint
+**Size:** L (M web, M–L Android)
+**Created:** 2026-09-04
+**Prompted by:** product request — "input the user question via voice"
+
+A microphone control next to the chat input, filling the field with a transcript the user reviews
+before sending. **Recommended approach: platform recognizers** (`webkitSpeechRecognition`,
+`android.speech.SpeechRecognizer`) — **€0 runtime cost** and no transcription endpoint; the remote
+flag adds backend configuration only. Two facts drive the cost: recognition is **not** on-device in
+the general case (Chrome and Android API 26–30 send audio
+to the browser/device vendor, `minSdk = 26` vs on-device from API 31), so a privacy-policy update in
+eleven locales is required *even for this option*; and Android needs `RECORD_AUDIO`, which changes
+the Play listing, the Data Safety declaration and the review profile of every release afterwards.
+Android also needs a `RecognitionService` package-visibility query and an explicit ladder:
+on-device when actually available on API 31+, otherwise an available network-capable service with
+disclosure, otherwise hide the control. A remote flag requires backend settings + `GET /config` and
+both config consumers. Cloud STT through our own backend means owning users' voice recordings and
+is deferred to a separate decision with dated pricing sources. Android users can already dictate
+via the keyboard mic; this story buys discoverability and locale control, not a new ability.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Mic control on both platforms; hidden where unsupported (Firefox); no audio uploaded to our
+      backend
+- [ ] Recognition language follows the app locale; interim results editable; never auto-sends; 500-char
+      cap enforced
+- [ ] `RECORD_AUDIO` rationale plus denied / permanently-denied paths that leave the app usable
+- [ ] Android `RecognitionService` query + on-device/service/unsupported capability ladder tested
+- [ ] Privacy policy (11 locales) names the third-party recognizer; Play Data Safety updated
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, refusal tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-120-ask-by-voice-speech-input.md`
+
+---
 
 ### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
@@ -3060,9 +3141,9 @@ un-versioned service worker pinning users to a stale shell.
 
 ---
 
-### 🎯 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
+### 🚧 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (SwiftUI recommendation provisional; physical-device Turnstile proof and dated prerequisites remain open)
 **Size:** S–M (1 day of analysis + the setup it unblocks)
 **Created:** 2026-07-29
 
@@ -3078,8 +3159,8 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 - [ ] `docs/ios/delivery-approach.md` rates PWA-only / WebView wrapper / native SwiftUI / KMP-shared
       against 7 weighted criteria with evidence, and records the decision + what would reverse it
-- [ ] The fourth-verse-parser question is answered concretely (BITB-086 as hard prerequisite, or how
-      the chosen option otherwise avoids a fourth grammar)
+- [ ] The fourth-verse-parser question is answered concretely (BITB-086 and BITB-109 as hard
+      prerequisites, or how the chosen option otherwise avoids a fourth grammar)
 - [ ] Turnstile in a WKWebView proved by an **actual token obtained**, not by reading docs — if it
       cannot be, every POST endpoint is unreachable and the plan changes
 - [ ] Apple Developer enrolment, bundle id, macOS-CI cost, and signing strategy decided/owned
@@ -3531,21 +3612,22 @@ text = t2s.transliterate(text)
 - ✅ BITB-003 (Turnstile on Android) — done
 
 **Note (2026-07-29):** the *Out of Scope* line above ("iOS app — future consideration") is now
-superseded. iOS is planned as BITB-084 → BITB-085 → BITB-086 → BITB-087 → BITB-088.
+superseded. iOS is gated Later / Platform Expansion work: BITB-084 → BITB-085 → BITB-086 →
+BITB-109 → BITB-087 → BITB-088.
 
 ---
 
-### 🎯 BITB-087: iOS App v1 — SwiftUI Chat Parity, TestFlight-Ready
+### ⏸️ BITB-087: iOS App v1 — Provisional SwiftUI Chat Parity, TestFlight-Ready
 
-**Status:** 🎯 Todo (blocked on BITB-085; BITB-086 is a hard prerequisite)
-**Size:** XL (2+ weeks; re-estimate once BITB-085 picks the approach)
+**Status:** ⏸️ Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
+**Size:** Provisional XL (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
 **Created:** 2026-07-29
 
 **As an** iPhone user, **I want** an app that streams a Scripture-grounded answer with tappable
 verses, remembers my conversations, and speaks my language, **so that** I get the companion Android
 users already have.
 
-**Why P3:** Large, and correctly gated behind a decision (BITB-085) and a prerequisite (BITB-086).
+**Why P3:** Large, and correctly gated behind a decision (BITB-085), a physical-device Turnstile proof, and hard prerequisites BITB-086 and BITB-109.
 "Same features as Android" is 21k lines of Kotlin across 144 files, so v1 is a deliberate vertical
 slice — chat, verses, translations, 11 locales, history, feedback, settings — with church finder,
 contact form, changelog, What's New, diagnostics and follow-up chips explicitly deferred to a
