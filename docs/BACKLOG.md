@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-04 (BITB-085 decision recorded)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1483,8 +1483,8 @@ loaded, **437 verses embedded**, eval ran — then all 6 query results errored (
 
 ### 🚧 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🚧 In Progress — ReDoS safety closed **on web only** (AC1–2); grammar unification split
-to BITB-113; the same finding on Android split to BITB-114
+**Status:** 🚧 In Progress — ReDoS safety closed **on both web and Android** (AC1–2, and the Android
+follow-up BITB-114); grammar unification remains split to BITB-113
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-22
@@ -1505,11 +1505,13 @@ connector repeat) — structurally eliminates the unbounded-backtracking shape w
 two-stage rewrite. Verified: a 1.2M-char adversarial input now matches in well under 50ms, and a
 direct test confirms the cap is enforced (a 4th connector repeat is refused, not silently allowed).
 
-**The identical construct is still unbounded on Android** (`ChatMessageItem.kt`'s `BOOK_NAME` and
+**The identical construct was also unbounded on Android** (`ChatMessageItem.kt`'s `BOOK_NAME` and
 `VersesPanel.kt`'s `CITED_BOOK_NAME`, both matched against the same untrusted chat-message text, on
 Java's equally-vulnerable backtracking engine) — found during this fix's independent verification
-pass and tracked separately as **BITB-114** rather than silently left undone. `verse_parser.py`
-(backend) has no equivalent connector alternation and is not affected.
+pass and tracked separately as **BITB-114**, now closed: both connector groups bounded to `{0,3}`
+(zero-or-more originals, so `{0,3}` rather than web's `{1,3}`), with the same benchmark-and-enforce
+rigor. See BITB-114 for details. `verse_parser.py` (backend) has no equivalent connector alternation
+and is not affected.
 
 The remaining scope — generating the separator/range grammar for TypeScript and Kotlin, deciding
 Python's relationship to it, and retiring the duplicate parsers — is real but independent of the
@@ -1521,7 +1523,7 @@ stays reviewable.
 - [x] Connector branch benchmarked against adversarial input, results recorded (web)
 - [x] Current form made structurally safe (bounded quantifier) on web, verified by benchmark and a
       direct enforcement test — the "recorded negative result" alternative the AC allows for
-- [ ] Same fix applied to Android — **split to BITB-114**
+- [x] Same fix applied to Android — **BITB-114, done**
 - [ ] Grammar + script-class alternations generated for TypeScript and Kotlin; hand-editing fails CI — **split to BITB-113**
 - [ ] Python's relationship decided — generated, or contract-tested like `translation_registry.py` — **split to BITB-113**
 - [ ] Shared corpus (PR #906) green on all three platforms; `AUDIT_PLAYBOOK.md` regex row points at the generator — **split to BITB-113**
@@ -1530,30 +1532,66 @@ stays reviewable.
 
 ---
 
-### 🎯 BITB-114: Close the Same ReDoS Gap on Android (`ChatMessageItem.kt` / `VersesPanel.kt`)
+### ✅ BITB-114: Close the Same ReDoS Gap on Android (`ChatMessageItem.kt` / `VersesPanel.kt`)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** S
 **Created:** 2026-08-31
 **Found by:** independent Verify pass on BITB-108 (the web-side fix for the same issue)
 
 BITB-108 fixed a benchmarked ReDoS gap in the web frontend's multi-word book-name connector regex
-branch. The identical unbounded construct exists in two Android files, matched against the same kind
+branch. The identical unbounded construct existed in two Android files, matched against the same kind
 of untrusted chat-message text, on Java's equally-vulnerable backtracking regex engine:
 `ChatMessageItem.kt:113` (`BOOK_NAME`) and `VersesPanel.kt:54` (`CITED_BOOK_NAME`). Audit item E13
 already named the Android re-implementation in scope; BITB-108 closed only web to stay reviewable in
 one PR.
 
+Fixed by bounding both connector groups to `{0,3}` (both originals were `*`, zero-or-more, so `{0,3}`
+rather than web's `{1,3}` preserves single-word book names). No real supported book name needs more
+than one connector repeat (verified against `LocalizedBookToEnglish.kt`), so `{0,3}` gives 3x headroom
+while eliminating the unbounded-backtracking shape. New test `VerseRefRedosTest.kt` mirrors
+`versePatterns.redos.test.ts`: adversarial-input timing, connector-cap enforcement against synthetic
+non-book chains, and regression coverage for real multi-word names.
+
+Residual, separate unbounded trailing-word groups in both Android Alt-1 branches (including support
+for 3-word Arabic numbered-book names) have dedicated timing guards but remain open rather than
+folded into this fix's claimed scope — see the story file's "Residual Risk" section.
+
 **Acceptance Criteria (summary):**
 
-- [ ] Both Android connector groups bounded (not unbounded `*`/`+`), same approach as BITB-108
-- [ ] Adversarial-input benchmark recorded before and after, same rigor as BITB-108
-- [ ] Regression tests proving both the bound doesn't break real book names and the cap is actually
+- [x] Both Android connector groups bounded (not unbounded `*`/`+`), same approach as BITB-108
+- [x] Adversarial-input benchmark recorded before and after, same rigor as BITB-108
+- [x] Regression tests proving both the bound doesn't break real book names and the cap is actually
       enforced (mirrors `versePatterns.redos.test.ts`'s two-part structure)
-- [ ] `docs/BACKLOG.md`'s BITB-108 entry updated to reflect closure on both platforms
+- [x] `docs/BACKLOG.md`'s BITB-108 entry updated to reflect closure on both platforms
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-114-android-verse-parser-redos.md`
+
+---
+
+### 🎯 BITB-117: Bound the Remaining Unbounded Android Alt-1 Numbered-Prefix Groups
+
+**Status:** 🎯 Todo
+**Priority:** P3 — no active incident, but the same ReDoS shape BITB-108/BITB-114 closed elsewhere
+**Size:** S
+**Created:** 2026-09-02
+**Found by:** BITB-114, flagged as residual rather than folded in
+
+BITB-114 bounded the connector-repeat group in `BOOK_NAME`/`CITED_BOOK_NAME` to `{0,3}`. Separate
+unbounded trailing-word groups survive in the Alt-1 (numbered-prefix) branches in both
+`ChatMessageItem.kt` and `VersesPanel.kt`. They support numbered multi-word names such as Arabic
+"1 أخبار الأيام". Dedicated numbered-prefix adversarial tests now enforce a 500ms budget, with the
+authoritative JVM result left to CI because this development environment has no JDK. The groups were
+not bounded or benchmarked across input sizes in isolation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both Alt-1 trailing groups bounded (not unbounded `*`), bounds justified against real data
+- [ ] Dedicated adversarial-input benchmark for this specific group, before and after
+- [ ] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-117-android-verse-parser-alt1-redos-residual.md`
 
 ---
 
@@ -1594,7 +1632,7 @@ separator/range grammar and script-class alternations.
 **Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side ACs
 
 `citations` currently ships to nobody: web and Android still linkify with their own regexes, so the
-contract's real-world correctness is untested — and BITB-087 (iOS) is scheduled to depend on a
+contract's real-world correctness is untested — and BITB-087 (iOS) is planned to depend on a
 contract no client has exercised. The deferral was correct (PR #983 owns the same files), so this is
 unblocked the moment #983 merges.
 
@@ -2215,6 +2253,87 @@ manual-only Hindi/Luther data) still always win when present.
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
 > search/response depth.
+>
+> **Voice batch (2026-09-04) → BITB-119, BITB-120.** Two halves of one product request —
+> speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
+> but are split because output and microphone input have independent APIs, permissions, data
+> flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** L (M per platform + a shared text-normalization layer)
+**Created:** 2026-09-04
+**Prompted by:** product request — "speak loudly the Vox Quieta response"
+
+A **Listen** control in the existing assistant-message action row (`ChatMessage.tsx:242`,
+`ChatMessageItem.kt:726-785`) for hands-free, eyes-free listening — distinct from screen-reader
+support, which already exists. **Recommended approach: platform speech synthesis on the device**
+(`window.speechSynthesis`, `android.speech.tts.TextToSpeech`) — no dependency, no permission, no
+audio endpoint, **€0 runtime cost**, and nothing leaves the device: web requires
+`SpeechSynthesisVoice.localService`, Android rejects `Voice.isNetworkConnectionRequired`. The
+remote flag does require backend settings + `GET /config` and both config consumers. Cloud neural
+TTS (plus cache, abuse surface, vendor and an 11-locale privacy-policy update) is deliberately
+deferred to a later story with dated pricing sources and measured listen-rate demand. The cost
+that is easy to underestimate is the markdown → speakable-text normalization, which must be
+specified once and shared across clients rather than re-implemented per platform (see the
+BITB-059/108/113/114 family for what the alternative looks like).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Listen control on both platforms; no audio or message text sent to any backend
+- [ ] Local-only voices enforced through `localService` / `isNetworkConnectionRequired`, offline-tested
+- [ ] Control hidden when no voice exists for the message's language (Android: also handles missing
+      language data)
+- [ ] One utterance at a time; playback stops on navigation; long answers chunked past the Chrome
+      ~15 s cutoff and the Android per-utterance cap
+- [ ] Speakable-text rules specified once, cases in the shared fixture corpus, both clients asserted
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2 — sequence after BITB-119; heavier legal and store footprint
+**Size:** L (M web, M–L Android)
+**Created:** 2026-09-04
+**Prompted by:** product request — "input the user question via voice"
+
+A microphone control next to the chat input, filling the field with a transcript the user reviews
+before sending. **Recommended approach: platform recognizers** (`webkitSpeechRecognition`,
+`android.speech.SpeechRecognizer`) — **€0 runtime cost** and no transcription endpoint; the remote
+flag adds backend configuration only. Two facts drive the cost: recognition is **not** on-device in
+the general case (Chrome and Android API 26–30 send audio
+to the browser/device vendor, `minSdk = 26` vs on-device from API 31), so a privacy-policy update in
+eleven locales is required *even for this option*; and Android needs `RECORD_AUDIO`, which changes
+the Play listing, the Data Safety declaration and the review profile of every release afterwards.
+Android also needs a `RecognitionService` package-visibility query and an explicit ladder:
+on-device when actually available on API 31+, otherwise an available network-capable service with
+disclosure, otherwise hide the control. A remote flag requires backend settings + `GET /config` and
+both config consumers. Cloud STT through our own backend means owning users' voice recordings and
+is deferred to a separate decision with dated pricing sources. Android users can already dictate
+via the keyboard mic; this story buys discoverability and locale control, not a new ability.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Mic control on both platforms; hidden where unsupported (Firefox); no audio uploaded to our
+      backend
+- [ ] Recognition language follows the app locale; interim results editable; never auto-sends; 500-char
+      cap enforced
+- [ ] `RECORD_AUDIO` rationale plus denied / permanently-denied paths that leave the app usable
+- [ ] Android `RecognitionService` query + on-device/service/unsupported capability ladder tested
+- [ ] Privacy policy (11 locales) names the third-party recognizer; Play Data Safety updated
+- [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, refusal tests, changelog
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-120-ask-by-voice-speech-input.md`
+
+---
 
 ### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
@@ -3059,9 +3178,9 @@ un-versioned service worker pinning users to a stale shell.
 
 ---
 
-### 🎯 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
+### 🚧 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (SwiftUI recommendation provisional; physical-device Turnstile proof and dated prerequisites remain open)
 **Size:** S–M (1 day of analysis + the setup it unblocks)
 **Created:** 2026-07-29
 
@@ -3077,8 +3196,8 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 - [ ] `docs/ios/delivery-approach.md` rates PWA-only / WebView wrapper / native SwiftUI / KMP-shared
       against 7 weighted criteria with evidence, and records the decision + what would reverse it
-- [ ] The fourth-verse-parser question is answered concretely (BITB-086 as hard prerequisite, or how
-      the chosen option otherwise avoids a fourth grammar)
+- [ ] The fourth-verse-parser question is answered concretely (BITB-086 and BITB-109 as hard
+      prerequisites, or how the chosen option otherwise avoids a fourth grammar)
 - [ ] Turnstile in a WKWebView proved by an **actual token obtained**, not by reading docs — if it
       cannot be, every POST endpoint is unreachable and the plan changes
 - [ ] Apple Developer enrolment, bundle id, macOS-CI cost, and signing strategy decided/owned
@@ -3530,21 +3649,22 @@ text = t2s.transliterate(text)
 - ✅ BITB-003 (Turnstile on Android) — done
 
 **Note (2026-07-29):** the *Out of Scope* line above ("iOS app — future consideration") is now
-superseded. iOS is planned as BITB-084 → BITB-085 → BITB-086 → BITB-087 → BITB-088.
+superseded. iOS is gated Later / Platform Expansion work: BITB-084 → BITB-085 → BITB-086 →
+BITB-109 → BITB-087 → BITB-088.
 
 ---
 
-### 🎯 BITB-087: iOS App v1 — SwiftUI Chat Parity, TestFlight-Ready
+### ⏸️ BITB-087: iOS App v1 — Provisional SwiftUI Chat Parity, TestFlight-Ready
 
-**Status:** 🎯 Todo (blocked on BITB-085; BITB-086 is a hard prerequisite)
-**Size:** XL (2+ weeks; re-estimate once BITB-085 picks the approach)
+**Status:** ⏸️ Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
+**Size:** Provisional XL (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
 **Created:** 2026-07-29
 
 **As an** iPhone user, **I want** an app that streams a Scripture-grounded answer with tappable
 verses, remembers my conversations, and speaks my language, **so that** I get the companion Android
 users already have.
 
-**Why P3:** Large, and correctly gated behind a decision (BITB-085) and a prerequisite (BITB-086).
+**Why P3:** Large, and correctly gated behind a decision (BITB-085), a physical-device Turnstile proof, and hard prerequisites BITB-086 and BITB-109.
 "Same features as Android" is 21k lines of Kotlin across 144 files, so v1 is a deliberate vertical
 slice — chat, verses, translations, 11 locales, history, feedback, settings — with church finder,
 contact form, changelog, What's New, diagnostics and follow-up chips explicitly deferred to a

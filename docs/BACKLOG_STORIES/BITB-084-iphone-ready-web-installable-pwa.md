@@ -4,7 +4,7 @@
 **Priority:** P2
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
-**Part of:** the iOS delivery plan — Stage 0 of BITB-084 → BITB-085 → BITB-086 → BITB-087 → BITB-088.
+**Part of:** the iOS delivery plan — Stage 0 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 This is the only stage that needs no Apple Developer account, no Mac, and no new client codebase,
 and it is worth shipping **even if the native app never happens**.
 
