@@ -196,6 +196,12 @@ Expand capabilities, improve performance, and add user-requested features.
 - Compare translations side-by-side
 - Deeper biblical study
 
+### Gated Platform Expansion
+
+- **iOS App (BITB-087):** Later and unscheduled. Native SwiftUI is provisional until the physical-device
+  Turnstile probe passes and hard prerequisites BITB-086 and BITB-109 are complete. See
+  `docs/ios/delivery-approach.md`.
+
 ---
 
 ## Icebox (Ideas - No Timeline)
@@ -216,7 +222,6 @@ Features and ideas worth considering but not yet prioritized:
 
 ### Platform Expansion
 
-- **iOS App**: native SwiftUI gated on BITB-086 — see `docs/ios/delivery-approach.md` (BITB-085 decision; BITB-087 build, BITB-088 release)
 - **Desktop App**: Electron or Tauri app for Windows/Mac/Linux
 - **Browser Extension**: Quick scripture lookup from any webpage
 - **API for Third Parties**: Public API for scripture search

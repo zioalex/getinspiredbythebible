@@ -9,7 +9,7 @@ Pre-recorded BITB-085 decisions: **no Ko-fi/donate entry point on iOS v1** (Guid
 - [ ] App Store Connect record + bundle `org.voxquieta.app` (BITB-085).
 - [ ] `PrivacyInfo.xcprivacy` + App Privacy label answers (BITB-088, minimal if BITB-087 ships NoOp analytics).
 - [ ] Age rating: biblical grief/violence context + LLM-generated content disclosure; review notes cite pre-generation safety (`CONTENT_SAFETY_ENABLED` on in prod), no user-to-user content.
-- [ ] Guideline 4.2 review notes: native streaming chat, offline history, Dynamic Type, light/dark, 11 locales.
+- [ ] If native SwiftUI passes the BITB-085 gates, Guideline 4.2 review notes cover native streaming chat, offline history, Dynamic Type, light/dark, and 11 locales.
 - [ ] Screenshots, metadata under `ios/fastlane/metadata/` (English-only v1), What's New from `CHANGELOG.md`.
 
 ## General checklist for future Apple policy announcements

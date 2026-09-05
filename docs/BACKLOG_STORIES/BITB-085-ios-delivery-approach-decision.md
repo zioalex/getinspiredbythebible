@@ -1,10 +1,10 @@
-# BITB-085: Decide the iOS Delivery Approach — Committed Decision Record + Apple Prerequisites
+# BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🚧 In Progress (decision recorded in `docs/ios/delivery-approach.md` 2026-09-04; Turnstile device proof + Apple account pending)
+**Status:** 🚧 In Progress (SwiftUI recommendation provisional; Turnstile device proof not executed)
 **Priority:** P2
 **Size:** S–M (1 day of analysis + the account/tooling setup it unblocks)
 **Created:** 2026-07-29
-**Part of:** the iOS delivery plan — Stage 1 of BITB-084 → **BITB-085** → BITB-086 → BITB-087 → BITB-088.
+**Part of:** the iOS delivery plan — Stage 1 of BITB-084 → **BITB-085** → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 **Gates:** BITB-087 and BITB-088 must not start before this closes.
 
 ## User Story
@@ -97,7 +97,7 @@ Android app**, which is the thing most likely to go wrong here.
    novel toolchains.
 
 **Working assumption this plan is built on (the spike's job is to confirm or falsify it):**
-**C — native SwiftUI, gated on BITB-086 removing the fourth-parser cost** — with D's shared-core
+**C — native SwiftUI, gated on BITB-086 and BITB-109 removing and proving the fourth-parser cost** — with D's shared-core
 idea deliberately deferred rather than rejected, because the invasiveness of a KMP migration to the
 live Android app is a bigger near-term risk than duplicated view models.
 
@@ -107,19 +107,22 @@ These are lead-time items; discovering them during BITB-087 wastes days.
 
 - [ ] **Apple Developer Program** enrolment (US$99/yr, individual or organization — note the
       organization route needs a D-U-N-S number and takes materially longer). Record which was
-      chosen and the developer-name string that will appear on the listing.
+      chosen and the developer-name string that will appear on the listing. **Owner:** Maintainer.
+      **Target:** 2026-09-19.
 - [ ] **App Store Connect** app record created, bundle id reserved. Mirror the Android
       convention: `applicationId = "org.voxquieta"`
       (`android/app/build.gradle.kts`), so `org.voxquieta.app` or `org.voxquieta` — decide and
-      record, because a bundle id cannot be changed after first submission.
+      record, because a bundle id cannot be changed after first submission. **Owner:** Maintainer.
+      **Target:** 2026-09-26.
 - [ ] **Build machine reality check.** Xcode requires macOS. Confirm whether a local Mac exists;
       if not, price GitHub-hosted macOS runners (billed at a multiplier vs. Linux minutes) and
       confirm they are acceptable for a repo whose CI is otherwise Linux-only (19 workflows in
-      `.github/workflows/`, none macOS).
+      `.github/workflows/`, none macOS). **Owner:** Maintainer. **Target:** 2026-09-12.
 - [ ] **Signing strategy** decided: manual certificates/profiles vs. fastlane `match` vs. Xcode
       Cloud. The Android precedent is CI-injected secrets
       (`KEYSTORE_PATH`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`, resolved in
       `android/app/build.gradle.kts`); prefer the analogous approach for consistency.
+      **Owner:** Maintainer. **Target:** 2026-09-26.
 - [ ] **Turnstile feasibility spiked for real.** iOS must reproduce the whole state machine in
       `android/.../interceptors/TurnstileInterceptor.kt`: `X-Turnstile-Token` on POSTs only,
       single-use tokens consumed on every attached-token request, 403 → reset widget → wait longer
@@ -127,24 +130,26 @@ These are lead-time items; discovering them during BITB-087 wastes days.
       the Cloudflare widget (`android/.../presentation/components/TurnstileWebView.kt`). **Verify a
       WKWebView can obtain a token against the production site key before committing to a native
       client** — if it cannot, every POST endpoint is unreachable and the whole plan changes.
+      **Owner:** Maintainer. **Target:** 2026-09-12.
 - [ ] **Donation-link decision recorded.** BITB-074 plans an in-app "Support us" link to Ko-fi.
       Apple treats donations far more restrictively than Google Play's carve-out that BITB-074
       relies on (Guideline 3.2.1(vi) limits donation collection to approved nonprofit
       organizations; non-nonprofits are pushed to in-app purchase, and external purchase links are
       an entitlement-gated exception). **The default for iOS v1 is: no donate entry point in the
       app.** Record that decision here so BITB-074 does not quietly add one and trigger a
-      rejection.
+      rejection. **Owner:** Maintainer. **Target:** 2026-09-04 (recorded in the provisional decision
+      record).
 
 ## Acceptance Criteria
 
-- [ ] A committed decision record at `docs/ios/delivery-approach.md` (create `docs/ios/`, mirroring
+- [ ] A version-controlled provisional decision record at `docs/ios/delivery-approach.md` (create `docs/ios/`, mirroring
       the existing `docs/android/`) containing: the four options, each rated against all seven
       criteria with evidence (not adjectives), the decision, the reasoning, and the conditions that
       would reverse it.
-- [ ] The fourth-parser question is answered concretely: either BITB-086 is a stated hard
-      prerequisite of BITB-087, or the record explains precisely how the chosen option avoids a
-      fourth grammar.
-- [ ] Every prerequisite checkbox above is either done or has a named owner and a date.
+- [ ] The fourth-parser question is answered concretely: either BITB-086 and BITB-109 are stated
+      hard prerequisites of BITB-087, or the record explains precisely how the chosen option avoids
+      a fourth grammar.
+- [ ] Every prerequisite checkbox above is either done or has a named owner and an ISO target date.
 - [ ] The Turnstile WKWebView feasibility question is answered by an **actual test** — a token
       obtained (or provably not obtainable) — not by reading documentation.
 - [ ] `docs/ROADMAP.md:219` and `docs/ARCHITECTURE.md:926` are corrected to point at this decision
@@ -175,6 +180,7 @@ this story exists to prevent:
 
 - **BITB-084** — the PWA baseline every option must beat.
 - **BITB-086** — the prerequisite that makes a native client affordable.
+- **BITB-109** — the hard prerequisite that proves the citation contract in a real client.
 - **BITB-059** — the parser-unification story whose scope this decision directly affects.
 - **BITB-012** — the Android → production story; the precedent for how this repo takes an app to a
   store, and the story whose *Out of Scope* line ("iOS app — future consideration") this closes.
