@@ -40,7 +40,8 @@ name: Search Eval — Full
 # deploy pipeline's DDL-capable Postgres admin credentials (the ones
 # run-migrations uses), even though this job only ever issues SELECTs. It
 # authenticates instead as a dedicated `search_eval_ro`
-# Postgres role (provisioned by api/alembic/versions/r0005_*.py, with
+# Postgres role (provisioned by api/alembic/versions/r0005_*.py, with topic
+# table grants added by r0006, and
 # `default_transaction_read_only = on` enforced by the database itself, not
 # just by convention) and reads that role's password from the
 # SEARCH_EVAL_DB_PASSWORD secret, scoped to a `search-eval` GitHub
@@ -78,7 +79,8 @@ name: Search Eval — Full
 #   topic_boost_factor: comma-separated topic_boost_factor sweep values
 #            (BITB-104, e.g. "0.0,0.1,0.2,0.4"), blank = CLI default.
 #            Only meaningful with configs including topic_boosted; requires
-#            eval-prod (verse_topics is never populated on eval-smoke).
+#            route=prod. route=both/smoke is incompatible because verse_topics
+#            is never populated on eval-smoke, which hard-errors by design.
 
 # yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
 "on":
@@ -88,7 +90,7 @@ name: Search Eval — Full
   workflow_dispatch:
     inputs:
       route:
-        description: "Which route(s) to run"
+        description: "Which route(s) to run (topic_boosted requires prod)"
         type: choice
         options:
           - both
