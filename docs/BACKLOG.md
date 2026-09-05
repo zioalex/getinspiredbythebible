@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-04 (BITB-085 decision recorded)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1594,7 +1594,7 @@ separator/range grammar and script-class alternations.
 **Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side ACs
 
 `citations` currently ships to nobody: web and Android still linkify with their own regexes, so the
-contract's real-world correctness is untested — and BITB-087 (iOS) is scheduled to depend on a
+contract's real-world correctness is untested — and BITB-087 (iOS) is planned to depend on a
 contract no client has exercised. The deferral was correct (PR #983 owns the same files), so this is
 unblocked the moment #983 merges.
 
@@ -3020,9 +3020,9 @@ un-versioned service worker pinning users to a stale shell.
 
 ---
 
-### 🎯 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
+### 🚧 BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (SwiftUI recommendation provisional; physical-device Turnstile proof and dated prerequisites remain open)
 **Size:** S–M (1 day of analysis + the setup it unblocks)
 **Created:** 2026-07-29
 
@@ -3038,8 +3038,8 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 - [ ] `docs/ios/delivery-approach.md` rates PWA-only / WebView wrapper / native SwiftUI / KMP-shared
       against 7 weighted criteria with evidence, and records the decision + what would reverse it
-- [ ] The fourth-verse-parser question is answered concretely (BITB-086 as hard prerequisite, or how
-      the chosen option otherwise avoids a fourth grammar)
+- [ ] The fourth-verse-parser question is answered concretely (BITB-086 and BITB-109 as hard
+      prerequisites, or how the chosen option otherwise avoids a fourth grammar)
 - [ ] Turnstile in a WKWebView proved by an **actual token obtained**, not by reading docs — if it
       cannot be, every POST endpoint is unreachable and the plan changes
 - [ ] Apple Developer enrolment, bundle id, macOS-CI cost, and signing strategy decided/owned
@@ -3491,21 +3491,22 @@ text = t2s.transliterate(text)
 - ✅ BITB-003 (Turnstile on Android) — done
 
 **Note (2026-07-29):** the *Out of Scope* line above ("iOS app — future consideration") is now
-superseded. iOS is planned as BITB-084 → BITB-085 → BITB-086 → BITB-087 → BITB-088.
+superseded. iOS is gated Later / Platform Expansion work: BITB-084 → BITB-085 → BITB-086 →
+BITB-109 → BITB-087 → BITB-088.
 
 ---
 
-### 🎯 BITB-087: iOS App v1 — SwiftUI Chat Parity, TestFlight-Ready
+### ⏸️ BITB-087: iOS App v1 — Provisional SwiftUI Chat Parity, TestFlight-Ready
 
-**Status:** 🎯 Todo (blocked on BITB-085; BITB-086 is a hard prerequisite)
-**Size:** XL (2+ weeks; re-estimate once BITB-085 picks the approach)
+**Status:** ⏸️ Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
+**Size:** Provisional XL (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
 **Created:** 2026-07-29
 
 **As an** iPhone user, **I want** an app that streams a Scripture-grounded answer with tappable
 verses, remembers my conversations, and speaks my language, **so that** I get the companion Android
 users already have.
 
-**Why P3:** Large, and correctly gated behind a decision (BITB-085) and a prerequisite (BITB-086).
+**Why P3:** Large, and correctly gated behind a decision (BITB-085), a physical-device Turnstile proof, and hard prerequisites BITB-086 and BITB-109.
 "Same features as Android" is 21k lines of Kotlin across 144 files, so v1 is a deliberate vertical
 slice — chat, verses, translations, 11 locales, history, feedback, settings — with church finder,
 contact form, changelog, What's New, diagnostics and follow-up chips explicitly deferred to a
