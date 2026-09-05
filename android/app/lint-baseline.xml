@@ -4,9 +4,9 @@
     New issues introduced after this baseline was generated will still fail
     the build (abortOnError = true).
 
-    To regenerate after intentionally suppressing new issues, run:
+    To regenerate after reviewing and accepting existing issues, run locally:
         ./gradlew lintDebug -Dlint.baselines.continue=true
-    then commit the updated file.
+    Never use baseline-generation mode in CI; then commit the reviewed file.
 -->
 <issues format="6" by="lint 8.4.2" type="baseline" client="gradle" dependencies="false" name="lint" variant="debug" version="8.4.2">
 </issues>

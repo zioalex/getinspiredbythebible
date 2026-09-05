@@ -47,6 +47,9 @@ composeMarkdown = "0.7.2"
 appcompat = "1.7.0"
 robolectric = "4.14.1"
 playAppUpdate = "2.1.0"
+# Core-library desugaring (BITB-122): provides newer Java library APIs on
+# Android 7.x when referenced by the app or its dependencies.
+desugarJdkLibs = "2.0.3"
 
 [libraries]
 # AndroidX Core
@@ -113,6 +116,9 @@ androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscree
 
 # Play In-App Update
 play-app-update = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
+
+# Core-library desugaring runtime (BITB-122, minSdk 24)
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -139,13 +139,7 @@ jobs:
           google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Run lint
-        run: |
-          # -Dlint.baselines.continue=true: if lint finds issues not yet in the
-          # baseline, it writes them into lint-baseline.xml and exits 0 on the
-          # *first* new-issue run (baseline-update mode).  On a clean run with no
-          # new issues the flag is a no-op.  abortOnError=true in build.gradle.kts
-          # ensures genuine new errors still fail future runs.
-          ./gradlew lintDebug --no-daemon -Dlint.baselines.continue=true
+        run: ./gradlew lintDebug --no-daemon
         working-directory: android
 
       - name: Print lint XML report to stdout (rule-ID diagnosis)
@@ -308,12 +302,68 @@ jobs:
           path: android/app/build/outputs/androidTest-results/
           retention-days: 7
 
+  # Android 7 compatibility: install the minSdk build and exercise the production
+  # TLS chain through the app's domain-specific network security configuration.
+  api-compatibility:
+    name: API ${{ matrix.api-level }} Compatibility
+    runs-on: ubuntu-latest
+    needs: [compile-check]
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [24, 25]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Write google-services.json
+        uses: ./.github/actions/write-google-services
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
+      - name: Enable KVM group for emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install, launch, and test production TLS
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          TEST_CLASS: -Pandroid.testInstrumentationRunnerArguments.class=org.voxquieta.app.ApiCompatibilityTest
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86
+          target: default
+          emulator-boot-timeout: 600
+          emulator-options: >-
+            -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            ./gradlew installDebug --no-daemon -PbaseUrl=https://api.voxquieta.org/
+            adb shell am start -W -n org.voxquieta.debug/org.voxquieta.app.MainActivity
+            ./gradlew connectedDebugAndroidTest --no-daemon -PbaseUrl=https://api.voxquieta.org/ "$TEST_CLASS"
+          working-directory: android
+
   # ---------------------------------------------------------------------------
-  # Prod APK build (debuggable, points to production backend) +
-  # APK security flags check (merged here to avoid rebuilding the APK)
+  # Prod APK build (debuggable, points to production backend), release AAB
+  # verification, and APK security flags check.
   # ---------------------------------------------------------------------------
   build:
-    name: Build Prod APK
+    name: Build Android Artifacts
     runs-on: ubuntu-latest
     # secrets-scan must pass before we ship an APK — a build containing a
     # leaked secret must not produce a downloadable artifact.
@@ -345,6 +395,56 @@ jobs:
             -PbaseUrl=${{ vars.BACKEND_API_URL || 'https://api.voxquieta.org/' }} \
             -PfrontendUrl=${{ vars.FRONTEND_URL || 'https://voxquieta.org' }}
         working-directory: android
+
+      - name: Build PR release AAB with ephemeral signing key
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/pr-release.keystore
+          KEYSTORE_PASSWORD: pr-build-only # pragma: allowlist secret
+          KEY_ALIAS: pr-build
+          KEY_PASSWORD: pr-build-only # pragma: allowlist secret
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" -keypass "$KEY_PASSWORD" \
+            -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=PR Build, O=Vox Quieta, C=US"
+          VERSION_NAME=$(jq -r '."."' ../.release-please-manifest.json)
+          ./gradlew bundleRelease --no-daemon \
+            -PversionCode=${{ github.event.pull_request.number || github.run_number }} \
+            -PversionName="$VERSION_NAME" \
+            -PbaseUrl=https://api.voxquieta.org/
+        working-directory: android
+
+      - name: Verify release AAB and merged manifest metadata
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -s "$AAB"
+          unzip -t "$AAB"
+          MANIFEST=""
+          while IFS= read -r candidate; do
+            if grep -q 'package="org.voxquieta"' "$candidate"; then
+              MANIFEST="$candidate"
+              break
+            fi
+          done < <(find android/app/build/intermediates \
+            -path '*release*' -name AndroidManifest.xml -type f)
+          test -n "$MANIFEST"
+          VERSION_NAME=$(jq -r '."."' .release-please-manifest.json)
+          grep -q 'android:minSdkVersion="24"' "$MANIFEST"
+          grep -q 'android:targetSdkVersion="36"' "$MANIFEST"
+          grep -q "android:versionName=\"$VERSION_NAME\"" "$MANIFEST"
+          grep -q 'android:networkSecurityConfig="@xml/network_security_config"' "$MANIFEST"
+
+      - name: Upload PR release AAB
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-pr-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
 
       - name: Check AndroidManifest security flags
         run: |

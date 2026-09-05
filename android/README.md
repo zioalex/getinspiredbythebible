@@ -8,9 +8,9 @@ Built with Kotlin, Jetpack Compose, and MVVM Clean Architecture.
 | Tool | Version | Notes |
 |------|---------|-------|
 | JDK | 17 | [Temurin](https://adoptium.net/) recommended |
-| Android Studio | Hedgehog (2023.1.1+) | or Ladybug / Meerkat |
-| Android SDK | API 35 (compile), API 24 (min) | installed via SDK Manager |
-| Gradle | 8.9 | managed by the wrapper (`./gradlew`) |
+| Android Studio | Version with AGP 9.0 support | current stable recommended |
+| Android SDK | API 36 (compile), API 24 (min) | installed via SDK Manager |
+| Gradle | 9.1.0 | managed by the wrapper (`./gradlew`) |
 
 > **No Android Studio?** You can build from the command line as long as you have
 > JDK 17 and the Android SDK installed. Set `ANDROID_HOME` to your SDK path.
@@ -220,9 +220,9 @@ export KEY_PASSWORD=your-key-password
 
 ## Releasing
 
-`versionCode` and `versionName` are not hard-coded — they are injected as Gradle
-properties so CI can set them without touching source files.  The defaults
-(`versionCode = 1`, `versionName = "1.0.0"`) are only used for local debug builds.
+`versionCode` and `versionName` are not hard-coded. CI can inject both as Gradle
+properties without touching source files. By default, `versionCode` is `1` and
+`versionName` comes from the repository's `.release-please-manifest.json`.
 
 To build a production AAB for Play Store submission, pass both properties:
 
