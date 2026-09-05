@@ -1,4 +1,4 @@
-# BITB-116: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
+# BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
 **Status:** 🚧 In Progress
 **Priority:** P1 — user-visible install failure on a real device (Android 7.1.1 tablet, API 25)
@@ -30,8 +30,14 @@
    `desugar-jdk-libs` library entry.
 2. `android/app/build.gradle.kts` — `minSdk 26 -> 24`; `compileOptions`
    `isCoreLibraryDesugaringEnabled = true`; `coreLibraryDesugaring(...)`
-   dependency; keep `useLegacyPackaging = false` (mandatory below 26 for
-   16 KB page-size compliance) and `targetSdk/compileSdk 36` untouched.
+   dependency; retain explicit `useLegacyPackaging = false` so native libraries
+   stay uncompressed and aligned, and leave `targetSdk/compileSdk 36` untouched.
+3. Trust the official ISRG Root X1 certificate alongside system CAs only for
+   `api.voxquieta.org`, covering Android 7.0's older trust store without changing
+   trust for any other host. Source: `https://letsencrypt.org/certs/isrgrootx1.pem`;
+   SHA-256: `96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6`.
+4. CI installs, launches, and exercises production TLS on API 24 and 25, and
+   builds an ephemeral-signed release AAB with manifest metadata checks.
 
 Explicitly **not** in scope: lowering `targetSdk`, multi-APK/flavors,
 dropping any dependency.
@@ -42,6 +48,7 @@ dropping any dependency.
 - [ ] Desugaring enabled; release AAB builds without `MethodHandle` / desugar errors
 - [ ] `lintDebug` passes with no new `NewApi` errors
 - [ ] `testDebugUnitTest` passes
+- [ ] Production API TLS succeeds with hostname verification on API 24 and 25
 - [ ] Installs/launches on API 24/25 emulator (or documented manual tablet check);
       core flows (launch, chat, settings, locale) smoke-tested on old + new API
 - [ ] Play Pre-launch + 16 KB check clean; single AAB serves both old and new devices

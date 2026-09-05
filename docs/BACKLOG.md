@@ -195,7 +195,7 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🚧 BITB-116: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
+### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
 **Status:** 🚧 In Progress
 **Priority:** P1
@@ -207,15 +207,16 @@ positives on Bible queries. This unblocks it.
 app from the same Play listing, **so that** I am not blocked by the recent targetSdk 36 update.
 
 **Root cause:** `minSdk 26` filters API 25 out of Play + sideload fails. Single-AAB
-fix: `minSdk 24` + core-library desugaring, `targetSdk/compileSdk 36` untouched
+fix: `minSdk 24` + core-library desugaring and scoped API TLS trust,
+`targetSdk/compileSdk 36` untouched
 (Play requires 36 by 2026-08-31).
 
 **Acceptance Criteria (summary):**
 
 - [ ] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
-- [ ] `lintDebug` + `testDebugUnitTest` pass; installs/launches on API 24/25 emulator
+- [ ] `lintDebug` + `testDebugUnitTest` pass; installs/launches and reaches the API on API 24/25 emulator
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-116-android-7-tablet-minsdk-24.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-122-android-7-tablet-minsdk-24.md`
 
 ---
 

@@ -6,6 +6,14 @@
         <domain includeSubdomains="false">10.0.3.2</domain>   <!-- Genymotion → host -->
         <domain includeSubdomains="false">localhost</domain>
     </domain-config>
+    <!-- Android 7.0 predates ISRG Root X1. Scope the bundled trust anchor to the API only. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">api.voxquieta.org</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="@raw/isrg_root_x1"/>
+        </trust-anchors>
+    </domain-config>
     <!-- All other traffic must use HTTPS -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>

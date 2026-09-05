@@ -65,7 +65,7 @@ android {
 
     defaultConfig {
         applicationId = "org.voxquieta"
-        // BITB-116: minSdk 24 (Android 7.0) so the API-25 tablet can install from the
+        // BITB-122: minSdk 24 (Android 7.0) so the API-25 tablet can install from the
         // same Play listing. targetSdk/compileSdk stay 36 for Play compliance.
         minSdk = 24
         targetSdk = 36
@@ -140,8 +140,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // BITB-116: required for minSdk < 26 — backports java.time/stream/nio used
-        // by Kotlin/Room/DataStore onto Android 7.x (API 24-25).
+        // Make newer Java library APIs used by the app and its dependencies available
+        // on Android 7.x. Language desugaring itself is handled separately by AGP/D8.
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -152,10 +152,8 @@ android {
 
     packaging {
         jniLibs {
-            // Store native (.so) libraries uncompressed so bundletool can page-align
-            // them on 16 KB boundaries in the AAB. This was the default for minSdk 26;
-            // with BITB-116 minSdk 24 it must stay explicit for Google Play's
-            // 16 KB memory-page-size compliance (paired with AGP 8.7+ zipalign).
+            // Store native libraries uncompressed so bundletool can preserve their
+            // page alignment for Google Play's 16 KB memory-page-size requirement.
             useLegacyPackaging = false
         }
     }
@@ -192,13 +190,7 @@ android {
     lint {
         baseline = file("lint-baseline.xml")
         checkDependencies = false
-        // TODO: Re-enable abortOnError=true once lint-baseline.xml is populated.
-        // Steps to regenerate the baseline in a full Android SDK environment:
-        //   1. ./gradlew lintDebug -Dlint.baselines.continue=true
-        //   2. Commit the updated lint-baseline.xml
-        //   3. Set abortOnError = true here
-        // Note: AGP 8.4.2 does not honour -Dlint.baselines.continue=true for ERROR-severity
-        // issues in the same run; run the task twice if needed.
+        // CI runs normal lint mode so new issues fail instead of updating the baseline.
         abortOnError = true
         warningsAsErrors = false   // Warnings (e.g. from compose-markdown) do not elevate to errors
         // Suppress rules that fire on generated/third-party code even with checkDependencies=false
@@ -222,7 +214,7 @@ ksp {
 }
 
 dependencies {
-    // BITB-116: desugared java.time/stream/nio runtime for minSdk 24 (Android 7.x).
+    // BITB-122: Java library API backports for minSdk 24 (Android 7.x).
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core
     implementation(libs.androidx.core.ktx)
