@@ -2188,22 +2188,24 @@ limit to bend to how I am actually using the app — more room when I am genuine
 no loss of what we were just talking about when I hit it, **so that** a reflective nudge does not
 read as "you are done now".
 
-The cap BITB-024 shipped is a **lifetime** total of 10 per `session_id` (no time window at all;
-`rate_limit_session_max_requests`). It is already soft — "Start New Session" rotates the id and
-resets the counter — but rotation **wipes the conversation**, so it protects nothing and annoys
-exactly the users who are most engaged. Proposal: split the pastoral nudge from the cost guard —
-raise the threshold, offer *Continue this conversation* (rotate the id, keep the thread) next to
-*Start fresh*, interpolate the count into copy (the literal "10" is hardcoded in 11 web locales
-plus Android `strings.xml`, so today a bump makes the copy lie), and add a per-IP daily cap as the
-real ceiling that rotation cannot reset.
+The cap BITB-024 shipped is a total of 10 per `session_id` (`rate_limit_session_max_requests`). It
+has no rolling request window, but it is not literally lifetime: the in-memory backend expires idle
+counters from the configurable 3,600-second TTL, while production Postgres uses an hourly
+`pg_cron` purge with a hardcoded one-hour horizon, so deletion occurs on the first hourly run after
+the counter becomes eligible. It is already soft — "Start New Session" rotates the id and resets
+the counter — but rotation **wipes the conversation**, so it protects nothing and annoys exactly
+the users who are most engaged. Proposal: split the pastoral nudge from the cost guard, preserve
+the thread on continue, interpolate the hardcoded copy, instrument outcomes before selecting a
+threshold, and consider an IP ceiling only after trusted-ingress and shared-NAT analysis.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Threshold data-driven: a week of `rate_limit_lifetime` violations justifies the new default
+- [ ] Instrumentation deployed and validated before threshold/NAT data selects either limit
 - [ ] Limit genuinely tunable — no literal "10" left in any locale, count interpolated everywhere
 - [ ] "Continue this conversation" preserves the thread and the next message returns 200
 - [ ] Clients read the limit from the server (header/config), never a client-side constant
-- [ ] New per-IP daily cap, distinct error code and non-pastoral message, unaffected by rotation
+- [ ] Trusted proxy chain precedes any IP cap; shared-IP false positives are measured and mitigated
+- [ ] Config scope covers API, Terraform/env manifest, web/Android clients, usage and security docs
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-118-flexible-session-message-limit.md`
 

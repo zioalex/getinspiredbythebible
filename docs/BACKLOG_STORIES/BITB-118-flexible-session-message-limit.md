@@ -31,15 +31,15 @@ conversation it was meant to deepen.
 
 ## What the Limit Actually Is Today
 
-Worth stating precisely, because "ten per session" is easy to mis-describe — **there is no time
-window on it at all.**
+Worth stating precisely, because "ten per session" is easy to mis-describe: this is not a rolling
+request window, but an idle purge eventually resets the retained total.
 
 | Knob (`api/config.py`) | Default | Scope |
 |---|---|---|
-| `rate_limit_session_max_requests` | **10** | **Lifetime** total per `session_id` — no window |
+| `rate_limit_session_max_requests` | **10** | Total per retained `session_id`; reset when its idle row is purged |
 | `rate_limit_requests_per_session_minute` | 10 | Per session, 60s sliding window |
 | `rate_limit_requests_per_minute` | 20 | Per IP, 60s sliding window |
-| `rate_limit_session_ttl_seconds` | 3600 | How long an idle session's counter is retained |
+| `rate_limit_session_ttl_seconds` | 3600 | In-memory backend idle TTL; see production caveat below |
 
 Enforcement lives in `api/utils/rate_limiter.py` (Postgres-backed since BITB-061,
 `rate_limit_sessions.total_requests`). The lifetime check deliberately runs *before* the
@@ -47,6 +47,16 @@ per-minute check so the farewell UX always wins. On the 11th message the backend
 `429 {"error": "session_lifetime_limit"}` (`api/utils/security.py:247`); web
 (`ChatIsland.tsx:726`) and Android (`ChatViewModel.kt:1230`) turn that into a localized
 "take a break" message plus a **Start New Session** button.
+
+The one-hour idle reset is not a precise rolling expiry in production. The in-memory store removes
+a counter after `rate_limit_session_ttl_seconds` of inactivity, but the Postgres store does not read
+that setting. Migration `scripts/migrations/010_schedule_rate_limit_purge.sql` runs an hourly
+`pg_cron` job at minute 15 with a **hardcoded** `interval '1 hour'`. A production counter therefore
+survives until the first purge after it has been idle for an hour (roughly one to two hours), and
+changing the application setting alone does not change that behavior. This story must either make
+the production purge horizon configurable from the same source or document and test the deliberate
+fixed horizon; it must not describe the current cap as an unqualified lifetime total or the TTL as
+an exact one-hour reset.
 
 ### The limit is already soft — and that is the problem
 
@@ -96,9 +106,13 @@ Bump the setting and eleven locales start lying to the user. The count must be i
 - **Expose the limit to clients.** Return `X-Session-Limit` / `X-Session-Remaining` headers (or add
   the pair to the existing config/health surface) so web and Android can render "5 messages left"
   and never drift from the server's value.
-- **Put a real ceiling where it belongs.** Add `rate_limit_ip_daily_max_requests` (suggest 150,
-  generous for a human, cheap insurance against a scripted loop) so cost is bounded by something
-  that rotation cannot reset. This is the guard the session cap was never actually providing.
+- **Put a real ceiling where it belongs, after ingress identity is trustworthy.** First stop trusting
+  arbitrary client-supplied `X-Forwarded-For` / `X-Real-IP`: accept forwarded addresses only from
+  the known production ingress and define/test the trusted-proxy chain. Then evaluate a
+  `rate_limit_ip_daily_max_requests` ceiling using production measurements. The selected cap must
+  account for carrier-grade NAT, households, schools, churches, VPNs and other shared egress; an IP
+  is neither a person nor a stable identity. Without both prerequisites, a daily IP cap is either
+  spoofable or risks blocking many legitimate users together.
 
 ### Alternatives considered
 
@@ -112,16 +126,22 @@ Bump the setting and eleven locales start lying to the user. The count must be i
 ### Measure before choosing the number
 
 `ViolationType.RATE_LIMIT_LIFETIME` is already logged on every hit
-(`api/utils/security.py:33,239`). Before picking 25, pull a week: how many sessions reach 10, how
-many rotate and keep going, and what the message count looks like *after* rotation. If the median
-"engaged" user stops at 13, the number is 15, not 25. This is one query, not a spike.
+(`api/utils/security.py:33,239`), but that event alone cannot reliably measure whether a user rotates
+to a new ID or how long the conversation continues afterward. Before choosing 25 or any daily IP
+cap, add privacy-reviewed, measurable instrumentation with documented event definitions and a
+query/dashboard for: sessions reaching the threshold, *Start fresh* vs *Continue* selection,
+post-threshold message depth, repeat thresholds, and the distribution of distinct sessions per
+trusted client IP. Validate that the events arrive in production, then collect an agreed observation
+window and record sample size and percentiles here. No threshold decision is accepted from
+anecdotes, uncorrelatable logs, or an assumed query.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] A week of `rate_limit_lifetime` violation data is summarized in this story (sessions hitting
-      the cap, rotation rate, post-rotation length) and the chosen default is justified by it
+- [ ] Privacy-reviewed instrumentation and its query/dashboard are deployed and validated before
+      any threshold decision; this story records the observation window, sample size, threshold
+      hits, action selected, post-threshold depth, repeat thresholds and relevant percentiles
 - [ ] `rate_limit_session_max_requests` is genuinely tunable: changing it changes the enforced cap
       **and** every user-facing string, with no code or translation edit
 - [ ] The count is interpolated in all 11 web locales and in Android `strings.xml` (all locales);
@@ -132,14 +152,25 @@ many rotate and keep going, and what the message count looks like *after* rotati
       next message returns 200 (regression test — this is the BITB-024 bug's cousin)
 - [ ] "Start fresh" still clears the thread exactly as today
 - [ ] Clients read the limit from the server (header or config endpoint); no client-side constant
+- [ ] Before an IP cap ships, forwarded headers are trusted only from configured production ingress,
+      with direct-spoof and multi-proxy tests; deployment topology and trust assumptions are recorded
+- [ ] Shared-IP/NAT measurements are reviewed (carrier NAT, households, institutions and VPNs), and
+      the selected daily cap and false-positive safeguards are justified from those measurements
 - [ ] New per-IP daily cap enforced in `rate_limiter.py` for both the Postgres and in-memory
       backends, with its own error code distinct from `session_lifetime_limit`
 - [ ] The per-IP cap's 429 renders a *different*, non-pastoral message (it is an abuse guard, not
       an invitation to reflect)
 - [ ] Backend tests cover: threshold enforced at the configured value, continue-path resets the
       counter, per-IP daily cap blocks after N and is unaffected by session rotation
-- [ ] `.env.production.example` documents both knobs
-- [ ] Docs updated: `docs/USAGE_TRACKING.md` and the BITB-024 story's "Out of Scope" note
+- [ ] Idle expiry has one defined production behavior: the Postgres purge no longer silently
+      hardcodes a horizon that can drift from `rate_limit_session_ttl_seconds`, with boundary tests
+- [ ] Configuration/deployment scope is complete: `api/config.py`, Terraform variables and Container
+      App environment manifest (`deployment/variables.tf`, `deployment/main.tf`), and
+      `.env.production.example` expose and document the session, expiry and IP-cap knobs
+- [ ] Both config consumers are updated: the backend `GET /config` contract plus web and Android
+      config clients consume the published values and retain a documented fail-safe fallback
+- [ ] Docs updated: `docs/USAGE_TRACKING.md`, `docs/SECURITY.md`, and the BITB-024 story's "Out of
+      Scope" note, including trusted-ingress and shared-IP limitations
 
 ---
 
@@ -157,6 +188,7 @@ many rotate and keep going, and what the message count looks like *after* rotati
 
 1. **Does "Continue" keep the reflection prompt?** Recommendation: yes — show the message, but let
    the user decide when to step away. A nudge that can be declined is still a nudge.
-2. **Is unlimited-with-a-nudge acceptable**, given the per-IP daily cap becomes the real ceiling?
-   If not, an explicit maximum ("you may continue twice") is a small delta on this design.
-3. **25, or something the data picks?** Recommendation: let the data pick; 25 is the placeholder.
+2. **Is unlimited-with-a-nudge acceptable**, if trusted-ingress and NAT analysis support a separate
+   abuse ceiling? If not, an explicit maximum ("you may continue twice") is a small delta.
+3. **What threshold does the new instrumentation support?** Treat 25 only as a hypothesis; do not
+   select it until the prerequisite telemetry has produced a representative observation window.
