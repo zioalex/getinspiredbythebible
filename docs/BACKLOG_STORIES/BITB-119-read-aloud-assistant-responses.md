@@ -5,8 +5,9 @@
 **Size:** L (M per platform + a shared text-normalization layer; see Cost of Implementation)
 **Created:** 2026-09-04
 **Prompted by:** product request — "speak loudly the Vox Quieta response". Paired with BITB-120
-(voice input); the two are deliberately separate stories because they share no code, no vendor
-decision, and no legal footprint.
+(voice input). They share rollout/configuration and some locale work, but remain separate because
+output and input have independent user value, platform APIs, permissions, data flows, failure modes
+and release risk; either can ship or be withdrawn without the other.
 
 ## User Story
 
@@ -35,7 +36,8 @@ fix.
 ## The Decision That Has to Come First: On-Device vs Cloud
 
 This is the whole cost question, and it is a **product decision, not a technical one** — the two
-options differ by ~0 vs ~real money, and by a small vs a heavy legal footprint.
+options differ by no metered vendor charge vs a metered service, and by a small vs a heavy legal
+footprint.
 
 ### Option 1 — Platform speech synthesis, on the device (recommended for v1)
 
@@ -44,16 +46,20 @@ options differ by ~0 vs ~real money, and by a small vs a heavy legal footprint.
 | API | `window.speechSynthesis` (Web Speech API) | `android.speech.tts.TextToSpeech` (platform) |
 | New dependency | none | none |
 | New permission | none | none |
-| Backend change | none | none |
+| Backend change | Remote flag in `GET /config` only; no speech endpoint | Same |
 | Runtime cost | **€0** | **€0** |
-| Works offline | depends on OS voice | yes, once language data is installed |
+| Local-only eligibility | `SpeechSynthesisVoice.localService === true` | `!Voice.isNetworkConnectionRequired` |
 
 **What it costs us instead:** voice quality and coverage are the *user's* device's problem, and it
 varies a lot across our eleven locales (`frontend/messages/`: ar, de, en, es, fr, hi, it, ko, pt,
 ru, zh). macOS/iOS and modern Android have good voices for the big languages; Windows is adequate;
 desktop Linux browsers frequently have **no** voice installed at all; Arabic, Hindi and Korean
-coverage is the least predictable. The feature must therefore be **feature-detected and hidden**,
-per locale, rather than shown-and-broken.
+coverage is the least predictable. The v1 privacy boundary is **local synthesis only**: web may
+select only a `SpeechSynthesisVoice` whose `localService` is `true`, and Android may select only an
+installed `Voice` whose `isNetworkConnectionRequired` is `false`. Unknown, remote or
+network-required voices are ineligible, even if they sound better. The feature must therefore be
+feature-detected and hidden per locale rather than shown-and-broken; offline behavior is verified
+with networking disabled, not inferred from engine installation.
 
 Known sharp edges to budget for, not discover later:
 
@@ -71,21 +77,11 @@ A new endpoint (`POST /chat/speech`) synthesising audio server-side, protected l
 paths (`require_turnstile`, `require_rate_limit`), with a content-hash cache so the same answer is
 never billed twice.
 
-Indicative list prices (**verify before committing — these move, and this is a pre-implementation
-estimate, not a quote**):
-
-| Vendor | Unit price | Per answer (≈1 000 chars) | Per 1 000 answers listened |
-|---|---|---|---|
-| Azure AI Speech, neural | ~$15–16 / 1M chars | ~$0.016 | ~$16 |
-| Google Cloud TTS, Neural2 | ~$16 / 1M chars | ~$0.016 | ~$16 |
-| Google Cloud TTS, Standard | ~$4 / 1M chars | ~$0.004 | ~$4 |
-| OpenAI `tts-1` | ~$15 / 1M chars | ~$0.015 | ~$15 |
-| ElevenLabs | ~$0.15–0.30 / 1k chars | ~$0.15–0.30 | ~$150–300 |
-
 Answer length is bounded by `llm_max_tokens = 1024` (`api/config.py:25`) — worst case ~3–4 k
-characters, typically far less. **Measure the real distribution from production before adopting any
-of these numbers**; the multiplier that actually decides the bill is the *listen rate*, which we
-cannot know until Option 1 ships and is instrumented.
+characters, typically far less. A cloud follow-up must attach dated vendor pricing sources and a
+cost model based on measured production answer length and listen rate; this story does not assert an
+unsupported unit price. The multiplier that actually decides the bill is the *listen rate*, which
+we cannot know until Option 1 ships and is instrumented.
 
 The per-character price is not the expensive part. The expensive parts are:
 
@@ -98,11 +94,14 @@ The per-character price is not the expensive part. The expensive parts are:
 
 ### Recommendation
 
-**Ship Option 1 behind a flag; treat Option 2 as a separate, later story justified by measured
-demand.** Option 1 is the only version whose runtime cost is genuinely zero and whose privacy story
-is "nothing left your device". If listen-rate telemetry and user feedback later show that device
-voices are the limiting factor in a specific locale (Arabic and Hindi are the likely candidates),
-that is the evidence that buys Option 2 — for those locales only.
+**Ship Option 1 behind a remotely controlled flag; treat Option 2 as a separate, later story
+justified by measured demand.** Add a non-sensitive TTS flag to backend settings and `GET /config`,
+then consume it in the web config path and Android `ConfigResponseDto`; this is a backend config
+change, but not an audio endpoint. Fail closed when config is missing or unavailable. Option 1 is
+the only version whose runtime cost is genuinely zero and whose enforced privacy boundary is
+"nothing left your device". If listen-rate telemetry and user feedback later show that local voices
+are the limiting factor in a specific locale, that is the evidence for a separately reviewed cloud
+story.
 
 ## Cost of Implementation
 
@@ -111,6 +110,7 @@ that is the evidence that buys Option 2 — for those locales only.
 | Speakable-text normalization (markdown → spoken words) | shared spec + per-client impl | M |
 | Web: Listen control, playback state, voice/locale selection, chunking | `ChatMessage.tsx`, `ChatIsland.tsx` | M |
 | Android: `TextToSpeech` lifecycle (DI singleton), audio focus, missing-language handling, Compose state | `ChatMessageItem.kt`, `ChatViewModel.kt`, new `tts/` package | M |
+| Remote rollout flag: backend setting + `GET /config`, web consumer, Android DTO/state | `api/config.py`, `api/main.py`, both clients, deployment env | S |
 | i18n strings × 11 locales × 2 platforms | `frontend/messages/*.json`, `android/app/src/main/res/values*/` | S |
 | Tests: vitest with a mocked `speechSynthesis` (jsdom has none), Android Compose + fake TTS engine | both | M |
 | Changelog / What's New entry | `WhatsNewModal.tsx`, Android `WhatsNewBottomSheet.kt` | S |
@@ -131,7 +131,8 @@ fixture corpus (`tests/fixtures/`), and assert both clients against it.
 What ongoing cost this adds *after* it ships, assuming Option 1:
 
 - **Money:** €0 per request. No backend call, no vendor, no egress.
-- **Backend load:** none. This story does not touch `api/`.
+- **Backend load:** negligible config reads. `api/` changes only to publish the remote flag; message
+  text and audio never enter the backend.
 - **Support surface:** the failure modes are entirely client-side and therefore invisible in our
   existing telemetry unless we add events. Android has `AnalyticsHelper` (`EVENT_*` constants) —
   add `tts_started` / `tts_unavailable` with a locale parameter. The web has no product analytics
@@ -141,11 +142,11 @@ What ongoing cost this adds *after* it ships, assuming Option 1:
 - **Release testing:** a per-release manual pass on real devices across locales, because emulators
   and CI cannot tell us whether a Hindi voice exists on a real phone. This is a recurring cost of
   the feature, not a one-off.
-- **Legal:** Option 1 requires **no** privacy-policy change on web (nothing leaves the browser).
-  Android is a nuance, not a non-issue: the text is handed to the device's TTS engine, which is a
-  third party (Google/Samsung). A one-line disclosure is prudent. Option 2 would require a policy
-  update in eleven locales (`frontend/public/legal/privacy-policy.*.md`) plus a Play Data Safety
-  review — count that as part of Option 2's price, not this story's.
+- **Legal:** Option 1 requires **no** privacy-policy change on web because only `localService` voices
+  qualify. Android similarly rejects voices that report a network requirement; disclose that an
+  installed OS TTS engine processes text locally and verify the claim offline. Option 2 would
+  require a policy update in eleven locales (`frontend/public/legal/privacy-policy.*.md`) plus a
+  Play Data Safety review — count that as part of Option 2's price, not this story's.
 - **Future platforms:** BITB-087 (iOS) inherits this scope — `AVSpeechSynthesizer` plus the same
   normalization rules. Cheap if the rules are specified once; a third rewrite if they are not.
 
@@ -155,6 +156,9 @@ What ongoing cost this adds *after* it ships, assuming Option 1:
       Android — no new screen, no layout redesign
 - [ ] Playback uses the platform synthesizer only; **no audio and no message text is sent to any
       Vox Quieta backend or third-party API** by this story
+- [ ] Local-only policy is enforced, not assumed: web accepts only voices with
+      `localService === true`; Android accepts only voices where
+      `isNetworkConnectionRequired == false`; offline tests prove playback or hide the control
 - [ ] The control is **hidden** (not shown-and-broken) when no voice exists for the message's
       language; Android additionally handles "engine present, language data missing"
 - [ ] Speaking a message stops any message already speaking; leaving the screen / navigating away
@@ -171,14 +175,14 @@ What ongoing cost this adds *after* it ships, assuming Option 1:
       measurability gap is either closed or explicitly accepted in this story's PR description
 - [ ] Tests: web unit tests against a mocked `speechSynthesis` (jsdom provides none); Android tests
       against a fake TTS engine, in the existing Compose test tier
-- [ ] Feature flagged, so it can be disabled without a rollback if device-voice quality proves
-      embarrassing in some locale
+- [ ] Remotely feature flagged through backend settings and `GET /config`, with web and Android
+      config consumers and deployment configuration covered; missing/failed config keeps it off
 - [ ] Changelog + What's New entries on both platforms
 
 ## Risks
 
-- **Voice quality is not ours to control.** A bad Hindi voice reads as *our* product being bad. The
-  feature flag and the per-locale hide rule are the mitigations; be prepared to disable a locale.
+- **Voice quality is not ours to control.** A poor local voice reads as *our* product being bad. The
+  remote feature flag and per-locale hide rule are the mitigations; be prepared to disable it.
 - **Silent divergence between clients** if normalization is re-implemented per platform — the
   BITB-059 family of stories is what that looks like a year later.
 - **Scope creep toward cloud TTS mid-implementation.** If device voices disappoint during
@@ -194,8 +198,8 @@ than a disembodied reading. Test those on hardware, not in an emulator.
 
 ## Related
 
-- **BITB-120** — voice input (the other half of the request); separate vendor, permission and legal
-  footprint, deliberately not merged with this
+- **BITB-120** — voice input (the other half of the request); shares rollout and locale concerns but
+  has an independent permission, data flow and release risk
 - **BITB-087** — iOS chat parity; inherits the normalization rules
 - **BITB-059 / BITB-108 / BITB-113 / BITB-114** — the verse-parser duplication family; the precedent
   for specifying shared text rules once

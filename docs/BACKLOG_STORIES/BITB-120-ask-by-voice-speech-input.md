@@ -6,7 +6,9 @@ after that one even though the two were requested together
 **Size:** L (M on web, M–L on Android because of the runtime permission and Play Data Safety work)
 **Created:** 2026-09-04
 **Prompted by:** product request — "input the user question via voice". The other half, speaking the
-answer, is BITB-119.
+answer, is BITB-119. The stories share remote rollout/configuration and locale work but remain split
+because microphone input has an independent permission, third-party audio data flow, store/legal
+review and failure surface; either capability can ship without the other.
 
 ## User Story
 
@@ -44,7 +46,7 @@ there.
 | Browser/OS support | Chrome, Edge, Safari (incl. iOS 14.5+) — **not Firefox** | all, but see below |
 | New permission | mic prompt (browser-managed), HTTPS required | **`RECORD_AUDIO`** runtime permission — new to `AndroidManifest.xml` |
 | New dependency | none | none |
-| Backend change | none | none |
+| Backend change | Remote flag in `GET /config` only; no transcription endpoint | Same |
 | Runtime cost | **€0** | **€0** |
 
 **"On-device" is not accurate, and the story must not claim it is.** Chrome's implementation streams
@@ -54,17 +56,25 @@ audio to Google's servers. On Android, `SpeechRecognizer` likewise uses the devi
 the networked recognizer. So on both platforms the user's voice reaches a third party — just not
 *us*. That is a disclosure obligation, and it is the single most important fact in this story.
 
+Android must implement a capability ladder rather than treating API level as capability:
+
+1. On API 31+, if `SpeechRecognizer.isOnDeviceRecognitionAvailable(context)` is true, use
+   `createOnDeviceSpeechRecognizer(context)`.
+2. Otherwise, if `SpeechRecognizer.isRecognitionAvailable(context)` is true, use the platform
+   recognition service and clearly disclose that it may require a network connection and send audio
+   to the service provider.
+3. Otherwise, hide the in-app microphone and leave typed input and keyboard dictation available.
+
+On Android 11+ the availability checks are also subject to package visibility. Add a `<queries>`
+intent for `android.speech.RecognitionService` to `AndroidManifest.xml`; without it an installed
+recognizer can be reported unavailable. Test all three ladder branches, including an API 31+ device
+where on-device recognition is unavailable but a network service exists.
+
 ### Option 2 — Cloud STT through our backend (`POST /chat/transcribe`)
 
-Indicative list prices (**verify before committing — pre-implementation estimate, not a quote**):
-
-| Vendor | Unit price | Per 15 s question | Per 1 000 questions |
-|---|---|---|---|
-| OpenAI Whisper API | ~$0.006 / min | ~$0.0015 | ~$1.50 |
-| Azure AI Speech, standard | ~$1 / audio hour | ~$0.004 | ~$4 |
-| Google Cloud STT | ~$0.016–0.024 / min | ~$0.004–0.006 | ~$4–6 |
-
-The per-minute price is trivial. **The plumbing is not, and neither is the legal exposure:**
+A cloud follow-up must attach dated vendor pricing sources and model measured question duration and
+usage; this story intentionally makes no unsupported unit-price claim. The plumbing and legal
+exposure, rather than an undated estimate, drive the decision:
 
 - multipart audio upload with a hard duration and size cap (a transcription endpoint without one is
   a denial-of-wallet target), plus Turnstile and rate limiting like every other write path;
@@ -82,9 +92,12 @@ text either way, since the transcript is what reaches `POST /chat`.
 
 ### Recommendation
 
-**Ship Option 1 behind a flag on both platforms, with an explicit disclosure of who performs the
-recognition; do not build Option 2 unless measured accuracy complaints demand it.** Option 2's price
-is not its invoice — it is owning users' voice recordings.
+**Ship Option 1 behind a remotely controlled flag on both platforms, with an explicit disclosure of
+who performs recognition; do not build Option 2 unless measured accuracy complaints demand it.**
+Add a non-sensitive speech-input flag to backend settings and `GET /config`, consume it in the web
+config path and Android `ConfigResponseDto`, and fail closed when config is unavailable. This is a
+backend configuration change, not a transcription endpoint. Option 2's primary cost is owning
+users' voice recordings.
 
 ## Cost of Implementation
 
@@ -92,8 +105,10 @@ is not its invoice — it is owning users' voice recordings.
 |---|---|---|
 | Android: `RECORD_AUDIO` runtime permission flow — rationale, denied, permanently-denied, settings deep link | new; `MainActivity.kt` / Compose permission handling | M |
 | Android: `SpeechRecognizer` lifecycle, partial results, cancel, error mapping (no-match, network, busy, insufficient permissions) | new `speech/` package + `ChatViewModel.kt` | M |
+| Android capability discovery + package visibility | `AndroidManifest.xml`, recognizer wrapper | S |
 | Android: mic button + listening state in the input field | `ChatInputField.kt` | S |
 | Web: feature detection, mic button, interim results into the textarea, abort on send, unsupported-browser path (Firefox) | `ChatIsland.tsx` | M |
+| Remote rollout flag: backend setting + `GET /config`, web consumer, Android DTO/state | `api/config.py`, `api/main.py`, both clients, deployment env | S |
 | Enforce the 500-char cap against dictated text on both clients | both | S |
 | Privacy-policy paragraph × 11 locales; Play Data Safety + permission declaration | `frontend/public/legal/privacy-policy.*.md`, Play Console | M |
 | i18n strings × 11 locales × 2 platforms | `frontend/messages/*.json`, Android `values*/` | S |
@@ -109,8 +124,9 @@ Italian user with an English phone dictates gibberish.
 Assuming Option 1:
 
 - **Money:** €0 per request. No backend call, no vendor invoice.
-- **Backend load:** none. This story does not touch `api/`. The existing session limit (BITB-024)
-  and rate limits are unaffected — a spoken question is just a `POST /chat` like any other.
+- **Backend load:** negligible config reads. `api/` changes only to publish the remote flag; audio is
+  never uploaded. The existing session limit (BITB-024) and rate limits are unaffected — a spoken
+  question is just a `POST /chat` like any other.
 - **Store and release process — this is the real recurring cost.** Adding `RECORD_AUDIO` to the
   manifest changes the app's permission profile: the Play listing shows a microphone permission,
   Data Safety must be updated, and permission-adding releases attract additional review. Budget for
@@ -135,6 +151,10 @@ Assuming Option 1:
       recognition is unsupported (notably Firefox on web) rather than shown and inert
 - [ ] Recognition uses the platform recognizer only; **no audio is uploaded to any Vox Quieta
       backend** by this story
+- [ ] Android manifest declares a package-visibility `<queries>` intent for
+      `android.speech.RecognitionService`, and availability detection is tested on Android 11+
+- [ ] Android follows the capability ladder: API 31+ on-device recognizer when actually available;
+      otherwise an available platform service with network/vendor disclosure; otherwise no control
 - [ ] Recognition language follows the app's selected locale, not the system/browser default
 - [ ] Interim results appear in the input field as the user speaks; the user can stop, edit and
       review before sending — dictation never auto-sends
@@ -152,7 +172,8 @@ Assuming Option 1:
       explicitly accepted in the PR description
 - [ ] Tests: web unit tests against a mocked `SpeechRecognition`, including the unsupported-browser
       path; Android tests against a fake recognizer covering granted, denied and error paths
-- [ ] Feature flagged, so it can be disabled without a store release
+- [ ] Remotely feature flagged through backend settings and `GET /config`, with web and Android
+      config consumers and deployment configuration covered; missing/failed config keeps it off
 - [ ] Changelog + What's New entries on both platforms
 
 ## Risks
@@ -171,8 +192,9 @@ Assuming Option 1:
 
 ## Dependencies
 
-None technically. **Sequence after BITB-119** — it delivers the paired capability with none of the
-permission, store or privacy-policy cost, so it validates appetite for voice features cheaply first.
+No implementation dependency on BITB-119. Sequence after it because read-aloud can validate demand
+without microphone permission or third-party audio transfer, not because the stories share no code
+or operational concerns.
 
 ## Verification
 
@@ -183,7 +205,8 @@ there. Accuracy is the demo; the refusal paths are the product.
 
 ## Related
 
-- **BITB-119** — speak the answer; the other half of the same request, no shared code
+- **BITB-119** — speak the answer; shares rollout and locale concerns but has an independent API,
+  permission/data posture and release path
 - **BITB-087** — iOS chat parity; inherits the recognizer and its usage strings
 - **BITB-024** — session interaction limit; unaffected, a spoken question is an ordinary message
 - `frontend/src/app/[locale]/ChatIsland.tsx`,
