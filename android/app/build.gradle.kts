@@ -65,7 +65,9 @@ android {
 
     defaultConfig {
         applicationId = "org.voxquieta"
-        minSdk = 26
+        // BITB-116: minSdk 24 (Android 7.0) so the API-25 tablet can install from the
+        // same Play listing. targetSdk/compileSdk stay 36 for Play compliance.
+        minSdk = 24
         targetSdk = 36
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?)?.takeIf { it.isNotBlank() }
@@ -138,6 +140,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // BITB-116: required for minSdk < 26 — backports java.time/stream/nio used
+        // by Kotlin/Room/DataStore onto Android 7.x (API 24-25).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -148,8 +153,8 @@ android {
     packaging {
         jniLibs {
             // Store native (.so) libraries uncompressed so bundletool can page-align
-            // them on 16 KB boundaries in the AAB. This is the default for minSdk 26,
-            // but is set explicitly here because it is a precondition for Google Play's
+            // them on 16 KB boundaries in the AAB. This was the default for minSdk 26;
+            // with BITB-116 minSdk 24 it must stay explicit for Google Play's
             // 16 KB memory-page-size compliance (paired with AGP 8.7+ zipalign).
             useLegacyPackaging = false
         }
@@ -217,6 +222,8 @@ ksp {
 }
 
 dependencies {
+    // BITB-116: desugared java.time/stream/nio runtime for minSdk 24 (Android 7.x).
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

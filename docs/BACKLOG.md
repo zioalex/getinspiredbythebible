@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-04 (BITB-085 decision recorded)
+**Last Updated:** 2026-09-05 (BITB-122 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -194,6 +194,30 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-116: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-05
+**Reported by:** product owner — app not working on Android 7.1.1 tablet (API 25)
+
+**As** a user on an Android 7.x tablet (API 24-25), **I want** to install and use the
+app from the same Play listing, **so that** I am not blocked by the recent targetSdk 36 update.
+
+**Root cause:** `minSdk 26` filters API 25 out of Play + sideload fails. Single-AAB
+fix: `minSdk 24` + core-library desugaring, `targetSdk/compileSdk 36` untouched
+(Play requires 36 by 2026-08-31).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
+- [ ] `lintDebug` + `testDebugUnitTest` pass; installs/launches on API 24/25 emulator
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-116-android-7-tablet-minsdk-24.md`
+
+---
 
 ### 🎯 BITB-115: Bible Version Sticks to the Old Language After a Language Switch
 
