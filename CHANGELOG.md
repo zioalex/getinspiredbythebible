@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.54.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.53.0...v1.54.0) (2026-09-05)
+
+
+### Features
+
+* **android:** normalize Traditional Chinese book names in verse parsing (BITB-110) ([#1034](https://github.com/zioalex/getinspiredbythebible/issues/1034)) ([3c3f0c6](https://github.com/zioalex/getinspiredbythebible/commit/3c3f0c6535f49bb6182d1814e3185b63e9f33070))
+* **android:** support Android 7.x tablets (BITB-122) ([#1041](https://github.com/zioalex/getinspiredbythebible/issues/1041)) ([dcd3785](https://github.com/zioalex/getinspiredbythebible/commit/dcd3785060af72a202f5a35169d22b85afa369b5))
+* **ci:** populate verse_topics on every seed and alarm when coverage collapses (BITB-105) ([#1019](https://github.com/zioalex/getinspiredbythebible/issues/1019)) ([66f0814](https://github.com/zioalex/getinspiredbythebible/commit/66f08144273f4b605b1fc5a5a6c37e9e99b32d36))
+* **search-eval:** make the golden set validate topic boosting (BITB-103) ([#1023](https://github.com/zioalex/getinspiredbythebible/issues/1023)) ([5ca9f89](https://github.com/zioalex/getinspiredbythebible/commit/5ca9f89d2dac3ba053ecc1bccd925b512229f311))
+* **search-eval:** un-stub topic_boosted eval config and fix boost truncation bug (BITB-104) ([#1032](https://github.com/zioalex/getinspiredbythebible/issues/1032)) ([2d4ed40](https://github.com/zioalex/getinspiredbythebible/commit/2d4ed40f1a89e374e36dbe711b819a1451776945))
+
+
+### Bug Fixes
+
+* **android:** bound verse-parser connector regex to close ReDoS gap (BITB-114) ([#1033](https://github.com/zioalex/getinspiredbythebible/issues/1033)) ([77b9204](https://github.com/zioalex/getinspiredbythebible/commit/77b920422e8a779aa04c8774db48dc5b4fd1b356))
+* **api,android:** attribute Android sessions correctly in weekly report ([#1038](https://github.com/zioalex/getinspiredbythebible/issues/1038)) ([fd017d7](https://github.com/zioalex/getinspiredbythebible/commit/fd017d7b2e9bd096ced9db05004482846d6454dc))
+* **api:** remove init_db()/create_all() now that Alembic owns the schema (BITB-090) ([#1035](https://github.com/zioalex/getinspiredbythebible/issues/1035)) ([3327157](https://github.com/zioalex/getinspiredbythebible/commit/3327157e687a2d22140744592fdf8dcc5d9c0b98))
+* **ci:** encode eval-prod's DB password and surface its failure log (BITB-101) ([#1020](https://github.com/zioalex/getinspiredbythebible/issues/1020)) ([31cf078](https://github.com/zioalex/getinspiredbythebible/commit/31cf078724abc550110f2cc5204a8a13c0d7be04))
+* **ci:** make both search-eval routes actually run (BITB-107 + BITB-101) ([#1018](https://github.com/zioalex/getinspiredbythebible/issues/1018)) ([6de7cb7](https://github.com/zioalex/getinspiredbythebible/commit/6de7cb7e22ae9cabf54d74abf27ebefc5168ddd9))
+* **ci:** report what the search-eval and verse_topics jobs actually did ([#1022](https://github.com/zioalex/getinspiredbythebible/issues/1022)) ([ee87867](https://github.com/zioalex/getinspiredbythebible/commit/ee878675c8a71aa5f5f69add9199c538a1547fd5))
+* **db:** read-only Postgres role for the nightly search-eval harness (BITB-101) ([#1017](https://github.com/zioalex/getinspiredbythebible/issues/1017)) ([78b3101](https://github.com/zioalex/getinspiredbythebible/commit/78b31011a0dcaef8c4dc2d5f9d18bd2736fc847c))
+* **deploy:** percent-encode the DB password at every DSN site (BITB-112) ([#1021](https://github.com/zioalex/getinspiredbythebible/issues/1021)) ([f4328a9](https://github.com/zioalex/getinspiredbythebible/commit/f4328a9ff4396631e24466df3c3f2592ced3ffcf))
+* **frontend:** bound verse-parser connector regex to close ReDoS gap (BITB-108) ([#1024](https://github.com/zioalex/getinspiredbythebible/issues/1024)) ([12129b6](https://github.com/zioalex/getinspiredbythebible/commit/12129b6a104547fa6297f64f651e5e43cd2863a3))
+
+
+### Documentation
+
+* add BITB-115 — Bible version sticks to old language after switch ([#1039](https://github.com/zioalex/getinspiredbythebible/issues/1039)) ([252780b](https://github.com/zioalex/getinspiredbythebible/commit/252780bb34b4697aba6bea2104a6d78c5f926c17))
+* add BITB-115 backlog story for flexible session message limit ([#1036](https://github.com/zioalex/getinspiredbythebible/issues/1036)) ([edddb92](https://github.com/zioalex/getinspiredbythebible/commit/edddb92202413e1c087e8ef9e22fd31f26308f70))
+* add BITB-119 and BITB-120 voice feature stories ([#1037](https://github.com/zioalex/getinspiredbythebible/issues/1037)) ([e78629a](https://github.com/zioalex/getinspiredbythebible/commit/e78629a0eda0f4e91b19c91646b7762122a12bbe))
+* **ios:** record provisional BITB-085 SwiftUI delivery decision ([#1040](https://github.com/zioalex/getinspiredbythebible/issues/1040)) ([d7078fe](https://github.com/zioalex/getinspiredbythebible/commit/d7078fe99141906c7bb21fc2ac448853ea9f5502))
+* **migrations:** enforce lock_timeout and make safety rules checkable (BITB-100) ([#1015](https://github.com/zioalex/getinspiredbythebible/issues/1015)) ([194059f](https://github.com/zioalex/getinspiredbythebible/commit/194059ffb46fdc7cfcb1f04ebcbd50c491893ad0))
+
 ## [1.53.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.52.0...v1.53.0) (2026-08-22)
 
 ### Features
