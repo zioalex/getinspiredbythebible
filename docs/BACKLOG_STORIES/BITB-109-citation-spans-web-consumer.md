@@ -7,6 +7,8 @@ and its correctness is only asserted by its own tests
 **Created:** 2026-08-22
 **Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side
 acceptance criteria
+**Unblocks:** BITB-087; this is a hard prerequisite for starting the iOS client.
+**Part of:** the iOS delivery plan — Stage 3 of BITB-084 → BITB-085 → BITB-086 → **BITB-109** → BITB-087 → BITB-088.
 
 ## User Story
 
@@ -31,7 +33,7 @@ client-side:
 The deferral was the right call — two PRs editing `verseExtraction.ts` simultaneously is a
 predictable conflict. But the consequence is that `citations` currently ships to nobody. Web and
 Android still linkify with their own regexes, so the contract's real-world correctness is untested,
-and BITB-087 (iOS) is scheduled to depend on a contract no client has exercised.
+and BITB-087 (iOS) is planned to depend on a contract no client has exercised.
 
 The blocker named in the deferral is **PR #983 merging**. Once it does, this is unblocked.
 
