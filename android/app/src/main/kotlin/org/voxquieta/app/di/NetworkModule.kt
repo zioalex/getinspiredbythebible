@@ -4,6 +4,7 @@ import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.data.remote.api.ApiClient
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.interceptors.TurnstileInterceptor
+import org.voxquieta.app.data.remote.interceptors.UserAgentInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,5 +22,8 @@ object NetworkModule {
             baseUrl = BuildConfig.BASE_URL,
             debug = BuildConfig.DEBUG,
             turnstileInterceptor = turnstileInterceptor,
+            userAgentInterceptor = UserAgentInterceptor(
+                userAgent = UserAgentInterceptor.defaultUserAgent(BuildConfig.VERSION_NAME),
+            ),
         )
 }

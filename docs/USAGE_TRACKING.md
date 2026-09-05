@@ -27,9 +27,16 @@ weekly digest email — see [WEEKLY_REPORT.md](WEEKLY_REPORT.md). Columns:
 | `created_at` | `TIMESTAMPTZ` | First visit |
 | `last_activity` | `TIMESTAMPTZ` | Most recent chat message |
 | `message_count` | `INTEGER` | Total messages sent |
-| `language` | `VARCHAR(10)` | Browser `Accept-Language` primary lang |
-| `user_agent` | `TEXT` | Raw User-Agent header |
-| `is_mobile` | `BOOLEAN` | Simple mobile detection |
+| `language` | `VARCHAR(10)` | Supported base language from the chat body, falling back to `Accept-Language` |
+| `user_agent` | `TEXT` | Trimmed User-Agent header, or `NULL` when blank/missing |
+| `is_mobile` | `BOOLEAN` | UA-derived device class; includes mobile browsers and explicitly identified Android clients |
+
+`is_mobile` is a broad **mobile-device** heuristic, not an Android-app flag.
+The Android app's explicit `VoxQuieta/<version> (Android <release>)` UA is in
+the mobile bucket, as are Android/iPhone/iPad browsers and Dalvik clients. A
+generic `okhttp/<version>` UA is not enough to infer Android because OkHttp is
+also a general-purpose JVM client. The stored UA can be queried separately
+when an Android-app-specific adoption number is needed.
 
 ### Custom OpenTelemetry Metrics
 

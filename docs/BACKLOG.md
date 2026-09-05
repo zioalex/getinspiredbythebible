@@ -2208,6 +2208,46 @@ manual-only Hindi/Luther data) still always win when present.
 
 ---
 
+### 🚧 BITB-121: Android Sessions Are Counted as Web in the Weekly Report
+
+**Status:** 🚧 In Progress - implementation in PR #1038; rollout verification pending
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-04
+**Found by:** product owner reading the weekly digest — "I don't see any Android user in the report"
+
+**As a** product owner deciding where to invest,
+**I want** Android app requests to carry a reliable app/OS identifier,
+**so that** they enter the digest's existing mobile-device bucket instead of looking like generic
+JVM traffic.
+
+The digest's Web/Mobile line is a UA-derived **device-class** heuristic, not an Android-app adoption
+split. The app exposed only generic `okhttp/4.12.0`, which is not enough to infer Android because
+OkHttp is also a general-purpose JVM client. The app also omitted `Accept-Language`, despite already
+sending its selected language in chat bodies. Blank UAs additionally needed one normalization point
+so classification and persistence use the same value and preserve prior data on follow-up requests.
+
+**Why P1:** it is an ongoing decision-quality defect on the report the product is steered by, and
+it silently understates the platform the team is actively investing in. Not P0 — no user-facing
+breakage. Explicit Android/Dalvik history is identifiable, but bare OkHttp history cannot safely be
+attributed to Android or broadly backfilled.
+
+**Acceptance Criteria (summary):**
+
+- [x] Android requests carry an app-identifying `User-Agent` containing the literal `Android`
+- [x] UA omits `Build.MODEL` to avoid unnecessary device fingerprinting
+- [x] Explicit Android/Dalvik classified as mobile; generic OkHttp is not
+- [x] Blank/whitespace UAs normalized once for consistent classification and storage
+- [x] A UA-less follow-up no longer flips an established mobile session back to web
+- [x] Both chat handlers prefer normalized, supported `ChatRequest.language`, then the header
+- [x] Backend and Android tests cover classification, language precedence, and production wiring
+- [x] Duplicate orphan BITB-069 Android-UA story superseded by BITB-121; canonical BITB-069 retained
+- [ ] API deployed **before** the app release, then one digest observed with a non-zero mobile count
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-121-android-sessions-misattributed-as-web.md`
+
+---
+
 ## P2 - Medium Priority (Backlog)
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**

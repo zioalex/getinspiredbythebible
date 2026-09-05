@@ -20,6 +20,7 @@ object ApiClient {
         baseUrl: String,
         debug: Boolean = false,
         turnstileInterceptor: Interceptor? = null,
+        userAgentInterceptor: Interceptor? = null,
     ): BibleApiService {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (debug) {
@@ -30,6 +31,10 @@ object ApiClient {
         }
 
         val clientBuilder = OkHttpClient.Builder()
+            // Identify the client before anything else runs: without it OkHttp
+            // sends "User-Agent: okhttp/<version>", which does not identify the
+            // request as Android app traffic for session reporting.
+            .apply { userAgentInterceptor?.let { addInterceptor(it) } }
             .addInterceptor(loggingInterceptor)
             // Streaming responses can take a while — generous read timeout.
             .readTimeout(120, TimeUnit.SECONDS)
