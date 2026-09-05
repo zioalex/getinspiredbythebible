@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-05 (BITB-122 created)
+**Last Updated:** 2026-09-05 (BITB-123 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2323,6 +2323,29 @@ attributed to Android or broadly backfilled.
 > speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
 > but are split because output and microphone input have independent APIs, permissions, data
 > flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-09-05
+
+Move the 5 inline agents out of `opencode.json` into 12 `.opencode/agents/*.md` files
+(orchestrator + 11 subagents), slim `opencode.json` (drop unused `ollama` provider),
+and add an adhoc `deployment/kubeopencode/` folder with the Agent CRD
+(`agent.yaml` with per-agent `fallback_models` incl. orchestrator), a documented model
+table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` untouched.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
+- [ ] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
+- [ ] `make pre-commit` green; PR opened with `chore(agents):` title
+
+Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
 
 ---
 
