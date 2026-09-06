@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/part-of: kubeopencode
 spec:
   podSelector: {}
+  # Egress only in phase 1. Kubelet probes originate from the node IP and
+  # match no podSelector, so an Ingress deny would break readiness/liveness
+  # on :4096. Harden Ingress as a follow-up once probe behavior is confirmed.
   policyTypes:
-    - Ingress
     - Egress

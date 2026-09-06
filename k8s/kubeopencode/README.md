@@ -19,7 +19,7 @@ kubectl apply -f networkpolicy-default-deny.yaml
 kubectl apply -f agent-desktop.yaml -f ingress-server.yaml
 ```
 
-Then open http://chat.home.local in a browser. You will see:
+Then open <http://chat.home.local> in a browser. You will see:
 
 - Agent Browser
 - Your `desktop` agent

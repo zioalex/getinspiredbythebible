@@ -25,6 +25,14 @@ spec:
           protocol: UDP
         - port: 53
           protocol: TCP
+    # Kubernetes API ClusterIP. Agents mount a SA token, so keep API
+    # reachable. Verify per cluster: kubectl get svc kubernetes -o jsonpath.
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.1/32
+      ports:
+        - port: 443
+          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

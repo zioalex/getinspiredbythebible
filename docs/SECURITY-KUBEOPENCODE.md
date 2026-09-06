@@ -10,6 +10,8 @@ downloads. Strict tier allows public `443/53` but denies LAN by construction.
 ## What strict allows
 
 * `kube-dns:53` UDP/TCP
+* Kubernetes API ClusterIP (`10.43.0.1:443` — verify per cluster via
+  `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'`)
 * Public `0.0.0.0/0:443,53` except `10/8,172.16/12,192.168/16,169.254/16,127/8`
 * Implicit LAN deny: no `kubeopencode-server:2746` cross-talk, no other
   agents `:4096`, no cloud metadata `169.254.169.254`, no FritzBox LAN
@@ -58,6 +60,11 @@ kubectl apply -f agent-desktop.yaml
 
 Running agents drain via `standby.idleTimeout: 30m`. If a workload breaks,
 add a temporary tier exception annotation, never remove default-deny.
+
+> Verify the operator labels agent pods `app.kubernetes.io/managed-by:
+> kubeopencode` (`kubectl get pods -l app.kubernetes.io/managed-by=kubeopencode
+> -n kubeopencode-system`). If labels differ, `agent-egress-strict` selects
+> nothing and is silently unenforced — update `podSelector` before relying on it.
 
 ## Verify
 

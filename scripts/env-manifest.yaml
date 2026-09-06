@@ -166,19 +166,6 @@ variables:
     description: Allowed CORS origins (comma-separated)
 
   # ---------------------------------------------------------------------------
-  # KubeOpencode agent hardening
-  # ---------------------------------------------------------------------------
-  OPENCODE_API_KEY:
-    required_in: remote
-    description: Opencode server API key (legacy ENV path, prefer _FILE)
-    sensitive: true
-
-  OPENCODE_API_KEY_FILE:
-    required_in: remote
-    description: Path to mounted opencode API key file (0400)
-    default: /run/secrets/opencode/api-key
-
-  # ---------------------------------------------------------------------------
   # Frontend
   # ---------------------------------------------------------------------------
   NEXT_PUBLIC_API_URL:
