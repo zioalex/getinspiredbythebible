@@ -7,10 +7,11 @@ Adhoc folder for the KubeOpenCode `Agent` manifest. Agent behaviour lives in
 ## Prerequisites
 
 - KubeOpenCode v0.1.8+ installed (supports `configRef` / inline `config`)
-- Secret `ai-credentials` with key `api-key` in namespace `kubeopencode-system`
-- `OPENROUTER_API_KEY` available if `android-gemini` should use its paid-tier
-  primary (`openrouter/qwen/qwen3-coder`); otherwise it falls back to
-  `opencode/muse-spark-1.3-contributor-free`
+- Secret `ai-credentials` in namespace `kubeopencode-system` with keys:
+  - `api-key` → injected as `OPENCODE_API_KEY`
+  - `openrouter-api-key` → injected as `OPENROUTER_API_KEY` (required:
+    `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
+    without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
 
 ## Apply
 
@@ -28,6 +29,9 @@ kubectl -n kubeopencode-system get agent default-wf
 
 ## Notes
 
+- `AgentSpec` has no top-level `model`/`provider` fields — all OpenCode
+  settings (`model`, `small_model`, `provider`, per-agent models/fallbacks)
+  live under `spec.config`, which is serialized to `opencode.json` in the pod.
 - `spec.config` (inline) and `configRef` are mutually exclusive
   (runtime-validated). `Agent` overrides template scalars and replaces lists.
 - Keep `spec.config.agent` in sync with `.opencode/agents/*.md` when adding or
