@@ -1,7 +1,7 @@
 ---
 description: Adversarial architecture and risk audit across backend, frontend, Android, and infra. Severity-ranked, evidence-backed report. Read-only.
 mode: subagent
-model: opencode/nemotron-3.5-lightning-free
+model: opencode/nemotron-3-ultra-free
 tools:
   bash: true
   read: true

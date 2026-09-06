@@ -6,7 +6,7 @@ KubeOpenCode containers. This file documents the model tiering mirrored in
 
 | Agent | Primary model | Fallback | Notes |
 |---|---|---|---|
-| orchestrator | `github-copilot/claude-opus-4.6` (paid) | `opencode/muse-spark-1.3-contributor-free` | Primary planner; fallback required in spec |
+| orchestrator | `github-copilot/claude-opus-5` (paid) | `opencode/muse-spark-1.3-contributor-free` | Primary planner; fallback required in spec |
 | android-expert | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | Kotlin/Compose builder |
 | fullstack-engineer | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | FastAPI/Next.js/PG builder |
 | infra-engineer | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | Azure/Terraform/CI builder |
@@ -15,7 +15,7 @@ KubeOpenCode containers. This file documents the model tiering mirrored in
 | verse-parity-keeper | `opencode/mimo-v2.5-free` | `opencode/muse-spark-1.3-contributor-free` | 3 parsers in sync, 11 languages |
 | i18n-qa | `opencode/mimo-v2.5-free` | `opencode/muse-spark-1.3-contributor-free` | Locales/translations QA |
 | verifier | `opencode/nemotron-3.5-lightning-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only test runner (`edit: deny`) |
-| risk-auditor | `opencode/nemotron-3.5-lightning-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only audit |
+| risk-auditor | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only audit |
 | failure-forecaster | `opencode/nemotron-3.5-lightning-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only 12-month forecast |
 | seo-auditor | `opencode/nemotron-3.5-lightning-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only SEO audit |
 
