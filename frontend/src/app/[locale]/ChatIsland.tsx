@@ -241,6 +241,11 @@ export default function ChatIsland({
         const saved = getTranslationPreference(locale);
         if (saved && availableTranslations.some((t) => t.code === saved)) {
           setSelectedTranslation(saved);
+        } else {
+          // No stored choice for this locale — clear any value carried over in
+          // memory from a previous locale (this effect now reruns on `locale`
+          // change, not just on mount).
+          setSelectedTranslation("");
         }
       } catch (error) {
         console.error("Failed to load translations:", error);
