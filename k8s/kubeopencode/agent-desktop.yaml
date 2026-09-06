@@ -1,0 +1,21 @@
+apiVersion: kubeopencode.io/v1alpha1
+kind: Agent
+metadata:
+  name: desktop
+  namespace: kubeopencode-system
+  annotations:
+    kubeopencode.io/egress-tier: strict
+    kubeopencode.io/allow-lan: ""
+spec:
+  profile: "Friendly desktop assistant. Explain simply, confirm before running commands."
+  workspaceDir: /workspace
+  port: 4096
+  # Hardening: operator should bind serve to 127.0.0.1, mount
+  # secret/opencode-api-key as 0400 /run/secrets/opencode/api-key,
+  # prefer OPENCODE_API_KEY_FILE over ENV, and unset ENV after start.
+  # LAN access is opt-in via kubeopencode.io/allow-lan (e.g. "ollama:11434").
+  persistence:
+    sessions:
+      size: 2Gi
+  standby:
+    idleTimeout: 30m

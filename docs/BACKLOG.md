@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-05 (BITB-122 created)
+**Last Updated:** 2026-09-06 (BITB-123 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -194,6 +194,12 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-123: KubeOpencode strict-tier sandbox hardening
+
+- **Size:** M | **Date:** 2026-09-06 | **PR:** -
+- **Summary:** Strict egress (public 443/53 only, RFC1918/169.254 denied), LAN opt-in, file-based API key, auth on /api/session, zero-downtime rollout
+- **Full Story:** `docs/BACKLOG_STORIES/BITB-123-kubeopencode-strict-tier-hardening.md`
 
 ### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
