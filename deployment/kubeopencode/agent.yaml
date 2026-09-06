@@ -7,92 +7,13 @@ spec:
   profile: "General-purpose development agent with automatic fallback"
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
-  config:
-    $schema: "https://opencode.ai/config.json"
-    model: opencode/nemotron-3-ultra-free
-    small_model: opencode/nemotron-3-ultra-free
-    plugin:
-      - - opencode-runtime-fallback@0.2.4
-        - enabled: true
-          retry_on_errors: [429, 500, 502, 503, 504]
-          retryable_error_patterns:
-            - upstream error
-            - temporarily overloaded
-            - service temporarily unavailable
-          max_fallback_attempts: 1
-          cooldown_seconds: 120
-          timeout_seconds: 45
-          notify_on_fallback: true
-    agent:
-      build:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      plan:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      general:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      explore:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      compaction:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      title:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      summary:
-        fallback_models: [opencode/muse-spark-1.3-contributor-free]
-      orchestrator:
-        model: github-copilot/claude-opus-5
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      android-expert:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      fullstack-engineer:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      infra-engineer:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      android-gemini:
-        model: openrouter/qwen/qwen3-coder
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      data-engineer:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      verse-parity-keeper:
-        model: opencode/mimo-v2.5-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      i18n-qa:
-        model: opencode/mimo-v2.5-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      verifier:
-        model: github-copilot/claude-opus-5
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      risk-auditor:
-        model: github-copilot/claude-opus-5
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      failure-forecaster:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-      seo-auditor:
-        model: opencode/nemotron-3-ultra-free
-        fallback_models:
-          - opencode/muse-spark-1.3-contributor-free
-    provider:
-      opencode:
-        options:
-          timeout: 600000
-          headerTimeout: 60000
-          chunkTimeout: 120000
-          setCacheKey: true
+  # Full OpenCode config (models, prompts, permissions, fallbacks) is generated
+  # from .opencode/agents/*.md via `make gen-opencode-config` and synced with
+  # `make sync-opencode-configmap` (BITB-123, Option A2).
+  configRef:
+    configMapRef:
+      name: opencode-config
+      key: opencode.json
   credentials:
     - name: api-key
       secretRef:

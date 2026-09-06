@@ -291,6 +291,29 @@ pre-commit: install-deps ## Run pre-commit on all files
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
 
+# ==================== OpenCode Agent Config (BITB-123) ====================
+# Single source of truth: .opencode/agents/*.md
+# Generated artifact: opencode.json (committed) → ConfigMap opencode-config
+
+gen-opencode-config: ## Generate opencode.json from .opencode/agents/*.md
+	@echo "$(BLUE)Generating opencode.json from agent definitions...$(NC)"
+	@$(PYTHON_VERSION) scripts/generate-opencode-config.py > opencode.json
+	@echo "$(GREEN)✓ opencode.json generated$(NC)"
+
+verify-opencode-config: gen-opencode-config ## Verify generated opencode.json
+	@$(PYTHON_VERSION) -m json.tool opencode.json > /dev/null
+	@echo "$(GREEN)✓ opencode.json is valid JSON$(NC)"
+	@COUNT=$$($(PYTHON_VERSION) -c "import json; d=json.load(open('opencode.json')); print(len([k for k in d['agent'] if k not in ('build','plan')]))"); \
+	if [ "$$COUNT" = "12" ]; then echo "$(GREEN)✓ All 12 agents present$(NC)"; else echo "$(YELLOW)Expected 12 agents, got $$COUNT$(NC)"; exit 1; fi
+
+sync-opencode-configmap: verify-opencode-config ## Update KubeOpenCode ConfigMap from local opencode.json (manual)
+	@echo "$(BLUE)Syncing ConfigMap opencode-config...$(NC)"
+	@kubectl create configmap opencode-config \
+		--from-file=opencode.json=opencode.json \
+		-n kubeopencode-system \
+		--dry-run=client -o yaml | kubectl apply -f -
+	@echo "$(GREEN)✓ ConfigMap updated$(NC)"
+
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
 	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
