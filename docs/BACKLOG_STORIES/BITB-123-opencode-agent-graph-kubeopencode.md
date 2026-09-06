@@ -50,8 +50,9 @@ permission routing from version-controlled manifests.
 | android-expert, fullstack-engineer, infra-engineer, data-engineer | `opencode/nemotron-3-ultra-free` | Strong free builders |
 | android-gemini | `openrouter/qwen/qwen3-coder` | Paid-tier coder, already used in repo (BITB-023) |
 | verse-parity-keeper, i18n-qa | `opencode/mimo-v2.5-free` | Multilingual strength |
-| verifier, failure-forecaster, seo-auditor | `opencode/nemotron-3.5-lightning-free` | Cheap, read-only (`edit: deny`) |
-| risk-auditor | `opencode/nemotron-3-ultra-free` | Read-only, stronger for adversarial blast-radius reasoning |
+| verifier | `opencode/nemotron-3.5-lightning-free` | Cheap, read-only (`edit: deny`) |
+| risk-auditor | `github-copilot/claude-opus-5` | Read-only, max quality for adversarial blast-radius reasoning |
+| failure-forecaster, seo-auditor | `opencode/nemotron-3-ultra-free` | Read-only, stronger for calibrated forecast + SEO checklist |
 
 ## Non-Functional Requirements
 

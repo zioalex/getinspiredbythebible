@@ -1,7 +1,7 @@
 ---
 description: Forward-looking 12-month failure forecast — dependency rot, EOL calendars, time bombs, vendor risk. Prioritized register plus detailed report. Read-only.
 mode: subagent
-model: opencode/nemotron-3.5-lightning-free
+model: opencode/nemotron-3-ultra-free
 tools:
   bash: true
   read: true
