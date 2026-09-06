@@ -1,0 +1,27 @@
+apiVersion: kubeopencode.io/v1alpha1
+kind: Agent
+metadata:
+  name: default-wf
+  namespace: kubeopencode-system
+spec:
+  profile: "General-purpose development agent with automatic fallback"
+  workspaceDir: /workspace
+  serviceAccountName: kubeopencode-agent
+  # Full OpenCode config (models, prompts, permissions, fallbacks) is generated
+  # from .opencode/agents/*.md via `make gen-opencode-config` and synced with
+  # `make sync-opencode-configmap` (BITB-123, Option A2).
+  configRef:
+    configMapRef:
+      name: opencode-config
+      key: opencode.json
+  credentials:
+    - name: api-key
+      secretRef:
+        name: ai-credentials
+        key: api-key
+      env: OPENCODE_API_KEY
+    - name: openrouter-api-key
+      secretRef:
+        name: ai-credentials
+        key: openrouter-api-key
+      env: OPENROUTER_API_KEY
