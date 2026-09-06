@@ -34,6 +34,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -46,6 +47,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
@@ -236,8 +238,14 @@ class ChatViewModel @Inject constructor(
             initialValue = emptyMap(),
         )
 
-    /** The user's currently preferred translation ID (empty string = no preference). */
-    val preferredTranslation: StateFlow<String> = translationPreferences.preferredTranslationFlow
+    /**
+     * The user's currently preferred translation ID (empty string = no preference),
+     * scoped to the active UI language (BITB-115) so switching languages never
+     * carries a stale translation choice into the new one.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val preferredTranslation: StateFlow<String> = selectedLanguage
+        .flatMapLatest { locale -> translationPreferences.preferredTranslationFlow(locale) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -338,6 +346,7 @@ class ChatViewModel @Inject constructor(
             try {
                 val response = bibleApiService.getTranslations()
                 _availableTranslations.value = response.translations
+                translationPreferences.migrateLegacyPreference(response.translations)
                 return
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -845,7 +854,7 @@ class ChatViewModel @Inject constructor(
      */
     fun setPreferredTranslation(id: String) {
         viewModelScope.launch {
-            translationPreferences.setPreferredTranslation(id)
+            translationPreferences.setPreferredTranslation(_uiState.value.currentLocale, id)
         }
     }
 

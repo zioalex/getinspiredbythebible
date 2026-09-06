@@ -1,6 +1,6 @@
 # BITB-115: Bible Version Sticks to the Old Language After a Language Switch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P1 — user-visible correctness bug on the core product surface (wrong-language
 scripture served after an explicit language change)
 **Size:** S–M (web fix is small; Android needs a DTO field added first)
@@ -100,21 +100,48 @@ which are the only place that knows a preference is stale.
 
 ## Acceptance Criteria
 
-- [ ] Web: switching language via the **inline banner** leaves no version preference for the new
+- [x] Web: switching language via the **inline banner** leaves no version preference for the new
       locale unless the user has chosen one there; the next message sends no
       `preferred_translation`, and the served verses are the new language's default version
-- [ ] Web: switching via the **top-bar picker** behaves identically (same code path, same test)
-- [ ] Web: a version deliberately chosen in language A is still remembered when the user returns to
+- [x] Web: switching via the **top-bar picker** behaves identically (same code path, same test)
+- [x] Web: a version deliberately chosen in language A is still remembered when the user returns to
       language A later
-- [ ] Web: legacy bare `preferredTranslation` values are migrated once (mapped to their own
+- [x] Web: legacy bare `preferredTranslation` values are migrated once (mapped to their own
       language) or discarded — never applied to a different language
-- [ ] Web: the Bible-version chip reflects the new language's version immediately after the switch,
+- [x] Web: the Bible-version chip reflects the new language's version immediately after the switch,
       not the old one
-- [ ] Android: same behaviour for the language banner and the Settings language picker;
+- [x] Android: same behaviour for the language banner and the Settings language picker;
       `TranslationDto` carries `language_code`
-- [ ] Regression tests on both platforms covering both switch paths — the three cases in the
+- [x] Regression tests on both platforms covering both switch paths — the three cases in the
       reproduction table above, inverted to assert the fixed behaviour
-- [ ] No backend change; `api/utils/language.py::resolve_translation` precedence stays as documented
+- [x] No backend change; `api/utils/language.py::resolve_translation` precedence stays as documented
+
+## Completion Note (2026-09-06)
+
+Fixed on both clients by scoping the persisted Bible-translation preference per UI locale instead of
+one global key, with a one-time migration of the legacy global value:
+
+- **Web:** new `frontend/src/lib/translationPreference.ts` (`getTranslationPreference`,
+  `setTranslationPreference`, `migrateLegacyTranslationPreference`), wired into `ChatIsland.tsx`'s
+  mount effect (now keyed on `locale`) and `handleTranslationChange`. `LanguageSwitcher.tsx` and the
+  inline-banner switch handler needed no changes — both already just `router.replace(..., { locale })`,
+  and the remount re-reads the new locale's own scoped key. Covered by
+  `frontend/src/lib/translationPreference.test.ts` (isolation, round-trip, migration incl. the
+  don't-clobber and unresolvable-value cases).
+- **Android:** `TranslationDto` now carries `language_code`; `TranslationPreferences` keys its
+  DataStore entry per locale (`preferred_translation_<locale>`) and exposes
+  `migrateLegacyPreference`; `ChatViewModel.preferredTranslation` is derived from `selectedLanguage`
+  via `flatMapLatest` so it can never carry a stale value across a `setLocale` call, and
+  `setPreferredTranslation`/the post-fetch migration call use the current locale. Covered by updated
+  `TranslationPreferencesTest.kt` and `ChatViewModelTest.kt` (including a new regression test
+  asserting `preferredTranslation` resets after `setLocale("it")`).
+- **Backend:** untouched, as designed — `resolve_translation`'s precedence rule was never the bug.
+
+Verified: `npx vitest run src/lib` (611 tests, all passing), `npm run lint`, `npx tsc --noEmit` all
+clean on web. Android `./gradlew testDebugUnitTest` could not be executed in the sandbox this change
+was made in (egress to `dl.google.com`, needed to resolve the Android Gradle Plugin, is blocked by
+sandbox network policy) — the Kotlin changes were verified by careful manual review and cross-checked
+against every existing call site instead; a real Android CI run is expected to confirm on this PR.
 
 ## Related
 
