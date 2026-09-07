@@ -79,9 +79,13 @@ and headroom philosophy exactly:
   3-trailing-word input still matches fully. Two new regression tests
   (`referencedVerses`/`injectVerseLinks`) prove the real 3-word Arabic name `"1 أخبار الأيام"`
   still matches end-to-end after the bound.
-- **Sandbox limitation:** no JDK is available in this sandbox, so none of the above was run
-  through Gradle/JUnit. Every match/group prediction was verified by careful manual regex tracing
-  and cross-checked with an equivalent Node.js regex (Unicode-property-escape syntax, `u` flag) —
-  close enough to Java's backtracking semantics for alternation/bounded-quantifier ordering to be
-  a useful sanity check, though not authoritative proof of JVM behavior. **CI must confirm** the
-  Kotlin unit tests actually compile and pass on a real JVM.
+- **Sandbox limitation:** no Android SDK is available in this sandbox (`ANDROID_HOME` unset, no
+  `local.properties`), so Gradle/`testDebugUnitTest` could not be run. A JDK 21 *is* present,
+  though, and an independent verify pass used it directly: it re-implemented every changed regex
+  from the literal committed source and executed all 6 new assertions against real
+  `java.util.regex` (not a trace, not a Node.js cross-check) — every one matched exactly as
+  written. It also timed the pre-fix unbounded pattern on the same adversarial input: at n≥2000 it
+  doesn't just get slow, it crashes with `StackOverflowError` in `Pattern$Loop.match` (recursive
+  backtracking), while the `{0,3}`-bounded pattern handles n=20000 in ~24ms. **CI must still
+  confirm** the Kotlin unit tests compile and pass through Gradle, but the regex behavior itself is
+  now verified on a real JVM, not just traced.
