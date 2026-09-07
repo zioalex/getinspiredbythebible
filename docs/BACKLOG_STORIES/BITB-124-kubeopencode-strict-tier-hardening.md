@@ -1,4 +1,4 @@
-# BITB-123: KubeOpencode strict-tier sandbox hardening
+# BITB-124: KubeOpencode strict-tier sandbox hardening
 
 **Status:** 🎯 Todo | **Priority:** P1 | **Size:** M | **Date:** 2026-09-06
 
