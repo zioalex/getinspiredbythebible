@@ -1,7 +1,7 @@
 apiVersion: kubeopencode.io/v1alpha1
 kind: Agent
 metadata:
-  name: default-wf
+  name: default-wf2
   namespace: kubeopencode-system
 spec:
   profile: "General-purpose development agent with automatic fallback"
@@ -22,6 +22,6 @@ spec:
       env: OPENCODE_API_KEY
     - name: openrouter-api-key
       secretRef:
-        name: ai-credentials
+        name: openrouter-api-key
         key: openrouter-api-key
       env: OPENROUTER_API_KEY
