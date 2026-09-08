@@ -141,6 +141,7 @@ These are inlined into the Next.js bundle at build time (e.g.
 |----------|---------|-------------|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Backend API URL. |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | _(unset)_ | Cloudflare Turnstile site key. See note below. |
+| `NEXT_PUBLIC_CITATION_SPANS_ENABLED` | `false` | Render verse links from the server's `citations` spans (BITB-109) instead of the client-side regex. See note below. |
 
 **About `NEXT_PUBLIC_TURNSTILE_SITE_KEY`:** When set to a real site key,
 the frontend skips the runtime `GET /config` round-trip and starts
@@ -153,6 +154,16 @@ private. Leave the variable unset (or empty) to fall back to the
 runtime `/config` path. To disable Turnstile entirely, set
 `TURNSTILE_ENABLED=false` on the backend — `/config` will then report
 that to the frontend, which will not gate any requests.
+
+**About `NEXT_PUBLIC_CITATION_SPANS_ENABLED`:** a build-time kill switch
+for BITB-109. The backend already sends the `citations` field on every
+`completion` event unconditionally, so this is purely a client-side
+toggle — no backend coordination needed. Off (the default) or unset, the
+web client ignores `citations` and always linkifies verse references with
+its own regex, exactly as before. Set to `true` to render links from the
+server's offsets instead, falling back to the regex per-message wherever
+`citations` doesn't (validly) cover the text — see
+`frontend/src/lib/citationSpans.ts`.
 
 ### Switching LLM Providers
 

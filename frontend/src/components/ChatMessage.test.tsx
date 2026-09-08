@@ -1,7 +1,8 @@
 import { screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ChatMessage from "./ChatMessage";
 import { renderWithIntl } from "@/test/i18n-helpers";
+import { CitationSpan } from "@/lib/citationSpans";
 
 // Mock react-markdown to avoid complex rendering
 vi.mock("react-markdown", () => ({
@@ -152,5 +153,63 @@ describe("ChatMessage copy user prompt (BITB-047)", () => {
     });
     expect(screen.getByLabelText("Copy message")).toBeDefined();
     vi.useRealTimers();
+  });
+});
+
+// BITB-109: citations must be inert unless the build-time flag is on, so a
+// server rollout of the field can never change rendering for a flag-off client.
+describe("ChatMessage citation spans feature flag (BITB-109)", () => {
+  const flagKey = "NEXT_PUBLIC_CITATION_SPANS_ENABLED";
+  const original = process.env[flagKey];
+
+  afterEach(() => {
+    if (original === undefined) delete process.env[flagKey];
+    else process.env[flagKey] = original;
+  });
+
+  it("ignores citations and renders via the regex path when the flag is unset", () => {
+    delete process.env[flagKey];
+    const md = "See John 3:16 today.";
+    const start = md.indexOf("John 3:16");
+    // Deliberately wrong book — if the flag gated nothing, this would render
+    // instead of the regex-derived "John" href.
+    const citations: CitationSpan[] = [
+      {
+        text: "John 3:16",
+        start,
+        end: start + "John 3:16".length,
+        occurrence: 0,
+        book: "Genesis",
+        chapter: 1,
+        verse: 1,
+      },
+    ];
+    const { container } = renderWithIntl(
+      <ChatMessage message={{ role: "assistant", content: md, citations }} />,
+    );
+    expect(container.textContent).toContain("verse://John/3/16");
+    expect(container.textContent).not.toContain("verse://Genesis/1/1");
+  });
+
+  it("consumes citations when the flag is explicitly enabled", () => {
+    process.env[flagKey] = "true";
+    const md = "See John 3:16 today.";
+    const start = md.indexOf("John 3:16");
+    const citations: CitationSpan[] = [
+      {
+        text: "John 3:16",
+        start,
+        end: start + "John 3:16".length,
+        occurrence: 0,
+        book: "Genesis",
+        chapter: 1,
+        verse: 1,
+      },
+    ];
+    const { container } = renderWithIntl(
+      <ChatMessage message={{ role: "assistant", content: md, citations }} />,
+    );
+    expect(container.textContent).toContain("verse://Genesis/1/1");
+    expect(container.textContent).not.toContain("verse://John/3/16");
   });
 });

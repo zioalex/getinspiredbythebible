@@ -1648,9 +1648,9 @@ separator/range grammar and script-class alternations.
 
 ---
 
-### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+### ✅ BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** M
 **Created:** 2026-08-22
@@ -1666,13 +1666,20 @@ unblocked the moment #983 merges.
 consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
 per-message, or Arabic users silently lose links.
 
+**Implementation note:** web-only. `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`)
+prefers each valid `citations` span and re-runs the existing regex linkifier over every gap a span
+doesn't (validly) cover — so an absent field, an empty array, a corrupt span, or a citation the
+backend's known Arabic gap omitted all degrade to the pre-existing regex behavior for that stretch of
+text. Gated by `NEXT_PUBLIC_CITATION_SPANS_ENABLED` (`frontend/src/lib/featureFlags.ts`), default off.
+Android and iOS are unaffected.
+
 **Acceptance Criteria (summary):**
 
-- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
-- [ ] Byte-identical output vs. the regex path across the shared corpus
-- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
-- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
-- [ ] A vocalized-Arabic message still renders links via the fallback
+- [x] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [x] Byte-identical output vs. the regex path across the shared corpus
+- [x] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [x] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [x] A vocalized-Arabic message still renders links via the fallback
 
 **Depends on:** PR #983 merging.
 
