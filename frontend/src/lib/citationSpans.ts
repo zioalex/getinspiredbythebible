@@ -13,7 +13,11 @@
  * behaviour instead of suppressing it.
  */
 
-import { linkifyVerses, VERSE_SCHEME, PROTECTED_REGION_SOURCE } from "./linkifyVerses";
+import {
+  linkifyVerses,
+  VERSE_SCHEME,
+  PROTECTED_REGION_SOURCE,
+} from "./linkifyVerses";
 
 export interface CitationSpan {
   text: string;

@@ -180,9 +180,7 @@ describe("linkifyWithCitations — self-verification failure + occurrence recove
       verse_end: null,
     };
     const out = linkifyWithCitations(md, [span]);
-    expect(out.indexOf("[John 3:16](verse://John/3/16)")).toBeGreaterThan(
-      -1,
-    );
+    expect(out.indexOf("[John 3:16](verse://John/3/16)")).toBeGreaterThan(-1);
     // The first occurrence should still be handled by the regex fallback,
     // and the second by the recovered span — both end up linked once each.
     expect(out.split("[John 3:16](verse://John/3/16)").length - 1).toBe(2);
