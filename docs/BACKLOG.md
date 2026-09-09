@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-05 (BITB-122 created)
+**Last Updated:** 2026-09-09 (BITB-099 decision recorded, in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2053,9 +2053,9 @@ Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 ---
 
-### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+### 🚧 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — decision recorded, implementation in progress
 **Priority:** P2
 **Size:** S–M
 
@@ -2069,9 +2069,12 @@ against the production URL. Traffic is encrypted but the server is unauthenticat
 certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
 
 This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
-knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
-decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
-model. Not an Alembic issue; filed separately.
+knowingly. What is missing is anyone having decided it is *acceptable*. **Decision (2026-09-09):**
+move to `verify-full`, relying on the Python/OS default CA trust store — Azure's server cert
+chains to a public root already in every standard trust store, so no CA bundle needs to be
+vendored. Every DSN that builds `sslmode=require` for the real production host moves to
+`sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
+handles `verify-full` correctly. Not an Alembic issue; filed separately.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
 
