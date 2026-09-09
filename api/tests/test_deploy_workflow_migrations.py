@@ -13,8 +13,15 @@ workflow file.
 Adapted from PR #966, which proposed a different implementation of the same
 story (a separate `alembic_migrations` filter key and an `if:`-gated upgrade
 step). The version that shipped in #974 reuses the existing `migration_scripts`
-filter and puts the preflight inline in the step's script, so the assertions
-below target that -- the intent is #966's, the specifics are main's.
+filter and put the preflight inline in the step's script -- the intent is
+#966's, the specifics are main's.
+
+BITB-126 later moved that preflight into `scripts/alembic_preflight.py`, so the
+assertions below target the step's *call* to it and, above all, the call's
+position: a preflight downstream of an `alembic` command cannot run, because
+the command it was meant to explain has already exited. `scripts/` is not
+importable from here, so the preflight's own behaviour is tested separately in
+`test_alembic_preflight.py`.
 """
 
 from pathlib import Path
@@ -25,6 +32,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW_PATH = _REPO_ROOT / ".github" / "workflows" / "azure-deploy.yml"
 
 _ALEMBIC_VERSIONS_GLOB = "api/alembic/versions/**"
+_PREFLIGHT_SCRIPT = "scripts/alembic_preflight.py"
+_PREFLIGHT_PATH = _REPO_ROOT / "scripts" / "alembic_preflight.py"
 
 
 def _load_workflow() -> dict:
@@ -84,13 +93,14 @@ def test_run_migrations_invokes_alembic_upgrade_head():
     ], "no step in run-migrations invokes `alembic upgrade head`"
 
 
-def test_alembic_upgrade_is_preceded_by_a_stamp_preflight():
+def test_alembic_upgrade_is_preceded_by_the_preflight():
     """`upgrade head` against an unstamped database replays the r0001 baseline
-    and dies on "relation already exists". The step must check for an
-    `alembic_version` row first and fail closed with the remedy.
+    and dies on "relation already exists". The step must establish the
+    database's Alembic state first and fail closed with the remedy.
 
-    The preflight is inline in the step's script rather than an `if:` condition,
-    so this asserts on the script.
+    BITB-126 moved that check out of the step's inline shell and into
+    `scripts/alembic_preflight.py`; the assertion followed it. The behaviour
+    guarded is unchanged -- something must vet the stamp before the upgrade.
     """
     upgrade_steps = [
         s for s in _run_migrations_steps() if "alembic upgrade head" in (s.get("run") or "")
@@ -98,16 +108,48 @@ def test_alembic_upgrade_is_preceded_by_a_stamp_preflight():
     assert upgrade_steps, "no step in run-migrations invokes `alembic upgrade head`"
     for step in upgrade_steps:
         script = step["run"]
-        assert "alembic current" in script, (
-            f"step {step.get('name')!r} runs `alembic upgrade head` without first "
-            "reading `alembic current` -- it cannot tell a stamped database from "
-            "an unstamped one"
+        assert _PREFLIGHT_SCRIPT in script, (
+            f"step {step.get('name')!r} runs `alembic upgrade head` without running "
+            f"{_PREFLIGHT_SCRIPT} -- it cannot tell a stamped database from an "
+            "unstamped one, nor from one stamped ahead of this checkout"
         )
-        assert "stamp r0001" in script, (
-            f"step {step.get('name')!r} has no preflight naming the remedy "
-            "(`alembic stamp r0001`); an unstamped target would fail with an "
-            "unhelpful 'relation already exists' instead"
+
+
+def test_the_preflight_runs_before_any_alembic_command():
+    """The ordering is the fix, not a detail (BITB-126).
+
+    A database stamped at a revision this checkout lacks kills `alembic current`
+    itself -- "Can't locate revision identified by 'rXXXX'", exit 255 -- so a
+    preflight placed after it never runs. That is exactly how run 33369807581
+    failed with no diagnosis. The preflight must come first.
+    """
+    checked = 0
+    for step in _alembic_steps():
+        lines = [line.strip() for line in step["run"].splitlines()]
+        preflight_lines = [
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("python ") and _PREFLIGHT_SCRIPT in line
+        ]
+        if not preflight_lines:
+            continue
+        alembic_lines = [i for i, line in enumerate(lines) if line.startswith("alembic ")]
+        assert alembic_lines, f"step {step.get('name')!r} runs no `alembic` command"
+        assert preflight_lines[0] < alembic_lines[0], (
+            f"step {step.get('name')!r} invokes `{lines[alembic_lines[0]]}` before "
+            f"{_PREFLIGHT_SCRIPT}; a stamp this checkout cannot resolve would kill "
+            "that command first and the preflight would never report the cause"
         )
+        checked += 1
+    assert checked, f"no run-migrations step invokes {_PREFLIGHT_SCRIPT}"
+
+
+def test_the_preflight_script_the_workflow_calls_exists():
+    """A workflow that shells out to a path nobody kept is a deploy-time
+    failure with no local signal -- the deploy job is not reachable from a PR."""
+    assert (
+        _PREFLIGHT_PATH.exists()
+    ), f"the deploy workflow runs {_PREFLIGHT_SCRIPT}, but that file does not exist"
 
 
 def test_no_alembic_step_uses_the_ssl_require_url_form():
