@@ -133,7 +133,7 @@ if __name__ == "__main__":
 **❌ WRONG:**
 
 ```python
-database_url = "postgresql://user:pass@host/db?ssl=require" # pragma: allowlist secret
+database_url = "postgresql://user:pass@host/db?ssl=verify-full" # pragma: allowlist secret
 conn = await asyncpg.connect(database_url)  # ❌ WILL FAIL
 ```
 
@@ -894,7 +894,7 @@ rather than left to the operator. See `api/alembic/README.md`.
 its connection URL — the exact same helper the app itself uses, which returns
 `(url, connect_args)` with SSL configured via the asyncpg `ssl` connect
 argument. The same caveat from Rule #1 above still applies: never put
-`?ssl=require`/`?sslmode=require` in `DATABASE_URL` for an asyncpg-driven
+`?ssl=verify-full`/`?sslmode=verify-full` in `DATABASE_URL` for an asyncpg-driven
 tool. `env.py` does not re-derive SSL handling — do not add a second
 implementation.
 
@@ -1054,7 +1054,7 @@ cannot roll back; check for a partially built `INVALID` index with
 
 #### SSL: why the URL says `sslmode`, not `ssl`
 
-The deploy job builds `...?sslmode=require`. asyncpg rejects **both** `ssl` and
+The deploy job builds `...?sslmode=verify-full` (BITB-099). asyncpg rejects **both** `ssl` and
 `sslmode` as DSN parameters (`parameter 'ssl' cannot be changed now`), so they
 must be stripped and converted to an SSL context before connecting.
 `get_async_database_url()` (`api/scripture/database.py`) — which Alembic's
