@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-09 (BITB-099 decision recorded, in progress)
+**Last Updated:** 2026-09-09 (BITB-099 implemented + verified, PR #1058; BITB-125 filed)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2076,7 +2076,36 @@ vendored. Every DSN that builds `sslmode=require` for the real production host m
 `sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
 handles `verify-full` correctly. Not an Alembic issue; filed separately.
 
+Implemented in PR #1058, independently verified (unit tests pass, no unintended logic change,
+scope complete). **Stays In Progress through merge** — the one unproven acceptance criterion is a
+live `verify-full` connection to production, which only happens on the post-merge `main` deploy
+(`run-migrations` is skipped on PRs); flip to Done once that deploy succeeds. The verify pass also
+surfaced a related-but-separate latent gap in the migration-utils mirror helper, filed as BITB-125.
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+
+**As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
+being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
+identically in both, **so that** a DSN using that spelling can't silently connect with no TLS at
+all.
+
+`get_migration_connection_params()` only checks `ssl_param == "require"`; `?ssl=verify-ca` or
+`?ssl=verify-full` fails its build condition entirely, so no `ssl` kwarg is set and asyncpg
+connects in plaintext — a worse outcome than `sslmode=require`'s merely-unverified `CERT_NONE`.
+`get_async_database_url()` doesn't have this gap (`sslmode = sslmode or ssl_param` before
+branching). Latent — no DSN in this repo currently uses that spelling — but
+`docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
+makes it easy for an operator to stumble into by hand.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 

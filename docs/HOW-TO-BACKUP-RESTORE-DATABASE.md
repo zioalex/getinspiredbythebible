@@ -405,7 +405,7 @@ az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you
 | Symptom                                          | Cause                                                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------- |
 | `extension "vector" is not allow-listed`          | Target server lacks `vector` in `azure.extensions`. Set it *before* restoring. |
-| `parameter 'ssl' cannot be changed now`           | `?ssl=require` in an asyncpg URL. Use `sslmode=require`. See Rule #1.  |
+| `parameter 'ssl' cannot be changed now`           | `?ssl=<mode>` in an asyncpg URL. Use `sslmode=<mode>` (e.g. `verify-full`) — the param name, not the mode value, is what breaks asyncpg. See Rule #1. |
 | Restore finishes fast, searches are slow          | HNSW indexes not rebuilt / invalid. Check query 3 and 4 above.         |
 | `role "..." does not exist`                       | Missing `--no-owner --no-acl`.                                        |
 | `extension "pg_cron" is not available` (local)    | Azure-only extension in the dump. Filtered by default — see Scenario C. |

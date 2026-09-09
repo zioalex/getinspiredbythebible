@@ -1,8 +1,10 @@
 # BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🚧 In Progress — decision recorded below, implementation on this PR
+**Status:** 🚧 In Progress — implemented in PR #1058, independently verified; stays In Progress
+until the post-merge production deploy proves a live `verify-full` connection (see AC3 below)
 **Priority:** P2 — a real gap against a public endpoint, but not an active incident
-**Size:** S–M (config plus a CA bundle; the work is in getting it right for every caller)
+**Size:** S–M (config only, no CA bundle needed — the work was in scanning every DSN site, not in
+managing a bundle; see Decision below)
 **Created:** 2026-08-18
 **Prompted by:** noticed while walking an operator through connecting to production during BITB-096
 
@@ -110,17 +112,32 @@ real production host and needs `sslmode=require` → `sslmode=verify-full`:
 
 ## Acceptance Criteria
 
-- [ ] A decision recorded in the story and in `api/scripture/database.py`'s docstring: verify, or
+- [x] A decision recorded in the story and in `api/scripture/database.py`'s docstring: verify, or
       accept `require` with a stated threat model
-- [ ] If verifying: CA bundle vendored or fetched reproducibly, `check_hostname = True`,
-      `verify_mode = CERT_REQUIRED`, and a documented rotation plan
-- [ ] All five call paths above move together, proven by connecting from CI and from a laptop
-- [ ] A test asserting the resulting `SSLContext` has the intended `verify_mode`, so this cannot
+- [x] ~~If verifying: CA bundle vendored or fetched reproducibly~~, `check_hostname = True`,
+      `verify_mode = CERT_REQUIRED` — reworded 2026-09-09: the decision deliberately rejects
+      vendoring a bundle (Azure's cert chains to a public root already in every standard OS/Python
+      trust store). The rotation obligation is keeping the runner/container base image's
+      `ca-certificates` package current — already an implicit dependency of every other outbound
+      HTTPS call this app makes — not managing a bundle file.
+- [ ] All call paths above move together, proven by connecting from CI and from a laptop — **the
+      DSN changes are complete and independently verified** (every production-facing site rescanned
+      and confirmed clear of `sslmode=require`), but a *live* `verify-full` connection to
+      `bible-app-db-mb0172.postgres.database.azure.com` has not yet happened: `run-migrations` and
+      the other DSN-building jobs in `azure-deploy.yml` are skipped on PRs, so this can only be
+      proven by the post-merge `main` deploy. **This is the gate for moving Status to Done** — do
+      not close this story until that deploy has run and succeeded.
+- [x] A test asserting the resulting `SSLContext` has the intended `verify_mode`, so this cannot
       silently regress to `CERT_NONE` the way it silently persisted
-- [ ] BITB-016 cross-referenced, since it is where the current behaviour was chosen
+- [x] BITB-016 cross-referenced, since it is where the current behaviour was chosen
 
 ## Related
 
 - BITB-016 — chose the current behaviour; documents `CERT_NONE` as intended
 - BITB-096 — the runbook that had an operator connect to production over the public internet
+- BITB-125 — a related-but-separate latent gap the Verify pass found: the asyncpg-spelled
+  `?ssl=verify-full`/`?ssl=verify-ca` parameter isn't handled by
+  `get_migration_connection_params()`, unlike its `sslmode=` spelling. Filed separately since it's
+  not a DSN-value change and no current DSN in this repo uses that spelling.
 - `api/scripture/database.py`, `scripts/migrations/utils.py`, `deployment/main.tf`
+- PR #1058 — implementation

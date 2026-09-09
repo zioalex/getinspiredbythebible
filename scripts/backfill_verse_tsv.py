@@ -22,7 +22,7 @@ What makes this safe to run against a live production database:
   partial backfill is invisible rather than wrong.
 
 Usage:
-    export DATABASE_URL="postgresql+asyncpg://user:pass@host/db?sslmode=require"  # pragma: allowlist secret
+    export DATABASE_URL="postgresql+asyncpg://user:pass@host/db?sslmode=verify-full"  # pragma: allowlist secret
     python scripts/backfill_verse_tsv.py
     python scripts/backfill_verse_tsv.py --batch-size 2000 --dry-run
 

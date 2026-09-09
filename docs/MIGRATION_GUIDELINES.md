@@ -789,7 +789,7 @@ conn = await asyncpg.connect(clean_url, **conn_kwargs)
 
 **What it does:**
 
-1. Strips `?ssl=require` or `?sslmode=require` from URL
+1. Strips `?ssl=<mode>` or `?sslmode=<mode>` from URL (`require`, `verify-ca`, `verify-full`)
 2. Creates SSL context when required
 3. Returns clean URL + connection kwargs dict
 
