@@ -9,6 +9,7 @@ data class TranslationDto(
     @SerialName("code") val id: String,
     @SerialName("name") val name: String,
     @SerialName("language") val language: String,
+    @SerialName("language_code") val languageCode: String,
     @SerialName("year") val year: Int? = null,
 )
 

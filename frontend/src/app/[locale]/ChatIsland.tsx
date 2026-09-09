@@ -70,6 +70,11 @@ import {
   getMessages,
   saveFullConversation,
 } from "@/lib/conversationStore";
+import {
+  getTranslationPreference,
+  setTranslationPreference,
+  migrateLegacyTranslationPreference,
+} from "@/lib/translationPreference";
 
 // Extended message type with message_id for feedback tracking
 interface ChatMessage {
@@ -236,10 +241,17 @@ export default function ChatIsland({
         const availableTranslations = await getTranslations();
         setTranslations(availableTranslations);
 
-        // Load saved preference from localStorage
-        const saved = localStorage.getItem("preferredTranslation");
+        // One-time migration of the pre-BITB-115 global preference, then load
+        // the preference scoped to the active UI locale.
+        migrateLegacyTranslationPreference(availableTranslations);
+        const saved = getTranslationPreference(locale);
         if (saved && availableTranslations.some((t) => t.code === saved)) {
           setSelectedTranslation(saved);
+        } else {
+          // No stored choice for this locale — clear any value carried over in
+          // memory from a previous locale (this effect now reruns on `locale`
+          // change, not just on mount).
+          setSelectedTranslation("");
         }
       } catch (error) {
         console.error("Failed to load translations:", error);
@@ -259,7 +271,7 @@ export default function ChatIsland({
 
     loadTranslations();
     loadBookNames();
-  }, []);
+  }, [locale]);
 
   // Pre-warm backend on mount so cold-start scaling begins immediately
   useEffect(() => {
@@ -340,14 +352,10 @@ export default function ChatIsland({
     ).then(() => setHistoryRefresh((n) => n + 1));
   }, [messages, isLoading, conversationId]);
 
-  // Save preference to localStorage when changed
+  // Save preference, scoped to the active UI locale, when changed (BITB-115).
   const handleTranslationChange = (code: string) => {
     setSelectedTranslation(code);
-    if (code) {
-      localStorage.setItem("preferredTranslation", code);
-    } else {
-      localStorage.removeItem("preferredTranslation");
-    }
+    setTranslationPreference(locale, code || null);
   };
 
   const scrollToBottom = () => {

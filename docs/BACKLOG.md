@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-05 (BITB-122 created)
+**Last Updated:** 2026-09-06 (BITB-115 completed)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -220,9 +220,9 @@ fix: `minSdk 24` + core-library desugaring and scoped API TLS trust,
 
 ---
 
-### 🎯 BITB-115: Bible Version Sticks to the Old Language After a Language Switch
+### ✅ BITB-115: Bible Version Sticks to the Old Language After a Language Switch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-06)
 **Priority:** P1
 **Size:** S–M
 **Created:** 2026-09-04
@@ -242,15 +242,15 @@ message sends the old language's `preferred_translation` together with the new `
 
 **Acceptance Criteria (summary):**
 
-- [ ] Version preference scoped per locale on web; a switch (either path) falls back to the new
+- [x] Version preference scoped per locale on web; a switch (either path) falls back to the new
       language's default, while a choice made in a language is remembered on return to it
-- [ ] Legacy bare `preferredTranslation` migrated to its own language or discarded, never reapplied
+- [x] Legacy bare `preferredTranslation` migrated to its own language or discarded, never reapplied
       to a different one
-- [ ] Version chip reflects the new language immediately after the switch
-- [ ] Same behaviour on Android (banner + Settings picker); `TranslationDto` carries `language_code`
-- [ ] Regression tests on both platforms covering both switch paths; no backend change
+- [x] Version chip reflects the new language immediately after the switch
+- [x] Same behaviour on Android (banner + Settings picker); `TranslationDto` carries `language_code`
+- [x] Regression tests on both platforms covering both switch paths; no backend change
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-bible-version-not-reset-on-language-switch.md`
+**Full Story:** `docs/DONE/BITB-115-bible-version-not-reset-on-language-switch.md`
 
 ---
 
