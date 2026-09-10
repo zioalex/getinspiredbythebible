@@ -265,9 +265,9 @@ Setup, following `api/alembic/README.md`'s documented commands and the
 $ sudo pg_ctlcluster 16 main start
 $ createdb (as postgres) bitb094_audit
 $ cd api
-$ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/bitb094_audit" \
-  EMBEDDING_PROVIDER=ollama EMBEDDING_MODEL=mxbai-embed-large EMBEDDING_DIMENSIONS=1024 \
-  python3 -m alembic upgrade head
+$ export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/bitb094_audit"  # pragma: allowlist secret
+$ export EMBEDDING_PROVIDER=ollama EMBEDDING_MODEL=mxbai-embed-large EMBEDDING_DIMENSIONS=1024
+$ python3 -m alembic upgrade head
 ```
 
 ```
@@ -284,9 +284,9 @@ INFO  [alembic.runtime.migration] Running upgrade r0005 -> r0006, grant search_e
 Then the audit itself:
 
 ```
-$ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/bitb094_audit" \
-  EMBEDDING_PROVIDER=ollama EMBEDDING_MODEL=mxbai-embed-large EMBEDDING_DIMENSIONS=1024 \
-  python3 ../scripts/audit_column_types.py
+$ export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/bitb094_audit"  # pragma: allowlist secret
+$ export EMBEDDING_PROVIDER=ollama EMBEDDING_MODEL=mxbai-embed-large EMBEDDING_DIMENSIONS=1024
+$ python3 ../scripts/audit_column_types.py
 ```
 
 **Literal captured output:**

@@ -77,7 +77,7 @@ database from a local machine or a PR."
 Usage:
     cd api  # or let this script chdir there itself, matching every other
             # Alembic command's documented convention (api/alembic/README.md)
-    export DATABASE_URL="postgresql://user:pass@host/db"
+    export DATABASE_URL="postgresql://user:pass@host/db"  # pragma: allowlist secret
     python ../scripts/audit_column_types.py
 
 Exit codes:
