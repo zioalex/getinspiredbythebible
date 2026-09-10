@@ -196,7 +196,7 @@ type that *is* declared (`VARCHAR(40)` in migration 006) matches the model
 | `user_agent` | `TEXT` | `Text`, nullable | match |
 | `status` | `VARCHAR(20) DEFAULT 'new' CHECK (...)` | `String(20)` | match |
 
-7 match, 0 questionable, 0 drift.
+8 match, 0 questionable, 0 drift.
 
 ### Static pass summary
 
@@ -209,8 +209,8 @@ type that *is* declared (`VARCHAR(40)` in migration 006) matches the model
 | passages | 9 | 0 | 1 | 0 |
 | topics | 4 | 0 | 1 | 0 |
 | feedback | 11 | 0 | 0 | 0 |
-| contact_submissions | 7 | 0 | 0 | 0 |
-| **Total** | **54** | **1** | **3** | **0** |
+| contact_submissions | 8 | 0 | 0 | 0 |
+| **Total** | **55** | **1** | **3** | **0** |
 
 **Finding: zero genuine drift.** The only faithful-but-questionable case is
 the one BITB-093 already flagged — `translations.created_at` as a naive
