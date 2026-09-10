@@ -60,8 +60,16 @@ private val CITED_BOOK_NAME =
     "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
         "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*){0,3}"
 
+// The Alt-1 trailing-word group below (after $CITED_BOOK_NAME) is bounded to {0,3} (BITB-117,
+// closing the residual gap BITB-114 flagged): it was an unbounded `*`, which left this
+// numbered-prefix branch open to the same superlinear-backtracking ReDoS shape BITB-114 closed
+// for the connector-repeat group above. Checked against every numbered-prefix entry in
+// LocalizedBookToEnglish.kt across all locales: the real max is exactly 1 trailing word (e.g.
+// Arabic "1 أخبار الأيام" = "1 Chronicles" — "أخبار" is matched by $CITED_BOOK_NAME, "الأيام" is
+// the one trailing word). {0,3} keeps 3x headroom, matching BITB-114's own bound. See
+// docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md.
 private val CITED_VERSE_REF_REGEX = Regex(
-    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+)*)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
+    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+){0,3})\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
         "|" +
         "($CITED_BOOK_NAME)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)",
 )
