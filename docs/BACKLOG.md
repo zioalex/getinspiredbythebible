@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-07 (BITB-117 completed)
+**Last Updated:** 2026-09-10 (BITB-094 tooling/static/dynamic-fresh-DB audit done, prod run outstanding; BITB-127 filed)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2195,9 +2195,11 @@ Phase 2 (dropping the expression index) is cancelled.
 
 ---
 
-### 🎯 BITB-094: Audit Column Types Against Production — the Blind Spot `alembic check` Cannot See
+### 🚧 BITB-094: Audit Column Types Against Production — the Blind Spot `alembic check` Cannot See
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — tooling built, static pass and dynamic pass (against a fresh
+migrated database) both done; the authoritative run against a real production restore is
+still outstanding
 **Size:** S–M
 **Depends on:** BITB-093 (structural reconciliation) — done
 
@@ -2211,21 +2213,38 @@ in production, so type comparison would flap the CI gate forever. The cost is th
 one against production, compared structure and no types whatsoever. A `varchar(50)` vs `varchar(100)`
 or a `timestamp` vs `timestamptz` would have passed silently.
 
-A concrete candidate already exists: `translations.created_at` is `DateTime` (naive) while
-`feedback.created_at` and `contact_submissions.created_at` are `DateTime(timezone=True)`.
-`scripts/init.sql` agrees with the models, so it is probably faithful rather than drift — but that
-is the standard this story replaces.
+**Done:** a hand static comparison of `scripts/init.sql` against the ORM models, column by column,
+for all 8 ORM-owned tables `init.sql` declares — zero genuine drift found, one
+faithful-but-questionable case (`translations.created_at`, the known candidate). A new reusable tool,
+`scripts/audit_column_types.py`, that reuses `env.py`'s own `target_metadata`/`include_name`/
+`include_object` but forces `compare_type=True`, with unit tests
+(`api/tests/test_audit_column_types.py`) and a real run captured against a throwaway database built
+fresh by `alembic upgrade head` — zero diffs, as expected for a database that traces back to the same
+models. Full findings, the literal captured output, and the recorded CI-gate decision (not yet — see
+the doc) are in `docs/audits/BITB-094-column-type-audit.md`.
+
+**Left:** this sandbox has no network access to production, so the acceptance criterion asking for a
+run against a *schema-only copy of production* is still outstanding — a maintainer with real
+Azure/production access needs to run `scripts/audit_column_types.py` against a `make
+db-backup-schema` restore (`docs/HOW-TO-BACKUP-RESTORE-DATABASE.md` Scenario C) before this can be
+marked Done. The `translations.created_at` fix itself is filed separately as **BITB-127**.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Type comparison run against a schema-only copy of production, output in the PR
-- [ ] Vector columns reported as expected-difference, not silently skipped
-- [ ] Each finding classified: faithful-but-questionable vs genuine drift
-- [ ] `translations.created_at` resolved explicitly, or documented as intentionally naive
-- [ ] Any `ALTER TABLE ... TYPE` deferred to its own revision with a lock/rewrite assessment
-- [ ] `api/alembic/README.md` invariant #2 states plainly that **no** type is ever compared
+- [x] Type comparison tooling built and run — against a fresh migrated database (dynamic pass) and
+      by hand against `scripts/init.sql` (static pass); full output in `docs/audits/BITB-094-column-type-audit.md`
+- [ ] The same comparison run against a schema-only copy of **production** — outstanding, needs a
+      maintainer with real prod access
+- [x] Vector columns reported as expected-difference, not silently skipped
+- [x] Each finding classified: faithful-but-questionable vs genuine drift
+- [x] `translations.created_at` resolved explicitly — recommended `timestamptz`, actual migration
+      deferred to BITB-127 (`docs/BACKLOG_STORIES/BITB-127-translations-created-at-timezone.md`)
+- [x] Any `ALTER TABLE ... TYPE` deferred to its own revision with a lock/rewrite assessment (BITB-127)
+- [x] Decision recorded: not wired into CI as a gate yet — see the audit doc
+- [x] `api/alembic/README.md` invariant #2 states plainly that **no** type is ever compared
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-094-audit-column-types-against-production.md`
+**Audit:** `docs/audits/BITB-094-column-type-audit.md`
 
 ---
 
@@ -3356,6 +3375,40 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-09-10
+**Surfaced by:** BITB-094 (column-type audit)
+
+**As a** maintainer running a UTC-everywhere service, **I want** `translations.created_at` to carry
+an explicit timezone like every other `created_at` column, **so that** the one naive timestamp in
+the schema stops being a trap for whoever eventually compares it against a
+`DateTime(timezone=True)` value or serializes it across a DST boundary.
+
+BITB-094's column-type audit confirmed `translations.created_at` is `TIMESTAMP` (no timezone) in
+both `scripts/init.sql` and the model, while `feedback.created_at` / `contact_submissions.created_at`
+are both `DateTime(timezone=True)` — faithful-but-questionable, not drift (model and database agree
+with each other; the choice itself is just inconsistent with its siblings). Values are always UTC in
+practice, so nothing is wrong today, but the column's type doesn't say so. `translations` is a
+13-row reference table, so the fix itself is expected to be low-risk — but the lock/rewrite
+discipline in `docs/MIGRATION_GUIDELINES.md` still applies mechanically, and this story is scoped to
+include that assessment, not skip it because the table is small.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `Translation.created_at` → `DateTime(timezone=True)`; `scripts/init.sql` → `TIMESTAMPTZ`
+- [ ] New Alembic revision with `postgresql_using`, `lock_timeout`/`statement_timeout`, and the
+      row-count/rewrite-avoidance finding recorded in its docstring
+- [ ] Rehearsed locally; existing rows read back at the same instant (no zone-shift bug)
+- [ ] `scripts/audit_column_types.py` re-run to confirm the column no longer flags
+- [ ] Applied to production following the same rehearse-then-run discipline as BITB-096/BITB-093
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-127-translations-created-at-timezone.md`
+
+---
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
