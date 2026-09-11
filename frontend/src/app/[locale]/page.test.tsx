@@ -573,6 +573,164 @@ describe("Home page responsive layout", () => {
     });
   });
 
+  describe("Follow-up suggestions (BITB-080)", () => {
+    async function submit(text: string) {
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: text } });
+      });
+      const submitButton = document.querySelector('button[type="submit"]');
+      await act(async () => {
+        fireEvent.click(submitButton!);
+      });
+    }
+
+    it("renders chips under the last assistant message only", async () => {
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-1",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield { type: "content" as const, content: "First answer." };
+        yield {
+          type: "completion" as const,
+          verses_cited: [],
+          follow_ups: ["What next?", "Tell me more about this"],
+        };
+      });
+
+      renderWithIntl(<Home />);
+      await submit("First question");
+      await waitFor(() => {
+        expect(screen.getByText("First answer.")).toBeInTheDocument();
+      });
+
+      expect(screen.getByText("What next?")).toBeInTheDocument();
+      expect(screen.getByText("Tell me more about this")).toBeInTheDocument();
+
+      // Second turn: no follow_ups this time -- the previous turn's chips
+      // must not still be attached to the (now no-longer-last) first answer.
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-2",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield { type: "content" as const, content: "Second answer." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      await submit("A different second question");
+      await waitFor(() => {
+        expect(screen.getByText("Second answer.")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("What next?")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Tell me more about this"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("tapping a chip sends it as the next message", async () => {
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield {
+          type: "metadata" as const,
+          message_id: "msg-1",
+          scripture_context: { query: "", verses: [], passages: [] },
+          provider: "test",
+          model: "test-model",
+        };
+        yield { type: "content" as const, content: "First answer." };
+        yield {
+          type: "completion" as const,
+          verses_cited: [],
+          follow_ups: ["What does Psalm 23 mean?", "How can I pray this?"],
+        };
+      });
+
+      renderWithIntl(<Home />);
+      await submit("First question");
+      await waitFor(() => {
+        expect(screen.getByText("First answer.")).toBeInTheDocument();
+      });
+
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield { type: "content" as const, content: "Follow-up answer." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("What does Psalm 23 mean?"));
+      });
+
+      expect(api.streamMessage).toHaveBeenCalledWith(
+        "What does Psalm 23 mean?",
+        expect.any(Array),
+        expect.anything(),
+      );
+      await waitFor(() => {
+        expect(screen.getByText("Follow-up answer.")).toBeInTheDocument();
+      });
+    });
+
+    it("chips disappear immediately when the next turn starts", async () => {
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield { type: "content" as const, content: "First answer." };
+        yield {
+          type: "completion" as const,
+          verses_cited: [],
+          follow_ups: ["What next?", "Tell me more about this"],
+        };
+      });
+
+      renderWithIntl(<Home />);
+      await submit("First question");
+      await waitFor(() => {
+        expect(screen.getByText("What next?")).toBeInTheDocument();
+      });
+
+      // A stalled second turn (never resolves) is enough to prove the chips
+      // clear the instant submission starts, before any response arrives.
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        await new Promise(() => {}); // never resolves within this test
+        yield { type: "content" as const, content: "unreachable" };
+      });
+
+      await submit("something else");
+
+      expect(screen.queryByText("What next?")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Tell me more about this"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders no chip row when the completion carries no follow_ups", async () => {
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield { type: "content" as const, content: "Plain answer." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      renderWithIntl(<Home />);
+      await submit("A question");
+      await waitFor(() => {
+        expect(screen.getByText("Plain answer.")).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByRole("group", {
+          name: "Suggested follow-up questions",
+        }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("heroContent prop (server-rendered hero)", () => {
     it("renders the server-provided heroContent instead of the client fallback", () => {
       renderWithIntl(

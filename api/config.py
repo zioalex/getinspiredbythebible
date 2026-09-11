@@ -206,6 +206,12 @@ class Settings(BaseSettings):
     # message reads as the app not listening, which is worse than the status quo).
     chat_clarification_enabled: bool = False
 
+    # BITB-080: after a normal answer, offer 2-3 one-tap follow-up questions in
+    # the user's own voice. Off by default for the same reason as BITB-078 --
+    # generic suggestions ("Tell me more") are worse than none, so this ships
+    # dark until real output has been reviewed.
+    chat_follow_ups_enabled: bool = False
+
     # Verse grounding (post-generation scripture fidelity)
     verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
     # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any

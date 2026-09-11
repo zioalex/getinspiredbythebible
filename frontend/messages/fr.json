@@ -135,6 +135,7 @@
     "contentBlockedMessage": "Je n'ai pas pu répondre à ce message — notre système de sécurité l'a retenu et a peut-être simplement mal compris tes mots. Essaie de reformuler ta pensée, et si quelque chose te semble étrange, écris-nous à contact@voxquieta.org. Heureux de t'accueillir ici.",
     "scrollToBottom": "Faire défiler vers le bas",
     "stopGenerating": "Arrêter la génération",
+    "followUpsLabel": "Questions de suivi suggérées",
     "languageSwitchSuggestion": "Il semble que vous écriviez en {language}. Changer ?",
     "languageSwitchAction": "Changer",
     "languageSwitchDismiss": "Ignorer",
