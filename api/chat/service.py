@@ -635,20 +635,10 @@ Keep it under 120 words."""
             body, scripture_context, translation, effective_language
         )
 
-        # Never offer a suggestion citing a verse reference outside what this
-        # answer actually cited (mirrors the streaming path's filter). Suppressed
-        # entirely on a compassionate/crisis turn, and re-applies the "2-3, or
-        # none" rule if the filter drops the count below 2.
-        follow_ups: list[str] = []
-        if follow_up_candidates and not safety.compassionate:
-            cited_set = {str(ref) for ref in extract_all_references(message)}
-            follow_ups = [
-                s
-                for s in follow_up_candidates
-                if all(str(ref) in cited_set for ref in extract_all_references(s))
-            ]
-            if len(follow_ups) < 2:
-                follow_ups = []
+        cited_set = {str(ref) for ref in extract_all_references(message)}
+        follow_ups = self._filter_fabricated_follow_ups(
+            follow_up_candidates, cited_set, safety.compassionate
+        )
 
         # AC2 (BITB-055): emit the same silent-degradation SLI as the streaming
         # path (chat_stream) so a retrieval outage affecting non-stream clients
@@ -784,6 +774,25 @@ Keep it under 120 words."""
         prompt without a ``follow_ups_enabled`` argument.
         """
         return settings.chat_follow_ups_enabled and not compassionate
+
+    def _filter_fabricated_follow_ups(
+        self, candidates: list[str], cited_refs: set[str], compassionate: bool
+    ) -> list[str]:
+        """Drop any BITB-080 suggestion citing a verse reference this turn didn't cite.
+
+        Shared by ``chat()`` and ``chat_stream()`` so the fabrication check (and the
+        "2-3, or none" re-application once dropped suggestions leave fewer than 2) is
+        written once. Suppressed entirely on a compassionate/crisis turn as a second,
+        code-level guarantee alongside the prompt-level gate in ``_wants_follow_ups``.
+        """
+        if not candidates or compassionate:
+            return []
+        follow_ups = [
+            s
+            for s in candidates
+            if all(str(ref) in cited_refs for ref in extract_all_references(s))
+        ]
+        return follow_ups if len(follow_ups) >= 2 else []
 
     async def _handle_needs_clarification(
         self,
@@ -1595,21 +1604,10 @@ Keep it under 120 words."""
         # BITB-080: never offer a suggestion that cites a verse reference outside
         # what was actually cited in this answer (verses_cited, the final
         # post-grounding set) -- a fabricated reference in a suggestion is exactly
-        # as unacceptable as one in the answer body itself. Suppressed entirely on
-        # a compassionate/crisis turn as a second, code-level guarantee alongside
-        # the prompt-level gate in _wants_follow_ups. Re-applies the same "2-3, or
-        # none" rule as split_follow_ups: if this filter drops the count below 2,
-        # drop the rest too rather than show a single orphan chip.
-        follow_ups: list[str] = []
-        if follow_up_candidates and not safety.compassionate:
-            cited_set = set(verses_cited)
-            follow_ups = [
-                s
-                for s in follow_up_candidates
-                if all(str(ref) in cited_set for ref in extract_all_references(s))
-            ]
-            if len(follow_ups) < 2:
-                follow_ups = []
+        # as unacceptable as one in the answer body itself.
+        follow_ups = self._filter_fabricated_follow_ups(
+            follow_up_candidates, set(verses_cited), safety.compassionate
+        )
         if follow_ups:
             completion["follow_ups"] = follow_ups
 
