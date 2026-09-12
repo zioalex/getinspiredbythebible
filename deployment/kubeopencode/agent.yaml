@@ -20,7 +20,8 @@ spec:
   # work, and the session history. The operator creates and owns these PVCs.
   # storageClassName is intentionally omitted so the cluster default applies.
   # Note: this covers spec.workspaceDir (/workspace) only -- /tmp is NOT
-  # persisted, so git worktrees placed there per AGENTS.md do not survive.
+  # persisted, so place git worktrees under ${WORKSPACE_DIR}/worktrees
+  # (see AGENTS.md, Git Worktree Pattern).
   persistence:
     workspace:
       size: 20Gi
@@ -32,6 +33,16 @@ spec:
         name: ai-credentials
         key: api-key
       env: OPENCODE_API_KEY
+    # GitHub Copilot OAuth user token (gho_...) for the github-copilot provider.
+    # PATs (classic ghp_... or fine-grained github_pat_...) are rejected by the
+    # copilot_internal/v2/token exchange — see README "Persist GitHub Copilot
+    # access". The Agent CRD exposes no volume/volumeMount fields, so auth.json
+    # mounting is not wirable here; GITHUB_TOKEN remains the supported mechanism.
+    - name: github-copilot
+      secretRef:
+        name: github-copilot-auth
+        key: token
+      env: GITHUB_TOKEN
     - name: openrouter-api-key
       secretRef:
         name: openrouter-api-key
