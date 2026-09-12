@@ -40,7 +40,9 @@ function createFetchImpl(routes: Record<string, Route>) {
   return fn;
 }
 
-function baseRoutes(overrides: Record<string, Route> = {}): Record<string, Route> {
+function baseRoutes(
+  overrides: Record<string, Route> = {},
+): Record<string, Route> {
   return {
     "/offline.html": fakeNetworkResponse(OFFLINE_HTML, {
       status: 200,
@@ -91,7 +93,11 @@ describe("sw.js — cache naming and build-id versioning", () => {
 
     const { sw: swA } = await setupInstalledSw(
       "build-A",
-      { [url]: fakeNetworkResponse(JSON.stringify({ translations: ["A"] }), { status: 200 }) },
+      {
+        [url]: fakeNetworkResponse(JSON.stringify({ translations: ["A"] }), {
+          status: 200,
+        }),
+      },
       cacheStorage,
     );
     const req = new Request(url);
@@ -128,21 +134,29 @@ describe("sw.js — non-GET requests are structurally untouchable", () => {
     "https://api.example.test/api/v1/church/search",
   ];
 
-  it.each(postUrls)("POST %s never reaches respondWith and never touches cache", async (url) => {
-    const { sw, cacheStorage } = await setupInstalledSw("build-A");
-    const before = await cacheStorage.keys();
+  it.each(postUrls)(
+    "POST %s never reaches respondWith and never touches cache",
+    async (url) => {
+      const { sw, cacheStorage } = await setupInstalledSw("build-A");
+      const before = await cacheStorage.keys();
 
-    const result = await sw.dispatchFetch(new Request(url, { method: "POST" }));
+      const result = await sw.dispatchFetch(
+        new Request(url, { method: "POST" }),
+      );
 
-    expect(result.respondWithCalled).toBe(false);
-    expect(await cacheStorage.keys()).toEqual(before);
-  });
+      expect(result.respondWithCalled).toBe(false);
+      expect(await cacheStorage.keys()).toEqual(before);
+    },
+  );
 
   it("a pre-seeded cache entry at a chat-stream URL is never served to a POST (method check precedes lookup)", async () => {
     const url = "https://api.example.test/api/v1/chat/stream";
     const { sw, cacheStorage } = await setupInstalledSw("build-A");
     const scriptureCache = await cacheStorage.open("vq-scripture-v1");
-    await scriptureCache.put(url, fakeNetworkResponse("POISON", { status: 200 }));
+    await scriptureCache.put(
+      url,
+      fakeNetworkResponse("POISON", { status: 200 }),
+    );
 
     const result = await sw.dispatchFetch(new Request(url, { method: "POST" }));
 
@@ -167,10 +181,14 @@ describe("sw.js — non-GET requests are structurally untouchable", () => {
     // URL that no other branch would ever match anyway.
     const url = scriptureUrl("chapter/John/3");
     const { sw, cacheStorage } = await setupInstalledSw("build-A", {
-      [url]: fakeNetworkResponse(JSON.stringify({ chapter: 3 }), { status: 200 }),
+      [url]: fakeNetworkResponse(JSON.stringify({ chapter: 3 }), {
+        status: 200,
+      }),
     });
 
-    const result = await sw.dispatchFetch(new Request(url, { method: "POST", body: "{}" }));
+    const result = await sw.dispatchFetch(
+      new Request(url, { method: "POST", body: "{}" }),
+    );
 
     expect(result.respondWithCalled).toBe(false);
     expect(await cacheStorage.has("vq-scripture-v1")).toBe(false);
@@ -181,7 +199,8 @@ describe("sw.js — non-GET requests are structurally untouchable", () => {
     // branch if this earlier bypass were removed, so the test actually
     // exercises branch ordering instead of two branches that happen to both
     // say "don't cache" for unrelated reasons.
-    const url = "https://challenges.cloudflare.com/api/v1/scripture/translations";
+    const url =
+      "https://challenges.cloudflare.com/api/v1/scripture/translations";
     const { sw, cacheStorage, fetchImpl } = await setupInstalledSw("build-A", {
       [url]: fakeNetworkResponse("{}", { status: 200 }),
     });
@@ -227,7 +246,9 @@ describe("sw.js — Turnstile token safety", () => {
   it("a scripture GET carrying X-Turnstile-Token gets cached, keyed by bare URL string with no header retained", async () => {
     const url = scriptureUrl("verse/John/3/16");
     const { sw, cacheStorage } = await setupInstalledSw("build-A", {
-      [url]: fakeNetworkResponse(JSON.stringify({ verse: 16 }), { status: 200 }),
+      [url]: fakeNetworkResponse(JSON.stringify({ verse: 16 }), {
+        status: 200,
+      }),
     });
 
     const request = new Request(url, {
@@ -403,7 +424,9 @@ describe("sw.js — scripture stale-while-revalidate", () => {
     const max = 100;
     const routes: Record<string, Route> = {};
     for (let i = 1; i <= total; i++) {
-      routes[scriptureUrl(`verse/John/3/${i}`)] = fakeNetworkResponse("{}", { status: 200 });
+      routes[scriptureUrl(`verse/John/3/${i}`)] = fakeNetworkResponse("{}", {
+        status: 200,
+      });
     }
     const { sw, cacheStorage } = await setupInstalledSw("build-A", routes);
 
@@ -417,10 +440,14 @@ describe("sw.js — scripture stale-while-revalidate", () => {
 
     // Oldest (i=1..5) evicted, newest (i=6..105) retained.
     for (let i = 1; i <= total - max; i++) {
-      expect(await scriptureCache?.match(scriptureUrl(`verse/John/3/${i}`))).toBeUndefined();
+      expect(
+        await scriptureCache?.match(scriptureUrl(`verse/John/3/${i}`)),
+      ).toBeUndefined();
     }
     for (let i = total - max + 1; i <= total; i++) {
-      expect(await scriptureCache?.match(scriptureUrl(`verse/John/3/${i}`))).toBeDefined();
+      expect(
+        await scriptureCache?.match(scriptureUrl(`verse/John/3/${i}`)),
+      ).toBeDefined();
     }
   });
 });
@@ -439,7 +466,11 @@ describe("sw.js — offline navigation fallback", () => {
       [navUrl]: new Error("offline"),
     });
 
-    const navigationRequest = { url: navUrl, method: "GET", mode: "navigate" } as unknown as Request;
+    const navigationRequest = {
+      url: navUrl,
+      method: "GET",
+      mode: "navigate",
+    } as unknown as Request;
     const result = await sw.dispatchFetch(navigationRequest);
 
     expect(result.respondWithCalled).toBe(true);
@@ -455,7 +486,11 @@ describe("sw.js — offline navigation fallback", () => {
       }),
     });
 
-    const navigationRequest = { url: navUrl, method: "GET", mode: "navigate" } as unknown as Request;
+    const navigationRequest = {
+      url: navUrl,
+      method: "GET",
+      mode: "navigate",
+    } as unknown as Request;
     const result = await sw.dispatchFetch(navigationRequest);
 
     expect(await result.response?.text()).toBe("<html>PAGE</html>");

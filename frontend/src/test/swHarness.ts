@@ -42,7 +42,10 @@ class FakeCache {
   async put(requestOrUrl: any, response: Response): Promise<void> {
     const key = keyFor(requestOrUrl);
     this.store.set(key, response);
-    this.keyTypes.set(key, typeof requestOrUrl === "string" ? "string" : "request");
+    this.keyTypes.set(
+      key,
+      typeof requestOrUrl === "string" ? "string" : "request",
+    );
   }
 
   /**
@@ -209,7 +212,16 @@ export function loadServiceWorker({
     "console",
     src,
   );
-  run(fakeSelf, cacheStorage, fetchImpl, Response, Request, Headers, URL, console);
+  run(
+    fakeSelf,
+    cacheStorage,
+    fetchImpl,
+    Response,
+    Request,
+    Headers,
+    URL,
+    console,
+  );
 
   async function dispatch(type: "install" | "activate") {
     const handler = handlers[type];
