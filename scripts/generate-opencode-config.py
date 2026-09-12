@@ -67,6 +67,52 @@ PROVIDER = {
 }
 
 
+# Appended to every .md agent prompt. Two failure modes seen in live
+# delegation smoke tests motivated this:
+#   1. fullstack-engineer claimed it owned `/backend` — this repo uses `api/`.
+#   2. Agents asked to name an escalation target invented non-existent agents
+#      ("Backend Engineer", "Design Agent") because no agent knew its siblings.
+# Keeping this in the generator rather than duplicated across the .md files
+# means new agents inherit it for free and the roster cannot drift.
+REPO_LAYOUT = """\
+## Repository layout (authoritative)
+
+| Path | Contents |
+| ---- | -------- |
+| `api/` | Python 3.12 / FastAPI backend. **The backend lives here — there is no `/backend` directory.** |
+| `frontend/` | Next.js / React / TypeScript web app |
+| `android/` | Kotlin / Jetpack Compose Android app |
+| `deployment/` | Terraform configs for Azure, KubeOpenCode manifests |
+| `scripts/` | DB init, embedding generation, migrations, env validation |
+| `data/` | Bible data files |
+| `docs/` | Documentation, `BACKLOG.md`, `BACKLOG_STORIES/` |
+
+Never invent or assume a path. If you need a directory that is not listed
+above, verify it exists before relying on it."""
+
+HANDOFF_RULES = """\
+When a request falls outside your scope, do not attempt it and do not invent
+an agent name. Name the correct agent from the roster above and hand the work
+back to `orchestrator`, which owns planning and delegation."""
+
+
+def build_shared_context(agents: dict) -> str:
+    """Build the shared prompt suffix, with the roster derived from the agents.
+
+    Deriving the roster from the parsed agents (rather than hardcoding it)
+    guarantees it stays in sync as agents are added, removed, or re-scoped.
+    """
+    rows = "\n".join(
+        f"| `{name}` | {spec.get('description', '').strip()} |"
+        for name, spec in sorted(agents.items())
+    )
+    roster = (
+        "## Agent roster (your siblings)\n\n| Agent | Responsibility |\n| ----- | -------------- |\n"
+        + rows
+    )
+    return f"\n\n---\n\n{REPO_LAYOUT}\n\n{roster}\n\n{HANDOFF_RULES}\n"
+
+
 def parse_agent_md(path: pathlib.Path):
     content = path.read_text()
     if not content.startswith("---"):
@@ -100,6 +146,11 @@ def main():
     for md in sorted(AGENTS_DIR.glob("*.md")):
         name, agent = parse_agent_md(md)
         agents[name] = agent
+
+    # Appended after all agents are parsed so the roster is complete.
+    shared = build_shared_context(agents)
+    for agent in agents.values():
+        agent["prompt"] = agent["prompt"] + shared
 
     builtins = {
         name: {**spec, "fallback_models": [DEFAULT_FALLBACK]}

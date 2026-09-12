@@ -151,3 +151,50 @@ def test_generation_is_deterministic():
         )
         runs.add(proc.stdout)
     assert len(runs) == 1, "generator output is not deterministic"
+
+
+def test_every_agent_prompt_states_backend_lives_in_api(config, md_agents):
+    """Regression: fullstack-engineer reported it owned `/backend`.
+
+    The backend is `api/`. Every agent must carry the authoritative layout so
+    none of them hallucinate a path that does not exist in this repo.
+    """
+    for name in md_agents:
+        prompt = config["agent"][name]["prompt"]
+        assert "`api/`" in prompt, f"{name} prompt lacks the api/ layout entry"
+        assert (
+            "there is no `/backend` directory" in prompt
+        ), f"{name} prompt does not rule out the bogus /backend path"
+
+
+def test_every_agent_prompt_lists_all_siblings(config, md_agents):
+    """Regression: agents invented escalation targets ("Design Agent").
+
+    Each agent must see the full roster so it can name a real sibling.
+    """
+    for name in md_agents:
+        prompt = config["agent"][name]["prompt"]
+        for sibling in md_agents:
+            assert f"`{sibling}`" in prompt, f"{name} prompt is missing sibling {sibling}"
+
+
+def test_roster_is_derived_not_hardcoded(config, md_agents):
+    """The roster must carry each agent's real description, so it can't drift."""
+    for name in md_agents:
+        description = config["agent"][name]["description"].strip()
+        assert description, f"{name} has no description to put in the roster"
+        # Every agent's description appears in every other agent's roster.
+        assert (
+            description in config["agent"]["orchestrator"]["prompt"]
+        ), f"{name} description missing from the generated roster"
+
+
+def test_handoff_rule_names_orchestrator(config, md_agents):
+    for name in md_agents:
+        assert "hand the work" in config["agent"][name]["prompt"], f"{name} lacks a handoff rule"
+
+
+def test_agent_body_precedes_shared_context(config):
+    """Shared context is a suffix — it must not shadow the agent's own brief."""
+    prompt = config["agent"]["verifier"]["prompt"]
+    assert prompt.index("independent verifier") < prompt.index("Repository layout")

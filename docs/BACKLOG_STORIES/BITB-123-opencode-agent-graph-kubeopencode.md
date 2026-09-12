@@ -67,3 +67,25 @@ permission routing from version-controlled manifests.
 - `opencode agent list` lists orchestrator + 11 subagents
 - `make pre-commit` green
 - PR opened against `main` with `chore(agents):` conventional title
+
+---
+
+## Follow-up: shared agent context (2026-09-12)
+
+A live delegation smoke test against PR #1042 surfaced two prompt-content gaps
+once the 12 agents were actually exercised:
+
+1. `fullstack-engineer` reported that it owned `/backend`. This repo's backend
+   is `api/` — no agent prompt stated the repository layout.
+2. Asked to name an escalation target, agents invented siblings that do not
+   exist in the graph ("Backend Engineer", "Design Agent"). No agent knew the
+   other 11.
+
+Fixed in `scripts/generate-opencode-config.py` by appending a shared context
+block — authoritative repo layout, plus an **agent roster derived from the
+parsed `.md` files** — to every agent prompt, rather than duplicating it across
+12 files. New agents inherit it automatically and the roster cannot drift.
+Guarded by 5 regression tests in `scripts/test_generate_opencode_config.py`.
+
+The same smoke test also found a parallel-dispatch fault, tracked separately as
+BITB-124.
