@@ -1,7 +1,7 @@
 ---
 description: High-level planner and coordinator. Starts every session by planning, decomposes tasks, delegates implementation to specialist subagents, verifies work, and reports to user. Can self-improve by updating AGENTS.md and opencode.json.
 mode: primary
-model: github-copilot/claude-opus-4.6
+model: github-copilot/claude-opus-5
 tools:
   bash: true
   read: true

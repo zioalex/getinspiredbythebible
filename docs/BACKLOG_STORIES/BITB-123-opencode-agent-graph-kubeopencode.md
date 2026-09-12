@@ -46,11 +46,13 @@ permission routing from version-controlled manifests.
 
 | Agent(s) | Model | Rationale |
 |---|---|---|
-| orchestrator | `github-copilot/claude-opus-4.6` (paid) | Strongest planner; fallback `opencode/muse-spark-1.3-contributor-free` in spec |
+| orchestrator | `github-copilot/claude-opus-5` (paid) | Strongest planner; fallback `opencode/muse-spark-1.3-contributor-free` in spec |
 | android-expert, fullstack-engineer, infra-engineer, data-engineer | `opencode/nemotron-3-ultra-free` | Strong free builders |
 | android-gemini | `openrouter/qwen/qwen3-coder` | Paid-tier coder, already used in repo (BITB-023) |
 | verse-parity-keeper, i18n-qa | `opencode/mimo-v2.5-free` | Multilingual strength |
-| verifier, risk-auditor, failure-forecaster, seo-auditor | `opencode/nemotron-3.5-lightning-free` | Cheap, read-only (`edit: deny`) |
+| verifier | `github-copilot/claude-opus-5` | Read-only, Opus per the Plan → Build → Verify relay |
+| risk-auditor | `github-copilot/claude-opus-5` | Read-only, max quality for adversarial blast-radius reasoning |
+| failure-forecaster, seo-auditor | `opencode/nemotron-3-ultra-free` | Read-only, stronger for calibrated forecast + SEO checklist |
 
 ## Non-Functional Requirements
 
