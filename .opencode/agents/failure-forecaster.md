@@ -2,6 +2,8 @@
 description: Forward-looking 12-month failure forecast — dependency rot, EOL calendars, time bombs, vendor risk. Prioritized register plus detailed report. Read-only.
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 permission:
   edit: deny
   bash:

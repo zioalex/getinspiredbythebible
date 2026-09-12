@@ -2,6 +2,8 @@
 description: Keeps the three verse-reference parsers (backend, frontend, Android) in sync across all 11 languages and representative Bible versions
 mode: subagent
 model: opencode/mimo-v2.5-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

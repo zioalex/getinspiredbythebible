@@ -2,6 +2,8 @@
 description: i18n QA across all 11 UI languages — translation completeness, locale routing, RTL/CJK rendering, per-language fallbacks
 mode: subagent
 model: opencode/mimo-v2.5-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

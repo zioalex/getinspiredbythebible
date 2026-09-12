@@ -2,6 +2,8 @@
 description: Azure and Terraform specialist for Container Apps, PostgreSQL Flexible Server, ACR, Key Vault, networking, and GitHub Actions CI/CD pipelines
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

@@ -2,6 +2,8 @@
 description: Android engineer with first-class familiarity with Google/Jetpack APIs, Firebase, Play Services, and the latest Android Studio tooling
 mode: subagent
 model: openrouter/qwen/qwen3-coder
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

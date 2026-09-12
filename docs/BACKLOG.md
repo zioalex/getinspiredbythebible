@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress)
+**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2346,6 +2346,32 @@ table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` unt
 - [ ] `make pre-commit` green; PR opened with `chore(agents):` title
 
 Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
+
+---
+
+### 🎯 BITB-124: Parallel Subagent Dispatch Silently Drops Tasks
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (< 4 hrs to characterise; fix size unknown — may be upstream)
+**Created:** 2026-09-12
+
+Dispatching two independent subagents in the same message can return
+`Task cancelled` for one of them without it ever running; the same agent
+succeeds when dispatched alone. Found during the PR #1042 delegation smoke test
+(`android-expert` ✅ / `fullstack-engineer` ❌ in parallel, ✅ on serial retry).
+This makes the orchestrator's documented "batch independent delegations"
+pattern unsafe, and the failure is silent — a dropped subtask looks deliberately
+abandoned, so work can be reported as done that never ran.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Deterministic repro with a measured cancellation rate over repeated runs
+- [ ] Fault localised (task tool vs runtime-fallback plugin vs provider 429s vs KubeOpenCode runtime)
+- [ ] Fixed, or a documented concurrency ceiling the orchestrator respects
+- [ ] A cancelled task surfaces as a retryable error, never a silent terminal state
+
+Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORIES/BITB-124-parallel-subagent-dispatch-drops-tasks.md)
 
 ---
 
