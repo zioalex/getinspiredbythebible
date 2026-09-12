@@ -101,11 +101,37 @@ kubectl -n kubeopencode-system describe agent default-wf2
 
 `/connect` stores OAuth in `~/.local/share/opencode/auth.json` (ephemeral,
 lost on pod restart). `persistence.sessions/workspace` preserves DB/files,
-not auth. Inject `GITHUB_TOKEN` declaratively so it survives restarts:
+not auth. Inject `GITHUB_TOKEN` declaratively so it survives restarts.
+
+Requirements: a paid Copilot subscription (Pro, Pro+, Business, or
+Enterprise) with [Copilot chat in the IDE](https://github.com/settings/copilot)
+enabled. OpenCode exchanges `GITHUB_TOKEN` for a Copilot bearer token via
+`https://api.github.com/copilot_internal/v2/token` and refreshes it
+automatically.
+
+### Create the token (fine-grained PAT, recommended for pods)
+
+Pods are non-interactive, so use a fine-grained personal access token.
+Classic PATs (`ghp_...`) are not supported for Copilot token exchange —
+use a fine-grained PAT (`github_pat_...`) or an OAuth/GitHub App user token
+(`gho_...` / `ghu_...`).
+
+1. Visit [Fine-grained personal access tokens](https://github.com/settings/personal-access-tokens/new).
+2. Under **Resource owner**, select your **personal account** (not an
+   organization — the **Copilot Requests** permission is only available on
+   user-owned tokens).
+3. Under **Repository access**, choose **Public repositories** (minimum), or
+   narrower/broader access as your use case needs.
+4. Under **Permissions**, open the **Account** tab, click **Add permissions**,
+   and select **Copilot Requests**.
+5. Click **Generate token** and copy the `github_pat_...` value. Set a short
+   expiry and rotate it like any credential.
+
+### Store it in the cluster
 
 ```bash
 kubectl create secret generic github-copilot-auth -n kubeopencode-system \
-  --from-literal=token=ghp_... # pragma: allowlist secret
+  --from-literal=token=github_pat_... # pragma: allowlist secret
 ```
 
 `agent.yaml` already wires it:
@@ -120,7 +146,19 @@ credentials:
 ```
 
 Requires a Copilot subscription with chat enabled; OpenCode exchanges and
-refreshes the bearer token automatically.
+refreshes the bearer token automatically. If exchange fails, check that the
+token is a fine-grained PAT owned by your personal account with the
+**Copilot Requests** account permission, that Copilot chat is enabled, and
+that the subscription is active. If your org uses SAML SSO, authorize the
+token for the org as well.
+
+Verify the wiring:
+
+```bash
+# secret exists and Agent references it
+kubectl -n kubeopencode-system get secret github-copilot-auth
+kubectl -n kubeopencode-system describe agent default-wf2
+```
 
 ## Files
 
