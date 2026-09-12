@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-09 (BITB-099 implemented + verified, PR #1058; BITB-125 filed)
+**Last Updated:** 2026-09-12 (BITB-099 implemented + verified, PR #1058; BITB-125 filed; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -220,9 +220,9 @@ fix: `minSdk 24` + core-library desugaring and scoped API TLS trust,
 
 ---
 
-### 🎯 BITB-115: Bible Version Sticks to the Old Language After a Language Switch
+### ✅ BITB-115: Bible Version Sticks to the Old Language After a Language Switch
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-06)
 **Priority:** P1
 **Size:** S–M
 **Created:** 2026-09-04
@@ -242,15 +242,15 @@ message sends the old language's `preferred_translation` together with the new `
 
 **Acceptance Criteria (summary):**
 
-- [ ] Version preference scoped per locale on web; a switch (either path) falls back to the new
+- [x] Version preference scoped per locale on web; a switch (either path) falls back to the new
       language's default, while a choice made in a language is remembered on return to it
-- [ ] Legacy bare `preferredTranslation` migrated to its own language or discarded, never reapplied
+- [x] Legacy bare `preferredTranslation` migrated to its own language or discarded, never reapplied
       to a different one
-- [ ] Version chip reflects the new language immediately after the switch
-- [ ] Same behaviour on Android (banner + Settings picker); `TranslationDto` carries `language_code`
-- [ ] Regression tests on both platforms covering both switch paths; no backend change
+- [x] Version chip reflects the new language immediately after the switch
+- [x] Same behaviour on Android (banner + Settings picker); `TranslationDto` carries `language_code`
+- [x] Regression tests on both platforms covering both switch paths; no backend change
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-115-bible-version-not-reset-on-language-switch.md`
+**Full Story:** `docs/DONE/BITB-115-bible-version-not-reset-on-language-switch.md`
 
 ---
 
@@ -1595,9 +1595,9 @@ folded into this fix's claimed scope — see the story file's "Residual Risk" se
 
 ---
 
-### 🎯 BITB-117: Bound the Remaining Unbounded Android Alt-1 Numbered-Prefix Groups
+### ✅ BITB-117: Bound the Remaining Unbounded Android Alt-1 Numbered-Prefix Groups
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-07)
 **Priority:** P3 — no active incident, but the same ReDoS shape BITB-108/BITB-114 closed elsewhere
 **Size:** S
 **Created:** 2026-09-02
@@ -1612,11 +1612,11 @@ not bounded or benchmarked across input sizes in isolation.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Both Alt-1 trailing groups bounded (not unbounded `*`), bounds justified against real data
-- [ ] Dedicated adversarial-input benchmark for this specific group, before and after
-- [ ] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
+- [x] Both Alt-1 trailing groups bounded (not unbounded `*`), bounds justified against real data
+- [x] Dedicated adversarial-input benchmark for this specific group, before and after
+- [x] Regression + cap-enforcement tests, mirroring BITB-108/BITB-114's structure
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-117-android-verse-parser-alt1-redos-residual.md`
+**Full Story:** `docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md`
 
 ---
 
@@ -2355,6 +2355,55 @@ attributed to Android or broadly backfilled.
 > speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
 > but are split because output and microphone input have independent APIs, permissions, data
 > flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
+
+**Status:** 🚧 In Progress (PR #1042)
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-09-05
+
+Move the 5 inline agents out of `opencode.json` into 12 `.opencode/agents/*.md` files
+(orchestrator + 11 subagents), slim `opencode.json` (drop unused `ollama` provider),
+and add an adhoc `deployment/kubeopencode/` folder with the Agent CRD
+(`agent.yaml` with per-agent `fallback_models` incl. orchestrator), a documented model
+table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` untouched.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
+- [ ] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
+- [ ] `make pre-commit` green; PR opened with `chore(agents):` title
+
+Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
+
+---
+
+### 🎯 BITB-124: Parallel Subagent Dispatch Silently Drops Tasks
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (< 4 hrs to characterise; fix size unknown — may be upstream)
+**Created:** 2026-09-12
+
+Dispatching two independent subagents in the same message can return
+`Task cancelled` for one of them without it ever running; the same agent
+succeeds when dispatched alone. Found during the PR #1042 delegation smoke test
+(`android-expert` ✅ / `fullstack-engineer` ❌ in parallel, ✅ on serial retry).
+This makes the orchestrator's documented "batch independent delegations"
+pattern unsafe, and the failure is silent — a dropped subtask looks deliberately
+abandoned, so work can be reported as done that never ran.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Deterministic repro with a measured cancellation rate over repeated runs
+- [ ] Fault localised (task tool vs runtime-fallback plugin vs provider 429s vs KubeOpenCode runtime)
+- [ ] Fixed, or a documented concurrency ceiling the orchestrator respects
+- [ ] A cancelled task surfaces as a retryable error, never a silent terminal state
+
+Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORIES/BITB-124-parallel-subagent-dispatch-drops-tasks.md)
 
 ---
 
