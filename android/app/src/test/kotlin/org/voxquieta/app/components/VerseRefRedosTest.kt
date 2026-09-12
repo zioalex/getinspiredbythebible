@@ -77,9 +77,11 @@ class VerseRefRedosTest {
 
     @Test(timeout = 5000)
     fun `ChatMessageItem numbered-prefix branch handles adversarial trailing words within budget`() {
-        // The leading "1 " forces Alt 1. Its trailing-word repeat is tracked separately by
-        // BITB-117; this guard records its current behavior rather than claiming it is bounded.
-        val input = "1 Aa" + " Aa".repeat(500) + "!"
+        // The leading "1 " forces Alt 1. Its trailing-word repeat group is now bounded to
+        // {0,3} by BITB-117 (was unbounded `*`, flagged as residual risk by BITB-114) — this
+        // is a genuine adversarial benchmark at the same scale as the connector-group tests
+        // above, not just a small sanity check.
+        val input = "1 Aa" + " Aa".repeat(20000) + "!"
         val elapsed = measureTimeMillis {
             DEFAULT_VERSE_REF_REGEX.findAll(input).count()
         }
@@ -88,7 +90,7 @@ class VerseRefRedosTest {
 
     @Test(timeout = 5000)
     fun `VersesPanel numbered-prefix branch handles adversarial trailing words within budget`() {
-        val input = "1 Aa" + " Aa".repeat(500) + "!"
+        val input = "1 Aa" + " Aa".repeat(20000) + "!"
         val messages = listOf(Message(id = "1", role = Message.Role.ASSISTANT, content = input))
         val elapsed = measureTimeMillis {
             referencedVerses(allVerses = emptyList(), messages = messages)
@@ -146,6 +148,94 @@ class VerseRefRedosTest {
             "the full unbounded chain must not be captured as a single book name",
             !result.contains(fullChainVerse),
         )
+    }
+
+    // ── Alt-1 numbered-prefix trailing-word cap ({0,3}) is enforced (BITB-117) ──────
+    //
+    // Mirrors the connector-cap tests above, but for the *other* group BITB-114 flagged as
+    // residual: the Alt-1 numbered-prefix trailing-word group (after $BOOK_NAME / after
+    // $CITED_BOOK_NAME), now also bounded to {0,3}. Traced against both the Kotlin regex
+    // semantics and a Node.js cross-check (Unicode-property-escape regex, `u` flag) before
+    // writing these assertions.
+
+    @Test
+    fun `DEFAULT_VERSE_REF_REGEX refuses a 4th Alt-1 trailing word from the same start`() {
+        val match = DEFAULT_VERSE_REF_REGEX.find("1 Xylo Zorp Quix Wobble Nix 3:16")
+        checkNotNull(match) { "expected some (shorter) match to still be found" }
+        // 4 trailing words after "Xylo" (Zorp, Quix, Wobble, Nix) is one over the {0,3} cap,
+        // so Alt 1 cannot match the whole numbered-prefix phrase under any backtrack split.
+        // The overall match instead falls through to Alt 2, which picks up just "Nix 3:16"
+        // ("Nix" alone qualifies as a BOOK_NAME) -- proving the earlier words were NOT
+        // absorbed into one unbounded Alt-1 match.
+        assertEquals("Nix 3:16", match.value)
+        assertEquals("Nix", match.groupValues[4])
+    }
+
+    @Test
+    fun `DEFAULT_VERSE_REF_REGEX still allows exactly 3 chained Alt-1 trailing words`() {
+        assertEquals(
+            "1 Xylo Zorp Quix Wobble",
+            DEFAULT_VERSE_REF_REGEX.find("1 Xylo Zorp Quix Wobble 3:16")?.groupValues?.get(1),
+        )
+    }
+
+    @Test
+    fun `referencedVerses Alt-1 trailing-word cap is enforced for CITED_BOOK_NAME`() {
+        // CITED_BOOK_NAME requires each word to start with an uppercase/caseless letter
+        // (\p{Lu}\p{Lo}), so use word-initial-capital synthetic words. VersesPanel's Alt-1
+        // prefix separator is `[\s.][\s]?` (less flexible than ChatMessageItem's), but a
+        // plain "1 " still satisfies it.
+        val message = Message(
+            id = "1",
+            role = Message.Role.ASSISTANT,
+            content = "1 Xylo Zorp Quix Wobble Nix 3:16",
+        )
+        val fullChainVerse =
+            Verse(book = "1 Xylo Zorp Quix Wobble Nix", chapter = 3, verse = 16, text = "")
+        val trimmedVerse = Verse(book = "Nix", chapter = 3, verse = 16, text = "")
+
+        val result = referencedVerses(listOf(fullChainVerse, trimmedVerse), listOf(message))
+
+        assertTrue(
+            "the {0,3}-capped Alt-1 match should fall through to Alt-2's trimmed book name",
+            result.contains(trimmedVerse),
+        )
+        assertTrue(
+            "the full 4-trailing-word chain must not be captured as a single Alt-1 match",
+            !result.contains(fullChainVerse),
+        )
+    }
+
+    @Test
+    fun `referencedVerses still allows exactly 3 chained Alt-1 trailing words for CITED_BOOK_NAME`() {
+        val verse = Verse(book = "1 Xylo Zorp Quix Wobble", chapter = 3, verse = 16, text = "")
+        val message = Message(
+            id = "1",
+            role = Message.Role.ASSISTANT,
+            content = "1 Xylo Zorp Quix Wobble 3:16",
+        )
+        assertTrue(referencedVerses(listOf(verse), listOf(message)).contains(verse))
+    }
+
+    // ── Real numbered multi-word names still match after the BITB-117 bound ─────────
+
+    @Test
+    fun `referencedVerses matches real numbered multi-word Arabic book name after the BITB-117 bound`() {
+        // "1 أخبار الأيام" = "1 Chronicles": "أخبار" is matched by CITED_BOOK_NAME, "الأيام"
+        // is the one trailing word the {0,3}-bounded group must still match.
+        val verse = Verse(book = "1 أخبار الأيام", chapter = 1, verse = 1, text = "")
+        val message = Message(
+            id = "1",
+            role = Message.Role.ASSISTANT,
+            content = "1 أخبار الأيام 1:1 يقول كذا",
+        )
+        assertTrue(referencedVerses(listOf(verse), listOf(message)).contains(verse))
+    }
+
+    @Test
+    fun `injectVerseLinks still wraps a real numbered multi-word Arabic book name after the BITB-117 bound`() {
+        val result = injectVerseLinks("1 أخبار الأيام 1:1 يقول كذا")
+        assertTrue(result.contains("[1 أخبار الأيام 1:1]"))
     }
 
     // ── Legitimate multi-connector book names still match after the {0,3} bound ─

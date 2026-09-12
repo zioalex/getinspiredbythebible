@@ -3,7 +3,10 @@ package org.voxquieta.app.preferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import org.voxquieta.app.data.preferences.TranslationPreferences
+import org.voxquieta.app.data.remote.models.TranslationDto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -11,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -44,37 +48,96 @@ class TranslationPreferencesTest {
 
     @Test
     fun `default preferred translation is empty string`() = runTest(testDispatcher) {
-        val translation = translationPreferences.preferredTranslationFlow.first()
+        val translation = translationPreferences.preferredTranslationFlow("en").first()
         assertEquals("", translation)
     }
 
     @Test
     fun `set KJV persists KJV translation id`() = runTest(testDispatcher) {
-        translationPreferences.setPreferredTranslation("KJV")
-        val translation = translationPreferences.preferredTranslationFlow.first()
+        translationPreferences.setPreferredTranslation("en", "KJV")
+        val translation = translationPreferences.preferredTranslationFlow("en").first()
         assertEquals("KJV", translation)
     }
 
     @Test
     fun `set NIV persists NIV translation id`() = runTest(testDispatcher) {
-        translationPreferences.setPreferredTranslation("NIV")
-        val translation = translationPreferences.preferredTranslationFlow.first()
+        translationPreferences.setPreferredTranslation("en", "NIV")
+        val translation = translationPreferences.preferredTranslationFlow("en").first()
         assertEquals("NIV", translation)
     }
 
     @Test
     fun `set KJV then clear returns empty string`() = runTest(testDispatcher) {
-        translationPreferences.setPreferredTranslation("KJV")
-        translationPreferences.setPreferredTranslation("")
-        val translation = translationPreferences.preferredTranslationFlow.first()
+        translationPreferences.setPreferredTranslation("en", "KJV")
+        translationPreferences.setPreferredTranslation("en", "")
+        val translation = translationPreferences.preferredTranslationFlow("en").first()
         assertEquals("", translation)
     }
 
     @Test
     fun `set KJV then NIV returns NIV`() = runTest(testDispatcher) {
-        translationPreferences.setPreferredTranslation("KJV")
-        translationPreferences.setPreferredTranslation("NIV")
-        val translation = translationPreferences.preferredTranslationFlow.first()
+        translationPreferences.setPreferredTranslation("en", "KJV")
+        translationPreferences.setPreferredTranslation("en", "NIV")
+        val translation = translationPreferences.preferredTranslationFlow("en").first()
         assertEquals("NIV", translation)
+    }
+
+    // --- BITB-115: per-locale scoping ---------------------------------------
+
+    @Test
+    fun `preference set for one locale does not leak into another`() = runTest(testDispatcher) {
+        translationPreferences.setPreferredTranslation("en", "KJV")
+        val itTranslation = translationPreferences.preferredTranslationFlow("it").first()
+        assertEquals("", itTranslation)
+        val enTranslation = translationPreferences.preferredTranslationFlow("en").first()
+        assertEquals("KJV", enTranslation)
+    }
+
+    @Test
+    fun `each locale round-trips its own preference independently`() = runTest(testDispatcher) {
+        translationPreferences.setPreferredTranslation("en", "KJV")
+        translationPreferences.setPreferredTranslation("it", "ita1927")
+
+        assertEquals("KJV", translationPreferences.preferredTranslationFlow("en").first())
+        assertEquals("ita1927", translationPreferences.preferredTranslationFlow("it").first())
+    }
+
+    // --- BITB-115: legacy migration ------------------------------------------
+
+    @Test
+    fun `migrateLegacyPreference maps a resolvable legacy value to its own language`() = runTest(testDispatcher) {
+        dataStore.edit { it[stringPreferencesKey("preferred_translation")] = "KJV" }
+
+        translationPreferences.migrateLegacyPreference(
+            listOf(TranslationDto(id = "KJV", name = "King James Version", language = "English", languageCode = "en")),
+        )
+
+        assertEquals("KJV", translationPreferences.preferredTranslationFlow("en").first())
+        assertNull(dataStore.data.first()[stringPreferencesKey("preferred_translation")])
+    }
+
+    @Test
+    fun `migrateLegacyPreference discards an unresolvable legacy value`() = runTest(testDispatcher) {
+        dataStore.edit { it[stringPreferencesKey("preferred_translation")] = "SOME_UNKNOWN_ID" }
+
+        translationPreferences.migrateLegacyPreference(
+            listOf(TranslationDto(id = "KJV", name = "King James Version", language = "English", languageCode = "en")),
+        )
+
+        assertEquals("", translationPreferences.preferredTranslationFlow("en").first())
+        assertNull(dataStore.data.first()[stringPreferencesKey("preferred_translation")])
+    }
+
+    @Test
+    fun `migrateLegacyPreference does not clobber an existing scoped preference`() = runTest(testDispatcher) {
+        translationPreferences.setPreferredTranslation("en", "NIV")
+        dataStore.edit { it[stringPreferencesKey("preferred_translation")] = "KJV" }
+
+        translationPreferences.migrateLegacyPreference(
+            listOf(TranslationDto(id = "KJV", name = "King James Version", language = "English", languageCode = "en")),
+        )
+
+        assertEquals("NIV", translationPreferences.preferredTranslationFlow("en").first())
+        assertNull(dataStore.data.first()[stringPreferencesKey("preferred_translation")])
     }
 }
