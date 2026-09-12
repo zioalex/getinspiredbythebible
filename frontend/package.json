@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/extract-latest-changelog.mjs",
+    "predev": "node scripts/extract-latest-changelog.mjs && node scripts/generate-build-info.mjs && node scripts/generate-offline-page.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/extract-latest-changelog.mjs",
+    "prebuild": "node scripts/extract-latest-changelog.mjs && node scripts/generate-build-info.mjs && node scripts/generate-offline-page.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

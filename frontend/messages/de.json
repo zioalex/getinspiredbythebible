@@ -394,5 +394,10 @@
     "importDone": "{count} Gespräch(e) importiert.",
     "importFailed": "Import fehlgeschlagen. Ist das eine gültige Verlaufsdatei?",
     "wrongPassphrase": "Falsche Passphrase oder beschädigte Datei."
+  },
+  "Offline": {
+    "title": "Du bist offline",
+    "description": "Vox Quieta braucht eine Internetverbindung, um deine Fragen zu beantworten. Überprüfe deine Verbindung und versuche es erneut.",
+    "retry": "Erneut versuchen"
   }
 }

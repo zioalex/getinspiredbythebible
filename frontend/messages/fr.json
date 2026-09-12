@@ -394,5 +394,10 @@
     "importDone": "{count} conversation(s) importée(s).",
     "importFailed": "L'importation a échoué. S'agit-il d'un fichier d'historique valide ?",
     "wrongPassphrase": "Phrase secrète incorrecte ou fichier corrompu."
+  },
+  "Offline": {
+    "title": "Vous êtes hors ligne",
+    "description": "Vox Quieta a besoin d'une connexion internet pour répondre à vos questions. Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer"
   }
 }

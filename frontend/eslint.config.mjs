@@ -64,6 +64,27 @@ const eslintConfig = [
     },
   },
   {
+    // BITB-102: public/sw.js is a hand-written, classic (non-module)
+    // service worker script — it runs in the ServiceWorkerGlobalScope, not
+    // as a module, and uses SW-only globals the main block doesn't know
+    // about.
+    files: ["public/sw.js"],
+    languageOptions: {
+      sourceType: "script",
+      ecmaVersion: 2022,
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        clients: "readonly",
+        fetch: "readonly",
+        Response: "readonly",
+        Request: "readonly",
+        URL: "readonly",
+        console: "readonly",
+      },
+    },
+  },
+  {
     ignores: ["*.config.js", "*.config.ts", "node_modules/", ".next/", "e2e/"],
   },
 ];
