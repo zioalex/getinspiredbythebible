@@ -1,7 +1,7 @@
 # BITB-126: Right-Size CI for opencode Agent-Config Changes
 
 **Priority:** P2 (Medium)
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Size:** S–M (one new workflow + path scoping + the missing tests)
 **Created:** 2026-09-12
 **Affects:** `.github/workflows/`, `scripts/`, `deployment/kubeopencode/` — no application code
@@ -155,14 +155,14 @@ BITB-123 regression class for good.
 
 ## Acceptance Criteria
 
-- [ ] `.github/workflows/opencode-ci.yml` exists with the path filters above and
+- [x] `.github/workflows/opencode-ci.yml` exists with the path filters above and
       completes in under 2 minutes with no DB, Docker, Node matrix, or secrets
-- [ ] `test_update.yml` excludes `deployment/kubeopencode/**` on both triggers
-- [ ] `scripts/test_generate_opencode_config.py` runs in CI (all 19 existing
+- [x] `test_update.yml` excludes `deployment/kubeopencode/**` on both triggers
+- [x] `scripts/test_generate_opencode_config.py` runs in CI (all 19 existing
       tests execute and pass)
-- [ ] `make verify-opencode-config` runs in CI
-- [ ] Tests T1–T4 and T6 implemented and passing; T5 implemented if BITB-125 has
-      landed, otherwise tracked as a follow-up on that story
+- [x] `make verify-opencode-config` runs in CI
+- [x] Tests T1–T6 implemented and passing; T5 implemented if BITB-125 has
+      landed (T5 landed together with BITB-125 in the same branch)
 - [ ] `make pre-commit` green; PR title uses `ci:`
 
 ---

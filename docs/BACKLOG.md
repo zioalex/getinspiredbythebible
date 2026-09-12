@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124, BITB-125, BITB-126 created)
+**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created; BITB-125/126 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2375,9 +2375,9 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-125: Persistent KubeOpenCode Workspace Volume
+### 🚧 BITB-125: Persistent KubeOpenCode Workspace Volume
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M (1-2 days)
 **Created:** 2026-09-12
@@ -2393,9 +2393,8 @@ KubeOpenCode CRD actually exposes volume mounts — `AgentSpec` has no top-level
 
 **Acceptance Criteria (summary):**
 
-- [ ] CRD storage support confirmed before implementing (or story reduced to a documented mitigation)
-- [ ] `pvc.yaml` adds `opencode-workspace` (20Gi) + `opencode-cache` (10Gi), RWO, no hardcoded StorageClass
-- [ ] Agent mounts both; filesystem ownership lets the agent user actually write
+- [x] CRD storage support confirmed: native `spec.persistence` exists — no hand-rolled PVCs needed
+- [x] `agent.yaml` sets `persistence.workspace` (20Gi) + `persistence.sessions` (2Gi), no hardcoded StorageClass
 - [ ] `/tmp` worktree behaviour explicitly resolved (persisted or documented as ephemeral)
 - [ ] README lists the PVC prerequisite before the apply step, plus reset procedure and RWO/single-replica constraint
 - [ ] Persistence proven: file written, pod deleted, file still present
@@ -2404,9 +2403,9 @@ Full story: [`BITB-125-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STO
 
 ---
 
-### 🎯 BITB-126: Right-Size CI for opencode Agent-Config Changes
+### 🚧 BITB-126: Right-Size CI for opencode Agent-Config Changes
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** S–M
 **Created:** 2026-09-12

@@ -18,6 +18,10 @@ run-name: >-
       - "docker-compose*.yml"
       - "scripts/**"
       - "deployment/**"
+      # BITB-126: KubeOpenCode manifests cannot affect the application; they are
+      # covered by the fast opencode-ci.yml workflow instead of the full suite
+      # (two PostgreSQL services, the Node matrix, and live LLM calls).
+      - "!deployment/kubeopencode/**"
       - ".github/workflows/test_update.yml"
       - ".github/workflows/azure-deploy.yml"
   push:
@@ -31,6 +35,10 @@ run-name: >-
       - "docker-compose*.yml"
       - "scripts/**"
       - "deployment/**"
+      # BITB-126: KubeOpenCode manifests cannot affect the application; they are
+      # covered by the fast opencode-ci.yml workflow instead of the full suite
+      # (two PostgreSQL services, the Node matrix, and live LLM calls).
+      - "!deployment/kubeopencode/**"
       - ".github/workflows/test_update.yml"
       - ".github/workflows/azure-deploy.yml"
 

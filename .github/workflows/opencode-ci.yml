@@ -1,0 +1,76 @@
+name: CI - opencode Agent Config
+
+# yamllint disable-line rule:truthy
+run-name: >-
+  ${{ github.event_name == 'pull_request'
+      && format('opencode-ci PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title)
+      || format('opencode-ci {0} ({1})', github.ref_name, github.sha) }}
+
+# BITB-126. Fast, hermetic checks for agent-config changes: no database, no
+# Docker, no Node matrix, no secrets. These paths previously either ran the
+# entire application suite (deployment/**, scripts/**) or nothing at all
+# (.opencode/**, opencode.json).
+"on":
+  pull_request:
+    paths:
+      - ".opencode/**"
+      - "opencode.json"
+      - "scripts/generate-opencode-config.py"
+      - "scripts/test_generate_opencode_config.py"
+      - "scripts/test_kubeopencode_manifests.py"
+      - "deployment/kubeopencode/**"
+      - ".github/workflows/opencode-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - ".opencode/**"
+      - "opencode.json"
+      - "scripts/generate-opencode-config.py"
+      - "scripts/test_generate_opencode_config.py"
+      - "scripts/test_kubeopencode_manifests.py"
+      - "deployment/kubeopencode/**"
+      - ".github/workflows/opencode-ci.yml"
+
+jobs:
+  opencode-config:
+    name: opencode Config & Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # The generator imports PyYAML, which is not in the stdlib. Without this
+      # the generator dies with ModuleNotFoundError and a naive drift check
+      # would compare against empty output and report a false drift.
+      - name: Install dependencies
+        run: pip install pyyaml pytest
+
+      - name: Generator regression tests
+        run: python -m pytest scripts/test_generate_opencode_config.py -v
+
+      - name: Manifest and committed-artifact tests
+        run: python -m pytest scripts/test_kubeopencode_manifests.py -v
+
+      # Guards the 12-agent count, fallback_models on every agent, and the
+      # runtime-fallback plugin. Without the plugin, fallback_models is inert.
+      - name: Verify generated config
+        run: make verify-opencode-config
+
+      # verify-opencode-config regenerates opencode.json in place, so any
+      # difference from the committed artifact shows up here as a dirty tree.
+      - name: Check committed opencode.json is in sync
+        run: |
+          if ! git diff --exit-code --stat opencode.json; then
+            echo "::error file=opencode.json::opencode.json is out of sync with \
+          .opencode/agents/*.md. Run 'make gen-opencode-config' and commit the result."
+            git diff opencode.json
+            exit 1
+          fi
+          echo "opencode.json is in sync with .opencode/agents/*.md"
