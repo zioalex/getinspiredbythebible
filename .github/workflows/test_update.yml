@@ -17,6 +17,9 @@ run-name: >-
       - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
+      - "!scripts/generate-opencode-config.py"
+      - "!scripts/test_generate_opencode_config.py"
+      - "!scripts/test_kubeopencode_manifests.py"
       - "deployment/**"
       # BITB-126: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite
@@ -34,6 +37,9 @@ run-name: >-
       - "tests/**"
       - "docker-compose*.yml"
       - "scripts/**"
+      - "!scripts/generate-opencode-config.py"
+      - "!scripts/test_generate_opencode_config.py"
+      - "!scripts/test_kubeopencode_manifests.py"
       - "deployment/**"
       # BITB-126: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite

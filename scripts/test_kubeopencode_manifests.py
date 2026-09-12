@@ -48,6 +48,15 @@ def agent_spec():
 
 
 @pytest.fixture(scope="module")
+def persistence(agent_spec):
+    """The persistence block; fails explicitly if missing rather than
+    silently returning an empty dict and making downstream tests vacuous."""
+    if "persistence" not in agent_spec:
+        pytest.fail("spec.persistence missing from agent.yaml")
+    return agent_spec["persistence"]
+
+
+@pytest.fixture(scope="module")
 def makefile_text():
     return MAKEFILE.read_text()
 
@@ -85,9 +94,33 @@ def test_committed_opencode_json_matches_generator():
 # --- T2: configRef wiring matches what the Makefile creates ---------------
 
 
+def _extract_make_target_recipe(makefile_text: str, target: str) -> str:
+    """Extract just the recipe lines (tab-indented) for a given target.
+    Returns the concatenated recipe text, or empty string if target not found."""
+    lines = makefile_text.splitlines()
+    in_target = False
+    recipe_lines = []
+    for i, line in enumerate(lines):
+        if not in_target:
+            # Match target definition: "target:" at start of line (no leading whitespace)
+            if re.match(rf"^{re.escape(target)}:", line):
+                in_target = True
+            continue
+        # We're in the target; collect recipe lines (must start with tab)
+        if line.startswith("\t"):
+            recipe_lines.append(line)
+        elif line.strip() == "":
+            # Blank line within recipe - include it
+            recipe_lines.append(line)
+        else:
+            # Non-indented, non-blank line = next target or variable = end of recipe
+            break
+    return "\n".join(recipe_lines)
+
+
 def test_agent_configref_matches_makefile_configmap(agent_spec, makefile_text):
     config_ref = agent_spec["configRef"]["configMapRef"]
-    sync_target = makefile_text.split("sync-opencode-configmap:")[1]
+    sync_target = _extract_make_target_recipe(makefile_text, "sync-opencode-configmap")
 
     assert f"configmap {config_ref['name']}" in sync_target, (
         f"agent.yaml references ConfigMap '{config_ref['name']}' but "
@@ -101,7 +134,7 @@ def test_agent_configref_matches_makefile_configmap(agent_spec, makefile_text):
 def test_agent_namespace_matches_makefile_namespace(makefile_text):
     manifest = yaml.safe_load(AGENT_YAML.read_text())
     namespace = manifest["metadata"]["namespace"]
-    sync_target = makefile_text.split("sync-opencode-configmap:")[1]
+    sync_target = _extract_make_target_recipe(makefile_text, "sync-opencode-configmap")
 
     assert f"-n {namespace}" in sync_target, (
         f"agent.yaml is in namespace '{namespace}' but the Makefile syncs the "
@@ -142,8 +175,14 @@ def test_every_credential_env_var_is_documented(agent_spec, readme_text):
 
 
 def test_readme_make_targets_exist(readme_text, makefile_text):
-    referenced = set(re.findall(r"make ([a-z0-9][a-z0-9-]+)", readme_text))
-    assert referenced, "expected the README to reference at least one make target"
+    # Only match `make <target>` inside fenced code blocks or inline backticks,
+    # not in prose like "make sure" or "make a decision".
+    # Fenced blocks: ```...``` or ```make ...```
+    # Inline: `make target`
+    code_blocks = re.findall(r"`{3}[\s\S]*?`{3}|`[^`]+`", readme_text)
+    code_text = "\n".join(code_blocks)
+    referenced = set(re.findall(r"\bmake\s+([a-z0-9][a-z0-9-]+)\b", code_text))
+    assert referenced, "expected the README to reference at least one make target in code blocks"
 
     declared = set(re.findall(r"^([a-zA-Z0-9][a-zA-Z0-9-]*):", makefile_text, re.MULTILINE))
     missing = sorted(referenced - declared)
@@ -161,9 +200,7 @@ def test_persistence_is_configured(agent_spec):
     )
 
 
-def test_persistence_schema_matches_crd(agent_spec):
-    persistence = agent_spec.get("persistence") or {}
-
+def test_persistence_schema_matches_crd(persistence):
     unknown_volumes = set(persistence) - PERSISTENCE_VOLUMES
     assert not unknown_volumes, (
         f"unknown persistence volumes {sorted(unknown_volumes)}; "
@@ -181,16 +218,16 @@ def test_persistence_schema_matches_crd(agent_spec):
         )
 
 
-def test_workspace_persistence_enabled(agent_spec):
-    assert "workspace" in (agent_spec.get("persistence") or {}), (
+def test_workspace_persistence_enabled(persistence):
+    assert "workspace" in persistence, (
         "persistence.workspace missing -- session data would survive restarts "
         "but the cloned repo and uncommitted work would not (BITB-125)"
     )
 
 
-def test_persistence_has_no_hardcoded_storage_class(agent_spec):
+def test_persistence_has_no_hardcoded_storage_class(persistence):
     """An empty storageClassName uses the cluster default, keeping this portable."""
-    for volume_name, volume in (agent_spec.get("persistence") or {}).items():
+    for volume_name, volume in persistence.items():
         assert "storageClassName" not in volume, (
             f"persistence.{volume_name} hardcodes a storageClassName, which ties "
             "the manifest to one cluster; omit it to use the cluster default"

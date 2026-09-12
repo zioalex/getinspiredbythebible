@@ -125,8 +125,30 @@ paths:
 ```
 
 `scripts/**` stays broad — it holds migration, embedding, and monitor code that
-genuinely affects the application. The two opencode scripts are covered by the
-new workflow; over-running them is the safe direction.
+genuinely affects the application — but the three opencode-only scripts are
+excluded by name:
+
+```yaml
+paths:
+  - "scripts/**"
+  - "!scripts/generate-opencode-config.py"
+  - "!scripts/test_generate_opencode_config.py"
+  - "!scripts/test_kubeopencode_manifests.py"
+```
+
+Without this, the story's own motivating example is unfixed: editing the
+generator would still start the full suite *and* now additionally start
+`opencode-ci.yml`, so net CI cost for those paths would go **up**.
+
+### Required-status-check interaction (checked 2026-09-12)
+
+A path-filtered-out workflow leaves its checks `Pending`, not `Skipped`, and a PR
+requiring them would be blocked from merging forever. Verified this is **not** a
+risk here: the active rulesets on the default branch require only
+`Lint Commit Messages`, `Lint PR Title` and `Pre-Commit Hooks` — all from
+workflows with no path filters. None of the `test_update.yml` jobs are required.
+**If any of them is ever made a required check, these exclusions must be
+revisited** (the usual mitigation is a same-named stub job).
 
 ### 3. Missing tests to add
 
@@ -161,8 +183,9 @@ BITB-123 regression class for good.
 - [x] `scripts/test_generate_opencode_config.py` runs in CI (all 19 existing
       tests execute and pass)
 - [x] `make verify-opencode-config` runs in CI
-- [x] Tests T1–T6 implemented and passing; T5 implemented if BITB-125 has
-      landed (T5 landed together with BITB-125 in the same branch)
+- [x] Tests T1–T6 implemented and passing (T5 landed with BITB-125 in this branch)
+- [x] Tests mutation-proven non-vacuous: drift, ConfigMap rename (incl. a decoy
+      later Makefile target), and a deleted `persistence` block each fail the suite
 - [ ] `make pre-commit` green; PR title uses `ci:`
 
 ---

@@ -12,6 +12,9 @@ run-name: >-
 # (.opencode/**, opencode.json).
 "on":
   pull_request:
+    branches:
+      - main
+      - feature/**
     paths:
       - ".opencode/**"
       - "opencode.json"
@@ -31,6 +34,9 @@ run-name: >-
       - "scripts/test_kubeopencode_manifests.py"
       - "deployment/kubeopencode/**"
       - ".github/workflows/opencode-ci.yml"
+
+permissions:
+  contents: read
 
 jobs:
   opencode-config:
@@ -68,8 +74,9 @@ jobs:
       - name: Check committed opencode.json is in sync
         run: |
           if ! git diff --exit-code --stat opencode.json; then
-            echo "::error file=opencode.json::opencode.json is out of sync with \
-          .opencode/agents/*.md. Run 'make gen-opencode-config' and commit the result."
+            msg="opencode.json is out of sync with .opencode/agents/*.md."
+            msg="$msg Run 'make gen-opencode-config' and commit the result."
+            echo "::error file=opencode.json::$msg"
             git diff opencode.json
             exit 1
           fi
