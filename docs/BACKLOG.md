@@ -2379,7 +2379,7 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 **Status:** 🚧 In Progress
 **Priority:** P2
-**Size:** M (1-2 days)
+**Size:** S (reduced from M — the CRD provides persistence natively)
 **Created:** 2026-09-12
 
 `agent.yaml` declares `workspaceDir: /workspace` with no volume attached, so the agent
@@ -2387,17 +2387,17 @@ pod's filesystem is ephemeral. The README's own ConfigMap-sync workflow *require
 `kubectl delete pod` after every agent change, which means wiping the workspace is
 routine, not exceptional: uncommitted work, `/tmp` git worktrees (which `AGENTS.md`
 mandates), the cloned repo, and all npm/pip/Gradle caches are destroyed each time.
-Back `/workspace` and the toolchain caches with PVCs. Gated on first confirming the
-KubeOpenCode CRD actually exposes volume mounts — `AgentSpec` has no top-level
-`model`/`provider` fields, so storage support cannot be assumed.
+The gate — whether the CRD exposes storage at all — resolved to a native
+`spec.persistence` field (`workspace` + `sessions`), so the operator creates and owns
+the PVCs: no `pvc.yaml`, `volumeMounts` or `fsGroup` are needed.
 
 **Acceptance Criteria (summary):**
 
 - [x] CRD storage support confirmed: native `spec.persistence` exists — no hand-rolled PVCs needed
 - [x] `agent.yaml` sets `persistence.workspace` (20Gi) + `persistence.sessions` (2Gi), no hardcoded StorageClass
 - [x] `/tmp` worktree behaviour resolved: `AGENTS.md` uses `${WORKSPACE_DIR:-/tmp}/worktrees`, gitignored
-- [ ] README lists the PVC prerequisite before the apply step, plus reset procedure and RWO/single-replica constraint
-- [ ] Persistence proven: file written, pod deleted, file still present
+- [x] README documents persistence, the `/tmp` caveat, a reset procedure and the access-mode constraint
+- [ ] Persistence proven on-cluster: file written, pod deleted, file still present (needs write RBAC)
 
 Full story: [`BITB-125-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STORIES/BITB-125-kubeopencode-persistent-workspace-volume.md)
 
@@ -2419,15 +2419,17 @@ whole application suite — two PostgreSQL services, the Node 22/26 frontend mat
 CI, `make verify-opencode-config` never runs, and nothing detects drift between
 `.opencode/agents/*.md` and the committed `opencode.json` that gets pushed to the
 ConfigMap. Editing `scripts/generate-opencode-config.py` runs the entire application
-suite but not that script's own tests.
+suite but not that script's own tests — so `scripts/**` needs the same negative filter
+as `deployment/kubeopencode/**`, or the net CI cost for those paths goes up, not down.
 
 **Acceptance Criteria (summary):**
 
-- [ ] New fast `opencode-ci.yml` (< 2 min, no DB/Docker/Node matrix/secrets)
-- [ ] `test_update.yml` excludes `deployment/kubeopencode/**` on both triggers
-- [ ] The 19 existing generator tests and `make verify-opencode-config` run in CI
-- [ ] Missing tests added: committed-`opencode.json` drift (T1), `configRef`↔ConfigMap-name match (T2), documented secret refs (T3), README `make` targets exist (T4), PVC refs resolve (T5, with BITB-125), verify target (T6)
-- [ ] Verified by deliberately introducing drift and a manifest mismatch and watching CI fail
+- [x] New fast `opencode-ci.yml` (< 2 min, no DB/Docker/Node matrix/secrets), least-privilege `permissions`
+- [x] `test_update.yml` excludes `deployment/kubeopencode/**` **and** the three opencode-only scripts, on both triggers
+- [x] The 19 existing generator tests and `make verify-opencode-config` run in CI
+- [x] Missing tests added: committed-`opencode.json` drift (T1), `configRef`↔ConfigMap-name match (T2), documented secret refs (T3), README `make` targets exist (T4), `spec.persistence` schema (T5), verify target (T6)
+- [x] Tests mutation-proven locally: drift, ConfigMap rename, and a deleted `persistence` block each fail the suite
+- [ ] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
 
 Full story: [`BITB-126-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-126-right-size-ci-for-opencode-changes.md)
 
