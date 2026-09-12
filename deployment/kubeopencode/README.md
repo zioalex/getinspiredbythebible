@@ -127,6 +127,18 @@ use a fine-grained PAT (`github_pat_...`) or an OAuth/GitHub App user token
 5. Click **Generate token** and copy the `github_pat_...` value. Set a short
    expiry and rotate it like any credential.
 
+> If you don't see **Copilot Requests**: it is an **Account**-level permission
+> (not Repository/Organization, so it won't appear in the REST permissions
+> table or under repo scopes). It only appears when **Resource owner** is your
+> **personal handle** — if you selected an organization you get an
+> **Organizations** tab instead of **Account** and the permission is hidden
+> (see [copilot-cli#223](https://github.com/github/copilot-cli/issues/223)).
+> It also stays hidden if that account has no active Copilot subscription.
+> Fix: switch Resource owner back to your user, then look under Account tab.
+> Alternative that avoids PATs entirely: run `copilot login` (or `gh auth
+> login`) interactively once and reuse the resulting OAuth token (`gho_...`)
+> as the secret value.
+
 ### Store it in the cluster
 
 ```bash
