@@ -128,7 +128,7 @@ class ChatViewModelTest {
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
         translationPreferences = mockk(relaxed = true)
-        every { translationPreferences.preferredTranslationFlow } returns flowOf("")
+        every { translationPreferences.preferredTranslationFlow(any()) } returns flowOf("")
         sessionPreferences = mockk(relaxed = true)
         coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
         lastConversationPreferences = mockk(relaxed = true)
@@ -607,8 +607,8 @@ class ChatViewModelTest {
     @Test
     fun `availableTranslations is populated from backend on init`() = runTest {
         val translations = listOf(
-            TranslationDto(id = "KJV", name = "King James Version", language = "en"),
-            TranslationDto(id = "NIV", name = "New International Version", language = "en"),
+            TranslationDto(id = "KJV", name = "King James Version", language = "en", languageCode = "en"),
+            TranslationDto(id = "NIV", name = "New International Version", language = "en", languageCode = "en"),
         )
         coEvery { bibleApiService.getTranslations() } returns TranslationsResponseDto(translations)
 
@@ -661,7 +661,7 @@ class ChatViewModelTest {
     @Test
     fun `availableTranslations is populated after retry when first call fails`() = runTest {
         val translations = listOf(
-            TranslationDto(id = "KJV", name = "King James Version", language = "en"),
+            TranslationDto(id = "KJV", name = "King James Version", language = "en", languageCode = "en"),
         )
         var callCount = 0
         coEvery { bibleApiService.getTranslations() } answers {
@@ -695,7 +695,7 @@ class ChatViewModelTest {
     @Test
     fun `refreshTranslations populates availableTranslations`() = runTest {
         val translations = listOf(
-            TranslationDto(id = "ESV", name = "English Standard Version", language = "en"),
+            TranslationDto(id = "ESV", name = "English Standard Version", language = "en", languageCode = "en"),
         )
         // Init exhausts all 3 retry attempts (calls 1-3) → empty list.
         // refreshTranslations() triggers a fresh retry cycle: call 4 succeeds.
@@ -952,12 +952,44 @@ class ChatViewModelTest {
         viewModel.setPreferredTranslation("KJV")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { translationPreferences.setPreferredTranslation("KJV") }
+        coVerify { translationPreferences.setPreferredTranslation("en", "KJV") }
+    }
+
+    @Test
+    fun `preferredTranslation is scoped per locale and does not leak across a language switch`() = runTest {
+        // BITB-115 regression: a version chosen under "en" must not carry over
+        // to "it" merely because the user switched the UI language.
+        every { translationPreferences.preferredTranslationFlow("en") } returns flowOf("KJV")
+        every { translationPreferences.preferredTranslationFlow("it") } returns flowOf("")
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("KJV", vm.preferredTranslation.value)
+
+        vm.setLocale("it")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("", vm.preferredTranslation.value)
     }
 
     @Test
     fun `sendMessage includes preferred translation in ChatRequest`() = runTest {
-        every { translationPreferences.preferredTranslationFlow } returns flowOf("KJV")
+        every { translationPreferences.preferredTranslationFlow(any()) } returns flowOf("KJV")
         val requestSlot = slot<ChatRequest>()
         every { repository.chatStream(capture(requestSlot)) } returns flowOf(
             StreamChunk(content = "Reply", done = true),
@@ -988,7 +1020,7 @@ class ChatViewModelTest {
 
     @Test
     fun `sendMessage sends null preferred translation when preference is blank`() = runTest {
-        every { translationPreferences.preferredTranslationFlow } returns flowOf("")
+        every { translationPreferences.preferredTranslationFlow(any()) } returns flowOf("")
         val requestSlot = slot<ChatRequest>()
         every { repository.chatStream(capture(requestSlot)) } returns flowOf(
             StreamChunk(content = "Reply", done = true),

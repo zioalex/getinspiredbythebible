@@ -85,12 +85,15 @@ is corroborating evidence the fix has the right shape, not a substitute for it.
 
 ## Residual Risk (not closed by this story)
 
-- Both Alt-1 branches retain a separate unbounded trailing-word group: `ChatMessageItem.kt` uses
-  `(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, while `VersesPanel.kt` uses
+- Both Alt-1 branches retained a separate unbounded trailing-word group: `ChatMessageItem.kt` used
+  `(?:\s+[\p{L}][\p{L}\p{M}\d]+)*`, while `VersesPanel.kt` used
   `(?:\s+[\p{Lu}\p{Lo}][\p{L}\d]+)*`. They support numbered multi-word names, including Arabic
   "1 أخبار الأيام". `VerseRefRedosTest` now includes dedicated numbered-prefix adversarial vectors
-  with a 500ms budget, but their JVM result must come from CI. The groups remain unbounded and are
-  filed as **BITB-117**.
+  with a 500ms budget, but their JVM result must come from CI. The groups were unbounded and were
+  filed as **BITB-117** — **resolved**: both groups are now bounded to `{0,3}` (verified against
+  every numbered-prefix entry in `LocalizedBookToEnglish.kt`; real max is 1 trailing word), with
+  dedicated cap-enforcement and real-data regression tests. See
+  `docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md`.
 - `VersesPanel.kt`'s `CITED_BOOK_NAME` connector list omits `के`/`ال` (present in `BOOK_NAME`'s
   list) — a pre-existing web/Android divergence, left alone here and noted for BITB-113
   (grammar unification), not fixed as part of this safety story.
