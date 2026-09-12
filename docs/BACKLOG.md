@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created; BITB-125/126 in progress)
+**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2375,7 +2375,7 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 ---
 
-### 🚧 BITB-125: Persistent KubeOpenCode Workspace Volume
+### 🚧 BITB-128: Persistent KubeOpenCode Workspace Volume
 
 **Status:** 🚧 In Progress
 **Priority:** P2
@@ -2399,11 +2399,11 @@ the PVCs: no `pvc.yaml`, `volumeMounts` or `fsGroup` are needed.
 - [x] README documents persistence, the `/tmp` caveat, a reset procedure and the access-mode constraint
 - [ ] Persistence proven on-cluster: file written, pod deleted, file still present (needs write RBAC)
 
-Full story: [`BITB-125-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STORIES/BITB-125-kubeopencode-persistent-workspace-volume.md)
+Full story: [`BITB-128-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STORIES/BITB-128-kubeopencode-persistent-workspace-volume.md)
 
 ---
 
-### 🚧 BITB-126: Right-Size CI for opencode Agent-Config Changes
+### 🚧 BITB-129: Right-Size CI for opencode Agent-Config Changes
 
 **Status:** 🚧 In Progress
 **Priority:** P2
@@ -2431,7 +2431,7 @@ as `deployment/kubeopencode/**`, or the net CI cost for those paths goes up, not
 - [x] Tests mutation-proven locally: drift, ConfigMap rename, and a deleted `persistence` block each fail the suite
 - [ ] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
 
-Full story: [`BITB-126-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-126-right-size-ci-for-opencode-changes.md)
+Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-129-right-size-ci-for-opencode-changes.md)
 
 ---
 

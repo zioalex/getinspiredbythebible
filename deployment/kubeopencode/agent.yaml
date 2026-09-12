@@ -14,7 +14,7 @@ spec:
     configMapRef:
       name: opencode-config
       key: opencode.json
-  # BITB-125: without this the workspace is an EmptyDir, so every pod
+  # BITB-128: without this the workspace is an EmptyDir, so every pod
   # replacement -- including the `kubectl delete pod` the README requires after
   # each `make sync-opencode-configmap` -- destroys the clone, any uncommitted
   # work, and the session history. The operator creates and owns these PVCs.

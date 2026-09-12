@@ -330,7 +330,7 @@ that is **not** ephemeral storage:
 
 ```bash
 # Worktrees go on persistent storage. On KubeOpenCode the agent sets
-# WORKSPACE_DIR (a PVC-backed volume, BITB-125); elsewhere /tmp is fine.
+# WORKSPACE_DIR (a PVC-backed volume, BITB-128); elsewhere /tmp is fine.
 WORKTREE_ROOT="${WORKSPACE_DIR:-/tmp}/worktrees"
 mkdir -p "$WORKTREE_ROOT"
 
@@ -352,7 +352,7 @@ git worktree remove "$WORKTREE_ROOT/<short-name>"
 **Why not the main working directory?** It is shared and should not be modified
 directly by automated agents.
 
-**Why not `/tmp` on KubeOpenCode?** `spec.persistence.workspace` (BITB-125)
+**Why not `/tmp` on KubeOpenCode?** `spec.persistence.workspace` (BITB-128)
 persists `spec.workspaceDir` only — **`/tmp` is not persisted**. A pod restart
 (routine: the README requires `kubectl delete pod` after every
 `make sync-opencode-configmap`) destroys a `/tmp` worktree and every unpushed

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the KubeOpenCode deployment manifests and the committed opencode.json.
 
-BITB-126. `scripts/test_generate_opencode_config.py` covers the *generator*;
+BITB-129. `scripts/test_generate_opencode_config.py` covers the *generator*;
 nothing covered the *committed artifact* or the manifests that ship it to the
 cluster. The gaps these close:
 
@@ -16,8 +16,8 @@ cluster. The gaps these close:
   free fallback model instead of failing loudly.
 - T4: the README is the only runbook for this deployment; a renamed make target
   makes it wrong.
-- T5: BITB-125 persistence -- a typo in the `persistence` block means the
-  workspace silently stays an EmptyDir, which is the bug BITB-125 fixes.
+- T5: BITB-128 persistence -- a typo in the `persistence` block means the
+  workspace silently stays an EmptyDir, which is the bug BITB-128 fixes.
 """
 
 import pathlib
@@ -189,14 +189,14 @@ def test_readme_make_targets_exist(readme_text, makefile_text):
     assert not missing, f"README references non-existent make targets: {missing}"
 
 
-# --- T5: BITB-125 persistence block ---------------------------------------
+# --- T5: BITB-128 persistence block ---------------------------------------
 
 
 def test_persistence_is_configured(agent_spec):
-    """Without spec.persistence the workspace is an EmptyDir (BITB-125)."""
+    """Without spec.persistence the workspace is an EmptyDir (BITB-128)."""
     assert "persistence" in agent_spec, (
         "spec.persistence missing -- the workspace falls back to EmptyDir and "
-        "is destroyed on every pod restart (BITB-125)"
+        "is destroyed on every pod restart (BITB-128)"
     )
 
 
@@ -221,7 +221,7 @@ def test_persistence_schema_matches_crd(persistence):
 def test_workspace_persistence_enabled(persistence):
     assert "workspace" in persistence, (
         "persistence.workspace missing -- session data would survive restarts "
-        "but the cloned repo and uncommitted work would not (BITB-125)"
+        "but the cloned repo and uncommitted work would not (BITB-128)"
     )
 
 
