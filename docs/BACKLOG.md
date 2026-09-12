@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 created)
+**Last Updated:** 2026-09-12 (BITB-128 created; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2326,6 +2326,55 @@ attributed to Android or broadly backfilled.
 
 ---
 
+### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
+
+**Status:** 🚧 In Progress (PR #1042)
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-09-05
+
+Move the 5 inline agents out of `opencode.json` into 12 `.opencode/agents/*.md` files
+(orchestrator + 11 subagents), slim `opencode.json` (drop unused `ollama` provider),
+and add an adhoc `deployment/kubeopencode/` folder with the Agent CRD
+(`agent.yaml` with per-agent `fallback_models` incl. orchestrator), a documented model
+table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` untouched.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
+- [ ] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
+- [ ] `make pre-commit` green; PR opened with `chore(agents):` title
+
+Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
+
+---
+
+### 🎯 BITB-124: Parallel Subagent Dispatch Silently Drops Tasks
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (< 4 hrs to characterise; fix size unknown — may be upstream)
+**Created:** 2026-09-12
+
+Dispatching two independent subagents in the same message can return
+`Task cancelled` for one of them without it ever running; the same agent
+succeeds when dispatched alone. Found during the PR #1042 delegation smoke test
+(`android-expert` ✅ / `fullstack-engineer` ❌ in parallel, ✅ on serial retry).
+This makes the orchestrator's documented "batch independent delegations"
+pattern unsafe, and the failure is silent — a dropped subtask looks deliberately
+abandoned, so work can be reported as done that never ran.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Deterministic repro with a measured cancellation rate over repeated runs
+- [ ] Fault localised (task tool vs runtime-fallback plugin vs provider 429s vs KubeOpenCode runtime)
+- [ ] Fixed, or a documented concurrency ceiling the orchestrator respects
+- [ ] A cancelled task surfaces as a retryable error, never a silent terminal state
+
+Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORIES/BITB-124-parallel-subagent-dispatch-drops-tasks.md)
+
+---
+
 ### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
 **Status:** 🎯 Todo
@@ -3355,7 +3404,7 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 
 ---
 
-### 🎯 BITB-123: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+### 🎯 BITB-128: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
 
 **Status:** 🎯 Todo
 **Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
@@ -3393,7 +3442,7 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 - [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
       actual spend
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-123-azure-cost-analysis-monitoring-and-database.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-128-azure-cost-analysis-monitoring-and-database.md`
 
 ---
 
