@@ -9,11 +9,14 @@ cluster-side wiring (the `configRef` pointer and credentials).
 
 - KubeOpenCode v0.1.8+ installed (supports `configRef` / inline `config`)
 - Namespace `kubeopencode-system` exists
-- Secret `ai-credentials` in `kubeopencode-system` with keys:
-  - `api-key` → injected as `OPENCODE_API_KEY`
-  - `openrouter-api-key` → injected as `OPENROUTER_API_KEY` (required:
-    `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
-    without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
+- ConfigMap `opencode-config` (key `opencode.json`) in `kubeopencode-system`
+  — referenced by `spec.configRef`; the Agent will not start without it
+- Secret `ai-credentials` with key `api-key` in `kubeopencode-system`
+  → injected as `OPENCODE_API_KEY`
+- Secret `openrouter-api-key` with key `openrouter-api-key` in
+  `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
+  `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
+  without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
 
 ### Create the secret
 
@@ -21,29 +24,80 @@ cluster-side wiring (the `configRef` pointer and credentials).
 # Ensure namespace exists
 kubectl create namespace kubeopencode-system --dry-run=client -o yaml | kubectl apply -f -
 
-# Create secret from literal values (replace with real keys)
+# OpenCode API key (replace with a real key)
 kubectl -n kubeopencode-system create secret generic ai-credentials \
   --from-literal=api-key="YOUR_OPENCODE_API_KEY" \
-  --from-literal=openrouter-api-key="YOUR_OPENROUTER_API_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Or from files
-# kubectl -n kubeopencode-system create secret generic ai-credentials \
-#   --from-file=api-key=/path/to/opencode-key \
-#   --from-file=openrouter-api-key=/path/to/openrouter-key \
-#   --dry-run=client -o yaml | kubectl apply -f -
+# OpenRouter key lives in its own secret (see `credentials` in agent.yaml)
+kubectl -n kubeopencode-system create secret generic openrouter-api-key \
+  --from-literal=openrouter-api-key="YOUR_OPENROUTER_API_KEY" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+### Create the ConfigMap
+
+`agent.yaml` carries no inline config: it points at the `opencode-config`
+ConfigMap via `spec.configRef`. That ConfigMap holds the generated
+`opencode.json` (models, `fallback_models`, prompts, permissions, plugin,
+provider timeouts). **Create it before applying the Agent** — otherwise the
+Agent references a ConfigMap that does not exist and will not start.
+
+From the repository root:
+
+```bash
+# Regenerate opencode.json from .opencode/agents/*.md, verify it, and
+# create/update the ConfigMap in one step.
+make sync-opencode-configmap
+```
+
+That target runs `verify-opencode-config` first, so a config missing agents,
+`fallback_models`, or the fallback plugin fails before it can reach the
+cluster. The equivalent raw command, if you are not using the Makefile:
+
+```bash
+make gen-opencode-config   # writes ./opencode.json
+kubectl -n kubeopencode-system create configmap opencode-config \
+  --from-file=opencode.json=opencode.json \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Re-run `make sync-opencode-configmap` after any change to
+`.opencode/agents/*.md`. Updating a ConfigMap does not restart anything that
+already mounted it, so the running agent keeps serving the previous config
+until its pod is replaced:
+
+```bash
+kubectl -n kubeopencode-system get pods          # find the agent pod
+kubectl -n kubeopencode-system delete pod <agent-pod>
+```
+
+Verify what the cluster actually has:
+
+```bash
+kubectl -n kubeopencode-system get configmap opencode-config \
+  -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
 ```
 
 ## Apply
 
+Apply the Agent **after** the namespace, secrets, and ConfigMap above exist:
+
 ```bash
 kubectl apply -f deployment/kubeopencode/agent.yaml
-kubectl -n kubeopencode-system get agent default-wf
+kubectl -n kubeopencode-system get agent default-wf2
+```
+
+If the Agent stays unready, check that the ConfigMap it references is present:
+
+```bash
+kubectl -n kubeopencode-system get configmap opencode-config
+kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
 ## Files
 
-- `agent.yaml` — the `Agent` CRD (`default-wf`): `configRef` pointing at the
+- `agent.yaml` — the `Agent` CRD (`default-wf2`): `configRef` pointing at the
   `opencode-config` ConfigMap, plus credentials wiring
 - `agents.md` — documented 12-agent model table (mirrors the `agent` section of
   the generated `opencode.json`)
