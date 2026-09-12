@@ -4,3 +4,8 @@ tsconfig.tsbuildinfo
 # (run via the predev/prebuild npm hooks). Never edit or commit by hand.
 public/changelog.json
 public/CHANGELOG.md
+
+# Generated at build time by scripts/generate-build-info.mjs / generate-offline-page.mjs
+# (run via the predev/prebuild npm hooks). Never edit or commit by hand.
+public/build-info.json
+public/offline.html

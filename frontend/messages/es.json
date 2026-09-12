@@ -394,5 +394,10 @@
     "importDone": "Se importaron {count} conversaciones.",
     "importFailed": "La importación falló. ¿Es un archivo de historial válido?",
     "wrongPassphrase": "Frase de contraseña incorrecta o archivo dañado."
+  },
+  "Offline": {
+    "title": "Estás sin conexión",
+    "description": "Vox Quieta necesita una conexión a internet para responder tus preguntas. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
   }
 }

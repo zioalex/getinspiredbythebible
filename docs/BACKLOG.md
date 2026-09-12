@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-12 (BITB-102 completed; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3230,9 +3230,9 @@ trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, 
 
 ---
 
-### 🚧 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
+### ✅ BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
 
-**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-102)
+**Status:** ✅ Done (Parts A, B, D shipped directly; Part C delivered by BITB-102, completed 2026-09-12)
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
 
@@ -3253,8 +3253,8 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
       non-zero insets, portrait + landscape, LTR **and** RTL (device/hardware verification of the
       rendered result still outstanding — see PR)
 - [x] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
-- [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
-      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **split into
+- [x] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
+      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **delivered by
       BITB-102**, per this story's own guidance to carve Part C out if it threatens the timebox
 - [x] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
       11 locales; **no** App Store badge until BITB-088
@@ -3264,9 +3264,9 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
 
 ---
 
-### 🎯 BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+### ✅ BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-12)
 **Size:** M (1 day)
 **Created:** 2026-08-07
 **Split from:** BITB-084 Part C
@@ -3282,11 +3282,11 @@ un-versioned service worker pinning users to a stale shell.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
+- [x] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
       browser error page
-- [ ] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
-- [ ] Scripture `GET` endpoints cached stale-while-revalidate
-- [ ] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
+- [x] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
+- [x] Scripture `GET` endpoints cached stale-while-revalidate
+- [x] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md`
 
@@ -3942,7 +3942,6 @@ Includes chat interface, verse display, and local-first architecture.
 - **Verse Memorization Game**: Gamified scripture memorization feature
 - **Community Prayer Requests**: Social feature for sharing prayer needs
 - **Audio Bible Integration**: Read-along audio for verses
-- **Offline Mode (Web)**: Service worker for offline scripture access
 - **Dark Mode**: User preference for light/dark theme (frontend only)
 - **Verse Sharing**: Generate shareable images of verses for social media
 

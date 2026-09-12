@@ -394,5 +394,10 @@
     "importDone": "{count}개의 대화를 가져왔습니다.",
     "importFailed": "가져오기에 실패했습니다. 올바른 기록 파일인가요?",
     "wrongPassphrase": "암호구가 틀렸거나 파일이 손상되었습니다."
+  },
+  "Offline": {
+    "title": "오프라인 상태입니다",
+    "description": "Vox Quieta가 질문에 답하려면 인터넷 연결이 필요합니다. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "retry": "다시 시도"
   }
 }

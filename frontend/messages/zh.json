@@ -394,5 +394,10 @@
     "importDone": "已导入 {count} 个对话。",
     "importFailed": "导入失败。这是有效的历史记录文件吗？",
     "wrongPassphrase": "口令错误或文件已损坏。"
+  },
+  "Offline": {
+    "title": "您已离线",
+    "description": "Vox Quieta 需要连接互联网才能回答您的问题。请检查网络连接后重试。",
+    "retry": "重试"
   }
 }
