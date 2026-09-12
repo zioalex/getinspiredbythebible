@@ -94,8 +94,7 @@ self.addEventListener("activate", (event) => {
           names
             .filter(
               (name) =>
-                name.startsWith(CACHE_PREFIX) &&
-                !MANAGED_CACHES.includes(name),
+                name.startsWith(CACHE_PREFIX) && !MANAGED_CACHES.includes(name),
             )
             .map((name) => caches.delete(name)),
         ),
@@ -116,10 +115,10 @@ self.addEventListener("activate", (event) => {
 function isCacheableResponse(res) {
   return Boolean(
     res &&
-      res.status === 200 &&
-      (res.type === "basic" || res.type === "cors") &&
-      !/x-turnstile-token/i.test(res.headers.get("Vary") || "") &&
-      !res.headers.has("X-Turnstile-Token"),
+    res.status === 200 &&
+    (res.type === "basic" || res.type === "cors") &&
+    !/x-turnstile-token/i.test(res.headers.get("Vary") || "") &&
+    !res.headers.has("X-Turnstile-Token"),
   );
 }
 

@@ -49,7 +49,9 @@ function main() {
   };
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(outputPath, JSON.stringify(payload, null, 2));
-  console.log(`[generate-build-info] Wrote buildId=${buildId} to public/build-info.json`);
+  console.log(
+    `[generate-build-info] Wrote buildId=${buildId} to public/build-info.json`,
+  );
 }
 
 main();

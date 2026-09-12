@@ -77,7 +77,10 @@ describe("registerServiceWorker", () => {
     expect(await registerServiceWorker({ isProduction: true })).toBeNull();
     expect(registerMock).not.toHaveBeenCalled();
 
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ buildId: "" }) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ buildId: "" }),
+    });
     expect(await registerServiceWorker({ isProduction: true })).toBeNull();
     expect(registerMock).not.toHaveBeenCalled();
   });
@@ -98,18 +101,25 @@ describe("registerServiceWorker", () => {
 
   it("returns null without throwing when navigator.serviceWorker is unsupported", async () => {
     delete (navigator as unknown as { serviceWorker?: unknown }).serviceWorker;
-    await expect(registerServiceWorker({ isProduction: true })).resolves.toBeNull();
+    await expect(
+      registerServiceWorker({ isProduction: true }),
+    ).resolves.toBeNull();
     expect(registerMock).not.toHaveBeenCalled();
   });
 
   it("returns null without throwing when the context is not secure", async () => {
     setSecureContext(false);
-    await expect(registerServiceWorker({ isProduction: true })).resolves.toBeNull();
+    await expect(
+      registerServiceWorker({ isProduction: true }),
+    ).resolves.toBeNull();
     expect(registerMock).not.toHaveBeenCalled();
   });
 
   it("returns null and reports the error when register() rejects", async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ buildId: "sha1" }) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ buildId: "sha1" }),
+    });
     registerMock.mockRejectedValue(new Error("boom"));
 
     const result = await registerServiceWorker({ isProduction: true });

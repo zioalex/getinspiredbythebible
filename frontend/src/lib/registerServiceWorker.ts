@@ -33,10 +33,7 @@ export async function registerServiceWorker(
   opts?: RegisterServiceWorkerOptions,
 ): Promise<ServiceWorkerRegistration | null> {
   try {
-    if (
-      typeof navigator === "undefined" ||
-      !("serviceWorker" in navigator)
-    ) {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
       return null;
     }
 

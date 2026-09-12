@@ -1,7 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { buildOfflineHtml } from "./generate-offline-page.mjs";
 
-const LOCALES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"];
+const LOCALES = [
+  "en",
+  "it",
+  "de",
+  "es",
+  "fr",
+  "pt",
+  "ar",
+  "ru",
+  "zh",
+  "hi",
+  "ko",
+];
 
 function messagesFor(locales) {
   const out = {};
@@ -39,7 +51,7 @@ describe("buildOfflineHtml", () => {
     expect(html).toContain("<\\/script>");
   });
 
-  it("is fully self-contained: no external src=/href= URLs, no <link rel=\"stylesheet\">", () => {
+  it('is fully self-contained: no external src=/href= URLs, no <link rel="stylesheet">', () => {
     const html = buildOfflineHtml(messagesFor(LOCALES), LOCALES, "en");
     expect(html).not.toMatch(/\ssrc=["']https?:/i);
     expect(html).not.toMatch(/\shref=["']https?:/i);

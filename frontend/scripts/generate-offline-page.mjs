@@ -53,9 +53,7 @@ function escapeForInlineScript(json) {
  * @param {string} defaultLocale
  */
 export function buildOfflineHtml(messagesByLocale, locales, defaultLocale) {
-  const messagesJson = escapeForInlineScript(
-    JSON.stringify(messagesByLocale),
-  );
+  const messagesJson = escapeForInlineScript(JSON.stringify(messagesByLocale));
   const localesJson = JSON.stringify(locales);
   const rtlJson = JSON.stringify([...RTL_LOCALES]);
   const defaultMsg = messagesByLocale[defaultLocale] ?? {

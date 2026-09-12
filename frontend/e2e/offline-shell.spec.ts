@@ -14,7 +14,9 @@
  */
 import { test, expect } from "@playwright/test";
 
-async function waitForServiceWorkerController(page: import("@playwright/test").Page) {
+async function waitForServiceWorkerController(
+  page: import("@playwright/test").Page,
+) {
   await page.waitForFunction(
     () => !!navigator.serviceWorker?.controller,
     undefined,
@@ -34,7 +36,9 @@ test.describe("Offline shell (BITB-102)", () => {
     await page.reload();
 
     await expect(page.locator("#vq-offline-title")).toBeVisible();
-    await expect(page.locator("#vq-offline-title")).toHaveText("You're offline");
+    await expect(page.locator("#vq-offline-title")).toHaveText(
+      "You're offline",
+    );
 
     await context.setOffline(false);
   });
@@ -54,7 +58,10 @@ test.describe("Offline shell (BITB-102)", () => {
     await context.setOffline(false);
   });
 
-  test("renders right-to-left on /ar when offline", async ({ page, context }) => {
+  test("renders right-to-left on /ar when offline", async ({
+    page,
+    context,
+  }) => {
     await page.goto("/ar");
     await waitForServiceWorkerController(page);
 

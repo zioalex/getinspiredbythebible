@@ -11,7 +11,8 @@ export function ServiceWorkerRegistrar() {
       if (!cancelled) void registerServiceWorker();
     };
     const idleId = window.requestIdleCallback?.(run);
-    const timeoutId = idleId === undefined ? window.setTimeout(run, 2000) : undefined;
+    const timeoutId =
+      idleId === undefined ? window.setTimeout(run, 2000) : undefined;
     return () => {
       cancelled = true;
       if (idleId !== undefined) window.cancelIdleCallback?.(idleId);

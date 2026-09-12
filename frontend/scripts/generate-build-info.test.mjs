@@ -12,7 +12,9 @@ describe("resolveBuildId", () => {
 
   it("falls back to a dev-<timestamp> id when blank/whitespace", () => {
     expect(resolveBuildId({ NEXT_PUBLIC_BUILD_ID: "" })).toMatch(/^dev-\d+$/);
-    expect(resolveBuildId({ NEXT_PUBLIC_BUILD_ID: "   " })).toMatch(/^dev-\d+$/);
+    expect(resolveBuildId({ NEXT_PUBLIC_BUILD_ID: "   " })).toMatch(
+      /^dev-\d+$/,
+    );
     expect(resolveBuildId(undefined)).toMatch(/^dev-\d+$/);
   });
 
