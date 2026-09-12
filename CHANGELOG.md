@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.55.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.54.0...v1.55.0) (2026-09-12)
 
-
 ### Features
 
 * **kubeopencode:** persist copilot auth via OAuth token (PATs are rejected) ([#1066](https://github.com/zioalex/getinspiredbythebible/issues/1066)) ([b73c558](https://github.com/zioalex/getinspiredbythebible/commit/b73c5581a03a0b8b7c5e9f206d6cf320ece50e91))
-
 
 ### Bug Fixes
 
