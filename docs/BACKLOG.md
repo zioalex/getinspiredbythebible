@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-128 created; BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-12 (BITB-131 created; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3404,7 +3404,7 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 
 ---
 
-### 🎯 BITB-128: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+### 🎯 BITB-131: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
 
 **Status:** 🎯 Todo
 **Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
@@ -3442,7 +3442,7 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 - [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
       actual spend
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-128-azure-cost-analysis-monitoring-and-database.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-131-azure-cost-analysis-monitoring-and-database.md`
 
 ---
 
