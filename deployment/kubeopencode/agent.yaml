@@ -14,6 +14,18 @@ spec:
     configMapRef:
       name: opencode-config
       key: opencode.json
+  # BITB-125: without this the workspace is an EmptyDir, so every pod
+  # replacement -- including the `kubectl delete pod` the README requires after
+  # each `make sync-opencode-configmap` -- destroys the clone, any uncommitted
+  # work, and the session history. The operator creates and owns these PVCs.
+  # storageClassName is intentionally omitted so the cluster default applies.
+  # Note: this covers spec.workspaceDir (/workspace) only -- /tmp is NOT
+  # persisted, so git worktrees placed there per AGENTS.md do not survive.
+  persistence:
+    workspace:
+      size: 20Gi
+    sessions:
+      size: 2Gi
   credentials:
     - name: api-key
       secretRef:

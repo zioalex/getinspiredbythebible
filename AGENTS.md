@@ -325,29 +325,45 @@ beta/production.
 ### Git Worktree Pattern
 
 When making code changes (especially for Android or any task that should not
-disturb the main working directory), always use `git worktree` under `/tmp/`:
+disturb the main working directory), always use `git worktree` in a location
+that is **not** ephemeral storage:
 
 ```bash
+# Worktrees go on persistent storage. On KubeOpenCode the agent sets
+# WORKSPACE_DIR (a PVC-backed volume, BITB-125); elsewhere /tmp is fine.
+WORKTREE_ROOT="${WORKSPACE_DIR:-/tmp}/worktrees"
+mkdir -p "$WORKTREE_ROOT"
+
 # Create a new worktree from the latest remote main
 git fetch origin
-git worktree add /tmp/<short-name> -b <branch-name> origin/main
+git worktree add "$WORKTREE_ROOT/<short-name>" -b <branch-name> origin/main
 
 # Or check out an existing branch
-git worktree add /tmp/<short-name> origin/<branch-name>
+git worktree add "$WORKTREE_ROOT/<short-name>" origin/<branch-name>
 
 # Work inside the worktree
-cd /tmp/<short-name>
+cd "$WORKTREE_ROOT/<short-name>"
 # … make changes, commit, push …
 
 # Clean up when done
-git worktree remove /tmp/<short-name>
+git worktree remove "$WORKTREE_ROOT/<short-name>"
 ```
 
-**Why `/tmp/`?** The main working directory
-(`/home/asurace/github/getinspiredbythebible`) is shared and should not be
-modified directly by automated agents. `/tmp/` is writable by GitHub Copilot
-CLI and other agents without permission issues, and is cleaned up automatically
-on reboot.
+**Why not the main working directory?** It is shared and should not be modified
+directly by automated agents.
+
+**Why not `/tmp` on KubeOpenCode?** `spec.persistence.workspace` (BITB-125)
+persists `spec.workspaceDir` only — **`/tmp` is not persisted**. A pod restart
+(routine: the README requires `kubectl delete pod` after every
+`make sync-opencode-configmap`) destroys a `/tmp` worktree and every unpushed
+commit in it, silently. On a developer machine `/tmp` survives until reboot and
+remains an acceptable default, which is why `WORKSPACE_DIR` is only a fallback
+above.
+
+**`worktrees/` is gitignored.** On KubeOpenCode the repo is checked out *at*
+`$WORKSPACE_DIR`, so `$WORKSPACE_DIR/worktrees` sits inside the working tree.
+The `.gitignore` entry keeps it out of `git status` and, critically, out of
+`git clean -fdx`.
 
 **Always clean up** worktrees with `git worktree remove` after pushing, to
 avoid stale entries accumulating in `.git/worktrees/`.
