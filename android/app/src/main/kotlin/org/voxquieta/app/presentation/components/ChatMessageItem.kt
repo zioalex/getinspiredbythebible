@@ -145,7 +145,15 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
     // Also handles Russian Synodal dash style ("1-я ", "1-е ", "2-я ") where a 1–2 letter
     // ordinal suffix follows the dash (lowercase Cyrillic, so \p{L}\p{M} not \p{Lu}\p{Lo}).
     // Allows multiple trailing words (e.g. Arabic "1 أخبار الأيام" = 1 Chronicles = 3 words).
-    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
+    // The Alt-1 trailing-word group below (after $BOOK_NAME) is bounded to {0,3} (BITB-117,
+    // closing the residual gap BITB-114 flagged): it was an unbounded `*`, which left this
+    // numbered-prefix branch open to the same superlinear-backtracking ReDoS shape BITB-114
+    // closed for the connector-repeat group above. Checked against every numbered-prefix entry
+    // in LocalizedBookToEnglish.kt across all locales: the real max is exactly 1 trailing word
+    // (e.g. Arabic "1 أخبار الأيام" = "1 Chronicles" — "أخبار" is matched by $BOOK_NAME,
+    // "الأيام" is the one trailing word). {0,3} keeps 3x headroom, matching BITB-114's own bound.
+    // See docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md.
+    "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$BOOK_NAME(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+){0,3})\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
         "|" +
         // Alt 2 — no prefix. Colon branch or chapter-only branch (with guard).
         // Chapter-only uses (?!\s+[\p{Lu}\p{Lo}]) so that "See 1 Corinthians..." does NOT
@@ -226,7 +234,12 @@ internal fun buildVerseRefRegex(
 
     return Regex(
         // Alt 1 — numbered prefix, colon REQUIRED (see DEFAULT_VERSE_REF_REGEX comments)
-        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+)*)\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
+        // The trailing-word group below is bounded to {0,3} (BITB-117, closing the residual
+        // gap BITB-114 flagged): it was an unbounded `*`. Real max trailing-word count found
+        // across LocalizedBookToEnglish.kt is 1 (e.g. Arabic "1 أخبار الأيام" = "1 Chronicles").
+        // {0,3} keeps 3x headroom, matching BITB-114's bound. See
+        // docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md.
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+){0,3})\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
             // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
