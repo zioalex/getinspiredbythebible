@@ -20,6 +20,11 @@ spec:
         name: ai-credentials
         key: api-key
       env: OPENCODE_API_KEY
+    # GitHub Copilot OAuth user token (gho_...) for the github-copilot provider.
+    # PATs (classic ghp_... or fine-grained github_pat_...) are rejected by the
+    # copilot_internal/v2/token exchange — see README "Persist GitHub Copilot
+    # access". The Agent CRD exposes no volume/volumeMount fields, so auth.json
+    # mounting is not wirable here; GITHUB_TOKEN remains the supported mechanism.
     - name: github-copilot
       secretRef:
         name: github-copilot-auth
