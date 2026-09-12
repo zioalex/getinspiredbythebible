@@ -2,6 +2,8 @@
 description: SEO audit of voxquieta.org and the Next.js frontend — metadata, titles, sitemap/robots/hreflang, routing, links. Separates real issues from scanner boilerplate. Read-only.
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 permission:
   edit: deny
   bash:

@@ -2,6 +2,8 @@
 description: Full stack engineer for FastAPI backend, Next.js frontend, PostgreSQL, and Azure infrastructure
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

@@ -2,6 +2,8 @@
 description: Adversarial architecture and risk audit across backend, frontend, Android, and infra. Severity-ranked, evidence-backed report. Read-only.
 mode: subagent
 model: github-copilot/claude-opus-5
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 permission:
   edit: deny
   bash:

@@ -1,8 +1,9 @@
 # KubeOpenCode Deployment Config
 
-Adhoc folder for the KubeOpenCode `Agent` manifest. Agent behaviour lives in
-`.opencode/agents/*.md`; this folder holds only the cluster-side wiring
-(models, fallbacks, plugin, provider timeouts, credentials).
+Adhoc folder for the KubeOpenCode `Agent` manifest. Agent behaviour, models,
+and fallbacks live in `.opencode/agents/*.md` and are compiled into
+`opencode.json` by `make gen-opencode-config`; this folder holds only the
+cluster-side wiring (the `configRef` pointer and credentials).
 
 ## Prerequisites
 
@@ -42,18 +43,24 @@ kubectl -n kubeopencode-system get agent default-wf
 
 ## Files
 
-- `agent.yaml` — the `Agent` CRD (`default-wf`): primary + small models,
-  `opencode-runtime-fallback@0.2.4` plugin, provider timeout options,
-  credentials wiring, per-agent `fallbackModels` including the orchestrator
-- `agents.md` — documented 12-agent model table (mirrors `spec.config.agent`)
+- `agent.yaml` — the `Agent` CRD (`default-wf`): `configRef` pointing at the
+  `opencode-config` ConfigMap, plus credentials wiring
+- `agents.md` — documented 12-agent model table (mirrors the `agent` section of
+  the generated `opencode.json`)
 
 ## Notes
 
-- `AgentSpec` has no top-level `model`/`provider` fields — all OpenCode
-  settings (`model`, `small_model`, `provider`, per-agent models/fallbacks)
-  live under `spec.config`, which is serialized to `opencode.json` in the pod.
+- `AgentSpec` has no top-level `model`/`provider` fields. All OpenCode settings
+  (`model`, `small_model`, `provider`, `plugin`, per-agent models and
+  `fallback_models`) live in the generated `opencode.json`, which reaches the
+  pod via the `opencode-config` ConfigMap referenced by `spec.configRef`.
 - `spec.config` (inline) and `configRef` are mutually exclusive
   (runtime-validated). `Agent` overrides template scalars and replaces lists.
-- Keep `spec.config.agent` in sync with `.opencode/agents/*.md` when adding or
-  renaming agents: the `.md` files hold definitions, the YAML holds models and
-  fallbacks.
+  This deployment uses `configRef`, so there is no inline `spec.config` block.
+- `.opencode/agents/*.md` is the single source of truth for per-agent `model`,
+  `fallback_models`, `tools`, and `permission`. After editing an agent, run
+  `make gen-opencode-config` and commit the regenerated `opencode.json`, then
+  `make sync-opencode-configmap` to push it to the cluster.
+- Fallback routing is executed by the `opencode-runtime-fallback@0.2.4` plugin
+  configured in that generated file. Without the plugin, `fallback_models` is
+  inert — `make verify-opencode-config` fails if either goes missing.

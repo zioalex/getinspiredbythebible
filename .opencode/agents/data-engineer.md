@@ -2,6 +2,8 @@
 description: Data engineer for pgvector embeddings, Alembic migrations, semantic search, and verse_topic population
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true

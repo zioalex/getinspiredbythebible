@@ -2,6 +2,8 @@
 description: Independent verification agent. Runs backend, frontend, and Android test suites and reviews diffs against acceptance criteria. Read-only — never edits code.
 mode: subagent
 model: github-copilot/claude-opus-5
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 permission:
   edit: deny
   bash:

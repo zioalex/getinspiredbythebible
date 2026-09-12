@@ -303,8 +303,18 @@ gen-opencode-config: ## Generate opencode.json from .opencode/agents/*.md
 verify-opencode-config: gen-opencode-config ## Verify generated opencode.json
 	@$(PYTHON_VERSION) -m json.tool opencode.json > /dev/null
 	@echo "$(GREEN)✓ opencode.json is valid JSON$(NC)"
-	@COUNT=$$($(PYTHON_VERSION) -c "import json; d=json.load(open('opencode.json')); print(len([k for k in d['agent'] if k not in ('build','plan')]))"); \
+	@COUNT=$$($(PYTHON_VERSION) -c "import json; B={'build','plan','general','explore','compaction','title','summary'}; d=json.load(open('opencode.json')); print(len([k for k in d['agent'] if k not in B]))"); \
 	if [ "$$COUNT" = "12" ]; then echo "$(GREEN)✓ All 12 agents present$(NC)"; else echo "$(YELLOW)Expected 12 agents, got $$COUNT$(NC)"; exit 1; fi
+	@# BITB-123 regression guard: fallback routing must not silently vanish again.
+	@$(PYTHON_VERSION) -c "import json,sys; d=json.load(open('opencode.json')); \
+	missing=[k for k,v in d['agent'].items() if not v.get('fallback_models')]; \
+	sys.exit('Agents missing fallback_models: %s' % missing) if missing else None"
+	@echo "$(GREEN)✓ Every agent has fallback_models$(NC)"
+	@$(PYTHON_VERSION) -c "import json,sys; d=json.load(open('opencode.json')); \
+	p=d.get('plugin') or []; \
+	sys.exit('runtime-fallback plugin missing: fallback_models would be inert') \
+	if not any('opencode-runtime-fallback' in str(e) for e in p) else None"
+	@echo "$(GREEN)✓ Runtime-fallback plugin configured$(NC)"
 
 sync-opencode-configmap: verify-opencode-config ## Update KubeOpenCode ConfigMap from local opencode.json (manual)
 	@echo "$(BLUE)Syncing ConfigMap opencode-config...$(NC)"

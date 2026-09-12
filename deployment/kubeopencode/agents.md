@@ -1,8 +1,10 @@
 # KubeOpenCode Agent Model Table (BITB-123)
 
-Agent definitions live in `.opencode/agents/*.md` and are auto-loaded into
-KubeOpenCode containers. This file documents the model tiering mirrored in
-`spec.config.agent` in `agent.yaml` (primary model + `fallbackModels`).
+Agent definitions live in `.opencode/agents/*.md` and are compiled into
+`opencode.json` by `make gen-opencode-config`, which reaches KubeOpenCode
+containers via the `opencode-config` ConfigMap (`spec.configRef`). This file
+documents the model tiering held in that generated `agent` section (primary
+`model` + `fallback_models`); the `.md` frontmatter is the source of truth.
 
 | Agent | Primary model | Fallback | Notes |
 |---|---|---|---|
@@ -19,7 +21,8 @@ KubeOpenCode containers. This file documents the model tiering mirrored in
 | failure-forecaster | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only 12-month forecast |
 | seo-auditor | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | Read-only SEO audit |
 
-Fallbacks are served by the `opencode-runtime-fallback@0.2.4` plugin (retry on
+Fallbacks are served by the `opencode-runtime-fallback@0.2.4` plugin, configured
+in the generated `opencode.json` (retry on
 `[429, 500, 502, 503, 504]`, 1 attempt, 120 s cooldown, 45 s timeout, notify on
 fallback). Project is open source, so NVIDIA trial-model data logging on the
 `nemotron` models is acceptable.

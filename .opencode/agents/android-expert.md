@@ -2,6 +2,8 @@
 description: Expert Android engineer specializing in Kotlin, Jetpack Compose, MVVM Clean Architecture, Hilt, Room, and Coroutines
 mode: subagent
 model: opencode/nemotron-3-ultra-free
+fallback_models:
+  - opencode/muse-spark-1.3-contributor-free
 tools:
   bash: true
   read: true
