@@ -2395,7 +2395,7 @@ KubeOpenCode CRD actually exposes volume mounts — `AgentSpec` has no top-level
 
 - [x] CRD storage support confirmed: native `spec.persistence` exists — no hand-rolled PVCs needed
 - [x] `agent.yaml` sets `persistence.workspace` (20Gi) + `persistence.sessions` (2Gi), no hardcoded StorageClass
-- [ ] `/tmp` worktree behaviour explicitly resolved (persisted or documented as ephemeral)
+- [x] `/tmp` worktree behaviour resolved: `AGENTS.md` uses `${WORKSPACE_DIR:-/tmp}/worktrees`, gitignored
 - [ ] README lists the PVC prerequisite before the apply step, plus reset procedure and RWO/single-replica constraint
 - [ ] Persistence proven: file written, pod deleted, file still present
 

@@ -109,13 +109,15 @@ Decisions:
 2. **`sessions: 2Gi`** (over the 1Gi default), for conversation history headroom.
 3. **`storageClassName` omitted** so the cluster default applies, keeping the
    manifest portable across clusters.
-4. **`/tmp` worktrees remain ephemeral.** `AGENTS.md` mandates
-   `git worktree add /tmp/<short-name>`, and `persistence.workspace` covers
-   `spec.workspaceDir` (`/workspace`), **not** `/tmp`. Unpushed commits in a
-   worktree would still be lost. Resolve by updating the `AGENTS.md` guidance to
-   place agent worktrees under `/workspace/worktrees/<short-name>` when running
-   on KubeOpenCode, or by documenting plainly that `/tmp` does not survive. Do
-   not leave this ambiguous — it is where unpushed work lives.
+4. **`/tmp` worktrees move onto the persisted volume.** `AGENTS.md` previously
+   mandated `git worktree add /tmp/<short-name>`, but `persistence.workspace`
+   covers `spec.workspaceDir` only — **`/tmp` is not persisted** — so unpushed
+   commits in a worktree would still be lost on every restart. Resolved (not
+   merely documented): `AGENTS.md` now derives the worktree root from
+   `${WORKSPACE_DIR:-/tmp}/worktrees`, so agents get the PVC-backed path while a
+   developer machine keeps `/tmp`. Because the repo is checked out *at*
+   `$WORKSPACE_DIR`, `worktrees/` is added to `.gitignore` — otherwise worktrees
+   appear as untracked files and are destroyed by `git clean -fdx`.
 5. **Persistence is not free of risk.** A persistent workspace accumulates stale
    branches, and anything written to disk now survives. Document a reset path
    (delete the PVC and let the operator re-provision) and keep the
@@ -131,8 +133,8 @@ Decisions:
 - [x] CRD storage support confirmed and recorded (see *Gate: resolved*)
 - [x] `agent.yaml` gains `spec.persistence` with `workspace: 20Gi` and
       `sessions: 2Gi`, no hardcoded `storageClassName`
-- [ ] `/tmp` worktree behaviour explicitly resolved and `AGENTS.md` updated if the
-      guidance changes
+- [x] `/tmp` worktree behaviour resolved: `AGENTS.md` uses
+      `${WORKSPACE_DIR:-/tmp}/worktrees`, and `worktrees/` is gitignored
 - [ ] `README.md` updated: persistence documented (what survives, what does not),
       the `/tmp` caveat, how to pin a `storageClassName`, and a reset procedure
 - [ ] No secret material written to the persisted volumes; `detect-secrets` green

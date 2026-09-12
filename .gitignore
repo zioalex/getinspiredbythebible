@@ -150,3 +150,8 @@ sslcert/cloudflare-origin.pfx
 # Database dumps produced by scripts/db-backup-restore.sh (make db-backup)
 backups/
 *.dump
+
+# Git worktrees created by agents (AGENTS.md -> Git Worktree Pattern).
+# On KubeOpenCode the repo is checked out at $WORKSPACE_DIR, so worktrees land
+# inside the working tree; this keeps them out of git status and git clean.
+worktrees/
