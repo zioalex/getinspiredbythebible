@@ -95,7 +95,7 @@ kubectl -n kubeopencode-system get configmap opencode-config
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
-## Persistence (BITB-125)
+## Persistence (BITB-128)
 
 `spec.persistence` in `agent.yaml` backs the agent with operator-managed PVCs.
 Without it the workspace is an `EmptyDir`, so the `kubectl delete pod` step above

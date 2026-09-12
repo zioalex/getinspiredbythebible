@@ -1,4 +1,4 @@
-# BITB-125: Persistent KubeOpenCode Workspace Volume
+# BITB-128: Persistent KubeOpenCode Workspace Volume
 
 **Priority:** P2 (Medium)
 **Status:** 🚧 In Progress
@@ -143,7 +143,7 @@ Decisions:
 
 - [ ] `make pre-commit` passes (check-yaml, yamllint, prettier, markdownlint)
 - [ ] `agent.yaml` validates: `kubectl apply --dry-run=server -f`
-- [x] `spec.persistence` covered by the manifest tests added in **BITB-126**
+- [x] `spec.persistence` covered by the manifest tests added in **BITB-129**
 
 ---
 
@@ -160,11 +160,11 @@ agent itself.
 
    ```bash
    kubectl -n kubeopencode-system exec <agent-pod> -- \
-     sh -c 'echo bitb-125 > /workspace/persistence-probe.txt'
+     sh -c 'echo bitb-128 > /workspace/persistence-probe.txt'
    kubectl -n kubeopencode-system delete pod <agent-pod>
    # wait for the replacement pod
    kubectl -n kubeopencode-system exec <new-agent-pod> -- \
-     cat /workspace/persistence-probe.txt   # must print: bitb-125
+     cat /workspace/persistence-probe.txt   # must print: bitb-128
    ```
 
 4. **No re-clone proof:** the replacement pod does not re-clone the repo; the
@@ -189,4 +189,4 @@ agent itself.
 - `deployment/kubeopencode/README.md` — the `delete pod` step that makes loss routine
 - `AGENTS.md` → *Git Worktree Pattern* — the `/tmp/` mandate this must reconcile
 - BITB-123 — created `deployment/kubeopencode/`
-- BITB-126 — CI coverage for these manifests
+- BITB-129 — CI coverage for these manifests

@@ -21,7 +21,7 @@ run-name: >-
       - "!scripts/test_generate_opencode_config.py"
       - "!scripts/test_kubeopencode_manifests.py"
       - "deployment/**"
-      # BITB-126: KubeOpenCode manifests cannot affect the application; they are
+      # BITB-129: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite
       # (two PostgreSQL services, the Node matrix, and live LLM calls).
       - "!deployment/kubeopencode/**"
@@ -41,7 +41,7 @@ run-name: >-
       - "!scripts/test_generate_opencode_config.py"
       - "!scripts/test_kubeopencode_manifests.py"
       - "deployment/**"
-      # BITB-126: KubeOpenCode manifests cannot affect the application; they are
+      # BITB-129: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite
       # (two PostgreSQL services, the Node matrix, and live LLM calls).
       - "!deployment/kubeopencode/**"

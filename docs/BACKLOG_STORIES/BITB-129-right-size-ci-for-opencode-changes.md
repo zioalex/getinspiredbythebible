@@ -1,4 +1,4 @@
-# BITB-126: Right-Size CI for opencode Agent-Config Changes
+# BITB-129: Right-Size CI for opencode Agent-Config Changes
 
 **Priority:** P2 (Medium)
 **Status:** 🚧 In Progress
@@ -163,7 +163,7 @@ table. It does **not** cover the committed artifact or any manifest. Add:
 | **T2** | `agent.yaml` parses; `spec.configRef.configMapRef.name` equals the ConfigMap name created by `make sync-opencode-configmap`; `key` is `opencode.json`; namespace consistent across manifests | A rename on one side leaves the Agent pointing at a ConfigMap that does not exist — README says it then never starts |
 | **T3** | Every `credentials[].secretRef` in `agent.yaml` is documented in `README.md` | Undocumented secret ⇒ agent silently degrades to the free fallback model |
 | **T4** | Every `make` target referenced in `deployment/kubeopencode/README.md` exists in the `Makefile` | Documentation rot in the only runbook for this deployment |
-| **T5** | Volume claims referenced by `agent.yaml` exist in `pvc.yaml`, with `accessModes` and a size set (once **BITB-125** lands) | Agent references a non-existent PVC and stays `Pending` |
+| **T5** | Volume claims referenced by `agent.yaml` exist in `pvc.yaml`, with `accessModes` and a size set (once **BITB-128** lands) | Agent references a non-existent PVC and stays `Pending` |
 | **T6** | `make verify-opencode-config` exits 0 in CI | 12-agent count, `fallback_models`, runtime-fallback plugin |
 
 T1–T5 belong in `scripts/test_generate_opencode_config.py` (or a sibling
@@ -183,7 +183,7 @@ BITB-123 regression class for good.
 - [x] `scripts/test_generate_opencode_config.py` runs in CI (all 19 existing
       tests execute and pass)
 - [x] `make verify-opencode-config` runs in CI
-- [x] Tests T1–T6 implemented and passing (T5 landed with BITB-125 in this branch)
+- [x] Tests T1–T6 implemented and passing (T5 landed with BITB-128 in this branch)
 - [x] Tests mutation-proven non-vacuous: drift, ConfigMap rename (incl. a decoy
       later Makefile target), and a deleted `persistence` block each fail the suite
 - [ ] `make pre-commit` green; PR title uses `ci:`
@@ -223,7 +223,7 @@ BITB-123 regression class for good.
 
 - BITB-123 — created the generator, the 19 regression tests, and
   `deployment/kubeopencode/`; the fallback-inert regression this story automates
-- BITB-125 — persistent workspace volume; source of the T5 manifest assertions
+- BITB-128 — persistent workspace volume; source of the T5 manifest assertions
 - BITB-028 — pipeline path filters (prior art for path-based CI scoping)
 - `.github/workflows/test_update.yml:19-20,32-33` — the `deployment/**` and
   `scripts/**` filters
