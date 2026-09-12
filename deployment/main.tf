@@ -95,7 +95,7 @@ locals {
         # URL instead of erroring (the app would get a working connection to
         # the wrong host, or none at all). See administrator_password below
         # for why that site does the opposite.
-        value = "postgresql://${var.db_admin_username}:${urlencode(var.db_admin_password)}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
+        value = "postgresql://${var.db_admin_username}:${urlencode(var.db_admin_password)}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=verify-full"
       }
       "DEBUG" = {
         value = tostring(var.debug_mode)

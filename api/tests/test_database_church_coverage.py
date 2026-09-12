@@ -6,6 +6,7 @@ Coverage targets:
 - routes/church.py: search_churches, _normalize_churches
 """
 
+import ssl
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -40,7 +41,12 @@ class TestGetAsyncDatabaseUrl:
         assert args == {}
 
     @patch("scripture.database.settings")
-    def test_url_with_sslmode_require(self, mock_settings):
+    def test_url_with_sslmode_require_still_unverified(self, mock_settings):
+        """BITB-099 regression guard: `sslmode=require` must keep resolving to
+        an unverified SSL context (`CERT_NONE`/`check_hostname=False`). This is
+        deliberate, unchanged libpq semantics -- production no longer uses this
+        mode, but any caller that explicitly opts into `require` must keep
+        getting exactly this behavior, not silently upgraded verification."""
         mock_settings.database_url = (
             "postgresql://user:pass@host/db?sslmode=require"  # pragma: allowlist secret
         )
@@ -51,6 +57,10 @@ class TestGetAsyncDatabaseUrl:
 
         assert "sslmode" not in url
         assert "ssl" in args
+        ssl_context = args["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_NONE
+        assert ssl_context.check_hostname is False
 
     @patch("scripture.database.settings")
     def test_url_with_sslmode_verify_ca(self, mock_settings):
@@ -64,6 +74,30 @@ class TestGetAsyncDatabaseUrl:
 
         assert "sslmode" not in url
         assert "ssl" in args
+        ssl_context = args["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
+
+    @patch("scripture.database.settings")
+    def test_url_with_sslmode_verify_full(self, mock_settings):
+        """BITB-099: this is the mode production DSNs now use. Confirms it
+        falls through to `ssl.create_default_context()`'s default -- full
+        hostname + chain verification against the default CA trust store."""
+        mock_settings.database_url = (
+            "postgresql://user:pass@host/db?sslmode=verify-full"  # pragma: allowlist secret
+        )
+        from scripture.database import get_async_database_url
+
+        with patch("scripture.database.settings", mock_settings):
+            url, args = get_async_database_url()
+
+        assert "sslmode" not in url
+        assert "ssl" in args
+        ssl_context = args["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
 
     @patch("scripture.database.settings")
     def test_url_without_ssl(self, mock_settings):

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-12 (BITB-099 implemented + verified, PR #1058; BITB-125 filed; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2053,9 +2053,9 @@ Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 ---
 
-### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+### 🚧 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — decision recorded, implementation in progress
 **Priority:** P2
 **Size:** S–M
 
@@ -2069,11 +2069,43 @@ against the production URL. Traffic is encrypted but the server is unauthenticat
 certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
 
 This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
-knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
-decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
-model. Not an Alembic issue; filed separately.
+knowingly. What is missing is anyone having decided it is *acceptable*. **Decision (2026-09-09):**
+move to `verify-full`, relying on the Python/OS default CA trust store — Azure's server cert
+chains to a public root already in every standard trust store, so no CA bundle needs to be
+vendored. Every DSN that builds `sslmode=require` for the real production host moves to
+`sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
+handles `verify-full` correctly. Not an Alembic issue; filed separately.
+
+Implemented in PR #1058, independently verified (unit tests pass, no unintended logic change,
+scope complete). **Stays In Progress through merge** — the one unproven acceptance criterion is a
+live `verify-full` connection to production, which only happens on the post-merge `main` deploy
+(`run-migrations` is skipped on PRs); flip to Done once that deploy succeeds. The verify pass also
+surfaced a related-but-separate latent gap in the migration-utils mirror helper, filed as BITB-125.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+
+**As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
+being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
+identically in both, **so that** a DSN using that spelling can't silently connect with no TLS at
+all.
+
+`get_migration_connection_params()` only checks `ssl_param == "require"`; `?ssl=verify-ca` or
+`?ssl=verify-full` fails its build condition entirely, so no `ssl` kwarg is set and asyncpg
+connects in plaintext — a worse outcome than `sslmode=require`'s merely-unverified `CERT_NONE`.
+`get_async_database_url()` doesn't have this gap (`sslmode = sslmode or ssl_param` before
+branching). Latent — no DSN in this repo currently uses that spelling — but
+`docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
+makes it easy for an operator to stumble into by hand.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 

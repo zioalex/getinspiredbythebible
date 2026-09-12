@@ -82,7 +82,7 @@ redact_url() {
 require_database_url() {
   [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is not set (or pass --url).
 Set it to the database you want to act on, e.g.
-  export DATABASE_URL='postgresql://user@host:5432/bibledb?sslmode=require'
+  export DATABASE_URL='postgresql://user@host:5432/bibledb?sslmode=verify-full'
 Use PGPASSWORD for the password rather than putting it in the URL."
   DB_URL="$(normalize_libpq_url "$DATABASE_URL")"
   DB_HOST="$(url_host "$DB_URL")"
@@ -362,7 +362,7 @@ cmd_server_url() {
   # sslmode, never ssl — see Rule #1 in docs/MIGRATION_GUIDELINES.md.
   # No password: a PITR copy keeps the source server's admin credentials, and
   # this URL is meant to be pasted into a shell where PGPASSWORD supplies it.
-  echo "postgresql://${DB_USER:-bible}@${fqdn}:5432/${PG_DB:-bibledb}?sslmode=require"
+  echo "postgresql://${DB_USER:-bible}@${fqdn}:5432/${PG_DB:-bibledb}?sslmode=verify-full"
   warn "Password: export PGPASSWORD — a PITR copy keeps the SOURCE server's admin credentials." >&2
   warn "asyncpg and libpq both read PGPASSWORD, so it never needs to go in the URL." >&2
 }

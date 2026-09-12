@@ -32,6 +32,24 @@ def get_async_database_url() -> tuple[str, dict]:
     ``scripts/migrations/utils.py::get_migration_connection_params()``, which
     has always stripped both.
 
+    BITB-099 decision: production connections use ``sslmode=verify-full``, not
+    ``require``. ``sslmode=require`` deliberately still resolves to
+    ``verify_mode=CERT_NONE``/``check_hostname=False`` below -- that is
+    unchanged, correct, standard libpq semantics, and stays available for any
+    caller that explicitly wants "encrypt but don't verify" (e.g. a deliberate
+    local/ad-hoc connection). It is *not* what production uses any more.
+    ``verify-ca``/``verify-full`` were already handled correctly before this
+    decision -- they simply fall through to ``ssl.create_default_context()``'s
+    own default (``check_hostname=True``, ``verify_mode=CERT_REQUIRED``,
+    backed by the platform's default OS/Python CA trust store). No vendored CA
+    bundle is needed: Azure Database for PostgreSQL's server certificate
+    chains to a public commercial root already present in standard OS/Python
+    trust stores. See BITB-016, where ``require``'s ``CERT_NONE`` behavior was
+    originally chosen -- for a different reason (asyncpg rejecting ``ssl`` as
+    a URL param, not a deliberate security tradeoff at the time) -- and
+    BITB-099, which is where the verify-full-for-production decision above was
+    made and recorded.
+
     Returns:
         Tuple of (async_url, connect_args)
     """

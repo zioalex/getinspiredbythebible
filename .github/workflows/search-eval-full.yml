@@ -305,7 +305,7 @@ jobs:
           # masks, so register it as a mask of its own before it can reach a
           # log line.
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
 
           # Leave LLM_PROVIDER unset (rather than "") when no OpenRouter key is
           # configured — Settings' llm_provider is a Literal type and an
