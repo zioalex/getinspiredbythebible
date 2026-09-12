@@ -17,6 +17,13 @@ cluster-side wiring (the `configRef` pointer and credentials).
   `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
   `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
   without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
+- Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
+  for the `github-copilot/*` models (orchestrator, verifier, risk-auditor).
+  Working mechanism today is key `token` (a `gho_…` OAuth user token) →
+  injected as `GITHUB_TOKEN` (see `credentials` in agent.yaml). Key
+  `auth.json` (an `opencode auth login` export) is the preferred long-lived
+  mechanism, pending Agent-CRD file-mount support — see
+  [Persist GitHub Copilot access](#persist-github-copilot-access).
 
 ### Create the secret
 
@@ -32,6 +39,12 @@ kubectl -n kubeopencode-system create secret generic ai-credentials \
 # OpenRouter key lives in its own secret (see `credentials` in agent.yaml)
 kubectl -n kubeopencode-system create secret generic openrouter-api-key \
   --from-literal=openrouter-api-key="YOUR_OPENROUTER_API_KEY" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# GitHub Copilot OAuth token (gho_... — see "Persist GitHub Copilot access";
+# PATs of any kind are rejected by the token exchange)
+kubectl -n kubeopencode-system create secret generic github-copilot-auth \
+  --from-literal=token="YOUR_GHO_OAUTH_TOKEN" \ # pragma: allowlist secret
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
@@ -92,6 +105,112 @@ If the Agent stays unready, check that the ConfigMap it references is present:
 
 ```bash
 kubectl -n kubeopencode-system get configmap opencode-config
+kubectl -n kubeopencode-system describe agent default-wf2
+```
+
+## Persist GitHub Copilot access
+
+`/connect` stores OAuth in `~/.local/share/opencode/auth.json` (ephemeral,
+lost on pod restart). `persistence.sessions/workspace` preserves DB/files,
+not auth. Supply the credential declaratively so it survives restarts.
+
+Requirements: a paid Copilot subscription (Pro, Pro+, Business, or
+Enterprise) with [Copilot chat in the IDE](https://github.com/settings/copilot)
+enabled. OpenCode exchanges the credential for a short-lived Copilot bearer
+token via `https://api.github.com/copilot_internal/v2/token` and refreshes it
+automatically.
+
+### Personal access tokens do NOT work
+
+`copilot_internal/v2/token` accepts **only OAuth user tokens** issued to a
+Copilot-approved OAuth/GitHub App (`gho_…` / `ghu_…`). It rejects personal
+access tokens of **every** kind — classic (`ghp_…`) *and* fine-grained
+(`github_pat_…`) — with:
+
+```text
+Bad Request: checking third-party user token: bad request: Personal Access Tokens are not supported for this endpoint
+```
+
+The fine-grained **Copilot Requests** permission does not help: it governs the
+*public* Copilot REST API (`/copilot/...` model endpoints), not the internal
+IDE-token exchange OpenCode uses. Do not spend time hunting for that
+permission — use one of the two options below.
+
+### Option A — mount `auth.json` (preferred, self-refreshing)
+
+Run `opencode auth login` → *GitHub Copilot* once on an interactive machine.
+This writes a long-lived **refresh** token to
+`~/.local/share/opencode/auth.json`, from which OpenCode re-mints the bearer
+token indefinitely — nothing expires on a PAT/OAuth rotation schedule.
+
+```bash
+kubectl -n kubeopencode-system create secret generic github-copilot-auth \
+  --from-file=auth.json="$HOME/.local/share/opencode/auth.json" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+The secret must then be mounted read-only at the agent's OpenCode data dir
+(`$HOME/.local/share/opencode/auth.json` inside the pod). No manifest in
+this repo pins the agent's runtime user or `$HOME`, so confirm the effective
+user first (e.g. `kubectl -n kubeopencode-system exec <agent-pod> -- sh -c
+'echo $HOME; id -u'`) rather than assuming `/root/...`. If the CRD gains a
+`persistence` data-volume option, carrying that path on the existing data
+volume is an equivalent alternative to a dedicated secret mount.
+
+> **Not wirable today.** The `kubeopencode.io/v1alpha1` `Agent` CRD exposes
+> only `credentials[].secretRef` → `env`; it has no `volumes`/`volumeMounts`
+> (nor a persistence path covering the data dir). Until the CRD gains a
+> file-mount field, use Option B.
+
+### Option B — reuse an OAuth user token (works today)
+
+The GitHub CLI's OAuth app is Copilot-approved, so its token is accepted:
+
+```bash
+gh auth login     # once, interactively
+gh auth token     # prints gho_...
+```
+
+```bash
+kubectl -n kubeopencode-system create secret generic github-copilot-auth \
+  --from-literal=token="$(gh auth token)" \ # pragma: allowlist secret
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+`agent.yaml` already wires this:
+
+```yaml
+credentials:
+  - name: github-copilot
+    secretRef:
+      name: github-copilot-auth
+      key: token
+    env: GITHUB_TOKEN
+```
+
+Caveats: the token is tied to your `gh` CLI session, is revoked by
+`gh auth logout` or token rotation, and requires the subscription to stay
+active. Rotate the secret when it changes.
+
+### Troubleshooting
+
+- `Personal Access Tokens are not supported for this endpoint` — the secret
+  holds a `ghp_…`/`github_pat_…` PAT. Replace it with a `gho_…` token
+  (Option B).
+- `401`/`403` from the exchange — Copilot subscription inactive, or
+  [Copilot chat in the IDE](https://github.com/settings/copilot) disabled.
+- `403` on org repos / SSO wall — authorize the OAuth app for the SAML SSO
+  organization (GitHub → Settings → Applications → Authorized OAuth Apps →
+  SSO → Grant), then re-create the secret.
+- Copilot models suddenly `401` — the `gho_…` token was revoked or rotated;
+  re-run `gh auth token`, re-apply the secret, then delete the agent pod so it
+  picks up the new value.
+
+Verify the wiring:
+
+```bash
+# secret exists and Agent references it
+kubectl -n kubeopencode-system get secret github-copilot-auth
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
