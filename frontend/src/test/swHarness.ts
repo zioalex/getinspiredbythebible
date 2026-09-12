@@ -17,7 +17,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SW_PATH = resolve(__dirname, "../../public/sw.js");
+export const SW_PATH = resolve(__dirname, "../../public/sw.js");
 
 function keyFor(requestOrUrl: any): string {
   return typeof requestOrUrl === "string" ? requestOrUrl : requestOrUrl.url;
@@ -26,6 +26,8 @@ function keyFor(requestOrUrl: any): string {
 /** A single named cache, backed by a Map that preserves insertion order (for FIFO trim tests). */
 class FakeCache {
   private store = new Map<string, Response>();
+  /** Tracks whether each key was written via a bare string or a Request object — see `keyType()`. */
+  private keyTypes = new Map<string, "string" | "request">();
   private getFetchImpl: () => (input: any) => Promise<Response>;
 
   constructor(getFetchImpl: () => (input: any) => Promise<Response>) {
@@ -38,7 +40,19 @@ class FakeCache {
   }
 
   async put(requestOrUrl: any, response: Response): Promise<void> {
-    this.store.set(keyFor(requestOrUrl), response);
+    const key = keyFor(requestOrUrl);
+    this.store.set(key, response);
+    this.keyTypes.set(key, typeof requestOrUrl === "string" ? "string" : "request");
+  }
+
+  /**
+   * Test-only inspection helper — not part of the real Cache API. Distinguishes
+   * `cache.put(request.url, ...)` (safe — a bare string carries no headers) from
+   * `cache.put(request, ...)` (unsafe for a Turnstile-token-bearing request: the
+   * real Cache API persists the Request's headers). Returns undefined if never written.
+   */
+  keyType(url: string): "string" | "request" | undefined {
+    return this.keyTypes.get(url);
   }
 
   async delete(requestOrUrl: any): Promise<boolean> {

@@ -5,11 +5,13 @@
  * `swHarness.ts` (which reads and executes public/sw.js verbatim) — nothing
  * here reimplements the worker's behaviour.
  */
+import { readFileSync } from "fs";
 import { describe, it, expect, vi } from "vitest";
 import {
   loadServiceWorker,
   FakeCacheStorage,
   fakeNetworkResponse,
+  SW_PATH,
 } from "./swHarness";
 
 const OFFLINE_HTML = "<html><body>You're offline</body></html>";
@@ -157,6 +159,68 @@ describe("sw.js — non-GET requests are structurally untouchable", () => {
 
     expect(result.respondWithCalled).toBe(false);
   });
+
+  it("a POST to a scripture-allowlist URL is never intercepted or cached (method check runs before allowlist matching)", async () => {
+    // Without the method check, this exact URL WOULD match the scripture
+    // allowlist and get handled/cached — this is what actually pins the
+    // "non-GET returns before any URL inspection" claim, unlike a POST to a
+    // URL that no other branch would ever match anyway.
+    const url = scriptureUrl("chapter/John/3");
+    const { sw, cacheStorage } = await setupInstalledSw("build-A", {
+      [url]: fakeNetworkResponse(JSON.stringify({ chapter: 3 }), { status: 200 }),
+    });
+
+    const result = await sw.dispatchFetch(new Request(url, { method: "POST", body: "{}" }));
+
+    expect(result.respondWithCalled).toBe(false);
+    expect(await cacheStorage.has("vq-scripture-v1")).toBe(false);
+  });
+
+  it("challenges.cloudflare.com is bypassed even for a path shape that would otherwise match the scripture allowlist (hostname check precedes pathname matching)", async () => {
+    // Same technique as above: pick a URL that WOULD be cached by a later
+    // branch if this earlier bypass were removed, so the test actually
+    // exercises branch ordering instead of two branches that happen to both
+    // say "don't cache" for unrelated reasons.
+    const url = "https://challenges.cloudflare.com/api/v1/scripture/translations";
+    const { sw, cacheStorage, fetchImpl } = await setupInstalledSw("build-A", {
+      [url]: fakeNetworkResponse("{}", { status: 200 }),
+    });
+
+    const result = await sw.dispatchFetch(new Request(url));
+
+    expect(result.respondWithCalled).toBe(false);
+    expect(fetchWasCalledWith(fetchImpl, url)).toBe(false);
+    const scriptureCache = cacheStorage.__get("vq-scripture-v1");
+    expect(await scriptureCache?.match(url)).toBeUndefined();
+  });
+
+  it("the /api/v1/chat denylist check precedes the static-asset and scripture-allowlist branches in source order", () => {
+    // Unlike the two tests above, no real URL can start with both
+    // "/api/v1/chat" and "/api/v1/scripture/..." (disjoint prefixes), so no
+    // fetch-based test can distinguish "the chat denylist runs" from "no
+    // other branch matches a chat URL anyway" — this line is honest defense
+    // in depth, not currently reachable-in-effect. A source-order assertion
+    // is the correct tool: it fails if a future edit moves the denylist
+    // after a branch it's meant to guard, which a behavioral test cannot.
+    const src = readFileSync(SW_PATH, "utf8");
+    const denylistIdx = src.indexOf('pathname.startsWith("/api/v1/chat")');
+    const staticIdx = src.indexOf("matchesStaticAsset(url.pathname)");
+    const scriptureIdx = src.indexOf("matchesScriptureAllowlist(url.pathname)");
+
+    expect(denylistIdx).toBeGreaterThan(-1);
+    expect(staticIdx).toBeGreaterThan(-1);
+    expect(scriptureIdx).toBeGreaterThan(-1);
+    expect(denylistIdx).toBeLessThan(staticIdx);
+    expect(denylistIdx).toBeLessThan(scriptureIdx);
+  });
+
+  it("never calls self.skipWaiting() outside of the design-decision comment (design decision A2)", () => {
+    const src = readFileSync(SW_PATH, "utf8");
+    const withoutComments = src
+      .replace(/\/\*\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(withoutComments).not.toMatch(/skipWaiting\s*\(/);
+  });
 });
 
 describe("sw.js — Turnstile token safety", () => {
@@ -176,6 +240,13 @@ describe("sw.js — Turnstile token safety", () => {
     const keys = await scriptureCache?.keys();
     expect(keys).toEqual([{ url }]); // plain string key — no headers, no way to leak the token
     expect(await scriptureCache?.match(url)).toBeDefined();
+    // The `keys()` shape above is identical whether sw.js wrote `request.url`
+    // (a string) or `request` (a Request object) — FakeCache.keyFor() collapses
+    // both to the same map key. `keyType()` tracks what was actually passed to
+    // `cache.put`, which is what pins the real Cache API's behavior: a stored
+    // `Request` object retains its headers (including X-Turnstile-Token) in a
+    // real browser's CacheStorage; a bare string does not.
+    expect(scriptureCache?.keyType(url)).toBe("string");
   });
 
   it("a response with Vary: X-Turnstile-Token is never cached", async () => {
