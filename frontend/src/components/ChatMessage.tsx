@@ -11,12 +11,10 @@ import {
   createVersePatternGlobal,
 } from "@/lib/versePatterns";
 import { isKnownBook, normalizeDigits } from "@/lib/verseExtraction";
-import {
-  linkifyVerses,
-  parseVerseHref,
-  VERSE_SCHEME,
-} from "@/lib/linkifyVerses";
+import { parseVerseHref, VERSE_SCHEME } from "@/lib/linkifyVerses";
 import { normalizeTraditionalToSimplified } from "@/lib/chineseScript";
+import { linkifyWithCitations } from "@/lib/citationSpans";
+import { citationSpansEnabled } from "@/lib/featureFlags";
 
 /** Recursively extract the plain-text content of a React node (e.g. link children). */
 function getNodeText(node: React.ReactNode): string {
@@ -384,7 +382,10 @@ export default function ChatMessage({
                   ),
                 }}
               >
-                {linkifyVerses(message.content)}
+                {linkifyWithCitations(
+                  message.content,
+                  citationSpansEnabled() ? message.citations : undefined,
+                )}
               </ReactMarkdown>
             </div>
 
