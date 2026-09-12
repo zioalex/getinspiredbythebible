@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124, BITB-125, BITB-126 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2372,6 +2372,65 @@ abandoned, so work can be reported as done that never ran.
 - [ ] A cancelled task surfaces as a retryable error, never a silent terminal state
 
 Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORIES/BITB-124-parallel-subagent-dispatch-drops-tasks.md)
+
+---
+
+### 🎯 BITB-125: Persistent KubeOpenCode Workspace Volume
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-09-12
+
+`agent.yaml` declares `workspaceDir: /workspace` with no volume attached, so the agent
+pod's filesystem is ephemeral. The README's own ConfigMap-sync workflow *requires*
+`kubectl delete pod` after every agent change, which means wiping the workspace is
+routine, not exceptional: uncommitted work, `/tmp` git worktrees (which `AGENTS.md`
+mandates), the cloned repo, and all npm/pip/Gradle caches are destroyed each time.
+Back `/workspace` and the toolchain caches with PVCs. Gated on first confirming the
+KubeOpenCode CRD actually exposes volume mounts — `AgentSpec` has no top-level
+`model`/`provider` fields, so storage support cannot be assumed.
+
+**Acceptance Criteria (summary):**
+
+- [ ] CRD storage support confirmed before implementing (or story reduced to a documented mitigation)
+- [ ] `pvc.yaml` adds `opencode-workspace` (20Gi) + `opencode-cache` (10Gi), RWO, no hardcoded StorageClass
+- [ ] Agent mounts both; filesystem ownership lets the agent user actually write
+- [ ] `/tmp` worktree behaviour explicitly resolved (persisted or documented as ephemeral)
+- [ ] README lists the PVC prerequisite before the apply step, plus reset procedure and RWO/single-replica constraint
+- [ ] Persistence proven: file written, pod deleted, file still present
+
+Full story: [`BITB-125-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STORIES/BITB-125-kubeopencode-persistent-workspace-volume.md)
+
+---
+
+### 🎯 BITB-126: Right-Size CI for opencode Agent-Config Changes
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+**Created:** 2026-09-12
+
+CI for opencode config changes is wrong in both directions. Editing a file under
+`deployment/kubeopencode/` matches `deployment/**` in `test_update.yml` and starts the
+whole application suite — two PostgreSQL services, the Node 22/26 frontend matrix, and
+`integration-tests` (full docker compose, Ollama model pull, live OpenRouter calls on
+`TF_VAR_OPENROUTER_API_KEY`). Meanwhile no workflow references opencode at all, so
+`scripts/test_generate_opencode_config.py` (19 BITB-123 regression tests) never runs in
+CI, `make verify-opencode-config` never runs, and nothing detects drift between
+`.opencode/agents/*.md` and the committed `opencode.json` that gets pushed to the
+ConfigMap. Editing `scripts/generate-opencode-config.py` runs the entire application
+suite but not that script's own tests.
+
+**Acceptance Criteria (summary):**
+
+- [ ] New fast `opencode-ci.yml` (< 2 min, no DB/Docker/Node matrix/secrets)
+- [ ] `test_update.yml` excludes `deployment/kubeopencode/**` on both triggers
+- [ ] The 19 existing generator tests and `make verify-opencode-config` run in CI
+- [ ] Missing tests added: committed-`opencode.json` drift (T1), `configRef`↔ConfigMap-name match (T2), documented secret refs (T3), README `make` targets exist (T4), PVC refs resolve (T5, with BITB-125), verify target (T6)
+- [ ] Verified by deliberately introducing drift and a manifest mismatch and watching CI fail
+
+Full story: [`BITB-126-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-126-right-size-ci-for-opencode-changes.md)
 
 ---
 
