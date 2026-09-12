@@ -1,4 +1,4 @@
-# BITB-123: Culturally Tuned Warmth — Only When the Person Needs Support
+# BITB-129: Culturally Tuned Warmth — Only When the Person Needs Support
 
 **Status:** 🎯 Todo
 **Priority:** P1 — user-reported quality gap on the product's core promise (spiritual support), and
