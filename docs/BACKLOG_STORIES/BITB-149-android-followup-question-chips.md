@@ -1,4 +1,4 @@
-# BITB-123: Android — Suggested Follow-Up Question Chips
+# BITB-149: Android — Suggested Follow-Up Question Chips
 
 **Status:** 🎯 Todo
 **Priority:** P2

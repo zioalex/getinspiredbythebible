@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-07 (BITB-117 completed)
+**Last Updated:** 2026-09-13 (BITB-149 assigned to resolve a BITB-123 collision with the already-shipped opencode-agent-graph story)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3158,7 +3158,7 @@ asked whether it understood the question. This makes clarification a first-class
 
 ### ✅ BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** ✅ Done (backend + web) — Android deferred to **BITB-123**
+**Status:** ✅ Done (backend + web) — Android deferred to **BITB-149**
 **Size:** M (1–2 days, backend + web + Android)
 **Created:** 2026-07-25
 
@@ -3179,7 +3179,7 @@ existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
 - [x] Clients on an older backend are unaffected (absent field renders nothing)
 - [x] Shares one chip component with BITB-078 (`FollowUpSuggestions.tsx`, generic
       `{ suggestions, onSelect, disabled, label }` props); accessible on web
-- [ ] Android chip UI — deferred, see **BITB-123**
+- [ ] Android chip UI — deferred, see **BITB-149**
 - [ ] Interaction with the 10-message session limit (BITB-024) checked before rollout
 
 **Implementation notes:** ships dark behind `chat_follow_ups_enabled` (default off), same rollout
@@ -3192,7 +3192,7 @@ the prompt instruction and a second, code-level suppression on a compassionate/c
 
 ---
 
-### 🎯 BITB-123: Android — Suggested Follow-Up Question Chips
+### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
 
 **Status:** 🎯 Todo
 **Size:** S (Android-only; the backend contract and web reference implementation already exist)
@@ -3214,7 +3214,7 @@ validation needed), render chips under the last assistant item only, send on fir
 - [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
 - [ ] BITB-024 (session limit) interaction checked now that both platforms exist
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-123-android-followup-question-chips.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
 
 ---
 

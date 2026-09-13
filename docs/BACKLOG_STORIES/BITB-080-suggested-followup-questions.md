@@ -1,6 +1,6 @@
 # BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** ✅ Done (backend + web) — see "Delivered / Deferred" below; Android is **BITB-123**
+**Status:** ✅ Done (backend + web) — see "Delivered / Deferred" below; Android is **BITB-149**
 **Priority:** P2
 **Size:** M (1–2 days, backend + web + Android)
 **Created:** 2026-07-25
@@ -8,7 +8,7 @@
 ## Delivered / Deferred (this pass)
 
 Scoped to backend + web, same split BITB-078 used: Android touches a surface a repo-only agent
-pass can't validate end-to-end in a day, so it is its own follow-up (**BITB-123**) rather than a
+pass can't validate end-to-end in a day, so it is its own follow-up (**BITB-149**) rather than a
 second build of the same mechanism guessed blind.
 
 **Shipped:**
@@ -42,7 +42,7 @@ second build of the same mechanism guessed blind.
   (`follow_ups` passthrough), and a `page.test.tsx` describe block covering "last message only",
   tap-to-send, and clear-on-next-turn end to end.
 
-**Deferred (separate follow-up story, BITB-123):**
+**Deferred (separate follow-up story, BITB-149):**
 
 - Android chip UI (`ChatViewModel.kt`, `ChatScreen.kt`, `ChatMessageItem.kt`) — parse `follow_ups`
   from the stream, render chips under the last assistant item, send on tap.
@@ -126,7 +126,7 @@ nothing. No spinner, no empty row.
 ## Acceptance Criteria
 
 - [x] After a normal answer, 2–3 follow-up buttons appear under the last assistant message on web.
-      Android — deferred to BITB-123.
+      Android — deferred to BITB-149.
 - [x] Tapping one sends it immediately as a user message — no second tap, no manual send.
 - [x] Suggestions are in the conversation's language.
 - [x] Chips appear only under the **latest** assistant message and disappear when the next turn
@@ -137,7 +137,7 @@ nothing. No spinner, no empty row.
 - [ ] Perceived end-of-turn latency does not regress measurably (check the stage timings) — ships
       dark behind `chat_follow_ups_enabled`; measure before flipping the flag on.
 - [x] The suggestion row is keyboard accessible on web (native `<button>` elements). Android
-      screen-reader labelling — deferred to BITB-123.
+      screen-reader labelling — deferred to BITB-149.
 
 ## Tests to Add
 
