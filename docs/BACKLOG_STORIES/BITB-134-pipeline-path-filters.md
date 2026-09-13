@@ -1,4 +1,4 @@
-# BITB-028: Skip Irrelevant CI Pipelines on Doc-Only / Story-Only Changes
+# BITB-134: Skip Irrelevant CI Pipelines on Doc-Only / Story-Only Changes
 
 **Status:** ✅ Done (test_update.yml already has path filters added in PR #577 on 2026-05-17; verified 2026-05-24)
 

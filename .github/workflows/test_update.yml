@@ -74,6 +74,10 @@ jobs:
           fi
           echo "Guard passed: enable_application_insights is not disabled in terraform.tfvars"
 
+      - name: Guard — backlog story IDs are unique and cross-referenced (BITB-111)
+        run: |
+          python3 scripts/check_backlog_story_ids.py
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
@@ -619,7 +623,7 @@ jobs:
           cd frontend
           npm audit --audit-level=high
 
-  # Search-Eval Golden Set Validation (BITB-051 P2)
+  # Search-Eval Golden Set Validation (BITB-139 P2)
   # Non-blocking: validates the dataset file structure without DB or secrets.
   search-eval-validate:
     name: Search-Eval Golden Set Validate

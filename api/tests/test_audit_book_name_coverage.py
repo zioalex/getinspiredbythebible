@@ -1,4 +1,4 @@
-"""Tests for scripts/audit_book_name_coverage.py (BITB-052 coverage audit)."""
+"""Tests for scripts/audit_book_name_coverage.py (BITB-140 coverage audit)."""
 
 import importlib.util
 import sys

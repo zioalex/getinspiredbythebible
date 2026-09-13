@@ -1,4 +1,4 @@
-# BITB-069: Add Menge-Bibel and Make It the German Default
+# BITB-146: Add Menge-Bibel and Make It the German Default
 
 **Status:** 🎯 Todo
 **Priority:** P2 (Medium) — translation quality/familiarity for the German audience

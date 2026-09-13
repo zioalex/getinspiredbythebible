@@ -112,7 +112,7 @@ exact failure this avoids.
 
 - **Android.** The equivalent there is a first-run sheet; the app already has a splash
   (`android/.../presentation/screens/SplashScreen.kt`), a what's-new sheet (**BITB-058**) and a
-  first-run spotlight story (**BITB-054**). Fold the About content into those rather than adding a
+  first-run spotlight story (**BITB-142**). Fold the About content into those rather than adding a
   fourth first-run interruption — track separately.
 - Server-side per-user tracking. This is a `localStorage` gate; clearing site data re-shows it, and
   that is an acceptable trade for storing nothing about the visitor.
@@ -122,4 +122,4 @@ exact failure this avoids.
 - **BITB-076** — the About page this modal points at (**blocks this story**).
 - **BITB-069** — splash-screen hydration mismatch; the trap to avoid.
 - **BITB-058** — Android "What's New" on launch; the same show-once-per-version idea.
-- **BITB-054** — Android first-run feature spotlight.
+- **BITB-142** — Android first-run feature spotlight.

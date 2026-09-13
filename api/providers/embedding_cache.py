@@ -1,11 +1,11 @@
 """
-In-process cache for the embedding call path (BITB-057 Phase 2).
+In-process cache for the embedding call path (BITB-143 Phase 2).
 
 Wraps any concrete EmbeddingProvider (typically ResilientEmbeddingProvider) so
 repeated `embed()` calls for the same text are served from memory instead of
 paying another round-trip to the embedding provider. There is no Redis (or any
 other shared cache) anywhere in this stack — see providers/embedding_resilience.py
-and the BITB-057 story notes — so this is intentionally in-process only; a hit
+and the BITB-143 story notes — so this is intentionally in-process only; a hit
 on one replica does not help another.
 
 Composed as the OUTERMOST layer over ResilientEmbeddingProvider (see

@@ -25,7 +25,7 @@ Mandatory scope for EVERY change:
 
 - No English-only verification — exercise all 11 locales
 - Missing-key policy: fail closed (hide or fall back to English explicitly, never crash or render raw keys)
-- Per-language model fallback awareness (BITB-068 family): verify degraded-language behaviour, not just the happy path
+- Per-language model fallback awareness (BITB-144 family): verify degraded-language behaviour, not just the happy path
 - Translation validation: run the Android translation-validation CI check and the frontend message-namespace checks locally before pushing
 
 Workflow rules (MUST FOLLOW):

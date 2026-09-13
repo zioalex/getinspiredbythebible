@@ -1,16 +1,16 @@
-# BITB-052: Audit & Close Bible Reference-Normalization Gaps
+# BITB-140: Audit & Close Bible Reference-Normalization Gaps
 
 **Status:** 🚧 In Progress (partial — aliases + case/diacritic-insensitive normalization + per-language coverage matrix done; versification offsets deferred)
 **Priority:** P2 (Medium) — correctness/robustness; benefits the whole app, not just the eval
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
-**Parent / related:** BITB-051 (retrieval-eval harness)
+**Parent / related:** BITB-139 (retrieval-eval harness)
 
 ## User Story
 
 As the maintainer, I want Bible book/verse references to canonicalize reliably across
 **all 11 languages and their common citation variants**, so that the retrieval-eval
-metrics (BITB-051) — and the app's own verse linking, which shares the same utility —
+metrics (BITB-139) — and the app's own verse linking, which shares the same utility —
 don't silently mis-handle references and produce wrong matches or false negatives.
 
 ## Problem
@@ -36,7 +36,7 @@ spelling variants. A review of the registry surfaced **uneven, incomplete covera
   `chapter:verse` relative to the English-canonical key — independent of book-name
   language. This can mis-score a correct retrieval as a miss.
 
-These gaps are low-impact for BITB-051 today (its `relevant_refs` and the retrieved
+These gaps are low-impact for BITB-139 today (its `relevant_refs` and the retrieved
 references are both English-canonical), but they affect any localized input and the
 app's shared verse-linking path, and they undermine confidence in per-language scores.
 
@@ -71,7 +71,7 @@ In scope:
 
 Out of scope:
 
-- Changing the BITB-051 golden-set ref format — it **stays English-canonical**.
+- Changing the BITB-139 golden-set ref format — it **stays English-canonical**.
 - Reworking the translation registry's forward (English→localized) data beyond adding
   reverse-alias coverage.
 
@@ -115,6 +115,6 @@ Out of scope:
 
 ## Related
 
-- **BITB-051** — retrieval-eval harness; surfaced these gaps during P1 review. Its
+- **BITB-139** — retrieval-eval harness; surfaced these gaps during P1 review. Its
   golden-set refs stay English-canonical regardless of this work.
 - **BITB-040** — verse-detail localized book name (related book-name handling).

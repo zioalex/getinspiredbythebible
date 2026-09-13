@@ -78,7 +78,7 @@ def create_embedding_provider(config: Settings) -> EmbeddingProvider:
     """
     Create an embedding provider based on configuration.
 
-    Decorates the raw provider with two layers (BITB-057 Phase 2), outermost
+    Decorates the raw provider with two layers (BITB-143 Phase 2), outermost
     first:
       1. CachingEmbeddingProvider - serves repeated queries from an in-process
          cache without paying the breaker/timeout below. A cache hit also

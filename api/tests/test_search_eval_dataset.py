@@ -1,4 +1,4 @@
-"""Dataset-level tests for the retrieval-evaluation golden set (BITB-051 P2).
+"""Dataset-level tests for the retrieval-evaluation golden set (BITB-139 P2).
 
 These tests validate the *data* in ``retrieval_golden_set.json`` — coverage,
 ID uniqueness, parse-ability of every reference — and run in the blocking

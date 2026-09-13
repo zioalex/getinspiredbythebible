@@ -1,5 +1,5 @@
 """
-Generalized DB disconnect-retry helper (BITB-057 Phase 2).
+Generalized DB disconnect-retry helper (BITB-143 Phase 2).
 
 Generalizes the retry-on-transient-disconnect pattern that previously lived
 only in chat/service.py::_search_scripture (as a bespoke recursive
