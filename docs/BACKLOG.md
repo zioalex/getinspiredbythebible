@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-13 (BITB-150 created, renumbered from a colliding BITB-131; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3401,6 +3401,48 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
       (`docs/audits/2026-07-adversarial-audit.md:174`) — now re-raises and crash-loops
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-090-remove-create-all-once-alembic-owns-schema.md`
+
+---
+
+### 🎯 BITB-150: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+
+**Status:** 🎯 Todo
+**Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
+**Created:** 2026-09-12
+**Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
+
+**As** the person paying the Azure invoice, **I want** the monitoring and database spend broken
+down to the meter and each driver traced to the Terraform or application line that creates it,
+**so that** I can cut cost against evidence instead of guessing which knob is the expensive one.
+
+The 25/50 split is an owner-side estimate, and the published cost table in `deployment/README.md`
+is stale (it still prices a **B1ms**; `main.tf:405` has been `B_Standard_B2s` since the partial-HNSW
+upgrade). Phase 0 is a blocking meter-level attribution — nothing is changed on the estimate.
+Structural drivers already identified from the repo: Log Analytics `PerGB2018` with **no
+`daily_quota_gb` cap**, `configure_azure_monitor()` with **no sampling**, 2 web tests × 3 geos ×
+5 min = **51,840 executions/month**, 32 alert rules (17 log rules at `PT5M`), and on the database
+side **no reserved capacity**, a one-way `auto_grow_enabled` storage ratchet that Terraform can no
+longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, and 1536-dim
+4-byte vectors over 403,856 verses (`halfvec` would halve both).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Phase 0 cost table (resource → meter → 3 monthly totals) pasted into the PR with the exact
+      `az` command, reconciled against the real invoice; the 25/50 estimate confirmed or corrected
+- [ ] Log Analytics billable GB per `DataType` and App Insights records per `itemType` captured
+- [ ] **Resolved:** whether a Postgres diagnostic setting exists outside Terraform (drift to codify,
+      or ingestion to remove) — `log_connections = on` with no `azurerm_monitor_diagnostic_setting`
+      anywhere in `deployment/`
+- [ ] Real provisioned `storage_mb`, DB size, top-10 tables/indexes, and 90 days of CPU/memory
+      captured from production, with `stats_reset` alongside `idx_scan`
+- [ ] Every lever carries a saving derived from the Phase 0 table (not list prices) plus a risk
+      note; ranked by saving ÷ risk, with declines explained so they are not re-litigated
+- [ ] A follow-up story filed for each accepted lever touching schema, indexes, sampling or SKU —
+      **none implemented in this story's PR**
+- [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
+      actual spend
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
 
 ---
 
