@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-132 created; BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-13 (BITB-151 created, renumbered from a colliding BITB-132; BITB-123 in progress; BITB-124 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -195,7 +195,7 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-132: Culturally Tuned Warmth — Only When the Person Needs Support
+### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
 **Status:** 🎯 Todo
 **Priority:** P1
@@ -223,7 +223,7 @@ ship `it` (where we have a real report) and do not invent cultural notes for ten
   native speaker who is not the author
 - [ ] `it` vs `en`/`de` negative-feedback rate baselined before rollout
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-132-culturally-tuned-pastoral-tone.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-151-culturally-tuned-pastoral-tone.md`
 
 ---
 
