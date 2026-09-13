@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-13 (BITB-149 assigned to resolve a BITB-123 collision with the already-shipped opencode-agent-graph story)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -3174,8 +3174,11 @@ they show the pre-rename v1.0 UI — must be labeled as "then," not presented as
 ### 🚧 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
 **Status:** 🚧 In Progress — backend intent routing + clarifying-question flow shipped
-(behind `chat_clarification_enabled`, default off); tappable chip UI (shared with BITB-080)
-and golden-set eval integration deferred, see story file
+(behind `chat_clarification_enabled`, default off); golden-set eval integration still deferred,
+see story file. The shared chip UI is no longer blocked: BITB-080 shipped
+`frontend/src/components/FollowUpSuggestions.tsx` as a generic
+`{ suggestions, onSelect, disabled, label }` component — reuse it here rather than building a
+second one.
 **Size:** M (1–2 days, prompt work + eval)
 **Created:** 2026-07-25
 
@@ -3202,9 +3205,9 @@ asked whether it understood the question. This makes clarification a first-class
 
 ---
 
-### 🎯 BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
+### ✅ BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (backend + web) — Android deferred to **BITB-149**
 **Size:** M (1–2 days, backend + web + Android)
 **Created:** 2026-07-25
 
@@ -3215,18 +3218,52 @@ phone.
 The welcome screen already proves the pattern works (tap a starter prompt, it sends), and it
 disappears exactly when the user has the most to explore. The streaming `completion` event is the
 natural carrier: it already grew `resolved_verses` and `corrections` as optional fields that older
-clients ignore (`service.py:1375-1386`). v1 generates follow-ups in-prompt via a machine-readable
-trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
+clients ignore. v1 generates follow-ups in-prompt via a machine-readable trailer, mirroring the
+existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
 
 **Acceptance Criteria (summary):**
 
-- [ ] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
-- [ ] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
-- [ ] Clients on an older backend are unaffected (absent field renders nothing)
-- [ ] Shares one chip component with BITB-078; accessible on web and Android
+- [x] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
+- [x] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
+- [x] Clients on an older backend are unaffected (absent field renders nothing)
+- [x] Shares one chip component with BITB-078 (`FollowUpSuggestions.tsx`, generic
+      `{ suggestions, onSelect, disabled, label }` props); accessible on web
+- [ ] Android chip UI — deferred, see **BITB-149**
 - [ ] Interaction with the 10-message session limit (BITB-024) checked before rollout
 
+**Implementation notes:** ships dark behind `chat_follow_ups_enabled` (default off), same rollout
+posture as BITB-078 — real model output needs a look before enabling, per the story's own "generic
+suggestions are worse than none" risk. `api/chat/follow_ups.py` parses/sanitizes the trailer
+(2–3 suggestions or none, no markup, no fabricated verse references); `_wants_follow_ups` gates both
+the prompt instruction and a second, code-level suppression on a compassionate/crisis turn.
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-080-suggested-followup-questions.md`
+
+---
+
+### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
+
+**Status:** 🎯 Todo
+**Size:** S (Android-only; the backend contract and web reference implementation already exist)
+**Created:** 2026-09-11
+**Parent ref:** BITB-080 (backend + web shipped; this is its deferred Android half)
+
+**As** an Android user who has just read an answer, **I want** the same one-tap follow-up question
+chips the web app now shows, **so that** I can keep exploring without typing on a phone keyboard.
+
+Pure consumer of the contract BITB-080 already shipped: parse the optional `follow_ups: list[str]`
+field off the stream's `completion` event (already sanitized server-side — no client-side
+validation needed), render chips under the last assistant item only, send on first tap
+(`viewModel.sendMessage(...)`), clear on the next turn.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 2–3 chips under the last assistant message; tap sends on the first tap
+- [ ] Absent `follow_ups` renders nothing; chips clear when the next turn starts
+- [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
+- [ ] BITB-024 (session limit) interaction checked now that both platforms exist
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
 
 ---
 

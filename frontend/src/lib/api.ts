@@ -379,6 +379,9 @@ export interface ChatResponse {
   model: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+  /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
+   * when suppressed (crisis/off-topic/error turns) or on an older backend. */
+  follow_ups?: string[];
 }
 
 export interface FeedbackRequest {
@@ -589,6 +592,9 @@ export interface StreamChunk {
   // authoritative full message body and should replace the streamed content.
   corrected_message?: string;
   corrections?: { reference: string; reason: string }[];
+  // BITB-080: 2-3 suggested follow-up questions, in the user's own voice.
+  // Absent when suppressed (crisis/off-topic/error turns) or on an older backend.
+  follow_ups?: string[];
 }
 
 /**
