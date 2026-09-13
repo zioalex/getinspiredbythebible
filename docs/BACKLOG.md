@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-13 (BITB-123 in progress; BITB-124 created; BITB-133 created)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -2372,6 +2372,34 @@ abandoned, so work can be reported as done that never ran.
 - [ ] A cancelled task surfaces as a retryable error, never a silent terminal state
 
 Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORIES/BITB-124-parallel-subagent-dispatch-drops-tasks.md)
+
+---
+
+### 🎯 BITB-133: KubeOpenCode Agent File-Mount Support for Copilot Auth
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (docs + upstream request; implementation size unknown — may be upstream)
+**Created:** 2026-09-13
+
+Follow-up to #1066. The README's preferred Copilot-auth option (mounting
+`auth.json`, which self-refreshes) is not wirable: the `Agent` CRD exposes
+only `credentials[].secretRef` → `env`, with no `volumes`/`volumeMounts`, and
+`spec.persistence` covers `workspaceDir`/`sessions`, not the OpenCode data
+dir. That limitation was established from manifests only — never verified
+against the live CRD, which may already persist enough via `sessions`.
+Meanwhile the working option (a `gho_…` token via `GITHUB_TOKEN`) dies with
+the user's `gh` session, so every revocation breaks the provider until
+someone re-runs the device flow and rotates the secret.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Live-CRD gate recorded: `explain` output pasted in the story; sessions-volume coverage of the data dir checked on-cluster
+- [ ] Covered already → `auth.json` secret + placement documented, Option A marked working, supported fields only
+- [ ] Not covered → upstream issue filed and linked; Option B stays supported with a rotation runbook
+- [ ] No secret material in git; `detect-secrets` green
+
+Full story: [`BITB-133-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_STORIES/BITB-133-kubeopencode-agent-file-mount-copilot-auth.md)
 
 ---
 
