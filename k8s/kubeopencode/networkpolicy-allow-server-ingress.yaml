@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-server-ingress
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: kubeopencode
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kubeopencode-server
+      ports:
+        - port: 4096
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - port: 4096
+          protocol: TCP

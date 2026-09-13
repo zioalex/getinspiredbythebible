@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubeopencode-server
+  namespace: kubeopencode-system
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chat.home.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kubeopencode-server
+                port:
+                  number: 2746
