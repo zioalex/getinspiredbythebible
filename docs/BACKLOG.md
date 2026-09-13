@@ -3485,6 +3485,29 @@ picker, and input/example prompts in turn, gated by a `tour_seen` flag independe
 
 ## P3 - Low Priority (Future)
 
+### 🎯 BITB-148: The Backlog-ID Guard Can't Tell Two Same-Numbered Headings Apart
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-09-13
+
+**As** the maintainer of the backlog-ID CI guard (BITB-111), **I want** it to verify a
+story's `docs/BACKLOG.md` entry is actually about that file, **so that** an unrelated
+same-numbered legacy heading can't silently satisfy the check.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `_has_backlog_entry()` cannot be satisfied by a heading that shares an ID with the
+      target file but is about a different topic
+- [ ] The known case (`BITB-024-10-interaction-session-limit.md` currently passes only
+      via an unrelated legacy `### ✅ BITB-024: Add Phase 2 Language Support` heading) is
+      resolved or explicitly allowlisted the same way `_MISSING_BACKLOG_ENTRY_EXEMPT` is
+- [ ] A test proves a same-ID, different-topic heading is rejected
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-148-backlog-guard-heading-disambiguation.md`
+
+---
+
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
 **Status:** ✅ Done (PR #916, 2026-07-20)
