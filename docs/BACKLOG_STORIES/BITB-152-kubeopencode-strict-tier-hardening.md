@@ -1,4 +1,4 @@
-# BITB-130: KubeOpencode strict-tier sandbox hardening
+# BITB-152: KubeOpencode strict-tier sandbox hardening
 
 **Status:** 🎯 Todo | **Priority:** P1 | **Size:** M | **Date:** 2026-09-06
 
